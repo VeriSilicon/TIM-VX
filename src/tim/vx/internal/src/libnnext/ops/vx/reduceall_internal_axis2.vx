@@ -1,0 +1,34 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int         axisSize;
+
+#define REDUCEALL_AXIS2_PROCESS(read_fun, write_fun) \
+    vxc_char16 ones  = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; \
+    vxc_char16 zeros = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; \
+    read_fun(val0, input,  coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    result = val0 != zeros ? ones : zeros; \
+    coord.z++; \
+    while(coord.z < axisSize) \
+    { \
+        read_fun(val0, input,  coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+        val = val0 != zeros ? ones : zeros; \
+        result = result & val; \
+        coord.z++; \
+    } \
+    write_fun(output, coord.xy, result, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+
+__kernel void reduceall_axis2_I8toI8
+    (
+    __read_only  image2d_array_t input,
+    __write_only image2d_array_t output,
+    int   axisVal
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);
+    vxc_char16 val0;
+    vxc_char16 val, result;
+    REDUCEALL_AXIS2_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage)
+}
+
+

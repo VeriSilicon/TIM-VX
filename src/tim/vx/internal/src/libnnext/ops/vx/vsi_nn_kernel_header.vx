@@ -1,0 +1,198 @@
+/*
+ ============================================================================
+ Name        : libNNExt.vx
+ Author      : VSI
+ Version     :
+ Copyright   : Your copyright notice
+ Description :
+ ============================================================================
+ */
+#include "cl_viv_vx_ext.h"
+
+#if (VX_VERSION==1)
+#define VXC_DP2x8_b_(dst, src0, src1, src2, info, uniform)\
+do\
+{\
+    _viv_asm(COPY, dst, src0, 16); \
+} while (0)
+
+#define VXC_VertMin3_Integer(dst, src0, src1, src2, info)\
+do\
+{\
+    typeof (dst) tmp; \
+    tmp  = min(src0, src1);\
+    dst  = min(src2, tmp);\
+} while (0)
+
+#define VXC_VertMin3_Half(dst, src0, src1, src2, info)\
+do\
+{\
+    vxc_short8 val0_ver1, val1_ver1, val2_ver1, minVal_ver1, maxVal_ver1;\
+    _viv_asm(COPY, val0_ver1, src0, 16);\
+    _viv_asm(COPY, val1_ver1, src1, 16);\
+    _viv_asm(COPY, val2_ver1, src2, 16);\
+    maxVal_ver1 = max(val0_ver1, val1_ver1);\
+    minVal_ver1 = min(val0_ver1, val1_ver1);\
+    minVal_ver1 = maxVal_ver1 < 0 ? maxVal_ver1 : minVal_ver1; \
+    maxVal_ver1 = max(val2_ver1, minVal_ver1);\
+    minVal_ver1 = min(val2_ver1, minVal_ver1);\
+    minVal_ver1 = maxVal_ver1 < 0 ? maxVal_ver1 : minVal_ver1; \
+    _viv_asm(COPY, dst, minVal_ver1, 16); \
+} while (0)
+
+#define VXC_VertMax3_Integer(dst, src0, src1, src2, info)\
+do\
+{\
+    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
+    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    int mod1 = VXC_MODIFIER_CLAMP(startBin, endBin, sourceBin, 0);\
+    typeof (dst) tmp;\
+    tmp = max(src0, src1);\
+    tmp = max(src2, tmp);\
+    VXC_Clamp(dst, tmp, tmp, tmp, mod1);\
+} while (0)
+
+#define VXC_VertMax3_Half(dst, src0, src1, src2, info)\
+ do\
+ {\
+     vxc_short8 val0_ver1, val1_ver1, val2_ver1, minVal_ver1, maxVal_ver1;\
+     _viv_asm(COPY, val0_ver1, src0, 16);\
+     _viv_asm(COPY, val1_ver1, src1, 16);\
+     _viv_asm(COPY, val2_ver1, src2, 16);\
+     maxVal_ver1 = max(val0_ver1, val1_ver1);\
+     maxVal_ver1 = max(val2_ver1, maxVal_ver1);\
+     minVal_ver1 = min(val0_ver1, val1_ver1);\
+     minVal_ver1 = min(val2_ver1, minVal_ver1);\
+     maxVal_ver1 = maxVal_ver1 >= 0 ? maxVal_ver1 : minVal_ver1;\
+     _viv_asm(COPY, dst, maxVal_ver1, 16); \
+ } while (0)
+
+#define VXC_HorzMax3_Integer(dst, src0, info)\
+do\
+{\
+    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
+    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    int clamp         = (info & VXC_CLAMP_BITMASK) >> 22;\
+    int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Max, clamp);\
+    VXC_OP4(filter, dst, src0, src0, src0, mod1);\
+} while (0)
+
+#define VXC_HorzMax3_Half(dst, src0, info)\
+do\
+{\
+    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
+    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    int clamp         = (info & VXC_CLAMP_BITMASK) >> 22;\
+    int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Max, clamp);\
+    int mod2 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
+    vxc_short8 val0, minVal, maxVal;\
+    _viv_asm(COPY, val0, src0, 16);\
+    VXC_OP4(filter, maxVal, val0, val0, val0, mod1);\
+    VXC_OP4(filter, minVal, val0, val0, val0, mod2);\
+    maxVal = maxVal >= 0 ? maxVal : minVal;\
+    _viv_asm(COPY, dst, maxVal, 16);\
+} while (0)
+
+#define VXC_HorzMin3_Integer(dst, src0, info)\
+do\
+{\
+    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
+    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    int clamp         = (info & VXC_CLAMP_BITMASK) >> 22;\
+    int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
+    VXC_OP4(filter, dst, src0, src0, src0, mod1);\
+} while (0)
+
+#define VXC_HorzMin3_Half(dst, src0, info)\
+do\
+{\
+    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
+    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    int clamp         = (info & VXC_CLAMP_BITMASK) >> 22;\
+    int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Max, clamp);\
+    int mod2 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
+    int mod3 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Median, clamp);\
+    vxc_short8 val0, minVal, maxVal, midVal;\
+    _viv_asm(COPY, val0, src0, 16);\
+    VXC_OP4(filter, maxVal, val0, val0, val0, mod1);\
+    VXC_OP4(filter, minVal, val0, val0, val0, mod2);\
+    VXC_OP4(filter, midVal, val0, val0, val0, mod3);\
+    minVal = midVal  < 0 ? midVal : minVal;\
+    minVal = maxVal  < 0 ? maxVal : minVal;\
+    _viv_asm(COPY, dst, minVal, 16);\
+} while (0)
+
+#define VXC_Clamp_Half(dst, src0, src1, src2, info)\
+do\
+{\
+    typeof (dst) tmp;\
+    VXC_VertMax3_Half(tmp, src0, src0, src1, info);\
+    VXC_VertMin3_Half(dst, tmp, tmp, src2, info);\
+} while (0)
+
+#else
+#define VXC_DP2x8_b_(dst, src0, src1, src2, info, uniform)\
+do\
+{\
+    VXC_DP2x8_b(dst, src0, src1, src2, info, uniform); \
+} while (0)
+
+#define VXC_VertMin3_Integer(dst, src0, src1, src2, info)\
+ do\
+ {\
+    VXC_VertMin3(dst, src0, src1, src2, info);\
+ } while (0)
+
+#define VXC_VertMin3_Half(dst, src0, src1, src2, info)\
+ do\
+ {\
+    VXC_VertMin3(dst, src0, src1, src2, info);\
+ } while (0)
+
+#define VXC_VertMax3_Integer(dst, src0, src1, src2, info)\
+do\
+{\
+    VXC_VertMax3(dst, src0, src1, src2, info);\
+} while (0)
+
+#define VXC_VertMax3_Half(dst, src0, src1, src2, info)\
+do\
+{\
+    VXC_VertMax3(dst, src0, src1, src2, info);\
+} while (0)
+
+#define VXC_HorzMax3_Integer(dst, src0, info)\
+do\
+{\
+    VXC_HorzMax3(dst, src0, info);\
+} while (0)
+
+#define VXC_HorzMax3_Half(dst, src0, info)\
+do\
+{\
+    VXC_HorzMax3(dst, src0, info);\
+} while (0)
+
+#define VXC_HorzMin3_Integer(dst, src0, info)\
+do\
+{\
+    VXC_HorzMin3(dst, src0, info);\
+} while (0)
+
+#define VXC_HorzMin3_Half(dst, src0, info)\
+do\
+{\
+    VXC_HorzMin3(dst, src0, info);\
+} while (0)
+
+#define VXC_Clamp_Half(dst, src0, src1, src2, info)\
+do\
+{\
+    VXC_Clamp(dst, src0, src1, src2, info);\
+} while (0)
+#endif

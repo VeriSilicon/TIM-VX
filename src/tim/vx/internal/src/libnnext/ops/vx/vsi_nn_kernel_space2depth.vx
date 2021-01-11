@@ -1,0 +1,41 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniExtractEvenFp16Stride2_4x4;
+_viv_uniform VXC_512Bits uniExtractOddFp16Stride2_4x4;
+_viv_uniform int input_depth;
+
+__kernel void vxcReorg2_fp16_fp16_sx2_sy1
+    (
+    image2d_array_t input,
+    image2d_array_t output,
+    int stridex,
+    int stridey
+    )
+{
+    int gidx = get_global_id(0);
+    int gidy = get_global_id(1);
+    int gidz = get_global_id(2);
+
+    int4 coord = (int4)(gidx, gidy, gidz, 0);
+    int4 coord_out = (int4)(gidx >> 1, gidy, 0, 0);
+    int out_d0, out_d1;
+    vxc_short8 imageData;
+    vxc_short8 imgVal0, imgVal1;
+    //int tmpw = gidz / input_depth; \n\
+    //int tmpz = gidz % input_depth; \n\
+
+    VXC_ReadImage2DArray(imageData, input, coord, VXC_5BITOFFSET_XY(0, 0),
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_DP4x4(imgVal0, imageData, imageData, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),
+        uniExtractEvenFp16Stride2_4x4);
+    VXC_DP4x4(imgVal1, imageData, imageData, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),
+        uniExtractOddFp16Stride2_4x4);
+
+    out_d0 = gidz * 2 * 1;
+    out_d1 = out_d0 + 1;
+
+    coord_out.z = out_d0;
+    VXC_WriteImage2DArray(output, coord_out, imgVal0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    coord_out.z = out_d1;
+    VXC_WriteImage2DArray(output, coord_out, imgVal1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+}

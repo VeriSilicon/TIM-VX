@@ -1,0 +1,272 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniDatatoF32_0_4x4;
+_viv_uniform VXC_512Bits uniDatatoF32_1_4x4;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform float input_scale;
+_viv_uniform float input_tail;
+_viv_uniform float output_scale;
+_viv_uniform float output_zp;
+
+#define BATCH_NORM_SH_IMPL(name0, name1, src_type, read_type, conv_type, dst_type, save_type) \
+__kernel void batch_norm_##name0##to##name1##_brdcst1( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_array_t Mean, \
+    __read_only  image2d_array_t Variance, \
+    __read_only  image2d_array_t Gamma, \
+    __read_only  image2d_array_t Beta, \
+    __write_only image2d_array_t output, \
+                 float           eps \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    read_type vec; \
+    src_type src; \
+    VXC_ReadImage2DArray(vec, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, vec, 16); \
+    vxc_ushort8 _mean, _var, _gamma; \
+    vxc_half8 mean, var, gamma; \
+    VXC_ReadImage2DArray(_mean, Mean, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, mean, _mean, 16); \
+    VXC_ReadImage2DArray(_var, Variance, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, var, _var, 16); \
+    VXC_ReadImage2DArray(_gamma, Gamma, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, gamma, _gamma, 16); \
+    float4 beta = read_imagef(Beta, coord); \
+ \
+    float4 src0, src1, m, v, g; \
+    VXC_DP4x4(src0, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(m, mean, mean, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(v, var, var, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(g, gamma, gamma, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    g = g * rsqrt(v + eps); \
+    src0 = src0 * input_scale + input_tail; \
+    src0 = (src0 - m) * g + beta.xxxx; \
+    src0 = src0 * output_scale + output_zp; \
+    VXC_DP4x4(src1, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(m, mean, mean, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(v, var, var, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(g, gamma, gamma, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    g = g * rsqrt(v + eps); \
+    src1 = src1 * input_scale + input_tail; \
+    src1 = (src1 - m) * g + beta.xxxx; \
+    src1 = src1 * output_scale + output_zp; \
+ \
+    conv_type dst0, dst1; \
+    _viv_asm(CONV_RTE, dst0, src0); \
+    _viv_asm(CONV_RTE, dst1, src1); \
+    dst_type tmp; \
+    save_type dst; \
+    VXC_DP2x8(tmp, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \
+    _viv_asm(COPY, dst, tmp, 16); \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+BATCH_NORM_SH_IMPL(F16, F16, vxc_half8,   vxc_ushort8, half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL(F16, I16, vxc_half8,   vxc_ushort8, int4,  vxc_short8,  vxc_short8)
+BATCH_NORM_SH_IMPL(F16, U8,  vxc_half8,   vxc_ushort8, int4,  vxc_uchar16, vxc_uchar16)
+BATCH_NORM_SH_IMPL(F16, I8,  vxc_half8,   vxc_ushort8, int4,  vxc_char16,  vxc_char16)
+BATCH_NORM_SH_IMPL(I16, I16, vxc_short8,  vxc_short8,  int4,  vxc_short8,  vxc_short8)
+BATCH_NORM_SH_IMPL(I16, F16, vxc_short8,  vxc_short8,  half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL(U8,  U8,  vxc_uchar16, vxc_uchar16, int4,  vxc_uchar16, vxc_uchar16)
+BATCH_NORM_SH_IMPL(U8,  F16, vxc_uchar16, vxc_uchar16, half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL(I8,  I8,  vxc_char16,  vxc_char16,  int4,  vxc_char16,  vxc_char16)
+BATCH_NORM_SH_IMPL(I8,  F16, vxc_char16,  vxc_char16,  half4, vxc_half8,   vxc_ushort8)
+
+#define BATCH_NORM_SH_IMPL_2D(name0, name1, src_type, read_type, conv_type, dst_type, save_type) \
+__kernel void batch_norm_##name0##to##name1##_brdcst1_2D( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_t       Mean, \
+    __read_only  image2d_t       Variance, \
+    __read_only  image2d_t       Gamma, \
+    __read_only  image2d_t       Beta, \
+    __write_only image2d_array_t output, \
+                 float           eps \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    read_type vec; \
+    src_type src; \
+    VXC_ReadImage(vec, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, vec, 16); \
+    vxc_ushort8 _mean, _var, _gamma; \
+    vxc_half8 mean, var, gamma; \
+    VXC_ReadImage(_mean, Mean, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, mean, _mean, 16); \
+    VXC_ReadImage(_var, Variance, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, var, _var, 16); \
+    VXC_ReadImage(_gamma, Gamma, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, gamma, _gamma, 16); \
+    float4 beta = read_imagef(Beta, coord.xy); \
+ \
+    float4 src0, src1, m, v, g; \
+    VXC_DP4x4(src0, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(m, mean, mean, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(v, var, var, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(g, gamma, gamma, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    g = g * rsqrt(v + eps); \
+    src0 = src0 * input_scale + input_tail; \
+    src0 = (src0 - m) * g + beta.xxxx; \
+    src0 = src0 * output_scale + output_zp; \
+    VXC_DP4x4(src1, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(m, mean, mean, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(v, var, var, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(g, gamma, gamma, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    g = g * rsqrt(v + eps); \
+    src1 = src1 * input_scale + input_tail; \
+    src1 = (src1 - m) * g + beta.xxxx; \
+    src1 = src1 * output_scale + output_zp; \
+ \
+    conv_type dst0, dst1; \
+    _viv_asm(CONV_RTE, dst0, src0); \
+    _viv_asm(CONV_RTE, dst1, src1); \
+    dst_type tmp; \
+    save_type dst; \
+    VXC_DP2x8(tmp, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \
+    _viv_asm(COPY, dst, tmp, 16); \
+    VXC_WriteImage(output, coord.xy, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+BATCH_NORM_SH_IMPL_2D(F16, F16, vxc_half8,   vxc_ushort8, half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_2D(F16, I16, vxc_half8,   vxc_ushort8, int4,  vxc_short8,  vxc_short8)
+BATCH_NORM_SH_IMPL_2D(F16, U8,  vxc_half8,   vxc_ushort8, int4,  vxc_uchar16, vxc_uchar16)
+BATCH_NORM_SH_IMPL_2D(F16, I8,  vxc_half8,   vxc_ushort8, int4,  vxc_char16,  vxc_char16)
+BATCH_NORM_SH_IMPL_2D(I16, I16, vxc_short8,  vxc_short8,  int4,  vxc_short8,  vxc_short8)
+BATCH_NORM_SH_IMPL_2D(I16, F16, vxc_short8,  vxc_short8,  half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_2D(U8,  U8,  vxc_uchar16, vxc_uchar16, int4,  vxc_uchar16, vxc_uchar16)
+BATCH_NORM_SH_IMPL_2D(U8,  F16, vxc_uchar16, vxc_uchar16, half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_2D(I8,  I8,  vxc_char16,  vxc_char16,  int4,  vxc_char16,  vxc_char16)
+BATCH_NORM_SH_IMPL_2D(I8,  F16, vxc_char16,  vxc_char16,  half4, vxc_half8,   vxc_ushort8)
+
+
+#define BATCH_NORM_SH_IMPL_AXIS1(name0, name1, src_type, read_type, conv_type, dst_type, save_type) \
+__kernel void batch_norm_##name0##to##name1##_brdcst0( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_array_t Mean, \
+    __read_only  image2d_array_t Variance, \
+    __read_only  image2d_array_t Gamma, \
+    __read_only  image2d_array_t Beta, \
+    __write_only image2d_array_t output, \
+                 float           eps \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    read_type vec; \
+    src_type src; \
+    VXC_ReadImage2DArray(vec, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, vec, 16); \
+    vxc_ushort8 _mean, _var, _gamma; \
+    vxc_half8 mean, var, gamma; \
+    VXC_ReadImage2DArray(_mean, Mean, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, mean, _mean, 16); \
+    VXC_ReadImage2DArray(_var, Variance, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, var, _var, 16); \
+    VXC_ReadImage2DArray(_gamma, Gamma, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, gamma, _gamma, 16); \
+    float4 beta0 = read_imagef(Beta, coord); \
+    coord.x += 4; \
+    float4 beta1 = read_imagef(Beta, coord); \
+    coord.x -= 4; \
+ \
+    float4 src0, src1, m, v, g; \
+    VXC_DP4x4(src0, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(m, mean, mean, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(v, var, var, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(g, gamma, gamma, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    g = g * rsqrt(v + eps); \
+    src0 = src0 * input_scale + input_tail; \
+    src0 = (src0 - m) * g + beta0; \
+    src0 = src0 * output_scale + output_zp; \
+    VXC_DP4x4(src1, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(m, mean, mean, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(v, var, var, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(g, gamma, gamma, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    g = g * rsqrt(v + eps); \
+    src1 = src1 * input_scale + input_tail; \
+    src1 = (src1 - m) * g + beta1; \
+    src1 = src1 * output_scale + output_zp; \
+ \
+    conv_type dst0, dst1; \
+    _viv_asm(CONV_RTE, dst0, src0); \
+    _viv_asm(CONV_RTE, dst1, src1); \
+    dst_type tmp; \
+    save_type dst; \
+    VXC_DP2x8(tmp, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \
+    _viv_asm(COPY, dst, tmp, 16); \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+BATCH_NORM_SH_IMPL_AXIS1(F16, F16, vxc_half8,   vxc_ushort8, half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_AXIS1(F16, I16, vxc_half8,   vxc_ushort8, int4,  vxc_short8,  vxc_short8)
+BATCH_NORM_SH_IMPL_AXIS1(F16, U8,  vxc_half8,   vxc_ushort8, int4,  vxc_uchar16, vxc_uchar16)
+BATCH_NORM_SH_IMPL_AXIS1(F16, I8,  vxc_half8,   vxc_ushort8, int4,  vxc_char16,  vxc_char16)
+BATCH_NORM_SH_IMPL_AXIS1(I16, I16, vxc_short8,  vxc_short8,  int4,  vxc_short8,  vxc_short8)
+BATCH_NORM_SH_IMPL_AXIS1(I16, F16, vxc_short8,  vxc_short8,  half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_AXIS1(U8,  U8,  vxc_uchar16, vxc_uchar16, int4,  vxc_uchar16, vxc_uchar16)
+BATCH_NORM_SH_IMPL_AXIS1(U8,  F16, vxc_uchar16, vxc_uchar16, half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_AXIS1(I8,  I8,  vxc_char16,  vxc_char16,  int4,  vxc_char16,  vxc_char16)
+BATCH_NORM_SH_IMPL_AXIS1(I8,  F16, vxc_char16,  vxc_char16,  half4, vxc_half8,   vxc_ushort8)
+
+#define BATCH_NORM_SH_IMPL_AXIS1_2D(name0, name1, src_type, read_type, conv_type, dst_type, save_type) \
+__kernel void batch_norm_##name0##to##name1##_brdcst0_2D( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_t       Mean, \
+    __read_only  image2d_t       Variance, \
+    __read_only  image2d_t       Gamma, \
+    __read_only  image2d_t       Beta, \
+    __write_only image2d_array_t output, \
+                 float           eps \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), 0); \
+    read_type vec; \
+    src_type src; \
+    VXC_ReadImage(vec, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, vec, 16); \
+    coord.z += 4; \
+    vxc_ushort8 _mean, _var, _gamma; \
+    vxc_half8 mean, var, gamma; \
+    VXC_ReadImage(_mean, Mean, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, mean, _mean, 16); \
+    VXC_ReadImage(_var, Variance, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, var, _var, 16); \
+    VXC_ReadImage(_gamma, Gamma, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, gamma, _gamma, 16); \
+    float4 beta0 = read_imagef(Beta, coord.xy); \
+    float4 beta1 = read_imagef(Beta, coord.zy); \
+ \
+    float4 src0, src1, m, v, g; \
+    VXC_DP4x4(src0, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(m, mean, mean, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(v, var, var, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    VXC_DP4x4(g, gamma, gamma, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_0_4x4); \
+    g = g * rsqrt(v + eps); \
+    src0 = src0 * input_scale + input_tail; \
+    src0 = (src0 - m) * g + beta0; \
+    src0 = src0 * output_scale + output_zp; \
+    VXC_DP4x4(src1, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(m, mean, mean, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(v, var, var, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    VXC_DP4x4(g, gamma, gamma, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDatatoF32_1_4x4); \
+    g = g * rsqrt(v + eps); \
+    src1 = src1 * input_scale + input_tail; \
+    src1 = (src1 - m) * g + beta1; \
+    src1 = src1 * output_scale + output_zp; \
+ \
+    conv_type dst0, dst1; \
+    _viv_asm(CONV_RTE, dst0, src0); \
+    _viv_asm(CONV_RTE, dst1, src1); \
+    dst_type tmp; \
+    save_type dst; \
+    VXC_DP2x8(tmp, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \
+    _viv_asm(COPY, dst, tmp, 16); \
+    VXC_WriteImage(output, coord.xy, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+BATCH_NORM_SH_IMPL_AXIS1_2D(F16, F16, vxc_half8,   vxc_ushort8, half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_AXIS1_2D(F16, I16, vxc_half8,   vxc_ushort8, int4,  vxc_short8,  vxc_short8)
+BATCH_NORM_SH_IMPL_AXIS1_2D(F16, U8,  vxc_half8,   vxc_ushort8, int4,  vxc_uchar16, vxc_uchar16)
+BATCH_NORM_SH_IMPL_AXIS1_2D(F16, I8,  vxc_half8,   vxc_ushort8, int4,  vxc_char16,  vxc_char16)
+BATCH_NORM_SH_IMPL_AXIS1_2D(I16, I16, vxc_short8,  vxc_short8,  int4,  vxc_short8,  vxc_short8)
+BATCH_NORM_SH_IMPL_AXIS1_2D(I16, F16, vxc_short8,  vxc_short8,  half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_AXIS1_2D(U8,  U8,  vxc_uchar16, vxc_uchar16, int4,  vxc_uchar16, vxc_uchar16)
+BATCH_NORM_SH_IMPL_AXIS1_2D(U8,  F16, vxc_uchar16, vxc_uchar16, half4, vxc_half8,   vxc_ushort8)
+BATCH_NORM_SH_IMPL_AXIS1_2D(I8,  I8,  vxc_char16,  vxc_char16,  int4,  vxc_char16,  vxc_char16)
+BATCH_NORM_SH_IMPL_AXIS1_2D(I8,  F16, vxc_char16,  vxc_char16,  half4, vxc_half8,   vxc_ushort8)
+

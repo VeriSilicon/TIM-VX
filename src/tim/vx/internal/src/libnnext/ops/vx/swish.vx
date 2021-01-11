@@ -1,0 +1,143 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float logE;
+
+float4 sigmoid_(float4 x)
+{
+    x *= -logE;
+    x = 1 + exp2(x);
+    return 1 / x;
+}
+
+_viv_uniform float inputScale;
+_viv_uniform float inputTail;
+_viv_uniform float outputScale;
+_viv_uniform float outputZP;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform VXC_512Bits uniDatatoFp32Part0_4x4;
+_viv_uniform VXC_512Bits uniDatatoFp32Part1_4x4;
+
+#define SWISH_PROCESS(read_fun, write_fun, src_type, src_copy_type, convert_type, dst_type, dst_copy_type, \
+                     INSCALE, INTAIL, OUTSCALE, OUTZP) \
+    src_type      src0; \
+    src_copy_type src1; \
+    read_fun(src0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src1, src0, 16); \
+    float4 vecA, vecB, vecC, vecD; \
+    VXC_DP4x4(vecA, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFp32Part0_4x4); \
+    VXC_DP4x4(vecB, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFp32Part1_4x4); \
+    vecA = vecA * INSCALE + INTAIL; \
+    vecB = vecB * INSCALE + INTAIL; \
+    vecC = beta * vecA; \
+    vecD = beta * vecB; \
+    vecC = sigmoid_(vecC); \
+    vecD = sigmoid_(vecD); \
+    vecA = vecA * vecC; \
+    vecB = vecB * vecD; \
+    vecA = vecA * OUTSCALE + OUTZP; \
+    vecB = vecB * OUTSCALE + OUTZP; \
+    convert_type dst0, dst1; \
+    _viv_asm(CONV_RTE, dst0, vecA); \
+    _viv_asm(CONV_RTE, dst1, vecB); \
+    dst_type dst2; \
+    VXC_DP2x8(dst2, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    dst_copy_type dst; \
+    _viv_asm(COPY, dst, dst2, 16); \
+    write_fun(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+
+#define SWISH_FUNC(src_type_name, dst_type_name, src_type, src_copy_type, convert_type, dst_type, dst_copy_type,\
+                   INSCALE, INTAIL, OUTSCALE, OUTZP) \
+    __kernel void swish_##src_type_name##to##dst_type_name( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                           float  beta \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    SWISH_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray, src_type, src_copy_type, convert_type, \
+                  dst_type, dst_copy_type, INSCALE, INTAIL, OUTSCALE, OUTZP) \
+}
+
+SWISH_FUNC(F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8, 1, 0, 1, 0)
+SWISH_FUNC(F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8,  1, 0, outputScale, 0)
+SWISH_FUNC(F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8, 1, 0, outputScale, outputZP)
+SWISH_FUNC(F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8, 1, 0, outputScale, 0)
+SWISH_FUNC(I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8,  inputScale, 0, outputScale, 0)
+SWISH_FUNC(I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8, inputScale, 0, 1, 0)
+SWISH_FUNC(U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8, \
+inputScale, inputTail, outputScale, outputZP)
+SWISH_FUNC(U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8, inputScale, inputTail, 1, 0)
+SWISH_FUNC(I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8, inputScale, 0, outputScale, 0)
+SWISH_FUNC(I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8, inputScale, 0, 1, 0)
+
+
+#define SWISH_FUNC_2D(src_type_name, dst_type_name, src_type, src_copy_type, convert_type, dst_type, \
+                     dst_copy_type, INSCALE, INTAIL, OUTSCALE, OUTZP) \
+    __kernel void swish_##src_type_name##to##dst_type_name##_2D( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                           float  beta \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    SWISH_PROCESS(VXC_ReadImage, VXC_WriteImage, src_type, src_copy_type, convert_type, dst_type, \
+                  dst_copy_type, INSCALE, INTAIL, OUTSCALE, OUTZP) \
+}
+
+SWISH_FUNC_2D(F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8, 1, 0, 1, 0)
+SWISH_FUNC_2D(F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8,  1, 0, outputScale, 0)
+SWISH_FUNC_2D(F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8, 1, 0, outputScale, outputZP)
+SWISH_FUNC_2D(F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8, 1, 0, outputScale, 0)
+SWISH_FUNC_2D(I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8,  inputScale, 0, outputScale, 0)
+SWISH_FUNC_2D(I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8, inputScale, 0, 1, 0)
+SWISH_FUNC_2D(U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8, \
+inputScale, inputTail, outputScale, outputZP)
+SWISH_FUNC_2D(U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8, inputScale, inputTail, 1, 0)
+SWISH_FUNC_2D(I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8, inputScale, 0, outputScale, 0)
+SWISH_FUNC_2D(I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8, inputScale, 0, 1, 0)
+
+
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+
+#define SWISH_BF16_PROCESS(read_fun, write_fun) \
+    vxc_ushort8   src0, src1, dst; \
+    float4 vecA, vecB, vecC, vecD; \
+    read_fun(src0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0); \
+    VXC_DP2x8(src1, src0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8); \
+    _viv_asm(COPY, vecA, src1, 16); \
+    VXC_DP2x8(src1, src0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8); \
+    _viv_asm(COPY, vecB, src1, 16); \
+    vecC = beta * vecA; \
+    vecD = beta * vecB; \
+    vecC = sigmoid_(vecC); \
+    vecD = sigmoid_(vecD); \
+    vecA = vecA * vecC; \
+    vecB = vecB * vecD; \
+    _viv_asm(COPY, src0, vecA, 16); \
+    _viv_asm(COPY, src1, vecB, 16); \
+    VXC_DP2x8(dst, src0, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8); \
+    write_fun(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+__kernel void swish_BF16toBF16(
+    __read_only  image2d_array_t  input,
+    __write_only image2d_array_t  output,
+                           float  beta
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    SWISH_BF16_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray);
+}
+
+__kernel void swish_BF16toBF16_2D(
+    __read_only  image2d_array_t  input,
+    __write_only image2d_array_t  output,
+                           float  beta
+    )
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    SWISH_BF16_PROCESS(VXC_ReadImage, VXC_WriteImage);
+}

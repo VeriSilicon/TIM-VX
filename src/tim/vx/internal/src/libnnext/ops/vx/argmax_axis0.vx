@@ -1,0 +1,240 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int4 packedArgIdx;
+_viv_uniform int inputWidth;
+_viv_uniform VXC_512Bits uniPackedIdxAddSat_2x8;
+_viv_uniform VXC_512Bits uniSrcT2DstT_2x8;
+
+#define TENSOR_ARGMAX_AXIS0_8BITS(src_type_name, dst_type_name, src_type, \
+                                cond_type0, cond_type1, dst_type, cond_type) \
+__kernel void argmax_axis0_##src_type_name##to##dst_type_name( \
+__read_only  image2d_array_t  input, \
+__write_only image2d_array_t  output, \
+        int  axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(0, get_global_id(0), get_global_id(1), 0); \
+    src_type maxValue, maxVec, value; \
+    dst_type packIdx, currIdx; \
+ \
+    VXC_ReadImage2DArray(maxVec, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, packIdx, packedArgIdx, 16); \
+    _viv_asm(COPY, currIdx, packedArgIdx, 16); \
+    coord.x += 8; \
+    for (; coord.x < inputWidth; ) \
+    { \
+        VXC_ReadImage2DArray(value, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        coord.x += 8; \
+ \
+        currIdx = currIdx + 8; \
+        dst_type condition; \
+        cond_type0 src_condition0 = value > maxVec; \
+        cond_type1 src_condition; \
+        _viv_asm(COPY, src_condition, src_condition0, 8); \
+        cond_type condition_tmp; \
+        VXC_DP2x8(condition_tmp, src_condition, src_condition, \
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniSrcT2DstT_2x8); \
+        _viv_asm(COPY, condition, condition_tmp, 16); \
+        packIdx = condition ? currIdx : packIdx; \
+        maxVec = max(maxVec, value); \
+    } \
+ \
+    VXC_HorzMax3_Integer(maxValue, maxVec, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \
+    VXC_HorzMax3_Integer(maxValue, maxValue.s035, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    maxValue.s01234567 = maxValue.s00000000; \
+ \
+    cond_type1 _maxVal; \
+    VXC_Clamp(_maxVal, maxVec, maxValue, maxValue, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+    _maxVal += 1; \
+ \
+    VXC_DP2x8(packIdx, packIdx, _maxVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniPackedIdxAddSat_2x8); \
+ \
+    VXC_HorzMin3_Integer(packIdx, packIdx, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \
+    VXC_HorzMin3_Integer(packIdx, packIdx.s035, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    VXC_WriteImage(output, coord.yz, packIdx, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+TENSOR_ARGMAX_AXIS0_8BITS(I8,  I16, vxc_char8,  vxc_char8,  vxc_uchar8,  vxc_short8, vxc_ushort8)
+TENSOR_ARGMAX_AXIS0_8BITS(I8,  U8,  vxc_char8,  vxc_char8,  vxc_uchar8,  vxc_uchar8, vxc_uchar8)
+TENSOR_ARGMAX_AXIS0_8BITS(U8,  I16, vxc_uchar8, vxc_char8,  vxc_uchar8,  vxc_short8, vxc_ushort8)
+TENSOR_ARGMAX_AXIS0_8BITS(U8,  U8,  vxc_uchar8, vxc_char8,  vxc_uchar8,  vxc_uchar8, vxc_uchar8)
+TENSOR_ARGMAX_AXIS0_8BITS(I16, I16, vxc_short8, vxc_short8, vxc_ushort8, vxc_short8, vxc_ushort8)
+TENSOR_ARGMAX_AXIS0_8BITS(I16, U8,  vxc_short8, vxc_short8, vxc_ushort8, vxc_uchar8, vxc_uchar8)
+
+#define TENSOR_ARGMAX_AXIS0_8BITS_2D(src_type_name, dst_type_name, src_type, \
+                                    cond_type0, cond_type1, dst_type, cond_type) \
+__kernel void argmax_axis0_##src_type_name##to##dst_type_name##_2D( \
+__read_only  image2d_array_t  input, \
+__write_only image2d_array_t  output, \
+        int  axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(0, get_global_id(0), 0, 0); \
+    src_type maxValue, maxVec, value; \
+    dst_type packIdx, currIdx; \
+ \
+    VXC_ReadImage(maxVec, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, packIdx, packedArgIdx, 16); \
+    _viv_asm(COPY, currIdx, packedArgIdx, 16); \
+    coord.x += 8; \
+    for (; coord.x < inputWidth; ) \
+    { \
+        VXC_ReadImage(value, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        coord.x += 8; \
+ \
+        currIdx = currIdx + 8; \
+        dst_type condition; \
+        cond_type0 src_condition0 = value > maxVec; \
+        cond_type1 src_condition; \
+        _viv_asm(COPY, src_condition, src_condition0, 8); \
+        cond_type condition_tmp; \
+        VXC_DP2x8(condition_tmp, src_condition, src_condition, \
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniSrcT2DstT_2x8); \
+        _viv_asm(COPY, condition, condition_tmp, 16); \
+        packIdx = condition ? currIdx : packIdx; \
+        maxVec = max(maxVec, value); \
+    } \
+ \
+    VXC_HorzMax3_Integer(maxValue, maxVec, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \
+    VXC_HorzMax3_Integer(maxValue, maxValue.s035, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    maxValue.s01234567 = maxValue.s00000000; \
+ \
+    cond_type1 _maxVal; \
+    VXC_Clamp(_maxVal, maxVec, maxValue, maxValue, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+    _maxVal += 1; \
+ \
+    VXC_DP2x8(packIdx, packIdx, _maxVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniPackedIdxAddSat_2x8); \
+ \
+    VXC_HorzMin3_Integer(packIdx, packIdx, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \
+    VXC_HorzMin3_Integer(packIdx, packIdx.s035, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    VXC_WriteImage(output, coord.yz, packIdx, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+
+TENSOR_ARGMAX_AXIS0_8BITS_2D(I8,  I16, vxc_char8,  vxc_char8,  vxc_uchar8,  vxc_short8, vxc_ushort8)
+TENSOR_ARGMAX_AXIS0_8BITS_2D(I8,  U8,  vxc_char8,  vxc_char8,  vxc_uchar8,  vxc_uchar8, vxc_uchar8)
+TENSOR_ARGMAX_AXIS0_8BITS_2D(U8,  I16, vxc_uchar8, vxc_char8,  vxc_uchar8,  vxc_short8, vxc_ushort8)
+TENSOR_ARGMAX_AXIS0_8BITS_2D(U8,  U8,  vxc_uchar8, vxc_char8,  vxc_uchar8,  vxc_uchar8, vxc_uchar8)
+TENSOR_ARGMAX_AXIS0_8BITS_2D(I16, I16, vxc_short8, vxc_short8, vxc_ushort8, vxc_short8, vxc_ushort8)
+TENSOR_ARGMAX_AXIS0_8BITS_2D(I16, U8,  vxc_short8, vxc_short8, vxc_ushort8, vxc_uchar8, vxc_uchar8)
+
+_viv_uniform VXC_512Bits uniConvertHalf2Float32_4x4;
+
+#define TENSOR_ARGMAX_AXIS0_F16_2D(dst_type_name, dst_type) \
+__kernel void argmax_axis0_F16to##dst_type_name##_2D( \
+__read_only  image2d_array_t  input, \
+__write_only image2d_array_t  output, \
+        int  axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(0, get_global_id(0), 0, 0); \
+    vxc_short8 vec0, vec1; \
+    vxc_half8 src; \
+    uint4 packIdx, currIdx; \
+    float4 maxValue, value; \
+ \
+    VXC_ReadImage(vec0, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, vec0, 16); \
+    _viv_asm(COPY, packIdx, packedArgIdx, 16); \
+    _viv_asm(COPY, currIdx, packedArgIdx, 16); \
+    coord.x += 4; \
+    VXC_DP4x4(maxValue, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertHalf2Float32_4x4); \
+    for (; coord.x < inputWidth; ) \
+    { \
+        VXC_ReadImage(vec1, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src, vec1, 16); \
+        coord.x += 4; \
+ \
+       currIdx = currIdx + 4; \
+        VXC_DP4x4(value, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertHalf2Float32_4x4); \
+ \
+        int4 condition; \
+        condition = value > maxValue; \
+ \
+        uint4 iCondition; \
+        _viv_asm(COPY, iCondition, condition, 16); \
+        packIdx = iCondition ? currIdx : packIdx; \
+        maxValue = value > maxValue ? value : maxValue; \
+    } \
+ \
+    float4 maxVec; \
+    float2 maxVal2 = maxValue.xy > maxValue.zw ? maxValue.xy : maxValue.zw; \
+    maxVec.x = maxVal2.x > maxVal2.y ? maxVal2.x : maxVal2.y; \
+    int4 condition; \
+    condition = maxVec.xxxx == maxValue; \
+    uint4 iCondition; \
+    _viv_asm(COPY, iCondition, condition, 16); \
+    iCondition += 1; \
+ \
+    packIdx = mad_sat(iCondition, 0xFFFFFFFF, packIdx); \
+ \
+    uint2 val2 = packIdx.xy < packIdx.zw ? packIdx.xy : packIdx.zw; \
+    val2.x = val2.x < val2.y ? val2.x : val2.y; \
+ \
+    dst_type dst; \
+    _viv_asm(COPY, dst, val2, 4); \
+    VXC_WriteImage(output, coord.yz, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+TENSOR_ARGMAX_AXIS0_F16_2D(I16, vxc_ushort8)
+TENSOR_ARGMAX_AXIS0_F16_2D(U8,  vxc_uchar8)
+
+
+#define TENSOR_ARGMAX_AXIS0_F16(dst_type_name, dst_type) \
+__kernel void argmax_axis0_F16to##dst_type_name( \
+__read_only  image2d_array_t  input, \
+__write_only image2d_array_t  output, \
+        int  axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(0, get_global_id(0), get_global_id(1), 0); \
+    vxc_short8 vec0, vec1; \
+    vxc_half8 src; \
+    uint4 packIdx, currIdx; \
+    float4 maxValue, value; \
+ \
+    VXC_ReadImage2DArray(vec0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, vec0, 16); \
+    _viv_asm(COPY, packIdx, packedArgIdx, 16); \
+    _viv_asm(COPY, currIdx, packedArgIdx, 16); \
+    coord.x += 4; \
+    VXC_DP4x4(maxValue, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertHalf2Float32_4x4); \
+    for (; coord.x < inputWidth; ) \
+    { \
+        VXC_ReadImage2DArray(vec1, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src, vec1, 16); \
+        coord.x += 4; \
+ \
+       currIdx = currIdx + 4; \
+        VXC_DP4x4(value, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertHalf2Float32_4x4); \
+ \
+        int4 condition; \
+        condition = value > maxValue; \
+ \
+        uint4 iCondition; \
+        _viv_asm(COPY, iCondition, condition, 16); \
+        packIdx = iCondition ? currIdx : packIdx; \
+        maxValue = value > maxValue ? value : maxValue; \
+    } \
+ \
+    float4 maxVec; \
+    float2 maxVal2 = maxValue.xy > maxValue.zw ? maxValue.xy : maxValue.zw; \
+    maxVec.x = maxVal2.x > maxVal2.y ? maxVal2.x : maxVal2.y; \
+    int4 condition; \
+    condition = maxVec.xxxx == maxValue; \
+    uint4 iCondition; \
+    _viv_asm(COPY, iCondition, condition, 16); \
+    iCondition += 1; \
+ \
+    packIdx = mad_sat(iCondition, 0xFFFFFFFF, packIdx); \
+ \
+    uint2 val2 = packIdx.xy < packIdx.zw ? packIdx.xy : packIdx.zw; \
+    val2.x = val2.x < val2.y ? val2.x : val2.y; \
+ \
+    dst_type dst; \
+    _viv_asm(COPY, dst, val2, 4); \
+    VXC_WriteImage(output, coord.yz, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+TENSOR_ARGMAX_AXIS0_F16(I16, vxc_ushort8)
+TENSOR_ARGMAX_AXIS0_F16(U8,  vxc_uchar8)

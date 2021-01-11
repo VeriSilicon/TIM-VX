@@ -1,0 +1,39 @@
+/*
+ ============================================================================
+ Name        : gemm.vx
+ Author      : Sam
+ Version     :
+ Copyright   : Your copyright notice
+ Description :
+ ============================================================================
+ */
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniGemm3x3_4x4;
+__kernel void vxcTransform_Gemm_F16toF16
+    (
+    __read_only     image2d_array_t thetaTensor,
+    __read_only     image2d_array_t gridTensor,
+    __write_only    image2d_array_t coordinates
+    )
+{
+    int4 coord    = (int4)(0, get_global_id(0), get_global_id(1), 0);
+
+    vxc_short8 vec0, vec1, vec2;
+    vxc_half8  src0, src1, src2, dst;
+
+    VXC_ReadImage(vec0,thetaTensor,coord.xx,VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0,5, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, src0, vec0, 16);
+    VXC_ReadImage(vec1,gridTensor,coord.yz,VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0,5,0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, src1, vec1, 16);
+    VXC_ReadImage(vec2,gridTensor,coord.yz,VXC_5BITOFFSET_XY(6,0),VXC_MODIFIER(0,5,0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, src2, vec2, 16);
+
+    coord.y = (int)((short)coord.y / (short)3) * 2;
+
+    VXC_DP4x4(dst, src1, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGemm3x3_4x4);
+    VXC_DP4x4(dst, src2, src0, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniGemm3x3_4x4);
+
+    _viv_asm(COPY, vec0, dst, 16);
+    VXC_WriteImage(coordinates, coord.yz, vec0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}

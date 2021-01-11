@@ -1,0 +1,85 @@
+package(default_visibility = ["//gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:__pkg__"])
+
+filegroup(
+    name = "srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "gcc",
+    srcs = [
+        "wrapper-gcc",
+        "@gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu//:gcc",
+    ],
+)
+
+filegroup(
+    name = "ar",
+    srcs = [
+        "wrapper-ar",
+        "@gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu//:ar",
+    ],
+)
+
+filegroup(
+    name = "ld",
+    srcs = [
+        "wrapper-ld",
+        "@gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu//:ld",
+    ],
+)
+
+filegroup(
+    name = "nm",
+    srcs = [
+        "wrapper-nm",
+        "@gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu//:nm",
+    ],
+)
+
+filegroup(
+    name = "objcopy",
+    srcs = [
+        "wrapper-objcopy",
+        "@gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu//:objcopy",
+    ],
+)
+
+filegroup(
+    name = "objdump",
+    srcs = [
+        "wrapper-objdump",
+        "@gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu//:objdump",
+    ],
+)
+
+filegroup(
+    name = "strip",
+    srcs = [
+        "wrapper-strip",
+        "@gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu//:strip",
+    ],
+)
+
+filegroup(
+    name = "as",
+    srcs = [
+        "wrapper-as",
+        "@gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu//:as",
+    ],
+)
+
+filegroup(
+    name = "tool-wrappers",
+    srcs = [
+        ":ar",
+        ":as",
+        ":gcc",
+        ":ld",
+        ":nm",
+        ":objcopy",
+        ":objdump",
+        ":strip",
+    ],
+)

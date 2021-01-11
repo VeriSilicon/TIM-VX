@@ -1,0 +1,106 @@
+#include "cl_viv_vx_ext.h"
+
+#define logE     (1.44269502f)
+#define twoLogE  (2.88539004f)
+
+float4 sigmoid(float4 x)
+{
+    x *= -logE;
+    x = 1 + exp2(x);
+    return 1 / x;
+}
+float4 hsigmoid(float4 x)
+{
+    x = 0.2 * x + 0.5;
+    x = clamp(x, 0, 1);
+    return x;
+}
+float4 tangentH(float4 x)
+{
+    x *= -twoLogE;
+    x = 1 + exp2(x);
+    x = 1 / x;
+    return 2 * x - 1;
+}
+
+_viv_uniform VXC_512Bits uniConvDatatoFp32_4x4;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform float4 tensorScale;
+_viv_uniform float4 tensorZP;
+
+#define GRUCELL_ACTIVATION_SIGMOID_TANH(name0, name1, name2, name3, activater, \
+        type00, type01, type10, type11, type20, type21, dst_type, conv_type, copy_type) \
+__kernel void grucell_activation_##name0##_##name1##_##name2##_to_##name3##_##activater \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_array_t input1, \
+    __read_only  image2d_array_t input2, \
+    __write_only image2d_array_t output, \
+    __write_only image2d_array_t hstate, \
+                             int gate_activation, \
+                             int candidate_activation \
+    ) \
+{ \
+    type00 src00; \
+    type01 src01; \
+    type00 src10; \
+    type01 src11; \
+    type00 src20; \
+    type01 src21; \
+ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    VXC_ReadImage(src00, input0, coord, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src01, src00, 8); \
+    VXC_ReadImage(src10, input1, coord, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src11, src10, 8); \
+    VXC_ReadImage(src20, input2, coord, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src21, src20, 8); \
+ \
+    float4 zt, ht, ht_1; \
+    VXC_DP4x4(zt, src01, src01, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvDatatoFp32_4x4); \
+    VXC_DP4x4(ht, src11, src11, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvDatatoFp32_4x4); \
+    VXC_DP4x4(ht_1, src21, src21, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvDatatoFp32_4x4); \
+ \
+    zt = zt * tensorScale.xxxx - tensorZP.xxxx; \
+    zt = activater(zt); \
+ \
+    ht = ht * tensorScale.yyyy - tensorZP.yyyy; \
+    ht = tangentH(ht); \
+ \
+    ht_1 = ht_1 * tensorScale.zzzz - tensorZP.zzzz; \
+ \
+    ht = ht - zt * ht; \
+    ht = zt * ht_1 + ht; \
+ \
+    ht = ht  * tensorScale.wwww + tensorZP.wwww; \
+    conv_type dst0; \
+    dst_type dst1; \
+    copy_type dst; \
+ \
+    _viv_asm(CONV_RTE, dst0, ht); \
+    VXC_DP2x8(dst1, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \
+    _viv_asm(COPY, dst, dst1, 8); \
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    VXC_WriteImage(hstate, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+
+#define UCHAR8  vxc_uchar8
+#define SHORT8  vxc_short8
+#define HALF8   vxc_half8
+
+GRUCELL_ACTIVATION_SIGMOID_TANH(U8,  U8,  U8,  U8, sigmoid,
+                                UCHAR8, UCHAR8, UCHAR8, UCHAR8, UCHAR8, UCHAR8, UCHAR8, int4,  UCHAR8)
+GRUCELL_ACTIVATION_SIGMOID_TANH(F16, F16, F16, F16, sigmoid,
+                                SHORT8, HALF8,  SHORT8, HALF8,  SHORT8, HALF8,  HALF8,  half4, SHORT8)
+GRUCELL_ACTIVATION_SIGMOID_TANH(F16, F16, F16, U8, sigmoid,
+                                SHORT8, HALF8,  SHORT8, HALF8,  SHORT8, HALF8,  UCHAR8, int4,  UCHAR8)
+GRUCELL_ACTIVATION_SIGMOID_TANH(U8,  U8,  U8,  U8, hsigmoid,
+                                UCHAR8, UCHAR8, UCHAR8, UCHAR8, UCHAR8, UCHAR8, UCHAR8, int4,  UCHAR8)
+GRUCELL_ACTIVATION_SIGMOID_TANH(F16, F16, F16, F16, hsigmoid,
+                                SHORT8, HALF8,  SHORT8, HALF8,  SHORT8, HALF8,  HALF8,  half4, SHORT8)
+GRUCELL_ACTIVATION_SIGMOID_TANH(F16, F16, F16, U8, hsigmoid,
+                                SHORT8, HALF8,  SHORT8, HALF8,  SHORT8, HALF8,  UCHAR8, int4,  UCHAR8)
+
+#undef UCHAR8
+#undef SHORT8
+#undef HALF8

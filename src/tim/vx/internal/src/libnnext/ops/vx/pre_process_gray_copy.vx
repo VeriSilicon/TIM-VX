@@ -1,0 +1,129 @@
+/*
+ ============================================================================
+ Name        : GrayScale.vx
+ Author      : Sam
+ Version     :
+ Copyright   : Your copyright notice
+ Description :
+ ============================================================================
+ */
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniDataMeanStddevLo_2x8;
+_viv_uniform VXC_512Bits uniDataMeanStddevHi_2x8;
+
+_viv_uniform float outputScale;
+_viv_uniform float outputZP;
+
+__kernel void pre_process_gray_copy_U8toF16
+    (
+    __read_only image2d_array_t  input,
+    __write_only image2d_array_t output,
+        global int               *xRatio,
+        global int               *yRatio,
+        global int               *xOffset,
+        global int               *yOffset,
+               float             mean,
+               float             f32Var
+    )
+{
+    int4 coord  = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));
+
+    coord.xy += (int2) (*xOffset, *yOffset);
+    vxc_uchar16 src0;
+    vxc_half8   dst0, dst1;
+
+    VXC_ReadImage(src0, input, coord.xy, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord.x = coord.z + 8;
+    float4      paramData = (float4)(mean * f32Var, mean * f32Var, mean * f32Var, f32Var);
+    //convert U8 to FP16
+    half4 paramData_f16;
+    vxc_short8 tmp_dst;
+    _viv_asm(CONV, paramData_f16, paramData);
+
+    VXC_DP2x8(dst0, src0, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+        uniDataMeanStddevLo_2x8);
+    VXC_DP2x8(dst1, src0, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+        uniDataMeanStddevHi_2x8);
+    _viv_asm(COPY, tmp_dst, dst0, 16);
+    VXC_WriteImage(output, coord.zw, tmp_dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, tmp_dst, dst1, 16);
+    VXC_WriteImage(output, coord.xw, tmp_dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void pre_process_gray_copy_U8toI16
+    (
+    __read_only image2d_array_t  input,
+    __write_only image2d_array_t output,
+        global int               *xRatio,
+        global int               *yRatio,
+        global int               *xOffset,
+        global int               *yOffset,
+               float             mean,
+               float             f32Var
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));
+
+    coord.xy += (int2) (*xOffset, *yOffset);
+    vxc_uchar16 src0;
+    vxc_short8  dst0, dst1;
+
+    VXC_ReadImage(src0, input, coord.xy, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord.x = coord.z + 8;
+
+    f32Var *= outputScale;
+    float4 paramData = (float4)(mean * f32Var - outputZP, mean * f32Var - outputZP,
+                         mean * f32Var - outputZP, f32Var);
+    //convert U8 to FP16
+    half4 paramData_f16;
+    _viv_asm(CONV, paramData_f16, paramData);
+
+
+    VXC_DP2x8(dst0, src0, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),
+        uniDataMeanStddevLo_2x8);
+    VXC_DP2x8(dst1, src0, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),
+        uniDataMeanStddevHi_2x8);
+    VXC_WriteImage(output, coord.zw, dst0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.xw, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
+#define PRE_PROCESS_GRAY_COPY_8BITS(dst_type_name, write_type) \
+__kernel void pre_process_gray_copy_U8to##dst_type_name \
+    ( \
+    __read_only image2d_array_t  input, \
+    __write_only image2d_array_t output, \
+        global int               *xRatio, \
+        global int               *yRatio, \
+        global int               *xOffset, \
+        global int               *yOffset, \
+               float             mean, \
+               float             f32Var \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
+ \
+    coord.xy += (int2) (*xOffset, *yOffset); \
+    vxc_uchar16 src0; \
+    write_type dst; \
+ \
+    VXC_ReadImage(src0, input, coord.xy, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+ \
+    f32Var *= outputScale; \
+    float4  paramData = (float4)(mean * f32Var - outputZP, mean * f32Var - outputZP, \
+        mean * f32Var - outputZP, f32Var); \
+ \
+    half4 paramData_f16; \
+    _viv_asm(CONV, paramData_f16, paramData); \
+ \
+    VXC_DP2x8(dst, src0, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniDataMeanStddevLo_2x8); \
+    VXC_DP2x8(dst, src0, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), \
+        uniDataMeanStddevHi_2x8); \
+    VXC_WriteImage(output, coord.zw, dst, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+}
+
+PRE_PROCESS_GRAY_COPY_8BITS(U8, vxc_uchar16)
+PRE_PROCESS_GRAY_COPY_8BITS(I8, vxc_char16)

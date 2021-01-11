@@ -1,0 +1,72 @@
+/****************************************************************************
+*
+*    Copyright (c) 2020 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************/
+#include "tim/vx/ops/conv2d.h"
+
+#include "operation_private.h"
+#include "type_utils.h"
+#include "vsi_nn_pub.h"
+
+namespace tim {
+namespace vx {
+namespace ops {
+
+Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
+               const std::array<uint32_t, 2>& ksize,
+               const std::array<uint32_t, 2>& stride,
+               const std::array<uint32_t, 2>& dilation, int32_t multiplier)
+    : Conv2d(graph, weights, padding, ksize, stride, dilation, {0, 0, 0, 0},
+             multiplier) {}
+
+Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
+               const std::array<uint32_t, 2>& ksize,
+               const std::array<uint32_t, 2>& stride,
+               const std::array<uint32_t, 2>& dilation,
+               const std::array<uint32_t, 4>& pad, int32_t multiplier)
+    : Operation(graph, VSI_NN_OP_CONV2D),
+      weights_(weights),
+      padding_(padding),
+      ksize_(ksize),
+      stride_(stride),
+      dilation_(dilation),
+      pad_(pad),
+      multiplier_(multiplier) {
+  this->impl()->node()->nn_param.conv2d.ksize[0] = ksize_[0];
+  this->impl()->node()->nn_param.conv2d.ksize[1] = ksize_[1];
+  this->impl()->node()->nn_param.conv2d.stride[0] = stride_[0];
+  this->impl()->node()->nn_param.conv2d.stride[1] = stride_[1];
+  this->impl()->node()->nn_param.conv2d.pad_type = TranslatePadType(padding_);
+  this->impl()->node()->nn_param.conv2d.weights = weights;
+  this->impl()->node()->nn_param.conv2d.group = 1;
+  this->impl()->node()->nn_param.conv2d.dilation[0] = dilation_[0];
+  this->impl()->node()->nn_param.conv2d.dilation[1] = dilation_[1];
+  this->impl()->node()->nn_param.conv2d.pad[0] = pad_[0];
+  this->impl()->node()->nn_param.conv2d.pad[1] = pad_[1];
+  this->impl()->node()->nn_param.conv2d.pad[2] = pad_[2];
+  this->impl()->node()->nn_param.conv2d.pad[3] = pad_[3];
+  this->impl()->node()->nn_param.conv2d.multiplier = multiplier_;
+}
+
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim

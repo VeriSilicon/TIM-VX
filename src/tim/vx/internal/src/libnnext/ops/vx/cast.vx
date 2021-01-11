@@ -1,0 +1,149 @@
+
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniDataConvert_2x8;
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;
+
+#define CAST_PROCESS(read_type, src_type, dst_type, write_type, read_fun, write_fun) \
+    read_type  read_val; \
+    src_type   src_val; \
+    dst_type   dst_val; \
+    write_type write_val; \
+    read_fun(read_val, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src_val, read_val, 16); \
+    VXC_DP2x8(dst_val, src_val, src_val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniDataConvert_2x8); \
+    _viv_asm(COPY, write_val, dst_val, 16); \
+    write_fun(output, coord, write_val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+#define CAST_FUN(src_name, dst_name, read_type, src_type, dst_type, write_type) \
+__kernel void cast_##src_name##to##dst_name( \
+    __read_only image2d_array_t   input, \
+    __write_only image2d_array_t  output) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    CAST_PROCESS(read_type, src_type, dst_type, write_type, VXC_ReadImage2DArray, VXC_WriteImage2DArray) \
+}
+
+CAST_FUN(F16, I16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8)
+CAST_FUN(F16, I8,  vxc_short8, vxc_half8,  vxc_char8,  vxc_char8)
+CAST_FUN(F16, U8,  vxc_short8, vxc_half8,  vxc_uchar8, vxc_uchar8)
+CAST_FUN(I16, F16, vxc_short8, vxc_short8, vxc_half8,  vxc_short8)
+CAST_FUN(I16, I8,  vxc_short8, vxc_short8, vxc_char8,  vxc_char8)
+CAST_FUN(I16, U8,  vxc_short8, vxc_short8, vxc_uchar8, vxc_uchar8)
+CAST_FUN(I8, F16, vxc_char8,   vxc_char8,  vxc_half8,  vxc_short8)
+CAST_FUN(I8, I16, vxc_char8,   vxc_char8,  vxc_short8, vxc_short8)
+CAST_FUN(I8, U8,  vxc_char8,   vxc_char8,  vxc_uchar8, vxc_uchar8)
+CAST_FUN(U8, F16, vxc_uchar8,  vxc_uchar8, vxc_half8,  vxc_short8)
+CAST_FUN(U8, I16, vxc_uchar8,  vxc_uchar8, vxc_short8, vxc_short8)
+CAST_FUN(U8, I8,  vxc_uchar8,  vxc_uchar8, vxc_char8,  vxc_char8)
+
+
+#define CAST_FUN_2D(src_name, dst_name, read_type, src_type, dst_type, write_type) \
+__kernel void cast_##src_name##to##dst_name##_2D( \
+    __read_only image2d_array_t   input, \
+    __write_only image2d_array_t  output) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    CAST_PROCESS(read_type, src_type, dst_type, write_type, VXC_ReadImage, VXC_WriteImage) \
+}
+
+CAST_FUN_2D(F16, I16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8)
+CAST_FUN_2D(F16, I8,  vxc_short8, vxc_half8,  vxc_char8,  vxc_char8)
+CAST_FUN_2D(F16, U8,  vxc_short8, vxc_half8,  vxc_uchar8, vxc_uchar8)
+CAST_FUN_2D(I16, F16, vxc_short8, vxc_short8, vxc_half8,  vxc_short8)
+CAST_FUN_2D(I16, I8,  vxc_short8, vxc_short8, vxc_char8,  vxc_char8)
+CAST_FUN_2D(I16, U8,  vxc_short8, vxc_short8, vxc_uchar8, vxc_uchar8)
+CAST_FUN_2D(I8, F16, vxc_char8,   vxc_char8,  vxc_half8,  vxc_short8)
+CAST_FUN_2D(I8, I16, vxc_char8,   vxc_char8,  vxc_short8, vxc_short8)
+CAST_FUN_2D(I8, U8,  vxc_char8,   vxc_char8,  vxc_uchar8, vxc_uchar8)
+CAST_FUN_2D(U8, F16, vxc_uchar8,  vxc_uchar8, vxc_half8,  vxc_short8)
+CAST_FUN_2D(U8, I16, vxc_uchar8,  vxc_uchar8, vxc_short8, vxc_short8)
+CAST_FUN_2D(U8, I8,  vxc_uchar8,  vxc_uchar8, vxc_char8,  vxc_char8)
+
+#define CAST_TO_BOOL_PROCESS(src_type, tmp_type, read_fun, write_fun) \
+    src_type   src_val; \
+    tmp_type   tmp_val; \
+    vxc_char8   dst_val; \
+    read_fun(src_val, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    tmp_val  = (src_val != 0); \
+    tmp_val *= (-1); \
+    VXC_DP2x8(dst_val, tmp_val, tmp_val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniDataConvert_2x8); \
+    write_fun(output, coord, dst_val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+#define CAST_TO_BOOL_FUN(src_name, src_type, tmp_type) \
+__kernel void cast_##src_name##toBOOL8( \
+    __read_only image2d_array_t   input, \
+    __write_only image2d_array_t  output) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    CAST_TO_BOOL_PROCESS(src_type, tmp_type, VXC_ReadImage2DArray, VXC_WriteImage2DArray) \
+}
+
+CAST_TO_BOOL_FUN(F16, vxc_short8, vxc_short8)
+CAST_TO_BOOL_FUN(I16, vxc_short8, vxc_short8)
+CAST_TO_BOOL_FUN(I8,  vxc_char8,  vxc_char8)
+CAST_TO_BOOL_FUN(U8,  vxc_uchar8, vxc_char8)
+
+#define CAST_TO_BOOL_FUN_2D(src_name, src_type, tmp_type) \
+__kernel void cast_##src_name##toBOOL8_2D( \
+    __read_only image2d_array_t   input, \
+    __write_only image2d_array_t  output) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    CAST_TO_BOOL_PROCESS(src_type, tmp_type, VXC_ReadImage, VXC_WriteImage) \
+}
+
+CAST_TO_BOOL_FUN_2D(F16, vxc_short8, vxc_short8)
+CAST_TO_BOOL_FUN_2D(I16, vxc_short8, vxc_short8)
+CAST_TO_BOOL_FUN_2D(I8,  vxc_char8,  vxc_char8)
+CAST_TO_BOOL_FUN_2D(U8,  vxc_uchar8, vxc_char8)
+
+#define CAST_F32orI32_PROCESS(src_type, dst_type, read_fun, write_fun) \
+    src_type   src_val0, src_val1; \
+    dst_type   dst_val; \
+    int4 tmpData1, tmpData2; \
+    src_val0 = read_fun(input, coord); \
+    coord.x += 4; \
+    src_val1 = read_fun(input, coord); \
+    tmpData1 = convert_int4(src_val0); \
+    tmpData2 = convert_int4(src_val1); \
+    VXC_DP2x8(dst_val, tmpData1, tmpData2, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\
+        uniConvertInt32toUint8_2x8); \
+    coord.x -= 4; \
+    write_fun(output, coord, dst_val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+#define CAST_F32orI32_FUN(src_name, dst_name, src_type, dst_type, read_fun) \
+__kernel void cast_##src_name##to##dst_name( \
+    __read_only image2d_array_t   input, \
+    __write_only image2d_array_t  output) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    CAST_F32orI32_PROCESS(src_type, dst_type, read_fun, VXC_WriteImage2DArray) \
+}
+
+CAST_F32orI32_FUN(F32, I16, float4, vxc_short8, read_imagef)
+CAST_F32orI32_FUN(F32, I8,  float4, vxc_char8,  read_imagef)
+CAST_F32orI32_FUN(F32, U8,  float4, vxc_uchar8, read_imagef)
+CAST_F32orI32_FUN(I32, I16, int4,   vxc_short8, read_imagei)
+CAST_F32orI32_FUN(I32, I8,  int4,   vxc_char8,  read_imagei)
+CAST_F32orI32_FUN(I32, U8,  int4,   vxc_uchar8, read_imagei)
+
+
+#define CAST_F32orI32_FUN_2D(src_name, dst_name, src_type, dst_type, read_fun) \
+__kernel void cast_##src_name##to##dst_name##_2D( \
+    __read_only image2d_t   input, \
+    __write_only image2d_array_t  output) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    CAST_F32orI32_PROCESS(src_type, dst_type, read_fun, VXC_WriteImage) \
+}
+
+CAST_F32orI32_FUN_2D(F32, I16, float4, vxc_short8, read_imagef)
+CAST_F32orI32_FUN_2D(F32, I8,  float4, vxc_char8,  read_imagef)
+CAST_F32orI32_FUN_2D(F32, U8,  float4, vxc_uchar8, read_imagef)
+CAST_F32orI32_FUN_2D(I32, I16, int4,   vxc_short8, read_imagei)
+CAST_F32orI32_FUN_2D(I32, I8,  int4,   vxc_char8,  read_imagei)
+CAST_F32orI32_FUN_2D(I32, U8,  int4,   vxc_uchar8, read_imagei)
+

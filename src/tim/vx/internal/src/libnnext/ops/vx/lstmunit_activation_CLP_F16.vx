@@ -1,0 +1,179 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float logE;
+_viv_uniform float twoLogE;
+_viv_uniform float forget_bias;
+float4 sigmoid(float4 x)
+{
+    x *= -logE;
+    x = 1 + exp2(x);
+    return 1 / x;
+}
+float4 hard_sigmoid(float4 x)
+{
+    x = 0.2 * x + 0.5;
+    x = clamp(x, 0, 1);
+    return x;
+}
+float4 tangentH(float4 x)
+{
+    x *= -twoLogE;
+    x = 1 + exp2(x);
+    x = 1 / x;
+    return 2 * x - 1;
+}
+_viv_uniform float outputScale;
+_viv_uniform float outputZP;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform VXC_512Bits uniFp16toFp32_4x4;
+_viv_uniform float4 clip_Min_F;
+_viv_uniform float4 clip_Max_F;
+
+#define LSTMUNIT_CLP_FP32(out_type_name, act_name, convert_type, dst_type, copy_type, act_func) \
+__kernel void lstmunit_activation_CLP_F16to##out_type_name##_F32_##act_name( \
+    __read_only  image2d_array_t  input_f_conv, \
+    __read_only  image2d_array_t  input_c_conv, \
+    __read_only  image2d_array_t  input_o_conv, \
+    __read_only  image2d_t        cell_state_in, \
+    __read_only  image2d_t        bias_f, \
+    __read_only  image2d_t        bias_c, \
+    __read_only  image2d_t        bias_o, \
+    __read_only  image2d_t        layer_norm_wf, \
+    __read_only  image2d_t        layer_norm_wc, \
+    __read_only  image2d_t        layer_norm_wo, \
+    __write_only image2d_array_t  output, \
+    __write_only image2d_t        cell_state_out, \
+    int _is_ln, int _is_cifg, int _is_hybrid, float cell_clip, float forgetBias \
+    ) \
+{ \
+    int4 coord_in = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), 0); \
+    vxc_short8 vect0, vect1, vect2, vect3; \
+    vxc_half8  src0, src1, src2, src3; \
+    float4 data_i_t, data_f_t, data_g_t, data_o_t, data_c_t; \
+    float4 w0, w1, w2, b0, b1, b2; \
+    VXC_ReadImage(vect1, input_f_conv, coord_in.xy, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src1, vect1, 16); \
+    VXC_ReadImage(vect2, input_c_conv, coord_in.xy, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src2, vect2, 16); \
+    VXC_ReadImage(vect3, input_o_conv, coord_in.xy, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src3, vect3, 16); \
+    w0 = read_imagef(layer_norm_wf, coord_in.xw); \
+    w1 = read_imagef(layer_norm_wc, coord_in.xw); \
+    w2 = read_imagef(layer_norm_wo, coord_in.xw); \
+    data_c_t = read_imagef(cell_state_in, coord_in.xy); \
+    b0 = read_imagef(bias_f, coord_in.xw); \
+    b1 = read_imagef(bias_c, coord_in.xw); \
+    b2 = read_imagef(bias_o, coord_in.xw); \
+ \
+    VXC_DP4x4(data_f_t, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4); \
+    VXC_DP4x4(data_g_t, src2, src2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4); \
+    VXC_DP4x4(data_o_t, src3, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4); \
+    data_f_t = data_f_t * w0 + b0; \
+    data_g_t = data_g_t * w1 + b1; \
+    data_o_t = data_o_t * w2 + b2; \
+ \
+    convert_type dst0; \
+    data_f_t = act_func(data_f_t + forget_bias); \
+    data_g_t = tangentH(data_g_t); \
+    data_i_t = 1.0 - data_f_t; \
+    data_i_t = data_i_t * data_g_t; \
+    data_c_t = data_c_t * data_f_t + data_i_t; \
+    data_o_t = act_func(data_o_t); \
+    data_c_t = data_c_t > clip_Max_F ? clip_Max_F : data_c_t; \
+    data_c_t = data_c_t < clip_Min_F ? clip_Min_F : data_c_t; \
+    write_imagef(cell_state_out, coord_in.zy, data_c_t); \
+    data_c_t = tangentH(data_c_t); \
+    data_o_t = data_o_t * data_c_t * outputScale + outputZP; \
+    _viv_asm(CONV_RTE, dst0, data_o_t); \
+    dst_type dst1; \
+    VXC_DP2x8(dst1, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    copy_type dst; \
+    _viv_asm(COPY, dst, dst1, 16); \
+    VXC_WriteImage(output, coord_in.zy, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+LSTMUNIT_CLP_FP32(F16, SIGMOID, half4, vxc_half4,  vxc_short4, sigmoid)
+LSTMUNIT_CLP_FP32(I8,  SIGMOID, int4,  vxc_char4,  vxc_char4,  sigmoid)
+LSTMUNIT_CLP_FP32(U8,  SIGMOID, int4,  vxc_uchar4, vxc_uchar4, sigmoid)
+LSTMUNIT_CLP_FP32(I16, SIGMOID, int4,  vxc_short4, vxc_short4, sigmoid)
+LSTMUNIT_CLP_FP32(F16, HARD_SIGMOID, half4, vxc_half4,  vxc_short4, hard_sigmoid)
+LSTMUNIT_CLP_FP32(I8,  HARD_SIGMOID, int4,  vxc_char4,  vxc_char4,  hard_sigmoid)
+LSTMUNIT_CLP_FP32(U8,  HARD_SIGMOID, int4,  vxc_uchar4, vxc_uchar4, hard_sigmoid)
+LSTMUNIT_CLP_FP32(I16, HARD_SIGMOID, int4,  vxc_short4, vxc_short4, hard_sigmoid)
+
+_viv_uniform VXC_512Bits uniExtractHalf4_4x4;
+#define LSTMUNIT_CLP_FP16(out_type_name, act_name, convert_type, dst_type, copy_type, act_func) \
+__kernel void lstmunit_activation_CLP_F16to##out_type_name##_F16_##act_name( \
+    __read_only  image2d_array_t  input_f_conv, \
+    __read_only  image2d_array_t  input_c_conv, \
+    __read_only  image2d_array_t  input_o_conv, \
+    __read_only  image2d_t        cell_state_in, \
+    __read_only  image2d_t        bias_f, \
+    __read_only  image2d_t        bias_c, \
+    __read_only  image2d_t        bias_o, \
+    __read_only  image2d_t        layer_norm_wf, \
+    __read_only  image2d_t        layer_norm_wc, \
+    __read_only  image2d_t        layer_norm_wo, \
+    __write_only image2d_array_t  output, \
+    __write_only image2d_t        cell_state_out, \
+    int _is_ln, int _is_cifg, int _is_hybrid, float cell_clip, float forgetBias \
+    ) \
+{ \
+    int4 coord_in = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), 0); \
+    vxc_short8 vect0, vect1, vect2, vect3, vect4; \
+    vxc_half8  src0, src1, src2, src3, src4; \
+    float4 data_i_t, data_f_t, data_g_t, data_o_t, data_c_t; \
+    float4 w0, w1, w2, b0, b1, b2; \
+    VXC_ReadImage(vect1, input_f_conv, coord_in.xy, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src1, vect1, 16); \
+    VXC_ReadImage(vect2, input_c_conv, coord_in.xy, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src2, vect2, 16); \
+    VXC_ReadImage(vect3, input_o_conv, coord_in.xy, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src3, vect3, 16); \
+    VXC_ReadImage(vect4, cell_state_in, coord_in.xy, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src4, vect4, 16); \
+    w0 = read_imagef(layer_norm_wf, coord_in.xw); \
+    w1 = read_imagef(layer_norm_wc, coord_in.xw); \
+    w2 = read_imagef(layer_norm_wo, coord_in.xw); \
+    b0 = read_imagef(bias_f, coord_in.xw); \
+    b1 = read_imagef(bias_c, coord_in.xw); \
+    b2 = read_imagef(bias_o, coord_in.xw); \
+ \
+    VXC_DP4x4(data_f_t, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4); \
+    VXC_DP4x4(data_g_t, src2, src2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4); \
+    VXC_DP4x4(data_o_t, src3, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4); \
+    VXC_DP4x4(data_c_t, src4, src4, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4); \
+    data_f_t = data_f_t * w0 + b0; \
+    data_g_t = data_g_t * w1 + b1; \
+    data_o_t = data_o_t * w2 + b2; \
+ \
+    convert_type dst0; \
+    half4 cell_data; \
+    data_f_t = act_func(data_f_t + forget_bias); \
+    data_g_t = tangentH(data_g_t); \
+    data_i_t = 1.0 - data_f_t; \
+    data_i_t = data_i_t * data_g_t; \
+    data_c_t = data_c_t * data_f_t + data_i_t; \
+    data_c_t = data_c_t > clip_Max_F ? clip_Max_F : data_c_t; \
+    data_c_t = data_c_t < clip_Min_F ? clip_Min_F : data_c_t; \
+    _viv_asm(CONV, cell_data, data_c_t); \
+    VXC_DP4x4(src0, cell_data, cell_data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractHalf4_4x4); \
+    _viv_asm(COPY, vect0, src0, 8); \
+    VXC_WriteImage(cell_state_out, coord_in.zy, vect0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    data_o_t = act_func(data_o_t); \
+    data_c_t = tangentH(data_c_t); \
+    data_o_t = data_o_t * data_c_t * outputScale + outputZP; \
+    _viv_asm(CONV_RTE, dst0, data_o_t); \
+    dst_type dst1; \
+    VXC_DP2x8(dst1, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    copy_type dst; \
+    _viv_asm(COPY, dst, dst1, 16); \
+    VXC_WriteImage(output, coord_in.zy, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+LSTMUNIT_CLP_FP16(F16, SIGMOID, half4, vxc_half4,  vxc_short4, sigmoid)
+LSTMUNIT_CLP_FP16(I8,  SIGMOID, int4,  vxc_char4,  vxc_char4,  sigmoid)
+LSTMUNIT_CLP_FP16(U8,  SIGMOID, int4,  vxc_uchar4, vxc_uchar4, sigmoid)
+LSTMUNIT_CLP_FP16(I16, SIGMOID, int4,  vxc_short4, vxc_short4, sigmoid)
+LSTMUNIT_CLP_FP16(F16, HARD_SIGMOID, half4, vxc_half4,  vxc_short4, hard_sigmoid)
+LSTMUNIT_CLP_FP16(I8,  HARD_SIGMOID, int4,  vxc_char4,  vxc_char4,  hard_sigmoid)
+LSTMUNIT_CLP_FP16(U8,  HARD_SIGMOID, int4,  vxc_uchar4, vxc_uchar4, hard_sigmoid)
+LSTMUNIT_CLP_FP16(I16, HARD_SIGMOID, int4,  vxc_short4, vxc_short4, hard_sigmoid)

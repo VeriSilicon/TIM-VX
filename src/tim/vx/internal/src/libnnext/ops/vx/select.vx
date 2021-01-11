@@ -1,0 +1,132 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniConvConditiontoDst_2x8;
+_viv_uniform VXC_512Bits uniConvIntIn0toDst_2x8;
+_viv_uniform VXC_512Bits uniConvIntIn1toDst_2x8;
+_viv_uniform VXC_512Bits uniU8SubZP_MulM_PStoF16In0_2x8;
+_viv_uniform VXC_512Bits uniU8SubZP_MulM_PStoF16In1_2x8;
+_viv_uniform int input0Zp;
+_viv_uniform int input1Zp;
+_viv_uniform int outputZP;
+_viv_uniform VXC_512Bits uniU8AddZP_2x8;
+
+#define SELECT_INT(type_name, read_fun, write_fun) \
+    type_name tmp, src0, src1, dst, value; \
+    vxc_char8 value_tmp; \
+    read_fun(tmp, input0, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(src0, tmp, tmp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvIntIn0toDst_2x8); \
+    read_fun(tmp, input1, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(src1, tmp, tmp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvIntIn1toDst_2x8); \
+    read_fun(value_tmp, condition, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(value, value_tmp, value_tmp,\
+             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvConditiontoDst_2x8); \
+    dst = (value != 0 ? src0 : src1); \
+    write_fun(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+#define SELECT_INT_FUN(cond_name, src_name, dst_name, type_name) \
+__kernel void select_##cond_name##_##src_name##_##src_name##to##dst_name( \
+    __read_only  image2d_array_t   condition, \
+    __read_only  image2d_array_t   input0, \
+    __read_only  image2d_array_t   input1, \
+    __write_only image2d_array_t   output) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    SELECT_INT(type_name, VXC_ReadImage2DArray, VXC_WriteImage2DArray) \
+}
+
+SELECT_INT_FUN(I8, I8,  I8,  vxc_char8)
+SELECT_INT_FUN(I8, I16, I16, vxc_short8)
+
+#define SELECT_INT_FUN_2D(cond_name, src_name, dst_name, type_name) \
+__kernel void select_##cond_name##_##src_name##_##src_name##to##dst_name##_2D( \
+    __read_only  image2d_array_t   condition, \
+    __read_only  image2d_array_t   input0, \
+    __read_only  image2d_array_t   input1, \
+    __write_only image2d_array_t   output) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    SELECT_INT(type_name, VXC_ReadImage, VXC_WriteImage) \
+}
+
+SELECT_INT_FUN_2D(I8, I8,  I8,  vxc_char8)
+SELECT_INT_FUN_2D(I8, I16, I16, vxc_short8)
+
+#define SELECT_HALF(read_fun, write_fun) \
+    vxc_short8 src0, src1, dst, value; \
+    vxc_char8 value_tmp; \
+    read_fun(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    read_fun(src1, input1, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    read_fun(value_tmp, condition, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(value, value_tmp, value_tmp,\
+             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvConditiontoDst_2x8); \
+    dst = (value != 0 ? src0 : src1); \
+    write_fun(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+__kernel void select_I8_F16_F16toF16(
+    __read_only  image2d_array_t   condition,
+    __read_only  image2d_array_t   input0,
+    __read_only  image2d_array_t   input1,
+    __write_only image2d_array_t   output)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    SELECT_HALF(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void select_I8_F16_F16toF16_2D(
+    __read_only  image2d_array_t   condition,
+    __read_only  image2d_array_t   input0,
+    __read_only  image2d_array_t   input1,
+    __write_only image2d_array_t   output)
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    SELECT_HALF(VXC_ReadImage, VXC_WriteImage)
+}
+
+#define SELECT_U8(read_fun, write_fun) \
+    vxc_uchar8 tmp, src0, src1, dst; \
+    vxc_char8 value; \
+    vxc_half8 tmp1; \
+    vxc_uchar16 input0_ZP, input1_ZP, output_ZP; \
+    _viv_asm(COPY, input0_ZP, input0Zp, 4); \
+    _viv_asm(COPY, input1_ZP, input1Zp, 4); \
+    _viv_asm(COPY, output_ZP, outputZP, 4); \
+    read_fun(tmp, input0, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(tmp1, tmp, input0_ZP, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+             uniU8SubZP_MulM_PStoF16In0_2x8); \
+    VXC_DP2x8(src0, tmp1, output_ZP, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniU8AddZP_2x8); \
+    read_fun(tmp, input1, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(tmp1, tmp, input1_ZP, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+             uniU8SubZP_MulM_PStoF16In1_2x8); \
+    VXC_DP2x8(src1, tmp1, output_ZP, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniU8AddZP_2x8); \
+    read_fun(value, condition, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    dst = (value != 0 ? src0 : src1); \
+    write_fun(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+__kernel void select_I8_U8_U8toU8(
+    __read_only  image2d_array_t   condition,
+    __read_only  image2d_array_t   input0,
+    __read_only  image2d_array_t   input1,
+    __write_only image2d_array_t   output)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    SELECT_U8(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void select_I8_U8_U8toU8_2D(
+    __read_only  image2d_array_t   condition,
+    __read_only  image2d_array_t   input0,
+    __read_only  image2d_array_t   input1,
+    __write_only image2d_array_t   output)
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    SELECT_U8(VXC_ReadImage, VXC_WriteImage)
+}

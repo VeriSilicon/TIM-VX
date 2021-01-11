@@ -1,0 +1,115 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int2 multAndoutZP0;//[0:15] multiplier, [31:63] output zp
+_viv_uniform VXC_512Bits uniU8MulAndPostShift_0_Lo_2x8;
+
+#define DEPTH2SPACE_CRD_QINT_TO_QINT(src0_type_name, src1_type_name, read_type, write_type) \
+__kernel void depth2space_crd_##src0_type_name##to##src1_type_name( \
+    image2d_array_t input, \
+    image2d_array_t output, \
+    int block_size \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0); \
+    int block_e2 = block_size * block_size; \
+    int inx = gidx / block_size; \
+    int iny = gidy / block_size; \
+    int inz = (gidx  % block_size) + (gidy % block_size) * block_size + gidz * block_e2; \
+    int4 coord_in = (int4)(inx, iny, inz, 0); \
+    read_type src; \
+    VXC_ReadImage2DArray(src,input,coord_in,VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0,0,0,VXC_RM_TowardZero, 0)); \
+ \
+    write_type  dst; \
+    vxc_ushort8 ms0; \
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \
+    VXC_DP2x8(dst,src,ms0,VXC_MODIFIER(0,7,0,VXC_RM_TowardZero,1),uniU8MulAndPostShift_0_Lo_2x8); \
+    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+DEPTH2SPACE_CRD_QINT_TO_QINT(U8, U8, vxc_uchar16, vxc_uchar16)
+DEPTH2SPACE_CRD_QINT_TO_QINT(I8, I8, vxc_char16, vxc_char16)
+DEPTH2SPACE_CRD_QINT_TO_QINT(I16, I16, vxc_short8, vxc_short8)
+
+__kernel void depth2space_crd_F16toF16(
+    image2d_array_t input,
+    image2d_array_t output,
+    int block_size
+    )
+{
+    int gidx = get_global_id(0);
+    int gidy = get_global_id(1);
+    int gidz = get_global_id(2);
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0);
+    int block_e2 = block_size * block_size;
+    int inx = gidx / block_size;
+    int iny = gidy / block_size;
+    int inz = (gidx  % block_size) + (gidy % block_size) * block_size + gidz * block_e2;
+    int4 coord_in = (int4)(inx, iny, inz, 0);
+    vxc_short8 data;
+    VXC_ReadImage2DArray(data,input,coord_in,VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0,0,0,VXC_RM_TowardZero, 0));
+    VXC_WriteImage2DArray(output, coord_out, data, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+#define DEPTH2SPACE_CRD_QINT_TO_F16(src0_type_name, read_type) \
+__kernel void depth2space_crd_##src0_type_name##toF16( \
+    image2d_array_t input, \
+    image2d_array_t output, \
+    int block_size \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0); \
+    int block_e2 = block_size * block_size; \
+    int inx = gidx / block_size; \
+    int iny = gidy / block_size; \
+    int inz = (gidx  % block_size) + (gidy % block_size) * block_size + gidz * block_e2; \
+    int4 coord_in = (int4)(inx, iny, inz, 0); \
+    read_type src; \
+    VXC_ReadImage2DArray(src,input,coord_in,VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0,0,0,VXC_RM_TowardZero, 0)); \
+ \
+    vxc_half8  tmpDst; \
+    vxc_short8  dst; \
+    vxc_ushort8 ms0; \
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \
+    VXC_DP2x8(tmpDst,src,ms0,VXC_MODIFIER(0,7,0,VXC_RM_TowardZero,1),uniU8MulAndPostShift_0_Lo_2x8); \
+    _viv_asm(COPY, dst, tmpDst, 16); \
+    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+DEPTH2SPACE_CRD_QINT_TO_F16(U8, vxc_uchar16)
+DEPTH2SPACE_CRD_QINT_TO_F16(I8, vxc_char16)
+DEPTH2SPACE_CRD_QINT_TO_F16(I16, vxc_short8)
+
+#define DEPTH2SPACE_CRD_F16_TO_QINT(src1_type_name, write_type) \
+__kernel void depth2space_crd_F16to##src1_type_name( \
+    image2d_array_t input, \
+    image2d_array_t output, \
+    int block_size \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0); \
+    int block_e2 = block_size * block_size; \
+    int inx = gidx / block_size; \
+    int iny = gidy / block_size; \
+    int inz = (gidx  % block_size) + (gidy % block_size) * block_size + gidz * block_e2; \
+    int4 coord_in = (int4)(inx, iny, inz, 0); \
+    vxc_short8 src; \
+    VXC_ReadImage2DArray(src,input,coord_in,VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0,0,0,VXC_RM_TowardZero, 0)); \
+ \
+    write_type  dst; \
+    vxc_half8 data; \
+    vxc_ushort8 ms0; \
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \
+    _viv_asm(COPY, data, src, 16); \
+    VXC_DP2x8(dst,data,ms0,VXC_MODIFIER(0,7,0,VXC_RM_TowardZero,1),uniU8MulAndPostShift_0_Lo_2x8); \
+    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+DEPTH2SPACE_CRD_F16_TO_QINT(U8, vxc_uchar16)
+DEPTH2SPACE_CRD_F16_TO_QINT(I8, vxc_char16)
+DEPTH2SPACE_CRD_F16_TO_QINT(I16, vxc_short8)

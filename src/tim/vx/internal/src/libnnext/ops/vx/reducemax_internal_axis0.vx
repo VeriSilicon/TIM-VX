@@ -1,0 +1,172 @@
+#include "cl_viv_vx_ext.h"
+_viv_uniform int         axisSize;
+_viv_uniform float       outputScale;
+_viv_uniform float       output_offset_asymmetric;
+_viv_uniform float       inputScale;
+_viv_uniform float       input_offset_asymmetric;
+_viv_uniform VXC_512Bits uniGetLoData_4x4;
+
+_viv_uniform VXC_512Bits uniPackMaxData_2x8;
+
+#define REDUCEMAX_PROCESS_AXIS0(read_fun, vert_max_fun, horz_max_fun) \
+    read_fun(val0, input,  coord, VXC_5BITOFFSET_XY(-16, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, val, val0, 16); \
+    coord.x += 8; \
+    do \
+    { \
+        read_fun(val0, input,  coord, VXC_5BITOFFSET_XY(-16, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, img_val0, val0, 16); \
+        read_fun(val1, input,  coord, VXC_5BITOFFSET_XY(-8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, img_val1, val1, 16); \
+        read_fun(val2, input,  coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, img_val2, val2, 16); \
+        read_fun(val3, input,  coord, VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, img_val3, val3, 16); \
+        coord.x += 32; \
+        vert_max_fun(val, img_val0, img_val1, val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        vert_max_fun(val, img_val2, img_val3, val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        horz_max_fun(val, val, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \
+        VXC_DP2x8(val, val, val, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniPackMaxData_2x8); \
+        horz_max_fun(val, val, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+    } \
+    while(coord.x < (axisSize + 16));
+
+#define REDUCEMAX_PROCESS_AXIS0_SAVE_SAME(save_type, write_fun) \
+    save_type dst; \
+    _viv_asm(COPY, dst, val, 16); \
+    write_fun(output, coord_out, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+#define REDUCEMAX_PROCESS_AXIS0_SAVE(dst_type, save_type, conv_mode,\
+                      OUT_SCALE, OUT_OFFSET, IN_SCALE, IN_OFFSET, write_fun) \
+    vxc_float4 prob; \
+    dst_type vec1; \
+    save_type dst; \
+    VXC_DP4x4(prob, val, val, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniGetLoData_4x4); \
+    prob = ((prob - IN_OFFSET) * IN_SCALE) * OUT_SCALE + OUT_OFFSET; \
+    _viv_asm(conv_mode, vec1, prob); \
+    _viv_asm(COPY, dst, vec1, 16); \
+    write_fun(output, coord_out, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+#define REDUCEMAX_AXIS0_SAME(src_name, dst_name, src_type, copy_type, save_type, vert_max_fun, horz_max_fun) \
+__kernel void reducemax_axis0_##src_name##to##dst_name \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    int   axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(16, get_global_id(0), get_global_id(1), 0); \
+    int2 coord_out = (int2)(get_global_id(0), get_global_id(1)); \
+    src_type img_val0, img_val1, img_val2, img_val3; \
+    copy_type val0, val1, val2, val3; \
+    src_type val; \
+    REDUCEMAX_PROCESS_AXIS0(VXC_ReadImage2DArray, vert_max_fun, horz_max_fun); \
+    REDUCEMAX_PROCESS_AXIS0_SAVE_SAME(save_type, VXC_WriteImage); \
+}
+
+
+#define REDUCEMAX_AXIS0(src_name, dst_name, src_type, copy_type, dst_type,\
+              save_type, conv_mode, OUT_SCALE, OUT_OFFSET, IN_SCALE, IN_OFFSET, vert_max_fun, horz_max_fun) \
+__kernel void reducemax_axis0_##src_name##to##dst_name \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    int   axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(16, get_global_id(0), get_global_id(1), 0); \
+    int2 coord_out = (int2)(get_global_id(0), get_global_id(1)); \
+    src_type img_val0, img_val1, img_val2, img_val3; \
+    copy_type val0, val1, val2, val3; \
+    src_type val; \
+    REDUCEMAX_PROCESS_AXIS0(VXC_ReadImage2DArray, vert_max_fun, horz_max_fun); \
+    REDUCEMAX_PROCESS_AXIS0_SAVE(dst_type, save_type, conv_mode,\
+    OUT_SCALE, OUT_OFFSET, IN_SCALE, IN_OFFSET, VXC_WriteImage); \
+}
+
+REDUCEMAX_AXIS0_SAME(F16, F16, vxc_half8, vxc_short8,  vxc_short8, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+
+REDUCEMAX_AXIS0(F16, I16, vxc_half8, vxc_short8, short4, vxc_short8,\
+CONV_SAT_RTE, outputScale, 0, 1, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+REDUCEMAX_AXIS0(F16, I8,  vxc_half8, vxc_short8, char4,  vxc_char8, \
+CONV_SAT_RTE, outputScale, 0, 1, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+REDUCEMAX_AXIS0(F16, U8,  vxc_half8, vxc_short8, uchar4, vxc_uchar8,\
+                    CONV_SAT_RTE, outputScale, output_offset_asymmetric,\
+                    1, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+REDUCEMAX_AXIS0(I16, F16, vxc_short8, vxc_short8, half4,  vxc_short8,\
+CONV, 1, 0, inputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0(I8, F16, vxc_char16, vxc_char16, half4,  vxc_short8,\
+CONV, 1, 0, inputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0(U8, F16, vxc_uchar16, vxc_uchar16, half4,  vxc_short8,
+CONV, 1, 0, inputScale, input_offset_asymmetric, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+
+REDUCEMAX_AXIS0(I16, I16, vxc_short8, vxc_short8, short4,
+vxc_short8, CONV_SAT_RTE, outputScale, 0, inputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0(I8, I8,  vxc_char16, vxc_char16,  char4, vxc_char8,
+CONV_SAT_RTE, outputScale, 0, inputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0(U8, U8,  vxc_uchar16, vxc_uchar16, uchar4, vxc_uchar8, CONV_SAT_RTE,\
+outputScale, output_offset_asymmetric, inputScale,\
+input_offset_asymmetric, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+
+#define REDUCEMAX_AXIS0_SAME_2D(src_name, dst_name, src_type, copy_type, save_type, vert_max_fun, horz_max_fun) \
+__kernel void reducemax_axis0_##src_name##to##dst_name##_2D \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    int   axisVal \
+    ) \
+{ \
+    int2 coord = (int2)(16, get_global_id(0)); \
+    int2 coord_out = (int2)(get_global_id(0), 0); \
+    src_type img_val0, img_val1, img_val2, img_val3; \
+    copy_type val0, val1, val2, val3; \
+    src_type val; \
+    REDUCEMAX_PROCESS_AXIS0(VXC_ReadImage, vert_max_fun, horz_max_fun); \
+    REDUCEMAX_PROCESS_AXIS0_SAVE_SAME(save_type, VXC_WriteImage); \
+}
+
+#define REDUCEMAX_AXIS0_2D(src_name, dst_name, src_type, copy_type,\
+                           dst_type, save_type, conv_mode,\
+                           OUT_SCALE, OUT_OFFSET, IN_SCALE, IN_OFFSET, vert_max_fun, horz_max_fun) \
+__kernel void reducemax_axis0_##src_name##to##dst_name##_2D \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    int   axisVal \
+    ) \
+{ \
+    int2 coord = (int2)(16, get_global_id(0)); \
+    int2 coord_out = (int2)(get_global_id(0), 0); \
+    src_type img_val0, img_val1, img_val2, img_val3; \
+    copy_type val0, val1, val2, val3; \
+    src_type val; \
+    REDUCEMAX_PROCESS_AXIS0(VXC_ReadImage, vert_max_fun, horz_max_fun); \
+    REDUCEMAX_PROCESS_AXIS0_SAVE(dst_type, save_type, conv_mode,\
+    OUT_SCALE, OUT_OFFSET, IN_SCALE, IN_OFFSET, VXC_WriteImage); \
+}
+
+REDUCEMAX_AXIS0_SAME_2D(F16, F16, vxc_half8, vxc_short8,  vxc_short8, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+
+REDUCEMAX_AXIS0_2D(F16, I16, vxc_half8, vxc_short8, short4, vxc_short8,\
+CONV_SAT_RTE, outputScale, 0, 1, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+REDUCEMAX_AXIS0_2D(F16, I8,  vxc_half8, vxc_short8, char4,  vxc_char8,\
+CONV_SAT_RTE, outputScale, 0, 1, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+REDUCEMAX_AXIS0_2D(F16, U8,  vxc_half8, vxc_short8, uchar4, vxc_uchar8,\
+                    CONV_SAT_RTE, outputScale, output_offset_asymmetric,\
+                    1, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+REDUCEMAX_AXIS0_2D(I16, F16, vxc_short8, vxc_short8, half4,  vxc_short8,\
+CONV, 1, 0, inputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0_2D(I8, F16, vxc_char16, vxc_char16, half4,  vxc_short8,\
+CONV, 1, 0, inputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0_2D(U8, F16, vxc_uchar16, vxc_uchar16, half4,
+                   vxc_short8, CONV, 1, 0, inputScale,\
+                   input_offset_asymmetric, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0_2D(I16, I16, vxc_short8, vxc_short8, short4, vxc_short8,
+                   CONV_SAT_RTE, outputScale, 0, inputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0_2D(I8, I8,  vxc_char16, vxc_char16,  char4, vxc_char8,
+                   CONV_SAT_RTE, outputScale, 0, inputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+REDUCEMAX_AXIS0_2D(U8, U8,  vxc_uchar16, vxc_uchar16, uchar4, vxc_uchar8, CONV_SAT_RTE,\
+outputScale, output_offset_asymmetric, inputScale,\
+input_offset_asymmetric, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+
+

@@ -1,0 +1,99 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniU8ConvS16_align8_step0_16x1;
+_viv_uniform VXC_512Bits uniU8ConvS16_align8_step1_16x1;
+_viv_uniform VXC_512Bits uniU8SubZp_lo_2x8;
+_viv_uniform VXC_512Bits uniU8SubZp_hi_2x8;
+_viv_uniform int weightZP;
+_viv_uniform float outputZP;
+_viv_uniform float scale;
+_viv_uniform int kernel_size_x16;
+_viv_uniform int kernel_size_x8;
+
+__kernel void vxDW_Conv1D_U8toU8_KN_D1(
+__read_only  image2d_array_t  input,
+__read_only  image2d_array_t  weight,
+__read_only  image2d_t        bias,
+__write_only image2d_array_t  output,
+             int              pad,
+             int              stride,
+             int              dilation)
+{
+int2 coord_in = (int2)(get_global_id(0) * stride - pad, get_global_id(1));
+int4 coord = (int4)(get_global_id(0), 0, 0, get_global_id(1));
+vxc_uchar4 zp;
+vxc_uchar16 src;
+vxc_uchar16 w;
+vxc_short8 coef;
+int4 sum, sum0;
+
+_viv_asm(COPY, zp, weightZP, 4);
+sum = read_imagei(bias, coord.wz);
+
+while(coord.y < kernel_size_x16)
+{
+    VXC_ReadImage(src, input, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(w, weight, coord.yw, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_DP2x8(coef, w, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniU8SubZp_lo_2x8);
+    VXC_DP16x1(sum0, src, coef, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0),\
+               uniU8ConvS16_align8_step0_16x1);
+    sum.x += sum0.x;
+    VXC_DP2x8(coef, w, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniU8SubZp_hi_2x8);
+    VXC_DP16x1(sum0, src, coef, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0),\
+               uniU8ConvS16_align8_step1_16x1);
+    sum.x += sum0.x;
+    coord_in.x += 16;
+    coord.y += 16;
+}
+
+if (kernel_size_x8)
+{
+    VXC_ReadImage(src, input, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(w, weight, coord.yw, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_DP2x8(coef, w, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniU8SubZp_lo_2x8);
+    VXC_DP16x1(sum0, src, coef, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0),\
+               uniU8ConvS16_align8_step0_16x1);
+    sum.x += sum0.x;
+}
+float4 result = convert_float4(sum.x) * scale + outputZP;
+uchar4 dst = convert_uchar4_sat(result);
+VXC_WriteImage(output, coord.xw, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void vxDW_Conv1D_U8toU8_KN_D2(
+__read_only  image2d_array_t  input,
+__read_only  image2d_array_t  weight,
+__read_only  image2d_t        bias,
+__write_only image2d_array_t  output,
+             int              pad,
+             int              stride,
+             int              dilation)
+{
+int2 coord_in = (int2)(get_global_id(0) * stride - pad, get_global_id(1));
+int4 coord = (int4)(get_global_id(0), 0, 0, get_global_id(1));
+vxc_uchar4 zp;
+vxc_uchar16 src;
+vxc_uchar16 w;
+vxc_short8 coef;
+int4 sum, sum0;
+
+_viv_asm(COPY, zp, weightZP, 4);
+sum = read_imagei(bias, coord.wz);
+
+while(coord.y < kernel_size_x8)
+{
+    VXC_ReadImage(src, input, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(w, weight, coord.yw, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_DP2x8(coef, w, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniU8SubZp_lo_2x8);
+    VXC_DP16x1(sum0, src, coef, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0),\
+               uniU8ConvS16_align8_step0_16x1);
+    sum.x += sum0.x;
+    coord_in.x += 16;
+    coord.y += 8;
+}
+
+float4 result = convert_float4(sum.x) * scale + outputZP;
+uchar4 dst = convert_uchar4_sat(result);
+VXC_WriteImage(output, coord.xw, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+

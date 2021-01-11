@@ -1,0 +1,72 @@
+/*
+ ============================================================================
+ Name        : Softmax2.vx
+ Author      : VSI
+ Version     :
+ Copyright   : Your copyright notice
+ Description :
+ ============================================================================
+ */
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits Uni4x4_Fp16ToFp32;
+_viv_uniform int  sf_size;
+ #define F_MAX(a,b) ((a)>(b)?(a):(b))
+__kernel void Softmax2VXC
+    (
+    image2d_array_t input,
+    image2d_array_t output,
+    int axis
+    )
+{
+
+   int4 coord_in = (int4)(0,0,0,0);
+   float fMax = 0.0;
+   for (int i = 0; i < sf_size; i++)
+   {
+       vxc_char8 val;
+       coord_in.x = i;
+       VXC_ReadImage2DArray(val, input, coord_in, VXC_5BITOFFSET_XY(0,0), VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
+       float fval;
+       VXC_DP4x4(fval, val, val, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 1), Uni4x4_Fp16ToFp32);
+
+       fMax = F_MAX(fMax, fval);
+   }
+
+    float  fProbSum = 0.0f;
+    for (int i = 0; i < sf_size; i++)
+    {
+       vxc_char8 val;
+
+       coord_in.x = i;
+       VXC_ReadImage2DArray(val, input, coord_in, VXC_5BITOFFSET_XY(0,0), VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
+       float fval;
+       VXC_DP4x4(fval, val, val, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 1), Uni4x4_Fp16ToFp32);
+
+       float fOut = (float)exp(fval - fMax);
+       fProbSum += fOut;
+       half hVal;
+       _viv_asm(CONV,hVal,fOut);
+       VXC_WriteImage2DArray(output, coord_in, hVal, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    }
+
+    for (int i = 0; i < sf_size; i++)
+    {
+       vxc_short8 val;
+       vxc_half8  val_h;
+       coord_in.x = i;
+       VXC_ReadImage2DArray(val, output, coord_in, VXC_5BITOFFSET_XY(0,0), VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
+       float fval;
+       _viv_asm(COPY, val_h,val, 16);
+       VXC_DP4x4(fval, val_h, val_h, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 1), Uni4x4_Fp16ToFp32);
+
+       float fOut =fval/fProbSum;
+       half hVal;
+       _viv_asm(CONV,hVal,fOut);
+       VXC_WriteImage2DArray(output, coord_in, hVal, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    }
+
+}
+
+
+

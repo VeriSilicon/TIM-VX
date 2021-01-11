@@ -1,0 +1,36 @@
+# This is the entry point for --crosstool_top.  Toolchains are found
+# by lopping off the name of --crosstool_top and searching for
+# 'cc-compiler-${CPU}' in this BUILD file, where CPU is the target CPU
+# specified in --cpu.
+#
+# Toochain directory structure
+# └── <toolchain_name>
+#     ├── toolchain.BUILD
+#     ├── BUILD.bazel
+#     ├── CROSSTOOL
+#     ├── cc_toolchain_config.bzl
+#     └── bin
+#         ├── BUILD.bazel
+#         ├── wrapper-ar
+#         ├── wrapper-as
+#         ├── wrapper-gcc
+#         ├── wrapper-gcov
+#         ├── wrapper-ld
+#         ├── wrapper-nm
+#         ├── wrapper-objcopy
+#         ├── wrapper-objdump
+#         └── wrapper-strip
+#
+
+load("//:cc_toolchain_base.bzl", "register_toolchain")
+load(":cc_toolchain_config.bzl", "cc_toolchain_config")
+
+# Register toolchain
+#   will generate a `cc_toolchain_suite` named `toolchain`
+#   `toolchain_name` must be identical with toolchain directory name and http_archive name in `toolchains.bzl`
+register_toolchain(
+    toolchain_name = "gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu",
+    target_cpu = "armv8-a",
+    compiler = "gcc",
+    cc_toolchain_config = cc_toolchain_config,
+)

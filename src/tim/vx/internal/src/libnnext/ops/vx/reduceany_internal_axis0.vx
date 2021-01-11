@@ -1,0 +1,55 @@
+#include "cl_viv_vx_ext.h"
+_viv_uniform int         axisSize;
+
+_viv_uniform VXC_512Bits  uniS8AddAll_16x1;
+
+#define REDUCEANY_AXIS0_PROCESS(read_fun, write_fun) \
+    vxc_char16 ones  = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; \
+    vxc_char16 zeros = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; \
+    int4 sum_val = 0; \
+    result = zeros; \
+    do \
+    { \
+        read_fun(val0, input,  coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+        val = val0 != zeros ? ones : zeros; \
+        VXC_DP16x1(sum_val, val, val, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniS8AddAll_16x1); \
+        if (sum_val.x != 0) \
+        { \
+            result = ones; \
+            break; \
+        } \
+        coord.x += 16; \
+    } \
+    while(coord.x < axisSize); \
+    write_fun(output, coord_out, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+
+__kernel void reduceany_axis0_I8toI8
+    (
+    __read_only  image2d_array_t input,
+    __write_only image2d_array_t output,
+    int   axisVal
+    )
+{
+    int4 coord = (int4)(0, get_global_id(0), get_global_id(1), 0);
+    int2 coord_out = (int2)(get_global_id(0), get_global_id(1));
+    vxc_char16 val0;
+    vxc_char16 val, result;
+    REDUCEANY_AXIS0_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage)
+}
+
+__kernel void reduceany_axis0_I8toI8_2D
+    (
+    __read_only  image2d_array_t input,
+    __write_only image2d_array_t output,
+    int   axisVal
+    )
+{
+    int2 coord = (int2)(0, get_global_id(0));
+    int2 coord_out = (int2)(get_global_id(0), 0);
+    vxc_char16 val0;
+    vxc_char16 val, result;
+    REDUCEANY_AXIS0_PROCESS(VXC_ReadImage, VXC_WriteImage)
+}
+
+

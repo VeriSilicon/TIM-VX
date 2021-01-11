@@ -1,0 +1,30 @@
+#include "cl_viv_vx_ext.h"
+
+__kernel void logical_not_I8toI8(
+    __read_only image2d_array_t   input,
+    __write_only image2d_array_t  output)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    vxc_char8 src0;
+    vxc_char8 dst;
+    VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    dst = !src0;
+    dst *= (-1);
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void logical_not_I8toI8_2D(
+    __read_only image2d_array_t   input,
+    __write_only image2d_array_t  output)
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    vxc_char8 src0;
+    vxc_char8 dst;
+    VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    dst = !src0;
+    dst *= (-1);
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+

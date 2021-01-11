@@ -1,0 +1,114 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float input0Scale;
+_viv_uniform float input0Tail;
+_viv_uniform float input1Scale;
+_viv_uniform float input1Tail;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform VXC_512Bits uniDatatoFp32Part0_4x4;
+_viv_uniform VXC_512Bits uniDatatoFp32Part1_4x4;
+
+#define COMPARISONS_2D(func_name, src0_type_name, src1_type_name, \
+        src0_type, src0_copy_type, src1_type, src1_copy_type, cmp_op) \
+__kernel void func_name##_##src0_type_name##src1_type_name##toBOOL8_2D( \
+    __read_only  image2d_array_t  input0, \
+    __read_only  image2d_array_t  input1, \
+    __write_only image2d_array_t  output \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    src0_type      src0; \
+    src0_copy_type srcA; \
+    src0_type      src1; \
+    src0_copy_type srcB; \
+    VXC_ReadImage(src0, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, srcA, src0, 16); \
+    VXC_ReadImage(src1, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, srcB, src1, 16); \
+ \
+    float4 vecA0, vecA1; \
+    float4 vecB0, vecB1; \
+    VXC_DP4x4(vecA0, srcA, srcA, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFp32Part0_4x4); \
+    VXC_DP4x4(vecA1, srcA, srcA, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFp32Part1_4x4); \
+    vecA0 = vecA0 * input0Scale + input0Tail; \
+    vecA1 = vecA1 * input0Scale + input0Tail; \
+    VXC_DP4x4(vecB0, srcB, srcB, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFp32Part0_4x4); \
+    VXC_DP4x4(vecB1, srcB, srcB, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFp32Part1_4x4); \
+    vecB0 = vecB0 * input1Scale + input1Tail; \
+    vecB1 = vecB1 * input1Scale + input1Tail; \
+    int4 dst0, dst1; \
+    dst0 = (vecA0)cmp_op(vecB0); \
+    dst1 = (vecA1)cmp_op(vecB1); \
+ \
+    vxc_char16 dst; \
+    VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    dst &= 1; \
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+//LESS
+COMPARISONS_2D(less, F16, F16, vxc_short8, vxc_half8,  vxc_short8, vxc_half8,  <)
+COMPARISONS_2D(less, F16, I8,  vxc_short8, vxc_half8,  vxc_char8,  vxc_char8,  <)
+COMPARISONS_2D(less, F16, U8,  vxc_short8, vxc_half8,  vxc_uchar8, vxc_uchar8, <)
+COMPARISONS_2D(less, F16, I16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8, <)
+COMPARISONS_2D(less, I8,  I8,  vxc_char8,  vxc_char8,  vxc_char8,  vxc_char8,  <)
+COMPARISONS_2D(less, I8,  F16, vxc_char8,  vxc_char8,  vxc_short8, vxc_half8,  <)
+COMPARISONS_2D(less, U8,  U8,  vxc_uchar8, vxc_uchar8, vxc_uchar8, vxc_uchar8, <)
+COMPARISONS_2D(less, U8,  F16, vxc_uchar8, vxc_uchar8, vxc_short8, vxc_half8,  <)
+COMPARISONS_2D(less, I16, I16, vxc_short8, vxc_short8, vxc_short8, vxc_short8, <)
+COMPARISONS_2D(less, I16, F16, vxc_short8, vxc_short8, vxc_short8, vxc_half8,  <)
+//GREAT
+COMPARISONS_2D(great, F16, F16, vxc_short8, vxc_half8,  vxc_short8, vxc_half8,  >)
+COMPARISONS_2D(great, F16, I8,  vxc_short8, vxc_half8,  vxc_char8,  vxc_char8,  >)
+COMPARISONS_2D(great, F16, U8,  vxc_short8, vxc_half8,  vxc_uchar8, vxc_uchar8, >)
+COMPARISONS_2D(great, F16, I16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8, >)
+COMPARISONS_2D(great, I8,  I8,  vxc_char8,  vxc_char8,  vxc_char8,  vxc_char8,  >)
+COMPARISONS_2D(great, I8,  F16, vxc_char8,  vxc_char8,  vxc_short8, vxc_half8,  >)
+COMPARISONS_2D(great, U8,  U8,  vxc_uchar8, vxc_uchar8, vxc_uchar8, vxc_uchar8, >)
+COMPARISONS_2D(great, U8,  F16, vxc_uchar8, vxc_uchar8, vxc_short8, vxc_half8,  >)
+COMPARISONS_2D(great, I16, I16, vxc_short8, vxc_short8, vxc_short8, vxc_short8, >)
+COMPARISONS_2D(great, I16, F16, vxc_short8, vxc_short8, vxc_short8, vxc_half8,  >)
+//LESS_EQUAL
+COMPARISONS_2D(less_equal, F16, F16, vxc_short8, vxc_half8,  vxc_short8, vxc_half8,  <=)
+COMPARISONS_2D(less_equal, F16, I8,  vxc_short8, vxc_half8,  vxc_char8,  vxc_char8,  <=)
+COMPARISONS_2D(less_equal, F16, U8,  vxc_short8, vxc_half8,  vxc_uchar8, vxc_uchar8, <=)
+COMPARISONS_2D(less_equal, F16, I16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8, <=)
+COMPARISONS_2D(less_equal, I8,  I8,  vxc_char8,  vxc_char8,  vxc_char8,  vxc_char8,  <=)
+COMPARISONS_2D(less_equal, I8,  F16, vxc_char8,  vxc_char8,  vxc_short8, vxc_half8,  <=)
+COMPARISONS_2D(less_equal, U8,  U8,  vxc_uchar8, vxc_uchar8, vxc_uchar8, vxc_uchar8, <=)
+COMPARISONS_2D(less_equal, U8,  F16, vxc_uchar8, vxc_uchar8, vxc_short8, vxc_half8,  <=)
+COMPARISONS_2D(less_equal, I16, I16, vxc_short8, vxc_short8, vxc_short8, vxc_short8, <=)
+COMPARISONS_2D(less_equal, I16, F16, vxc_short8, vxc_short8, vxc_short8, vxc_half8,  <=)
+//GREAT_EQUAL
+COMPARISONS_2D(great_equal, F16, F16, vxc_short8, vxc_half8,  vxc_short8, vxc_half8,  >=)
+COMPARISONS_2D(great_equal, F16, I8,  vxc_short8, vxc_half8,  vxc_char8,  vxc_char8,  >=)
+COMPARISONS_2D(great_equal, F16, U8,  vxc_short8, vxc_half8,  vxc_uchar8, vxc_uchar8, >=)
+COMPARISONS_2D(great_equal, F16, I16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8, >=)
+COMPARISONS_2D(great_equal, I8,  I8,  vxc_char8,  vxc_char8,  vxc_char8,  vxc_char8,  >=)
+COMPARISONS_2D(great_equal, I8,  F16, vxc_char8,  vxc_char8,  vxc_short8, vxc_half8,  >=)
+COMPARISONS_2D(great_equal, U8,  U8,  vxc_uchar8, vxc_uchar8, vxc_uchar8, vxc_uchar8, >=)
+COMPARISONS_2D(great_equal, U8,  F16, vxc_uchar8, vxc_uchar8, vxc_short8, vxc_half8,  >=)
+COMPARISONS_2D(great_equal, I16, I16, vxc_short8, vxc_short8, vxc_short8, vxc_short8, >=)
+COMPARISONS_2D(great_equal, I16, F16, vxc_short8, vxc_short8, vxc_short8, vxc_half8,  >=)
+//EQUAL
+COMPARISONS_2D(equal, F16, F16, vxc_short8, vxc_half8,  vxc_short8, vxc_half8,  ==)
+COMPARISONS_2D(equal, F16, I8,  vxc_short8, vxc_half8,  vxc_char8,  vxc_char8,  ==)
+COMPARISONS_2D(equal, F16, U8,  vxc_short8, vxc_half8,  vxc_uchar8, vxc_uchar8, ==)
+COMPARISONS_2D(equal, F16, I16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8, ==)
+COMPARISONS_2D(equal, I8,  I8,  vxc_char8,  vxc_char8,  vxc_char8,  vxc_char8,  ==)
+COMPARISONS_2D(equal, I8,  F16, vxc_char8,  vxc_char8,  vxc_short8, vxc_half8,  ==)
+COMPARISONS_2D(equal, U8,  U8,  vxc_uchar8, vxc_uchar8, vxc_uchar8, vxc_uchar8, ==)
+COMPARISONS_2D(equal, U8,  F16, vxc_uchar8, vxc_uchar8, vxc_short8, vxc_half8,  ==)
+COMPARISONS_2D(equal, I16, I16, vxc_short8, vxc_short8, vxc_short8, vxc_short8, ==)
+COMPARISONS_2D(equal, I16, F16, vxc_short8, vxc_short8, vxc_short8, vxc_half8,  ==)
+//NOT_EQUAL
+COMPARISONS_2D(not_equal, F16, F16, vxc_short8, vxc_half8,  vxc_short8, vxc_half8,  !=)
+COMPARISONS_2D(not_equal, F16, I8,  vxc_short8, vxc_half8,  vxc_char8,  vxc_char8,  !=)
+COMPARISONS_2D(not_equal, F16, U8,  vxc_short8, vxc_half8,  vxc_uchar8, vxc_uchar8, !=)
+COMPARISONS_2D(not_equal, F16, I16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8, !=)
+COMPARISONS_2D(not_equal, I8,  I8,  vxc_char8,  vxc_char8,  vxc_char8,  vxc_char8,  !=)
+COMPARISONS_2D(not_equal, I8,  F16, vxc_char8,  vxc_char8,  vxc_short8, vxc_half8,  !=)
+COMPARISONS_2D(not_equal, U8,  U8,  vxc_uchar8, vxc_uchar8, vxc_uchar8, vxc_uchar8, !=)
+COMPARISONS_2D(not_equal, U8,  F16, vxc_uchar8, vxc_uchar8, vxc_short8, vxc_half8,  !=)
+COMPARISONS_2D(not_equal, I16, I16, vxc_short8, vxc_short8, vxc_short8, vxc_short8, !=)
+COMPARISONS_2D(not_equal, I16, F16, vxc_short8, vxc_short8, vxc_short8, vxc_half8,  !=)
+

@@ -1,0 +1,227 @@
+#include "cl_viv_vx_ext.h"
+
+//--------------------------unpooling-------------------------
+_viv_uniform VXC_512Bits uniQuantInOutInt16_2x8;
+_viv_uniform VXC_512Bits ucharMulShort_2x8;
+
+#define UPSAMPLE_I16_U8TO_I16_SAME_PROCESS(read_fun, write_fun) \
+    vxc_short4 din; \
+    vxc_uchar4 axisIn; \
+    vxc_short8 dinExp; \
+    vxc_uchar8 axisInExp; \
+    vxc_uchar8 constAxis; \
+    vxc_uchar8 axisData; \
+    vxc_short8 axisData_short; \
+    vxc_short8 dout; \
+    read_fun(din, dataIn, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    read_fun(axisIn, axis, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    dinExp = din.s00112233; \
+    axisInExp = axisIn.s00112233; \
+    constAxis = (vxc_uchar8)(0, 1, 0, 1, 0, 1, 0, 1); \
+    VXC_Clamp(axisData, axisInExp, constAxis, constAxis, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+    axisData &= (vxc_uchar8)(1); \
+    VXC_DP2x8(dout, axisData, dinExp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), ucharMulShort_2x8); \
+    write_fun(dataOut, coordOut, dout, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    constAxis = (vxc_uchar8)(2, 3, 2, 3, 2, 3, 2, 3); \
+    VXC_Clamp(axisData, axisInExp, constAxis, constAxis, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+    axisData &= (vxc_uchar8)(1); \
+    VXC_DP2x8(dout, axisData, dinExp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), ucharMulShort_2x8); \
+    coordOut.y += 1; \
+    write_fun(dataOut, coordOut, dout, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+__kernel void upsample_I16_U8to_I16_SAME
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coordOut = (int4)(coord.x << 1, coord.y << 1, coord.z, 0);
+    UPSAMPLE_I16_U8TO_I16_SAME_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void upsample_I16_U8to_I16_SAME_2D
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int2 coord    = (int2)(get_global_id(0), get_global_id(1));
+    int2 coordOut = (int2)(coord.x << 1, coord.y << 1);
+    UPSAMPLE_I16_U8TO_I16_SAME_PROCESS(VXC_ReadImage, VXC_WriteImage)
+}
+
+#define UPSAMPLE_I16_TO_I16_PROCESS(axis_type, axis_in_type, read_fun, write_fun) \
+    vxc_short4 din; \
+    axis_in_type axisIn; \
+    vxc_short8 dinExp; \
+    axis_type  axisInExp; \
+    axis_type  constAxis; \
+    axis_type  axisData; \
+    vxc_short8 axisData_short; \
+    vxc_short8 dout; \
+    read_fun(din, dataIn, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    read_fun(axisIn, axis, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    dinExp = din.s00112233; \
+    axisInExp = axisIn.s00112233; \
+    constAxis = (axis_type)(0, 1, 0, 1, 0, 1, 0, 1); \
+    VXC_Clamp(axisData, axisInExp, constAxis, constAxis, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+    axisData &= (axis_type)(1); \
+    VXC_DP2x8(dout, axisData, dinExp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), ucharMulShort_2x8); \
+    VXC_DP2x8(dout, dout, dout, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantInOutInt16_2x8); \
+    write_fun(dataOut, coordOut, dout, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    constAxis = (axis_type)(2, 3, 2, 3, 2, 3, 2, 3); \
+    VXC_Clamp(axisData, axisInExp, constAxis, constAxis, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+    axisData &= (axis_type)(1); \
+    VXC_DP2x8(dout, axisData, dinExp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), ucharMulShort_2x8); \
+    VXC_DP2x8(dout, dout, dout, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantInOutInt16_2x8); \
+    coordOut.y += 1; \
+    write_fun(dataOut, coordOut, dout, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+__kernel void upsample_I16_U8to_I16
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coordOut = (int4)(coord.x << 1, coord.y << 1, coord.z, 0);
+    UPSAMPLE_I16_TO_I16_PROCESS(vxc_uchar8, vxc_uchar4, VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void upsample_I16_U8to_I16_2D
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int2 coord    = (int2)(get_global_id(0), get_global_id(1));
+    int2 coordOut = (int2)(coord.x << 1, coord.y << 1);
+    UPSAMPLE_I16_TO_I16_PROCESS(vxc_uchar8, vxc_uchar4, VXC_ReadImage, VXC_WriteImage)
+}
+
+
+__kernel void upsample_I16_I16to_I16
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coordOut = (int4)(coord.x << 1, coord.y << 1, coord.z, 0);
+    UPSAMPLE_I16_TO_I16_PROCESS(vxc_short8, vxc_short4, VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void upsample_I16_I16to_I16_2D
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int2 coord    = (int2)(get_global_id(0), get_global_id(1));
+    int2 coordOut = (int2)(coord.x << 1, coord.y << 1);
+    UPSAMPLE_I16_TO_I16_PROCESS(vxc_short8, vxc_short4, VXC_ReadImage, VXC_WriteImage)
+}
+
+
+_viv_uniform VXC_512Bits uniConvertDirInt16Fp32_4x4;
+_viv_uniform VXC_512Bits uniConvertU8toI16_2x8;
+_viv_uniform float inScaleInt16;
+
+#define UPSAMPLE_I16_TO_F16_PROCESS(axis_type, axis_in_type, read_fun, write_fun) \
+    vxc_short8 din; \
+    axis_in_type axisIn; \
+    vxc_short8 dinExp; \
+    axis_type  axisInExp; \
+    axis_type  constAxis; \
+    axis_type  axisData; \
+    vxc_short8 axisData_short; \
+    vxc_short8 dout; \
+    vxc_float4 tmpVal0, tmpVal1; \
+    half4 tmpOut0; \
+    vxc_short8 tmpOut1; \
+    read_fun(din, dataIn, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    read_fun(axisIn, axis, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP4x4(tmpVal0, din, din, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+        uniConvertDirInt16Fp32_4x4); \
+    tmpVal1 = tmpVal0 * inScaleInt16; \
+    _viv_asm(CONV, tmpOut0, tmpVal1); \
+    _viv_asm(COPY, tmpOut1, tmpOut0, 16); \
+    dinExp    = tmpOut1.s00224466; \
+    axisInExp = axisIn.s00112233; \
+    constAxis = (axis_type)(0, 1, 0, 1, 0, 1, 0, 1); \
+    VXC_Clamp(axisData, axisInExp, constAxis, constAxis, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+    axisData &= (axis_type)(1); \
+    VXC_DP2x8(axisData_short, axisData, axisData, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+        uniConvertU8toI16_2x8); \
+    dout = axisData_short == 1 ? dinExp : 0; \
+    write_fun(dataOut, coordOut, dout, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    constAxis = (axis_type)(2, 3, 2, 3, 2, 3, 2, 3); \
+    VXC_Clamp(axisData, axisInExp, constAxis, constAxis, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+    axisData &= (axis_type)(1); \
+    VXC_DP2x8(axisData_short, axisData, axisData, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+        uniConvertU8toI16_2x8); \
+    dout = axisData_short == 1 ? dinExp : 0; \
+    coordOut.y += 1; \
+    write_fun(dataOut, coordOut, dout, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+__kernel void upsample_I16_I16to_F16
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coordOut = (int4)(coord.x << 1, coord.y << 1, coord.z, 0);
+    UPSAMPLE_I16_TO_F16_PROCESS(vxc_short8, vxc_short4, VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void upsample_I16_I16to_F16_2D
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int2 coord    = (int2)(get_global_id(0), get_global_id(1));
+    int2 coordOut = (int2)(coord.x << 1, coord.y << 1);
+    UPSAMPLE_I16_TO_F16_PROCESS(vxc_short8, vxc_short4, VXC_ReadImage, VXC_WriteImage)
+}
+
+
+__kernel void upsample_I16_U8to_F16
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coordOut = (int4)(coord.x << 1, coord.y << 1, coord.z, 0);
+    UPSAMPLE_I16_TO_F16_PROCESS(vxc_uchar8, vxc_uchar4, VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void upsample_I16_U8to_F16_2D
+    (
+        image2d_array_t dataIn,
+        image2d_array_t axis,
+        image2d_array_t dataOut
+    )
+{
+    int2 coord    = (int2)(get_global_id(0), get_global_id(1));
+    int2 coordOut = (int2)(coord.x << 1, coord.y << 1);
+    UPSAMPLE_I16_TO_F16_PROCESS(vxc_uchar8, vxc_uchar4, VXC_ReadImage, VXC_WriteImage)
+}

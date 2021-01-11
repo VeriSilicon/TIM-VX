@@ -1,0 +1,133 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int lastWorkItem;
+
+#define TILE_3D(name0, name1, name2, remainder, type) \
+__kernel void tile_remain##name2##_##name0##to##name1( \
+    __read_only image2d_array_t  input, \
+    __write_only image2d_array_t output, \
+                             int batchIn, \
+                             int depthIn, \
+                             int depthOut, \
+                             int multiples_0, \
+                             int multiples_1, \
+                             int multiples_2, \
+                             int multiples_3 \
+) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    int4 coord_out; \
+    int width = get_image_width(input); \
+    int height = get_image_height(input); \
+    int output_width = get_image_width(output); \
+    type src; \
+    VXC_ReadImage2DArray(src, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    int isLastItem = coord.x == lastWorkItem; \
+ \
+    int batch_id = (short)coord.z / (short)depthIn; \
+    coord.z = (short)coord.z % (short)depthIn; \
+    coord_out = coord; \
+ \
+    for (int w = 0; w < multiples_3; w++) \
+    { \
+        int batch = batchIn * w + batch_id; \
+ \
+        for(int z = 0; z < multiples_2; z++) \
+        { \
+            coord_out.z = coord.z + z * depthIn + batch * depthOut; \
+ \
+            for (int y = 0; y < multiples_1; y++) \
+            { \
+                coord_out.y = coord.y + y * height; \
+ \
+                for (int x = 0; x < multiples_0; x++) \
+                { \
+                    coord_out.x = coord.x + x * width; \
+                    if (isLastItem) \
+                        VXC_WriteImage2DArray(output, coord_out, src, \
+                            VXC_MODIFIER(0, remainder, 0, VXC_RM_TowardZero, 0)); \
+                    else \
+                        VXC_WriteImage2DArray(output, coord_out, src, \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+                } \
+            } \
+        } \
+    } \
+}
+TILE_3D(U8, U8, 1, 0, vxc_uchar8)
+TILE_3D(U8, U8, 2, 1, vxc_uchar8)
+TILE_3D(U8, U8, 3, 2, vxc_uchar8)
+TILE_3D(U8, U8, 4, 3, vxc_uchar8)
+TILE_3D(U8, U8, 5, 4, vxc_uchar8)
+TILE_3D(U8, U8, 6, 5, vxc_uchar8)
+TILE_3D(U8, U8, 7, 6, vxc_uchar8)
+TILE_3D(U8, U8, 0, 7, vxc_uchar8)
+
+TILE_3D(I16, I16, 1, 0, vxc_short8)
+TILE_3D(I16, I16, 2, 1, vxc_short8)
+TILE_3D(I16, I16, 3, 2, vxc_short8)
+TILE_3D(I16, I16, 4, 3, vxc_short8)
+TILE_3D(I16, I16, 5, 4, vxc_short8)
+TILE_3D(I16, I16, 6, 5, vxc_short8)
+TILE_3D(I16, I16, 7, 6, vxc_short8)
+TILE_3D(I16, I16, 0, 7, vxc_short8)
+
+
+#define TILE_2D(name0, name1, name2, remainder, type) \
+__kernel void tile_remain##name2##_##name0##to##name1##_2D( \
+    __read_only image2d_array_t  input, \
+    __write_only image2d_array_t output, \
+                             int batchIn, \
+                             int depthIn, \
+                             int depthOut, \
+                             int multiples_0, \
+                             int multiples_1, \
+                             int multiples_2, \
+                             int multiples_3 \
+) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    int width = get_image_width(input); \
+    int height = get_image_height(input); \
+    int output_width = get_image_width(output); \
+    int output_height = get_image_height(output); \
+    type src; \
+    VXC_ReadImage(src, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    int isLastItem = coord.x == lastWorkItem; \
+    do \
+    { \
+        do \
+        { \
+            if (isLastItem) \
+                VXC_WriteImage(output, coord, src, VXC_MODIFIER(0, remainder, 0, VXC_RM_TowardZero, 0)); \
+            else \
+                VXC_WriteImage(output, coord, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            coord.x += width; \
+        } while (coord.x < output_width); \
+        coord.x = get_global_id(0); \
+        coord.y += height; \
+    } while (coord.y < output_height); \
+}
+TILE_2D(U8, U8, 1, 0, vxc_uchar8)
+TILE_2D(U8, U8, 2, 1, vxc_uchar8)
+TILE_2D(U8, U8, 3, 2, vxc_uchar8)
+TILE_2D(U8, U8, 4, 3, vxc_uchar8)
+TILE_2D(U8, U8, 5, 4, vxc_uchar8)
+TILE_2D(U8, U8, 6, 5, vxc_uchar8)
+TILE_2D(U8, U8, 7, 6, vxc_uchar8)
+TILE_2D(U8, U8, 0, 7, vxc_uchar8)
+
+TILE_2D(I16, I16, 1, 0, vxc_short8)
+TILE_2D(I16, I16, 2, 1, vxc_short8)
+TILE_2D(I16, I16, 3, 2, vxc_short8)
+TILE_2D(I16, I16, 4, 3, vxc_short8)
+TILE_2D(I16, I16, 5, 4, vxc_short8)
+TILE_2D(I16, I16, 6, 5, vxc_short8)
+TILE_2D(I16, I16, 7, 6, vxc_short8)
+TILE_2D(I16, I16, 0, 7, vxc_short8)
+
+

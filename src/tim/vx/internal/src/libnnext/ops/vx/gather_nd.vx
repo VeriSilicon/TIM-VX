@@ -1,0 +1,82 @@
+#include "cl_viv_vx_ext.h"
+
+__kernel void gather_nd_I8toI8_1D(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+
+    int4 coord = (int4)(0, gidy, gidx, 0);
+    int4 indice = read_imagei(input1, coord.xy);
+    coord.w = indice.x;
+
+    vxc_char16 src;
+    VXC_ReadImage(src, input0, coord.zw, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_nd_U8toU8_1D(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+
+    int4 coord = (int4)(0, gidy, gidx, 0);
+    int4 indice = read_imagei(input1, coord.xy);
+    coord.w = indice.x;
+
+    vxc_uchar16 src;
+    VXC_ReadImage(src, input0, coord.zw, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_nd_I16toI16_1D(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+
+    int4 coord = (int4)(0, gidy, gidx, 0);
+    int4 indice = read_imagei(input1, coord.xy);
+    coord.w = indice.x;
+
+    vxc_short8 src;
+    VXC_ReadImage(src, input0, coord.zw, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_nd_F16toF16_1D(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+
+    int4 coord = (int4)(0, gidy, gidx, 0);
+    int4 indice = read_imagei(input1, coord.xy);
+    coord.w = indice.x;
+
+    vxc_short8 src;
+    VXC_ReadImage(src, input0, coord.zw, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}

@@ -1,0 +1,66 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniConvertIntegerLo_2x8;
+_viv_uniform int4 packedMinData;
+_viv_uniform int4 packedMaxData;
+
+#define TENSORCLIP_I16TOI16_PROCESS(read_fun, write_fun) \
+    vxc_short8 src0, min, max; \
+    read_fun(src0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(src0, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertIntegerLo_2x8); \
+    _viv_asm(COPY, min, packedMinData, 16); \
+    _viv_asm(COPY, max, packedMaxData, 16); \
+    VXC_Clamp(src0, src0, min, max, VXC_MODIFIER_CLAMP(0, 7, 0, 0)); \
+    write_fun(output, coord, src0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+
+__kernel void clip_I16toI16(
+    __read_only  image2d_array_t   input,
+    __write_only image2d_array_t   output,
+                           float   minData,
+                           float   maxData)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    TENSORCLIP_I16TOI16_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void clip_I16toI16_2D(
+    __read_only  image2d_array_t   input,
+    __write_only image2d_array_t   output,
+                           float   minData,
+                           float   maxData)
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    TENSORCLIP_I16TOI16_PROCESS(VXC_ReadImage, VXC_WriteImage)
+}
+
+#define TENSORCLIP_I16TOF16_PROCESS(read_fun, write_fun) \
+    vxc_short8 src0, dst; \
+    vxc_half8  src1, src2, minHf, maxHf; \
+    read_fun(src0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(src1, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertIntegerLo_2x8); \
+    _viv_asm(COPY, minHf, packedMinData, 16); \
+    _viv_asm(COPY, maxHf, packedMaxData, 16); \
+    VXC_Clamp_Half(src2, src1, minHf, maxHf, VXC_MODIFIER_CLAMP(0, 7, 0, 0)); \
+    _viv_asm(COPY, dst, src2, 16); \
+    write_fun(output, coord, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+
+
+__kernel void clip_I16toF16(
+    __read_only  image2d_array_t   input,
+    __write_only image2d_array_t   output,
+                           float   minData,
+                           float   maxData)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    TENSORCLIP_I16TOF16_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void clip_I16toF16_2D(
+    __read_only  image2d_array_t   input,
+    __write_only image2d_array_t   output,
+                           float   minData,
+                           float   maxData)
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    TENSORCLIP_I16TOF16_PROCESS(VXC_ReadImage, VXC_WriteImage)
+}

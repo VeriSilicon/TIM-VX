@@ -1,0 +1,73 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniConvertIntegerLo_2x8;
+_viv_uniform VXC_512Bits uniConvertIntegerHi_2x8;
+_viv_uniform int4 packedMinData;
+_viv_uniform int4 packedMaxData;
+
+#define TENSORCLIP_I8TOI8_PROCESS(read_fun, write_fun) \
+    vxc_char16 src0, min, max; \
+    read_fun(src0, input, coord, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(src0, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertIntegerLo_2x8); \
+    VXC_DP2x8(src0, src0, src0, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniConvertIntegerHi_2x8); \
+    _viv_asm(COPY, min, packedMinData, 16); \
+    _viv_asm(COPY, max, packedMaxData, 16); \
+    VXC_Clamp(src0, src0, min, max, VXC_MODIFIER_CLAMP(0, 15, 0, 0)); \
+    write_fun(output, coord, src0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+__kernel void clip_I8toI8(
+    __read_only  image2d_array_t  input,
+    __write_only image2d_array_t  output,
+                           float  minData,
+                           float  maxData)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    TENSORCLIP_I8TOI8_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void clip_I8toI8_2D(
+    __read_only  image2d_array_t  input,
+    __write_only image2d_array_t  output,
+                           float  minData,
+                           float  maxData)
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    TENSORCLIP_I8TOI8_PROCESS(VXC_ReadImage, VXC_WriteImage)
+}
+
+#define TENSORCLIP_I8TOF16_PROCESS(read_fun, write_fun) \
+    vxc_char16 src0; \
+    vxc_short8 dst0, dst1; \
+    vxc_half8  src1, src2, src3, src4, minHf, maxHf; \
+    read_fun(src0, input, coord, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(src1, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertIntegerLo_2x8); \
+    VXC_DP2x8(src2, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertIntegerHi_2x8); \
+    _viv_asm(COPY, minHf, packedMinData, 16); \
+    _viv_asm(COPY, maxHf, packedMaxData, 16); \
+    VXC_Clamp_Half(src3, src1, minHf, maxHf, VXC_MODIFIER_CLAMP(0, 7, 0, 0)); \
+    VXC_Clamp_Half(src4, src2, minHf, maxHf, VXC_MODIFIER_CLAMP(0, 7, 0, 0)); \
+    _viv_asm(COPY, dst0, src3, 16); \
+    _viv_asm(COPY, dst1, src4, 16); \
+    write_fun(output, coord, dst0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    coord.x += 8; \
+    write_fun(output, coord, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+__kernel void clip_I8toF16(
+    __read_only  image2d_array_t  input,
+    __write_only image2d_array_t  output,
+                           float  minData,
+                           float  maxData)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    TENSORCLIP_I8TOF16_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void clip_I8toF16_2D(
+    __read_only  image2d_array_t  input,
+    __write_only image2d_array_t  output,
+                           float  minData,
+                           float  maxData)
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    TENSORCLIP_I8TOF16_PROCESS(VXC_ReadImage, VXC_WriteImage)
+}

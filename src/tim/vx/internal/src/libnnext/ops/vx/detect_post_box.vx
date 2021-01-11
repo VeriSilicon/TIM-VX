@@ -1,0 +1,76 @@
+#include "cl_viv_vx_ext.h"
+_viv_uniform VXC_512Bits uniDataMerge_4x4;
+_viv_uniform VXC_512Bits uniU8SubZptoF32Conv0_4x4;
+_viv_uniform VXC_512Bits uniU8SubZptoF32Conv1_4x4;
+_viv_uniform float logE;
+_viv_uniform int   input0_ZP;
+_viv_uniform int   input1_ZP;
+
+float exp_(float x)
+{
+    x *= logE;
+    x = exp2(x);
+    return x;
+}
+
+__kernel void detect_post_box_F32_F32toF32(
+     __read_only image2d_array_t   input0,
+           __read_only image2d_t   input1,
+    __write_only image2d_array_t   output,
+                           float   inv_scale_y,
+                           float   inv_scale_x,
+                           float   inv_scale_h,
+                           float   inv_scale_w)
+{
+    int4 coord =  (int4)(0, get_global_id(0), get_global_id(1), 0);
+    float4 src0;
+    float4 src1;
+    float4 dst;
+    float4 tmp0, tmp1, tmp2, tmp3;
+    uint4  tmp5, tmp6, tmp7;
+    src0 = read_imagef(input0, coord);
+    src1 = read_imagef(input1, coord.xy);
+    tmp0.x  = src1.x + src1.z * src0.x * inv_scale_y;
+    tmp0.y  = src1.y + src1.w * src0.y * inv_scale_x;
+    tmp1.x = src1.z * exp_(src0.z * inv_scale_h) * 0.5f;
+    tmp1.y = src1.w * exp_(src0.w * inv_scale_w) * 0.5f;
+    tmp2   = tmp0 - tmp1;
+    tmp3   = tmp0 + tmp1;
+    _viv_asm(COPY, tmp5, tmp2, 16);
+    _viv_asm(COPY, tmp6, tmp3, 16);
+    VXC_DP4x4(tmp7, tmp5, tmp6, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniDataMerge_4x4);
+    _viv_asm(COPY, dst, tmp7, 16);
+    write_imagef(output, coord, dst);
+}
+
+__kernel void detect_post_box_U8_U8toF32(
+     __read_only image2d_array_t   input0,
+     __read_only image2d_array_t   input1,
+    __write_only image2d_array_t   output,
+                           float   inv_scale_y,
+                           float   inv_scale_x,
+                           float   inv_scale_h,
+                           float   inv_scale_w)
+{
+    int4 coord =  (int4)(0, get_global_id(0), get_global_id(1), 0);
+    float4 src0;
+    float4 src1;
+    float4 dst;
+    float4 tmp0, tmp1, tmp2, tmp3;
+    vxc_uchar8 in0 = 0, in1 = 0;
+    vxc_short8 zp0 = (short)input0_ZP;
+    vxc_short8 zp1 = (short)input1_ZP;
+    VXC_ReadImage2DArray(in0, input0, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in1, input1, coord.xy, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    VXC_DP4x4(src0, in0, zp0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniU8SubZptoF32Conv0_4x4);
+    VXC_DP4x4(src1, in1, zp1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniU8SubZptoF32Conv1_4x4);
+    tmp0.x  = src1.x + src1.z * src0.x * inv_scale_y;
+    tmp0.y  = src1.y + src1.w * src0.y * inv_scale_x;
+    tmp1.x = src1.z * exp_(src0.z * inv_scale_h) * 0.5f;
+    tmp1.y = src1.w * exp_(src0.w * inv_scale_w) * 0.5f;
+    dst.xy   = tmp0.xy - tmp1.xy;
+    dst.zw   = tmp0.xy + tmp1.xy;
+    write_imagef(output, coord, dst);
+}

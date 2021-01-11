@@ -1,0 +1,49 @@
+#include "cl_viv_vx_ext.h"
+
+//--------------------------scale-------------------------
+_viv_uniform VXC_512Bits uniExtractHalf8_2x8;
+_viv_uniform VXC_512Bits uniFp16MulFp16ToFp32_Lo_4x4;
+_viv_uniform VXC_512Bits uniFp16MulFp16ToFp32_Hi_4x4;
+__kernel void scale_fp16
+    (
+    __read_only     image2d_array_t input,
+    __read_only     image2d_array_t weights,
+    __read_only     image2d_array_t biases,
+    __write_only    image2d_array_t output
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);
+    vxc_short8 vec0, vec1;
+    vxc_half8  src0;
+    vxc_half8  w0;
+    vxc_float4 b0, b1;
+    vxc_float4 dst0, dst1;
+    VXC_ReadImage(vec0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, src0, vec0, 16);
+    VXC_ReadImage(vec1, weights, coord.xw, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, w0, vec1, 16);
+
+    coord.z = coord.x + 4;
+
+    b0 = read_imagef(biases, coord.xwww);
+    b1 = read_imagef(biases, coord.zwww);
+
+    VXC_DP4x4(dst0, src0, w0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+        uniFp16MulFp16ToFp32_Lo_4x4);
+    VXC_DP4x4(dst1, src0, w0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+        uniFp16MulFp16ToFp32_Hi_4x4);
+    dst0 += b0;
+    dst1 += b1;
+
+    half4 t0, t1;
+
+    _viv_asm(CONV, t0, dst0);
+    _viv_asm(CONV, t1, dst1);
+
+    VXC_DP2x8(w0, t0, t1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractHalf8_2x8);
+    _viv_asm(COPY, vec0, w0, 16);
+
+    VXC_WriteImage(output, coord.xy, vec0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+}

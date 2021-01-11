@@ -1,0 +1,117 @@
+#include "cl_viv_vx_ext.h"
+
+//-------------------max pooling with argmax---------------
+_viv_uniform VXC_512Bits poolingEncode;
+_viv_uniform VXC_512Bits uniQuantInOutInt16Even_4x4;
+
+#define POOLWITHARGMAX_F16_TO_F16_U8_PROCESS(read_fun, write_fun) \
+    vxc_short8 din0, din1, maxData, src0, src1; \
+    vxc_half8 din0Fp16, din1Fp16; \
+    vxc_half8 maxDataVer, maxDataVer1; \
+    int4 bitExtractCoeff; \
+    vxc_short8 din0EqualTmp, din1EqualTmp; \
+    vxc_uchar8 din0Equal, din1Equal; \
+    vxc_uchar4 axisEncode; \
+    vxc_uchar4 axisOut; \
+    read_fun(src0, tensorIn, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    read_fun(src1, tensorIn, coord, VXC_5BITOFFSET_XY(0, 1),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, din0Fp16, src0, 16); \
+    _viv_asm(COPY, din1Fp16, src1, 16); \
+    VXC_VertMax3_Half(maxDataVer, din0Fp16, din1Fp16, din1Fp16, VXC_MODIFIER_BIN(0, 7, 0)); \
+    _viv_asm(COPY, din0, maxDataVer, 16); \
+    din1 = din0.s10325476; \
+    _viv_asm(COPY, maxDataVer1, din1, 16); \
+    VXC_VertMax3_Half(maxDataVer, maxDataVer1, maxDataVer, maxDataVer, VXC_MODIFIER_BIN(0, 7, 0)); \
+    _viv_asm(COPY, din0, maxDataVer, 16); \
+    din1 = din0.s02460246; \
+    _viv_asm(COPY, maxData, maxDataVer, 16); \
+    vxc_short8 one = (vxc_short8)(1, 1, 1, 1, 1, 1, 1, 1); \
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0); \
+    din0EqualTmp = src0 == maxData ? one : zero; \
+    din1EqualTmp = src1 == maxData ? one : zero; \
+    VXC_DP4x4(axisEncode, din0EqualTmp, din1EqualTmp, VXC_MODIFIER_BIN(0, 3, 0), poolingEncode); \
+    axisOut = clz(axisEncode); \
+    write_fun(tensorOut, coordOut, din1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    write_fun(axis, coordOut, axisOut, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+
+__kernel void poolwithargmax_F16to_F16_U8
+    (
+    image2d_array_t tensorIn,
+    image2d_array_t tensorOut,
+    image2d_array_t axis
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coordOut = (int4)(coord.x >> 1, coord.y >> 1, coord.z, 0);
+    POOLWITHARGMAX_F16_TO_F16_U8_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void poolwithargmax_F16to_F16_U8_2D
+    (
+    image2d_array_t tensorIn,
+    image2d_array_t tensorOut,
+    image2d_array_t axis
+    )
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    int2 coordOut = (int2)(coord.x >> 1, coord.y >> 1);
+    POOLWITHARGMAX_F16_TO_F16_U8_PROCESS(VXC_ReadImage, VXC_WriteImage)
+}
+
+#define POOLWITHARGMAX_F16_TO_I16_U8_PROCESS(read_fun, write_fun) \
+    vxc_short8 din0, din1, maxData, src0, src1; \
+    vxc_half8 din0Fp16, din1Fp16; \
+    vxc_half8 maxDataVer, maxDataVer1; \
+    int4 bitExtractCoeff; \
+    vxc_short8 din0EqualTmp, din1EqualTmp; \
+    vxc_uchar8 din0Equal, din1Equal; \
+    vxc_uchar4 axisEncode; \
+    vxc_uchar4 axisOut; \
+    read_fun(src0, tensorIn, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    read_fun(src1, tensorIn, coord, VXC_5BITOFFSET_XY(0, 1),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, din0Fp16, src0, 16); \
+    _viv_asm(COPY, din1Fp16, src1, 16); \
+    VXC_VertMax3_Half(maxDataVer, din0Fp16, din1Fp16, din1Fp16, VXC_MODIFIER_BIN(0, 7, 0)); \
+    _viv_asm(COPY, din0, maxDataVer, 16); \
+    din1 = din0.s10325476; \
+    _viv_asm(COPY, maxDataVer1, din1, 16); \
+    VXC_VertMax3_Half(maxDataVer, maxDataVer1, maxDataVer, maxDataVer, VXC_MODIFIER_BIN(0, 7, 0)); \
+    _viv_asm(COPY, din0, maxDataVer, 16); \
+    VXC_DP4x4(din1, din0, din0, VXC_MODIFIER_BIN(0, 3, 0), uniQuantInOutInt16Even_4x4); \
+    _viv_asm(COPY, maxData, maxDataVer, 16); \
+    vxc_short8 one = (vxc_short8)(1, 1, 1, 1, 1, 1, 1, 1); \
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0); \
+    din0EqualTmp = src0 == maxData ? one : zero; \
+    din1EqualTmp = src1 == maxData ? one : zero; \
+    VXC_DP4x4(axisEncode, din0EqualTmp, din1EqualTmp, VXC_MODIFIER_BIN(0, 3, 0), poolingEncode); \
+    axisOut = clz(axisEncode); \
+    write_fun(tensorOut, coordOut, din1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    write_fun(axis, coordOut, axisOut, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+
+__kernel void poolwithargmax_F16to_I16_U8
+    (
+    image2d_array_t tensorIn,
+    image2d_array_t tensorOut,
+    image2d_array_t axis
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coordOut = (int4)(coord.x >> 1, coord.y >> 1, coord.z, 0);
+    POOLWITHARGMAX_F16_TO_I16_U8_PROCESS(VXC_ReadImage2DArray, VXC_WriteImage2DArray)
+}
+
+__kernel void poolwithargmax_F16to_I16_U8_2D
+    (
+    image2d_array_t tensorIn,
+    image2d_array_t tensorOut,
+    image2d_array_t axis
+    )
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    int2 coordOut = (int2)(coord.x >> 1, coord.y >> 1);
+    POOLWITHARGMAX_F16_TO_I16_U8_PROCESS(VXC_ReadImage, VXC_WriteImage)
+}

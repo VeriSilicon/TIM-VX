@@ -1,0 +1,177 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float       outputScale;
+_viv_uniform float       output_offset_asymmetric;
+_viv_uniform float       inputScale;
+_viv_uniform float       input_offset_asymmetric;
+_viv_uniform VXC_512Bits uniGetLoData_4x4;
+_viv_uniform VXC_512Bits uniGetHiData_4x4;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+
+_viv_uniform int         axisSize;
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+
+#define REDUCEPROD_PROCESS_AXIS1(read_fun, IN_SCALE, IN_OFFSET) \
+    do \
+    { \
+        read_fun(in0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, vec0, in0, 16); \
+        VXC_DP4x4(tmpProdLo, vec0, vec0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetLoData_4x4); \
+        VXC_DP4x4(tmpProdHi, vec0, vec0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetHiData_4x4); \
+        tmpProdLo = (tmpProdLo - IN_OFFSET) * IN_SCALE; \
+        tmpProdHi = (tmpProdHi - IN_OFFSET) * IN_SCALE; \
+        prodValueLo = prodValueLo * tmpProdLo; \
+        prodValueHi = prodValueHi * tmpProdHi; \
+        coord.y++; \
+    } \
+    while(coord.y < axisSize);
+
+#define REDUCEPROD_PROCESS_AXIS1_SAVE(dst_type, save_type, conv_mode, OUT_SCALE, OUT_OFFSET, write_fun) \
+    dst_type dst0, dst1; \
+    save_type vect; \
+    prodValueLo = prodValueLo * OUT_SCALE + OUT_OFFSET; \
+    _viv_asm(conv_mode, dst0, prodValueLo); \
+    prodValueHi = prodValueHi * OUT_SCALE + OUT_OFFSET; \
+    _viv_asm(conv_mode, dst1, prodValueHi); \
+    VXC_DP2x8(vect, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvertInt32toUint8_2x8); \
+    write_fun(output, coord_out, vect, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+
+#define REDUCEPROD_AXIS1(src_name, dst_name, src_type, copy_type, dst_type, save_type,\
+conv_mode, OUT_SCALE, OUT_OFFSET, IN_SCALE, IN_OFFSET) \
+__kernel void reduceprod_axis1_##src_name##to##dst_name \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    int   axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    int2 coord_out = (int2)(get_global_id(0), get_global_id(1)); \
+    vxc_float4 prodValueLo = {1.0f, 1.0f, 1.0f, 1.0f}; \
+    vxc_float4 prodValueHi = {1.0f, 1.0f, 1.0f, 1.0f};\
+    vxc_float4 tmpProdLo, tmpProdHi; \
+    src_type vec0; \
+    copy_type in0; \
+    REDUCEPROD_PROCESS_AXIS1(VXC_ReadImage2DArray, IN_SCALE, IN_OFFSET) \
+    REDUCEPROD_PROCESS_AXIS1_SAVE(dst_type, save_type, conv_mode,\
+    OUT_SCALE, OUT_OFFSET, VXC_WriteImage); \
+}
+
+
+
+REDUCEPROD_AXIS1(F16, F16, vxc_half8, vxc_short8, half4,  vxc_short8, CONV, 1, 0, 1, 0)
+REDUCEPROD_AXIS1(F16, I16, vxc_half8, vxc_short8, short4, vxc_short8, CONV_SAT_RTE, outputScale, 0, 1, 0)
+REDUCEPROD_AXIS1(F16, I8,  vxc_half8, vxc_short8, char4,  vxc_char8,  CONV_SAT_RTE, outputScale, 0, 1, 0)
+REDUCEPROD_AXIS1(F16, U8,  vxc_half8, vxc_short8, uchar4, vxc_uchar8,\
+CONV_SAT_RTE, outputScale, output_offset_asymmetric, 1, 0)
+REDUCEPROD_AXIS1(I16, F16, vxc_short8, vxc_short8, half4,  vxc_short8, CONV, 1, 0, inputScale, 0)
+REDUCEPROD_AXIS1(I8, F16, vxc_char16, vxc_char16, half4,  vxc_short8, CONV, 1, 0, inputScale, 0)
+REDUCEPROD_AXIS1(U8, F16, vxc_uchar16, vxc_uchar16, half4, \
+vxc_short8, CONV, 1, 0, inputScale, input_offset_asymmetric)
+REDUCEPROD_AXIS1(I16, I16, vxc_short8, vxc_short8, short4,\
+vxc_short8, CONV_SAT_RTE, outputScale, 0, inputScale, 0)
+REDUCEPROD_AXIS1(I8, I8,  vxc_char16, vxc_char16,  char4,\
+vxc_char8, CONV_SAT_RTE, outputScale, 0, inputScale, 0)
+REDUCEPROD_AXIS1(U8, U8,  vxc_uchar16, vxc_uchar16, uchar4, vxc_uchar8, CONV_SAT_RTE,\
+outputScale, output_offset_asymmetric, inputScale, input_offset_asymmetric)
+
+
+#define REDUCEPROD_AXIS1_2D(src_name, dst_name, src_type, copy_type, dst_type, save_type,\
+conv_mode, OUT_SCALE, OUT_OFFSET, IN_SCALE, IN_OFFSET) \
+__kernel void reduceprod_axis1_##src_name##to##dst_name##_2D \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    int   axisVal \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), 0); \
+    int2 coord_out = (int2)(get_global_id(0), 0); \
+    vxc_float4 prodValueLo = {1.0f, 1.0f, 1.0f, 1.0f}; \
+    vxc_float4 prodValueHi = {1.0f, 1.0f, 1.0f, 1.0f};\
+    vxc_float4 tmpProdLo, tmpProdHi; \
+    src_type vec0; \
+    copy_type in0; \
+    REDUCEPROD_PROCESS_AXIS1(VXC_ReadImage, IN_SCALE, IN_OFFSET) \
+    REDUCEPROD_PROCESS_AXIS1_SAVE(dst_type, save_type, conv_mode, OUT_SCALE, OUT_OFFSET, VXC_WriteImage); \
+}
+
+REDUCEPROD_AXIS1_2D(F16, F16, vxc_half8, vxc_short8, half4,  vxc_short8, CONV, 1, 0, 1, 0)
+REDUCEPROD_AXIS1_2D(F16, I16, vxc_half8, vxc_short8, short4, vxc_short8, CONV_SAT_RTE, outputScale, 0, 1, 0)
+REDUCEPROD_AXIS1_2D(F16, I8,  vxc_half8, vxc_short8, char4,  vxc_char8,  CONV_SAT_RTE, outputScale, 0, 1, 0)
+REDUCEPROD_AXIS1_2D(F16, U8,  vxc_half8, vxc_short8, uchar4, vxc_uchar8,\
+CONV_SAT_RTE, outputScale, output_offset_asymmetric, 1, 0)
+REDUCEPROD_AXIS1_2D(I16, F16, vxc_short8, vxc_short8, half4,  vxc_short8, CONV, 1, 0, inputScale, 0)
+REDUCEPROD_AXIS1_2D(I8, F16, vxc_char16, vxc_char16, half4,  vxc_short8, CONV, 1, 0, inputScale, 0)
+REDUCEPROD_AXIS1_2D(U8, F16, vxc_uchar16, vxc_uchar16, half4,  vxc_short8,\
+CONV, 1, 0, inputScale, input_offset_asymmetric)
+REDUCEPROD_AXIS1_2D(I16, I16, vxc_short8, vxc_short8, short4,\
+vxc_short8, CONV_SAT_RTE, outputScale, 0, inputScale, 0)
+REDUCEPROD_AXIS1_2D(I8, I8,  vxc_char16, vxc_char16,  char4,\
+vxc_char8, CONV_SAT_RTE, outputScale, 0, inputScale, 0)
+REDUCEPROD_AXIS1_2D(U8, U8,  vxc_uchar16, vxc_uchar16, uchar4, vxc_uchar8, CONV_SAT_RTE,\
+outputScale, output_offset_asymmetric, inputScale, input_offset_asymmetric)
+
+#define REDUCEPROD_PROCESS_AXIS1_BF16(read_fun) \
+    do \
+    { \
+        read_fun(in0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        VXC_DP2x8(vec0, in0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8); \
+        _viv_asm(COPY, tmpProdLo, vec0, 16); \
+        VXC_DP2x8(vec0, in0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8); \
+        _viv_asm(COPY, tmpProdHi, vec0, 16); \
+        prodValueLo = prodValueLo * tmpProdLo; \
+        prodValueHi = prodValueHi * tmpProdHi; \
+        coord.y++; \
+    } \
+    while(coord.y < axisSize);
+
+
+#define REDUCEPROD_PROCESS_AXIS1_SAVE_BF16(write_fun) \
+    vxc_ushort8 dst0, dst1; \
+    vxc_ushort8 vect; \
+    _viv_asm(COPY, dst0, prodValueLo, 16); \
+    _viv_asm(COPY, dst1, prodValueHi, 16); \
+    VXC_DP2x8(vect, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8); \
+    write_fun(output, coord_out, vect, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+__kernel void reduceprod_axis1_BF16toBF16
+    (
+    __read_only  image2d_array_t input,
+    __write_only image2d_array_t output,
+    int   axisVal
+    )
+{
+    int4 coord = (int4)(get_global_id(0), 0, get_global_id(1), 0);
+    int2 coord_out = (int2)(get_global_id(0), get_global_id(1));
+    vxc_float4 prodValueLo = {1.0f, 1.0f, 1.0f, 1.0f};
+    vxc_float4 prodValueHi = {1.0f, 1.0f, 1.0f, 1.0f};
+    vxc_float4 tmpProdLo, tmpProdHi;
+    vxc_short8 vec0;
+    vxc_short8 in0;
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
+    REDUCEPROD_PROCESS_AXIS1_BF16(VXC_ReadImage2DArray)
+    REDUCEPROD_PROCESS_AXIS1_SAVE_BF16(VXC_WriteImage);
+}
+
+__kernel void reduceprod_axis1_BF16toBF16_2D
+    (
+    __read_only  image2d_array_t input,
+    __write_only image2d_array_t output,
+    int   axisVal
+    )
+{
+    int2 coord = (int2)(get_global_id(0), 0);
+    int2 coord_out = (int2)(get_global_id(0), 0);
+    vxc_float4 prodValueLo = {1.0f, 1.0f, 1.0f, 1.0f};
+    vxc_float4 prodValueHi = {1.0f, 1.0f, 1.0f, 1.0f};
+    vxc_float4 tmpProdLo, tmpProdHi;
+    vxc_short8 vec0;
+    vxc_short8 in0;
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
+    REDUCEPROD_PROCESS_AXIS1_BF16(VXC_ReadImage)
+    REDUCEPROD_PROCESS_AXIS1_SAVE_BF16(VXC_WriteImage);
+}
