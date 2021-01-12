@@ -21,17 +21,17 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_PERMUTE_H_
-#define TIM_VX_OPS_PERMUTE_H_
+#ifndef TIM_VX_OPS_TRANSPOSE_H_
+#define TIM_VX_OPS_TRANSPOSE_H_
 #include "tim/vx/operation.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-class Permute : public Operation {
+class Transpose : public Operation {
  public:
-  Permute(Graph* graph, const std::vector<uint32_t>& perm);
+  Transpose(Graph* graph, const std::vector<uint32_t>& perm);
 
  protected:
   std::vector<uint32_t> perm_;
@@ -41,4 +41,4 @@ class Permute : public Operation {
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPS_PERMUTE_H_ */
+#endif /* TIM_VX_OPS_TRANSPOSE_H_ */

@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/ops/permute.h"
+#include "tim/vx/ops/transpose.h"
 
 #include "operation_private.h"
 #include "vsi_nn_pub.h"
@@ -30,7 +30,7 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-Permute::Permute(Graph* graph, const std::vector<uint32_t>& perm)
+Transpose::Transpose(Graph* graph, const std::vector<uint32_t>& perm)
     : Operation(graph, VSI_NN_OP_PERMUTE), perm_(std::move(perm)) {
   this->impl()->node()->nn_param.permute.perm = perm_.data();
   this->impl()->node()->nn_param.permute.dim_num = perm_.size();
