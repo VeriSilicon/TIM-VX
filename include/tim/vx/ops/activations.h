@@ -53,6 +53,14 @@ class Prelu : public Operation {
   int axis_;
 };
 
+class LeakyRelu : public Operation {
+ public:
+  LeakyRelu(Graph* graph, float alpha);
+
+ protected:
+  float alpha_;
+};
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

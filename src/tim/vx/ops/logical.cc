@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/ops/space2depth.h"
+#include "tim/vx/ops/logical.h"
 
 #include "operation_private.h"
 #include "vsi_nn_pub.h"
@@ -30,11 +30,18 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-SpaceToDepth::SpaceToDepth(Graph* graph, std::vector<int> block_size)
-    : Operation(graph, VSI_NN_OP_SPACE2DEPTH), block_size_(block_size) {
-  this->impl()->node()->nn_param.space2depth.block_size[0] = block_size_[0];
-  this->impl()->node()->nn_param.space2depth.block_size[1] = block_size_[1];
-}
+#define DEFINE_LOGICAL_OP(NAME, VSI_OP_CODE)           \
+  Logical##NAME::Logical##NAME(Graph* graph)           \
+      : Operation(graph, VSI_NN_OP_LOGICAL_OPS) {      \
+    this->impl()->node()->nn_param.relational_ops.op = \
+        VSI_NN_LOGICAL_##VSI_OP_CODE;                  \
+  }
+
+DEFINE_LOGICAL_OP(And, AND);
+DEFINE_LOGICAL_OP(Or, OR);
+
+#undef DEFINE_LOGICAL_OP
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
