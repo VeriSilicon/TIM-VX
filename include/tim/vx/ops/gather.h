@@ -27,7 +27,6 @@
 
 namespace tim {
 namespace vx {
-
 namespace ops {
 
 class Gather : public Operation {

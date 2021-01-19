@@ -56,6 +56,11 @@ Tanh::Tanh(Graph* graph) : Operation(graph, VSI_NN_OP_TANH) {
   this->impl()->node()->nn_param.tanh.scale_b = 1.0;
 }
 
+LeakyRelu::LeakyRelu(Graph* graph, float alpha)
+    : Operation(graph, VSI_NN_OP_LEAKY_RELU), alpha_(alpha) {
+  this->impl()->node()->nn_param.activation.leaky_ratio = alpha_;
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

@@ -46,7 +46,7 @@ DELCATE_REDUCE_OP(Any);
 DELCATE_REDUCE_OP(Prod);
 DELCATE_REDUCE_OP(Mean);
 
-#undef DEFINE_REDUCE_OP
+#undef DELCATE_REDUCE_OP
 
 }  // namespace ops
 }  // namespace vx

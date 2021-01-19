@@ -21,20 +21,21 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/ops/space2depth.h"
-
-#include "operation_private.h"
-#include "vsi_nn_pub.h"
+#ifndef TIM_VX_OPS_GATHERND_H_
+#define TIM_VX_OPS_GATHERND_H_
+#include "tim/vx/operation.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-SpaceToDepth::SpaceToDepth(Graph* graph, std::vector<int> block_size)
-    : Operation(graph, VSI_NN_OP_SPACE2DEPTH), block_size_(block_size) {
-  this->impl()->node()->nn_param.space2depth.block_size[0] = block_size_[0];
-  this->impl()->node()->nn_param.space2depth.block_size[1] = block_size_[1];
-}
+class GatherNd : public Operation {
+ public:
+  GatherNd(Graph* Graph);
+};
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+
+#endif /* TIM_VX_OPS_GATHERND_H_ */

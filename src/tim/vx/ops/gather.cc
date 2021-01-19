@@ -28,7 +28,6 @@
 
 namespace tim {
 namespace vx {
-
 namespace ops {
 
 Gather::Gather(Graph* graph, int axis)

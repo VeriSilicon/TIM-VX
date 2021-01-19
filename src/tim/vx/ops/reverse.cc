@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/ops/space2depth.h"
+#include "tim/vx/ops/reverse.h"
 
 #include "operation_private.h"
 #include "vsi_nn_pub.h"
@@ -30,10 +30,10 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-SpaceToDepth::SpaceToDepth(Graph* graph, std::vector<int> block_size)
-    : Operation(graph, VSI_NN_OP_SPACE2DEPTH), block_size_(block_size) {
-  this->impl()->node()->nn_param.space2depth.block_size[0] = block_size_[0];
-  this->impl()->node()->nn_param.space2depth.block_size[1] = block_size_[1];
+Reverse::Reverse(Graph* graph, int32_t* axis, uint32_t axis_num)
+    : Operation(graph, VSI_NN_OP_REVERSE), axis_(axis), axis_num_(axis_num) {
+  this->impl()->node()->nn_param.reverse.axis = axis_;
+  this->impl()->node()->nn_param.reverse.axis_num = axis_num_;
 }
 }  // namespace ops
 }  // namespace vx

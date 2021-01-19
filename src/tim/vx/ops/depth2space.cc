@@ -28,7 +28,6 @@
 
 namespace tim {
 namespace vx {
-
 namespace ops {
 
 DepthToSpace::DepthToSpace(Graph* graph, int block_size)
