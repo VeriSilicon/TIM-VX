@@ -27,6 +27,9 @@ bazel build libtim-vx.so
 
 To run sample LeNet
 ```shell
+# set VIVANTE_SDK_DIR for runtime compilation environment
+export VIVANTE_SDK_DIR=`pwd`/prebuilt-sdk/x86_64_linux
+
 bazel build //samples/lenet:lenet_asymu8_cc
 bazel run //samples/lenet:lenet_asymu8_cc
 ```
