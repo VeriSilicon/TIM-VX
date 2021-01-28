@@ -1,0 +1,20 @@
+# Auto generated!
+
+# Default: x86_64_linux vSimualtor
+build --config x86_64_linux
+
+# Usage example: bazel build --config x86_64_linux
+build:x86_64_linux --define target_device=x86_64_linux
+
+# Usage example: bazel build --config A311D
+build:A311D --define linux=true
+build:A311D --spawn_strategy=standalone
+build:A311D --crosstool_top=@TOOLCHAINS//gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:toolchain
+build:A311D --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
+build:A311D --cpu=armv8-a
+build:A311D --compiler=gcc
+build:A311D --copt -Wno-ignored-attributes
+build:A311D --copt -Wno-unused-function
+build:A311D --copt -Wno-sequence-point
+build:A311D --copt -Wno-implicit-fallthrough
+build:A311D --define target_device=aarch64_A311D
