@@ -49,7 +49,7 @@ OperationImpl::OperationImpl(Graph* graph, uint32_t operation_id, int input_cnt,
 OperationImpl& OperationImpl::BindInput(const std::shared_ptr<Tensor>& tensor) {
   uint32_t tensor_id = tensor->GetId();
   node_->input.tensors[input_tensor_index++] = tensor_id;
-  if (tensor->GetSpec().attr_ == TensorAttribute::INPUT) {
+  if (tensor->GetSpec().attr_ & TensorAttribute::INPUT) {
     graph_->AddInput(tensor_id);
   }
   return *this;

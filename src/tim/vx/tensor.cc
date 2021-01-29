@@ -151,18 +151,8 @@ bool TensorImpl::Init() {
 
   memset(&attr, 0x00, sizeof(attr));
   attr.dim_num = spec_.shape_.size();
-  attr.is_const = FALSE;
-  attr.vtl = FALSE;
-  switch (spec_.attr_) {
-    case TensorAttribute::CONSTANT:
-      attr.is_const = TRUE;
-      break;
-    case TensorAttribute::TRANSIENT:
-      attr.vtl = TRUE;
-      break;
-    default:
-      break;
-  }
+  attr.is_const = spec_.attr_ & TensorAttribute::CONSTANT;
+  attr.vtl = spec_.attr_ & TensorAttribute::TRANSIENT;
 
   for (ShapeType::size_type i = 0; i < spec_.shape_.size(); i++) {
     attr.size[i] = spec_.shape_[i];
@@ -170,8 +160,8 @@ bool TensorImpl::Init() {
 
   PackTensorDtype(spec_, &attr.dtype);
 
-  if (spec_.attr_ == TensorAttribute::INPUT ||
-      spec_.attr_ == TensorAttribute::OUTPUT) {
+  if ((spec_.attr_ & TensorAttribute::INPUT) ||
+      (spec_.attr_ & TensorAttribute::OUTPUT)) {
     id_ = vsi_nn_AddTensorFromHandle(graph_->graph(), VSI_NN_TENSOR_ID_AUTO,
                                      &attr, nullptr);
   } else {
