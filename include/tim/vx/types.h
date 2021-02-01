@@ -41,7 +41,13 @@ enum class DataType {
 
 enum class QuantType { NONE, ASYMMETRIC, SYMMETRIC_PER_CHANNEL };
 
-enum class TensorAttribute { CONSTANT, TRANSIENT, VARIABLE, INPUT, OUTPUT };
+enum TensorAttribute {
+  CONSTANT = 1 << 0,
+  TRANSIENT = 1 << 1,
+  VARIABLE = 1 << 2,
+  INPUT = 1 << 3,
+  OUTPUT = 1 << 4
+};
 
 enum class PadType { NONE = -1, AUTO, VALID, SAME };
 
