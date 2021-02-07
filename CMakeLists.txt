@@ -9,8 +9,12 @@ set(OVXLIB_API_ATTR "__attribute__\(\(visibility\(\"default\"\)\)\)")
 message(${OVXLIB_API_ATTR})
 add_definitions(-DOVXLIB_API=${OVXLIB_API_ATTR})
 
-# find dependencies
-find_package(OvxDrv REQUIRED PATHS ${PROJECT_SOURCE_DIR}/cmake)
+if("${HARDWARE}" STREQUAL "A311D")
+    include(cmake/A311D.cmake)
+else()
+    include(cmake/X86_64.cmake)
+endif()
+
 include_directories(${PROJECT_SOURCE_DIR}/include/tim/vx)
 include_directories(${OVXDRV_INCLUDE_DIRS})
 
