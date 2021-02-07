@@ -30,7 +30,7 @@ load(":cc_toolchain_config.bzl", "cc_toolchain_config")
 #   `toolchain_name` must be identical with toolchain directory name and http_archive name in `toolchains.bzl`
 register_toolchain(
     toolchain_name = "gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu",
-    target_cpu = "armv8-a",
+    target_cpu = "aarch64",
     compiler = "gcc",
     cc_toolchain_config = cc_toolchain_config,
 )

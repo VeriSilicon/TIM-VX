@@ -11,7 +11,7 @@ build:A311D --define linux=true
 build:A311D --spawn_strategy=standalone
 build:A311D --crosstool_top=@TOOLCHAINS//gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:toolchain
 build:A311D --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
-build:A311D --cpu=armv8-a
+build:A311D --cpu=aarch64
 build:A311D --compiler=gcc
 build:A311D --copt -Wno-ignored-attributes
 build:A311D --copt -Wno-unused-function
