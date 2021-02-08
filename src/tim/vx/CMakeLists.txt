@@ -1,6 +1,6 @@
 message("src/tim/vx")
 
-set(target_name "tim-vx")
+set(TARGET_NAME "tim-vx")
 
 add_subdirectory("internal")
 
@@ -18,5 +18,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include/tim/vx)
 include_directories(${PROJECT_SOURCE_DIR}/src/tim/vx)
 include_directories(${PROJECT_SOURCE_DIR}/src/tim/vx/internal/include)
 
-add_library(${target_name} SHARED ${SRC})
-target_link_libraries(${target_name} PRIVATE tim_internal)
+add_library(${TARGET_NAME} SHARED ${SRC})
+target_link_libraries(${TARGET_NAME} PRIVATE tim_internal)
+
+add_library(${TARGET_NAME}-static STATIC ${SRC})
+target_link_libraries(${TARGET_NAME}-static PRIVATE tim_internal)
