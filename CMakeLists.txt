@@ -9,7 +9,7 @@ set(OVXLIB_API_ATTR "__attribute__\(\(visibility\(\"default\"\)\)\)")
 message(${OVXLIB_API_ATTR})
 add_definitions(-DOVXLIB_API=${OVXLIB_API_ATTR})
 
-if("${HARDWARE}" STREQUAL "A311D")
+if("${CONFIG}" STREQUAL "A311D")
     include(cmake/A311D.cmake)
 else()
     include(cmake/X86_64.cmake)
