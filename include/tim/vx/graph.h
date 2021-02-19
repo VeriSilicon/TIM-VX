@@ -27,10 +27,11 @@
 #include <memory>
 #include <vector>
 
-#include "tim/vx/tensor.h"
-
 namespace tim {
 namespace vx {
+
+class Tensor;
+class TensorSpec;
 
 class Graph {
  public:
@@ -46,7 +47,9 @@ class Graph {
   /// Freeze graph
   virtual bool Compile() = 0;
 
-  /// Process the compiled graph
+  /// Compile to BinaryGraph
+  virtual bool CompileToBinary(void* buf, size_t* size) = 0;
+
   virtual bool Run() = 0;
 
   template <typename OpType, typename... Params>

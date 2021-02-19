@@ -48,6 +48,5 @@ std::shared_ptr<Context> Context::Create() {
 std::shared_ptr<Graph> ContextImpl::CreateGraph() {
   return std::make_shared<GraphImpl>(this);
 }
-
 }  // namespace vx
 }  // namespace tim

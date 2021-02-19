@@ -21,53 +21,18 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_GRAPH_PRIVATE_H_
-#define TIM_VX_GRAPH_PRIVATE_H_
-#include "tim/vx/graph.h"
+#include "tim/vx/ops/nbg.h"
 
-#include <vector>
-#include <mutex>
-#include <utility>
-
-#include "tim/vx/tensor.h"
-#include "context_private.h"
-
+#include "operation_private.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
-
-class GraphImpl : public Graph {
- public:
-  GraphImpl(ContextImpl* context);
-  ~GraphImpl();
-
-  /// Return the low-level graph object
-  vsi_nn_graph_t* graph();
-  void AddInput(vsi_nn_tensor_id_t id);
-  void AddOutput(vsi_nn_tensor_id_t id);
-  
-  /// Implement parents' virtual functions
-   std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
-                                       const void* data = nullptr) override;
-   std::shared_ptr<Tensor> CreateTensorPlaceHolder() override;
-    bool Compile() override;
-
-   bool CompileToBinary(void* buf, size_t* size) override;
-   bool Run() override;
-
- protected:
-  ContextImpl* context_;
-  vsi_nn_graph_t* graph_;
-  std::shared_ptr<Tensor> tensor_placeholder_;
-  std::once_flag setio_once_;
-  std::once_flag setup_once_;
-  std::once_flag verify_graph_once_;
-  std::vector<vsi_nn_tensor_id_t> inputs_;
-  std::vector<vsi_nn_tensor_id_t> outputs_;
-};
-
+namespace ops {
+    NBG::NBG(Graph* graph, const char* binary, size_t input_count, size_t output_count) : Operation(graph, VSI_NN_OP_NBG, input_count, output_count) {
+        this->impl()->node()->nn_param.nbg.url = binary;
+        this->impl()->node()->nn_param.nbg.type = VSI_NN_NBG_POINTER;
+    }
+}  // namespace ops
 }  // namespace vx
 }  // namespace tim
-
-#endif /* TIM_VX_GRAPH_PRIVATE_H_ */

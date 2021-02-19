@@ -28,7 +28,10 @@
 #include "context_private.h"
 #include "graph_private.h"
 #include "tensor_private.h"
+#include "operation_private.h"
+
 #include "tim/vx/context.h"
+#include "tim/vx/ops/nbg.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -37,8 +40,7 @@ namespace vx {
 GraphImpl::GraphImpl(ContextImpl* context)
     : context_(context),
       graph_(vsi_nn_CreateGraph(context_->context(), 0, 0)),
-      tensor_placeholder_(nullptr),
-      compiled_(false) {}
+      tensor_placeholder_(nullptr) {}
 
 GraphImpl::~GraphImpl() { vsi_nn_ReleaseGraph(&graph_); }
 
@@ -70,20 +72,40 @@ std::shared_ptr<Tensor> GraphImpl::CreateTensorPlaceHolder() {
 }
 
 bool GraphImpl::Compile() {
-  compiled_ = true;
+  bool status = true;
 
-  vsi_nn_SetGraphInputs(graph_, inputs_.data(), inputs_.size());
-  vsi_nn_SetGraphOutputs(graph_, outputs_.data(), outputs_.size());
+  std::call_once(setio_once_, [&status, this]() {
+    status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(), this->inputs_.size()) &&
+              vsi_nn_SetGraphOutputs(this->graph_, this->outputs_.data(), this->outputs_.size()));
+  });
 
-  return (VSI_SUCCESS == vsi_nn_SetupGraph(graph_, true) &&
-          VSI_SUCCESS == vsi_nn_VerifyGraph(graph_));
+  std::call_once(setup_once_, [&status, this](){
+    status = (VSI_SUCCESS == vsi_nn_SetupGraph(this->graph_, true));
+  });
+
+  std::call_once(verify_graph_once_, [&status, this]() {
+    status = (VSI_SUCCESS == vsi_nn_VerifyGraph(this->graph_));
+  });
+
+  return status;
+}
+
+bool GraphImpl::CompileToBinary(void* buf, size_t* size) {
+  bool status = true;
+  std::call_once(setio_once_, [&status, this]() {
+    status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(), this->inputs_.size()) &&
+              vsi_nn_SetGraphOutputs(this->graph_,this->outputs_.data(), this->outputs_.size()));
+  });
+
+  std::call_once(setup_once_, [&status, this](){
+    status = (VSI_SUCCESS == vsi_nn_SetupGraph(this->graph_, true));
+  });
+
+  return ((status) && (VSI_SUCCESS == vsi_nn_GenerateNBG(graph_, buf, size)));
 }
 
 bool GraphImpl::Run() {
-  if (!compiled_ && !Compile()) {
-    return false;
-  }
-  return (VSI_SUCCESS == vsi_nn_RunGraph(graph_));
+  return ((Compile()) && (VSI_SUCCESS == vsi_nn_RunGraph(graph_)));
 }
 
 }  // namespace vx
