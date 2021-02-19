@@ -34,8 +34,8 @@ class ContextImpl : public Context {
   ContextImpl();
   ~ContextImpl();
   vsi_nn_context_t context();
-  std::shared_ptr<Graph> CreateGraph();
-
+  std::shared_ptr<Graph> CreateGraph() override;
+  
  protected:
   vsi_nn_context_t context_;
 };

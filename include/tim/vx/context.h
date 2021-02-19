@@ -26,10 +26,10 @@
 
 #include <memory>
 
-#include "tim/vx/graph.h"
-
 namespace tim {
 namespace vx {
+
+class Graph;
 
 class Context {
  public:

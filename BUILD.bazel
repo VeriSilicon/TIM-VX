@@ -49,3 +49,16 @@ cc_binary(
     ],
 )
 
+##############################################################################
+# unit test
+##############################################################################
+cc_test (
+    name = "unit_test",
+    copts = ["-std=c++14", "-Werror"],
+    srcs = glob(["src/tim/vx/*_test.cc"]),
+    deps = [
+        "@gtest//:gtest",
+        "@gtest//:gtest_main",
+        ":tim-vx_interface",
+    ]
+)
