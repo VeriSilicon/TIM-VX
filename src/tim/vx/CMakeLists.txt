@@ -12,6 +12,8 @@ list(APPEND SRC
     ${VX_SRC}
     ${OPS_SRC}
     )
+list(REMOVE_ITEM SRC ./context_test.cc)
+list(REMOVE_ITEM SRC ./graph_test.cc)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/include/tim/vx)
