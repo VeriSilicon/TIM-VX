@@ -9,6 +9,13 @@ Main Features
  - Built-in custom layer extensions
  - A set of utility functions for debugging
 
+## Framework Support
+
+[Tensorflow-Lite Delegate](https://github.com/VeriSilicon/tensorflow/tree/dev/vx-delegate) (Unofficial)
+[OAID Tegine](https://github.com/OAID/Tengine) (Official)
+MLIR Dialect (In development)
+TVM (In development)
+
 ## Roadmap
 
 Roadmap of TIM-VX will be updated here in the future.
@@ -34,6 +41,12 @@ bazel build //samples/lenet:lenet_asymu8_cc
 bazel run //samples/lenet:lenet_asymu8_cc
 ```
 
-### Get familiar with OpenVX spec
-To development for TIM-VX, you first need to get familiar with [OpenVX API](https://www.khronos.org/openvx/) and [OpenVX NN Extension API](https://www.khronos.org/registry/vx). Please head over to [Khronos](https://www.khronos.org/) to read the spec.
+To build and run Tensorflow-Lite delegate on A311D platform
+```shell
+# clone and cross build VeriSilicon tensorflow fork with TFlite delegate support
+git clone --single-branch --branch dev/vx-delegate git@github.com:VeriSilicon/tensorflow.git vx-delegate; cd vx-delegate
+bazel build --config A311D //tensorflow/lite/tools/benchmark:benchmark_model
 
+# push benchmark_model onto device and run
+./benchmark_model --graph=mobilenet_v1_1.0_224_quant.tflite --use_vxdelegate=true
+```
