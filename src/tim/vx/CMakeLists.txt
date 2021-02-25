@@ -21,7 +21,8 @@ include_directories(${PROJECT_SOURCE_DIR}/src/tim/vx)
 include_directories(${PROJECT_SOURCE_DIR}/src/tim/vx/internal/include)
 
 add_library(${TARGET_NAME} SHARED ${SRC})
-target_link_libraries(${TARGET_NAME} PRIVATE tim_internal)
+target_link_libraries(${TARGET_NAME} PRIVATE
+    -Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
 
 add_library(${TARGET_NAME}-static STATIC ${SRC})
 target_link_libraries(${TARGET_NAME}-static PRIVATE tim_internal)
