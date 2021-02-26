@@ -131,9 +131,9 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
     float    outputScale                    = 1.0f;
     int32_t  outputZP                       = 0;
     uint16_t in0_M0                         = 0;
-    int8_t   in0_postShift                  = 0;
+    int32_t  in0_postShift                  = 0;
     uint16_t in1_M0                         = 0;
-    int8_t   in1_postShift                  = 0;
+    int32_t  in1_postShift                  = 0;
     uint32_t pack_key                       = 0;
     input0_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)input0);
     CHECK_PTR_FAIL_GOTO( input0_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -196,8 +196,8 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
         outputZP    = output_attr->asymm.zero_point;
     }
 
-    vsi_nn_GetFP32MultiAndPostShift(input0Scale / outputScale, &in0_M0, &in0_postShift);
-    vsi_nn_GetFP32MultiAndPostShift(input1Scale / outputScale, &in1_M0, &in1_postShift);
+    gpu_quantize_multiplier_16bit(input0Scale / outputScale, &in0_M0, &in0_postShift);
+    gpu_quantize_multiplier_16bit(input1Scale / outputScale, &in1_M0, &in1_postShift);
 
     pack_key = _PACK_SELECT_KEY( input0_attr->dtype, input1_attr->dtype, output_attr->dtype );
 

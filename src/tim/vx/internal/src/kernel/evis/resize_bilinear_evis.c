@@ -850,7 +850,7 @@ static vsi_status _query_kernel
         }
     }
 
-    if ((UP_2X_HALF == scale_flag) && (i >= kernel_map_size))
+    if ((UP_2X_HALF == scale_flag) && (i >= kernel_map_size) && is_same_type && is_evis2)
     {
         scale_flag = UP_OPT;
         key = RESIZE_BILINEAR_HASH_KEY( in_dtype, out_dtype, scale_flag );

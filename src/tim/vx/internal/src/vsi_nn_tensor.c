@@ -844,7 +844,7 @@ float * vsi_nn_ConvertTensorToFloat32Data
 
     if( !tensor->attr.is_created_from_handle )
     {
-        if(tensor_data)free(tensor_data);
+        vsi_nn_safe_free( tensor_data );
     }
     return data;
 } /* vsi_nn_ConvertTensorToFloat32Data() */
@@ -1095,7 +1095,7 @@ void vsi_nn_SaveTensorToTextByFp32
     }
     fwrite( buf, count, 1, fp );
     fclose( fp );
-    free( data );
+    vsi_nn_safe_free( data );
 } /* vsi_nn_SaveTensorToTextByFp32() */
 
 void vsi_nn_SaveTensorToText
@@ -1124,7 +1124,7 @@ void vsi_nn_SaveTensorToText
     sz = vsi_nn_GetElementNum( tensor );
     vsi_nn_SaveDataToText( filename, data, sz,
         tensor->attr.dtype.vx_type, seperator );
-    free( data );
+    vsi_nn_safe_free( data );
 } /* vsi_nn_SaveTensorToText() */
 
 void vsi_nn_SaveDataToText
@@ -1219,7 +1219,7 @@ void vsi_nn_SaveTensorToBinary
     }
     fwrite( data, sz, 1, fp );
     fclose( fp );
-    free( data );
+    vsi_nn_safe_free( data );
 } /* vsi_nn_SaveTensorToBinary() */
 
 vsi_nn_tensor_t * vsi_nn_CreateTensorFromData
@@ -1539,7 +1539,7 @@ void vsi_nn_TransposeTensor
         VSILOGE( "Copy transpose data fail with code %#x.", status );
     }
 
-    free( buf );
+    vsi_nn_safe_free( buf );
     free( dst );
 } /* vsi_nn_TransposeTensor() */
 
@@ -1588,7 +1588,7 @@ void vsi_nn_PermuteTensor
         if( perm[i] >= dim_num )
         {
             VSILOGW( "Incorrect perm %d", perm[i] );
-            if( buf ) { free(buf); buf = NULL; }
+            vsi_nn_safe_free( buf );
             if( dst ) { free(dst); dst = NULL; }
             return;
         }
@@ -1603,7 +1603,7 @@ void vsi_nn_PermuteTensor
         VSILOGE( "Copy permute data fail with code %#x.", status );
     }
 
-    if( buf ) { free(buf); buf = NULL; }
+    vsi_nn_safe_free( buf );
     if( dst ) { free(dst); dst = NULL; }
 } /* vsi_nn_PermuteTensor() */
 
@@ -2241,7 +2241,7 @@ void vsi_nn_reshuffle_weight_data
     }
     vsi_nn_CopyDataToTensor( graph, weights, weight_data );
     vsi_nn_Free( buffer );
-    vsi_nn_Free( weight_data );
+    vsi_nn_safe_free( weight_data );
 }
 
 vsi_nn_tensor_t* vsi_nn_ConcatTensor_impl

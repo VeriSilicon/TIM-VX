@@ -279,10 +279,10 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
 
     if( U8 == input_dtype && F16 == output_dtype )
     {
-        vx_uint16  M0                 = 0;
-        vx_int8    postShift          = 0;
-        vx_uint32  multAndoutZP0[2]   = {0};
-        vx_uint32  multAndoutZP1[2]   = {0};
+        uint16_t   M0                 = 0;
+        int32_t    postShift          = 0;
+        uint32_t   multAndoutZP0[2]   = {0};
+        uint32_t   multAndoutZP1[2]   = {0};
 
         gpu_dp_inst_t uniU8MulAndPostShift_0_Lo_2x8 = {{
             0xdddddddd, // TCfg
@@ -305,12 +305,12 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
             0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
 
-        vsi_nn_GetFP32MultiAndPostShift(scaleIn / scaleOut, &M0, &postShift);
+        gpu_quantize_multiplier_16bit(scaleIn / scaleOut, &M0, &postShift);
         multAndoutZP0[0] = (vx_uint32)(M0);
         multAndoutZP0[1] = (vx_uint32)((output_ZP << postShift) - input_ZP * M0);
         uniU8MulAndPostShift_0_Lo_2x8.data[7] |= (postShift & 0x1F);
 
-        vsi_nn_GetFP32MultiAndPostShift(scaleIn1 / scaleOut, &M0, &postShift);
+        gpu_quantize_multiplier_16bit(scaleIn1 / scaleOut, &M0, &postShift);
         multAndoutZP1[0] = (vx_uint32)(M0);
         multAndoutZP1[1] = (vx_uint32)((output_ZP << postShift) - input_ZP1 * M0);
         uniU8MulAndPostShift_1_Lo_2x8.data[7] |= (postShift & 0x1F);

@@ -45,21 +45,29 @@ static vsi_status _eltwise_unary_op_compute
     )
 {
     vsi_status status = VSI_FAILURE;
+    float alpha = 0;
+    vsi_nn_kernel_param_t * param = NULL;
 
     if( NULL == self )
     {
         return status;
     }
+    param = vsi_nn_kernel_param_create();
+
+    alpha = self->nn_param.elu.alpha;
+    vsi_nn_kernel_param_add_float32( param, "alpha", alpha );
 
     // TODO: This optimzie is a hack for gpu path,
     // it should be moved to gpu kernel setup.
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
-        kernel_name, inputs, 1, outputs, 1, NULL );
+        kernel_name, inputs, 1, outputs, 1, param );
 
     if( self->n )
     {
         status = VSI_SUCCESS;
     }
+
+    vsi_nn_kernel_param_release( &param );
 
     return status;
 } /* _eltwise_op_compute() */
@@ -152,6 +160,19 @@ static vsi_bool op_check
     return TRUE;
 } /* op_check() */
 
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    if (vsi_nn_compareVersion(self->graph, 1, 1, 29) == -1)
+    {
+        self->nn_param.elu.alpha = 1;
+    }
+
+    return VSI_SUCCESS;
+} /* op_init() */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -166,7 +187,7 @@ extern "C" {
     { \
         return _eltwise_unary_op_compute( ""#kernel_name, self, inputs, outputs ); \
     } \
-DEF_OP_REG(name, NULL, op_compute_##kernel_name, vsi_nn_op_common_deinit, op_check, op_setup, NULL, 2, 1)
+DEF_OP_REG(name, op_init, op_compute_##kernel_name, vsi_nn_op_common_deinit, op_check, op_setup, NULL, 2, 1)
 
 DEF_ELEMENT_WISE_UNARY_OP( SIN, sin );
 DEF_ELEMENT_WISE_UNARY_OP( EXP, exp );

@@ -1145,10 +1145,10 @@ vsi_nn_kernel_tensor_attr_t * vsi_nn_kernel_tensor_attr_create
         status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_SCALE,
             &(attr->asymm.scale), sizeof(float));
         CHECK_STATUS( status );
-        // Reset scale to 1
-        if( (attr->asymm.scale - 0.f) < 1e-5 )
+        // Reset scale to 1e-8
+        if( (attr->asymm.scale - 0.f) < 1e-8 )
             {
-            attr->asymm.scale = 1.0f;
+            attr->asymm.scale = (float)1e-8;
             attr->asymm.zero_point = 0;
             }
         }
@@ -1225,12 +1225,16 @@ vsi_status vsi_nn_kernel_pirority_set
 static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
 {
     char *envctrl;
-    int32_t enableShader = 1;
+    static int32_t enableShader = -1;
 
-    envctrl = getenv("VIV_VX_ENABLE_SHADER");
-    if (envctrl)
+    if (enableShader == -1)
     {
-        enableShader = atoi(envctrl);
+        enableShader = 1;
+        envctrl = getenv("VIV_VX_ENABLE_SHADER");
+        if (envctrl)
+        {
+            enableShader = atoi(envctrl);
+        }
     }
 
 #if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
@@ -1240,7 +1244,7 @@ static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
     }
 #endif
 
-    if(enableShader == 1)
+    if (enableShader >= 1)
     {
         return TRUE;
     }

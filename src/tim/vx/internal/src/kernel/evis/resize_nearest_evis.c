@@ -348,7 +348,7 @@ DEF_KERNEL_INITIALIZER(_resize_nearest_initializer)
     else if (U8 == input_dtype && U8 == output_dtype)
     {
         uint16_t  M0                   = 0;
-        vx_int8   postShift            = 0;
+        int32_t   postShift            = 0;
         uint32_t  multAndoutZP[2]      = {0};
         gpu_dp_inst_t uniMultiplyAndPostShift_2x8 = {{
             0xdddddddd, // TCfg
@@ -371,7 +371,7 @@ DEF_KERNEL_INITIALIZER(_resize_nearest_initializer)
             0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
 
-        vsi_nn_GetFP32MultiAndPostShift(input_scale * output_scale, &M0, &postShift);
+        gpu_quantize_multiplier_16bit(input_scale * output_scale, &M0, &postShift);
 
         multAndoutZP[0] = (uint32_t)(M0);
         multAndoutZP[1] = (uint32_t)((outputZP << postShift) - inputZP * M0);

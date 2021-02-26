@@ -139,7 +139,7 @@ DEF_KERNEL_INITIALIZER(_poolwithargmax_initializer)
     int32_t  input_fl                          = 0;
     int32_t  output_fl                         = 0;
     uint16_t M0                                = 0;
-    int8_t   postShift                         = 0;
+    int32_t  postShift                         = 0;
     float    inputScale                        = 1.0f;
     int32_t  input_ZP                          = 0;
     float    outputScale                       = 1.0f;
@@ -193,7 +193,7 @@ DEF_KERNEL_INITIALIZER(_poolwithargmax_initializer)
     if ( ( input_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
        && ( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM ) )
     {
-        vsi_nn_GetFP32MultiAndPostShift(inputScale / outputScale, &M0, &postShift);
+        gpu_quantize_multiplier_16bit(inputScale / outputScale, &M0, &postShift);
     }
 
     image_2d = (vsi_bool)(input_shape->size < 3 || 1 == input_shape->data[2]);

@@ -603,10 +603,14 @@ vsi_nn_tensor_t* vsi_nn_merge_input_zeropoint_to_bias
     vsi_nn_tensor_t * bias
     )
 {
-    vsi_nn_tensor_t * new_bias = NULL;
+    vsi_nn_tensor_t * new_bias   = NULL;
     vsi_nn_tensor_attr_t attr;
-
+    int32_t  *new_bias_data_ptr  = NULL;
+    uint8_t  *weight_data        = NULL;
+    int32_t  *bias_data          = NULL;
+    uint32_t  i, j;
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
+    weight_data = vsi_nn_ConvertTensorToData(graph, weight);
 
     if (bias == NULL)
     {
@@ -620,26 +624,47 @@ vsi_nn_tensor_t* vsi_nn_merge_input_zeropoint_to_bias
             attr.dtype.zero_point = 0;
             attr.dtype.vx_type = VSI_NN_TYPE_INT32;
         }
-        else
-        {
-            VSILOGE("need to add ...");
-        }
     }
     else
     {
         memcpy(&attr, &bias->attr, sizeof(vsi_nn_tensor_attr_t));
+        if (attr.dim_num == 1)
+        {
+            attr.size[1]  = 1;
+            attr.dim_num  = 2;
+        }
+        bias_data = (int32_t *)vsi_nn_ConvertTensorToData(graph, bias);
     }
 
-    new_bias = vsi_nn_CreateTensorWithDefault(graph, &attr, 0.0);
+    new_bias_data_ptr = (int32_t *)malloc(attr.size[0] * sizeof(int32_t));
+    memset((void *)new_bias_data_ptr, 0, sizeof(int32_t) * attr.size[0]);
 
-    if (input->attr.dtype.zero_point == 0)
+    if (input->attr.dtype.zero_point != 0)
     {
-        return new_bias;
+        for (i = 0; i < weight->attr.size[1]; i++)
+        {
+            uint8_t *weight_ptr = weight_data + i * weight->attr.size[0];
+            for (j = 0; j < weight->attr.size[0]; j++)
+            {
+                 new_bias_data_ptr[i] += -((int32_t)weight_ptr[j] - weight->attr.dtype.zero_point) \
+                                         * input->attr.dtype.zero_point;
+            }
+        }
     }
-    else
+
+    if (bias_data != NULL)
     {
-        VSILOGE("need to process bias - (input_zp * (w - w_zp)) ...");
+        for (i = 0; i < weight->attr.size[1]; i++)
+        {
+            new_bias_data_ptr[i] += bias_data[i];
+        }
     }
+
+    new_bias = vsi_nn_CreateTensorFromData(graph, (uint8_t *)new_bias_data_ptr, &attr);
+
+    vsi_nn_safe_free( new_bias_data_ptr );
+    vsi_nn_safe_free( bias_data );
+    vsi_nn_safe_free( weight_data );
 
     return new_bias;
 }

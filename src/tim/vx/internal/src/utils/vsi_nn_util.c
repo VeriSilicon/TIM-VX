@@ -710,33 +710,6 @@ vsi_bool vsi_nn_CheckFilePath
     return FALSE;
 } /* vsi_nn_CheckFilePath() */
 
-void vsi_nn_GetFP32MultiAndPostShift
-    (
-    vx_float32 mult,
-    vx_uint16 *M0,
-    vx_int8 *N
-    )
-{
-    vx_uint32 uintMult          = *((vx_uint32*)(&mult));
-    vx_uint32 tmpMultiply       = 0;
-    vx_int32  exp               = 0;
-    vx_uint32 postShiftBit6to5  = 0;
-    vx_uint32 postShift         = 0;
-    vx_int8   tmpPostShift      = 0;
-
-    tmpMultiply         = (uintMult & 0x7FFFFF) >> 8;
-    *M0                 = (vx_uint16)((1U << 15) + tmpMultiply);
-
-    exp                 = (uintMult & 0x7F800000) >> 23; /* postShift is Scale's exp*/
-    tmpPostShift        = 15 - ((vx_int8)exp - 127);
-    postShift           = tmpPostShift & 0x1F;
-    tmpPostShift        = tmpPostShift >> 5;
-    postShiftBit6to5    = tmpPostShift & 3;
-
-    *N = (vx_int8)(((postShiftBit6to5 << 5) | (postShift & 0x1F)));
-    *N = (((vx_int32)*N << 25) >> 25);
-}/* vsi_nn_GetFP32MultiAndPostShift() */
-
 typedef struct
 {
     uint8_t* raw_addr;

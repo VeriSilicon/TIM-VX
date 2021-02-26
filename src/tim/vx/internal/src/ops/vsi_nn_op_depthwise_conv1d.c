@@ -31,6 +31,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
+#include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 /*
@@ -73,6 +74,7 @@ static vsi_status op_compute
     {
         status = VSI_SUCCESS;
     }
+
     vsi_nn_kernel_param_release( &param );
     return status;
 } /* op_compute() */
@@ -119,7 +121,7 @@ static vsi_bool op_setup
             VSI_NN_ROUND_FLOOR
             );
 
-        outputs[0]->attr.size[1] = inputs[1]->attr.size[2];
+        outputs[0]->attr.size[1] = inputs[0]->attr.size[1] * p->multiplier;
         outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
     }

@@ -266,9 +266,11 @@ static vx_param_description_t kernel_param_def[] =
     {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
 };
 
 #define INPUT_FUNC_TYPE           (2)
+#define INPUT_SCALAR_ALPHA        (3)
 #define _CL_PARAM_NUM          _cnt_of_array(kernel_param_def)
 
 /*
@@ -296,6 +298,7 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
     float    inputTail                      = 0;
     float    outputScale                    = 1.0f;
     float    outputZP                       = 0;
+    float    alpha                          = 0;
     uint32_t pack_key;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
@@ -303,7 +306,9 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
 
-    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[2], &type);
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[INPUT_FUNC_TYPE], &type);
+    CHECK_STATUS_FAIL_GOTO(status, final );
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[INPUT_SCALAR_ALPHA], &alpha);
     CHECK_STATUS_FAIL_GOTO(status, final );
 
     out_shape  = attr[1]->shape;
@@ -408,6 +413,8 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
                     "uniConvBF16toF32_Part1_2x8", &uniConvBF16toF32_Part1_2x8 );
             status |= vsi_nn_kernel_gpu_add_param( node,
                     "uniExtractOddData_2x8", &uniExtractOddData_2x8 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                    "alpha", &alpha );
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
@@ -466,6 +473,8 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
                     "outputScale", &outputScale );
             status |= vsi_nn_kernel_gpu_add_param( node,
                     "outputZP", &outputZP );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                    "alpha", &alpha );
 
             if (attr[1]->dtype == F16)
             {
@@ -555,7 +564,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_tensor_t* rs_tensors[2] = { NULL };
     int32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     int32_t new_rank = 0;
-    vsi_bool ret;
+    vsi_bool ret = FALSE;
+    float alpha = vsi_nn_kernel_param_get_float32( params, "alpha" );
 
     ret = vsi_nn_kernel_optimize_element_shape(
             (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
@@ -586,6 +596,8 @@ static vsi_nn_kernel_node_t _setup
                     rs_tensors, 1, &rs_tensors[1], 1 );
             node_params[INPUT_FUNC_TYPE] = vsi_nn_kernel_scalar_create(
                     graph, I32, &unary_type );
+            node_params[INPUT_SCALAR_ALPHA] = vsi_nn_kernel_scalar_create(
+                    graph, F32, &alpha );
 
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _CL_PARAM_NUM );
@@ -607,6 +619,11 @@ OnError:
     if (node_params[INPUT_FUNC_TYPE])
     {
         vsi_nn_kernel_scalar_release( &node_params[INPUT_FUNC_TYPE] );
+    }
+
+    if (node_params[INPUT_SCALAR_ALPHA])
+    {
+        vsi_nn_kernel_scalar_release( &node_params[INPUT_SCALAR_ALPHA] );
     }
 
     return node;
