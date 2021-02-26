@@ -1,0 +1,136 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniResizeNxDown_2x8;
+_viv_uniform int out_height;
+
+#define RESIZE_1D_NX_DOWN_8BIT_SAME_PROCESS(read_type, data_type) \
+    read_type read_data, save_data; \
+    data_type in0, result; \
+ \
+    int8 input_desc; \
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0; \
+    _viv_asm(MOV, coord_in.w, baseAddr); \
+ \
+    int8 output_desc; \
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0; \
+    _viv_asm(MOV, coord_out.w, baseAddr); \
+ \
+    while (coord_out.y < out_height) \
+    { \
+        VXC_OP4(img_load_3d, read_data, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, in0, read_data, 16); \
+        VXC_DP2x8(result, in0, in0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResizeNxDown_2x8); \
+        _viv_asm(COPY, save_data, result, 16); \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, save_data, \
+            VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+        coord_in.y++; \
+        coord_out.y++; \
+    } \
+
+#define RESIZE_1D_2X_DOWN_8BIT_HALF_SAME(name0, name1, read_type, data_type) \
+__kernel void resize_1d_bilinear_##name0##to##name1##_DOWN_2X_HALF_SAME \
+    ( \
+    __read_only  image2d_array_t   input, \
+    __write_only image2d_array_t   output, \
+                             int   scale_type \
+    ) \
+{ \
+    int4 coord_out  =  (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    int4 coord_in   = (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    coord_in.x =  coord_out.x << 1; \
+    RESIZE_1D_NX_DOWN_8BIT_SAME_PROCESS(read_type, data_type) \
+}
+
+RESIZE_1D_2X_DOWN_8BIT_HALF_SAME(U8,  U8,  vxc_uchar16, vxc_uchar16)
+RESIZE_1D_2X_DOWN_8BIT_HALF_SAME(I8,  I8,  vxc_char16,  vxc_char16)
+
+
+
+#define RESIZE_1D_2X_DOWN_8BIT_SAME(name0, name1, read_type, data_type) \
+__kernel void resize_1d_bilinear_##name0##to##name1##_DOWN_2X_SAME \
+    ( \
+    __read_only  image2d_array_t   input, \
+    __write_only image2d_array_t   output, \
+                             int   scale_type \
+    ) \
+{ \
+    int4 coord_out  =  (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    int4 coord_in   = (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    coord_in.x =  coord_out.x << 1; \
+    RESIZE_1D_NX_DOWN_8BIT_SAME_PROCESS(read_type, data_type) \
+}
+
+RESIZE_1D_2X_DOWN_8BIT_SAME(U8,  U8,  vxc_uchar16, vxc_uchar16)
+RESIZE_1D_2X_DOWN_8BIT_SAME(I8,  I8,  vxc_char16,  vxc_char16)
+
+
+#define RESIZE_1D_NX_DOWN_16BIT_SAME_PROCESS(read_type, data_type) \
+    read_type read_data, read_data1, save_data; \
+    data_type in0, in1, result; \
+ \
+    int8 input_desc; \
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0; \
+    _viv_asm(MOV, coord_in.w, baseAddr); \
+ \
+    int8 output_desc; \
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0; \
+    _viv_asm(MOV, coord_out.w, baseAddr); \
+ \
+    while (coord_out.y < out_height) \
+    { \
+        VXC_OP4(img_load_3d, read_data, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, in0, read_data, 16); \
+        VXC_OP4(img_load_3d, read_data1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, in1, read_data1, 16); \
+        VXC_DP2x8(result, in0, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResizeNxDown_2x8); \
+        _viv_asm(COPY, save_data, result, 16); \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, save_data, \
+            VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+        coord_in.y++; \
+        coord_out.y++; \
+    } \
+
+#define RESIZE_1D_2X_DOWN_16BIT_HALF_SAME(name0, name1, read_type, data_type) \
+__kernel void resize_1d_bilinear_##name0##to##name1##_DOWN_2X_HALF_SAME \
+    ( \
+    __read_only  image2d_array_t   input, \
+    __write_only image2d_array_t   output, \
+                             int   scale_type \
+    ) \
+{ \
+    int4 coord_out  =  (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    int4 coord_in   = (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    coord_in.x =  coord_out.x << 1; \
+    RESIZE_1D_NX_DOWN_16BIT_SAME_PROCESS(read_type, data_type) \
+}
+
+RESIZE_1D_2X_DOWN_16BIT_HALF_SAME(I16, I16, vxc_short8,  vxc_short8)
+RESIZE_1D_2X_DOWN_16BIT_HALF_SAME(F16, F16, vxc_short8,  vxc_half8)
+
+
+
+#define RESIZE_1D_2X_DOWN_16BIT_SAME(name0, name1, read_type, data_type) \
+__kernel void resize_1d_bilinear_##name0##to##name1##_DOWN_2X_SAME \
+    ( \
+    __read_only  image2d_array_t   input, \
+    __write_only image2d_array_t   output, \
+                             int   scale_type \
+    ) \
+{ \
+    int4 coord_out  =  (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    int4 coord_in   = (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    coord_in.x =  coord_out.x << 1; \
+    RESIZE_1D_NX_DOWN_16BIT_SAME_PROCESS(read_type, data_type) \
+}
+
+RESIZE_1D_2X_DOWN_16BIT_SAME(I16, I16, vxc_short8,  vxc_short8)
+RESIZE_1D_2X_DOWN_16BIT_SAME(F16, F16, vxc_short8,  vxc_half8)
+
+

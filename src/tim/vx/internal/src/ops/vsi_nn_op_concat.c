@@ -37,6 +37,29 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_constraint_check.h"
 
+static vsi_bool _enable_concat_optimize()
+{
+    char *envctrl;
+    static int32_t enableOptimize = -1;
+
+    if (enableOptimize == -1)
+    {
+        enableOptimize = 1;
+        envctrl = getenv("VSI_NN_ENABLE_CONCAT_OPTIMIZE");
+        if (envctrl)
+        {
+            enableOptimize = atoi(envctrl);
+        }
+    }
+
+    if (enableOptimize == 1)
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 static int32_t _get_input_num
     (
     vsi_nn_node_t   * self,
@@ -243,7 +266,8 @@ static vsi_status op_compute
 
     status = VSI_SUCCESS;
     self->n = NULL;
-    if(_is_highest_dimension(self, outputs) && _is_same_quant(self, inputs, outputs))
+    if(_is_highest_dimension(self, outputs) && _is_same_quant(self, inputs, outputs)
+        && _enable_concat_optimize())
     {
         iter = self->nn_param.concat.lcl_data;
         while( NULL != iter )
@@ -397,7 +421,8 @@ static vsi_status op_optimize
     status = VSI_SUCCESS;
     /* we don't create tensor view if the axis is not the highest dimension */
     if (_is_highest_dimension(self, outputs) == FALSE ||
-        _is_same_quant(self, inputs, outputs) == FALSE)
+        _is_same_quant(self, inputs, outputs) == FALSE ||
+        _enable_concat_optimize() == FALSE)
     {
         return status;
     }

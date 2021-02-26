@@ -1,0 +1,78 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float scale_x;
+_viv_uniform int out_height;
+_viv_uniform VXC_512Bits uniConvertI32toI16_2x8;
+_viv_uniform VXC_512Bits uniGetMaskShift_2x8;
+_viv_uniform VXC_512Bits uniBilinear_4x4;
+_viv_uniform float half_pixel_value;
+
+__kernel void resize_1d_bilinear_U8toU8_UP_opt
+    (
+    __read_only  image2d_array_t   input,
+    __write_only image2d_array_t   output,
+                             int   align_corners,
+                             int   half_pixel_centers,
+    __read_only  image2d_array_t   scale
+    )
+{
+    int4 coord_out  =  (int4)(get_global_id(0), 0, get_global_id(2), 0);
+
+    int4   coord_x     = coord_out.xxxx + (int4)(0, 1, 2, 3);
+    float4 in_x        = (convert_float4(coord_x) + half_pixel_value) * scale_x - half_pixel_value;
+
+    float4 left_x_f    = floor(in_x);
+    int4   left_x_idx  = convert_int4(left_x_f);
+    int4   right_x_idx = left_x_idx + 1;
+
+    vxc_uchar16 src0;
+
+    vxc_uchar16 src_mask;
+
+    int4 coord_in = (int4)(left_x_idx.x, coord_out.y, coord_out.z, 0);
+
+    int8 input_desc;
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;
+    _viv_asm(MOV, coord_in.w, baseAddr);
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    vxc_ushort8 bitextract_p0;
+    vxc_uchar16 maskShift = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+    VXC_DP2x8(bitextract_p0, left_x_idx, right_x_idx,
+              VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvertI32toI16_2x8);
+    vxc_ushort8 constData = 8;
+    VXC_DP2x8(maskShift, bitextract_p0, constData,
+              VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniGetMaskShift_2x8);
+
+    vxc_ushort8 lerp_0;
+    vxc_half8 lerp;
+
+    int2 coord = (int2)(coord_out.x * 2, 0);
+    VXC_ReadImage(lerp_0, scale, coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, lerp, lerp_0, 16);
+
+    int8 output_desc;
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;
+    _viv_asm(MOV, coord_out.w, baseAddr);
+
+    do
+    {
+        VXC_BitExtract(src_mask, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+        coord_in.y++;
+        VXC_OP4(img_load_3d, src0, input, coord_in.xyww,
+                VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+        vxc_uchar16 dst;
+        VXC_DP4x4(dst, src_mask, lerp,
+                VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniBilinear_4x4);
+
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,
+                VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
+
+        coord_out.y ++;
+    } while (coord_out.y < out_height);
+}

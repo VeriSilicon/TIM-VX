@@ -44,6 +44,7 @@ typedef struct _vsi_nn_elu_param
 {
     /* elu layer local data structure */
     vsi_nn_elu_lcl_data local;
+    float  alpha;
 } vsi_nn_elu_param;
 
 #ifdef __cplusplus

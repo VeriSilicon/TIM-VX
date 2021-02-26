@@ -176,8 +176,8 @@ static vsi_status op_optimize
         reshape 3d input (xcn) --> 4d input (whcn)
         reshape 3d output(xcn) --> 4d output(whcn)
     */
-    shape[0] = inputs[0]->attr.size[0];
-    shape[1] = 1;
+    shape[0] = 1;
+    shape[1] = inputs[0]->attr.size[0];
     shape[2] = inputs[0]->attr.size[1];
     shape[3] = inputs[0]->attr.size[2];
     dim = 4;

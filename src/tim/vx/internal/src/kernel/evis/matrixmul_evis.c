@@ -181,8 +181,8 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
     float       dstScale   = 0;
     uint16_t M0            = 0;
     uint16_t M1            = 0;
-    int8_t   postShift0    = 0;
-    int8_t   postShift1    = 0;
+    int32_t  postShift0    = 0;
+    int32_t  postShift1    = 0;
 
     uint32_t pack_key = 0;
     int32_t  ac2zero  = 0;
@@ -279,8 +279,8 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
         dstScale = 1;
         dstZP = 0.0f;
     }
-    vsi_nn_GetFP32MultiAndPostShift(src0Scale / 1.0f, &M0, &postShift0);
-    vsi_nn_GetFP32MultiAndPostShift(src1Scale / 1.0f, &M1, &postShift1);
+    gpu_quantize_multiplier_16bit(src0Scale / 1.0f, &M0, &postShift0);
+    gpu_quantize_multiplier_16bit(src1Scale / 1.0f, &M1, &postShift1);
 
     mulKIn0In1Zp = (float)((int)(K + 3) / 4 * 4 * src1ZP * src0ZP);
     inOutScale =  src0Scale * src1Scale / dstScale;

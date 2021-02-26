@@ -31,6 +31,8 @@
 #include "kernel/vsi_nn_kernel.h"
 #include "kernel/vsi_nn_kernel_node.h"
 #include "vsi_nn_feature.h"
+#include "vsi_nn_tensor_util.h"
+#include "vsi_nn_graph_optimization.h"
 
 static vsi_bool _build_vx_conv2d_param
     (
@@ -173,6 +175,7 @@ static vx_tensor _expand_tensor_dim
         vsi_nn_kernel_t             * kernel \
         )
 
+
 REGISTER_CONV_OPENVX_KERNEL( conv1d )
 {
     vx_node node = NULL;
@@ -196,10 +199,34 @@ REGISTER_CONV_OPENVX_KERNEL( conv1d )
     temp_tensors[0] = _expand_tensor_dim( inputs[0]->t,
             (int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
     CHECK_PTR_FAIL_GOTO( temp_tensors[0], "Expand input dim fail.", final );
+    if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
+    {
+        temp_tensors[1] = _expand_tensor_dim( inputs[1]->t,
+                (int32_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
+        CHECK_PTR_FAIL_GOTO( temp_tensors[1], "Expand kernel dim fail.", final );
+    }
+    else
+    {
+        uint8_t    * data = NULL;
+        vsi_nn_tensor_attr_t attr;
+        uint32_t i;
 
-    temp_tensors[1] = _expand_tensor_dim( inputs[1]->t,
-            (int32_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
-    CHECK_PTR_FAIL_GOTO( temp_tensors[1], "Expand kernel dim fail.", final );
+        data = vsi_nn_ConvertTensorToData( graph, inputs[1] );
+        CHECK_PTR_FAIL_GOTO( data, "Convert data fail.", final );
+
+        memcpy(&attr, &inputs[1]->attr, sizeof(vsi_nn_tensor_attr_t));
+
+        attr.size[0] = 1;
+        for (i = 1; i <= inputs[1]->attr.dim_num; i++)
+        {
+            attr.size[i] = inputs[1]->attr.size[i - 1];
+        }
+        attr.dim_num = inputs[1]->attr.dim_num + 1;
+        attr.dtype.channel_dim = inputs[1]->attr.dtype.channel_dim + 1;
+
+        temp_tensors[1] = vsi_nn_CreateRawTensorFromData(graph, data, &attr);
+        vsi_nn_safe_free( data );
+    }
 
     temp_tensors[2] = _expand_tensor_dim( outputs[0]->t,
             (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num, 0 );
@@ -248,9 +275,38 @@ REGISTER_CONV_OPENVX_KERNEL( depthwise_conv1d )
             (int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
     CHECK_PTR_FAIL_GOTO( temp_tensors[0], "Expand input dim fail.", final );
 
-    temp_tensors[1] = _expand_tensor_dim( inputs[1]->t,
-            (int32_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
-    CHECK_PTR_FAIL_GOTO( temp_tensors[1], "Expand kernel dim fail.", final );
+    if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
+    {
+        temp_tensors[1] = _expand_tensor_dim( inputs[1]->t,
+                (int32_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
+        CHECK_PTR_FAIL_GOTO( temp_tensors[1], "Expand kernel dim fail.", final );
+    }
+    else
+    {
+        uint8_t    * data = NULL;
+        vsi_nn_tensor_attr_t attr;
+        uint32_t i;
+
+        data = vsi_nn_ConvertTensorToData( graph, inputs[1] );
+        CHECK_PTR_FAIL_GOTO( data, "Convert data fail.", final );
+
+        memcpy(&attr, &inputs[1]->attr, sizeof(vsi_nn_tensor_attr_t));
+
+        attr.size[0] = 1;
+        attr.size[1] = inputs[1]->attr.size[0];
+        attr.size[2] = 1;
+        for (i = 1; i < inputs[1]->attr.dim_num; i++)
+        {
+            attr.size[2] *= inputs[1]->attr.size[i];
+        }
+        attr.size[3] = 1;
+        attr.dim_num = 4;
+        attr.dtype.channel_dim = 2;
+
+        temp_tensors[1] = vsi_nn_CreateRawTensorFromData(graph, data, &attr);
+
+        vsi_nn_safe_free( data );
+    }
 
     temp_tensors[2] = _expand_tensor_dim( outputs[0]->t,
             (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num, 0 );

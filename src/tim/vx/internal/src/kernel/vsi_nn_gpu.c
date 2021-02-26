@@ -84,7 +84,7 @@ void gpu_quantize_multiplier_32bit
     double q;
     int64_t q_fixed;
     const int32_t bit = 32;
-    if( vsi_abs(double_multiplier - 0.0) < 1e-5 )
+    if( vsi_abs(double_multiplier - 0.0) < 1e-8 )
     {
         *quantize_multiplier = 0;
         *shift = bit - 0;
@@ -116,6 +116,25 @@ void gpu_quantize_multiplier_32bit
     }
 } /* gpu_quantize_multiplier_32_bit() */
 
+void _modify_multiplier_postshift
+    (
+    uint16_t * quantize_multiplier,
+    int32_t * shift
+    )
+{
+    uint16_t multiplier = *quantize_multiplier;
+    int32_t  postshift  = *shift;
+
+    while (postshift > GPU_MAX_POST_SHIFT_BITS)
+    {
+        multiplier = (multiplier + 1) >> 1;
+        postshift --;
+    }
+
+    *quantize_multiplier = multiplier;
+    *shift = postshift;
+}
+
 void gpu_quantize_multiplier_16bit
     (
     double double_multiplier,
@@ -135,5 +154,8 @@ void gpu_quantize_multiplier_16bit
     {
         *shift -= bit;
     }
+
+    _modify_multiplier_postshift(quantize_multiplier, shift);
+
 } /* gpu_quantize_multiplier_16bit() */
 

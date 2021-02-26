@@ -117,6 +117,7 @@ LOCAL_C_INCLUDES += \
 LOCAL_CFLAGS :=  \
     -DLINUX \
     -D'OVXLIB_API=__attribute__((visibility("default")))' \
+    -DANDROID_SDK_VERSION=$(PLATFORM_SDK_VERSION)\
         -Wno-sign-compare \
         -Wno-implicit-function-declaration \
         -Wno-sometimes-uninitialized \

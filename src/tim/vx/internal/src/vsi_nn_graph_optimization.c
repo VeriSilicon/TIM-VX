@@ -520,6 +520,7 @@ static vx_tensor _create_const_raw_tensor
     vx_tensor tensor = NULL;
     vx_tensor_create_params_t params;
     float * scales = NULL;
+    int32_t * zeroPoints = NULL;
 
     memset( &params, 0, sizeof( vx_tensor_create_params_t ) );
     params.num_of_dims = attr.dim_num;
@@ -539,12 +540,14 @@ static vx_tensor _create_const_raw_tensor
 #ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
         // This is a hack that driver doesn't support const scale
         scales = (float *)malloc(sizeof(float) * attr.dtype.scale_dim);
+        zeroPoints = (int32_t *)malloc(sizeof(int32_t) * attr.dtype.zero_points_dim);
         memcpy(scales, attr.dtype.scales, attr.dtype.scale_dim * sizeof(float));
+        memcpy(zeroPoints, attr.dtype.zero_points, attr.dtype.zero_points_dim * sizeof(float));
         params.quant_data.affinePerChannel.channelDim = attr.dtype.channel_dim;
         params.quant_data.affinePerChannel.scaleCount = attr.dtype.scale_dim;
         params.quant_data.affinePerChannel.scales = scales;
-        params.quant_data.affinePerChannel.zeroPoint = NULL;
-        params.quant_data.affinePerChannel.zeroPointCount = 0;
+        params.quant_data.affinePerChannel.zeroPoint = zeroPoints;
+        params.quant_data.affinePerChannel.zeroPointCount = attr.dtype.zero_points_dim;
         break;
 #else
     VSILOGE( "can't support qnt_type VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC." );
@@ -579,6 +582,10 @@ static vx_tensor _create_const_raw_tensor
                     if( scales )
                     {
                         free( scales );
+                    }
+                    if (zeroPoints)
+                    {
+                        free( zeroPoints );
                     }
                     return NULL;
                 }
@@ -619,6 +626,10 @@ static vx_tensor _create_const_raw_tensor
     if( scales )
     {
         free( scales );
+    }
+    if (zeroPoints)
+    {
+        free( zeroPoints );
     }
 
     return tensor;
@@ -689,6 +700,8 @@ static void _convert_const_I8toU8
 
     if ( tensor->t ) vxReleaseTensor(&tensor->t);
     tensor->t = vsi_nn_CreateRawTensorFromData(graph, data, attr);
+
+    vsi_nn_safe_free( data );
 }/* _convert_const_I8toU8() */
 
 static vsi_status _convert_graph_const_tensor

@@ -163,12 +163,17 @@ static vsi_bool op_check
         ret = FALSE;
     }
 
+    if(ret)
     {
         BEGIN_IO_TYPE_DECL(SVDF, 5, 2)
             IO_TYPE(D_F16, D_F16, D_F16, D_F16, D_F16, D_F16, D_F16)
             IO_TYPE(D_F16, D_F16, D_F16, D_F16, D_F32, D_F16, D_F16)
             IO_TYPE(D_F32, D_F16, D_F16, D_F16, D_F32, D_F32, D_F16)
             IO_TYPE(D_F32, D_F32, D_F32, D_F32, D_F32, D_F32, D_F32)
+            IO_TYPE(D_F16, D_F16, D_F16, D_F16, D_F16, D_F16, D_NONE)
+            IO_TYPE(D_F16, D_F16, D_F16, D_F16, D_F32, D_F16, D_NONE)
+            IO_TYPE(D_F32, D_F16, D_F16, D_F16, D_F32, D_F32, D_NONE)
+            IO_TYPE(D_F32, D_F32, D_F32, D_F32, D_F32, D_F32, D_NONE)
         END_IO_TYPE_DECL(SVDF)
         if(!VALIDATE_OP_IO_TYPES(SVDF, self, inputs, self->input.num, outputs, self->output.num)) {
             char* desc = generate_op_io_types_desc(inputs,

@@ -136,6 +136,7 @@ static vsi_bool op_check
         IO_TYPE(D_I32,  D_F32)
         IO_TYPE(D_I32,  D_I32)
         IO_TYPE(D_I32,  D_U32)
+        IO_TYPE(D_I32,  D_F16)
         IO_TYPE(D_I32,  D_BOOL8)
         IO_TYPE(D_U32,  D_F32)
         IO_TYPE(D_U32,  D_I32)
@@ -176,6 +177,7 @@ static vsi_bool op_check
         IO_TYPE(D_U8|Q_ASYM,  D_F32)
         IO_TYPE(D_U8|Q_ASYM,  D_I32)
         IO_TYPE(D_BF16,   D_BF16)
+        IO_TYPE(D_U8,   D_F16)
     END_IO_TYPE_DECL(CAST)
     if(!VALIDATE_OP_IO_TYPES(CAST, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,

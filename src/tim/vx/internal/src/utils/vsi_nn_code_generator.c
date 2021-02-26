@@ -117,8 +117,7 @@ static void _try_pack_tensor_data
             {
                 *p_sz = (uint64_t)bytes;
             }
-            free( data );
-            data = NULL;
+            vsi_nn_safe_free( data );
         }
     }
 } /* _pack_tensor_data() */
@@ -417,6 +416,8 @@ static _op_param_gen_t s_op_gen[] =
     /* PRE_PROCESS_NV12 */      NULL,
     /* SCATTER_ND */            NULL,
     /* DECONVOLUTION1D */       NULL,
+    /* INTERP */                NULL,
+    /* RESIZE_1D */             NULL,
 };
 _compiler_assert( _cnt_of_array(s_op_gen) == VSI_NN_OP_NUM, vsi_nn_code_generator_c );
 

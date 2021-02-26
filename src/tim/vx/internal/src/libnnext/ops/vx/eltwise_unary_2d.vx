@@ -1,5 +1,7 @@
 #include "cl_viv_vx_ext.h"
 
+_viv_uniform float alpha;
+
 float4 eltwise_unary_sin(float4 x)
 {
     return native_sin(x);
@@ -24,7 +26,7 @@ float4 eltwise_unary_log(float4 x)
 float4 eltwise_unary_elu(float4 val)
 {
     float4 x = val * logE;
-    x = exp2(x) - 1;
+    x = exp2(x) * alpha - alpha;
 
     return val < 0 ? x : val;
 }
@@ -78,7 +80,8 @@ _viv_uniform VXC_512Bits uniDatatoFp32Part1_4x4;
     __kernel void func_name##_##src_type_name##to##dst_type_name##_2D( \
     __read_only  image2d_array_t  input, \
     __write_only image2d_array_t  output, \
-                 int              type \
+                 int              type, \
+                 float            _alpha \
     ) \
 { \
     int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
@@ -194,7 +197,8 @@ _viv_uniform VXC_512Bits uniExtractOddData_2x8;
     __kernel void func_name##_BF16toBF16_2D( \
     __read_only  image2d_array_t  input, \
     __write_only image2d_array_t  output, \
-                 int              type \
+                 int              type, \
+                 float            _alpha \
     ) \
 { \
     int2 coord = (int2)(get_global_id(0), get_global_id(1)); \

@@ -196,8 +196,8 @@ DEF_KERNEL_INITIALIZER(_pow_initializer)
     float       dstZP      = 0;
     float       dstScale   = 1.0f;
 
-    int8_t     postshift0  = 0;
-    int8_t     postshift1  = 0;
+    int32_t    postshift0  = 0;
+    int32_t    postshift1  = 0;
     float      outScale_fl = 1;
 
     uint16_t M0            = 0;
@@ -229,7 +229,7 @@ DEF_KERNEL_INITIALIZER(_pow_initializer)
         src0ZP     = attr[0]->asymm.zero_point;
         src0Scale  = attr[0]->asymm.scale;
 
-        vsi_nn_GetFP32MultiAndPostShift(src0Scale / 1.0f, &M0, &postshift0);
+        gpu_quantize_multiplier_16bit(src0Scale / 1.0f, &M0, &postshift0);
     }
 
     if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
@@ -243,7 +243,7 @@ DEF_KERNEL_INITIALIZER(_pow_initializer)
         src1ZP     = attr[1]->asymm.zero_point;
         src1Scale  = attr[1]->asymm.scale;
 
-        vsi_nn_GetFP32MultiAndPostShift(src1Scale / 1.0f, &M1, &postshift1);
+        gpu_quantize_multiplier_16bit(src1Scale / 1.0f, &M1, &postshift1);
     }
 
     if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )

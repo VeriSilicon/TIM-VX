@@ -149,7 +149,7 @@ vsi_nn_tensor_t* vsi_nn_Concat
             src = j;
             memcpy( &buffer[dst * type_bytes], &tmp[src * type_bytes], type_bytes );
         }
-        free(tmp);
+        vsi_nn_safe_free( tmp );
         offset += strides[axis] * tensors[i]->attr.size[axis];
     }
     tensor_out = vsi_nn_CreateTensorFromData( graph, buffer, &output_attr );
@@ -221,11 +221,7 @@ vsi_nn_tensor_t* vsi_nn_ConvertTensorDtype
         }
     }
 
-    if( src_buf )
-    {
-        free( src_buf );
-        src_buf = NULL;
-    }
+    vsi_nn_safe_free( src_buf );
     if( dst_buf )
     {
         free( dst_buf );
@@ -333,10 +329,7 @@ vsi_nn_tensor_t* vsi_nn_TensorAdd
 error:
     for ( i = 0; i < tensor_num; i++ )
     {
-        if ( buffer[i] )
-        {
-            free(buffer[i]);
-        }
+        vsi_nn_safe_free( buffer[i] );
     }
     if( tmp )
     {

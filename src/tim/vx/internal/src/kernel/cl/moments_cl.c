@@ -356,7 +356,8 @@ static vsi_nn_kernel_node_t _setup
     int32_t  out_shape[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t  out_rs_flg = 0;
     int32_t axis_num  = 0;
-    int32_t* axis = (int32_t *) vsi_nn_kernel_param_get_buffer( params, "axis", (size_t*)&axis_num);
+    size_t axis_num_temp = 0;
+    int32_t* axis = (int32_t *) vsi_nn_kernel_param_get_buffer( params, "axis", &axis_num_temp);
     int32_t keep_dim  = vsi_nn_kernel_param_get_int32( params, "keep_dim" );
     int32_t first_axis = axis[0];
     int32_t i = 0;
@@ -368,6 +369,8 @@ static vsi_nn_kernel_node_t _setup
     int32_t input_zp = inputs[0]->attr.dtype.zero_point;
     float input_scale = inputs[0]->attr.dtype.scale;
     float dim_ratio = (float)1.0 / (float)(width * height);
+
+    axis_num = (int32_t)axis_num_temp;
 
     if(inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
     {

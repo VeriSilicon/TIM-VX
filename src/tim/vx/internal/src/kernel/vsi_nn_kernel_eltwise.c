@@ -459,7 +459,7 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
         k = 0;
         for (j = 0; j < (size_t)input_num; j++)
         {
-            if (size_in[k] > 1)
+            if (size_in[j] > 1)
             {
                 k = j;
                 break;

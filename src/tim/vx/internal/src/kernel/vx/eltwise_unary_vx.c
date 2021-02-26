@@ -38,27 +38,27 @@ typedef struct _sort_lut_s
     float val;
 } sort_lut;
 
-static float exp_eval(float val)
+static float exp_eval(float val, float alpha)
 {
     return expf(val);
 }
 
-static float log_eval(float data)
+static float log_eval(float data, float alpha)
 {
     return logf(data);
 }
 
-static float elu_eval(float data)
+static float elu_eval(float data, float alpha)
 {
-    return data >=0 ? data : expf(data) - 1;
+    return data >=0 ? data : expf(data) * alpha - alpha;
 }
 
-static float neg_eval(float data)
+static float neg_eval(float data, float alpha)
 {
     return data * -1.0f;
 }
 
-static float hsigmoid_eval(float data)
+static float hsigmoid_eval(float data, float alpha)
 {
     data = (float)(0.2 * data + 0.5);
     data = vsi_nn_clamp(data, 0, 1);
@@ -66,14 +66,14 @@ static float hsigmoid_eval(float data)
     return data;
 }
 
-static float soft_plus_eval(float data)
+static float soft_plus_eval(float data, float alpha)
 {
-    return log_eval(exp_eval(data) + 1);
+    return log_eval(exp_eval(data, alpha) + 1, alpha);
 }
 
-static float mish_eval(float data)
+static float mish_eval(float data, float alpha)
 {
-    data = (float)(data * tanh(soft_plus_eval(data)));
+    data = (float)(data * tanh(soft_plus_eval(data, alpha)));
 
     return data;
 }
@@ -96,7 +96,7 @@ static int32_t _lut_comparator(const void *pa, const void *pb)
     return 0;
 }
 
-static void _set_unary_table_lookup(float func(float), float *index, float *value)
+static void _set_unary_table_lookup(float func(float, float), float *index, float *value, float alpha)
 {
 #define VSI_NN_MAX_LUT_SIZE     (1024)
 #define FLT16_MAX               (57344)
@@ -108,25 +108,25 @@ static void _set_unary_table_lookup(float func(float), float *index, float *valu
     {
         int16_t val = (int16_t)(i << 6);
         lut[i].index = fp16_to_fp32(val);
-        lut[i].val = func(lut[i].index);
+        lut[i].val = func(lut[i].index, alpha);
     }
 
     for (i = 0x0; i < 0x10; i++)
     {
         lut[i].index = 0;
-        lut[i].val = func(lut[i].index);
+        lut[i].val = func(lut[i].index, alpha);
     }
 
     for (i = 0x1F0; i < 0x200; i++)
     {
         lut[i].index = FLT16_MAX;
-        lut[i].val = func(lut[i].index);
+        lut[i].val = func(lut[i].index, alpha);
     }
 
     for (i = 0x3F0; i < 0x400; i++)
     {
         lut[i].index = FLT16_MIN;
-        lut[i].val = func(lut[i].index);
+        lut[i].val = func(lut[i].index, alpha);
     }
 
     qsort(lut, VSI_NN_MAX_LUT_SIZE, sizeof(sort_lut), _lut_comparator);
@@ -154,13 +154,14 @@ static vsi_nn_kernel_node_t _setup
     size_t                        output_num,
     const vsi_nn_kernel_param_t * params,
     vsi_nn_kernel_t             * kernel,
-    float                      func(float)
+    float                      func(float, float)
     )
 {
 #ifdef VX_USER_LOOKUP_TABLE_SUPPORT
     vx_lut lut1 = NULL;
     vx_lut lut2 = NULL;
     vx_node node = NULL;
+    float alpha = vsi_nn_kernel_param_get_float32( params, "alpha" );
     float index[1024] = {0};
     float value[1024] = {0};
 
@@ -172,7 +173,7 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    _set_unary_table_lookup(func, index, value);
+    _set_unary_table_lookup(func, index, value, alpha);
 
     lut1 = vxCreateLUT( graph->ctx->c, VX_TYPE_FLOAT32, 1024);
     lut2 = vxCreateLUT( graph->ctx->c, VX_TYPE_FLOAT32, 1024);

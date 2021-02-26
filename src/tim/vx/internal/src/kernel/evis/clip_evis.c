@@ -268,7 +268,7 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
         {
             uint32_t  multAndoutZP[2]    = {0};
             uint16_t  M0                 = 0;
-            int8_t    postShift          = 0;
+            int32_t   postShift          = 0;
             gpu_dp_inst_t  uniDataMulAndPostShift_2x8 = {{
                 0xdddddddd, // TCfg
                 0x44444444, // ASelt
@@ -279,7 +279,7 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
                 0x00000000, 0x00000000, 0x00000000, 0x00000000,
                 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
             }, GPU_DP_TYPE_16};
-            vsi_nn_GetFP32MultiAndPostShift(scaleIn / scaleOut, &M0, &postShift);
+            gpu_quantize_multiplier_16bit(scaleIn / scaleOut, &M0, &postShift);
 
             multAndoutZP[0] = (uint32_t)(M0);
             multAndoutZP[1] = (uint32_t)(output_ZP << postShift );
@@ -434,8 +434,8 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
         int32_t   packedMaxData[4];
         float     uint8Scale = scaleIn / scaleOut;
         uint16_t  M0                   = 0;
-        int8_t    postShift            = 0;
-        uint32_t    multAndoutZP[2]    = {0};
+        int32_t   postShift            = 0;
+        uint32_t  multAndoutZP[2]      = {0};
         gpu_dp_inst_t uniU8MulAndPostShift_Lo_2x8 = {{
             0xdddddddd, // TCfg
             0x44444444, // ASelt
@@ -457,7 +457,7 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
             0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
 
-        vsi_nn_GetFP32MultiAndPostShift(uint8Scale, &M0, &postShift);
+        gpu_quantize_multiplier_16bit(uint8Scale, &M0, &postShift);
         multAndoutZP[0] = (uint32_t)(M0);
         multAndoutZP[1] = (uint32_t)((output_ZP << postShift) - input_ZP * M0);
 

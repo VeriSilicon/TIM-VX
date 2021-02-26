@@ -164,9 +164,9 @@ DEF_KERNEL_INITIALIZER(_detect_post_box_initializer)
     else if ((U8 == input_attr->dtype) || (U8 == input1_attr->dtype))
     {
         uint16_t  M0                 = 0;
-        int8_t    postShift0         = 0;
+        int32_t   postShift0         = 0;
         uint16_t  M1                 = 0;
-        int8_t    postShift1         = 0;
+        int32_t   postShift1         = 0;
         uint32_t  i                  = 0;
         gpu_dp_inst_t uniU8SubZptoF32Conv0_4x4 = {{
             0x09090909, // TCfg
@@ -188,8 +188,8 @@ DEF_KERNEL_INITIALIZER(_detect_post_box_initializer)
             0x00010001, 0x00000000, 0x00010001, 0x00000000,
             0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
-        vsi_nn_GetFP32MultiAndPostShift(scaleIn0, &M0, &postShift0);
-        vsi_nn_GetFP32MultiAndPostShift(scaleIn1, &M1, &postShift1);
+        gpu_quantize_multiplier_16bit(scaleIn0, &M0, &postShift0);
+        gpu_quantize_multiplier_16bit(scaleIn1, &M1, &postShift1);
         uniU8SubZptoF32Conv0_4x4.data[7] |= (postShift0 & 0x1F);
         uniU8SubZptoF32Conv1_4x4.data[7] |= (postShift1 & 0x1F);
         for ( i = 0; i < 8; i++ )

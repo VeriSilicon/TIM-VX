@@ -73,6 +73,7 @@ static vsi_bool op_check
         IO_TYPE(D_I32, D_I32,  D_I32, D_F16, D_I32)
         IO_TYPE(D_I32, D_I32,  D_F32, D_F16, D_F32)
         IO_TYPE(D_I32, D_I32,  D_U8|Q_ASYM, D_F16, D_U8|Q_ASYM)
+        IO_TYPE(D_I32, D_I32,  D_F32, D_F32, D_U8|Q_ASYM)
     END_IO_TYPE_DECL(HASHTABLE_LOOKUP)
     if (!VALIDATE_OP_IO_TYPES(HASHTABLE_LOOKUP, self, inputs, self->input.num, outputs, self->output.num))
     {
