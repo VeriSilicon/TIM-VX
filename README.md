@@ -12,7 +12,7 @@ Main Features
 ## Framework Support
 
 - [Tensorflow-Lite Delegate](https://github.com/VeriSilicon/tensorflow/tree/dev/vx-delegate) (Unofficial)
-- [OAID Tegine](https://github.com/OAID/Tengine) (Official)
+- [Tengine](https://github.com/OAID/Tengine) (Official)
 - MLIR Dialect (In development)
 - TVM (In development)
 
