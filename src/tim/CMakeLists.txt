@@ -24,6 +24,7 @@ list(APPEND SRC
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/include/tim/vx)
 include_directories(${PROJECT_SOURCE_DIR}/src/tim/vx)
+
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
     if(NOT OVXLIB_INC)
         message(FATAL_ERROR "Set OVXLIB_INC if using external OVXLIB (TIM_VX_USE_EXTERNAL_OVXLIB)")
@@ -79,3 +80,5 @@ if (TIM_VX_ENABLE_TEST)
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 endif()
+
+add_subdirectory("utils")
