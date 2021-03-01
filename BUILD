@@ -4,6 +4,21 @@ package(
 )
 
 cc_library(
+    name = "nbg_parser",
+    includes = [
+        "include"
+    ],
+    hdrs = 
+        glob(["include/tim/utils/nbg_parser/*.h"])
+    ,
+    srcs = 
+        glob(["src/tim/utils/nbg_parser/*.c"])
+    ,
+    linkstatic = True,
+    strip_include_prefix = "include"
+)
+
+cc_library(
     name = "tim-vx_interface",
     copts = ["-std=c++14", "-Werror", "-fvisibility=default"],
     includes = [
