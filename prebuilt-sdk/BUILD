@@ -10,9 +10,15 @@ config_setting(
     values = {"define": "target_device=aarch64_A311D"},
 )
 
+config_setting(
+    name = "external_viv_sdk",
+    values = {"define": "use_external_viv_sdk=true"},
+)
+
 cc_library(
     name = "VIV_SDK_LIB",
     deps = select({
+        "external_viv_sdk": ["@external_viv_sdk//:VIV_SDK_LIB"],
         "aarch64_A311D": ["@aarch64_A311D//:VIV_SDK_LIB"],
         "//conditions:default": ["//prebuilt-sdk/x86_64_linux:VIV_SDK_LIB"],
     }),
