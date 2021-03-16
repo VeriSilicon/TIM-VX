@@ -151,8 +151,8 @@ bool TensorImpl::Init() {
 
   memset(&attr, 0x00, sizeof(attr));
   attr.dim_num = spec_.shape_.size();
-  attr.is_const = spec_.attr_ & TensorAttribute::CONSTANT;
-  attr.vtl = spec_.attr_ & TensorAttribute::TRANSIENT;
+  attr.is_const = static_cast<bool>(spec_.attr_ & TensorAttribute::CONSTANT);
+  attr.vtl = static_cast<bool>(spec_.attr_ & TensorAttribute::TRANSIENT);
 
   for (ShapeType::size_type i = 0; i < spec_.shape_.size(); i++) {
     attr.size[i] = spec_.shape_[i];
