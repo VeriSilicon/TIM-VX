@@ -21,40 +21,30 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_DECONV_H_
-#define TIM_VX_OPS_DECONV_H_
-
-#include <array>
-
+#ifndef TIM_VX_OPS_TRANSPOSE_CONV_H_
+#define TIM_VX_OPS_TRANSPOSE_CONV_H_
 #include "tim/vx/operation.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-class DeConv2d : public Operation {
-  public:
-    DeConv2d(Graph* graph, int32_t weights, PadType pad_type,
-        const std::array<uint32_t, 2>& ksize,
-        const std::array<uint32_t, 2>& stride,
-        const std::array<uint32_t, 2>& output_padding);
-    DeConv2d(Graph* graph, int32_t weights, PadType pad_type,
-        const std::array<uint32_t, 2>& ksize,
-        const std::array<uint32_t, 2>& stride,
-        const std::array<uint32_t, 2>& output_padding,
-        const std::array<uint32_t, 4>& pad);
+class TransposeConv : public Operation {
+ public:
+  TransposeConv(Graph* graph, uint32_t weights, PadType padding,
+                std::array<uint32_t, 2> ksize, std::array<uint32_t, 2> stride,
+                std::array<uint32_t, 4> pad);
 
-  protected:
-    const uint32_t weights_;
-    const PadType pad_type_;
-    const std::array<uint32_t, 2> ksize_;
-    const std::array<uint32_t, 2> stride_;
-    const std::array<uint32_t, 2> output_padding_;
-    const std::array<uint32_t, 4> pad_;
+ protected:
+  const uint32_t weights_;
+  const PadType padding_;
+  const std::array<uint32_t, 2> ksize_;
+  const std::array<uint32_t, 2> stride_;
+  const std::array<uint32_t, 4> pad_;
 };
 
-} // namespace ops
-} // namespace vx
-} // namespace tim
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim
 
-#endif /* TIM_VX_OPS_DECONV_H_ */
+#endif /* TIM_VX_OPS_TRANSPOSE_CONV_H_ */ 

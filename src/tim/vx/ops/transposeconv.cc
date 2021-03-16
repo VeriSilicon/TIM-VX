@@ -21,8 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-
-#include "tim/vx/ops/deconv.h"
+#include "tim/vx/ops/transposeconv.h"
 
 #include "operation_private.h"
 #include "type_utils.h"
@@ -32,41 +31,33 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-DeConv2d::DeConv2d(Graph* graph, int32_t weights, PadType pad_type,
-    const std::array<uint32_t, 2>& ksize,
-    const std::array<uint32_t, 2>& stride,
-    const std::array<uint32_t, 2>& output_padding)
-  : DeConv2d(graph, weights, pad_type, ksize, stride, output_padding,
-      {0, 0, 0, 0}) {
-}
-
-DeConv2d::DeConv2d(Graph* graph, int32_t weights, PadType pad_type,
-    const std::array<uint32_t, 2>& ksize,
-    const std::array<uint32_t, 2>& stride,
-    const std::array<uint32_t, 2>& output_padding,
-    const std::array<uint32_t, 4>& pad)
-  : Operation(graph, VSI_NN_OP_DECONVOLUTION),
-    weights_(weights),
-    pad_type_(pad_type),
-    ksize_(ksize),
-    stride_(stride),
-    output_padding_(output_padding),
-    pad_(pad) {
+TransposeConv::TransposeConv(Graph* graph, uint32_t weights, PadType padding,
+                             std::array<uint32_t, 2> ksize,
+                             std::array<uint32_t, 2> stride,
+                             std::array<uint32_t, 4> pad)
+    : Operation(graph, VSI_NN_OP_DECONVOLUTION),
+      weights_(weights),
+      padding_(padding),
+      ksize_(std::move(ksize)),
+      stride_(std::move(stride)),
+      pad_(std::move(pad)) {
   this->impl()->node()->nn_param.deconv.ksize[0] = ksize_[0];
   this->impl()->node()->nn_param.deconv.ksize[1] = ksize_[1];
+
   this->impl()->node()->nn_param.deconv.stride[0] = stride_[0];
   this->impl()->node()->nn_param.deconv.stride[1] = stride_[1];
-  this->impl()->node()->nn_param.deconv.pad_type = TranslatePadType(pad_type_);
-  this->impl()->node()->nn_param.deconv.weights = weights_;
-  this->impl()->node()->nn_param.deconv.group = 1;
-  this->impl()->node()->nn_param.deconv.output_padding[0] = output_padding_[0];
-  this->impl()->node()->nn_param.deconv.output_padding[1] = output_padding_[1];
+
   this->impl()->node()->nn_param.deconv.pad[0] = pad_[0];
   this->impl()->node()->nn_param.deconv.pad[1] = pad_[1];
   this->impl()->node()->nn_param.deconv.pad[2] = pad_[2];
   this->impl()->node()->nn_param.deconv.pad[3] = pad_[3];
+
+  this->impl()->node()->nn_param.deconv.pad_type = TranslatePadType(padding_);
+
+  this->impl()->node()->nn_param.deconv.weights = weights_;
+  this->impl()->node()->nn_param.deconv.group = 1;
 }
 
-} // namespace ops
-} // namespace vx
-} // namespace tim
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim
