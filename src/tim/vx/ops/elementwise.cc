@@ -54,10 +54,13 @@ DEFINE_ELEMENTWISE_BINARY_OP(Maximum, VSI_NN_OP_MAXIMUM);
 DEFINE_ELEMENTWISE_BINARY_OP(Add, VSI_NN_OP_ADD);
 DEFINE_ELEMENTWISE_BINARY_OP(Sub, VSI_NN_OP_SUBTRACT);
 DEFINE_ELEMENTWISE_BINARY_OP(Div, VSI_NN_OP_DIVIDE);
-DEFINE_ELEMENTWISE_BINARY_OP(Multiply, VSI_NN_OP_MULTIPLY);
 DEFINE_ELEMENTWISE_BINARY_OP(Pow, VSI_NN_OP_POW);
 
 #undef DEFINE_ELEMENTWISE_BINARY_OP
+
+Multiply::Multiply(Graph* graph) : Operation(graph, VSI_NN_OP_MULTIPLY, 2, 1) {
+    this->impl()->node()->nn_param.multiply.scale = 1.0f;
+};
 
 }  // namespace ops
 }  // namespace vx
