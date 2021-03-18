@@ -154,6 +154,12 @@ bool TensorImpl::Init() {
   attr.is_const = static_cast<bool>(spec_.attr_ & TensorAttribute::CONSTANT);
   attr.vtl = static_cast<bool>(spec_.attr_ & TensorAttribute::TRANSIENT);
 
+  // Use auto shape for virtual tensors so that tim-vx can perform it's own 
+  // shape inference
+  if (attr.vtl) {
+    attr.dim_num = VSI_NN_DIM_AUTO;
+  }
+
   for (ShapeType::size_type i = 0; i < spec_.shape_.size(); i++) {
     attr.size[i] = spec_.shape_[i];
   }
