@@ -74,6 +74,12 @@ std::shared_ptr<Tensor> GraphImpl::CreateTensorPlaceHolder() {
 bool GraphImpl::Compile() {
   bool status = true;
 
+  auto major = vsi_nn_GetVersionMajor();
+  auto minor = vsi_nn_GetVersionMinor();
+  auto patch = vsi_nn_GetVersionPatch();
+
+  vsi_nn_SetGraphVersion(graph_,major,minor,patch);
+
   std::call_once(setio_once_, [&status, this]() {
     status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(), this->inputs_.size()) &&
               vsi_nn_SetGraphOutputs(this->graph_, this->outputs_.data(), this->outputs_.size()));
