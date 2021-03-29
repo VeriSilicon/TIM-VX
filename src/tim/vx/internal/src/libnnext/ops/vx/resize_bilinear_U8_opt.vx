@@ -69,7 +69,8 @@ __kernel void resize_bilinear_U8toU8_UP_opt
     baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord_out.w, baseAddr);
 
-    do
+    int loop = depth - 1;
+    while (coord_in.z < loop)
     {
         VXC_BitExtract(top_bottom, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
         VXC_BitExtract(top_bottom, src1, src1, maskShift, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0));
@@ -88,8 +89,17 @@ __kernel void resize_bilinear_U8toU8_UP_opt
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
         coord_out.w += output_desc.s4;
 
-        coord_out.z ++;
-    } while (coord_out.z < depth);
+        coord_in.z ++;
+    }
+
+    VXC_BitExtract(top_bottom, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_BitExtract(top_bottom, src1, src1, maskShift, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0));
+    vxc_uchar16 dst;
+    VXC_DP4x4_b(dst, lerp.hi, lerp.lo, top_bottom,
+            VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniBilinear_4x4_b);
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,
+            VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
+
 }
 
 #endif

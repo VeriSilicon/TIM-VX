@@ -68,7 +68,6 @@ static const struct {
 {
     TENSOR_PRE_PROCESS_BGRA_KERNELS(U8, U8,  SCALE,        KERNEL_SOURCE_1)
     TENSOR_PRE_PROCESS_BGRA_KERNELS(U8, U8,  COPY,         KERNEL_SOURCE_1)
-    TENSOR_PRE_PROCESS_BGRA_KERNELS(U8, U8,  SCALE_NHWC,   KERNEL_SOURCE_2)
 };
 
 static vx_param_description_t vxPreProcessBgraKernel_param_def[] =
@@ -106,7 +105,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
     int32_t     dstZP      = 0;
     float       outputScale   = 1;
     int32_t     reorder    = 0;
-    int32_t     trans      = 0;
     int32_t     xRatio     = 0;
     int32_t     yRatio     = 0;
     int32_t     order1     = 2;
@@ -126,8 +124,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[10], &reorder);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
-    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[11], &trans);
-    CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
     dstZP      = attr[0]->asymm.zero_point;
@@ -135,19 +131,14 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
     width      = out_shape->data[0];
     height     = out_shape->data[1];
 
-    if(trans)
-    {
-        width = width / 3;
-    }
-
-    if(reorder != 0)
+    if (reorder != 0)
     {
         reorder = 2;
         order1 = 0;
     }
     enable_copy = (int32_t)(xRatio == (1 << 15) && yRatio == (1 << 15));
 
-    if(attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
+    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
     {
         if (attr[0]->dfp.fl > 0)
         {
@@ -159,11 +150,11 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
         }
         dstZP = 0;
     }
-    else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
+    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
         outputScale = 1.0f/outputScale;
     }
-    else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
+    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
     {
         outputScale = 1;
         dstZP = 0;
@@ -286,16 +277,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
             0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
 
-        gpu_dp_inst_t uniExtractInt32BgraToU8Bgr_2x8 = {{
-            0x00333333, // TCfg
-            0x00111000, // ASelt
-            0x00020100, 0x00000201, // ABin
-            0x00000000, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00002600, // AccumType, ConstantType, and PostShift
-            0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16 };
-
         // copy
         gpu_dp_inst_t uniExtractBfromBgra_4x4 = {{
             0x01010101, // TCfg
@@ -355,23 +336,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
             0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
         }, GPU_DP_TYPE_16 };
 
-        if(trans)
-        {
-            status = vsi_nn_kernel_gpu_add_param(node, "uniExtractInt32BgraToU8Bgr_2x8",
-                        &uniExtractInt32BgraToU8Bgr_2x8);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinearTmp1BgraShort_4x4", &uniBilinearTmp1BgraShort_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinearTmp2BgraShort_4x4", &uniBilinearTmp2BgraShort_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinearTmp3BgraShort_4x4", &uniBilinearTmp3BgraShort_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinearTmp4BgraShort_4x4", &uniBilinearTmp4BgraShort_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinearTmp5BgraShort_4x4", &uniBilinearTmp5BgraShort_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinearTmp6BgraShort_4x4", &uniBilinearTmp6BgraShort_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinearTmp7BgraShort_4x4", &uniBilinearTmp7BgraShort_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinearTmp8BgraShort_4x4", &uniBilinearTmp8BgraShort_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniDescaleU8_4x4", &uniDescaleU8_4x4);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertIntergetoF32_4x4", &uniConvertIntergetoF32_4x4);
-            CHECK_STATUS_FAIL_GOTO(status, OnError);
-        }
-        else if(enable_copy)
+        if (enable_copy)
         {
             status = vsi_nn_kernel_gpu_add_param(node, "uniExtractBfromBgra_4x4", &uniExtractBfromBgra_4x4);
             status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractGfromBgra_4x4", &uniExtractGfromBgra_4x4);
@@ -429,16 +394,11 @@ static vsi_status _query_kernel
     uint32_t key = 0;
     int i = 0;
     vsi_bool enable_copy  = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
-    vsi_bool enable_perm  = vsi_nn_kernel_param_get_int32( params, "enable_perm" );
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    if(enable_perm)
-    {
-        convert_type = SCALE_NHWC;
-    }
-    else if(enable_copy)
+    if (enable_copy)
     {
         convert_type = COPY;
     }
@@ -449,14 +409,14 @@ static vsi_status _query_kernel
 
     key = HASH_PRE_PROCESS_BGRA_KEY( input0_dtype, output_dtype, convert_type, 0 );
 
-    for( i = 0; i < _cnt_of_array(pre_process_bgra_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(pre_process_bgra_map); i ++ )
     {
         if( pre_process_bgra_map[i].key == key )
         {
             break;
         }
     }
-    if( i < _cnt_of_array(pre_process_bgra_map) )
+    if ( i < _cnt_of_array(pre_process_bgra_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  pre_process_bgra_map[i].function_name );
         kernel->info.parameters = vxPreProcessBgraKernel_param_def;
@@ -488,19 +448,19 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     int32_t shapes[VSI_NN_MAX_DIM_NUM]  = {1, 1, 1, 1};
     vsi_nn_tensor_t* reshape_tensors[1] = {NULL};
-    int32_t trans    = vsi_nn_kernel_param_get_int32( params, "enable_perm" );
+    int32_t trans = 0;
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
 
     status = _query_kernel( inputs, outputs, kernel, params );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             uint32_t index = 2;
             int32_t scale_x  = vsi_nn_kernel_param_get_int32( params, "scale_x" );

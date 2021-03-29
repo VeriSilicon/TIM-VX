@@ -74,6 +74,7 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "block_size", block_size );
     vsi_nn_kernel_param_add_int32( param, "block_num", block_num );
     vsi_nn_kernel_param_add_int32( param, "axis_num", axis_num );
+    vsi_nn_kernel_param_add_int32( param, "axis", axis );
     vsi_nn_kernel_param_add_int32( param, "indices_num", indices_num );
     n = vsi_nn_kernel_selector( self->graph, "gather", inputs, 2, outputs, 1, param );
     if( n != NULL )

@@ -112,7 +112,6 @@ static vsi_bool op_setup
 {
     /* TODO: Add code to comput outputs' shape. */
     vsi_nn_pre_process_rgb_param * p = NULL;
-    uint32_t axis = 0;
     uint32_t i = 0;
     p = (vsi_nn_pre_process_rgb_param *)&(self->nn_param.pre_process_rgb);
 
@@ -158,17 +157,8 @@ static vsi_bool op_setup
         }
     }
 
-    for (i = 0; i < self->nn_param.pre_process_rgb.dim_num; i++)
-    {
-        axis = self->nn_param.pre_process_rgb.perm[i];
-        if (axis != i)
-            break;
-    }
 
-    if (i == self->nn_param.pre_process_rgb.dim_num)
-        self->nn_param.pre_process_rgb.local.enable_perm = FALSE;
-    else
-        self->nn_param.pre_process_rgb.local.enable_perm = TRUE;
+    self->nn_param.pre_process_rgb.local.enable_perm = FALSE;
 
     if (self->nn_param.pre_process_rgb.local.enable_perm == FALSE)
     {

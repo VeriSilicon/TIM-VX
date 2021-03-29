@@ -369,6 +369,26 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
             0x00000000, 0x00000000, 0x00000000, 0x00000000,
             0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniRightSubLeft_4x4 = {{
+            0x09090909, // TCfg
+            0x00000000, // ASelt
+            0x00230001, 0x00670045, // ABin
+            0x0a0a0a0a, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000400, // AccumType, ConstantType, and PostShift
+            0x00010001, 0x00000000, 0x00010001, 0x00000000,
+            0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniDFPtoFp32_left_4x4 = {{
+            0x01010101, // TCfg
+            0x00000000, // ASelt
+            0x00020000, 0x00060004, // ABin
+            0x02020202, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000400, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
 
         if (I8 == input_dtype && I8 == output_dtype && out_width > in_width)
         {
@@ -405,7 +425,8 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
 
             status  = vsi_nn_kernel_gpu_add_param( node, "uniConvertI32toI16_2x8", &uniConvertI32toI16_2x8);
             status |= vsi_nn_kernel_gpu_add_param( node, "uniGetMaskShift_2x8", &uniGetMaskShift_2x8);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniConvertDFP2FP32_part1_4x4",
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniDFPtoFp32_left_4x4", &uniConvertDFP2FP32_4x4);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4",
                                                  &uniConvertDFP2FP32_part1_4x4);
             status |= vsi_nn_kernel_gpu_add_param( node, "depth", &depth);
             CHECK_STATUS_FAIL_GOTO(status, final );
@@ -447,16 +468,22 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
 
             status  = vsi_nn_kernel_gpu_add_param( node, "uniConvertI32toI16_2x8", &uniConvertI32toI16_2x8);
             status |= vsi_nn_kernel_gpu_add_param( node, "uniGetMaskShift_2x8", &uniGetMaskShift_2x8);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniConvertDFP2FP32_part1_4x4",
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniDFPtoFp32_left_4x4", &uniConvertDFP2FP32_4x4);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4",
                                                  &uniConvertDFP2FP32_part1_4x4);
             status |= vsi_nn_kernel_gpu_add_param( node, "depth", &depth);
             CHECK_STATUS_FAIL_GOTO(status, final );
 
             gpu_param.global_scale[2] = depth;
         }
+        else
+        {
+            status  = vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4", &uniRightSubLeft_4x4);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniDFPtoFp32_left_4x4", &uniDFPtoFp32_left_4x4);
+            CHECK_STATUS_FAIL_GOTO(status, final );
+        }
 
-        status  = vsi_nn_kernel_gpu_add_param( node, "uniConvertDFP2FP32_4x4", &uniConvertDFP2FP32_4x4);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniExtact8Bit_2x8", &uniExtact8Bit_2x8);
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniExtact8Bit_2x8", &uniExtact8Bit_2x8);
         status |= vsi_nn_kernel_gpu_add_param( node, "scale_xy", scale_factor);
         status |= vsi_nn_kernel_gpu_add_param( node, "dfpScale", &dfpScale);
         CHECK_STATUS_FAIL_GOTO(status, final );
@@ -485,10 +512,33 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
             0x00010001, 0x00000000, 0x00010001, 0x00000000,
             0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniU8SubZPtoFp32_left_4x4 = {{
+            0x09090909, // TCfg
+            0x04040404, // ASelt
+            0x00020000, 0x00060004, // ABin
+            0x0a0a0a0a, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000400, // AccumType, ConstantType, and PostShift
+            0x00010001, 0x00000000, 0x00010001, 0x00000000,
+            0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniU8RightSubLeft_4x4 = {{
+            0x09090909, // TCfg
+            0x00000000, // ASelt
+            0x00230001, 0x00670045, // ABin
+            0x0a0a0a0a, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000400, // AccumType, ConstantType, and PostShift
+            0x00010001, 0x00000000, 0x00010001, 0x00000000,
+            0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
+
 
         if (F16 == output_dtype)
         {
-            status = vsi_nn_kernel_gpu_add_param( node, "uint8Scale", &input_scale);
+            status  = vsi_nn_kernel_gpu_add_param( node, "uint8Scale", &input_scale);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniU8SubZPtoFp32_left_4x4", &uniU8SubZPtoFp32_left_4x4);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniU8RightSubLeft_4x4", &uniU8RightSubLeft_4x4);
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         else
@@ -544,13 +594,21 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
                 }
                 else
                 {
+                    status  = vsi_nn_kernel_gpu_add_param( node, "uniU8SubZPtoFp32_left_4x4", &uniU8SubZPtoFp32_4x4);
                     status |= vsi_nn_kernel_gpu_add_param( node,
-                              "uniU8SubZPtoFp32_part1_4x4", &uniU8SubZPtoFp32_part1_4x4);
+                              "uniU8RightSubLeft_4x4", &uniU8SubZPtoFp32_part1_4x4);
                 }
                 CHECK_STATUS_FAIL_GOTO(status, final );
 
                 gpu_param.global_scale[2] = depth;
             }
+            else if (!is_use_scale_kernel)
+            {
+                status = vsi_nn_kernel_gpu_add_param( node, "uniU8SubZPtoFp32_left_4x4", &uniU8SubZPtoFp32_left_4x4);
+                status |= vsi_nn_kernel_gpu_add_param( node, "uniU8RightSubLeft_4x4", &uniU8RightSubLeft_4x4);
+                CHECK_STATUS_FAIL_GOTO(status, final );
+            }
+
             if (!is_use_scale_kernel)
             {
                 status  = vsi_nn_kernel_gpu_add_param( node, "uniExtact8Bit_2x8", &uniExtact8Bit_2x8);
@@ -562,8 +620,7 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         status  = vsi_nn_kernel_gpu_add_param( node, "scale_xy", scale_factor);
         if (!is_use_scale_kernel)
         {
-            status  = vsi_nn_kernel_gpu_add_param( node, "uniU8SubZPtoFp32_4x4", &uniU8SubZPtoFp32_4x4);
-            status |= vsi_nn_kernel_gpu_add_param( node, "input_ZP", &inputZP);
+            status = vsi_nn_kernel_gpu_add_param( node, "input_ZP", &inputZP);
         }
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
@@ -581,25 +638,25 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
             0x00000000, 0x00000000, 0x00000000, 0x00000000,
             0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniFp16toFp32_4x4 = {{
-            0x01010101, // TCfg
-            0x00000000, // ASelt
-            0x00010000, 0x00030002, // ABin
-            0x02020202, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000100, // AccumType, ConstantType, and PostShift
-            0x00003c00, 0x00000000, 0x00003c00, 0x00000000,
-            0x00003c00, 0x00000000, 0x00003c00, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
         gpu_dp_inst_t uniRightSubLeft_4x4 = {{
             0x09090909, // TCfg
-            0x04040404, // ASelt
-            0x00110000, 0x00330022, // ABin
+            0x00000000, // ASelt
+            0x00230001, 0x00670045, // ABin
             0x0a0a0a0a, // BSelt
             0x00000000, 0x00000000, // BBin
-            0x00000100, // AccumType, ConstantType, and PostShift
-            0x3c003c00, 0x00000000, 0x3c003c00, 0x00000000,
-            0x3c003c00, 0x00000000, 0x3c003c00, 0x00000000 // Constant
+            0x00000400, // AccumType, ConstantType, and PostShift
+            0x00010001, 0x00000000, 0x00010001, 0x00000000,
+            0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniFp16toFp32_left_4x4 = {{
+            0x01010101, // TCfg
+            0x00000000, // ASelt
+            0x00020000, 0x00060004, // ABin
+            0x02020202, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000400, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
         gpu_dp_inst_t uniExtactHalf8_2x8 = {{
             0x11111111, // TCfg
@@ -634,7 +691,17 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
                 0x00000000, 0x00000000, 0x00000000, 0x00000000,
                 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
             }, GPU_DP_TYPE_16};
-            gpu_dp_inst_t uniFp16toFp32_part1_4x4 = {{
+            gpu_dp_inst_t uniFp16toFp32_Lo_4x4 = {{
+                0x01010101, // TCfg
+                0x00000000, // ASelt
+                0x00010000, 0x00030002, // ABin
+                0x02020202, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000400, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000000, 0x00000001, 0x00000000,
+                0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+            }, GPU_DP_TYPE_16};
+            gpu_dp_inst_t uniFp16toFp32_Hi_4x4 = {{
                 0x09090909, // TCfg
                 0x00000000, // ASelt
                 0x00150004, 0x00370026, // ABin
@@ -647,7 +714,8 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
 
             status  = vsi_nn_kernel_gpu_add_param( node, "uniConvertI32toI16_2x8", &uniConvertI32toI16_2x8);
             status |= vsi_nn_kernel_gpu_add_param( node, "uniGetMaskShift_2x8", &uniGetMaskShift_2x8);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniFp16toFp32_part1_4x4", &uniFp16toFp32_part1_4x4);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniFp16toFp32_left_4x4", &uniFp16toFp32_Lo_4x4);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4", &uniFp16toFp32_Hi_4x4);
             status |= vsi_nn_kernel_gpu_add_param( node, "uniExtactHalf8_2x8", &uniExtactHalf8_2x8);
             status |= vsi_nn_kernel_gpu_add_param( node, "depth", &depth);
             CHECK_STATUS_FAIL_GOTO(status, final );
@@ -657,19 +725,21 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         else if (F16 == output_dtype)
         {
             status = vsi_nn_kernel_gpu_add_param( node, "uniExtactHalf8_2x8", &uniExtactHalf8_2x8);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4", &uniRightSubLeft_4x4);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniFp16toFp32_left_4x4", &uniFp16toFp32_left_4x4);
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         else
         {
             status  = vsi_nn_kernel_gpu_add_param( node, "uniExtact8Bit_2x8", &uniExtact8Bit_2x8);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4", &uniRightSubLeft_4x4);
+            status |= vsi_nn_kernel_gpu_add_param( node, "uniFp16toFp32_left_4x4", &uniFp16toFp32_left_4x4);
             status |= vsi_nn_kernel_gpu_add_param( node, "uint8Scale", &uint8Scale);
             status |= vsi_nn_kernel_gpu_add_param( node, "output_ZP", &uint8ZP_out);
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
 
-        status  = vsi_nn_kernel_gpu_add_param( node, "uniFp16toFp32_4x4", &uniFp16toFp32_4x4);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4", &uniRightSubLeft_4x4);
-        status |= vsi_nn_kernel_gpu_add_param( node, "scale_xy", scale_factor);
+        status = vsi_nn_kernel_gpu_add_param( node, "scale_xy", scale_factor);
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
     else if (BF16 == input_dtype && BF16 == output_dtype)

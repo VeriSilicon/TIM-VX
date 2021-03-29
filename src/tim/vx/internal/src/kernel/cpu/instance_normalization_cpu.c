@@ -173,7 +173,7 @@ final:
         if(attr[i]) { vsi_nn_kernel_tensor_attr_release( &attr[i] ); }
     }
     return status;
-} /* _pre_process_yuv420_exec() */
+} /* _instance_norm_exec() */
 /*
  * Kernel params
  */

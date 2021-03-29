@@ -88,6 +88,84 @@ __kernel void a_times_b_plus_c_F16_F16_F16toF16_2D\n\
     VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
+_viv_uniform VXC_512Bits uniExtractHalf8_2x8;\n\
+_viv_uniform VXC_512Bits uniA_Times_B_lo_4x4;\n\
+_viv_uniform VXC_512Bits uniA_Times_B_hi_4x4;\n\
+__kernel void a_times_b_plus_c_F16_F16_F32toF16\n\
+    (\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __read_only image2d_array_t   input2,\n\
+    __write_only image2d_array_t  output\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_half8   src0, src1, dst;\n\
+    vxc_ushort8 vec0, vec1, result;\n\
+    float4 b0, b1;\n\
+    float4 dst0, dst1;\n\
+\n\
+    VXC_ReadImage2DArray(vec0, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, src0, vec0, 16);\n\
+    VXC_ReadImage2DArray(vec1, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, src1, vec1, 16);\n\
+    b0 = read_imagef(input2, coord);\n\
+    coord.x += 4;\n\
+    b1 = read_imagef(input2, coord);\n\
+    coord.x -= 4;\n\
+\n\
+    VXC_DP4x4(dst0, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniA_Times_B_lo_4x4);\n\
+    VXC_DP4x4(dst1, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniA_Times_B_hi_4x4);\n\
+    dst0 += b0;\n\
+    dst1 += b1;\n\
+\n\
+    half4 t0, t1;\n\
+    _viv_asm(CONV, t0, dst0);\n\
+    _viv_asm(CONV, t1, dst1);\n\
+    VXC_DP2x8(dst, t0, t1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractHalf8_2x8);\n\
+    _viv_asm(COPY, result, dst, 16);\n\
+\n\
+    VXC_WriteImage2DArray(output, coord, result, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
+__kernel void a_times_b_plus_c_F16_F16_F32toF16_2D\n\
+    (\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __read_only image2d_t         input2,\n\
+    __write_only image2d_array_t  output\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);\n\
+\n\
+    vxc_half8   src0, src1, dst;\n\
+    vxc_ushort8 vec0, vec1, result;\n\
+    float4 b0, b1;\n\
+    float4 dst0, dst1;\n\
+\n\
+    VXC_ReadImage(vec0, input0, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, src0, vec0, 16);\n\
+    VXC_ReadImage(vec1, input1, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, src1, vec1, 16);\n\
+    b0 = read_imagef(input2, coord.xy);\n\
+    coord.z = coord.x + 4;\n\
+    b1 = read_imagef(input2, coord.zy);\n\
+\n\
+    VXC_DP4x4(dst0, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniA_Times_B_lo_4x4);\n\
+    VXC_DP4x4(dst1, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniA_Times_B_hi_4x4);\n\
+    dst0 += b0;\n\
+    dst1 += b1;\n\
+\n\
+    half4 t0, t1;\n\
+    _viv_asm(CONV, t0, dst0);\n\
+    _viv_asm(CONV, t1, dst1);\n\
+    VXC_DP2x8(dst, t0, t1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractHalf8_2x8);\n\
+    _viv_asm(COPY, result, dst, 16);\n\
+\n\
+    VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
 "; /* end of a_times_b_plus_c_vx*/
 
 static const char add_mean_std_norm_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
@@ -3828,10 +3906,11 @@ __kernel void floordiv_BF16BF16toBF16_2D\n\
 static const char gather_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
 _viv_uniform int indices_num;\n\
+_viv_uniform VXC_512Bits uniExtraCopyDpKeepinEvis_2x8;\n\
 \n\
 __kernel void gather_I8toI8(\n\
     __read_only image2d_t   input0,\n\
-    __read_only image2d_array_t   input1,\n\
+    __read_only image2d_t   input1,\n\
     __write_only image2d_t  output,\n\
     int block_size,\n\
     int block_num,\n\
@@ -3843,7 +3922,7 @@ __kernel void gather_I8toI8(\n\
     int gidz = get_global_id(2);  // block_num\n\
 \n\
     int4 coord_in = (int4)(gidy, 0, gidx, 0);\n\
-    int4 indice = read_imagei(input1, coord_in.xyyy);\n\
+    int4 indice = read_imagei(input1, coord_in.xy);\n\
     coord_in.w = gidz * axis_num + indice.x;\n\
 \n\
     vxc_char16 src;\n\
@@ -3855,7 +3934,7 @@ __kernel void gather_I8toI8(\n\
 \n\
 __kernel void gather_U8toU8(\n\
     __read_only image2d_t   input0,\n\
-    __read_only image2d_array_t   input1,\n\
+    __read_only image2d_t   input1,\n\
     __write_only image2d_t  output,\n\
     int block_size,\n\
     int block_num,\n\
@@ -3867,7 +3946,7 @@ __kernel void gather_U8toU8(\n\
     int gidz = get_global_id(2);  // block_num\n\
 \n\
     int4 coord_in = (int4)(gidy, 0, gidx, 0);\n\
-    int4 indice = read_imagei(input1, coord_in.xyyy);\n\
+    int4 indice = read_imagei(input1, coord_in.xy);\n\
     coord_in.w = gidz * axis_num + indice.x;\n\
 \n\
     vxc_uchar16 src;\n\
@@ -3879,7 +3958,7 @@ __kernel void gather_U8toU8(\n\
 \n\
 __kernel void gather_I16toI16(\n\
     __read_only image2d_t   input0,\n\
-    __read_only image2d_array_t   input1,\n\
+    __read_only image2d_t   input1,\n\
     __write_only image2d_t  output,\n\
     int block_size,\n\
     int block_num,\n\
@@ -3893,7 +3972,7 @@ __kernel void gather_I16toI16(\n\
     int4 coord_in = (int4)(gidy, 0, gidx, 0);\n\
 \n\
 \n\
-    int4 indice = read_imagei(input1, coord_in.xyyy);\n\
+    int4 indice = read_imagei(input1, coord_in.xy);\n\
     coord_in.w = gidz * axis_num + indice.x;\n\
 \n\
     vxc_short8 src;\n\
@@ -3905,7 +3984,7 @@ __kernel void gather_I16toI16(\n\
 \n\
 __kernel void gather_F16toF16(\n\
     __read_only image2d_t   input0,\n\
-    __read_only image2d_array_t   input1,\n\
+    __read_only image2d_t   input1,\n\
     __write_only image2d_t  output,\n\
     int block_size,\n\
     int block_num,\n\
@@ -3919,7 +3998,7 @@ __kernel void gather_F16toF16(\n\
     int4 coord_in = (int4)(gidy, 0, gidx, 0);\n\
 \n\
 \n\
-    int4 indice = read_imagei(input1, coord_in.xyyy);\n\
+    int4 indice = read_imagei(input1, coord_in.xy);\n\
     coord_in.w = gidz * axis_num + indice.x;\n\
 \n\
     vxc_short8 src;\n\
@@ -3927,6 +4006,110 @@ __kernel void gather_F16toF16(\n\
 \n\
     int2 coord = (int2)(gidx, gidz * indices_num + gidy);\n\
     VXC_WriteImage(output, coord, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
+__kernel void gather_I8toI8_axis0(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int block_num,\n\
+    int axis_num\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
+    int4 indices = read_imagei(input1, coord.xx);\n\
+    int2 coord_in = (int2)(indices.x, get_global_id(1));\n\
+\n\
+    vxc_char16 src, dst;\n\
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    indices.x = get_global_id(1);\n\
+    VXC_ReadImage(src, input0, indices.yx, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.zx, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.wx, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                     uniExtraCopyDpKeepinEvis_2x8);\n\
+\n\
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
+__kernel void gather_U8toU8_axis0(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int block_num,\n\
+    int axis_num\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
+    int4 indices = read_imagei(input1, coord.xx);\n\
+    int2 coord_in = (int2)(indices.x, get_global_id(1));\n\
+\n\
+    vxc_uchar16 src, dst;\n\
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    indices.x = get_global_id(1);\n\
+    VXC_ReadImage(src, input0, indices.yx, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.zx, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.wx, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                     uniExtraCopyDpKeepinEvis_2x8);\n\
+\n\
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
+__kernel void gather_I16toI16_axis0(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int block_num,\n\
+    int axis_num\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
+    int4 indices = read_imagei(input1, coord.xx);\n\
+    int2 coord_in = (int2)(indices.x, get_global_id(1));\n\
+\n\
+    vxc_short8 src, dst;\n\
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    indices.x = get_global_id(1);\n\
+    VXC_ReadImage(src, input0, indices.yx, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.zx, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.wx, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                     uniExtraCopyDpKeepinEvis_2x8);\n\
+\n\
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
+__kernel void gather_F16toF16_axis0(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int block_num,\n\
+    int axis_num\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
+    int4 indices = read_imagei(input1, coord.xx);\n\
+    int2 coord_in = (int2)(indices.x, get_global_id(1));\n\
+\n\
+    vxc_short8 src, dst;\n\
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    indices.x = get_global_id(1);\n\
+    VXC_ReadImage(src, input0, indices.yx, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.zx, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.wx, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                     uniExtraCopyDpKeepinEvis_2x8);\n\
+\n\
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of gather_vx*/
 
@@ -3943,7 +4126,7 @@ _viv_uniform int2 multAndoutZP1;//[0:15] multiplier, [31:63] output zp\n\
 #define GATHER_8BITS_TO_F16(src0_type_name, read_type) \\\n\
 __kernel void gather_##src0_type_name##toF16( \\\n\
     __read_only image2d_t   input0, \\\n\
-    __read_only image2d_array_t   input1, \\\n\
+    __read_only image2d_t   input1, \\\n\
     __write_only image2d_t  output, \\\n\
     int block_size, \\\n\
     int block_num, \\\n\
@@ -3955,7 +4138,7 @@ __kernel void gather_##src0_type_name##toF16( \\\n\
     int gidz = get_global_id(2); \\\n\
  \\\n\
     int4 coord_in = (int4)(gidy, 0, gidx, 0); \\\n\
-    int4 indice = read_imagei(input1, coord_in.xyyy); \\\n\
+    int4 indice = read_imagei(input1, coord_in.xy); \\\n\
     coord_in.w = gidz * axis_num + indice.x; \\\n\
  \\\n\
     read_type src; \\\n\
@@ -3979,7 +4162,7 @@ GATHER_8BITS_TO_F16(I8, vxc_char16)\n\
 #define GATHER_F16_TO_QINT(src1_type_name, write_type) \\\n\
 __kernel void gather_F16to##src1_type_name( \\\n\
     __read_only image2d_t   input0, \\\n\
-    __read_only image2d_array_t   input1, \\\n\
+    __read_only image2d_t   input1, \\\n\
     __write_only image2d_t  output, \\\n\
     int block_size, \\\n\
     int block_num, \\\n\
@@ -3991,7 +4174,7 @@ __kernel void gather_F16to##src1_type_name( \\\n\
     int gidz = get_global_id(2); \\\n\
     int4 coord_in = (int4)(gidy, 0, gidx, 0); \\\n\
  \\\n\
-    int4 indice = read_imagei(input1, coord_in.xyyy); \\\n\
+    int4 indice = read_imagei(input1, coord_in.xy); \\\n\
     coord_in.w = gidz * axis_num + indice.x; \\\n\
  \\\n\
     vxc_short8 src; \\\n\
@@ -4011,7 +4194,7 @@ GATHER_F16_TO_QINT(I16, vxc_short8)\n\
 \n\
 __kernel void gather_I16toF16(\n\
     __read_only image2d_t   input0,\n\
-    __read_only image2d_array_t   input1,\n\
+    __read_only image2d_t   input1,\n\
     __write_only image2d_t  output,\n\
     int block_size,\n\
     int block_num,\n\
@@ -4023,7 +4206,7 @@ __kernel void gather_I16toF16(\n\
     int gidz = get_global_id(2);\n\
 \n\
     int4 coord_in = (int4)(gidy, 0, gidx, 0);\n\
-    int4 indice = read_imagei(input1, coord_in.xyyy);\n\
+    int4 indice = read_imagei(input1, coord_in.xy);\n\
     coord_in.w = gidz * axis_num + indice.x;\n\
 \n\
     vxc_short8 src;\n\
@@ -4040,6 +4223,100 @@ __kernel void gather_I16toF16(\n\
     _viv_asm(COPY, dst0, src0, 16);\n\
 \n\
     VXC_WriteImage(output, coord, dst0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
+#define GATHER_8BITS_TO_F16_AXIS0(src0_type_name, read_type) \\\n\
+__kernel void gather_##src0_type_name##toF16_axis0( \\\n\
+    __read_only image2d_t   input0, \\\n\
+    __read_only image2d_t   input1, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int block_size, \\\n\
+    int block_num, \\\n\
+    int axis_num \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \\\n\
+    int4 indices = read_imagei(input1, coord.xx); \\\n\
+    int2 coord_in = (int2)(indices.x, get_global_id(1)); \\\n\
+ \\\n\
+    read_type src; \\\n\
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \\\n\
+    indices.x = get_global_id(1); \\\n\
+    VXC_ReadImage(src, input0, indices.yx, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0)); \\\n\
+    VXC_ReadImage(src, input0, indices.zx, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0)); \\\n\
+    VXC_ReadImage(src, input0, indices.wx, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
+    vxc_half8  src0; \\\n\
+    vxc_short8 dst0; \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    VXC_DP2x8(src0,src,ms0, VXC_MODIFIER(0,7,0, VXC_RM_TowardZero,1), uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+    _viv_asm(COPY, dst0, src0, 16); \\\n\
+    VXC_WriteImage(output, coord, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
+}\n\
+GATHER_8BITS_TO_F16_AXIS0(U8, vxc_uchar16)\n\
+GATHER_8BITS_TO_F16_AXIS0(I8, vxc_char16)\n\
+\n\
+#define GATHER_F16_TO_QINT_AXIS0(src1_type_name, write_type) \\\n\
+__kernel void gather_F16to##src1_type_name##_axis0( \\\n\
+    __read_only image2d_t   input0, \\\n\
+    __read_only image2d_t   input1, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int block_size, \\\n\
+    int block_num, \\\n\
+    int axis_num \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \\\n\
+    int4 indices = read_imagei(input1, coord.xx); \\\n\
+    int2 coord_in = (int2)(indices.x, get_global_id(1)); \\\n\
+ \\\n\
+    vxc_short8 src; \\\n\
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \\\n\
+    indices.x = get_global_id(1); \\\n\
+    VXC_ReadImage(src, input0, indices.yx, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0)); \\\n\
+    VXC_ReadImage(src, input0, indices.zx, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0)); \\\n\
+    VXC_ReadImage(src, input0, indices.wx, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
+    vxc_ushort8 mp1; \\\n\
+    _viv_asm(COPY, mp1, multAndoutZP1, 16); \\\n\
+    vxc_half8 data; \\\n\
+    write_type dst; \\\n\
+    _viv_asm(COPY, data, src, 16); \\\n\
+    VXC_DP2x8(dst,data,mp1,VXC_MODIFIER(0,7,0,VXC_RM_ToNearestEven, 1),uniConvertFp16toU8_2x8); \\\n\
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
+}\n\
+GATHER_F16_TO_QINT_AXIS0(U8, vxc_uchar16)\n\
+GATHER_F16_TO_QINT_AXIS0(I8, vxc_char16)\n\
+GATHER_F16_TO_QINT_AXIS0(I16, vxc_short8)\n\
+\n\
+__kernel void gather_I16toF16_axis0(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int block_num,\n\
+    int axis_num\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
+    int4 indices = read_imagei(input1, coord.xx);\n\
+    int2 coord_in = (int2)(indices.x, get_global_id(1));\n\
+\n\
+    vxc_short8 src;\n\
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    indices.x = get_global_id(1);\n\
+    VXC_ReadImage(src, input0, indices.yx, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.zx, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_ReadImage(src, input0, indices.wx, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    vxc_half8  src0;\n\
+    vxc_short8 dst0;\n\
+    vxc_ushort8 ms0;\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16);\n\
+    VXC_DP2x8(src0, src, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                uniU8MulAndPostShift_0_Lo_2x8);\n\
+    _viv_asm(COPY, dst0, src0, 16);\n\
+\n\
+    VXC_WriteImage(output, coord, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of gather_mix_vx*/
 
@@ -7775,6 +8052,2059 @@ __kernel void l2normalizescale_axis1_U8_##in1_name##to##out_name##_2D \\\n\
 L2NORMSCALE_AXIS1_U8_2D(F16, F16, vxc_uchar16, vxc_uchar16, vxc_half8,   half4,  vxc_short8)\n\
 L2NORMSCALE_AXIS1_U8_2D(F16, U8,  vxc_uchar16, vxc_uchar16, vxc_uchar16, int4,   vxc_uchar16)\n\
 "; /* end of l2normalizescale_axis1_vx*/
+
+static const char layer_normalization_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+/**************************layernorm float16***********************************/\n\
+_viv_uniform int width;\n\
+_viv_uniform float dimRatio;\n\
+_viv_uniform VXC_512Bits uniFp16SumSqr_dp8x2;\n\
+_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
+_viv_uniform VXC_512Bits uniExtractHalf4_dp4x4;\n\
+\n\
+__kernel void layer_norm_F16toF16(\n\
+    image2d_array_t input, image2d_t bias, image2d_t scale,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0);\n\
+    int4 coord_out = coord;\n\
+\n\
+    int8 input_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)get_global_id(2) * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr_a);\n\
+\n\
+    vxc_short8 src0, src1;\n\
+    vxc_float sum = 0, sqr = 0;\n\
+    VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    for(coord.x = 8; coord.x < (width+8); coord.x += 8)\n\
+    {\n\
+        vxc_half8  val0_h;\n\
+        _viv_asm(COPY, val0_h, src0, 16);\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        vxc_float4 sumsqr;\n\
+        VXC_DP8x2(sumsqr, val0_h, val0_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniFp16SumSqr_dp8x2);\n\
+        sum += sumsqr.x;\n\
+        sqr += sumsqr.y;\n\
+    }\n\
+    vxc_float mean;\n\
+    mean = sum * dimRatio;\n\
+    vxc_float vari;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+    vxc_float4 bias_f;\n\
+    for(coord.x = 0; coord.x < width; coord.x += 4)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f = read_imagef(bias, coord.xw);\n\
+        vxc_half8 in_h, scale_h;\n\
+        _viv_asm(COPY, in_h, src0, 16);\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        vxc_float4 in_f, scale_f;\n\
+        VXC_DP4x4(in_f, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        vxc_float4 sub, norm;\n\
+        sub = in_f - mean;\n\
+        norm = scale_f * vari * sub + bias_f;\n\
+        half4 norm_h;\n\
+        _viv_asm(CONV, norm_h, norm);\n\
+        vxc_half8 dst;\n\
+        VXC_DP4x4(dst, norm_h, norm_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniExtractHalf4_dp4x4);\n\
+        vxc_short8 dstval;\n\
+        _viv_asm(COPY, dstval, dst, 16);\n\
+        coord_out.x = coord.x;\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dstval, \\\n\
+                VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+/*****************************layernorm uint8 to uint8****************************/\n\
+_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert3rdUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert4thUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniSumU8_16x1;\n\
+_viv_uniform VXC_512Bits uniSqrSum_16x1;\n\
+_viv_uniform float input_scale;\n\
+_viv_uniform int inputZP;\n\
+_viv_uniform float outputScale;\n\
+_viv_uniform float output_zp;\n\
+_viv_uniform int sumInZp;\n\
+_viv_uniform int tmpZp1;\n\
+_viv_uniform int tmpZp2;\n\
+_viv_uniform float e2InScale;\n\
+_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+\n\
+__kernel void layer_norm_U8toU8(\n\
+    image2d_array_t input, image2d_t bias, image2d_t scale,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0);\n\
+    int4 coord_out = coord;\n\
+\n\
+    vxc_uchar16 src0, src2;\n\
+    vxc_short8 src1;\n\
+    vxc_half8 scale_h;\n\
+    float sum = 0, sqr = 0;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    int tmpSum = 0, tmpSqr = 0;\n\
+    vxc_int4 tmpSum1;\n\
+    vxc_int4 tmpSqr1;\n\
+    short zp = inputZP;\n\
+\n\
+    int8 input_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)get_global_id(2) * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr_a);\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_DP16x1(tmpSum1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumU8_16x1);\n\
+        tmpSum += (tmpSum1.x);\n\
+        VXC_DP16x1(tmpSqr1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSqrSum_16x1);\n\
+        tmpSqr += (tmpSqr1.x + tmpZp1 * tmpSum1.x);\n\
+    }\n\
+    sum = (tmpSum + sumInZp) * input_scale;\n\
+    sqr = (tmpSqr + tmpZp2) * e2InScale;\n\
+\n\
+    float mean, vari;\n\
+    mean = sum * dimRatio;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+    vxc_float4  tmpData0, tmpData1, tmpData2, tmpData3;\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.x = coord.x;\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(8, 0),\\\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData2, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert3rdUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData3, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert4thUint8SubZpToFp32_4x4);\n\
+        tmpData0 *= input_scale;\n\
+        tmpData1 *= input_scale;\n\
+        tmpData2 *= input_scale;\n\
+        tmpData3 *= input_scale;\n\
+\n\
+        vxc_float4 norm;\n\
+        tmpData0 -= mean;\n\
+        norm = scale_f0 * vari * tmpData0 + bias_f0;\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        coord_bias.x += 4;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        tmpData1 -= mean;\n\
+        norm = scale_f1 * vari * tmpData1 + bias_f1;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        VXC_DP2x8(src2, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+            uniConvertInt32toUint8_2x8);\n\
+\n\
+        tmpData2 -= mean;\n\
+        norm = scale_f0 * vari * tmpData2 + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        tmpData3 -= mean;\n\
+        norm = scale_f1 * vari * tmpData3 + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        VXC_DP2x8(src2, tmpVal0, tmpVal1, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1),\\\n\
+            uniConvertInt32toUint8_2x8);\n\
+        coord_out.x = coord.x;\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, src2, \\\n\
+                VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+/***************************layernorm float16 to uint8**************************/\n\
+__kernel void layer_norm_F16toU8(\n\
+    image2d_array_t input, image2d_t bias, image2d_t scale,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0);\n\
+    int4 coord_out = coord;\n\
+\n\
+    int8 input_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)get_global_id(2) * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr_a);\n\
+\n\
+    vxc_short8 src0, src1;\n\
+    vxc_float sum = 0, sqr = 0;\n\
+    VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    for(coord.x = 8; coord.x < (width+8); coord.x += 8)\n\
+    {\n\
+        vxc_half8  val0_h;\n\
+        _viv_asm(COPY, val0_h, src0, 16);\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        vxc_float4 sumsqr;\n\
+        VXC_DP8x2(sumsqr, val0_h, val0_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniFp16SumSqr_dp8x2);\n\
+        sum += sumsqr.x;\n\
+        sqr += sumsqr.y;\n\
+    }\n\
+    vxc_float mean;\n\
+    mean = sum * dimRatio;\n\
+    vxc_float vari;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+    vxc_float4 bias_f;\n\
+    for(coord.x = 0; coord.x < width; coord.x += 4)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f = read_imagef(bias, coord.xw);\n\
+        vxc_half8 in_h, scale_h;\n\
+        _viv_asm(COPY, in_h, src0, 16);\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        vxc_float4 in_f, scale_f;\n\
+        VXC_DP4x4(in_f, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        vxc_float4 sub, norm;\n\
+        sub = in_f - mean;\n\
+        norm = scale_f * vari * sub + bias_f;\n\
+        norm = norm * outputScale + output_zp;\n\
+        int4 output_int4;\n\
+        output_int4 = convert_int4_rte(norm);\n\
+        vxc_uchar8 dst;\n\
+        VXC_DP2x8(dst, output_int4, output_int4, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1),\n\
+            uniConvertInt32toUint8_2x8);\n\
+        coord_out.x = coord.x;\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst, \\\n\
+                VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}"; /* end of layer_normalization_vx*/
+
+static const char layer_normalization_2d_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+/**************************layernorm float16***********************************/\n\
+_viv_uniform int width;\n\
+_viv_uniform float dimRatio;\n\
+_viv_uniform VXC_512Bits uniFp16SumSqr_dp8x2;\n\
+_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
+_viv_uniform VXC_512Bits uniExtractHalf4_dp4x4;\n\
+\n\
+__kernel void layer_norm_F16toF16_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), 0, 0);\n\
+    vxc_short8 src0, src1;\n\
+    vxc_float sum = 0, sqr = 0;\n\
+    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    for(coord.x = 8; coord.x < (width+8); coord.x += 8)\n\
+    {\n\
+        vxc_half8  val0_h;\n\
+        _viv_asm(COPY, val0_h, src0, 16);\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        vxc_float4 sumsqr;\n\
+        VXC_DP8x2(sumsqr, val0_h, val0_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniFp16SumSqr_dp8x2);\n\
+        sum += sumsqr.x;\n\
+        sqr += sumsqr.y;\n\
+    }\n\
+    vxc_float mean;\n\
+    mean = sum * dimRatio;\n\
+    vxc_float vari;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+    vxc_float4 bias_f;\n\
+    for(coord.x = 0; coord.x < width; coord.x += 4)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f = read_imagef(bias, coord.xw);\n\
+        vxc_half8 in_h, scale_h;\n\
+        _viv_asm(COPY, in_h, src0, 16);\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        vxc_float4 in_f, scale_f;\n\
+        VXC_DP4x4(in_f, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        vxc_float4 sub, norm;\n\
+        sub = in_f - mean;\n\
+        norm = scale_f * vari * sub + bias_f;\n\
+        half4 norm_h;\n\
+        _viv_asm(CONV, norm_h, norm);\n\
+        vxc_half8 dst;\n\
+        VXC_DP4x4(dst, norm_h, norm_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniExtractHalf4_dp4x4);\n\
+        vxc_short8 dstval;\n\
+        _viv_asm(COPY, dstval, dst, 16);\n\
+        VXC_WriteImage(output, coord.xy, dstval, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+/*****************************layernorm uint8 to uint8****************************/\n\
+_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert3rdUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert4thUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniSumU8_16x1;\n\
+_viv_uniform VXC_512Bits uniSqrSum_16x1;\n\
+_viv_uniform float input_scale;\n\
+_viv_uniform int inputZP;\n\
+_viv_uniform float outputScale;\n\
+_viv_uniform float output_zp;\n\
+_viv_uniform int sumInZp;\n\
+_viv_uniform int tmpZp1;\n\
+_viv_uniform int tmpZp2;\n\
+_viv_uniform float e2InScale;\n\
+_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+\n\
+__kernel void layer_norm_U8toU8_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), 0, 0);\n\
+    vxc_uchar16 src0, src2;\n\
+    vxc_short8 src1;\n\
+    vxc_half8 scale_h;\n\
+    float sum = 0, sqr = 0;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    int tmpSum = 0, tmpSqr = 0;\n\
+    vxc_int4 tmpSum1;\n\
+    vxc_int4 tmpSqr1;\n\
+    short zp = inputZP;\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_DP16x1(tmpSum1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumU8_16x1);\n\
+        tmpSum += (tmpSum1.x);\n\
+        VXC_DP16x1(tmpSqr1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSqrSum_16x1);\n\
+        tmpSqr += (tmpSqr1.x + tmpZp1 * tmpSum1.x);\n\
+    }\n\
+    sum = (tmpSum + sumInZp) * input_scale;\n\
+    sqr = (tmpSqr + tmpZp2) * e2InScale;\n\
+\n\
+    float mean, vari;\n\
+    mean = sum * dimRatio;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+    vxc_float4  tmpData0, tmpData1, tmpData2, tmpData3;\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.x = coord.x;\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(8, 0),\\\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData2, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert3rdUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData3, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert4thUint8SubZpToFp32_4x4);\n\
+        tmpData0 = tmpData0 * input_scale - mean;\n\
+        tmpData1 = tmpData1 * input_scale - mean;\n\
+        tmpData2 = tmpData2 * input_scale - mean;\n\
+        tmpData3 = tmpData3 * input_scale - mean;\n\
+\n\
+        vxc_float4 norm;\n\
+        norm = scale_f0 * vari * tmpData0 + bias_f0;\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        coord_bias.x += 4;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        norm = scale_f1 * vari * tmpData1 + bias_f1;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        VXC_DP2x8(src2, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+            uniConvertInt32toUint8_2x8);\n\
+\n\
+        norm = scale_f0 * vari * tmpData2 + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        norm = scale_f1 * vari * tmpData3 + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        VXC_DP2x8(src2, tmpVal0, tmpVal1, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1),\\\n\
+            uniConvertInt32toUint8_2x8);\n\
+        VXC_WriteImage(output, coord.xy, src2, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+/***************************layernorm float16 to uint8**************************/\n\
+__kernel void layer_norm_F16toU8_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), 0, 0);\n\
+    vxc_short8 src0, src1;\n\
+    vxc_float sum = 0, sqr = 0;\n\
+    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    for(coord.x = 8; coord.x < (width+8); coord.x += 8)\n\
+    {\n\
+        vxc_half8  val0_h;\n\
+        _viv_asm(COPY, val0_h, src0, 16);\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        vxc_float4 sumsqr;\n\
+        VXC_DP8x2(sumsqr, val0_h, val0_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniFp16SumSqr_dp8x2);\n\
+        sum += sumsqr.x;\n\
+        sqr += sumsqr.y;\n\
+    }\n\
+    vxc_float mean;\n\
+    mean = sum * dimRatio;\n\
+    vxc_float vari;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+    vxc_float4 bias_f;\n\
+    for(coord.x = 0; coord.x < width; coord.x += 4)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f = read_imagef(bias, coord.xw);\n\
+        vxc_half8 in_h, scale_h;\n\
+        _viv_asm(COPY, in_h, src0, 16);\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        vxc_float4 in_f, scale_f;\n\
+        VXC_DP4x4(in_f, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        vxc_float4 sub, norm;\n\
+        sub = in_f - mean;\n\
+        norm = scale_f * vari * sub + bias_f;\n\
+        norm = norm * outputScale + output_zp;\n\
+        int4 output_int4;\n\
+        output_int4 = convert_int4_rte(norm);\n\
+        vxc_uchar8 dst;\n\
+        VXC_DP2x8(dst, output_int4, output_int4, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1),\n\
+            uniConvertInt32toUint8_2x8);\n\
+        VXC_WriteImage(output, coord.xy, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+"; /* end of layer_normalization_2d_vx*/
+
+static const char layer_normalization_i16_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+/**************************layernorm float16***********************************/\n\
+_viv_uniform int width;\n\
+_viv_uniform float dimRatio;\n\
+_viv_uniform float dimRatio_scale;\n\
+_viv_uniform VXC_512Bits uniInt16SumSqr_dp8x2;\n\
+_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
+_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+\n\
+_viv_uniform float e2InScale;\n\
+_viv_uniform float outputScale;\n\
+_viv_uniform float output_zp;\n\
+_viv_uniform float input_scale;\n\
+_viv_uniform int inputZP;\n\
+\n\
+__kernel void layer_norm_I16toI16(\n\
+    image2d_array_t input, image2d_t bias, image2d_t scale,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    int8 input_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)get_global_id(2) * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr_a);\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr);\n\
+\n\
+    vxc_short8 src0, src1, dst;\n\
+    vxc_float sum = 0, sqr = 0;\n\
+    for(; coord.x < width;)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord.x += 8;\n\
+        vxc_float4 sumsqr;\n\
+        VXC_DP8x2(sumsqr, src0, src0, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+                    uniInt16SumSqr_dp8x2);\n\
+        sum += sumsqr.x;\n\
+        sqr = sqr + sumsqr.y * e2InScale;\n\
+    }\n\
+    vxc_float mean;\n\
+    mean = sum * dimRatio_scale;\n\
+    vxc_float vari;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+\n\
+    short zp = inputZP;\n\
+    vxc_float4  tmpData0, tmpData1;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_half8 scale_h;\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 8)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.x = coord.x;\n\
+        VXC_ReadImage(src1, scale, coord_bias, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert2ndUint8SubZpToFp32_4x4);\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        vxc_float4 sub, norm;\n\
+        sub = tmpData0 * input_scale - mean;\n\
+        norm = scale_f0 * vari * sub + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        sub = tmpData1 * input_scale - mean;\n\
+        norm = scale_f1 * vari * sub + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                uniConvertInt32toUint8_2x8);\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord.xyww, dst, \\\n\
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel void layer_norm_I16toI16_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int2 coord = (int2)(0, get_global_id(1));\n\
+\n\
+    vxc_short8 src0, src1, dst;\n\
+    vxc_float sum = 0, sqr = 0;\n\
+    for(; coord.x < width;)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord.x += 8;\n\
+        vxc_float4 sumsqr;\n\
+        VXC_DP8x2(sumsqr, src0, src0, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+                    uniInt16SumSqr_dp8x2);\n\
+        sum += sumsqr.x;\n\
+        sqr = sqr + sumsqr.y * e2InScale;\n\
+    }\n\
+    vxc_float mean, vari;\n\
+    mean = sum * dimRatio_scale;\n\
+    vari = sqr * dimRatio - mean * mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+\n\
+    short zp = inputZP;\n\
+    vxc_float4  tmpData0, tmpData1;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_half8 scale_h;\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 8)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.x = coord.x;\n\
+        VXC_ReadImage(src1, scale, coord_bias, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert2ndUint8SubZpToFp32_4x4);\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                    UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                    uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        vxc_float4 sub, norm;\n\
+        sub = tmpData0 * input_scale - mean;\n\
+        norm = scale_f0 * vari * sub + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        sub = tmpData1 * input_scale - mean;\n\
+        norm = scale_f1 * vari * sub + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                    uniConvertInt32toUint8_2x8);\n\
+        VXC_WriteImage(output, coord.xy, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+"; /* end of layer_normalization_i16_vx*/
+
+static const char layer_normalization_u8_f16_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+/*****************************layernorm uint8 to fp16****************************/\n\
+_viv_uniform int width;\n\
+_viv_uniform float dimRatio;\n\
+_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
+_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert3rdUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert4thUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniSumU8_16x1;\n\
+_viv_uniform VXC_512Bits uniSqrSum_16x1;\n\
+_viv_uniform float input_scale;\n\
+_viv_uniform int inputZP;\n\
+_viv_uniform int sumInZp;\n\
+_viv_uniform int tmpZp1;\n\
+_viv_uniform int tmpZp2;\n\
+_viv_uniform float e2InScale;\n\
+_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
+_viv_uniform VXC_512Bits UniPackFP16even_2x8;\n\
+\n\
+__kernel void layer_norm_U8toF16(\n\
+    image2d_array_t input,\n\
+    image2d_t bias,\n\
+    image2d_t scale,\n\
+    image2d_array_t output,\n\
+              float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0);\n\
+    int4 coord_out = coord;\n\
+    vxc_uchar16 src0;\n\
+    float sum = 0, sqr = 0;\n\
+    int tmpSum = 0, tmpSqr = 0;\n\
+    vxc_int4 tmpSum1;\n\
+    vxc_int4 tmpSqr1;\n\
+\n\
+    int8 input_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)get_global_id(2) * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr_a);\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_DP16x1(tmpSum1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumU8_16x1);\n\
+        tmpSum += (tmpSum1.x);\n\
+        VXC_DP16x1(tmpSqr1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSqrSum_16x1);\n\
+        tmpSqr += (tmpSqr1.x + tmpZp1 * tmpSum1.x);\n\
+    }\n\
+    sum = (tmpSum + sumInZp) * input_scale;\n\
+    sqr = (tmpSqr + tmpZp2) * e2InScale;\n\
+\n\
+    float mean, vari;\n\
+    mean = sum * dimRatio;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+    vxc_float4  tmpData0, tmpData1, tmpData2, tmpData3;\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+    vxc_half8 scale_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_short8 src1, outval;\n\
+    short zp = inputZP;\n\
+    half4 tmpVal0, tmpVal1;\n\
+    vxc_half8 dst;\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.x = coord.x;\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(8, 0),\\\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData2, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert3rdUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData3, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert4thUint8SubZpToFp32_4x4);\n\
+        tmpData0 *= input_scale;\n\
+        tmpData1 *= input_scale;\n\
+        tmpData2 *= input_scale;\n\
+        tmpData3 *= input_scale;\n\
+\n\
+        vxc_float4 norm;\n\
+        tmpData0 -= mean;\n\
+        norm = scale_f0 * vari * tmpData0 + bias_f0;\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        coord_bias.x += 4;\n\
+        _viv_asm(CONV, tmpVal0, norm);\n\
+\n\
+        tmpData1 -= mean;\n\
+        norm = scale_f1 * vari * tmpData1 + bias_f1;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+        _viv_asm(CONV, tmpVal1, norm);\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniPackFP16even_2x8);\n\
+        _viv_asm(COPY, outval, dst, 16);\n\
+        coord_out.x = coord.x;\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, outval, \\\n\
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+        tmpData2 -= mean;\n\
+        norm = scale_f0 * vari * tmpData2 + bias_f0;\n\
+        _viv_asm(CONV, tmpVal0, norm);\n\
+\n\
+        tmpData3 -= mean;\n\
+        norm = scale_f1 * vari * tmpData3 + bias_f1;\n\
+        _viv_asm(CONV, tmpVal1, norm);\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniPackFP16even_2x8);\n\
+        _viv_asm(COPY, outval, dst, 16);\n\
+        coord_out.x += 8;\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, outval, \\\n\
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel void layer_norm_U8toF16_2D(\n\
+    image2d_t input,\n\
+    image2d_t bias,\n\
+    image2d_t scale,\n\
+    image2d_t output,\n\
+        float eps)\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), 0, 0);\n\
+    vxc_uchar16 src0;\n\
+    float sum = 0, sqr = 0;\n\
+    int tmpSum = 0, tmpSqr = 0;\n\
+    vxc_int4 tmpSum1;\n\
+    vxc_int4 tmpSqr1;\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_DP16x1(tmpSum1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumU8_16x1);\n\
+        tmpSum += (tmpSum1.x);\n\
+        VXC_DP16x1(tmpSqr1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSqrSum_16x1);\n\
+        tmpSqr += (tmpSqr1.x + tmpZp1 * tmpSum1.x);\n\
+    }\n\
+    sum = (tmpSum + sumInZp) * input_scale;\n\
+    sqr = (tmpSqr + tmpZp2) * e2InScale;\n\
+\n\
+    float mean, vari;\n\
+    mean = sum * dimRatio;\n\
+    vari = sqr*dimRatio - mean*mean;\n\
+    vari += eps;\n\
+    vari = rsqrt(vari);\n\
+    vxc_float4  tmpData0, tmpData1, tmpData2, tmpData3;\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+    vxc_half8 scale_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_short8 src1, outval;\n\
+    short zp = inputZP;\n\
+    half4 tmpVal0, tmpVal1;\n\
+    vxc_half8 dst;\n\
+\n\
+    int2 coord_out = (int2)(get_global_id(0), get_global_id(1));\n\
+\n\
+    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
+    {\n\
+        coord_bias.x = coord.x;\n\
+        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+\n\
+        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(8, 0),\\\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData2, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert3rdUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData3, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvert4thUint8SubZpToFp32_4x4);\n\
+        tmpData0 *= input_scale;\n\
+        tmpData1 *= input_scale;\n\
+        tmpData2 *= input_scale;\n\
+        tmpData3 *= input_scale;\n\
+\n\
+        vxc_float4 norm;\n\
+        tmpData0 -= mean;\n\
+        norm = scale_f0 * vari * tmpData0 + bias_f0;\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        coord_bias.x += 4;\n\
+        _viv_asm(CONV, tmpVal0, norm);\n\
+\n\
+        tmpData1 -= mean;\n\
+        norm = scale_f1 * vari * tmpData1 + bias_f1;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+        _viv_asm(CONV, tmpVal1, norm);\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniPackFP16even_2x8);\n\
+        _viv_asm(COPY, outval, dst, 16);\n\
+        coord_out.x = coord.x;\n\
+        VXC_WriteImage(output, coord_out, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+        tmpData2 -= mean;\n\
+        norm = scale_f0 * vari * tmpData2 + bias_f0;\n\
+        _viv_asm(CONV, tmpVal0, norm);\n\
+\n\
+        tmpData3 -= mean;\n\
+        norm = scale_f1 * vari * tmpData3 + bias_f1;\n\
+        _viv_asm(CONV, tmpVal1, norm);\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniPackFP16even_2x8);\n\
+        _viv_asm(COPY, outval, dst, 16);\n\
+        coord_out.x += 8;\n\
+        VXC_WriteImage(output, coord_out, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+"; /* end of layer_normalization_u8_f16_vx*/
+
+static const char layer_normalization_wh_f16_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniFp16SumSqr_dp8x2;\n\
+_viv_uniform int width;\n\
+\n\
+_viv_uniform int height;\n\
+\n\
+_viv_uniform int height_depth;\n\
+_viv_uniform float dimRatio;\n\
+_viv_uniform int group_num;\n\
+_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
+_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertHalfToFp16_2x8;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+_viv_uniform float outputScale;\n\
+_viv_uniform float output_zp;\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_sumSqr_F16toF32(\n\
+    image2d_array_t input, image2d_t output)\n\
+{\n\
+    int gidx = get_global_id(0) << 3;\n\
+    int lidx = get_local_id(0);\n\
+    int gidz = get_global_id(1);\n\
+    int4 coord = (int4)(gidx, 0, gidz, 0);\n\
+    vxc_short8 src0;\n\
+    vxc_half8 in_h;\n\
+    vxc_float4 sumsqr;\n\
+    vxc_float4 tmpSumSqr = (vxc_float4)(0);\n\
+\n\
+    __local float lcl_sum[16];\n\
+    __local float lcl_sqr[16];\n\
+\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr_a);\n\
+\n\
+    if(gidx < width)\n\
+    {\n\
+        for(coord.y = 0; coord.y < height;)\n\
+        {\n\
+            VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+            coord.y++;\n\
+            _viv_asm(COPY, in_h, src0, 16);\n\
+            VXC_DP8x2(sumsqr, in_h, in_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniFp16SumSqr_dp8x2);\n\
+            tmpSumSqr += sumsqr;\n\
+        }\n\
+    }\n\
+\n\
+    lcl_sum[lidx] = tmpSumSqr.x;\n\
+    lcl_sqr[lidx] = tmpSumSqr.y;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    int2 coord_out = (int2)(get_group_id(0) << 2, gidz);\n\
+    if(lidx == 0)\n\
+    {\n\
+        float4 one = (float4)(1, 1, 1, 1);\n\
+        __local float4* tmp_sum = (__local float4*)lcl_sum;\n\
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr;\n\
+\n\
+        float sum = 0;\n\
+        float sqr = 0;\n\
+        for(int i = 0; i < 4; i++)\n\
+        {\n\
+            sum += dot(tmp_sum[i], one);\n\
+            sqr += dot(tmp_sqr[i], one);\n\
+        }\n\
+\n\
+        float4 data = (float4)(sum, sqr, 0, 0);\n\
+        write_imagef(output, coord_out, data);\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_sumSqr_F16toF32_2D(\n\
+    image2d_array_t input, image2d_t output)\n\
+{\n\
+    int gidx = get_global_id(0) << 3;\n\
+    int lidx = get_local_id(0);\n\
+    int gidz = get_global_id(1);\n\
+    int gidy = gidz * height;\n\
+\n\
+    int2 coord = (int2)(gidx, gidy);\n\
+    vxc_short8 src0;\n\
+    vxc_half8 in_h;\n\
+    vxc_float4 sumsqr;\n\
+    vxc_float4 tmpSumSqr = (vxc_float4)(0);\n\
+\n\
+    __local float lcl_sum[16];\n\
+    __local float lcl_sqr[16];\n\
+\n\
+    int endH = gidy + height;\n\
+    if(gidx < width)\n\
+    {\n\
+        for(; coord.y < endH;)\n\
+        {\n\
+            VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+            coord.y++;\n\
+            _viv_asm(COPY, in_h, src0, 16);\n\
+            VXC_DP8x2(sumsqr, in_h, in_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniFp16SumSqr_dp8x2);\n\
+            tmpSumSqr += sumsqr;\n\
+        }\n\
+    }\n\
+\n\
+    lcl_sum[lidx] = tmpSumSqr.x;\n\
+    lcl_sqr[lidx] = tmpSumSqr.y;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    int2 coord_out = (int2)(get_group_id(0) << 2, gidz);\n\
+    if(lidx == 0)\n\
+    {\n\
+        float4 one = (float4)(1, 1, 1, 1);\n\
+        __local float4* tmp_sum = (__local float4*)lcl_sum;\n\
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr;\n\
+\n\
+        float sum = 0;\n\
+        float sqr = 0;\n\
+        for(int i = 0; i < 4; i++)\n\
+        {\n\
+            sum += dot(tmp_sum[i], one);\n\
+            sqr += dot(tmp_sqr[i], one);\n\
+        }\n\
+\n\
+        float4 data = (float4)(sum, sqr, 0, 0);\n\
+        write_imagef(output, coord_out, data);\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16toF16(\n\
+    image2d_array_t input, image2d_array_t bias, image2d_array_t scale, image2d_t meanVari,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int gidz = get_global_id(1);\n\
+    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);\n\
+    int2 coord_sum = (int2)(0, gidz);\n\
+    int4 coord_para = coord;\n\
+    coord_para.z = (ushort)gidz / (ushort)(height_depth);\n\
+    vxc_short8 src0;\n\
+    vxc_short8 src1;\n\
+    vxc_half8 scale_h, in_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_sum);\n\
+        coord_sum.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    int4 coord_bias = coord_para;\n\
+\n\
+    int8 input_desc, scale_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr_a);\n\
+\n\
+    _viv_asm(COPY, scale_desc, scale, sizeof(scale_desc));\n\
+    int baseAddr_c = (int)coord_para.z * scale_desc.s4 + scale_desc.s0;\n\
+    _viv_asm(MOV, coord_para.w, baseAddr_c);\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr);\n\
+\n\
+    vxc_float4  tmpData0, tmpData1;\n\
+    vxc_short8 outval;\n\
+    half4 tmpVal0, tmpVal1;\n\
+    vxc_half8 dst;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_para.y = coord.y;\n\
+        coord_bias.y = coord.y;\n\
+        VXC_OP4(img_load_3d, src1, scale, coord_para.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, in_h, src0, 16);\n\
+        VXC_DP4x4(tmpData0, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(tmpData1, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        vxc_float4 sub, norm;\n\
+        sub = tmpData0 - mean_vari.s0;\n\
+        norm = scale_f0 * mean_vari.s1 * sub + bias_f0;\n\
+        _viv_asm(CONV, tmpVal0, norm);\n\
+        sub = tmpData1 - mean_vari.s0;\n\
+        norm = scale_f1 * mean_vari.s1 * sub + bias_f1;\n\
+        _viv_asm(CONV, tmpVal1, norm);\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                    uniConvertHalfToFp16_2x8);\n\
+        _viv_asm(COPY, outval, dst, 16);\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord.xyzz, outval, \\\n\
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16toF16_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), 0);\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+    vxc_short8 src0;\n\
+    vxc_short8 src1;\n\
+    vxc_half8 scale_h, in_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_bias);\n\
+        coord_bias.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    coord_bias = coord;\n\
+\n\
+    vxc_float4  tmpData0, tmpData1;\n\
+    vxc_short8 outval;\n\
+    half4 tmpVal0, tmpVal1;\n\
+    vxc_half8 dst;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.y = coord.y;\n\
+        VXC_ReadImage(src1, scale, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, in_h, src0, 16);\n\
+        VXC_DP4x4(tmpData0, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(tmpData1, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        vxc_float4 sub, norm;\n\
+        sub = tmpData0 - mean_vari.s0;\n\
+        norm = scale_f0 * mean_vari.s1 * sub + bias_f0;\n\
+        _viv_asm(CONV, tmpVal0, norm);\n\
+        sub = tmpData1 - mean_vari.s0;\n\
+        norm = scale_f1 * mean_vari.s1 * sub + bias_f1;\n\
+        _viv_asm(CONV, tmpVal1, norm);\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                    uniConvertHalfToFp16_2x8);\n\
+        _viv_asm(COPY, outval, dst, 16);\n\
+        VXC_WriteImage(output, coord, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16toU8(\n\
+    image2d_array_t input, image2d_array_t bias, image2d_array_t scale, image2d_t meanVari,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int gidz = get_global_id(1);\n\
+    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);\n\
+    int2 coord_sum = (int2)(0, gidz);\n\
+    int4 coord_para = coord;\n\
+    coord_para.z = (ushort)gidz / (ushort)(height_depth);\n\
+    vxc_short8 src0;\n\
+    vxc_short8 src1;\n\
+    vxc_half8 scale_h, in_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_sum);\n\
+        coord_sum.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    int4 coord_bias = coord_para;\n\
+\n\
+    int8 input_desc, scale_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr_a);\n\
+\n\
+    _viv_asm(COPY, scale_desc, scale, sizeof(scale_desc));\n\
+    int baseAddr_c = (int)coord_para.z * scale_desc.s4 + scale_desc.s0;\n\
+    _viv_asm(MOV, coord_para.w, baseAddr_c);\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr);\n\
+\n\
+    vxc_float4  tmpData0, tmpData1;\n\
+    vxc_uchar16 outval;\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_para.y = coord.y;\n\
+        coord_bias.y = coord.y;\n\
+        VXC_OP4(img_load_3d, src1, scale, coord_para.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, in_h, src0, 16);\n\
+        VXC_DP4x4(tmpData0, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(tmpData1, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        vxc_float4 sub, norm;\n\
+        sub = tmpData0 - mean_vari.s0;\n\
+        norm = scale_f0 * mean_vari.s1 * sub + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        sub = tmpData1 - mean_vari.s0;\n\
+        norm = scale_f1 * mean_vari.s1 * sub + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        VXC_DP2x8(outval, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                uniConvertInt32toUint8_2x8);\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord.xyzz, outval, \\\n\
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16toU8_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), 0);\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+    vxc_short8 src0;\n\
+    vxc_short8 src1;\n\
+    vxc_half8 scale_h, in_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_bias);\n\
+        coord_bias.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    coord_bias = coord;\n\
+\n\
+    vxc_float4  tmpData0, tmpData1;\n\
+    vxc_uchar16 outval;\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.y = coord.y;\n\
+        VXC_ReadImage(src1, scale, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, in_h, src0, 16);\n\
+        VXC_DP4x4(tmpData0, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(tmpData1, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+            uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        vxc_float4 sub, norm;\n\
+        sub = tmpData0 - mean_vari.s0;\n\
+        norm = scale_f0 * mean_vari.s1 * sub + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        sub = tmpData1 - mean_vari.s0;\n\
+        norm = scale_f1 * mean_vari.s1 * sub + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        VXC_DP2x8(outval, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                uniConvertInt32toUint8_2x8);\n\
+        VXC_WriteImage(output, coord, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}"; /* end of layer_normalization_wh_f16_vx*/
+
+static const char layer_normalization_wh_i16_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniInt16SumSqr_dp8x2;\n\
+_viv_uniform float e2InScale;\n\
+_viv_uniform int width;\n\
+\n\
+_viv_uniform float input_scale;\n\
+_viv_uniform int height;\n\
+\n\
+_viv_uniform int height_depth;\n\
+_viv_uniform float dimRatio;\n\
+_viv_uniform int group_num;\n\
+_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
+_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertHalfToFp16_2x8;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+_viv_uniform float outputScale;\n\
+_viv_uniform float output_zp;\n\
+\n\
+_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
+_viv_uniform int inputZP;\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_sumSqr_I16toF32(\n\
+    image2d_array_t input, image2d_t output)\n\
+{\n\
+    int gidx = get_global_id(0) << 4;\n\
+    int lidx = get_local_id(0);\n\
+    int gidz = get_global_id(1);\n\
+    int4 coord = (int4)(gidx, 0, gidz, 0);\n\
+    vxc_short8 src0;\n\
+    float4 tmpSumSqr = (float4)(0);\n\
+\n\
+    __local float lcl_sum[16];\n\
+    __local float lcl_sqr[16];\n\
+\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr_a);\n\
+\n\
+    if(gidx < width)\n\
+    {\n\
+        for(coord.y = 0; coord.y < height;)\n\
+        {\n\
+            VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+            coord.y++;\n\
+            vxc_float4 sumsqr;\n\
+            VXC_DP8x2(sumsqr, src0, src0, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+                    uniInt16SumSqr_dp8x2);\n\
+            tmpSumSqr += sumsqr;\n\
+        }\n\
+        tmpSumSqr.x *= input_scale;\n\
+        tmpSumSqr.y *= e2InScale;\n\
+    }\n\
+    lcl_sum[lidx] = tmpSumSqr.x;\n\
+    lcl_sqr[lidx] = tmpSumSqr.y;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    int2 coord_out = (int2)(get_group_id(0) << 2, gidz);\n\
+    if(lidx == 0)\n\
+    {\n\
+        float4 one = (float4)(1, 1, 1, 1);\n\
+        __local float4* tmp_sum = (__local float4*)lcl_sum;\n\
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr;\n\
+        float4 data = (float4)(0);\n\
+        for(int i = 0; i < 4; i++)\n\
+        {\n\
+            data.x += dot(tmp_sum[i], one);\n\
+            data.y += dot(tmp_sqr[i], one);\n\
+        }\n\
+        write_imagef(output, coord_out, data);\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_sumSqr_I16toF32_2D(\n\
+    image2d_t input, image2d_t output)\n\
+{\n\
+    int gidx = get_global_id(0) << 4;\n\
+    int lidx = get_local_id(0);\n\
+    int gidz = get_global_id(1);\n\
+    int gidy = gidz * height;\n\
+\n\
+    int2 coord = (int2)(gidx, gidy);\n\
+    vxc_short8 src0;\n\
+    float4 tmpSumSqr = (float4)(0);\n\
+\n\
+    __local float lcl_sum[16];\n\
+    __local float lcl_sqr[16];\n\
+\n\
+    int endH = gidy + height;\n\
+    if(gidx < width)\n\
+    {\n\
+        for(; coord.y < endH;)\n\
+        {\n\
+            VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+            coord.y++;\n\
+            vxc_float4 sumsqr;\n\
+            VXC_DP8x2(sumsqr, src0, src0, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
+                    uniInt16SumSqr_dp8x2);\n\
+            tmpSumSqr += sumsqr;\n\
+        }\n\
+        tmpSumSqr.x *= input_scale;\n\
+        tmpSumSqr.y *= e2InScale;\n\
+    }\n\
+    lcl_sum[lidx] = tmpSumSqr.x;\n\
+    lcl_sqr[lidx] = tmpSumSqr.y;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    int2 coord_out = (int2)(get_group_id(0) << 2, gidz);\n\
+    if(lidx == 0)\n\
+    {\n\
+        float4 one = (float4)(1, 1, 1, 1);\n\
+        __local float4* tmp_sum = (__local float4*)lcl_sum;\n\
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr;\n\
+        float4 data = (float4)(0);\n\
+        for(int i = 0; i < 4; i++)\n\
+        {\n\
+            data.x += dot(tmp_sum[i], one);\n\
+            data.y += dot(tmp_sqr[i], one);\n\
+        }\n\
+        write_imagef(output, coord_out, data);\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_I16toI16(\n\
+    image2d_array_t input, image2d_array_t bias, image2d_array_t scale, image2d_t meanVari,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int gidz = get_global_id(1);\n\
+    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);\n\
+    int2 coord_sum = (int2)(0, gidz);\n\
+    int4 coord_para = coord;\n\
+    coord_para.z = (ushort)gidz / (ushort)(height_depth);\n\
+    vxc_short8 src0, src1, outval;\n\
+    vxc_half8 scale_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_sum);\n\
+        coord_sum.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    int4 coord_bias = coord_para;\n\
+\n\
+    int8 input_desc, scale_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr_a);\n\
+\n\
+    _viv_asm(COPY, scale_desc, scale, sizeof(scale_desc));\n\
+    int baseAddr_c = (int)coord_para.z * scale_desc.s4 + scale_desc.s0;\n\
+    _viv_asm(MOV, coord_para.w, baseAddr_c);\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr);\n\
+\n\
+    short zp = inputZP;\n\
+    vxc_float4  tmpData0, tmpData1, norm;\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_para.y = coord.y;\n\
+        coord_bias.y = coord.y;\n\
+        VXC_OP4(img_load_3d, src1, scale, coord_para.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        tmpData0 = tmpData0 * input_scale - mean_vari.s0;\n\
+        tmpData1 = tmpData1 * input_scale - mean_vari.s0;\n\
+\n\
+        norm = scale_f0 * mean_vari.s1 * tmpData0 + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        norm = scale_f1 * mean_vari.s1 * tmpData1 + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        VXC_DP2x8(outval, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                uniConvertInt32toUint8_2x8);\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord.xyzz, outval, \\\n\
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_I16toI16_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), 0);\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+    vxc_short8 src0, src1, outval;\n\
+    vxc_half8 scale_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_bias);\n\
+        coord_bias.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    coord_bias = coord;\n\
+\n\
+    short zp = inputZP;\n\
+    vxc_float4  tmpData0, tmpData1, norm;\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.y = coord.y;\n\
+        VXC_ReadImage(src1, scale, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        tmpData0 = tmpData0 * input_scale - mean_vari.s0;\n\
+        tmpData1 = tmpData1 * input_scale - mean_vari.s0;\n\
+\n\
+        norm = scale_f0 * mean_vari.s1 * tmpData0 + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        norm = scale_f1 * mean_vari.s1 * tmpData1 + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        VXC_DP2x8(outval, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                uniConvertInt32toUint8_2x8);\n\
+        VXC_WriteImage(output, coord, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}"; /* end of layer_normalization_wh_i16_vx*/
+
+static const char layer_normalization_wh_u8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniSumU8_16x1;\n\
+_viv_uniform VXC_512Bits uniSqrSum_16x1;\n\
+_viv_uniform int sumInZp;\n\
+_viv_uniform int tmpZp1;\n\
+_viv_uniform float e2InScale;\n\
+_viv_uniform float rowSumScale;\n\
+_viv_uniform int width;\n\
+\n\
+_viv_uniform float input_scale;\n\
+_viv_uniform int height;\n\
+\n\
+_viv_uniform int height_depth;\n\
+_viv_uniform float dimRatio;\n\
+_viv_uniform int group_num;\n\
+_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
+_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertHalfToFp16_2x8;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+_viv_uniform float outputScale;\n\
+_viv_uniform float output_zp;\n\
+\n\
+_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
+_viv_uniform int inputZP;\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_sumSqr_U8toF32(\n\
+    image2d_array_t input, image2d_t output)\n\
+{\n\
+    int gidx = get_global_id(0) << 4;\n\
+    int lidx = get_local_id(0);\n\
+    int gidz = get_global_id(1);\n\
+    int4 coord = (int4)(gidx, 0, gidz, 0);\n\
+    vxc_uchar16 src0;\n\
+    float sum = 0, sqr = 0;\n\
+    int tmpSum = 0, tmpSqr = 0, tmpSum1, tmpSqr1;\n\
+\n\
+    __local float lcl_sum[16];\n\
+    __local float lcl_sqr[16];\n\
+\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr_a);\n\
+\n\
+    if(gidx < width)\n\
+    {\n\
+        for(coord.y = 0; coord.y < height;)\n\
+        {\n\
+            VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                    VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+            coord.y++;\n\
+            VXC_DP16x1(tmpSum1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumU8_16x1);\n\
+            tmpSum += (tmpSum1);\n\
+            VXC_DP16x1(tmpSqr1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSqrSum_16x1);\n\
+            tmpSqr += (tmpSqr1 + tmpZp1 * tmpSum1);\n\
+        }\n\
+        sqr += (tmpSqr * e2InScale + rowSumScale);\n\
+        sum = (tmpSum + sumInZp) * input_scale;\n\
+    }\n\
+    lcl_sum[lidx] = sum;\n\
+    lcl_sqr[lidx] = sqr;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    int2 coord_out = (int2)(get_group_id(0) << 2, gidz);\n\
+    if(lidx == 0)\n\
+    {\n\
+        float4 one = (float4)(1, 1, 1, 1);\n\
+        __local float4* tmp_sum = (__local float4*)lcl_sum;\n\
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr;\n\
+        sum = 0; sqr = 0;\n\
+        for(int i = 0; i < 4; i++)\n\
+        {\n\
+            sum += dot(tmp_sum[i], one);\n\
+            sqr += dot(tmp_sqr[i], one);\n\
+        }\n\
+        float4 data = (float4)(sum, sqr, 0, 0);\n\
+        write_imagef(output, coord_out, data);\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_sumSqr_U8toF32_2D(\n\
+    image2d_t input, image2d_t output)\n\
+{\n\
+    int gidx = get_global_id(0) << 4;\n\
+    int lidx = get_local_id(0);\n\
+    int gidz = get_global_id(1);\n\
+    int gidy = gidz * height;\n\
+\n\
+    int2 coord = (int2)(gidx, gidy);\n\
+    vxc_uchar16 src0;\n\
+    float sum = 0, sqr = 0;\n\
+    int tmpSum = 0, tmpSqr = 0, tmpSum1, tmpSqr1;\n\
+\n\
+    __local float lcl_sum[16];\n\
+    __local float lcl_sqr[16];\n\
+\n\
+    int endH = gidy + height;\n\
+    if(gidx < width)\n\
+    {\n\
+        for(; coord.y < endH;)\n\
+        {\n\
+            VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\n\
+                VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+            coord.y++;\n\
+            VXC_DP16x1(tmpSum1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumU8_16x1);\n\
+            tmpSum += (tmpSum1);\n\
+            VXC_DP16x1(tmpSqr1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSqrSum_16x1);\n\
+            tmpSqr += (tmpSqr1 + tmpZp1 * tmpSum1);\n\
+        }\n\
+        sqr += (tmpSqr * e2InScale + rowSumScale);\n\
+        sum = (tmpSum + sumInZp) * input_scale;\n\
+    }\n\
+    lcl_sum[lidx] = sum;\n\
+    lcl_sqr[lidx] = sqr;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    int2 coord_out = (int2)(get_group_id(0) << 2, gidz);\n\
+    if(lidx == 0)\n\
+    {\n\
+        float4 one = (float4)(1, 1, 1, 1);\n\
+        __local float4* tmp_sum = (__local float4*)lcl_sum;\n\
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr;\n\
+        sum = 0; sqr = 0;\n\
+        for(int i = 0; i < 4; i++)\n\
+        {\n\
+            sum += dot(tmp_sum[i], one);\n\
+            sqr += dot(tmp_sqr[i], one);\n\
+        }\n\
+        float4 data = (float4)(sum, sqr, 0, 0);\n\
+        write_imagef(output, coord_out, data);\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_U8toF16(\n\
+    image2d_array_t input, image2d_array_t bias, image2d_array_t scale, image2d_t meanVari,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int gidz = get_global_id(1);\n\
+    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);\n\
+    int2 coord_sum = (int2)(0, gidz);\n\
+    int4 coord_para = coord;\n\
+    coord_para.z = (ushort)gidz / (ushort)(height_depth);\n\
+    vxc_uchar16 src0;\n\
+    vxc_short8 src1, outval;\n\
+    vxc_half8 scale_h, dst;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_sum);\n\
+        coord_sum.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    int4 coord_bias = coord_para;\n\
+\n\
+    int8 input_desc, scale_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr_a);\n\
+\n\
+    _viv_asm(COPY, scale_desc, scale, sizeof(scale_desc));\n\
+    int baseAddr_c = (int)coord_para.z * scale_desc.s4 + scale_desc.s0;\n\
+    _viv_asm(MOV, coord_para.w, baseAddr_c);\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr);\n\
+\n\
+    short zp = inputZP;\n\
+    vxc_float4  tmpData0, tmpData1, norm;\n\
+    half4 tmpVal0, tmpVal1;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_para.y = coord.y; coord_bias.y = coord.y;\n\
+        VXC_OP4(img_load_3d, src1, scale, coord_para.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        tmpData0 = tmpData0 * input_scale - mean_vari.s0;\n\
+        tmpData1 = tmpData1 * input_scale - mean_vari.s0;\n\
+\n\
+        norm = scale_f0 * mean_vari.s1 * tmpData0 + bias_f0;\n\
+        _viv_asm(CONV, tmpVal0, norm);\n\
+        norm = scale_f1 * mean_vari.s1 * tmpData1 + bias_f1;\n\
+        _viv_asm(CONV, tmpVal1, norm);\n\
+\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertHalfToFp16_2x8);\n\
+        _viv_asm(COPY, outval, dst, 16);\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord.xyzz, outval, \\\n\
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_U8toF16_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), 0);\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+    vxc_uchar16 src0;\n\
+    vxc_short8 src1, outval;\n\
+    vxc_half8 scale_h, dst;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_bias);\n\
+        coord_bias.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    coord_bias = coord;\n\
+\n\
+    short zp = inputZP;\n\
+    vxc_float4  tmpData0, tmpData1, norm;\n\
+    half4 tmpVal0, tmpVal1;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.y = coord.y;\n\
+        VXC_ReadImage(src1, scale, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        tmpData0 = tmpData0 * input_scale - mean_vari.s0;\n\
+        tmpData1 = tmpData1 * input_scale - mean_vari.s0;\n\
+\n\
+        norm = scale_f0 * mean_vari.s1 * tmpData0 + bias_f0;\n\
+        _viv_asm(CONV, tmpVal0, norm);\n\
+        norm = scale_f1 * mean_vari.s1 * tmpData1 + bias_f1;\n\
+        _viv_asm(CONV, tmpVal1, norm);\n\
+\n\
+        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertHalfToFp16_2x8);\n\
+        _viv_asm(COPY, outval, dst, 16);\n\
+        VXC_WriteImage(output, coord, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_U8toU8(\n\
+    image2d_array_t input, image2d_array_t bias, image2d_array_t scale, image2d_t meanVari,\n\
+    image2d_array_t output, float eps)\n\
+{\n\
+    int gidz = get_global_id(1);\n\
+    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);\n\
+    int2 coord_sum = (int2)(0, gidz);\n\
+    int4 coord_para = coord;\n\
+    coord_para.z = (ushort)gidz / (ushort)(height_depth);\n\
+    vxc_uchar16 src0 , outval;\n\
+    vxc_short8 src1;\n\
+    vxc_half8 scale_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_sum);\n\
+        coord_sum.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    int4 coord_bias = coord_para;\n\
+\n\
+    int8 input_desc, scale_desc, output_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord.w, baseAddr_a);\n\
+\n\
+    _viv_asm(COPY, scale_desc, scale, sizeof(scale_desc));\n\
+    int baseAddr_c = (int)coord_para.z * scale_desc.s4 + scale_desc.s0;\n\
+    _viv_asm(MOV, coord_para.w, baseAddr_c);\n\
+\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord.z, baseAddr);\n\
+\n\
+    short zp = inputZP;\n\
+    vxc_float4  tmpData0, tmpData1, norm;\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_para.y = coord.y;\n\
+        coord_bias.y = coord.y;\n\
+        VXC_OP4(img_load_3d, src1, scale, coord_para.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        tmpData0 = tmpData0 * input_scale - mean_vari.s0;\n\
+        tmpData1 = tmpData1 * input_scale - mean_vari.s0;\n\
+\n\
+        norm = scale_f0 * mean_vari.s1 * tmpData0 + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        norm = scale_f1 * mean_vari.s1 * tmpData1 + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        VXC_DP2x8(outval, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                uniConvertInt32toUint8_2x8);\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord.xyzz, outval, \\\n\
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_U8toU8_2D(\n\
+    image2d_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,\n\
+    image2d_t output, float eps)\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), 0);\n\
+    int2 coord_bias = (int2)(0, 0);\n\
+    vxc_uchar16 src0, outval;\n\
+    vxc_short8 src1;\n\
+    vxc_half8 scale_h;\n\
+    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
+    vxc_float4 mean_vari = (vxc_float4)(0);\n\
+\n\
+    for(int i = 0; i < group_num; i++)\n\
+    {\n\
+        mean_vari += read_imagef(meanVari, coord_bias);\n\
+        coord_bias.x += 4;\n\
+    }\n\
+    mean_vari *= dimRatio;\n\
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;\n\
+    mean_vari.s1 = rsqrt(mean_vari.s1);\n\
+\n\
+    coord_bias = coord;\n\
+\n\
+    short zp = inputZP;\n\
+    vxc_float4  tmpData0, tmpData1, norm;\n\
+    vxc_int4 tmpVal0, tmpVal1;\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_bias.y = coord.y;\n\
+        VXC_ReadImage(src1, scale, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        bias_f0 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x += 4;\n\
+        bias_f1 = read_imagef(bias, coord_bias);\n\
+        coord_bias.x = coord.x;\n\
+\n\
+        _viv_asm(COPY, scale_h, src1, 16);\n\
+        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                UniFP16toFP32Lo4_dp4x4);\n\
+        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvertSecFp16Fp32_4x4);\n\
+        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert1stUint8SubZpToFp32_4x4);\n\
+        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniConvert2ndUint8SubZpToFp32_4x4);\n\
+        tmpData0 = tmpData0 * input_scale - mean_vari.s0;\n\
+        tmpData1 = tmpData1 * input_scale - mean_vari.s0;\n\
+\n\
+        norm = scale_f0 * mean_vari.s1 * tmpData0 + bias_f0;\n\
+        tmpVal0 = convert_int4_rte(norm * outputScale + output_zp);\n\
+        norm = scale_f1 * mean_vari.s1 * tmpData1 + bias_f1;\n\
+        tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);\n\
+\n\
+        VXC_DP2x8(outval, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
+                uniConvertInt32toUint8_2x8);\n\
+        VXC_WriteImage(output, coord, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    }\n\
+}"; /* end of layer_normalization_wh_u8_vx*/
 
 static const char log_softmax_axis0_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 _viv_uniform float       rlogE;\n\
@@ -21179,144 +23509,6 @@ __kernel void pre_process_bgra_copy_U8toU8(\n\
 }\n\
 "; /* end of pre_process_bgra_vx*/
 
-static const char pre_process_bgra_trans_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-_viv_uniform VXC_512Bits uniDescaleU8_4x4;\n\
-_viv_uniform VXC_512Bits uniConvertIntergetoF32_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniBilinearTmp1BgraShort_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp2BgraShort_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp3BgraShort_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp4BgraShort_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp5BgraShort_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp6BgraShort_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp7BgraShort_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp8BgraShort_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
-_viv_uniform VXC_512Bits uniExtractInt32BgraToU8Bgr_2x8;\n\
-\n\
-_viv_uniform int zp;\n\
-_viv_uniform float outputScale;\n\
-\n\
-__kernel void pre_process_bgra_scale_nhwc_U8toU8(\n\
-    __read_only image2d_array_t input, __write_only image2d_array_t    output,\n\
-    global int *xRatio, global int * yRatio, global int * xOffset, global int * yOffset,\n\
-    float rMean, float gMean, float bMean, float var, int reverse_channel, int trans)\n\
-{\n\
-    int4 gidx = get_global_id(0);\n\
-    int gidy = get_global_id(1);\n\
-    gidx += (int4)(0, 1, 2, 3);\n\
-\n\
-    int4 fx = (gidx * (*xRatio) + ((*xRatio) >> 1)) - (1 << 14);\n\
-    int4 sx = fx & 0xffff8000; // Floor\n\
-    int fy, sy;\n\
-    fx -= sx;\n\
-    sx = sx >> 15;\n\
-    fx = (fx +(1 << 4)) >> 5;\n\
-\n\
-    // for y\n\
-    fy = (gidy * (*yRatio) + ((*yRatio) >> 1)) - (1<< 14);\n\
-    sy = fy & 0xffff8000; // Floor\n\
-    fy -= sy;\n\
-    sy = sy >> 15;\n\
-\n\
-    sy = sy < 0 ? 0 : sy;\n\
-    fy = fy < 0 ? 0 : fy;\n\
-\n\
-    fy = (fy + (1<< 4)) >> 5;\n\
-    sx = (sx + (*xOffset)) * 4 ;\n\
-    sy += (*yOffset);\n\
-    int4 srcPos = (int4)(sx.x, sy, sy + 1, sx.y);\n\
-    vxc_uchar16 lineBGRA0, lineBGRA1, lineBGRA2, lineBGRA3;\n\
-    vxc_uchar16 dataB, dataG, dataR;\n\
-\n\
-    VXC_ReadImage(lineBGRA0, input, srcPos.xy, VXC_5BITOFFSET_XY(0, 0),\n\
-                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(lineBGRA0, input, srcPos.xz, VXC_5BITOFFSET_XY(0, 0),\n\
-                     VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    VXC_ReadImage(lineBGRA1, input, srcPos.wy, VXC_5BITOFFSET_XY(0, 0),\n\
-                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(lineBGRA1, input, srcPos.wz, VXC_5BITOFFSET_XY(0, 0),\n\
-                     VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    srcPos.x = sx.z;\n\
-    srcPos.w = sx.w;\n\
-\n\
-    VXC_ReadImage(lineBGRA2, input, srcPos.xy, VXC_5BITOFFSET_XY(0, 0),\n\
-                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(lineBGRA2, input, srcPos.xz, VXC_5BITOFFSET_XY(0, 0),\n\
-                     VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    VXC_ReadImage(lineBGRA3, input, srcPos.wy, VXC_5BITOFFSET_XY(0, 0),\n\
-                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(lineBGRA3, input, srcPos.wz, VXC_5BITOFFSET_XY(0, 0),\n\
-                     VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    vxc_uchar4 val_u8;\n\
-    int4 tmp1, tmp2, result1, result2;\n\
-    float4 tmpDst, tmp0;\n\
-    float4 mean = (float4)(bMean, gMean, rMean, 0);\n\
-    //tmpFx = (int4)(fx.x, fx.x, fx.x, fx.x);\n\
-    int tmpV = 1 << 19;\n\
-    vxc_short8 tmpFx;\n\
-    VXC_DP2x8(tmpFx, fx, fx, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),\n\
-                 uniConvertInt32toUint8_2x8);\n\
-    //tmpFx = fx.xxxx;\n\
-    VXC_DP4x4(tmp1, lineBGRA0, tmpFx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\n\
-                 uniBilinearTmp1BgraShort_4x4);\n\
-    VXC_DP4x4(tmp2, lineBGRA0, tmpFx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\n\
-                 uniBilinearTmp2BgraShort_4x4);\n\
-    tmp1 = fy * (tmp2 - tmp1) + (tmp1 << 10);\n\
-    VXC_DP4x4(val_u8, tmp1, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4);\n\
-    VXC_DP4x4(tmp0, val_u8, val_u8, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), \\\n\
-        uniConvertIntergetoF32_4x4);\n\
-    tmpDst = (tmp0 - mean) * var;\n\
-    result1 = convert_int4_rte(tmpDst * outputScale + zp);\n\
-\n\
-    //tmpFx = fx.yyyy;\n\
-    VXC_DP4x4(tmp1, lineBGRA1, tmpFx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp3BgraShort_4x4);\n\
-    VXC_DP4x4(tmp2, lineBGRA1, tmpFx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp4BgraShort_4x4);\n\
-    tmp1 = fy * (tmp2 - tmp1) + (tmp1 << 10);\n\
-    VXC_DP4x4(val_u8, tmp1, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4);\n\
-    VXC_DP4x4(tmp0, val_u8, val_u8, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), \\\n\
-        uniConvertIntergetoF32_4x4);\n\
-    tmpDst = (tmp0 - mean) * var;\n\
-    result2 = convert_int4_rte(tmpDst * outputScale + zp);\n\
-\n\
-    vxc_uchar16 dst;\n\
-    VXC_DP2x8(dst, result1, result2, VXC_MODIFIER(0, 5, 0, VXC_RM_ToNearestEven, 1),\n\
-                 uniExtractInt32BgraToU8Bgr_2x8);\n\
-\n\
-    //tmpFx = fx.zzzz;\n\
-    VXC_DP4x4(tmp1, lineBGRA2, tmpFx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp5BgraShort_4x4);\n\
-    VXC_DP4x4(tmp2, lineBGRA2, tmpFx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp6BgraShort_4x4);\n\
-    tmp1 = fy * (tmp2 - tmp1) + (tmp1 << 10);\n\
-    VXC_DP4x4(val_u8, tmp1, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4);\n\
-    VXC_DP4x4(tmp0, val_u8, val_u8, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), \\\n\
-        uniConvertIntergetoF32_4x4);\n\
-    tmpDst = (tmp0 - mean) * var;\n\
-    result1 = convert_int4_rte(tmpDst * outputScale + zp);\n\
-\n\
-    //tmpFx = fx.wwww;\n\
-    VXC_DP4x4(tmp1, lineBGRA3, tmpFx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp7BgraShort_4x4);\n\
-    VXC_DP4x4(tmp2, lineBGRA3, tmpFx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp8BgraShort_4x4);\n\
-    tmp1 = fy * (tmp2 - tmp1) + (tmp1 << 10);\n\
-    VXC_DP4x4(val_u8, tmp1, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4);\n\
-    VXC_DP4x4(tmp0, val_u8, val_u8, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), \\\n\
-        uniConvertIntergetoF32_4x4);\n\
-    tmpDst = (tmp0 - mean) * var;\n\
-    result2 = convert_int4_rte(tmpDst * outputScale + zp);\n\
-\n\
-    VXC_DP2x8(dst, result1, result2, VXC_MODIFIER(6, 11, 0, VXC_RM_ToNearestEven, 1),\n\
-                 uniExtractInt32BgraToU8Bgr_2x8);\n\
-\n\
-    int4 dstPos = (int4)(get_global_id(0) * 3, gidy, 0, 0);\n\
-    VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of pre_process_bgra_trans_vx*/
-
 static const char pre_process_gray_vx[] = "/*\n\
  ============================================================================\n\
  Name        : GrayScale.vx\n\
@@ -22287,97 +24479,6 @@ __kernel void pre_process_nv12_scale_U8toF16_gq(\n\
     VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
 }"; /* end of pre_process_nv12_scale_mix_vx*/
 
-static const char pre_process_nv12_trans_u8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-_viv_uniform int bOrder;\n\
-_viv_uniform int rOrder;\n\
-\n\
-_viv_uniform float outputScaleVar;\n\
-_viv_uniform float bMeanScaleVarZp;\n\
-_viv_uniform float gMeanScaleVarZp;\n\
-_viv_uniform float rMeanScaleVarZp;\n\
-\n\
-_viv_uniform uint xrIntFloat_16;\n\
-_viv_uniform uint yrIntFloat_16;\n\
-\n\
-_viv_uniform VXC_512Bits uniConvertNV12toB_4x4;\n\
-_viv_uniform VXC_512Bits uniConvertNV12toG_4x4;\n\
-_viv_uniform VXC_512Bits uniConvertNV12toR_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
-_viv_uniform VXC_512Bits uniConvertUVtoCharSub128_2x8;\n\
-\n\
-_viv_uniform VXC_512Bits uniTransPackBgr1st_2x8;\n\
-_viv_uniform VXC_512Bits uniTransPackBgr2nd_2x8;\n\
-\n\
-__kernel void pre_process_nv12_trans_U8toU8(\n\
-    __read_only image2d_t y_img, __read_only image2d_t uv_img,\n\
-    __write_only image2d_t    output,\n\
-    global int *xRatio, global int * yRatio, global int * xOffset, global int * yOffset,\n\
-    float rMean, float gMean, float bMean, float var, int reverse_channel, int trans)\n\
-{\n\
-    uint4 gidx = get_global_id(0);\n\
-    uint gidy = get_global_id(1);\n\
-    gidx += (uint4)(0, 1, 2, 3);\n\
-\n\
-    uint dy = (gidy * yrIntFloat_16) >> 16;\n\
-    uint4 dx = (gidx * xrIntFloat_16) >> 16;\n\
-    int sy = convert_int(dy) + (*yOffset);\n\
-    int4 sx = convert_int4(dx) + (*xOffset);\n\
-    int4 uvX = sx & 0xfffffffe;\n\
-    int uvY = sy >> 1;\n\
-\n\
-    vxc_uchar16 Y, UV;\n\
-    int2 coord = (int2)(sx.x, sy);\n\
-    int2 coord_uv = (int2)(uvX.x, uvY);\n\
-\n\
-    VXC_ReadImage(Y, y_img, coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord.x = sx.y;\n\
-    VXC_ReadImage(Y, y_img, coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord.x = sx.z;\n\
-    VXC_ReadImage(Y, y_img, coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord.x = sx.w;\n\
-    VXC_ReadImage(Y, y_img, coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    VXC_ReadImage(UV, uv_img,coord_uv, VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_uv.x = uvX.y;\n\
-    VXC_ReadImage(UV, uv_img,coord_uv, VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
-    coord_uv.x = uvX.z;\n\
-    VXC_ReadImage(UV, uv_img,coord_uv, VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
-    coord_uv.x = uvX.w;\n\
-    VXC_ReadImage(UV, uv_img,coord_uv, VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    vxc_char16 tmpUV;\n\
-    short tmpVal = 128;\n\
-    VXC_DP2x8(tmpUV, UV, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvertUVtoCharSub128_2x8);\n\
-\n\
-    float4 tmpDstB, tmpDstG, tmpDstR;\n\
-    VXC_DP4x4(tmpDstB, Y, tmpUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertNV12toB_4x4);\n\
-    VXC_DP4x4(tmpDstG, Y, tmpUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertNV12toG_4x4);\n\
-    VXC_DP4x4(tmpDstR, Y, tmpUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertNV12toR_4x4);\n\
-\n\
-    int4 result, dstR, dstG, dstB;\n\
-    vxc_uchar16 dst, tmpPack;\n\
-    dstB = convert_int4_rte(tmpDstB * outputScaleVar + bMeanScaleVarZp);\n\
-    dstG = convert_int4_rte(tmpDstG * outputScaleVar + gMeanScaleVarZp);\n\
-    dstR = convert_int4_rte(tmpDstR * outputScaleVar + rMeanScaleVarZp);\n\
-\n\
-    if(bOrder == 2)\n\
-    {\n\
-        int4 exchangeData = dstB;\n\
-        dstB = dstR;\n\
-        dstR = exchangeData;\n\
-    }\n\
-\n\
-    VXC_DP2x8(tmpPack, dstB, dstG, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertInt32toUint8_2x8);\n\
-    VXC_DP2x8(dst, tmpPack, dstR, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniTransPackBgr1st_2x8);\n\
-    VXC_DP2x8(dst, tmpPack, dstR, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniTransPackBgr2nd_2x8);\n\
-\n\
-    int2 dstPos = (int2)(get_global_id(0) * 3, gidy);\n\
-    VXC_WriteImage(output, dstPos, dst, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of pre_process_nv12_trans_u8_vx*/
-
 static const char pre_process_rgb_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
 _viv_uniform VXC_512Bits uniVecShift10;\n\
@@ -22711,276 +24812,6 @@ IMAGE_PRE_PROCESS_COPY_8BITS(U8, vxc_uchar16)\n\
 IMAGE_PRE_PROCESS_COPY_8BITS(I8, vxc_char16)\n\
 "; /* end of pre_process_rgb_copy_vx*/
 
-static const char pre_process_rgb_copy_trans_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-_viv_uniform float outputScale;\n\
-_viv_uniform float outputZP;\n\
-_viv_uniform VXC_512Bits uniNormilizationLo_2x8;\n\
-_viv_uniform VXC_512Bits uniNormilizationHi_2x8;\n\
-#define IMAGE_PRE_PROCESS_COPY_16BITS_NHWC(dst_name, dst_type, copy_type) \\\n\
-__kernel void pre_process_rgb_copy_nhwc_U8to##dst_name \\\n\
-    ( \\\n\
-    __read_only image2d_array_t  input, \\\n\
-    __write_only image2d_array_t output, \\\n\
-         global int              *xRatio, \\\n\
-         global int              *yRatio, \\\n\
-         global int              *xOffset, \\\n\
-         global int              *yOffset, \\\n\
-                float            rMean, \\\n\
-                float            gMean, \\\n\
-                float            bMean, \\\n\
-                float            f32Var, \\\n\
-                int           reverse_channel, \\\n\
-                int           trans \\\n\
-    ) \\\n\
-{ \\\n\
-    int2 coord      = (int2)(get_global_id(0), get_global_id(1)); \\\n\
- \\\n\
-    coord.xy += (int2) (*xOffset, *yOffset); \\\n\
-    vxc_uchar16 src0, src1; \\\n\
-    dst_type   dst0, dst1; \\\n\
-    copy_type   dst; \\\n\
- \\\n\
-    VXC_ReadImage(src0, input, coord.xy, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \\\n\
- \\\n\
-    f32Var *= outputScale; \\\n\
-    float4  paramData = (float4)(rMean * f32Var - outputZP, gMean * f32Var - outputZP, \\\n\
-        bMean * f32Var - outputZP, f32Var); \\\n\
-    half4 paramData_f16; \\\n\
-    _viv_asm(CONV, paramData_f16, paramData); \\\n\
- \\\n\
-    int4 coord_out = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(0)); \\\n\
-    coord_out.z = coord_out.x + 8; \\\n\
- \\\n\
-    VXC_DP2x8(dst0, src0, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
-        uniNormilizationLo_2x8); \\\n\
-    VXC_DP2x8(dst1, src0, paramData_f16, VXC_MODIFIER(0, 6, 0, VXC_RM_ToNearestEven, 1), \\\n\
-        uniNormilizationHi_2x8); \\\n\
-    _viv_asm(COPY, dst, dst0, 16); \\\n\
-    VXC_WriteImage(output, coord_out.xy, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
-    _viv_asm(COPY, dst, dst1, 16); \\\n\
-    VXC_WriteImage(output, coord_out.zy, dst, VXC_MODIFIER(0, 6, 0, VXC_RM_TowardZero, 0)); \\\n\
-}\n\
-IMAGE_PRE_PROCESS_COPY_16BITS_NHWC(I16, vxc_short8,  vxc_short8)\n\
-IMAGE_PRE_PROCESS_COPY_16BITS_NHWC(F16, vxc_half8,   vxc_short8)\n\
-\n\
-#define IMAGE_PRE_PROCESS_COPY_8BITS_NHWC(dst_name, dst_type) \\\n\
-__kernel void pre_process_rgb_copy_nhwc_U8to##dst_name \\\n\
-    ( \\\n\
-    __read_only image2d_array_t  input, \\\n\
-    __write_only image2d_array_t output, \\\n\
-         global int              *xRatio, \\\n\
-         global int              *yRatio, \\\n\
-         global int              *xOffset, \\\n\
-         global int              *yOffset, \\\n\
-                float            rMean, \\\n\
-                float            gMean, \\\n\
-                float            bMean, \\\n\
-                float            f32Var, \\\n\
-                int              reverse_channel, \\\n\
-                int              trans \\\n\
-    ) \\\n\
-{ \\\n\
-    int2 coord      = (int2)(get_global_id(0), get_global_id(1)); \\\n\
-    coord.xy += (int2) (*xOffset, *yOffset); \\\n\
-    vxc_uchar16 src0, src1; \\\n\
-    dst_type dst; \\\n\
- \\\n\
-    VXC_ReadImage(src0, input, coord.xy, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \\\n\
- \\\n\
-    f32Var *= outputScale; \\\n\
-    float4  paramData = (float4)(rMean * f32Var - outputZP, gMean * f32Var - outputZP, \\\n\
-        bMean * f32Var - outputZP, f32Var); \\\n\
- \\\n\
-    half4 paramData_f16; \\\n\
-    _viv_asm(CONV, paramData_f16, paramData); \\\n\
- \\\n\
-    int2 coord_out = (int2)(get_global_id(0), get_global_id(1)); \\\n\
- \\\n\
-    VXC_DP2x8(dst, src0, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
-        uniNormilizationLo_2x8); \\\n\
-    VXC_DP2x8(dst, src0, paramData_f16, VXC_MODIFIER(8, 14, 0, VXC_RM_ToNearestEven, 1), \\\n\
-        uniNormilizationHi_2x8); \\\n\
-    VXC_WriteImage(output, coord_out, dst, VXC_MODIFIER(0, 14, 0, VXC_RM_TowardZero, 0)); \\\n\
-}\n\
-IMAGE_PRE_PROCESS_COPY_8BITS_NHWC(U8, vxc_uchar16)\n\
-IMAGE_PRE_PROCESS_COPY_8BITS_NHWC(I8, vxc_char16)\n\
-"; /* end of pre_process_rgb_copy_trans_vx*/
-
-static const char pre_process_rgb_trans_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-_viv_uniform VXC_512Bits uniVecShift10;\n\
-_viv_uniform VXC_512Bits uniAddRShift;\n\
-_viv_uniform VXC_512Bits uniGetTempVal;\n\
-_viv_uniform VXC_512Bits uniExtractBytes;\n\
-_viv_uniform VXC_512Bits uniUnpackToR;\n\
-_viv_uniform VXC_512Bits uniUnpackToG;\n\
-_viv_uniform VXC_512Bits uniUnpackToB;\n\
-\n\
-_viv_uniform VXC_512Bits uniConvertIntergetoF32_4x4;\n\
-_viv_uniform float outputScale;\n\
-_viv_uniform VXC_512Bits uniExtract8Data_2x8;\n\
-_viv_uniform float outputZP;\n\
-\n\
-_viv_uniform VXC_512Bits uniRePackRGBLo_2x8;\n\
-_viv_uniform VXC_512Bits uniRePackRGBHi_2x8;\n\
-#define IMAGE_PRE_PROCESS_NHWC(dst_name, conv_type, dst_type, copy_type) \\\n\
-__kernel void pre_process_rgb_scale_nhwc_U8to##dst_name \\\n\
-    ( \\\n\
-__read_only image2d_array_t  input, \\\n\
-__write_only image2d_array_t output, \\\n\
-        global int           *xRatio, \\\n\
-        global int           *yRatio, \\\n\
-        global int           *xOffset, \\\n\
-        global int           *yOffset, \\\n\
-               float         rMean, \\\n\
-               float         gMean, \\\n\
-               float         bMean, \\\n\
-               float         f32Var, \\\n\
-               int           reverse_channel, \\\n\
-               int           trans \\\n\
-    ) \\\n\
-{ \\\n\
-    int2 ratioXY = (int2)(*xRatio, *yRatio); \\\n\
-    int4 xPos       = get_global_id(0); \\\n\
-    int yPos        = get_global_id(1); \\\n\
-    int2 ratioSufXY = (ratioXY >> 1) - (1 << 14); \\\n\
-    xPos += (int4)(0, 1, 2, 3); \\\n\
- \\\n\
-    /*x*/ \\\n\
-    int4 fx0 = xPos * ratioXY.x + ratioSufXY.x; \\\n\
-    int4 sx = fx0 & 0xffff8000; \\\n\
-    fx0 -= sx; \\\n\
-    sx = sx >> 15; \\\n\
- \\\n\
-    vxc_short4 fx; \\\n\
-    VXC_DP4x4(fx, fx0, 1 << 4, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAddRShift); \\\n\
-    /*y*/ \\\n\
-    int fy = yPos * ratioXY.y + ratioSufXY.y; \\\n\
-    int sy = fy & 0xffff8000; \\\n\
- \\\n\
-    fy -= sy; \\\n\
-    sy = sy >> 15; \\\n\
- \\\n\
-    fy = (fy + (1<< 4)) >> 5; \\\n\
- \\\n\
-    vxc_uchar16 line0RGB1, line0RGB2; \\\n\
-    vxc_uchar16 line1RGB3, line1RGB4; \\\n\
-    int4 coord; \\\n\
-    sx = sx * 3 + *xOffset; \\\n\
-    coord.xyz    = sx.xyz; \\\n\
-    coord.w        = sy + *yOffset; \\\n\
-    int2 coord1 = (int2)(sx.w, coord.w); \\\n\
-    VXC_ReadImage(line0RGB1, input, coord.xw, 0, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(line0RGB1, input, coord.yw, 0, VXC_MODIFIER(6, 11, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(line0RGB2, input, coord.zw, 0, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(line0RGB2, input, coord1, 0, VXC_MODIFIER(6, 11, 0, VXC_RM_TowardZero, 0)); \\\n\
- \\\n\
-    VXC_ReadImage(line1RGB3, input, coord.xw, VXC_5BITOFFSET_XY(0, 1), \\\n\
-        VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(line1RGB3, input, coord.yw, VXC_5BITOFFSET_XY(0, 1), \\\n\
-        VXC_MODIFIER(6, 11, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(line1RGB4, input, coord.zw, VXC_5BITOFFSET_XY(0, 1), \\\n\
-        VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(line1RGB4, input, coord1, VXC_5BITOFFSET_XY(0, 1), \\\n\
-        VXC_MODIFIER(6, 11, 0, VXC_RM_TowardZero, 0)); \\\n\
- \\\n\
-    float4 bgrMean = (float4)(bMean, gMean, rMean, 0); \\\n\
- \\\n\
-    bgrMean *= f32Var; \\\n\
- \\\n\
-    int4 test01, temp1; \\\n\
-    int4 test02, temp2; \\\n\
-    int4 tt; \\\n\
-    vxc_uchar4 val; \\\n\
-    int4 coord_out = (int4)(xPos.x * 3, yPos, xPos.x * 3 + 6, 0); \\\n\
- \\\n\
-    vxc_uchar8 line1, line2; \\\n\
- \\\n\
-    /*R*/ \\\n\
-    VXC_DP2x8(line1, line0RGB1, line0RGB2, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniUnpackToR); \\\n\
-    VXC_DP2x8(line2, line1RGB3, line1RGB4, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniUnpackToR); \\\n\
- \\\n\
-    VXC_DP4x4(test01, line1, line1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniVecShift10); \\\n\
-    VXC_DP4x4(temp1, line1, fx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetTempVal); \\\n\
-    temp1 = temp1 + test01; \\\n\
- \\\n\
-    VXC_DP4x4(test02, line2, line2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniVecShift10); \\\n\
-    VXC_DP4x4(temp2, line2, fx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetTempVal); \\\n\
-    temp2 = temp2 + test02; \\\n\
-    temp2 = fy * (temp2 - temp1) + (temp1 << 10); \\\n\
- \\\n\
-    vxc_float4 tmp_dst; \\\n\
-    vxc_uchar4 u8_dst; \\\n\
-    VXC_DP4x4(u8_dst, temp2, 1 << 19, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniExtractBytes); \\\n\
-    VXC_DP4x4(tmp_dst, u8_dst, u8_dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \\\n\
-        uniConvertIntergetoF32_4x4); \\\n\
- \\\n\
-    /*convert U8 to dst*/ \\\n\
-    dst_type dstRG, dstB, dst; \\\n\
-    tmp_dst = tmp_dst * f32Var - bgrMean.zzzz; \\\n\
-    tmp_dst = tmp_dst * outputScale + outputZP; \\\n\
-    conv_type dst0; \\\n\
-    _viv_asm(CONV_RTE, dst0, tmp_dst); \\\n\
-    VXC_DP2x8(dstRG, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \\\n\
- \\\n\
-    /*G*/ \\\n\
-    VXC_DP2x8(line1, line0RGB1, line0RGB2, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniUnpackToG); \\\n\
-    VXC_DP2x8(line2, line1RGB3, line1RGB4, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniUnpackToG); \\\n\
- \\\n\
-    VXC_DP4x4(test01, line1, line1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniVecShift10); \\\n\
-    VXC_DP4x4(temp1, line1, fx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetTempVal); \\\n\
-    temp1 = temp1 + test01; \\\n\
- \\\n\
-    VXC_DP4x4(test02, line2, line2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniVecShift10); \\\n\
-    VXC_DP4x4(temp2, line2, fx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetTempVal); \\\n\
-    temp2 = temp2 + test02; \\\n\
-    temp2 = fy * (temp2 - temp1) + (temp1 << 10); \\\n\
- \\\n\
-    VXC_DP4x4(u8_dst, temp2, 1 << 19, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniExtractBytes); \\\n\
-    VXC_DP4x4(tmp_dst, u8_dst, u8_dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \\\n\
-        uniConvertIntergetoF32_4x4); \\\n\
- \\\n\
-    tmp_dst = tmp_dst * f32Var - bgrMean.y; \\\n\
-    tmp_dst = tmp_dst * outputScale + outputZP; \\\n\
-    _viv_asm(CONV_RTE, dst0, tmp_dst); \\\n\
-    VXC_DP2x8(dstRG, dst0, dst0, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \\\n\
- \\\n\
-    /*B*/ \\\n\
-    VXC_DP2x8(line1, line0RGB1, line0RGB2, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniUnpackToB); \\\n\
-    VXC_DP2x8(line2, line1RGB3, line1RGB4, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniUnpackToB); \\\n\
- \\\n\
-    VXC_DP4x4(test01, line1, line1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniVecShift10); \\\n\
-    VXC_DP4x4(temp1, line1, fx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetTempVal); \\\n\
-    temp1 = temp1 + test01; \\\n\
- \\\n\
-    VXC_DP4x4(test02, line2, line2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniVecShift10); \\\n\
-    VXC_DP4x4(temp2, line2, fx, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetTempVal); \\\n\
-    temp2 = temp2 + test02; \\\n\
-    temp2 = fy * (temp2 - temp1) + (temp1 << 10); \\\n\
- \\\n\
-    VXC_DP4x4(u8_dst, temp2, 1 << 19, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniExtractBytes); \\\n\
-    VXC_DP4x4(tmp_dst, u8_dst, u8_dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \\\n\
-        uniConvertIntergetoF32_4x4); \\\n\
- \\\n\
-    tmp_dst = tmp_dst * f32Var - bgrMean.x; \\\n\
-    tmp_dst = tmp_dst * outputScale + outputZP; \\\n\
-    _viv_asm(CONV_RTE, dst0, tmp_dst); \\\n\
-    VXC_DP2x8(dstB, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \\\n\
-    VXC_DP2x8(dst, dstRG, dstB, VXC_MODIFIER(0, 5, 0, VXC_RM_ToNearestEven, 1), uniRePackRGBLo_2x8); \\\n\
-    copy_type result; \\\n\
-    _viv_asm(COPY, result, dst, 16); \\\n\
-    VXC_WriteImage(output, coord_out.xy, result, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_DP2x8(dst, dstRG, dstB, VXC_MODIFIER(0, 5, 0, VXC_RM_ToNearestEven, 1), uniRePackRGBHi_2x8); \\\n\
-    _viv_asm(COPY, result, dst, 16); \\\n\
-    VXC_WriteImage(output, coord_out.zy, result, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-}\n\
-IMAGE_PRE_PROCESS_NHWC(U8,  uint4, vxc_uchar16, vxc_uchar16)\n\
-IMAGE_PRE_PROCESS_NHWC(I8,  int4,  vxc_char16,  vxc_char16)\n\
-IMAGE_PRE_PROCESS_NHWC(I16, int4,  vxc_short8,  vxc_short8)\n\
-IMAGE_PRE_PROCESS_NHWC(F16, half4, vxc_half8,   vxc_short8)\n\
-"; /* end of pre_process_rgb_trans_vx*/
-
 static const char pre_process_yuv420_copy_u8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
 _viv_uniform VXC_512Bits uniCalculateTmpR1st_4x4;\n\
@@ -23005,19 +24836,6 @@ _viv_uniform VXC_512Bits uniCalculateTmpB2nd_4x4;\n\
 _viv_uniform VXC_512Bits uniCalculateTmpB3rd_4x4;\n\
 _viv_uniform VXC_512Bits uniCalculateTmpB4th_4x4;\n\
 _viv_uniform VXC_512Bits uniCalculateB1st_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniPackBG0_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmpAndR_2x8;\n\
-_viv_uniform VXC_512Bits uniPackRB0_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp0AndG_2x8;\n\
-_viv_uniform VXC_512Bits uniPackGR1_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp1AndB_2x8;\n\
-_viv_uniform VXC_512Bits uniPackBG1_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp1AndR_2x8;\n\
-_viv_uniform VXC_512Bits uniPackRB2_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp2AndG_2x8;\n\
-_viv_uniform VXC_512Bits uniPackGR2_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp2AndB_2x8;\n\
 \n\
 _viv_uniform VXC_512Bits uniQuantU8toU8LoB_2x8;\n\
 _viv_uniform VXC_512Bits uniQuantU8toU8HiB_2x8;\n\
@@ -23128,140 +24946,6 @@ __kernel void pre_process_yuv420_copy_U8toU8(\n\
     VXC_WriteImage2DArray(output, pos, dst2, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
-// store bgrbgrbgr\n\
-__kernel void pre_process_yuv420_copy_trans_U8(\n\
-    __read_only image2d_t            y_img,\n\
-    __read_only image2d_t            u_img,\n\
-    __read_only image2d_t            v_img,\n\
-    __write_only image2d_array_t    output,\n\
-        global int *                xRatio,\n\
-        global int *                yRatio,\n\
-        global int *               xOffset,\n\
-        global int *               yOffset,\n\
-               float                 rMean,\n\
-               float                 gMean,\n\
-               float                 bMean,\n\
-               float                   var,\n\
-               int         reverse_channel,\n\
-               int                   trans\n\
-    )\n\
-{\n\
-    int4 pos = (int4)(get_global_id(0) + (*xOffset), get_global_id(1) + (*yOffset), 0, 0);\n\
-    int4 pos1 = (int4)((get_global_id(0) + (*xOffset)) >> 1, (get_global_id(1) + (*yOffset)) >> 1, 0, 0);\n\
-    vxc_uchar16 Y;\n\
-    vxc_uchar8 U, V;\n\
-    vxc_int4 C0, C1, C2, C3;\n\
-    vxc_uchar16 R, G, B;\n\
-    vxc_uchar16 dst;\n\
-\n\
-    VXC_ReadImage(Y, y_img, pos.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(U, u_img, pos1.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, pos1.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    var *= outputScale;\n\
-    float4  paramData = (float4)(bMean * var - zp, gMean * var - zp,\\\n\
-        rMean * var - zp, var);\n\
-    half4 paramData_f16;\n\
-    _viv_asm(CONV, paramData_f16, paramData);\n\
-\n\
-    //C = Y - 16;\n\
-    //D = U - 128;\n\
-    //E = V - 128;\n\
-    // calculate R\n\
-    // ((298 * C + 409 * E + 128) >> 8) -->  [(298Y + 409V - 56992) >> 8]\n\
-    int tmpV = -56992;\n\
-    VXC_DP4x4(C0, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpR1st_4x4);\n\
-    VXC_DP4x4(C1, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpR2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpR3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpR4th_4x4);\n\
-\n\
-    VXC_DP4x4(dst, C0, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(dst, C1, tmpV, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(dst, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(dst, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-\n\
-    VXC_DP2x8(R, dst, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoR_2x8);\n\
-    VXC_DP2x8(R, dst, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiR_2x8);\n\
-\n\
-    // calculate G\n\
-    // ((298 * C - 100* D - 208 * E + 128) >> 8) --> [(298Y - 100U - 208V + 34784) >> 8]\n\
-    // 298Y - 208V\n\
-    VXC_DP4x4(C0, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpG1st_4x4);\n\
-    VXC_DP4x4(C1, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpG2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpG3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpG4th_4x4);\n\
-    // 34784 - 100U\n\
-    ushort tmpG = 34784;\n\
-    vxc_ushort8 tmpDstG;\n\
-    VXC_DP2x8(tmpDstG, U, tmpG, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGbyU_2x8);\n\
-    VXC_DP4x4(dst, C0, tmpDstG, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateG1st_4x4);\n\
-    VXC_DP4x4(dst, C1, tmpDstG, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateG2nd_4x4);\n\
-    VXC_DP4x4(dst, C2, tmpDstG, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateG3rd_4x4);\n\
-    VXC_DP4x4(dst, C3, tmpDstG, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateG4th_4x4);\n\
-\n\
-    VXC_DP2x8(G, dst, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoG_2x8);\n\
-    VXC_DP2x8(G, dst, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiG_2x8);\n\
-\n\
-    // calculate B\n\
-    // ((298 * C + 516 * D + 128) >> 8) ==> [(298Y + 516U - 70688) >> 8]\n\
-    VXC_DP4x4(C0, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpB1st_4x4);\n\
-    VXC_DP4x4(C1, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpB2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpB3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpB4th_4x4);\n\
-    tmpV = -70688;\n\
-    VXC_DP4x4(dst, C0, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(dst, C1, tmpV, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(dst, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(dst, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-\n\
-    VXC_DP2x8(B, dst, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoB_2x8);\n\
-    VXC_DP2x8(B, dst, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiB_2x8);\n\
-\n\
-    // reorder to bgr\n\
-    vxc_uchar8 tmpdst0, tmpdst1;\n\
-    vxc_uchar16 dst0, dst1, dst2;\n\
-\n\
-    if(bOrder == 2)\n\
-    {\n\
-        vxc_uchar16 exchangeData = B;\n\
-        B = R;\n\
-        R = exchangeData;\n\
-    }\n\
-\n\
-    // BGR BGR BG\n\
-    VXC_DP2x8(tmpdst0, B, G, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackBG0_2x8);\n\
-    VXC_DP2x8(dst0, tmpdst0, R, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackTmpAndR_2x8);\n\
-\n\
-    // RBG RBG RB\n\
-    VXC_DP2x8(tmpdst0, R, B, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackRB0_2x8);\n\
-    VXC_DP2x8(dst0, tmpdst0, G, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0), uniPackTmp0AndG_2x8);\n\
-\n\
-    pos = (int4)(get_global_id(0) * 3, get_global_id(1), 0, 0);\n\
-\n\
-    VXC_WriteImage2DArray(output, pos, dst0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    pos.x += 16;\n\
-\n\
-    // GRB GRB GR\n\
-    VXC_DP2x8(tmpdst0, G, R, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackGR1_2x8);\n\
-    VXC_DP2x8(dst1, tmpdst0, B, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackTmp1AndB_2x8);\n\
-\n\
-    // BGR BGR BG\n\
-    VXC_DP2x8(tmpdst0, B, G, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackBG1_2x8);\n\
-    VXC_DP2x8(dst1, tmpdst0, R, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0), uniPackTmp1AndR_2x8);\n\
-\n\
-    VXC_WriteImage2DArray(output, pos, dst1, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    pos.x += 16;\n\
-\n\
-    // RBG RBG RB\n\
-    VXC_DP2x8(tmpdst0, R, B, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackRB2_2x8);\n\
-    VXC_DP2x8(dst2, tmpdst0, G, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackTmp2AndG_2x8);\n\
-\n\
-    // GRB GRB GR\n\
-    VXC_DP2x8(tmpdst1, G, R, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackGR2_2x8);\n\
-    VXC_DP2x8(dst2, tmpdst1, B, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0), uniPackTmp2AndB_2x8);\n\
-\n\
-    VXC_WriteImage2DArray(output, pos, dst2, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-}\n\
 "; /* end of pre_process_yuv420_copy_u8_vx*/
 
 static const char pre_process_yuv420_scale_fp16_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
@@ -24182,242 +25866,6 @@ __kernel void pre_process_yuv420_scale_U8toU8(\n\
     VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
 }"; /* end of pre_process_yuv420_scale_u8_vx*/
 
-static const char pre_process_yuv420_trans_u8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-_viv_uniform VXC_512Bits uniCalculateR1st_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGbyU_2x8;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGbyU2nd_2x8;\n\
-\n\
-_viv_uniform VXC_512Bits uniCalculateB1st_4x4;\n\
-_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
-_viv_uniform VXC_512Bits uniDescaleU8_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniCalculateTmpRWise_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpRWise2nd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpRWise3rd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpRWise4th_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGWise_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGWise2nd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGWise3rd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGWise4th_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateGWise_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateGWise2nd_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniCalculateTmpBWise_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpBWise2nd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpBWise3rd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpBWise4th_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniBilinearTmp1st_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp2nd_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp3rd_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp4th_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniTransPackBgr1st_2x8;\n\
-_viv_uniform VXC_512Bits uniTransPackBgr2nd_2x8;\n\
-\n\
-_viv_uniform int bOrder;\n\
-_viv_uniform int rOrder;\n\
-_viv_uniform int zp;\n\
-_viv_uniform float outputScale;\n\
-\n\
-__kernel void pre_process_yuv420_trans_U8toU8(\n\
-    __read_only image2d_array_t y_img, __read_only image2d_array_t u_img,\n\
-    __read_only image2d_array_t v_img, __write_only image2d_array_t    output,\n\
-    global int *xRatio, global int * yRatio, global int * xOffset, global int * yOffset,\n\
-    float rMean, float gMean, float bMean, float var, int reverse_channel, int trans)\n\
-{\n\
-    int4 gidx = get_global_id(0);\n\
-    int gidy = get_global_id(1);\n\
-    gidx += (int4)(0, 1, 2, 3);\n\
-\n\
-    int4 fx = (gidx * (*xRatio) + ((*xRatio) >> 1)) - (1 << 14);\n\
-    int4 sx = fx & 0xffff8000; // Floor\n\
-    int fy, sy;\n\
-    fx -= sx;\n\
-    sx = sx >> 15;\n\
-    fx = (fx +(1 << 4)) >> 5;\n\
-\n\
-    // for y\n\
-    fy = (gidy * (*yRatio) + ((*yRatio) >> 1)) - (1<< 14);\n\
-    sy = fy & 0xffff8000; // Floor\n\
-    fy -= sy;\n\
-    sy = sy >> 15;\n\
-\n\
-    sy = sy < 0 ? 0 : sy;\n\
-    fy = fy < 0 ? 0 : fy;\n\
-\n\
-    fy = (fy + (1<< 4)) >> 5;\n\
-    sx += (*xOffset);\n\
-    sy += (*yOffset);\n\
-    int4 srcPos = (int4)(sx.x, sy, get_global_id(2), 0);\n\
-    int4 srcPos1 = (int4)(sx.x >> 1, sy >> 1, get_global_id(2), 0);\n\
-    int4 srcPos2 = (int4)(sx.x >> 1, (sy + 1) >> 1, get_global_id(2), 0);\n\
-\n\
-    vxc_uchar16 Y, U, V;\n\
-    vxc_int4 C0, C1, C2, C3;\n\
-    vxc_uchar16 R, G, B;\n\
-\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(U, u_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    srcPos1.x = (sx.x + 1) >> 1;\n\
-    VXC_ReadImage(U, u_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    VXC_ReadImage(U, u_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    srcPos2.x = (sx.x + 1) >> 1;\n\
-    VXC_ReadImage(U, u_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    srcPos.x = sx.y;\n\
-    srcPos1.x = sx.y >> 1;\n\
-    srcPos2.x = sx.y >> 1;\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(U, u_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(4, 4, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(4, 4, 0, VXC_RM_TowardZero, 0));\n\
-    srcPos1.x = (sx.y + 1) >> 1;\n\
-    VXC_ReadImage(U, u_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(5, 5, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(5, 5, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    VXC_ReadImage(U, u_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(6, 6, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(6, 6, 0, VXC_RM_TowardZero, 0));\n\
-    srcPos2.x = (sx.y + 1) >> 1;\n\
-    VXC_ReadImage(U, u_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(7, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(7, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    srcPos.x = sx.z;\n\
-    srcPos1.x = sx.z >> 1;\n\
-    srcPos2.x = sx.z >> 1;\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(8, 9, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(10, 11, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(U, u_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(8, 8, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(8, 8, 0, VXC_RM_TowardZero, 0));\n\
-    srcPos1.x = (sx.z + 1) >> 1;\n\
-    VXC_ReadImage(U, u_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(9, 9, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(9, 9, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    VXC_ReadImage(U, u_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(10, 10, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(10, 10, 0, VXC_RM_TowardZero, 0));\n\
-    srcPos2.x = (sx.z + 1) >> 1;\n\
-    VXC_ReadImage(U, u_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(11, 11, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(11, 11, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    srcPos.x = sx.w;\n\
-    srcPos1.x = sx.w >> 1;\n\
-    srcPos2.x = sx.w >> 1;\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(12, 13, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(14, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(U, u_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(12, 12, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(12, 12, 0, VXC_RM_TowardZero, 0));\n\
-    srcPos1.x = (sx.w + 1) >> 1;\n\
-    VXC_ReadImage(U, u_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(13, 13, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos1, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(13, 13, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    VXC_ReadImage(U, u_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(14, 14, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(14, 14, 0, VXC_RM_TowardZero, 0));\n\
-    srcPos2.x = (sx.w + 1) >> 1;\n\
-    VXC_ReadImage(U, u_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(15, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, srcPos2, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(15, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    //C = Y - 16; D = U - 128; E = V - 128;\n\
-    // ((298 * C + 409 * E + 128) >> 8) -->  [(298Y + 409V - 56992) >> 8]\n\
-    int tmpV = -56992;\n\
-    VXC_DP4x4(C0, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpRWise_4x4);\n\
-    VXC_DP4x4(C1, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpRWise2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpRWise3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpRWise4th_4x4);\n\
-    VXC_DP4x4(R, C0, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(R, C1, tmpV, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(R, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(R, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-\n\
-    // ((298 * C - 100* D - 208 * E + 128) >> 8) --> [(298Y - 100U - 208V + 34784) >> 8]\n\
-    // 298Y - 208V\n\
-    VXC_DP4x4(C0, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGWise_4x4);\n\
-    VXC_DP4x4(C1, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGWise2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGWise3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGWise4th_4x4);\n\
-    // 34784 - 100U\n\
-    ushort tmpG = 34784;\n\
-    vxc_ushort8 tmpDstG, tmpDstG1;\n\
-    VXC_DP2x8(tmpDstG, U, tmpG, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGbyU_2x8);\n\
-    VXC_DP2x8(tmpDstG1, U, tmpG, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGbyU2nd_2x8);\n\
-    VXC_DP4x4(G, C0, tmpDstG, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateGWise_4x4);\n\
-    VXC_DP4x4(G, C1, tmpDstG, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateGWise2nd_4x4);\n\
-    VXC_DP4x4(G, C2, tmpDstG1, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateGWise_4x4);\n\
-    VXC_DP4x4(G, C3, tmpDstG1, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateGWise2nd_4x4);\n\
-\n\
-    // ((298 * C + 516 * D + 128) >> 8) ==> [(298Y + 516U - 70688) >> 8]\n\
-    VXC_DP4x4(C0, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpBWise_4x4);\n\
-    VXC_DP4x4(C1, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpBWise2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpBWise3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpBWise4th_4x4);\n\
-    tmpV = -70688;\n\
-    VXC_DP4x4(B, C0, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(B, C1, tmpV, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(B, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(B, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-\n\
-    int4 result, temp1, temp2, dstR, dstG, dstB;\n\
-    int4 tmpData0, tmpData1;\n\
-\n\
-    VXC_DP4x4(tmpData0, B, B, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp1st_4x4);\n\
-    VXC_DP4x4(tmpData1, B, B, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp2nd_4x4);\n\
-    temp1 = fx * tmpData0 + tmpData1;\n\
-    // temp2 - temp1\n\
-    VXC_DP4x4(tmpData0, B, B, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp3rd_4x4);\n\
-    VXC_DP4x4(tmpData1, B, B, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp4th_4x4);\n\
-    temp2 = fx * tmpData0 + tmpData1;\n\
-    result = fy * temp2 + (temp1 << 10);\n\
-\n\
-    tmpV = 1 << 19;\n\
-    vxc_uchar8 dst, tmpPack;\n\
-    float4 tmpDst;\n\
-    VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4);\n\
-    tmpDst = (tmpDst - bMean) * var;\n\
-    dstB = convert_int4_rte(tmpDst * outputScale + zp);\n\
-\n\
-    VXC_DP4x4(tmpData0, G, G, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp1st_4x4);\n\
-    VXC_DP4x4(tmpData1, G, G, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp2nd_4x4);\n\
-    temp1 = fx * tmpData0 + tmpData1;\n\
-    VXC_DP4x4(tmpData0, G, G, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp3rd_4x4);\n\
-    VXC_DP4x4(tmpData1, G, G, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp4th_4x4);\n\
-    temp2 = fx * tmpData0 + tmpData1;\n\
-    result = fy * temp2 + (temp1 << 10);\n\
-    VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4);\n\
-    tmpDst = (tmpDst - gMean) * var;\n\
-    dstG = convert_int4_rte(tmpDst * outputScale + zp);\n\
-\n\
-    VXC_DP4x4(tmpData0, R, R, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp1st_4x4);\n\
-    VXC_DP4x4(tmpData1, R, R, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp2nd_4x4);\n\
-    temp1 = fx * tmpData0 + tmpData1;\n\
-    VXC_DP4x4(tmpData0, R, R, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp3rd_4x4);\n\
-    VXC_DP4x4(tmpData1, R, R, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp4th_4x4);\n\
-    temp2 = fx * tmpData0 + tmpData1;\n\
-    result = fy * temp2 + (temp1 << 10);\n\
-    VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4);\n\
-    tmpDst = (tmpDst - rMean) * var;\n\
-    dstR = convert_int4_rte(tmpDst * outputScale + zp);\n\
-\n\
-    if(bOrder == 2)\n\
-    {\n\
-        int4 exchangeData = dstB;\n\
-        dstB = dstR;\n\
-        dstR = exchangeData;\n\
-    }\n\
-\n\
-    VXC_DP2x8(tmpPack, dstB, dstG, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertInt32toUint8_2x8);\n\
-    VXC_DP2x8(dst, tmpPack, dstR, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniTransPackBgr1st_2x8);\n\
-    VXC_DP2x8(dst, tmpPack, dstR, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniTransPackBgr2nd_2x8);\n\
-\n\
-    int2 dstPos = (int2)(get_global_id(0) * 3, gidy);\n\
-    VXC_WriteImage(output, dstPos, dst, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));\n\
-}"; /* end of pre_process_yuv420_trans_u8_vx*/
-
 static const char pre_process_yuv444_copy_u8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
 _viv_uniform VXC_512Bits uniCalculateTmpR1st_4x4;\n\
@@ -24441,19 +25889,6 @@ _viv_uniform VXC_512Bits uniCalculateTmpB2nd_4x4;\n\
 _viv_uniform VXC_512Bits uniCalculateTmpB3rd_4x4;\n\
 _viv_uniform VXC_512Bits uniCalculateTmpB4th_4x4;\n\
 _viv_uniform VXC_512Bits uniCalculateB1st_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniPackBG0_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmpAndR_2x8;\n\
-_viv_uniform VXC_512Bits uniPackRB0_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp0AndG_2x8;\n\
-_viv_uniform VXC_512Bits uniPackGR1_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp1AndB_2x8;\n\
-_viv_uniform VXC_512Bits uniPackBG1_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp1AndR_2x8;\n\
-_viv_uniform VXC_512Bits uniPackRB2_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp2AndG_2x8;\n\
-_viv_uniform VXC_512Bits uniPackGR2_2x8;\n\
-_viv_uniform VXC_512Bits uniPackTmp2AndB_2x8;\n\
 \n\
 _viv_uniform VXC_512Bits uniQuantU8toU8LoB_2x8;\n\
 _viv_uniform VXC_512Bits uniQuantU8toU8HiB_2x8;\n\
@@ -24563,140 +25998,7 @@ __kernel void pre_process_yuv444_copy_U8toU8(\n\
     pos.z = rOrder;\n\
     VXC_WriteImage2DArray(output, pos, dst2, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
-\n\
-// store bgrbgrbgr\n\
-__kernel void pre_process_yuv444_copy_trans_U8(\n\
-    __read_only image2d_t            y_img,\n\
-    __read_only image2d_t            u_img,\n\
-    __read_only image2d_t            v_img,\n\
-    __write_only image2d_array_t    output,\n\
-        global int *                xRatio,\n\
-        global int *                yRatio,\n\
-        global int *               xOffset,\n\
-        global int *               yOffset,\n\
-               float                 rMean,\n\
-               float                 gMean,\n\
-               float                 bMean,\n\
-               float                   var,\n\
-               int         reverse_channel,\n\
-               int                   trans\n\
-    )\n\
-{\n\
-    int4 pos = (int4)(get_global_id(0) + (*xOffset), get_global_id(1) + (*yOffset), 0, 0);\n\
-    vxc_uchar16 Y, U, V;\n\
-    vxc_int4 C0, C1, C2, C3;\n\
-    vxc_uchar16 R, G, B;\n\
-    vxc_uchar16 dst;\n\
-\n\
-    VXC_ReadImage(Y, y_img, pos.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(U, u_img, pos.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(V, v_img, pos.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    var *= outputScale;\n\
-    float4  paramData = (float4)(bMean * var - zp, gMean * var - zp,\\\n\
-        rMean * var - zp, var);\n\
-    half4 paramData_f16;\n\
-    _viv_asm(CONV, paramData_f16, paramData);\n\
-\n\
-    //C = Y - 16;\n\
-    //D = U - 128;\n\
-    //E = V - 128;\n\
-    // calculate R\n\
-    // ((298 * C + 409 * E + 128) >> 8) -->  [(298Y + 409V - 56992) >> 8]\n\
-    int tmpV = -56992;\n\
-    VXC_DP4x4(C0, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpR1st_4x4);\n\
-    VXC_DP4x4(C1, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpR2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpR3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpR4th_4x4);\n\
-\n\
-    VXC_DP4x4(dst, C0, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(dst, C1, tmpV, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(dst, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-    VXC_DP4x4(dst, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4);\n\
-\n\
-    VXC_DP2x8(R, dst, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoR_2x8);\n\
-    VXC_DP2x8(R, dst, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiR_2x8);\n\
-\n\
-    // calculate G\n\
-    // ((298 * C - 100* D - 208 * E + 128) >> 8) --> [(298Y - 100U - 208V + 34784) >> 8]\n\
-    // 298Y - 208V\n\
-    VXC_DP4x4(C0, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpG1st_4x4);\n\
-    VXC_DP4x4(C1, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpG2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpG3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpG4th_4x4);\n\
-    // 34784 - 100U\n\
-    ushort tmpG = 34784;\n\
-    vxc_ushort8 tmpDstG0, tmpDstG1;\n\
-    VXC_DP2x8(tmpDstG0, U, tmpG, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGbyU_2x8);\n\
-    VXC_DP2x8(tmpDstG1, U, tmpG, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGbyU2_2x8);\n\
-    VXC_DP4x4(dst, C0, tmpDstG0, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateG1st_4x4);\n\
-    VXC_DP4x4(dst, C1, tmpDstG0, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateG2nd_4x4);\n\
-    VXC_DP4x4(dst, C2, tmpDstG1, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateG1st_4x4);\n\
-    VXC_DP4x4(dst, C3, tmpDstG1, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateG2nd_4x4);\n\
-\n\
-    VXC_DP2x8(G, dst, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoG_2x8);\n\
-    VXC_DP2x8(G, dst, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiG_2x8);\n\
-\n\
-    // calculate B\n\
-    // ((298 * C + 516 * D + 128) >> 8) ==> [(298Y + 516U - 70688) >> 8]\n\
-    VXC_DP4x4(C0, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpB1st_4x4);\n\
-    VXC_DP4x4(C1, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpB2nd_4x4);\n\
-    VXC_DP4x4(C2, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpB3rd_4x4);\n\
-    VXC_DP4x4(C3, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpB4th_4x4);\n\
-    tmpV = -70688;\n\
-    VXC_DP4x4(dst, C0, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(dst, C1, tmpV, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(dst, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-    VXC_DP4x4(dst, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4);\n\
-\n\
-    VXC_DP2x8(B, dst, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoB_2x8);\n\
-    VXC_DP2x8(B, dst, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiB_2x8);\n\
-\n\
-    // reorder to bgr\n\
-    vxc_uchar8 tmpdst0, tmpdst1;\n\
-    vxc_uchar16 dst0, dst1, dst2;\n\
-\n\
-    if(bOrder == 2)\n\
-    {\n\
-        vxc_uchar16 exchangeData = B;\n\
-        B = R;\n\
-        R = exchangeData;\n\
-    }\n\
-\n\
-    // BGR BGR BG\n\
-    VXC_DP2x8(tmpdst0, B, G, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackBG0_2x8);\n\
-    VXC_DP2x8(dst0, tmpdst0, R, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackTmpAndR_2x8);\n\
-\n\
-    // RBG RBG RB\n\
-    VXC_DP2x8(tmpdst0, R, B, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackRB0_2x8);\n\
-    VXC_DP2x8(dst0, tmpdst0, G, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0), uniPackTmp0AndG_2x8);\n\
-\n\
-    pos = (int4)(get_global_id(0) * 3, get_global_id(1), 0, 0);\n\
-\n\
-    VXC_WriteImage2DArray(output, pos, dst0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    pos.x += 16;\n\
-\n\
-    // GRB GRB GR\n\
-    VXC_DP2x8(tmpdst0, G, R, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackGR1_2x8);\n\
-    VXC_DP2x8(dst1, tmpdst0, B, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackTmp1AndB_2x8);\n\
-\n\
-    // BGR BGR BG\n\
-    VXC_DP2x8(tmpdst0, B, G, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackBG1_2x8);\n\
-    VXC_DP2x8(dst1, tmpdst0, R, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0), uniPackTmp1AndR_2x8);\n\
-\n\
-    VXC_WriteImage2DArray(output, pos, dst1, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    pos.x += 16;\n\
-\n\
-    // RBG RBG RB\n\
-    VXC_DP2x8(tmpdst0, R, B, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackRB2_2x8);\n\
-    VXC_DP2x8(dst2, tmpdst0, G, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackTmp2AndG_2x8);\n\
-\n\
-    // GRB GRB GR\n\
-    VXC_DP2x8(tmpdst1, G, R, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniPackGR2_2x8);\n\
-    VXC_DP2x8(dst2, tmpdst1, B, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0), uniPackTmp2AndB_2x8);\n\
-\n\
-    VXC_WriteImage2DArray(output, pos, dst2, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-}"; /* end of pre_process_yuv444_copy_u8_vx*/
+"; /* end of pre_process_yuv444_copy_u8_vx*/
 
 static const char pre_process_yuv444_scale_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -25085,203 +26387,6 @@ __kernel void pre_process_yuv444_scale_U8toF16(\n\
     _viv_asm(COPY, dst, tmpVal, 16);\n\
     VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
 }"; /* end of pre_process_yuv444_scale_fp16_vx*/
-
-static const char pre_process_yuv444_trans_u8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-_viv_uniform VXC_512Bits uniCalculateR1st_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGbyU_2x8;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGbyU2nd_2x8;\n\
-\n\
-_viv_uniform VXC_512Bits uniCalculateB1st_4x4;\n\
-_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
-_viv_uniform VXC_512Bits uniDescaleU8_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniCalculateTmpRWise_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpRWise2nd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpRWise3rd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpRWise4th_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGWise_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGWise2nd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGWise3rd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpGWise4th_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateGWise_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateGWise2nd_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniCalculateTmpBWise_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpBWise2nd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpBWise3rd_4x4;\n\
-_viv_uniform VXC_512Bits uniCalculateTmpBWise4th_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniBilinearTmp1st_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp2nd_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp3rd_4x4;\n\
-_viv_uniform VXC_512Bits uniBilinearTmp4th_4x4;\n\
-\n\
-_viv_uniform VXC_512Bits uniTransPackBgr1st_2x8;\n\
-_viv_uniform VXC_512Bits uniTransPackBgr2nd_2x8;\n\
-\n\
-_viv_uniform int bOrder;\n\
-_viv_uniform int rOrder;\n\
-_viv_uniform int zp;\n\
-_viv_uniform float outputScale;\n\
-\n\
-#define IMAGE_PRE_PROCESS_YUV444_TRANS(dst_name, dst_type) \\\n\
-__kernel void pre_process_yuv444_trans_U8to##dst_name( \\\n\
-    __read_only image2d_t y_img, __read_only image2d_t u_img, \\\n\
-    __read_only image2d_t v_img, __write_only image2d_t    output, \\\n\
-    global int *xRatio, global int * yRatio, global int * xOffset, global int * yOffset, \\\n\
-    float rMean, float gMean, float bMean, float var, int reverse_channel, int trans) \\\n\
-{ \\\n\
-    int4 gidx = get_global_id(0); \\\n\
-    int gidy = get_global_id(1); \\\n\
-    gidx += (int4)(0, 1, 2, 3); \\\n\
- \\\n\
-    int4 fx = (gidx * (*xRatio) + ((*xRatio) >> 1)) - (1 << 14); \\\n\
-    int4 sx = fx & 0xffff8000;  \\\n\
-    int fy, sy; \\\n\
-    fx -= sx; \\\n\
-    sx = sx >> 15; \\\n\
-    fx = (fx +(1 << 4)) >> 5; \\\n\
- \\\n\
-    fy = (gidy * (*yRatio) + ((*yRatio) >> 1)) - (1<< 14); \\\n\
-    sy = fy & 0xffff8000;  \\\n\
-    fy -= sy; \\\n\
-    sy = sy >> 15; \\\n\
- \\\n\
-    sy = sy < 0 ? 0 : sy; \\\n\
-    fy = fy < 0 ? 0 : fy; \\\n\
- \\\n\
-    fy = (fy + (1<< 4)) >> 5; \\\n\
-    sx += (*xOffset); \\\n\
-    sy += (*yOffset); \\\n\
-    int2 srcPos = (int2)(sx.x, sy); \\\n\
- \\\n\
-    vxc_uchar16 Y, U, V; \\\n\
-    vxc_int4 C0, C1, C2, C3; \\\n\
-    vxc_uchar16 R, G, B; \\\n\
- \\\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(U, u_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(U, u_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(V, v_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(V, v_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
- \\\n\
-    srcPos.x = sx.y; \\\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(U, u_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(U, u_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(V, v_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(V, v_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
- \\\n\
-    srcPos.x = sx.z; \\\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(8, 9, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(10, 11, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(U, u_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(8, 9, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(U, u_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(10, 11, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(V, v_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(8, 9, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(V, v_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(10, 11, 0, VXC_RM_TowardZero, 0)); \\\n\
- \\\n\
-    srcPos.x = sx.w; \\\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(12, 13, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(Y, y_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(14, 15, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(U, u_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(12, 13, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(U, u_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(14, 15, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(V, v_img, srcPos, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(12, 13, 0, VXC_RM_TowardZero, 0)); \\\n\
-    VXC_ReadImage(V, v_img, srcPos, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(14, 15, 0, VXC_RM_TowardZero, 0)); \\\n\
- \\\n\
-    int tmpV = -56992; \\\n\
-    VXC_DP4x4(C0, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpRWise_4x4); \\\n\
-    VXC_DP4x4(C1, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpRWise2nd_4x4); \\\n\
-    VXC_DP4x4(C2, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpRWise3rd_4x4); \\\n\
-    VXC_DP4x4(C3, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpRWise4th_4x4); \\\n\
-    VXC_DP4x4(R, C0, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4); \\\n\
-    VXC_DP4x4(R, C1, tmpV, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4); \\\n\
-    VXC_DP4x4(R, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4); \\\n\
-    VXC_DP4x4(R, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateR1st_4x4); \\\n\
- \\\n\
-    VXC_DP4x4(C0, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGWise_4x4); \\\n\
-    VXC_DP4x4(C1, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGWise2nd_4x4); \\\n\
-    VXC_DP4x4(C2, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGWise3rd_4x4); \\\n\
-    VXC_DP4x4(C3, Y, V, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGWise4th_4x4); \\\n\
- \\\n\
-    ushort tmpG = 34784; \\\n\
-    vxc_ushort8 tmpDstG, tmpDstG1; \\\n\
-    VXC_DP2x8(tmpDstG, U, tmpG, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGbyU_2x8); \\\n\
-    VXC_DP2x8(tmpDstG1, U, tmpG, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniCalculateTmpGbyU2nd_2x8); \\\n\
-    VXC_DP4x4(G, C0, tmpDstG, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateGWise_4x4); \\\n\
-    VXC_DP4x4(G, C1, tmpDstG, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateGWise2nd_4x4); \\\n\
-    VXC_DP4x4(G, C2, tmpDstG1, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateGWise_4x4); \\\n\
-    VXC_DP4x4(G, C3, tmpDstG1, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateGWise2nd_4x4); \\\n\
- \\\n\
-    VXC_DP4x4(C0, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpBWise_4x4); \\\n\
-    VXC_DP4x4(C1, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpBWise2nd_4x4); \\\n\
-    VXC_DP4x4(C2, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpBWise3rd_4x4); \\\n\
-    VXC_DP4x4(C3, Y, U, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniCalculateTmpBWise4th_4x4); \\\n\
-    tmpV = -70688; \\\n\
-    VXC_DP4x4(B, C0, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4); \\\n\
-    VXC_DP4x4(B, C1, tmpV, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4); \\\n\
-    VXC_DP4x4(B, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4); \\\n\
-    VXC_DP4x4(B, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4); \\\n\
- \\\n\
-    int4 result, temp1, temp2, dstR, dstG, dstB; \\\n\
-    int4 tmpData0, tmpData1; \\\n\
- \\\n\
-    VXC_DP4x4(tmpData0, B, B, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp1st_4x4); \\\n\
-    VXC_DP4x4(tmpData1, B, B, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp2nd_4x4); \\\n\
-    temp1 = fx * tmpData0 + tmpData1; \\\n\
- \\\n\
-    VXC_DP4x4(tmpData0, B, B, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp3rd_4x4); \\\n\
-    VXC_DP4x4(tmpData1, B, B, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp4th_4x4); \\\n\
-    temp2 = fx * tmpData0 + tmpData1; \\\n\
-    result = fy * temp2 + (temp1 << 10); \\\n\
- \\\n\
-    tmpV = 1 << 19; \\\n\
-    dst_type dst, tmpPack; \\\n\
-    float4 tmpDst; \\\n\
- \\\n\
-    VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4); \\\n\
-    tmpDst = (tmpDst - bMean) * var; \\\n\
-    dstB = convert_int4_rte(tmpDst * outputScale + zp); \\\n\
- \\\n\
-    VXC_DP4x4(tmpData0, G, G, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp1st_4x4); \\\n\
-    VXC_DP4x4(tmpData1, G, G, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp2nd_4x4); \\\n\
-    temp1 = fx * tmpData0 + tmpData1; \\\n\
-    VXC_DP4x4(tmpData0, G, G, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp3rd_4x4); \\\n\
-    VXC_DP4x4(tmpData1, G, G, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp4th_4x4); \\\n\
-    temp2 = fx * tmpData0 + tmpData1; \\\n\
-    result = fy * temp2 + (temp1 << 10); \\\n\
-    VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4); \\\n\
-    tmpDst = (tmpDst - gMean) * var; \\\n\
-    dstG = convert_int4_rte(tmpDst * outputScale + zp); \\\n\
- \\\n\
-    VXC_DP4x4(tmpData0, R, R, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp1st_4x4); \\\n\
-    VXC_DP4x4(tmpData1, R, R, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp2nd_4x4); \\\n\
-    temp1 = fx * tmpData0 + tmpData1; \\\n\
-    VXC_DP4x4(tmpData0, R, R, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp3rd_4x4); \\\n\
-    VXC_DP4x4(tmpData1, R, R, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniBilinearTmp4th_4x4); \\\n\
-    temp2 = fx * tmpData0 + tmpData1; \\\n\
-    result = fy * temp2 + (temp1 << 10); \\\n\
-    VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4); \\\n\
-    tmpDst = (tmpDst - rMean) * var; \\\n\
-    dstR = convert_int4_rte(tmpDst * outputScale + zp); \\\n\
- \\\n\
-    if(bOrder == 2) \\\n\
-    { \\\n\
-        int4 exchangeData = dstB; \\\n\
-        dstB = dstR; \\\n\
-        dstR = exchangeData; \\\n\
-    } \\\n\
- \\\n\
-    VXC_DP2x8(tmpPack, dstB, dstG, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertInt32toUint8_2x8); \\\n\
-    VXC_DP2x8(dst, tmpPack, dstR, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniTransPackBgr1st_2x8); \\\n\
-    VXC_DP2x8(dst, tmpPack, dstR, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniTransPackBgr2nd_2x8); \\\n\
- \\\n\
-    int2 dstPos = (int2)(get_global_id(0) * 3, gidy); \\\n\
-    VXC_WriteImage(output, dstPos, dst, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0)); \\\n\
-}\n\
-IMAGE_PRE_PROCESS_YUV444_TRANS(U8, vxc_uchar16)"; /* end of pre_process_yuv444_trans_u8_vx*/
 
 static const char prelu_vx[] = "\n\
 #include \"cl_viv_vx_ext.h\"\n\
@@ -29709,37 +30814,34 @@ __kernel void resize_bilinear_BF16toBF16_DOWN\n\
     float  top_y_f      = floor(in_y);\n\
     float  y_lerp       = in_y - top_y_f;\n\
     int    top_y_idx    = convert_int(top_y_f);\n\
-    int    bottom_y_idx = top_y_idx + 1;\n\
     vxc_short8 top;\n\
     vxc_short8 bottom;\n\
     vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(top, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(top, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(top, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(top, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.y = bottom_y_idx;\n\
-    coord_in.x = left_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     vxc_ushort8 src;\n\
     float4 left4;\n\
@@ -29765,7 +30867,14 @@ __kernel void resize_bilinear_BF16toBF16_DOWN\n\
     vxc_ushort8 tmp, dst;\n\
     _viv_asm(COPY, tmp, dst4, 16);\n\
     dst.s0123 = tmp.s1357;\n\
-    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,\n\
+        VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_bilinear_BF16toBF16_UP\n\
@@ -29788,22 +30897,24 @@ __kernel void resize_bilinear_BF16toBF16_UP\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
     vxc_ushort8 src0, src1, src2, src3, dst0, dst1;\n\
     vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
 \n\
-    coord_in.y = bottom_y_idx;\n\
-    VXC_ReadImage2DArray(src2, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src3, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src2, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src3, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 1),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+\n\
 \n\
     vxc_ushort8 bitextract_p0;\n\
     vxc_uchar16 maskShift = {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16};\n\
@@ -29813,29 +30924,36 @@ __kernel void resize_bilinear_BF16toBF16_UP\n\
     VXC_DP2x8(maskShift, bitextract_p0, constData, \\\n\
     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniGetMaskShift_2x8);\n\
 \n\
-    do\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    float4 left4;\n\
+    float4 right4;\n\
+    float4 top4;\n\
+    float4 bottom4;\n\
+\n\
+    int loop = depth - 1;\n\
+    while (coord_in.z < loop)\n\
     {\n\
         VXC_BitExtract(dst0, src0, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         VXC_BitExtract(dst1, src2, src3, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
-        coord_in.z ++;\n\
-        coord_in.y = top_y_idx;\n\
-        VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
-        coord_in.y = bottom_y_idx;\n\
-        VXC_ReadImage2DArray(src2, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage2DArray(src3, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_in.w += input_desc.s4;\n\
+        VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src2, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src3, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 1),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        coord_in.z ++;\n\
 \n\
         vxc_ushort8 dst_tmp;\n\
-        float4 left4;\n\
-        float4 right4;\n\
-        float4 top4;\n\
-        float4 bottom4;\n\
+\n\
 \n\
         VXC_DP2x8(dst_tmp, dst0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);\n\
         _viv_asm(COPY, left4, dst_tmp, 16);\n\
@@ -29857,16 +30975,39 @@ __kernel void resize_bilinear_BF16toBF16_UP\n\
         vxc_ushort8 tmp, dst;\n\
         _viv_asm(COPY, tmp, dst4, 16);\n\
         dst.s0123 = tmp.s1357;\n\
-        VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
-        coord_out.z ++;\n\
-    } while (coord_in.z < depth);\n\
+\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+        coord_out.w += output_desc.s4;\n\
+    }\n\
+\n\
+    VXC_BitExtract(dst0, src0, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_BitExtract(dst1, src2, src3, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    vxc_ushort8 dst_tmp;\n\
+    VXC_DP2x8(dst_tmp, dst0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);\n\
+    _viv_asm(COPY, left4, dst_tmp, 16);\n\
+    VXC_DP2x8(dst_tmp, dst0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);\n\
+    _viv_asm(COPY, right4, dst_tmp, 16);\n\
+    right4     -= left4;\n\
+    top4        = right4 * x_lerp + left4;\n\
+    VXC_DP2x8(dst_tmp, dst1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);\n\
+    _viv_asm(COPY, left4, dst_tmp, 16);\n\
+    VXC_DP2x8(dst_tmp, dst1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);\n\
+    _viv_asm(COPY, right4, dst_tmp, 16);\n\
+    right4     -= left4;\n\
+    bottom4     = right4 * x_lerp + left4;\n\
+    bottom4     -= top4;\n\
+    float4 dst4  = bottom4 * y_lerp + top4;\n\
+    vxc_ushort8 tmp, dst;\n\
+    _viv_asm(COPY, tmp, dst4, 16);\n\
+    dst.s0123 = tmp.s1357;\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of resize_bilinear_BF16_vx*/
 
 static const char resize_bilinear_F16_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
 _viv_uniform VXC_512Bits uniExtact8Bit_2x8;\n\
-_viv_uniform VXC_512Bits uniFp16toFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniFp16toFp32_left_4x4;\n\
 _viv_uniform VXC_512Bits uniRightSubLeft_4x4;\n\
 _viv_uniform VXC_512Bits uniExtactHalf8_2x8;\n\
 _viv_uniform float2 scale_xy;\n\
@@ -29892,94 +31033,66 @@ __kernel void resize_bilinear_F16toF16_DOWN\n\
     float4 left_x_f    = floor(in_x);\n\
     float4 x_lerp      = in_x - left_x_f;\n\
     int4   left_x_idx  = convert_int4(left_x_f);\n\
-    float4 right_x_f   = ceil(in_x);\n\
-    int4   right_x_idx = convert_int4(right_x_f);\n\
     float  in_y        = (convert_float(coord_out.y) + half_pixel_value) * scale_xy.y - half_pixel_value;\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
-    vxc_short8 top_left0, top_right0;\n\
-    vxc_short8 bottom_left0, bottom_right0;\n\
-    vxc_half8 top_left, top_right;\n\
-    vxc_half8 bottom_left, bottom_right;\n\
+    vxc_short8 top_short, bottom_short, dst;\n\
+    vxc_half8  top, bottom, result;\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(top_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+    VXC_OP4(img_load_3d, top_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, top_left, top_left0, 16);\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(top_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, top_right, top_right0, 16);\n\
-\n\
-    coord_in.y = bottom_y_idx;\n\
-    coord_in.x = left_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, bottom_left, bottom_left0, 16);\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, bottom_right, bottom_right0, 16);\n\
+    VXC_OP4(img_load_3d, top_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, top,    top_short, 16);\n\
+    _viv_asm(COPY, bottom, bottom_short, 16);\n\
 \n\
     float4 left4;\n\
     float4 right4;\n\
     float4 top4;\n\
     float4 bottom4;\n\
 \n\
-    VXC_DP4x4(left4, top_left, top_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4);\n\
-    VXC_DP4x4(right4, top_right, top_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
-    top4        = right4 * x_lerp + left4;\n\
-    VXC_DP4x4(left4, bottom_left, bottom_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4);\n\
-    VXC_DP4x4(right4, bottom_right, bottom_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
-    bottom4      = right4 * x_lerp + left4;\n\
-    bottom4     -= top4;\n\
-    float4 dst4  = bottom4 * y_lerp + top4;\n\
+    VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    top4       = right4 * x_lerp + left4;\n\
+    VXC_DP4x4(left4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    bottom4    = right4 * x_lerp + left4;\n\
+    bottom4   -= top4;\n\
+    float4 dst4       = bottom4 * y_lerp + top4;\n\
+\n\
     half4 tmp;\n\
     _viv_asm(CONV, tmp, dst4);\n\
-    VXC_DP2x8(top_left, tmp, tmp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);\n\
-    _viv_asm(COPY, top_left0, top_left, 16);\n\
-    VXC_WriteImage2DArray(output, coord_out, top_left0, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+    VXC_DP2x8(result, tmp, tmp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);\n\
+    _viv_asm(COPY, dst, result, 16);\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,\n\
+        VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_bilinear_F16toU8_DOWN\n\
@@ -29996,84 +31109,50 @@ __kernel void resize_bilinear_F16toU8_DOWN\n\
     float4 left_x_f    = floor(in_x);\n\
     float4 x_lerp      = in_x - left_x_f;\n\
     int4   left_x_idx  = convert_int4(left_x_f);\n\
-    float4 right_x_f   = ceil(in_x);\n\
-    int4   right_x_idx = convert_int4(right_x_f);\n\
     float  in_y        = (convert_float(coord_out.y) + half_pixel_value) * scale_xy.y - half_pixel_value;\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
-    vxc_short8 top_left0, top_right0;\n\
-    vxc_short8 bottom_left0, bottom_right0;\n\
-    vxc_half8 top_left, top_right;\n\
-    vxc_half8 bottom_left, bottom_right;\n\
+\n\
+    vxc_short8 top_short, bottom_short;\n\
+    vxc_half8  top, bottom;\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(top_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+    VXC_OP4(img_load_3d, top_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, top_left, top_left0, 16);\n\
+    VXC_OP4(img_load_3d, top_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom_short, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, top,    top_short, 16);\n\
+    _viv_asm(COPY, bottom, bottom_short, 16);\n\
 \n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(top_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, top_right, top_right0, 16);\n\
-\n\
-    coord_in.y = bottom_y_idx;\n\
-    coord_in.x = left_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_left0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, bottom_left, bottom_left0, 16);\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_right0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, bottom_right, bottom_right0, 16);\n\
     float4 left4;\n\
     float4 right4;\n\
     float4 top4;\n\
     float4 bottom4;\n\
-    VXC_DP4x4(left4, top_left, top_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4);\n\
-    VXC_DP4x4(right4, top_right, top_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
     top4        = right4 * x_lerp + left4;\n\
-    VXC_DP4x4(left4, bottom_left, bottom_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4);\n\
-    VXC_DP4x4(right4, bottom_right, bottom_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    VXC_DP4x4(left4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
     bottom4      = right4 * x_lerp + left4;\n\
     bottom4     -= top4;\n\
     float4 dst4  = bottom4 * y_lerp + top4;\n\
@@ -30081,7 +31160,14 @@ __kernel void resize_bilinear_F16toU8_DOWN\n\
     int4 dst     = convert_int4_rte(dst4);\n\
     vxc_uchar8 dst_uchar;\n\
     VXC_DP2x8(dst_uchar, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, dst_uchar, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst_uchar,\n\
+        VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_bilinear_F16toF16_UP\n\
@@ -30104,24 +31190,26 @@ __kernel void resize_bilinear_F16toF16_UP\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
+\n\
 \n\
     vxc_ushort8 src0, src1, src2, src3, dst0, dst1;\n\
     vxc_half8 top;\n\
     vxc_half8 bottom;\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
 \n\
-    coord_in.y = bottom_y_idx;\n\
-    VXC_ReadImage2DArray(src2, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src3, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src2, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src3, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 1),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     vxc_ushort8 bitextract_p0;\n\
     vxc_uchar16 maskShift = {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16};\n\
@@ -30131,32 +31219,41 @@ __kernel void resize_bilinear_F16toF16_UP\n\
     VXC_DP2x8(maskShift, bitextract_p0, constData, \\\n\
     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniGetMaskShift_2x8);\n\
 \n\
-    do\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    float4 left4;\n\
+    float4 right4;\n\
+    float4 top4;\n\
+    float4 bottom4;\n\
+\n\
+    int loop = depth - 1;\n\
+    while (coord_in.z < loop)\n\
     {\n\
         VXC_BitExtract(dst0, src0, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         VXC_BitExtract(dst1, src2, src3, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         _viv_asm(COPY, top, dst0, 16);\n\
         _viv_asm(COPY, bottom, dst1, 16);\n\
+\n\
+\n\
+        coord_in.w += input_desc.s4;\n\
+        VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src2, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src3, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 1),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         coord_in.z ++;\n\
-        coord_in.y = top_y_idx;\n\
-        VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        coord_in.y = bottom_y_idx;\n\
-        VXC_ReadImage2DArray(src2, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage2DArray(src3, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        float4 left4;\n\
-        float4 right4;\n\
-        float4 top4;\n\
-        float4 bottom4;\n\
-        VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4);\n\
-        VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_part1_4x4);\n\
+\n\
+        VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_left_4x4);\n\
+        VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
         top4        = right4 * x_lerp + left4;\n\
-        VXC_DP4x4(left4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_4x4);\n\
-        VXC_DP4x4(right4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_part1_4x4);\n\
+        VXC_DP4x4(left4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_left_4x4);\n\
+        VXC_DP4x4(right4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
         bottom4      = right4 * x_lerp + left4;\n\
         bottom4     -= top4;\n\
         float4 dst4  = bottom4 * y_lerp + top4;\n\
@@ -30164,9 +31261,30 @@ __kernel void resize_bilinear_F16toF16_UP\n\
         _viv_asm(CONV, tmp, dst4);\n\
         VXC_DP2x8(top, tmp, tmp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);\n\
         _viv_asm(COPY, dst0, top, 16);\n\
-        VXC_WriteImage2DArray(output, coord_out, dst0, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
-        coord_out.z ++;\n\
-    } while (coord_in.z < depth);\n\
+\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst0, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+        coord_out.w += output_desc.s4;\n\
+    }\n\
+\n\
+    VXC_BitExtract(dst0, src0, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_BitExtract(dst1, src2, src3, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, top, dst0, 16);\n\
+    _viv_asm(COPY, bottom, dst1, 16);\n\
+\n\
+    VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    top4        = right4 * x_lerp + left4;\n\
+    VXC_DP4x4(left4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniFp16toFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, bottom, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    bottom4      = right4 * x_lerp + left4;\n\
+    bottom4     -= top4;\n\
+    float4 dst4  = bottom4 * y_lerp + top4;\n\
+    half4 tmp;\n\
+    _viv_asm(CONV, tmp, dst4);\n\
+    VXC_DP2x8(top, tmp, tmp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);\n\
+    _viv_asm(COPY, dst0, top, 16);\n\
+\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst0, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of resize_bilinear_F16_vx*/
 
@@ -30177,8 +31295,8 @@ _viv_uniform float2 scale_xy;\n\
 _viv_uniform int depth;\n\
 _viv_uniform VXC_512Bits uniConvertI32toI16_2x8;\n\
 _viv_uniform VXC_512Bits uniGetMaskShift_2x8;\n\
-_viv_uniform VXC_512Bits uniConvertDFP2FP32_part1_4x4;\n\
-_viv_uniform VXC_512Bits uniConvertDFP2FP32_4x4;\n\
+_viv_uniform VXC_512Bits uniDFPtoFp32_left_4x4;\n\
+_viv_uniform VXC_512Bits uniRightSubLeft_4x4;\n\
 _viv_uniform float dfpScale;\n\
 _viv_uniform float half_pixel_value;\n\
 \n\
@@ -30206,8 +31324,6 @@ __kernel void resize_bilinear_I16toI16_UP\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
 \n\
     vxc_ushort8 src0, src1, src2, src3, dst0, dst1;\n\
 \n\
@@ -30216,16 +31332,19 @@ __kernel void resize_bilinear_I16toI16_UP\n\
 \n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
 \n\
-    coord_in.y = bottom_y_idx;\n\
-    VXC_ReadImage2DArray(src2, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src3, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src2, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src3, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 1),\n\
+            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     vxc_ushort8 bitextract_p0;\n\
     vxc_uchar16 maskShift = {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16};\n\
@@ -30235,39 +31354,42 @@ __kernel void resize_bilinear_I16toI16_UP\n\
     VXC_DP2x8(maskShift, bitextract_p0, constData, \\\n\
     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniGetMaskShift_2x8);\n\
 \n\
-    do\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    float4 left4;\n\
+    float4 right4;\n\
+    float4 top4;\n\
+    float4 bottom4;\n\
+\n\
+    int loop = depth - 1;\n\
+    while (coord_in.z < loop)\n\
     {\n\
         VXC_BitExtract(dst0, src0, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         VXC_BitExtract(dst1, src2, src3, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         _viv_asm(COPY, top, dst0, 16);\n\
         _viv_asm(COPY, bottom, dst1, 16);\n\
-\n\
-        float4 left4;\n\
-        float4 right4;\n\
-        float4 top4;\n\
-        float4 bottom4;\n\
-\n\
+        coord_in.w += input_desc.s4;\n\
+        VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src2, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src3, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 1),\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         coord_in.z ++;\n\
-        coord_in.y = top_y_idx;\n\
-        VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
-        coord_in.y = bottom_y_idx;\n\
-        VXC_ReadImage2DArray(src2, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage2DArray(src3, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-        VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-        VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_part1_4x4);\n\
+        VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+        VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
         top4        = right4 * x_lerp + left4;\n\
 \n\
         VXC_DP4x4(left4, bottom, bottom, \\\n\
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
         VXC_DP4x4(right4, bottom, bottom, \\\n\
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_part1_4x4);\n\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
         bottom4      = right4 * x_lerp + left4;\n\
         bottom4     -= top4;\n\
         float4 dst4  = bottom4 * y_lerp + top4;\n\
@@ -30275,10 +31397,30 @@ __kernel void resize_bilinear_I16toI16_UP\n\
         int4 dst     = convert_int4_rte(dst4);\n\
 \n\
         VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
-        VXC_WriteImage2DArray(output, coord_out, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 \n\
-        coord_out.z ++;\n\
-    } while (coord_in.z < depth);\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+        coord_out.w += output_desc.s4;\n\
+    }\n\
+\n\
+    VXC_BitExtract(dst0, src0, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_BitExtract(dst1, src2, src3, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, top, dst0, 16);\n\
+    _viv_asm(COPY, bottom, dst1, 16);\n\
+    VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    top4        = right4 * x_lerp + left4;\n\
+    VXC_DP4x4(left4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    bottom4      = right4 * x_lerp + left4;\n\
+    bottom4     -= top4;\n\
+    float4 dst4  = bottom4 * y_lerp + top4;\n\
+    dst4         = dst4 * dfpScale;\n\
+    int4 dst     = convert_int4_rte(dst4);\n\
+    VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
 }\n\
 \n\
 __kernel void resize_bilinear_I16toI16_DOWN\n\
@@ -30297,104 +31439,68 @@ __kernel void resize_bilinear_I16toI16_DOWN\n\
     float4 left_x_f    = floor(in_x);\n\
     float4 x_lerp      = in_x - left_x_f;\n\
     int4   left_x_idx  = convert_int4(left_x_f);\n\
-    float4 right_x_f   = ceil(in_x);\n\
-    int4   right_x_idx = convert_int4(right_x_f);\n\
-\n\
     float  in_y        = (convert_float(coord_out.y) + half_pixel_value) * scale_xy.y - half_pixel_value;\n\
-\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
 \n\
-    vxc_short8 top_left, top_right;\n\
-    vxc_short8 bottom_left, bottom_right;\n\
-\n\
+    vxc_short8 top, bottom, result;\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.y = bottom_y_idx;\n\
-    coord_in.x = left_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     float4 left4;\n\
     float4 right4;\n\
     float4 top4;\n\
     float4 bottom4;\n\
 \n\
-    VXC_DP4x4(left4, top_left, top_left, \\\n\
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-    VXC_DP4x4(right4, top_right, top_right, \\\n\
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-\n\
-    right4      -= left4;\n\
+    VXC_DP4x4(left4, top, top, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, top, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
     top4        = right4 * x_lerp + left4;\n\
 \n\
-    VXC_DP4x4(left4, bottom_left, bottom_left, \\\n\
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-    VXC_DP4x4(right4, bottom_right, bottom_right, \\\n\
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-\n\
-    right4      -= left4;\n\
+    VXC_DP4x4(left4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
     bottom4      = right4 * x_lerp + left4;\n\
-\n\
     bottom4     -= top4;\n\
     float4 dst4  = bottom4 * y_lerp + top4;\n\
-\n\
     dst4         = dst4 * dfpScale;\n\
-\n\
     int4 dst     = convert_int4_rte(dst4);\n\
 \n\
-    VXC_DP2x8(top_left, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, top_left, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, result,\n\
+        VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 "; /* end of resize_bilinear_I16_vx*/
@@ -30406,8 +31512,8 @@ _viv_uniform float2 scale_xy;\n\
 _viv_uniform int depth;\n\
 _viv_uniform VXC_512Bits uniConvertI32toI16_2x8;\n\
 _viv_uniform VXC_512Bits uniGetMaskShift_2x8;\n\
-_viv_uniform VXC_512Bits uniConvertDFP2FP32_part1_4x4;\n\
-_viv_uniform VXC_512Bits uniConvertDFP2FP32_4x4;\n\
+_viv_uniform VXC_512Bits uniDFPtoFp32_left_4x4;\n\
+_viv_uniform VXC_512Bits uniRightSubLeft_4x4;\n\
 _viv_uniform float dfpScale;\n\
 _viv_uniform float half_pixel_value;\n\
 \n\
@@ -30435,8 +31541,6 @@ __kernel void resize_bilinear_I8toI8_UP\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
 \n\
     vxc_uchar16 src0, src1, dst0, dst1;\n\
 \n\
@@ -30445,12 +31549,15 @@ __kernel void resize_bilinear_I8toI8_UP\n\
 \n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
 \n\
-    coord_in.y = bottom_y_idx;\n\
-    VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     vxc_ushort8 bitextract_p0;\n\
     vxc_uchar16 maskShift = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};\n\
@@ -30460,37 +31567,42 @@ __kernel void resize_bilinear_I8toI8_UP\n\
     VXC_DP2x8(maskShift, bitextract_p0, constData, \\\n\
     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniGetMaskShift_2x8);\n\
 \n\
-    do\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    float4 left4;\n\
+    float4 right4;\n\
+    float4 top4;\n\
+    float4 bottom4;\n\
+\n\
+    int loop = depth - 1;\n\
+    while (coord_in.z < loop)\n\
     {\n\
         VXC_BitExtract(dst0, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         VXC_BitExtract(dst1, src1, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         _viv_asm(COPY, top, dst0, 16);\n\
         _viv_asm(COPY, bottom, dst1, 16);\n\
 \n\
+        coord_in.w += input_desc.s4;\n\
+        VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+                VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
         coord_in.z ++;\n\
-        coord_in.y = top_y_idx;\n\
-        VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-        coord_in.y = bottom_y_idx;\n\
-        VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-        float4 left4;\n\
-        float4 right4;\n\
-        float4 top4;\n\
-        float4 bottom4;\n\
 \n\
         VXC_DP4x4(left4, top, top, \\\n\
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
         VXC_DP4x4(right4, top, top, \\\n\
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_part1_4x4);\n\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
 \n\
         top4        = right4 * x_lerp + left4;\n\
 \n\
         VXC_DP4x4(left4, bottom, bottom, \\\n\
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
         VXC_DP4x4(right4, bottom, bottom, \\\n\
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_part1_4x4);\n\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
 \n\
         bottom4      = right4 * x_lerp + left4;\n\
         bottom4     -= top4;\n\
@@ -30498,10 +31610,31 @@ __kernel void resize_bilinear_I8toI8_UP\n\
         dst4         = dst4 * dfpScale;\n\
         int4 dst     = convert_int4_rte(dst4);\n\
         VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
-        VXC_WriteImage2DArray(output, coord_out, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 \n\
-        coord_out.z ++;\n\
-    } while (coord_in.z < depth);\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+        coord_out.w += output_desc.s4;\n\
+    }\n\
+\n\
+    VXC_BitExtract(dst0, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_BitExtract(dst1, src1, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    _viv_asm(COPY, top, dst0, 16);\n\
+    _viv_asm(COPY, bottom, dst1, 16);\n\
+    VXC_DP4x4(left4, top, top, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, top, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    top4        = right4 * x_lerp + left4;\n\
+    VXC_DP4x4(left4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
+    bottom4      = right4 * x_lerp + left4;\n\
+    bottom4     -= top4;\n\
+    float4 dst4  = bottom4 * y_lerp + top4;\n\
+    dst4         = dst4 * dfpScale;\n\
+    int4 dst     = convert_int4_rte(dst4);\n\
+    VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_bilinear_I8toI8_DOWN\n\
@@ -30513,98 +31646,55 @@ __kernel void resize_bilinear_I8toI8_DOWN\n\
     )\n\
 {\n\
     int4 coord_out  =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-\n\
     int4   coord_x     = coord_out.xxxx + (int4)(0, 1, 2, 3);\n\
     float4 in_x        = (convert_float4(coord_x) + half_pixel_value) * scale_xy.xxxx - half_pixel_value;\n\
-\n\
     float4 left_x_f    = floor(in_x);\n\
     float4 x_lerp      = in_x - left_x_f;\n\
     int4   left_x_idx  = convert_int4(left_x_f);\n\
-    float4 right_x_f   = ceil(in_x);\n\
-    int4   right_x_idx = convert_int4(right_x_f);\n\
-\n\
     float  in_y        = (convert_float(coord_out.y) + half_pixel_value) * scale_xy.y - half_pixel_value;\n\
-\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
-\n\
-    vxc_char16 top_left, top_right;\n\
-    vxc_char16 bottom_left, bottom_right;\n\
-\n\
+    vxc_char16 top, bottom, result;\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.y = bottom_y_idx;\n\
-    coord_in.x = left_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     float4 left4;\n\
     float4 right4;\n\
     float4 top4;\n\
     float4 bottom4;\n\
 \n\
-    VXC_DP4x4(left4, top_left, top_left, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-    VXC_DP4x4(right4, top_right, top_right, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-\n\
-    right4      -= left4;\n\
+    VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
     top4        = right4 * x_lerp + left4;\n\
 \n\
-    VXC_DP4x4(left4, bottom_left, bottom_left, \\\n\
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-    VXC_DP4x4(right4, bottom_right, bottom_right, \\\n\
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);\n\
-\n\
-    right4      -= left4;\n\
+    VXC_DP4x4(left4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);\n\
     bottom4      = right4 * x_lerp + left4;\n\
 \n\
     bottom4     -= top4;\n\
@@ -30614,21 +31704,26 @@ __kernel void resize_bilinear_I8toI8_DOWN\n\
 \n\
     int4 dst     = convert_int4_rte(dst4);\n\
 \n\
-    VXC_DP2x8(top_left, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, top_left, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, result, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of resize_bilinear_I8_vx*/
 
 static const char resize_bilinear_U8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
-_viv_uniform VXC_512Bits uniU8SubZPtoFp32_4x4;\n\
+_viv_uniform VXC_512Bits uniU8SubZPtoFp32_left_4x4;\n\
+_viv_uniform VXC_512Bits uniU8RightSubLeft_4x4;\n\
 _viv_uniform VXC_512Bits uniExtact8Bit_2x8;\n\
 _viv_uniform float2 scale_xy;\n\
 _viv_uniform int depth;\n\
 _viv_uniform int input_ZP;\n\
 _viv_uniform float uint8Scale;\n\
 _viv_uniform float output_ZP;\n\
-_viv_uniform VXC_512Bits uniU8SubZPtoFp32_part1_4x4;\n\
 _viv_uniform VXC_512Bits uniConvertI32toI16_2x8;\n\
 _viv_uniform VXC_512Bits uniGetMaskShift_2x8;\n\
 _viv_uniform float half_pixel_value;\n\
@@ -30647,69 +31742,36 @@ __kernel void resize_bilinear_U8toF16_DOWN\n\
     float4 left_x_f    = floor(in_x);\n\
     float4 x_lerp      = in_x - left_x_f;\n\
     int4   left_x_idx  = convert_int4(left_x_f);\n\
-    float4 right_x_f   = ceil(in_x);\n\
-    int4   right_x_idx = convert_int4(right_x_f);\n\
     float  in_y        = (convert_float(coord_out.y) + half_pixel_value) * scale_xy.y - half_pixel_value;\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
-    vxc_uchar16 top_left, top_right;\n\
-    vxc_uchar16 bottom_left, bottom_right;\n\
+    vxc_uchar16 top, bottom;\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.y = bottom_y_idx;\n\
-    coord_in.x = left_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     float4 left4;\n\
     float4 right4;\n\
@@ -30718,16 +31780,12 @@ __kernel void resize_bilinear_U8toF16_DOWN\n\
 \n\
     unsigned char inputZP;\n\
     _viv_asm(COPY, inputZP, input_ZP, 4);\n\
-    VXC_DP4x4(left4, top_left, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-    VXC_DP4x4(right4, top_right, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-\n\
-    right4      -= left4;\n\
+    VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);\n\
     top4        = right4 * x_lerp + left4;\n\
 \n\
-    VXC_DP4x4(left4, bottom_left, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-    VXC_DP4x4(right4, bottom_right, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-\n\
-    right4      -= left4;\n\
+    VXC_DP4x4(left4, bottom, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);\n\
     bottom4      = right4 * x_lerp + left4;\n\
 \n\
     bottom4     -= top4;\n\
@@ -30741,7 +31799,12 @@ __kernel void resize_bilinear_U8toF16_DOWN\n\
     vxc_short8 dst_short;\n\
     _viv_asm(COPY, dst_short, dst, 16);\n\
 \n\
-    VXC_WriteImage2DArray(output, coord_out, dst_short.s0246, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst_short.s0246,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_bilinear_U8toU8_UP\n\
@@ -30768,8 +31831,6 @@ __kernel void resize_bilinear_U8toU8_UP\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
 \n\
     vxc_uchar16 src0, src1;\n\
 \n\
@@ -30778,12 +31839,15 @@ __kernel void resize_bilinear_U8toU8_UP\n\
 \n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
 \n\
-    coord_in.y = bottom_y_idx;\n\
-    VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     vxc_ushort8 bitextract_p0;\n\
     vxc_uchar16 maskShift = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};\n\
@@ -30793,46 +31857,67 @@ __kernel void resize_bilinear_U8toU8_UP\n\
     VXC_DP2x8(maskShift, bitextract_p0, constData, \\\n\
     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniGetMaskShift_2x8);\n\
 \n\
-    do\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+\n\
+    float4 left4;\n\
+    float4 right4;\n\
+    float4 top4;\n\
+    float4 bottom4;\n\
+\n\
+    int loop = depth - 1;\n\
+    while (coord_in.z < loop)\n\
     {\n\
         VXC_BitExtract(top, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         VXC_BitExtract(bottom, src1, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
+        coord_in.w += input_desc.s4;\n\
+        VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+                VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+        VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+                VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
         coord_in.z ++;\n\
-        coord_in.y = top_y_idx;\n\
-        VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-        coord_in.y = bottom_y_idx;\n\
-        VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-        VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-        float4 left4;\n\
-        float4 right4;\n\
-        float4 top4;\n\
-        float4 bottom4;\n\
-\n\
         unsigned char inputZP;\n\
         _viv_asm(COPY, inputZP, input_ZP, 4);\n\
-        VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-        VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_part1_4x4);\n\
-\n\
+        VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);\n\
+        VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);\n\
         top4        = right4 * x_lerp + left4;\n\
 \n\
         VXC_DP4x4(left4, bottom, inputZP, \\\n\
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);\n\
         VXC_DP4x4(right4, bottom, bottom, \\\n\
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_part1_4x4);\n\
-\n\
+        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);\n\
         bottom4      = right4 * x_lerp + left4;\n\
         bottom4     -= top4;\n\
         float4 dst4  = bottom4 * y_lerp + top4;\n\
         dst4         = dst4 * uint8Scale + output_ZP;\n\
         int4 dst     = convert_int4_rte(dst4);\n\
         VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
-        VXC_WriteImage2DArray(output, coord_out, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+        coord_out.w += output_desc.s4;\n\
+    }\n\
 \n\
-        coord_out.z ++;\n\
-    } while (coord_in.z < depth);\n\
+    VXC_BitExtract(top, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_BitExtract(bottom, src1, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    unsigned char inputZP;\n\
+    _viv_asm(COPY, inputZP, input_ZP, 4);\n\
+    VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);\n\
+    top4        = right4 * x_lerp + left4;\n\
+\n\
+    VXC_DP4x4(left4, bottom, inputZP, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, bottom, \\\n\
+    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);\n\
+    bottom4      = right4 * x_lerp + left4;\n\
+    bottom4     -= top4;\n\
+    float4 dst4  = bottom4 * y_lerp + top4;\n\
+    dst4         = dst4 * uint8Scale + output_ZP;\n\
+    int4 dst     = convert_int4_rte(dst4);\n\
+    VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_bilinear_U8toU8_DOWN\n\
@@ -30849,69 +31934,36 @@ __kernel void resize_bilinear_U8toU8_DOWN\n\
     float4 left_x_f    = floor(in_x);\n\
     float4 x_lerp      = in_x - left_x_f;\n\
     int4   left_x_idx  = convert_int4(left_x_f);\n\
-    float4 right_x_f   = ceil(in_x);\n\
-    int4   right_x_idx = convert_int4(right_x_f);\n\
     float  in_y        = (convert_float(coord_out.y) + half_pixel_value) * scale_xy.y - half_pixel_value;\n\
     float  top_y_f     = floor(in_y);\n\
     float  y_lerp      = in_y - top_y_f;\n\
     int    top_y_idx   = convert_int(top_y_f);\n\
-    float  bottom_y_f  = ceil(in_y);\n\
-    int    bottom_y_idx= convert_int(bottom_y_f);\n\
-    vxc_uchar16 top_left, top_right;\n\
-    vxc_uchar16 bottom_left, bottom_right;\n\
+    vxc_uchar16 top, bottom, result;\n\
     int4 coord_in = (int4)(left_x_idx.x, top_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(top_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.y = bottom_y_idx;\n\
-    coord_in.x = left_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = left_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_left, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord_in.x = right_x_idx.x;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.y;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.z;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
-    coord_in.x = right_x_idx.w;\n\
-    VXC_ReadImage2DArray(bottom_right, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),\n\
+            VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     float4 left4;\n\
     float4 right4;\n\
@@ -30920,27 +31972,28 @@ __kernel void resize_bilinear_U8toU8_DOWN\n\
 \n\
     unsigned char inputZP;\n\
     _viv_asm(COPY, inputZP, input_ZP, 4);\n\
-    VXC_DP4x4(left4, top_left, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-    VXC_DP4x4(right4, top_right, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-\n\
-    right4      -= left4;\n\
+    VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);\n\
     top4        = right4 * x_lerp + left4;\n\
 \n\
-    VXC_DP4x4(left4, bottom_left, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-    VXC_DP4x4(right4, bottom_right, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_4x4);\n\
-\n\
-    right4      -= left4;\n\
+    VXC_DP4x4(left4, bottom, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);\n\
+    VXC_DP4x4(right4, bottom, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);\n\
     bottom4      = right4 * x_lerp + left4;\n\
 \n\
     bottom4     -= top4;\n\
     float4 dst4  = bottom4 * y_lerp + top4;\n\
 \n\
     dst4         = dst4 * uint8Scale + output_ZP;\n\
-\n\
     int4 dst     = convert_int4_rte(dst4);\n\
 \n\
-    VXC_DP2x8(top_left, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, top_left, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, result,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of resize_bilinear_U8_vx*/
 
@@ -31082,7 +32135,8 @@ __kernel void resize_bilinear_U8toU8_UP_opt\n\
     baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
     _viv_asm(MOV, coord_out.w, baseAddr);\n\
 \n\
-    do\n\
+    int loop = depth - 1;\n\
+    while (coord_in.z < loop)\n\
     {\n\
         VXC_BitExtract(top_bottom, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         VXC_BitExtract(top_bottom, src1, src1, maskShift, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0));\n\
@@ -31101,8 +32155,17 @@ __kernel void resize_bilinear_U8toU8_UP_opt\n\
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
         coord_out.w += output_desc.s4;\n\
 \n\
-        coord_out.z ++;\n\
-    } while (coord_out.z < depth);\n\
+        coord_in.z ++;\n\
+    }\n\
+\n\
+    VXC_BitExtract(top_bottom, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_BitExtract(top_bottom, src1, src1, maskShift, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 0));\n\
+    vxc_uchar16 dst;\n\
+    VXC_DP4x4_b(dst, lerp.hi, lerp.lo, top_bottom,\n\
+            VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniBilinear_4x4_b);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,\n\
+            VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
 }\n\
 \n\
 #endif"; /* end of resize_bilinear_U8_opt_vx*/
@@ -31137,18 +32200,30 @@ __kernel void resize_nearest_F16toF16\n\
     vxc_short8 src;\n\
     int4 coord_in = (int4)(in_x_idx.x, in_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.y;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.z;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.w;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_WriteImage2DArray(output, coord_out, src, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, src,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 _viv_uniform VXC_512Bits uniGetExtractData_2x8;\n\
@@ -31165,18 +32240,29 @@ __kernel void resize_nearest_F16toF16_op\n\
     vxc_ushort8 src0, src1, dst;\n\
     int4 coord_in = (int4)(in_x_idx.x, in_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    //in_x_idx = in_x_idx - in_x_idx.xxxx;\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),\n\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+\n\
     vxc_uchar16 mask = (vxc_uchar16)(8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16);\n\
     vxc_ushort8 input_idx;\n\
     _viv_asm(COPY, input_idx, in_x_idx, 16);\n\
     VXC_DP2x8(mask, input_idx, input_idx, \\\n\
     VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetExtractData_2x8);\n\
     VXC_BitExtract(dst, src0, src1, mask, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 _viv_uniform VXC_512Bits uniConvertI8toI8_2x8;\n\
@@ -31193,19 +32279,31 @@ __kernel void resize_nearest_I8toI8\n\
     vxc_char16 src;\n\
     int4 coord_in = (int4)(in_x_idx.x, in_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.y;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.z;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.w;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
     VXC_DP2x8(src, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertI8toI8_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, src, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, src,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_nearest_I8toI8_op\n\
@@ -31222,8 +32320,14 @@ __kernel void resize_nearest_I8toI8_op\n\
     vxc_char16 dst;\n\
     int4 coord_in = (int4)(in_x_idx.x, in_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+\n\
     vxc_uchar16 mask = (vxc_uchar16)(8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8);\n\
     vxc_ushort8 input_idx;\n\
     _viv_asm(COPY, input_idx, in_x_idx, 16);\n\
@@ -31232,7 +32336,13 @@ __kernel void resize_nearest_I8toI8_op\n\
     VXC_BitExtract(dst0, src0, src0, mask, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
     _viv_asm(COPY, dst, dst0, 8);\n\
     VXC_DP2x8(dst, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniConvertI8toI8_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_nearest_U8toU8\n\
@@ -31248,22 +32358,34 @@ __kernel void resize_nearest_U8toU8\n\
     vxc_uchar16 src;\n\
     int4 coord_in = (int4)(in_x_idx.x, in_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.y;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.z;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.w;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
     vxc_ushort8 multiplier;\n\
     _viv_asm(COPY, multiplier, multAndoutZP, 16);\n\
     VXC_DP2x8(src, src, multiplier, \\\n\
     VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniMultiplyAndPostShift_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, src, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, src,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_nearest_U8toU8_op\n\
@@ -31279,8 +32401,14 @@ __kernel void resize_nearest_U8toU8_op\n\
     vxc_uchar16 src0, dst;\n\
     int4 coord_in = (int4)(in_x_idx.x, in_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
+\n\
     vxc_uchar16 mask = (vxc_uchar16)(8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8);\n\
     vxc_ushort8 input_idx;\n\
     _viv_asm(COPY, input_idx, in_x_idx, 16);\n\
@@ -31289,7 +32417,13 @@ __kernel void resize_nearest_U8toU8_op\n\
     vxc_ushort8 multiplier;\n\
     _viv_asm(COPY, multiplier, multAndoutZP, 16);\n\
     VXC_DP2x8(dst, dst, multiplier, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniMultiplyAndPostShift_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_nearest_I16toI16\n\
@@ -31305,19 +32439,32 @@ __kernel void resize_nearest_I16toI16\n\
     vxc_short8 src;\n\
     int4 coord_in = (int4)(in_x_idx.x, in_y_idx, coord_out.z, 0);\n\
 \n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.y;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.z;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));\n\
     coord_in.x = in_x_idx.w;\n\
-    VXC_ReadImage2DArray(src, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));\n\
+\n\
     VXC_DP2x8(src, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniConvertI8toI8_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, src, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, src,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
 __kernel void resize_nearest_I16toI16_op\n\
@@ -31333,10 +32480,16 @@ __kernel void resize_nearest_I16toI16_op\n\
     vxc_ushort8 src0, src1, dst0;\n\
     vxc_short8 dst;\n\
     int4 coord_in = (int4)(in_x_idx.x, in_y_idx, coord_out.z, 0);\n\
-    VXC_ReadImage2DArray(src0, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input, coord_in, \\\n\
-    VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 input_desc;\n\
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));\n\
+    int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;\n\
+    _viv_asm(MOV, coord_in.w, baseAddr);\n\
+\n\
+    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),\n\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),\n\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 \n\
     //in_x_idx = in_x_idx - in_x_idx.xxxx;\n\
     vxc_uchar16 mask = (vxc_uchar16)(8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16);\n\
@@ -31346,7 +32499,13 @@ __kernel void resize_nearest_I16toI16_op\n\
     VXC_BitExtract(dst0, src0, src1, mask, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
     _viv_asm(COPY, dst, dst0, 8);\n\
     VXC_DP2x8(dst, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniConvertI8toI8_2x8);\n\
-    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
+\n\
+    int8 output_desc;\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));\n\
+    baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;\n\
+    _viv_asm(MOV, coord_out.w, baseAddr);\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst,\n\
+                   VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of resize_nearest_vx*/
 
@@ -31672,6 +32831,142 @@ __kernel void select_I8_U8_U8toU8_2D(\n\
     SELECT_U8(VXC_ReadImage, VXC_WriteImage)\n\
 }\n\
 "; /* end of select_vx*/
+
+static const char space2depth_internal_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniExtractEvenUint8Stride2_2x8;\n\
+_viv_uniform VXC_512Bits uniExtractOddUint8Stride2_2x8;\n\
+_viv_uniform VXC_512Bits uniExtractEvenFp16Stride2_4x4;\n\
+_viv_uniform VXC_512Bits uniExtractOddFp16Stride2_4x4;\n\
+\n\
+_viv_uniform int input_depth;\n\
+\n\
+#define SPACE2DEPTH_INTERNAL_QINT_TO_QINT(src0_type_name, src1_type_name, read_type) \\\n\
+__kernel void space2depth_internal_##src0_type_name##to##src1_type_name( \\\n\
+    image2d_array_t input, \\\n\
+    image2d_array_t output, \\\n\
+    int block_size_x, \\\n\
+    int block_size_y \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+    int gidz = get_global_id(2); \\\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0); \\\n\
+    read_type src; \\\n\
+    VXC_ReadImage2DArray(src, input, coord, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                    VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \\\n\
+ \\\n\
+    ushort stride_x = (ushort)block_size_x; \\\n\
+    ushort stride_y = (ushort)block_size_y; \\\n\
+    ushort sidx = (ushort)gidx; \\\n\
+    ushort sidy = (ushort)gidy; \\\n\
+    ushort tmpX = sidx % stride_x; \\\n\
+    ushort tmpY = sidy % stride_y; \\\n\
+    int tmpId0 = tmpX; \\\n\
+    int tmpId1 = tmpY; \\\n\
+    int4 coord_out = (int4)((int)(sidx / stride_x), (int)(sidy / stride_y), 0, 0); \\\n\
+    coord_out.z = tmpId0 * input_depth + tmpId1 * block_size_x * input_depth + gidz; \\\n\
+    VXC_WriteImage2DArray(output, coord_out, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \\\n\
+}\n\
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT(U8, U8, vxc_uchar16)\n\
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT(I8, I8, vxc_char16)\n\
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT(I16, I16, vxc_short8)\n\
+\n\
+__kernel void space2depth_internal_F16toF16(\n\
+    image2d_array_t input,\n\
+    image2d_array_t output,\n\
+    int block_size_x,\n\
+    int block_size_y\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int gidz = get_global_id(2);\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    vxc_short8 data, imgVal0;\n\
+    VXC_ReadImage2DArray(data, input, coord, VXC_5BITOFFSET_XY(0, 0),\n\
+                    VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+\n\
+    ushort stride_x = (ushort)block_size_x;\n\
+    ushort stride_y = (ushort)block_size_y;\n\
+    ushort sidx = (ushort)gidx;\n\
+    ushort sidy = (ushort)gidy;\n\
+    ushort tmpX = sidx % stride_x;\n\
+    ushort tmpY = sidy % stride_y;\n\
+    int tmpId0 = tmpX;\n\
+    int tmpId1 = tmpY;\n\
+    int4 coord_out = (int4)((int)(sidx / stride_x), (int)(sidy / stride_y), 0, 0);\n\
+    coord_out.z = tmpId0 * input_depth + tmpId1 * block_size_x * input_depth + gidz;\n\
+\n\
+    VXC_WriteImage2DArray(output, coord_out, data, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
+#define SPACE2DEPTH_INTERNAL_QINT_TO_QINT_X2Y1(src0_type_name, src1_type_name, read_type, write_type) \\\n\
+__kernel void space2depth_internal_##src0_type_name##to##src1_type_name##_X2Y1( \\\n\
+    image2d_array_t input, \\\n\
+    image2d_array_t output, \\\n\
+    int block_size_x, \\\n\
+    int block_size_y \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+    int gidz = get_global_id(2); \\\n\
+ \\\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0); \\\n\
+    int4 coord_out = (int4)(gidx >> 1, gidy, gidz, 0); \\\n\
+    int out_d1; \\\n\
+    read_type imageData; \\\n\
+    write_type  imgVal0, imgVal1; \\\n\
+ \\\n\
+    VXC_ReadImage2DArray(imageData, input, coord, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                     VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \\\n\
+ \\\n\
+    out_d1 = gidz + input_depth; \\\n\
+ \\\n\
+    VXC_DP2x8(imgVal0, imageData, imageData,\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractEvenUint8Stride2_2x8); \\\n\
+    VXC_DP2x8(imgVal1, imageData, imageData,\\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddUint8Stride2_2x8); \\\n\
+    VXC_WriteImage2DArray(output, coord_out, imgVal0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
+    coord_out.z = out_d1; \\\n\
+    VXC_WriteImage2DArray(output, coord_out, imgVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
+}\n\
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT_X2Y1(U8, U8, vxc_uchar16, vxc_uchar16)\n\
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT_X2Y1(I8, I8, vxc_char16, vxc_char16)\n\
+\n\
+#define SPACE2DEPTH_INTERNAL_16BITS_X2Y1(src0_type_name, src1_type_name, read_type, write_type) \\\n\
+__kernel void space2depth_internal_##src0_type_name##to##src1_type_name##_X2Y1( \\\n\
+    image2d_array_t input, \\\n\
+    image2d_array_t output, \\\n\
+    int block_size_x, \\\n\
+    int block_size_y \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+    int gidz = get_global_id(2); \\\n\
+ \\\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0); \\\n\
+    int4 coord_out = (int4)(gidx >> 1, gidy, gidz, 0); \\\n\
+    int out_d1; \\\n\
+    read_type imageData; \\\n\
+    write_type  imgVal0, imgVal1; \\\n\
+ \\\n\
+    VXC_ReadImage2DArray(imageData, input, coord, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
+    out_d1 = gidz + input_depth; \\\n\
+    VXC_DP4x4(imgVal0, imageData, imageData, \\\n\
+                 VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractEvenFp16Stride2_4x4); \\\n\
+    VXC_DP4x4(imgVal1, imageData, imageData, \\\n\
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractOddFp16Stride2_4x4); \\\n\
+    VXC_WriteImage2DArray(output, coord_out, imgVal0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
+    coord_out.z = out_d1; \\\n\
+    VXC_WriteImage2DArray(output, coord_out, imgVal1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \\\n\
+}\n\
+SPACE2DEPTH_INTERNAL_16BITS_X2Y1(I16, I16, vxc_short8, vxc_short8)\n\
+SPACE2DEPTH_INTERNAL_16BITS_X2Y1(F16, F16, vxc_short8, vxc_short8)"; /* end of space2depth_internal_vx*/
 
 static const char swish_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -33164,6 +34459,151 @@ __kernel void upsample_U8_U8to_F16_2D\n\
 }\n\
 "; /* end of upsample_U8_vx*/
 
+static const char upsamplescale_vx[] = "\n\
+#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniConvertDatatoF32_4x4;\n\
+_viv_uniform float output_scale;\n\
+_viv_uniform float tail;\n\
+\n\
+#define UPSAMPLE_SCALETO_FUN(src_name, dst_name, read_type, src_type, dst_type, write_type, conv_func) \\\n\
+    __kernel void upsamplescale_##src_name##to##dst_name( \\\n\
+    __read_only  image2d_array_t  input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+                 int              stride, \\\n\
+                 float            scale) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+    read_type  read_val; \\\n\
+    src_type   src_val; \\\n\
+    dst_type   dst_val; \\\n\
+    write_type write_val; \\\n\
+    VXC_ReadImage2DArray(read_val, input, coord, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
+    _viv_asm(COPY, src_val, read_val, 16); \\\n\
+    coord.xy *= stride; \\\n\
+    int8 output_desc; \\\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \\\n\
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0; \\\n\
+    _viv_asm(MOV, coord.w, baseAddr); \\\n\
+    float4 data; \\\n\
+    VXC_DP4x4(data, src_val, src_val, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniConvertDatatoF32_4x4); \\\n\
+    data = data * output_scale + tail; \\\n\
+    _viv_asm(conv_func, dst_val, data); \\\n\
+    _viv_asm(COPY, write_val, dst_val, 16); \\\n\
+    int4 coord_out = coord; \\\n\
+    for (int y = 0; y < stride; y++) \\\n\
+    { \\\n\
+        coord_out.x = coord.x; \\\n\
+        for (int x = 0; x < stride; ) \\\n\
+        { \\\n\
+            VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, write_val, \\\n\
+                VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0)); \\\n\
+            x++; \\\n\
+            coord_out.x ++; \\\n\
+        } \\\n\
+        coord_out.y ++; \\\n\
+    } \\\n\
+}\n\
+\n\
+UPSAMPLE_SCALETO_FUN(F16, F16,  vxc_short8,  vxc_half8,   half4,  short4, CONV)\n\
+UPSAMPLE_SCALETO_FUN(F16, I16,  vxc_short8,  vxc_half8,   int4,   short4, CONV_RTE)\n\
+UPSAMPLE_SCALETO_FUN(F16, I8,   vxc_short8,  vxc_half8,   int4,   char4,  CONV_RTE)\n\
+UPSAMPLE_SCALETO_FUN(F16, U8,   vxc_short8,  vxc_half8,   int4,   uchar4, CONV_RTE)\n\
+UPSAMPLE_SCALETO_FUN(I16, I16,  vxc_short8,  vxc_short8,  int4,   short4, CONV_RTE)\n\
+UPSAMPLE_SCALETO_FUN(I16, F16,  vxc_short8,  vxc_short8,  half4,  short4, CONV)\n\
+UPSAMPLE_SCALETO_FUN(I8,  I8,   vxc_char16,  vxc_char16,  int4,   char4,  CONV_RTE)\n\
+UPSAMPLE_SCALETO_FUN(I8,  F16,  vxc_short8,  vxc_short8,  half4,  short4, CONV)\n\
+UPSAMPLE_SCALETO_FUN(U8,  U8,   vxc_uchar16, vxc_uchar16, int4,   uchar4, CONV_RTE)\n\
+UPSAMPLE_SCALETO_FUN(U8,  F16,  vxc_short8,  vxc_short8,  half4,  short4, CONV)\n\
+\n\
+"; /* end of upsamplescale_vx*/
+
+static const char upsamplescale_k2_vx[] = "\n\
+#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniUpScale2X_lo_2x8;\n\
+_viv_uniform VXC_512Bits uniUpScale2X_hi_2x8;\n\
+_viv_uniform int2 multAndoutZP;//[0:15] multiplier, [31:63] output zp\n\
+\n\
+#define UPSAMPLE_SCALETO8B_FUN(src_name, dst_name, read_type, src_type, dst_type) \\\n\
+    __kernel void upsamplescale_##src_name##to##dst_name##_K2( \\\n\
+    __read_only  image2d_array_t  input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+                 int              stride, \\\n\
+                 float            scale) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+    read_type  read_val; \\\n\
+    src_type   src_val; \\\n\
+    dst_type   dst_val; \\\n\
+    VXC_ReadImage2DArray(read_val, input, coord, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
+    _viv_asm(COPY, src_val, read_val, 16); \\\n\
+    coord.xy <<= 1; \\\n\
+    int8 output_desc; \\\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \\\n\
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0; \\\n\
+    _viv_asm(MOV, coord.w, baseAddr); \\\n\
+    vxc_ushort8 multiplier; \\\n\
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \\\n\
+    VXC_DP2x8(dst_val, src_val, multiplier, \\\n\
+          VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniUpScale2X_lo_2x8); \\\n\
+    VXC_DP2x8(dst_val, src_val, multiplier, \\\n\
+          VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniUpScale2X_hi_2x8); \\\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, dst_val, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \\\n\
+    coord.y ++; \\\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, dst_val, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \\\n\
+}\n\
+\n\
+UPSAMPLE_SCALETO8B_FUN(F16, I8,  vxc_short8,  vxc_half8,   vxc_char16)\n\
+UPSAMPLE_SCALETO8B_FUN(F16, U8,  vxc_short8,  vxc_half8,   vxc_uchar16)\n\
+UPSAMPLE_SCALETO8B_FUN(I8,  I8,  vxc_char16,  vxc_char16,  vxc_char16)\n\
+UPSAMPLE_SCALETO8B_FUN(U8,  U8,  vxc_uchar16, vxc_uchar16, vxc_uchar16)\n\
+\n\
+#define UPSAMPLE_SCALETO16B_FUN(src_name, dst_name, read_type, src_type, dst_type, write_type) \\\n\
+    __kernel void upsamplescale_##src_name##to##dst_name##_K2( \\\n\
+    __read_only  image2d_array_t  input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+                 int              stride, \\\n\
+                 float            scale) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+    read_type  read_val; \\\n\
+    src_type   src_val; \\\n\
+    dst_type   dst0_val; \\\n\
+    dst_type   dst1_val; \\\n\
+    write_type write_val; \\\n\
+    VXC_ReadImage2DArray(read_val, input, coord, VXC_5BITOFFSET_XY(0, 0), \\\n\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
+    _viv_asm(COPY, src_val, read_val, 16); \\\n\
+    coord.xy <<= 1; \\\n\
+    int8 output_desc; \\\n\
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \\\n\
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0; \\\n\
+    _viv_asm(MOV, coord.w, baseAddr); \\\n\
+    vxc_ushort8 multiplier; \\\n\
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \\\n\
+    VXC_DP2x8(dst0_val, src_val, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniUpScale2X_lo_2x8); \\\n\
+    VXC_DP2x8(dst1_val, src_val, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniUpScale2X_hi_2x8); \\\n\
+    _viv_asm(COPY, write_val, dst0_val, 16); \\\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \\\n\
+    coord.y ++; \\\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \\\n\
+    _viv_asm(COPY, write_val, dst1_val, 16); \\\n\
+    coord.xy = coord.xy + (int2)(8, -1); \\\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \\\n\
+    coord.y ++; \\\n\
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \\\n\
+}\n\
+UPSAMPLE_SCALETO16B_FUN(F16, F16,  vxc_short8,  vxc_half8,   vxc_half8,  vxc_short8)\n\
+UPSAMPLE_SCALETO16B_FUN(F16, I16,  vxc_short8,  vxc_half8,   vxc_short8, vxc_short8)\n\
+UPSAMPLE_SCALETO16B_FUN(I8,  F16,  vxc_char16,  vxc_char16,  vxc_half8,  vxc_short8)\n\
+UPSAMPLE_SCALETO16B_FUN(U8,  F16,  vxc_uchar16, vxc_uchar16, vxc_half8,  vxc_short8)\n\
+UPSAMPLE_SCALETO16B_FUN(I16, F16,  vxc_short8,  vxc_short8,  vxc_half8,  vxc_short8)\n\
+UPSAMPLE_SCALETO16B_FUN(I16, I16,  vxc_short8,  vxc_short8,  vxc_short8, vxc_short8)\n\
+"; /* end of upsamplescale_k2_vx*/
+
 static const char vsi_nn_kernel_axis_aligned_bbox_transform_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
 __kernel void vxcAxis_aligned_bbox_transform(\n\
@@ -33183,119 +34623,6 @@ __kernel void vxcBox_with_nms_limit(\n\
 \n\
 }\n\
 "; /* end of vsi_nn_kernel_box_with_nms_limit_vx*/
-
-static const char vsi_nn_kernel_crop_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-//-----------------------------------------------tensor crop-------------------------------\n\
-__kernel void vxcTensorCrop_Int16(\n\
-    __read_only image2d_array_t   input,\n\
-    __write_only image2d_array_t  output,\n\
-        int offset0,\n\
-        int offset1,\n\
-        int offset2)\n\
-{\n\
-    int4 coord_in = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-    vxc_ushort8 src0, src1, src2, src3;\n\
-\n\
-    VXC_ReadImage2DArray(src0, input,  coord_in, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input,  coord_in, VXC_5BITOFFSET_XY(0, 1),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src2, input,  coord_in, VXC_5BITOFFSET_XY(0, 2),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src3, input,  coord_in, VXC_5BITOFFSET_XY(0, 3),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    int4 coord_out = (int4)(get_global_id(0) - offset0, get_global_id(1)\\\n\
-        - offset1, get_global_id(2) - offset2, 0);\n\
-\n\
-    VXC_WriteImage2DArray(output, coord_out, src0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, src1, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, src2, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, src3, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-\n\
-__kernel void vxcTensorCrop_Int8(\n\
-    __read_only image2d_array_t   input,\n\
-    __write_only image2d_array_t  output,\n\
-        int offset0,\n\
-        int offset1,\n\
-        int offset2)\n\
-{\n\
-    int4 coord_in = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-\n\
-    vxc_uchar16 src0, src1, src2, src3;\n\
-\n\
-    VXC_ReadImage2DArray(src0, input,  coord_in, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input,  coord_in, VXC_5BITOFFSET_XY(0, 1),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src2, input,  coord_in, VXC_5BITOFFSET_XY(0, 2),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src3, input,  coord_in, VXC_5BITOFFSET_XY(0, 3),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    int4 coord_out = (int4)(get_global_id(0) - offset0, get_global_id(1) - offset1,\\\n\
-        get_global_id(2) - offset2, 0);\n\
-\n\
-    VXC_WriteImage2DArray(output, coord_out, src0, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, src1, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, src2, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, src3, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-\n\
-_viv_uniform VXC_512Bits uniConvertInt16toFp16_2x8;\n\
-\n\
-__kernel void vxcTensorCrop_Int16_Fp16(\n\
-    __read_only image2d_array_t   input,\n\
-    __write_only image2d_array_t  output,\n\
-        int offset0,\n\
-        int offset1,\n\
-        int offset2)\n\
-{\n\
-    int4 coord_in = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-    vxc_short8 src0, src1, src2, src3;\n\
-\n\
-    VXC_ReadImage2DArray(src0, input,  coord_in, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input,  coord_in, VXC_5BITOFFSET_XY(0, 1),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src2, input,  coord_in, VXC_5BITOFFSET_XY(0, 2),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src3, input,  coord_in, VXC_5BITOFFSET_XY(0, 3),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    int4 coord_out = (int4)(get_global_id(0) - offset0, get_global_id(1)\\\n\
-        - offset1, get_global_id(2) - offset2, 0);\n\
-\n\
-    vxc_half8 dst0, dst1, dst2, dst3;\n\
-    VXC_DP2x8(dst0, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
-        uniConvertInt16toFp16_2x8);\n\
-    VXC_DP2x8(dst1, src1, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
-        uniConvertInt16toFp16_2x8);\n\
-    VXC_DP2x8(dst2, src2, src2, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
-        uniConvertInt16toFp16_2x8);\n\
-    VXC_DP2x8(dst3, src3, src3, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
-        uniConvertInt16toFp16_2x8);\n\
-\n\
-    vxc_short8 out0, out1, out2, out3;\n\
-    _viv_asm(COPY, out0, dst0, 16);\n\
-    _viv_asm(COPY, out1, dst1, 16);\n\
-    _viv_asm(COPY, out2, dst2, 16);\n\
-    _viv_asm(COPY, out3, dst3, 16);\n\
-\n\
-    VXC_WriteImage2DArray(output, coord_out, out0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, out1, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, out2, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.y ++;\n\
-    VXC_WriteImage2DArray(output, coord_out, out3, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of vsi_nn_kernel_crop_vx*/
 
 static const char vsi_nn_kernel_detection_postprocess_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -33351,71 +34678,6 @@ __kernel void vxcExtra_ending_u8(\n\
     VXC_WriteImage2DArray(output, coord, data, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of vsi_nn_kernel_extra_ending_vx*/
-
-static const char vsi_nn_kernel_fullconnect2_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-_viv_uniform int loopNum;\n\
-_viv_uniform VXC_512Bits uniMulAcc_16x1;\n\
-__kernel void vsi_nn_kernel_fullconnect2(\n\
-     __read_only image2d_array_t   input,\n\
-     __read_only image2d_array_t   weight,\n\
-     __read_only image2d_array_t   bias,\n\
-     __write_only image2d_array_t  output)\n\
-{\n\
-    int4 coord_in = (int4)(16, get_global_id(0), get_global_id(1), 0);\n\
-    int2 coord_out = (int2)(get_global_id(0), get_global_id(1));\n\
-\n\
-    vxc_short8 v0, v1, v2, v3, v4, v5, v6, v7;\n\
-    vxc_half8 i0, i1, i2, i3;\n\
-    vxc_half8 w0, w1, w2, w3;\n\
-    float4 sum = 0;\n\
-    float dst = 0;\n\
-    dst = read_imagef(bias, coord_in.ywww).x;\n\
-    do\n\
-    {\n\
-        VXC_ReadImage(v0, input,  coord_in.xz, VXC_5BITOFFSET_XY(-16, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, i0, v0, 16);\n\
-        VXC_ReadImage(v1, weight, coord_in.xy, VXC_5BITOFFSET_XY(-16, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, w0, v1, 16);\n\
-        VXC_ReadImage(v2, input,  coord_in.xz, VXC_5BITOFFSET_XY(-8, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, i1, v2, 16);\n\
-        VXC_ReadImage(v3, weight, coord_in.xy, VXC_5BITOFFSET_XY(-8, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, w1, v3, 16);\n\
-        VXC_ReadImage(v4, input,  coord_in.xz, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, i2, v4, 16);\n\
-        VXC_ReadImage(v5, weight, coord_in.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, w2, v5, 16);\n\
-        VXC_ReadImage(v6, input,  coord_in.xz, VXC_5BITOFFSET_XY(8, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, i3, v6, 16);\n\
-        VXC_ReadImage(v7, weight, coord_in.xy, VXC_5BITOFFSET_XY(8, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, w3, v7, 16);\n\
-\n\
-        coord_in.x += 32;\n\
-\n\
-        VXC_DP16x1(sum, i0, w0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniMulAcc_16x1);\n\
-        VXC_DP16x1(sum, i1, w1, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0), uniMulAcc_16x1);\n\
-        VXC_DP16x1(sum, i2, w2, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0), uniMulAcc_16x1);\n\
-        VXC_DP16x1(sum, i3, w3, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0), uniMulAcc_16x1);\n\
-\n\
-        float4 tmp = {1, 1, 1, 1};\n\
-        dst = dst + dot(sum, tmp);\n\
-\n\
-    } while (coord_in.x < loopNum);\n\
-\n\
-    vxc_half v;\n\
-    _viv_asm(CONV, v, dst);\n\
-    _viv_asm(COPY, v0, v, 16);\n\
-    VXC_WriteImage(output, coord_out.xy, v0, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of vsi_nn_kernel_fullconnect2_vx*/
 
 static const char vsi_nn_kernel_generate_proposals_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -35071,426 +36333,6 @@ __kernel void GrayScaletoTensor_UInt8\n\
 }\n\
 "; /* end of vsi_nn_kernel_imageprocess_5_vx*/
 
-static const char vsi_nn_kernel_layernormalize_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-/**************************layernorm float16***********************************/\n\
-_viv_uniform int width;\n\
-_viv_uniform float dimRatio;\n\
-_viv_uniform VXC_512Bits uniFp16SumSqr_dp8x2;\n\
-_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
-_viv_uniform VXC_512Bits uniExtractHalf4_dp4x4;\n\
-\n\
-__kernel void vxcLayerNorm(\n\
-    image2d_array_t input,\n\
-    image2d_array_t bias,\n\
-    image2d_array_t scale,\n\
-    image2d_array_t output,\n\
-              float eps)\n\
-{\n\
-    int4 coord = (int4)(0, get_global_id(1), 0, 0);\n\
-    vxc_short8 src0, src1;\n\
-    vxc_float sum = 0, sqr = 0;\n\
-    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    for(coord.x = 8; coord.x < (width+8); coord.x += 8)\n\
-    {\n\
-        vxc_half8  val0_h;\n\
-        _viv_asm(COPY, val0_h, src0, 16);\n\
-        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        vxc_float4 sumsqr;\n\
-        VXC_DP8x2(sumsqr, val0_h, val0_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniFp16SumSqr_dp8x2);\n\
-        sum += sumsqr.x;\n\
-        sqr += sumsqr.y;\n\
-    }\n\
-    vxc_float mean;\n\
-    mean = sum * dimRatio;\n\
-    vxc_float vari;\n\
-    vari = sqr*dimRatio - mean*mean;\n\
-    vari += eps;\n\
-    vari = rsqrt(vari);\n\
-    vxc_float4 bias_f;\n\
-    for(coord.x = 0; coord.x < width; coord.x += 4)\n\
-    {\n\
-        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-        bias_f = read_imagef(bias, coord.xwww);\n\
-        vxc_half8 in_h, scale_h;\n\
-        _viv_asm(COPY, in_h, src0, 16);\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
-        vxc_float4 in_f, scale_f;\n\
-        VXC_DP4x4(in_f, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        vxc_float4 sub, norm;\n\
-        sub = in_f - mean;\n\
-        norm = scale_f * vari * sub + bias_f;\n\
-        half4 norm_h;\n\
-        _viv_asm(CONV, norm_h, norm);\n\
-        vxc_half8 dst;\n\
-        VXC_DP4x4(dst, norm_h, norm_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniExtractHalf4_dp4x4);\n\
-        vxc_short8 dstval;\n\
-        _viv_asm(COPY, dstval, dst, 16);\n\
-        VXC_WriteImage(output, coord.xy, dstval, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-    }\n\
-}\n\
-/*****************************layernorm uint8 to uint8****************************/\n\
-_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
-_viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
-_viv_uniform VXC_512Bits uniConvert3rdUint8SubZpToFp32_4x4;\n\
-_viv_uniform VXC_512Bits uniConvert4thUint8SubZpToFp32_4x4;\n\
-_viv_uniform VXC_512Bits uniSumU8_16x1;\n\
-_viv_uniform VXC_512Bits uniSqrSum_16x1;\n\
-_viv_uniform float input_scale;\n\
-_viv_uniform int inputZP;\n\
-_viv_uniform float outputScale;\n\
-_viv_uniform int output_ZP;\n\
-_viv_uniform int sumInZp;\n\
-_viv_uniform int tmpZp1;\n\
-_viv_uniform int tmpZp2;\n\
-_viv_uniform float e2InScale;\n\
-_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
-_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
-\n\
-__kernel void vxcLayerNorm_u8(\n\
-    image2d_array_t input,\n\
-    image2d_array_t bias,\n\
-    image2d_array_t scale,\n\
-    image2d_array_t output,\n\
-              float eps)\n\
-{\n\
-    int4 coord = (int4)(0, get_global_id(1), 0, 0);\n\
-    vxc_uchar16 src0, src2;\n\
-    vxc_short8 src1;\n\
-    vxc_half8 scale_h;\n\
-    float sum = 0, sqr = 0;\n\
-    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
-    int tmpSum = 0, tmpSqr = 0;\n\
-    vxc_int4 tmpSum1;\n\
-    vxc_int4 tmpSqr1;\n\
-    short zp = inputZP;\n\
-\n\
-    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
-    {\n\
-        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_DP16x1(tmpSum1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumU8_16x1);\n\
-        tmpSum += (tmpSum1.x);\n\
-        VXC_DP16x1(tmpSqr1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSqrSum_16x1);\n\
-        tmpSqr += (tmpSqr1.x + tmpZp1 * tmpSum1.x);\n\
-    }\n\
-    sum = (tmpSum + sumInZp) * input_scale;\n\
-    sqr = (tmpSqr + tmpZp2) * e2InScale;\n\
-\n\
-    float mean, vari;\n\
-    mean = sum * dimRatio;\n\
-    vari = sqr*dimRatio - mean*mean;\n\
-    vari += eps;\n\
-    vari = rsqrt(vari);\n\
-    vxc_int4 tmpVal0, tmpVal1;\n\
-    vxc_float4  tmpData0, tmpData1, tmpData2, tmpData3;\n\
-    int4 coord_bias = (int4)(0, 0, 0, 0);\n\
-\n\
-    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
-    {\n\
-        coord_bias.x = coord.x;\n\
-        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
-        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvertSecFp16Fp32_4x4);\n\
-        bias_f0 = read_imagef(bias, coord_bias);\n\
-        coord_bias.x += 4;\n\
-        bias_f1 = read_imagef(bias, coord_bias);\n\
-        coord_bias.x += 4;\n\
-\n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(8, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
-        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvert1stUint8SubZpToFp32_4x4);\n\
-        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvert2ndUint8SubZpToFp32_4x4);\n\
-        VXC_DP4x4(tmpData2, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvert3rdUint8SubZpToFp32_4x4);\n\
-        VXC_DP4x4(tmpData3, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvert4thUint8SubZpToFp32_4x4);\n\
-        tmpData0 *= input_scale;\n\
-        tmpData1 *= input_scale;\n\
-        tmpData2 *= input_scale;\n\
-        tmpData3 *= input_scale;\n\
-\n\
-        vxc_float4 norm;\n\
-        tmpData0 -= mean;\n\
-        norm = scale_f0 * vari * tmpData0 + bias_f0;\n\
-        bias_f0 = read_imagef(bias, coord_bias);\n\
-        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        coord_bias.x += 4;\n\
-        tmpVal0 = convert_int4_rte(norm * outputScale + output_ZP);\n\
-\n\
-        tmpData1 -= mean;\n\
-        norm = scale_f1 * vari * tmpData1 + bias_f1;\n\
-        bias_f1 = read_imagef(bias, coord_bias);\n\
-        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvertSecFp16Fp32_4x4);\n\
-        tmpVal1 = convert_int4_rte(norm * outputScale + output_ZP);\n\
-        VXC_DP2x8(src2, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\\\n\
-            uniConvertInt32toUint8_2x8);\n\
-\n\
-        tmpData2 -= mean;\n\
-        norm = scale_f0 * vari * tmpData2 + bias_f0;\n\
-        tmpVal0 = convert_int4_rte(norm * outputScale + output_ZP);\n\
-\n\
-        tmpData3 -= mean;\n\
-        norm = scale_f1 * vari * tmpData3 + bias_f1;\n\
-        tmpVal1 = convert_int4_rte(norm * outputScale + output_ZP);\n\
-        VXC_DP2x8(src2, tmpVal0, tmpVal1, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1),\\\n\
-            uniConvertInt32toUint8_2x8);\n\
-        VXC_WriteImage(output, coord.xy, src2, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    }\n\
-}\n\
-/***************************layernorm float16 to uint8**************************/\n\
-_viv_uniform float outputZP;\n\
-__kernel void vxcLayerNormFP16toU8(\n\
-    image2d_array_t input,\n\
-    image2d_array_t bias,\n\
-    image2d_array_t scale,\n\
-    image2d_array_t output,\n\
-              float eps)\n\
-{\n\
-    int4 coord = (int4)(0, get_global_id(1), 0, 0);\n\
-    vxc_short8 src0, src1;\n\
-    vxc_float sum = 0, sqr = 0;\n\
-    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    for(coord.x = 8; coord.x < (width+8); coord.x += 8)\n\
-    {\n\
-        vxc_half8  val0_h;\n\
-        _viv_asm(COPY, val0_h, src0, 16);\n\
-        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        vxc_float4 sumsqr;\n\
-        VXC_DP8x2(sumsqr, val0_h, val0_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniFp16SumSqr_dp8x2);\n\
-        sum += sumsqr.x;\n\
-        sqr += sumsqr.y;\n\
-    }\n\
-    vxc_float mean;\n\
-    mean = sum * dimRatio;\n\
-    vxc_float vari;\n\
-    vari = sqr*dimRatio - mean*mean;\n\
-    vari += eps;\n\
-    vari = rsqrt(vari);\n\
-    vxc_float4 bias_f;\n\
-    for(coord.x = 0; coord.x < width; coord.x += 4)\n\
-    {\n\
-        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-        bias_f = read_imagef(bias, coord.xwww);\n\
-        vxc_half8 in_h, scale_h;\n\
-        _viv_asm(COPY, in_h, src0, 16);\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
-        vxc_float4 in_f, scale_f;\n\
-        VXC_DP4x4(in_f, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        vxc_float4 sub, norm;\n\
-        sub = in_f - mean;\n\
-        norm = scale_f * vari * sub + bias_f;\n\
-        norm = norm * outputScale + outputZP;\n\
-        int4 output_int4;\n\
-        output_int4 = convert_int4_rte(norm);\n\
-        vxc_uchar8 dst;\n\
-        VXC_DP2x8(dst, output_int4, output_int4, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1),\n\
-            uniConvertInt32toUint8_2x8);\n\
-        VXC_WriteImage(output, coord.xy, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-    }\n\
-}"; /* end of vsi_nn_kernel_layernormalize_vx*/
-
-static const char vsi_nn_kernel_layernormalize_U8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-/*****************************layernorm uint8 to fp16****************************/\n\
-_viv_uniform int width;\n\
-_viv_uniform float dimRatio;\n\
-_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
-_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
-_viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
-_viv_uniform VXC_512Bits uniConvert3rdUint8SubZpToFp32_4x4;\n\
-_viv_uniform VXC_512Bits uniConvert4thUint8SubZpToFp32_4x4;\n\
-_viv_uniform VXC_512Bits uniSumU8_16x1;\n\
-_viv_uniform VXC_512Bits uniSqrSum_16x1;\n\
-_viv_uniform float input_scale;\n\
-_viv_uniform int inputZP;\n\
-_viv_uniform int sumInZp;\n\
-_viv_uniform int tmpZp1;\n\
-_viv_uniform int tmpZp2;\n\
-_viv_uniform float e2InScale;\n\
-_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
-_viv_uniform VXC_512Bits UniPackFP16even_2x8;\n\
-\n\
-__kernel void vxcLayerNormU8toFp16(\n\
-    image2d_array_t input,\n\
-    image2d_array_t bias,\n\
-    image2d_array_t scale,\n\
-    image2d_array_t output,\n\
-              float eps)\n\
-{\n\
-    int4 coord = (int4)(0, get_global_id(1), 0, 0);\n\
-    vxc_uchar16 src0;\n\
-    float sum = 0, sqr = 0;\n\
-    int tmpSum = 0, tmpSqr = 0;\n\
-    vxc_int4 tmpSum1;\n\
-    vxc_int4 tmpSqr1;\n\
-\n\
-    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
-    {\n\
-        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_DP16x1(tmpSum1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumU8_16x1);\n\
-        tmpSum += (tmpSum1.x);\n\
-        VXC_DP16x1(tmpSqr1, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSqrSum_16x1);\n\
-        tmpSqr += (tmpSqr1.x + tmpZp1 * tmpSum1.x);\n\
-    }\n\
-    sum = (tmpSum + sumInZp) * input_scale;\n\
-    sqr = (tmpSqr + tmpZp2) * e2InScale;\n\
-\n\
-    float mean, vari;\n\
-    mean = sum * dimRatio;\n\
-    vari = sqr*dimRatio - mean*mean;\n\
-    vari += eps;\n\
-    vari = rsqrt(vari);\n\
-    vxc_float4  tmpData0, tmpData1, tmpData2, tmpData3;\n\
-    int4 coord_bias = (int4)(0, 0, 0, 0);\n\
-    vxc_half8 scale_h;\n\
-    vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;\n\
-    vxc_short8 src1, outval;\n\
-    short zp = inputZP;\n\
-    half4 tmpVal0, tmpVal1;\n\
-    vxc_half8 dst;\n\
-\n\
-    for(coord.x = 0; coord.x < width; coord.x += 16)\n\
-    {\n\
-        coord_bias.x = coord.x;\n\
-        VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
-        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvertSecFp16Fp32_4x4);\n\
-        bias_f0 = read_imagef(bias, coord_bias);\n\
-        coord_bias.x += 4;\n\
-        bias_f1 = read_imagef(bias, coord_bias);\n\
-        coord_bias.x += 4;\n\
-\n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(8, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
-        VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvert1stUint8SubZpToFp32_4x4);\n\
-        VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvert2ndUint8SubZpToFp32_4x4);\n\
-        VXC_DP4x4(tmpData2, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvert3rdUint8SubZpToFp32_4x4);\n\
-        VXC_DP4x4(tmpData3, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvert4thUint8SubZpToFp32_4x4);\n\
-        tmpData0 *= input_scale;\n\
-        tmpData1 *= input_scale;\n\
-        tmpData2 *= input_scale;\n\
-        tmpData3 *= input_scale;\n\
-\n\
-        vxc_float4 norm;\n\
-        tmpData0 -= mean;\n\
-        norm = scale_f0 * vari * tmpData0 + bias_f0;\n\
-        bias_f0 = read_imagef(bias, coord_bias);\n\
-        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        coord_bias.x += 4;\n\
-        _viv_asm(CONV, tmpVal0, norm);\n\
-\n\
-        tmpData1 -= mean;\n\
-        norm = scale_f1 * vari * tmpData1 + bias_f1;\n\
-        bias_f1 = read_imagef(bias, coord_bias);\n\
-        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvertSecFp16Fp32_4x4);\n\
-        _viv_asm(CONV, tmpVal1, norm);\n\
-        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniPackFP16even_2x8);\n\
-        _viv_asm(COPY, outval, dst, 16);\n\
-        int2 coord_out = (int2)(coord.x, coord.y);\n\
-        VXC_WriteImage(output, coord_out, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-        tmpData2 -= mean;\n\
-        norm = scale_f0 * vari * tmpData2 + bias_f0;\n\
-        _viv_asm(CONV, tmpVal0, norm);\n\
-\n\
-        tmpData3 -= mean;\n\
-        norm = scale_f1 * vari * tmpData3 + bias_f1;\n\
-        _viv_asm(CONV, tmpVal1, norm);\n\
-        VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniPackFP16even_2x8);\n\
-        _viv_asm(COPY, outval, dst, 16);\n\
-        coord_out.x += 8;\n\
-        VXC_WriteImage(output, coord_out, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    }\n\
-}\n\
-"; /* end of vsi_nn_kernel_layernormalize_U8_vx*/
-
-static const char vsi_nn_kernel_resize_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-//--------------------------resize-------------------------\n\
-_viv_uniform VXC_512Bits uniPackEvenData_2x8;\n\
-__kernel void resize_16bits_downsample_quarter\n\
-    (\n\
-    __read_only image2d_array_t input,\n\
-    __write_only image2d_array_t output\n\
-    )\n\
-{\n\
-    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
-    vxc_short8 src0, src1;\n\
-    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage(src1, input, coord.xy, VXC_5BITOFFSET_XY(8, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord = coord >> 1;\n\
-    VXC_DP2x8(src0, src0, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardInf, 0), uniPackEvenData_2x8);\n\
-    VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-\n\
-__kernel void resize_8bits_downsample_quarter\n\
-    (\n\
-    __read_only image2d_array_t input,\n\
-    __write_only image2d_array_t output\n\
-    )\n\
-{\n\
-    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
-    vxc_char16 src0;\n\
-    vxc_char8 dst;\n\
-    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    coord = coord >> 1;\n\
-    dst  = src0.s02468ace;\n\
-    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of vsi_nn_kernel_resize_vx*/
-
 static const char vsi_nn_kernel_roi_align_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
 __kernel void vxcRoi_align(\n\
@@ -35500,193 +36342,6 @@ __kernel void vxcRoi_align(\n\
 \n\
 }\n\
 "; /* end of vsi_nn_kernel_roi_align_vx*/
-
-static const char vsi_nn_kernel_scale_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-//--------------------------scale-------------------------\n\
-_viv_uniform VXC_512Bits uniExtractHalf8_2x8;\n\
-_viv_uniform VXC_512Bits uniFp16MulFp16ToFp32_Lo_4x4;\n\
-_viv_uniform VXC_512Bits uniFp16MulFp16ToFp32_Hi_4x4;\n\
-__kernel void scale_fp16\n\
-    (\n\
-    __read_only     image2d_array_t input,\n\
-    __read_only     image2d_array_t weights,\n\
-    __read_only     image2d_array_t biases,\n\
-    __write_only    image2d_array_t output\n\
-    )\n\
-{\n\
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);\n\
-    vxc_short8 vec0, vec1;\n\
-    vxc_half8  src0;\n\
-    vxc_half8  w0;\n\
-    vxc_float4 b0, b1;\n\
-    vxc_float4 dst0, dst1;\n\
-    VXC_ReadImage(vec0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, src0, vec0, 16);\n\
-    VXC_ReadImage(vec1, weights, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    _viv_asm(COPY, w0, vec1, 16);\n\
-\n\
-    coord.z = coord.x + 4;\n\
-\n\
-    b0 = read_imagef(biases, coord.xwww);\n\
-    b1 = read_imagef(biases, coord.zwww);\n\
-\n\
-    VXC_DP4x4(dst0, src0, w0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-        uniFp16MulFp16ToFp32_Lo_4x4);\n\
-    VXC_DP4x4(dst1, src0, w0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-        uniFp16MulFp16ToFp32_Hi_4x4);\n\
-    dst0 += b0;\n\
-    dst1 += b1;\n\
-\n\
-    half4 t0, t1;\n\
-\n\
-    _viv_asm(CONV, t0, dst0);\n\
-    _viv_asm(CONV, t1, dst1);\n\
-\n\
-    VXC_DP2x8(w0, t0, t1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractHalf8_2x8);\n\
-    _viv_asm(COPY, vec0, w0, 16);\n\
-\n\
-    VXC_WriteImage(output, coord.xy, vec0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of vsi_nn_kernel_scale_vx*/
-
-static const char vsi_nn_kernel_shufflechannel_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-/******************shuffle channel float16/int16********************/\n\
-_viv_uniform int group_column;\n\
-_viv_uniform float rgroup_column;\n\
-\n\
-__kernel void shuffleChannelVXC(\n\
-    image2d_array_t input,\n\
-    image2d_array_t output,\n\
-    int group_number,\n\
-    int axis)\n\
-{\n\
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-    vxc_short8 src0, src1, src2, src3;\n\
-    VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input, coord, VXC_5BITOFFSET_XY(0, 1),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src2, input, coord, VXC_5BITOFFSET_XY(0, 2),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src3, input, coord, VXC_5BITOFFSET_XY(0, 3),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    int coordz = coord.z;\n\
-    int index_col = coordz * rgroup_column;\n\
-    int index_row = coordz - index_col * group_column;\n\
-    coord.z = index_row * group_number + index_col;\n\
-    VXC_WriteImage2DArray(output, coord, src0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord.y ++;\n\
-    VXC_WriteImage2DArray(output, coord, src1, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord.y ++;\n\
-    VXC_WriteImage2DArray(output, coord, src2, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord.y ++;\n\
-    VXC_WriteImage2DArray(output, coord, src3, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-\n\
-/*****************shuffle channel int8/uint8****************************/\n\
-\n\
-__kernel void shuffleChannel8BitsVXC(\n\
-    image2d_array_t input,\n\
-    image2d_array_t output,\n\
-    int group_number,\n\
-    int axis)\n\
-{\n\
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-    vxc_char16 src0, src1, src2, src3;\n\
-    VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src1, input, coord, VXC_5BITOFFSET_XY(0, 1),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src2, input, coord, VXC_5BITOFFSET_XY(0, 2),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_ReadImage2DArray(src3, input, coord, VXC_5BITOFFSET_XY(0, 3),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    int coordz = coord.z;\n\
-    int index_col = coordz * rgroup_column;\n\
-    int index_row = coordz - index_col * group_column;\n\
-    coord.z = index_row * group_number + index_col;\n\
-    VXC_WriteImage2DArray(output, coord, src0, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-    coord.y ++;\n\
-    VXC_WriteImage2DArray(output, coord, src1, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-    coord.y ++;\n\
-    VXC_WriteImage2DArray(output, coord, src2, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-    coord.y ++;\n\
-    VXC_WriteImage2DArray(output, coord, src3, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of vsi_nn_kernel_shufflechannel_vx*/
-
-static const char vsi_nn_kernel_shufflechannel_axis1_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-/******************shuffle channel float16/int16********************/\n\
-_viv_uniform int group_column;\n\
-_viv_uniform float rgroup_column;\n\
-\n\
-__kernel void shuffleChannel16Bits_Axis1(\n\
-    image2d_array_t input,\n\
-    image2d_array_t output,\n\
-    int group_number,\n\
-    int axis)\n\
-{\n\
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-    int4 coord_out = coord;\n\
-    vxc_short8 src0, src1, src2, src3;\n\
-    VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    coord.x += 8;\n\
-    VXC_ReadImage2DArray(src1, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    coord.x += 8;\n\
-    VXC_ReadImage2DArray(src2, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    coord.x += 8;\n\
-    VXC_ReadImage2DArray(src3, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    int coordy = coord.y;\n\
-    int index_col = coordy * rgroup_column;\n\
-    int index_row = coordy - index_col * group_column;\n\
-    coord_out.y = index_row * group_number + index_col;\n\
-    VXC_WriteImage2DArray(output, coord_out, src0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.x += 8;\n\
-    VXC_WriteImage2DArray(output, coord_out, src1, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.x += 8;\n\
-    VXC_WriteImage2DArray(output, coord_out, src2, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.x += 8;\n\
-    VXC_WriteImage2DArray(output, coord_out, src3, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-\n\
-/*****************shuffle channel int8/uint8****************************/\n\
-\n\
-__kernel void shuffleChannel8Bits_Axis1(\n\
-    image2d_array_t input,\n\
-    image2d_array_t output,\n\
-    int group_number,\n\
-    int axis)\n\
-{\n\
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-    int4 coord_out = coord;\n\
-    vxc_char16 src0, src1;\n\
-    VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-    coord.x += 16;\n\
-    VXC_ReadImage2DArray(src1, input, coord, VXC_5BITOFFSET_XY(0, 0),\\\n\
-        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-\n\
-    int coordy = coord.y;\n\
-    int index_col = coordy * rgroup_column;\n\
-    int index_row = coordy - index_col * group_column;\n\
-    coord_out.y = index_row * group_number + index_col;\n\
-    VXC_WriteImage2DArray(output, coord_out, src0, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-    coord_out.x += 16;\n\
-    VXC_WriteImage2DArray(output, coord_out, src1, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of vsi_nn_kernel_shufflechannel_axis1_vx*/
 
 static const char vsi_nn_kernel_signalframe_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -35967,49 +36622,6 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void vxcSignalFrame_ten
 }\n\
 #endif\n\
 "; /* end of vsi_nn_kernel_signalframe_vx*/
-
-static const char vsi_nn_kernel_space2depth_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
-\n\
-_viv_uniform VXC_512Bits uniExtractEvenFp16Stride2_4x4;\n\
-_viv_uniform VXC_512Bits uniExtractOddFp16Stride2_4x4;\n\
-_viv_uniform int input_depth;\n\
-\n\
-__kernel void vxcReorg2_fp16_fp16_sx2_sy1\n\
-    (\n\
-    image2d_array_t input,\n\
-    image2d_array_t output,\n\
-    int stridex,\n\
-    int stridey\n\
-    )\n\
-{\n\
-    int gidx = get_global_id(0);\n\
-    int gidy = get_global_id(1);\n\
-    int gidz = get_global_id(2);\n\
-\n\
-    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
-    int4 coord_out = (int4)(gidx >> 1, gidy, 0, 0);\n\
-    int out_d0, out_d1;\n\
-    vxc_short8 imageData;\n\
-    vxc_short8 imgVal0, imgVal1;\n\
-    //int tmpw = gidz / input_depth; \\n\\\n\
-    //int tmpz = gidz % input_depth; \\n\\\n\
-\n\
-    VXC_ReadImage2DArray(imageData, input, coord, VXC_5BITOFFSET_XY(0, 0),\n\
-        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-    VXC_DP4x4(imgVal0, imageData, imageData, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\n\
-        uniExtractEvenFp16Stride2_4x4);\n\
-    VXC_DP4x4(imgVal1, imageData, imageData, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\n\
-        uniExtractOddFp16Stride2_4x4);\n\
-\n\
-    out_d0 = gidz * 2 * 1;\n\
-    out_d1 = out_d0 + 1;\n\
-\n\
-    coord_out.z = out_d0;\n\
-    VXC_WriteImage2DArray(output, coord_out, imgVal0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-    coord_out.z = out_d1;\n\
-    VXC_WriteImage2DArray(output, coord_out, imgVal1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));\n\
-}\n\
-"; /* end of vsi_nn_kernel_space2depth_vx*/
 
 static const char vsi_nn_kernel_tensorstackconcat_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -39894,6 +40506,151 @@ __kernel __attribute__((reqd_work_group_size(1, 16, 1))) void l2normalizescale_a
 }\n\
 "; /* end of l2normalizescale_axis1_cl*/
 
+static const char layer_normalization_cl[] = "\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layer_norm_F32toF32(\n\
+    __read_only image2d_array_t   input,\n\
+    __read_only image2d_t   bias,\n\
+    __read_only image2d_t   scale,\n\
+    __write_only image2d_array_t  output,\n\
+    float eps,\n\
+    float input_zp,\n\
+    float input_scale,\n\
+    float output_zp,\n\
+    float output_scale,\n\
+    float e2InScale,\n\
+    float scale_inOut,\n\
+    float sumZpScale,\n\
+    float zp2ScaleE2,\n\
+    float sumZpScaleE2,\n\
+    int width,\n\
+    int height,\n\
+    float dim_ratio\n\
+    )\n\
+{\n\
+    int lidx = get_local_id(0);\n\
+    int4 coord = (int4)(lidx, get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    float4 data, dst;\n\
+    float2 sumSqr = (float2)(0);\n\
+    float scale_vari, bias_val;\n\
+    __local float2 local_sum[16];\n\
+\n\
+    for(; coord.x < width;)\n\
+    {\n\
+        data = read_imagef(input, coord);\n\
+        coord.x += 16;\n\
+        sumSqr.x += data.x;\n\
+        sumSqr.y += data.x * data.x;\n\
+    }\n\
+    local_sum[lidx] = sumSqr;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    if(lidx == 0)\n\
+    {\n\
+        for(int i = 1; i < 16; i++)\n\
+        {\n\
+            sumSqr += local_sum[i];\n\
+        }\n\
+        local_sum[0] = sumSqr;\n\
+    }\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    sumSqr = local_sum[0] * dim_ratio;\n\
+    sumSqr.s1 = sumSqr.s1 - sumSqr.s0 * sumSqr.s0 + eps;\n\
+    sumSqr.s1 = rsqrt(sumSqr.s1);\n\
+\n\
+    for(coord.x = lidx; coord.x < width;)\n\
+    {\n\
+        float4 gamma = read_imagef(scale, coord.xw);\n\
+        float4 beta  = read_imagef(bias, coord.xw);\n\
+        data = read_imagef(input, coord);\n\
+\n\
+        scale_vari = gamma.s0 * sumSqr.s1;\n\
+        bias_val = (beta.s0 - scale_vari * sumSqr.s0);\n\
+\n\
+        dst.x = data.x * scale_vari + bias_val;\n\
+        write_imagef(output, coord, dst);\n\
+        coord.x += 16;\n\
+    }\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layer_norm_U8toU8(\n\
+    __read_only image2d_array_t   input,\n\
+    __read_only image2d_t   bias,\n\
+    __read_only image2d_t   scale,\n\
+    __write_only image2d_array_t  output,\n\
+    float eps,\n\
+    float input_zp,\n\
+    float input_scale,\n\
+    float output_zp,\n\
+    float output_scale,\n\
+    float e2InScale,\n\
+    float scale_inOut,\n\
+    float sumZpScale,\n\
+    float zp2ScaleE2,\n\
+    float sumZpScaleE2,\n\
+    int width,\n\
+    int height,\n\
+    float dim_ratio\n\
+    )\n\
+{\n\
+    int lidx = get_local_id(0);\n\
+    int4 coord = (int4)(lidx, get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    uint4 data, dst;\n\
+    float2 sumSqr;\n\
+    uint tmpSum = 0, tmpSqr = 0;\n\
+    float scale_vari, bias_val;\n\
+    __local uint local_sum[1];\n\
+    __local uint local_sqr[1];\n\
+\n\
+    if(lidx == 0)\n\
+    {\n\
+        local_sum[0] = 0;\n\
+        local_sqr[0] = 0;\n\
+    }\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    for(; coord.x < width;)\n\
+    {\n\
+        data = read_imageui(input, coord);\n\
+        coord.x+=16;\n\
+        tmpSum += data.x;\n\
+        tmpSqr += data.x * data.x;\n\
+    }\n\
+    atom_add(local_sum, tmpSum);\n\
+    atom_add(local_sqr, tmpSqr);\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmpSum = local_sum[0];\n\
+    tmpSqr = local_sqr[0];\n\
+    //sumSqr.x = ((float)tmpSum - width * input_zp) * input_scale;\n\
+    //sumSqr.y = ((float)tmpSqr - 2 * input_zp * (float)tmpSum + width * input_zp * input_zp) * e2InScale;\n\
+    sumSqr.x = (float)tmpSum * input_scale - sumZpScale;\n\
+    sumSqr.y = (float)tmpSqr * e2InScale - zp2ScaleE2 * (float)tmpSum + sumZpScaleE2;\n\
+\n\
+    sumSqr *= dim_ratio;\n\
+    sumSqr.s1 = sumSqr.s1 - sumSqr.s0 * sumSqr.s0 + eps;\n\
+    sumSqr.s1 = rsqrt(sumSqr.s1);\n\
+\n\
+    for(coord.x = lidx; coord.x < width;)\n\
+    {\n\
+        float4 gamma = read_imagef(scale, coord.xw);\n\
+        float4 beta  = read_imagef(bias, coord.xw);\n\
+        data = read_imageui(input, coord);\n\
+\n\
+        scale_vari = gamma.s0 * sumSqr.s1;\n\
+        float alpha = scale_inOut * scale_vari;\n\
+        bias_val = (beta.s0 - scale_vari * sumSqr.s0) * output_scale + output_zp;\n\
+\n\
+        float tmpVal = data.x - input_zp;\n\
+\n\
+        float4 norm;\n\
+        norm.x = tmpVal * alpha + bias_val;\n\
+        dst = convert_uint4_rte(norm);\n\
+        write_imageui(output, coord, dst);\n\
+        coord.x+=16;\n\
+    }\n\
+}\n\
+"; /* end of layer_normalization_cl*/
+
 static const char log_softmax_axis0_cl[] = "#define rlogE    (0.693147182f)\n\
 float LOG(float x)\n\
 {\n\
@@ -43435,32 +44192,30 @@ static const char matrixmul_cl[] = "__kernel void gemm_F32F32toF32_2D(\n\
     int K,\n\
     int N,\n\
     int ac2zero,\n\
-    int bc2zero\n\
+    int bc2zero,\n\
+    float scale_a,\n\
+    float zp_a,\n\
+    float scale_b,\n\
+    float zp_b,\n\
+    float scale_out,\n\
+    float zp_out\n\
     )\n\
 {\n\
-    int gidx = get_global_id(0);\n\
-    int gidy = get_global_id(1);\n\
-\n\
-    int2 coord_a = (int2)(0, gidy);\n\
-    int2 coord_b = (int2)(gidx, 0);\n\
-\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);\n\
     float4 sum = (float4)(0);\n\
 \n\
-    for(; coord_a.x < K;)\n\
+    for(; coord.z < K;)\n\
     {\n\
         float4 tempA0;\n\
         float4 tempB0;\n\
 \n\
-        tempA0 = read_imagef(inputA, coord_a);\n\
-        tempB0 = read_imagef(inputB, coord_b);\n\
-        coord_a.x++;\n\
-        coord_b.y++;\n\
+        tempA0 = read_imagef(inputA, coord.zy);\n\
+        tempB0 = read_imagef(inputB, coord.xz);\n\
+        coord.z++;\n\
 \n\
-        sum += tempA0 * tempB0;\n\
+        sum = sum + tempA0 * tempB0;\n\
     }\n\
-\n\
-    coord_b.y = gidy;\n\
-    write_imagef(output, coord_b, sum);\n\
+    write_imagef(output, coord.xy, sum);\n\
 }\n\
 \n\
 __kernel void gemm_F32F32toF32_3D(\n\
@@ -43471,7 +44226,13 @@ __kernel void gemm_F32F32toF32_3D(\n\
     int K,\n\
     int N,\n\
     int ac2zero,\n\
-    int bc2zero\n\
+    int bc2zero,\n\
+    float scale_a,\n\
+    float zp_a,\n\
+    float scale_b,\n\
+    float zp_b,\n\
+    float scale_out,\n\
+    float zp_out\n\
     )\n\
 {\n\
     int4 coord_a = (int4)(0, get_global_id(1), (ac2zero ? 0 : get_global_id(2)), 0);\n\
@@ -43489,11 +44250,161 @@ __kernel void gemm_F32F32toF32_3D(\n\
         coord_a.x++;\n\
         coord_b.y++;\n\
 \n\
-        sum += tempA0 * tempB0;\n\
+        sum = sum + tempA0 * tempB0;\n\
     }\n\
 \n\
     coord_b.y = get_global_id(1);\n\
     coord_b.z = get_global_id(2);\n\
+    write_imagef(output, coord_b, sum);\n\
+}\n\
+\n\
+__kernel void gemm_transb_F32F32toF32_2D(\n\
+    __read_only image2d_t   inputA,\n\
+    __read_only image2d_t   inputB,\n\
+    __write_only image2d_t  output,\n\
+    int M,\n\
+    int K,\n\
+    int N,\n\
+    int ac2zero,\n\
+    int bc2zero,\n\
+    float scale_a,\n\
+    float zp_a,\n\
+    float scale_b,\n\
+    float zp_b,\n\
+    float scale_out,\n\
+    float zp_out\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);\n\
+    float4 sum = (float4)(0);\n\
+\n\
+    for(; coord.z < K;)\n\
+    {\n\
+        float4 tempA0;\n\
+        float4 tempB0;\n\
+\n\
+        tempA0 = read_imagef(inputA, coord.zy);\n\
+        tempB0 = read_imagef(inputB, coord.zx);\n\
+        coord.z++;\n\
+\n\
+        sum = sum + tempA0 * tempB0;\n\
+    }\n\
+    write_imagef(output, coord.xy, sum);\n\
+}\n\
+\n\
+__kernel void gemm_transb_F32F32toF32_3D(\n\
+    __read_only image2d_array_t   inputA,\n\
+    __read_only image2d_array_t   inputB,\n\
+    __write_only image2d_array_t  output,\n\
+    int M,\n\
+    int K,\n\
+    int N,\n\
+    int ac2zero,\n\
+    int bc2zero,\n\
+    float scale_a,\n\
+    float zp_a,\n\
+    float scale_b,\n\
+    float zp_b,\n\
+    float scale_out,\n\
+    float zp_out\n\
+    )\n\
+{\n\
+    int4 coord_a = (int4)(0, get_global_id(1), (ac2zero ? 0 : get_global_id(2)), 0);\n\
+    int4 coord_b = (int4)(0, get_global_id(0), (bc2zero ? 0 : get_global_id(2)), 0);\n\
+\n\
+    float4 sum = (float4)(0);\n\
+\n\
+    for(; coord_a.x < K;)\n\
+    {\n\
+        float4 tempA0;\n\
+        float4 tempB0;\n\
+\n\
+        tempA0 = read_imagef(inputA, coord_a);\n\
+        tempB0 = read_imagef(inputB, coord_b);\n\
+        coord_a.x++;\n\
+        coord_b.x++;\n\
+\n\
+        sum = sum + tempA0 * tempB0;\n\
+    }\n\
+\n\
+    coord_a.x = get_global_id(0);\n\
+    coord_a.z = get_global_id(2);\n\
+    write_imagef(output, coord_b, sum);\n\
+}\n\
+\n\
+__kernel void gemm_transb_F32I8toF32_2D(\n\
+    __read_only image2d_t   inputA,\n\
+    __read_only image2d_t   inputB,\n\
+    __write_only image2d_t  output,\n\
+    int M,\n\
+    int K,\n\
+    int N,\n\
+    int ac2zero,\n\
+    int bc2zero,\n\
+    float scale_a,\n\
+    float zp_a,\n\
+    float scale_b,\n\
+    float zp_b,\n\
+    float scale_out,\n\
+    float zp_out\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);\n\
+    float4 sum = (float4)(0);\n\
+    for(; coord.z < K;)\n\
+    {\n\
+        float4 tempA0;\n\
+        float4 tempB0;\n\
+\n\
+        tempA0 = read_imagef(inputA, coord.zy);\n\
+        tempB0 = convert_float4(read_imagei(inputB, coord.zx));\n\
+        coord.z++;\n\
+        tempB0.x = (tempB0.x - zp_b) * scale_b;\n\
+\n\
+        sum = sum + tempA0 * tempB0;\n\
+    }\n\
+\n\
+    write_imagef(output, coord.xy, sum);\n\
+}\n\
+\n\
+__kernel void gemm_transb_F32I8toF32_3D(\n\
+    __read_only image2d_array_t   inputA,\n\
+    __read_only image2d_array_t   inputB,\n\
+    __write_only image2d_array_t  output,\n\
+    int M,\n\
+    int K,\n\
+    int N,\n\
+    int ac2zero,\n\
+    int bc2zero,\n\
+    float scale_a,\n\
+    float zp_a,\n\
+    float scale_b,\n\
+    float zp_b,\n\
+    float scale_out,\n\
+    float zp_out\n\
+    )\n\
+{\n\
+    int4 coord_a = (int4)(0, get_global_id(1), (ac2zero ? 0 : get_global_id(2)), 0);\n\
+    int4 coord_b = (int4)(0, get_global_id(0), (bc2zero ? 0 : get_global_id(2)), 0);\n\
+\n\
+    float4 sum = (float4)(0);\n\
+\n\
+    for(; coord_a.x < K;)\n\
+    {\n\
+        float4 tempA0;\n\
+        float4 tempB0;\n\
+\n\
+        tempA0 = read_imagef(inputA, coord_a);\n\
+        tempB0 = convert_float4(read_imagei(inputB, coord_b));\n\
+        tempB0.x = (tempB0.x - zp_b) * scale_b;\n\
+        coord_a.x++;\n\
+        coord_b.x++;\n\
+\n\
+        sum = sum + tempA0 * tempB0;\n\
+    }\n\
+\n\
+    coord_a.x = get_global_id(0);\n\
+    coord_a.z = get_global_id(2);\n\
     write_imagef(output, coord_b, sum);\n\
 }\n\
 "; /* end of matrixmul_cl*/
@@ -43506,32 +44417,30 @@ static const char matrixmul_transA_cl[] = "__kernel void gemm_transa_F32F32toF32
     int K,\n\
     int N,\n\
     int ac2zero,\n\
-    int bc2zero\n\
+    int bc2zero,\n\
+    float scale_a,\n\
+    float zp_a,\n\
+    float scale_b,\n\
+    float zp_b,\n\
+    float scale_out,\n\
+    float zp_out\n\
     )\n\
 {\n\
-    int gidx = get_global_id(0);\n\
-    int gidy = get_global_id(1);\n\
-\n\
-    int2 coord_a = (int2)(gidy, 0);\n\
-    int2 coord_b = (int2)(gidx, 0);\n\
-\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);\n\
     float4 sum = (float4)(0);\n\
 \n\
-    for(; coord_a.y < K;)\n\
+    for(; coord.z < K;)\n\
     {\n\
         float4 tempA0;\n\
         float4 tempB0;\n\
 \n\
-        tempA0 = read_imagef(inputA, coord_a);\n\
-        tempB0 = read_imagef(inputB, coord_b);\n\
-        coord_a.y++;\n\
-        coord_b.y++;\n\
+        tempA0 = read_imagef(inputA, coord.yz);\n\
+        tempB0 = read_imagef(inputB, coord.xz);\n\
+        coord.z++;\n\
 \n\
-        sum += tempA0 * tempB0;\n\
+        sum = sum + tempA0 * tempB0;\n\
     }\n\
-\n\
-    coord_b.y = gidy;\n\
-    write_imagef(output, coord_b, sum);\n\
+    write_imagef(output, coord.xy, sum);\n\
 }\n\
 \n\
 __kernel void gemm_transa_F32F32toF32_3D(\n\
@@ -43542,7 +44451,13 @@ __kernel void gemm_transa_F32F32toF32_3D(\n\
     int K,\n\
     int N,\n\
     int ac2zero,\n\
-    int bc2zero\n\
+    int bc2zero,\n\
+    float scale_a,\n\
+    float zp_a,\n\
+    float scale_b,\n\
+    float zp_b,\n\
+    float scale_out,\n\
+    float zp_out\n\
     )\n\
 {\n\
     int gidx = get_global_id(0);\n\
@@ -43563,7 +44478,7 @@ __kernel void gemm_transa_F32F32toF32_3D(\n\
         coord_a.y++;\n\
         coord_b.y++;\n\
 \n\
-        sum += tempA0 * tempB0;\n\
+        sum = sum + tempA0 * tempB0;\n\
     }\n\
 \n\
     coord_b.y = gidy;\n\
@@ -47186,6 +48101,115 @@ __kernel void resize_nearest_U8toU8(\n\
 }\n\
 "; /* end of resize_nearest_cl*/
 
+static const char roi_align_cl[] = "inline float roi_align_1x1\n\
+(\n\
+    __read_only  image2d_array_t  input,\n\
+                           float2 region_start,\n\
+                           float2 region_end,\n\
+                           float2 bin_size,\n\
+                           int2   grid_size,\n\
+                           float2 rcp_of_grid_size,\n\
+                           int    pz\n\
+)\n\
+{\n\
+    float sum = 0;\n\
+\n\
+    for(int iy = 0; iy < grid_size.y; ++iy)\n\
+    {\n\
+        for(int ix = 0; ix < grid_size.x; ++ix)\n\
+        {\n\
+            float2 ixy = (float2)(ix + 0.5f, iy + 0.5f);\n\
+            float2 pos = region_start + ixy * bin_size * rcp_of_grid_size;\n\
+\n\
+            int2 xy_low  = convert_int2(pos);\n\
+            int2 xy_high = xy_low + 1;\n\
+\n\
+            float ly = pos.y - xy_low.y;\n\
+            float lx = pos.x - xy_low.x;\n\
+            float hy = 1.0f - ly;\n\
+            float hx = 1.0f - lx;\n\
+\n\
+            float w1 = hy * hx;\n\
+            float w2 = hy * lx;\n\
+            float w3 = ly * hx;\n\
+            float w4 = ly * lx;\n\
+\n\
+            float data1 = read_imagef(input, (int4)(xy_low.x, xy_low.y, pz, 0)).x;\n\
+            float data2 = read_imagef(input, (int4)(xy_high.x, xy_low.y, pz, 0)).x;\n\
+            float data3 = read_imagef(input, (int4)(xy_low.x, xy_high.y, pz, 0)).x;\n\
+            float data4 = read_imagef(input, (int4)(xy_high.x, xy_high.y, pz, 0)).x;\n\
+\n\
+            sum = sum + w1 * data1 + w2 * data2 + w3 * data3 + w4 * data4;\n\
+        }\n\
+    }\n\
+\n\
+    return (float)(sum * rcp_of_grid_size.x * rcp_of_grid_size.y);\n\
+}\n\
+\n\
+\n\
+#define EPS_GRID 0.00001f\n\
+__kernel void roi_align_F32toF32\n\
+(\n\
+    __read_only  image2d_array_t  input,\n\
+    __read_only  image2d_t        rois,\n\
+    __read_only  image2d_t        n_rois,\n\
+    __write_only image2d_array_t  output,\n\
+                           float  spatial_x_scale,\n\
+                           float  spatial_y_scale,\n\
+                           float  in_width,\n\
+                           float  in_height,\n\
+                           float  rcp_of_out_width,\n\
+                           float  rcp_of_out_height,\n\
+                           float  sampling_x_ratio,\n\
+                           float  sampling_y_ratio,\n\
+                           int    depth\n\
+)\n\
+{\n\
+    int px = get_global_id(0);\n\
+    int py = get_global_id(1);\n\
+    int pw = get_global_id(2);\n\
+\n\
+    int roi_batch = read_imagei(n_rois, (int2)(pw, 0)).x;\n\
+    float4 roi_x = read_imagef(rois, (int2)(0, pw));\n\
+    float4 roi_y = read_imagef(rois, (int2)(1, pw));\n\
+    float4 roi_z = read_imagef(rois, (int2)(2, pw));\n\
+    float4 roi_w = read_imagef(rois, (int2)(3, pw));\n\
+    float4 roi = (float4)(roi_x.x, roi_y.x, roi_z.x, roi_w.x);\n\
+\n\
+    float4 roi_anchor = roi * (float4)(spatial_x_scale, spatial_y_scale, spatial_x_scale, spatial_y_scale);\n\
+    float2 roi_dims = fmax(roi_anchor.zw - roi_anchor.xy, 1.0f);\n\
+\n\
+    float2 spatial_indx     = (float2)(px, py);\n\
+    float2 pooled_dims      = (float2)(rcp_of_out_width, rcp_of_out_height);\n\
+    float2 max_spatial_dims = (float2)(in_width, in_height);\n\
+\n\
+    float2 bin_size     = roi_dims * pooled_dims;\n\
+    float2 region_start = spatial_indx * bin_size + roi_anchor.xy;\n\
+    float2 region_end   = region_start + bin_size;\n\
+\n\
+    float2 roi_bin_grid = (float2)(sampling_x_ratio, sampling_y_ratio);\n\
+\n\
+    roi_bin_grid = roi_bin_grid == 0 ? ceil(bin_size - EPS_GRID) : roi_bin_grid;\n\
+\n\
+    int kz = roi_batch * depth;\n\
+    float2 rcp_of_grid_size = 1.0f / roi_bin_grid;\n\
+    int2 grid_size_xy = convert_int2(roi_bin_grid);\n\
+    float4 interp;\n\
+    int kz1 = pw * depth;\n\
+    for (int pz = 0; pz < depth; pz ++, kz ++, kz1 ++)\n\
+    {\n\
+        interp.x = roi_align_1x1( input,\n\
+                       region_start,\n\
+                       region_end,\n\
+                       bin_size,\n\
+                       grid_size_xy,\n\
+                       rcp_of_grid_size,\n\
+                       kz);\n\
+\n\
+        write_imagef(output, (int4)(px, py, kz1, 0), interp);\n\
+    }\n\
+}"; /* end of roi_align_cl*/
+
 static const char scatter_nd_cl[] = "__kernel void scatter_nd_U32toU32_1D(\n\
     __read_only image2d_t   input0,\n\
     __read_only image2d_t   input1,\n\
@@ -47547,6 +48571,98 @@ __kernel void select_I8_F32_F32toF32_2D(\n\
     write_imagef(output, coord, dst);\n\
 }\n\
 "; /* end of select_cl*/
+
+static const char space2depth_internal_cl[] = "\n\
+__kernel void space2depth_internal_F32toF32 (\n\
+        image2d_array_t    input,\n\
+        image2d_array_t    output,\n\
+        int block_size_x, int block_size_y,\n\
+        float  scaleInOut, float zpInOut)\n\
+{\n\
+    int x = get_global_id(0);\n\
+    int y = get_global_id(1);\n\
+    int z = get_global_id(2);\n\
+    int inDepth = get_image_array_size(input);\n\
+\n\
+    int4 coord = (int4)(x, y, z, 0);\n\
+    float4 data = {0.0};\n\
+    data = read_imagef(input, coord);\n\
+\n\
+    ushort blockSize_x = convert_ushort(block_size_x);\n\
+    ushort blockSize_y = convert_ushort(block_size_y);\n\
+    int4 coord_out = (int4)(convert_ushort(x)/blockSize_x, convert_ushort(y)/blockSize_y, 0, 0);\n\
+    coord_out.z = ((x - coord_out.x * block_size_x) + (y - coord_out.y * block_size_y) * block_size_x) * inDepth\n\
+                     + z;\n\
+    write_imagef(output, coord_out, data);\n\
+}\n\
+\n\
+__kernel void space2depth_internal_F32toF32_X2Y1 (\n\
+        image2d_array_t    input,\n\
+        image2d_array_t    output,\n\
+        int block_size_x, int block_size_y,\n\
+        float  scaleInOut, float zpInOut)\n\
+{\n\
+    int x = get_global_id(0);\n\
+    int y = get_global_id(1);\n\
+    int z = get_global_id(2);\n\
+    int inDepth = get_image_array_size(input);\n\
+\n\
+    int4 coord = (int4)(x, y, z, 0);\n\
+    float4 data = {0.0};\n\
+    data = read_imagef(input, coord);\n\
+\n\
+    int4 coord_out = (int4)(x >> 1, y, 0, 0);\n\
+    coord_out.z = (x & 1) * inDepth + z;\n\
+    write_imagef(output, coord_out, data);\n\
+}\n\
+\n\
+__kernel void space2depth_internal_U8toU8 (\n\
+        image2d_array_t    input,\n\
+        image2d_array_t    output,\n\
+        int block_size_x, int block_size_y,\n\
+        float  scaleInOut, float zpInOut)\n\
+{\n\
+    int x = get_global_id(0);\n\
+    int y = get_global_id(1);\n\
+    int z = get_global_id(2);\n\
+    int inDepth = get_image_array_size(input);\n\
+\n\
+    int4 coord = (int4)(x, y, z, 0);\n\
+    uint4 data = {0};\n\
+    data = read_imageui(input, coord);\n\
+\n\
+    ushort blockSize_x = convert_ushort(block_size_x);\n\
+    ushort blockSize_y = convert_ushort(block_size_y);\n\
+    int4 coord_out = (int4)(convert_ushort(x)/blockSize_x, convert_ushort(y)/blockSize_y, 0, 0);\n\
+    coord_out.z = ((x - coord_out.x * block_size_x) + (y - coord_out.y * block_size_y) * block_size_x) * inDepth\n\
+                    + z;\n\
+\n\
+    data.x = convert_uint(data.x * scaleInOut + zpInOut);\n\
+    write_imageui(output, coord_out, data);\n\
+}\n\
+\n\
+__kernel void space2depth_internal_U8toU8_X2Y1 (\n\
+        image2d_array_t    input,\n\
+        image2d_array_t    output,\n\
+        int block_size_x, int block_size_y,\n\
+        float  scaleInOut, float zpInOut)\n\
+{\n\
+    int x = get_global_id(0);\n\
+    int y = get_global_id(1);\n\
+    int z = get_global_id(2);\n\
+    int inDepth = get_image_array_size(input);\n\
+\n\
+    int4 coord = (int4)(x, y, z, 0);\n\
+    uint4 data = {0};\n\
+    data = read_imageui(input, coord);\n\
+\n\
+    int4 coord_out = (int4)(x >> 1, y, 0, 0);\n\
+    coord_out.z = (x & 1) * inDepth + z;\n\
+\n\
+    data.x = convert_uint(data.x * scaleInOut + zpInOut);\n\
+    write_imageui(output, coord_out, data);\n\
+}\n\
+"; /* end of space2depth_internal_cl*/
 
 static const char swish_cl[] = "float sigmoid_(float x, float logE)\n\
 {\n\
@@ -48019,6 +49135,13 @@ static const source_map_t evis_resource[] =
     {"instance_normalization_u8_vx", instance_normalization_u8_vx},
     {"l2normalizescale_axis0_vx", l2normalizescale_axis0_vx},
     {"l2normalizescale_axis1_vx", l2normalizescale_axis1_vx},
+    {"layer_normalization_vx", layer_normalization_vx},
+    {"layer_normalization_2d_vx", layer_normalization_2d_vx},
+    {"layer_normalization_i16_vx", layer_normalization_i16_vx},
+    {"layer_normalization_u8_f16_vx", layer_normalization_u8_f16_vx},
+    {"layer_normalization_wh_f16_vx", layer_normalization_wh_f16_vx},
+    {"layer_normalization_wh_i16_vx", layer_normalization_wh_i16_vx},
+    {"layer_normalization_wh_u8_vx", layer_normalization_wh_u8_vx},
     {"log_softmax_axis0_vx", log_softmax_axis0_vx},
     {"log_softmax_axis0_BF16_vx", log_softmax_axis0_BF16_vx},
     {"log_softmax_axis1_vx", log_softmax_axis1_vx},
@@ -48082,27 +49205,21 @@ static const source_map_t evis_resource[] =
     {"pow_i8_vx", pow_i8_vx},
     {"pow_u8_vx", pow_u8_vx},
     {"pre_process_bgra_vx", pre_process_bgra_vx},
-    {"pre_process_bgra_trans_vx", pre_process_bgra_trans_vx},
     {"pre_process_gray_vx", pre_process_gray_vx},
     {"pre_process_gray_copy_vx", pre_process_gray_copy_vx},
     {"pre_process_nv12_scale_vx", pre_process_nv12_scale_vx},
     {"pre_process_nv12_scale_8bits_vx", pre_process_nv12_scale_8bits_vx},
     {"pre_process_nv12_scale_mix_vx", pre_process_nv12_scale_mix_vx},
-    {"pre_process_nv12_trans_u8_vx", pre_process_nv12_trans_u8_vx},
     {"pre_process_rgb_vx", pre_process_rgb_vx},
     {"pre_process_rgb_copy_vx", pre_process_rgb_copy_vx},
-    {"pre_process_rgb_copy_trans_vx", pre_process_rgb_copy_trans_vx},
-    {"pre_process_rgb_trans_vx", pre_process_rgb_trans_vx},
     {"pre_process_yuv420_copy_u8_vx", pre_process_yuv420_copy_u8_vx},
     {"pre_process_yuv420_scale_fp16_vx", pre_process_yuv420_scale_fp16_vx},
     {"pre_process_yuv420_scale_i16_vx", pre_process_yuv420_scale_i16_vx},
     {"pre_process_yuv420_scale_i8_vx", pre_process_yuv420_scale_i8_vx},
     {"pre_process_yuv420_scale_u8_vx", pre_process_yuv420_scale_u8_vx},
-    {"pre_process_yuv420_trans_u8_vx", pre_process_yuv420_trans_u8_vx},
     {"pre_process_yuv444_copy_u8_vx", pre_process_yuv444_copy_u8_vx},
     {"pre_process_yuv444_scale_vx", pre_process_yuv444_scale_vx},
     {"pre_process_yuv444_scale_fp16_vx", pre_process_yuv444_scale_fp16_vx},
-    {"pre_process_yuv444_trans_u8_vx", pre_process_yuv444_trans_u8_vx},
     {"prelu_vx", prelu_vx},
     {"prelu_BF16_vx", prelu_BF16_vx},
     {"random_multinomial_vx", random_multinomial_vx},
@@ -48144,6 +49261,7 @@ static const source_map_t evis_resource[] =
     {"scatter_nd_vx", scatter_nd_vx},
     {"scatter_nd_big_vx", scatter_nd_big_vx},
     {"select_vx", select_vx},
+    {"space2depth_internal_vx", space2depth_internal_vx},
     {"swish_vx", swish_vx},
     {"tile_vx", tile_vx},
     {"tile_mix_vx", tile_mix_vx},
@@ -48151,12 +49269,12 @@ static const source_map_t evis_resource[] =
     {"upsample_I16_vx", upsample_I16_vx},
     {"upsample_I8_vx", upsample_I8_vx},
     {"upsample_U8_vx", upsample_U8_vx},
+    {"upsamplescale_vx", upsamplescale_vx},
+    {"upsamplescale_k2_vx", upsamplescale_k2_vx},
     {"vsi_nn_kernel_axis_aligned_bbox_transform_vx", vsi_nn_kernel_axis_aligned_bbox_transform_vx},
     {"vsi_nn_kernel_box_with_nms_limit_vx", vsi_nn_kernel_box_with_nms_limit_vx},
-    {"vsi_nn_kernel_crop_vx", vsi_nn_kernel_crop_vx},
     {"vsi_nn_kernel_detection_postprocess_vx", vsi_nn_kernel_detection_postprocess_vx},
     {"vsi_nn_kernel_extra_ending_vx", vsi_nn_kernel_extra_ending_vx},
-    {"vsi_nn_kernel_fullconnect2_vx", vsi_nn_kernel_fullconnect2_vx},
     {"vsi_nn_kernel_generate_proposals_vx", vsi_nn_kernel_generate_proposals_vx},
     {"vsi_nn_kernel_header_vx", vsi_nn_kernel_header_vx},
     {"vsi_nn_kernel_heatmap_max_keypoint_vx", vsi_nn_kernel_heatmap_max_keypoint_vx},
@@ -48165,15 +49283,8 @@ static const source_map_t evis_resource[] =
     {"vsi_nn_kernel_imageprocess_3_vx", vsi_nn_kernel_imageprocess_3_vx},
     {"vsi_nn_kernel_imageprocess_4_vx", vsi_nn_kernel_imageprocess_4_vx},
     {"vsi_nn_kernel_imageprocess_5_vx", vsi_nn_kernel_imageprocess_5_vx},
-    {"vsi_nn_kernel_layernormalize_vx", vsi_nn_kernel_layernormalize_vx},
-    {"vsi_nn_kernel_layernormalize_U8_vx", vsi_nn_kernel_layernormalize_U8_vx},
-    {"vsi_nn_kernel_resize_vx", vsi_nn_kernel_resize_vx},
     {"vsi_nn_kernel_roi_align_vx", vsi_nn_kernel_roi_align_vx},
-    {"vsi_nn_kernel_scale_vx", vsi_nn_kernel_scale_vx},
-    {"vsi_nn_kernel_shufflechannel_vx", vsi_nn_kernel_shufflechannel_vx},
-    {"vsi_nn_kernel_shufflechannel_axis1_vx", vsi_nn_kernel_shufflechannel_axis1_vx},
     {"vsi_nn_kernel_signalframe_vx", vsi_nn_kernel_signalframe_vx},
-    {"vsi_nn_kernel_space2depth_vx", vsi_nn_kernel_space2depth_vx},
     {"vsi_nn_kernel_tensorstackconcat_vx", vsi_nn_kernel_tensorstackconcat_vx},
     {"vsi_nn_kernel_topk_vx", vsi_nn_kernel_topk_vx},
     {"vsi_nn_kernel_transform_gemm_vx", vsi_nn_kernel_transform_gemm_vx},
@@ -48210,6 +49321,7 @@ static const source_map_t cl_resource[] =
     {"instance_normalization_u8_cl", instance_normalization_u8_cl},
     {"l2normalizescale_axis0_cl", l2normalizescale_axis0_cl},
     {"l2normalizescale_axis1_cl", l2normalizescale_axis1_cl},
+    {"layer_normalization_cl", layer_normalization_cl},
     {"log_softmax_axis0_cl", log_softmax_axis0_cl},
     {"log_softmax_axis1_cl", log_softmax_axis1_cl},
     {"log_softmax_axis2_cl", log_softmax_axis2_cl},
@@ -48271,8 +49383,10 @@ static const source_map_t cl_resource[] =
     {"resize_1d_nearest_cl", resize_1d_nearest_cl},
     {"resize_bilinear_cl", resize_bilinear_cl},
     {"resize_nearest_cl", resize_nearest_cl},
+    {"roi_align_cl", roi_align_cl},
     {"scatter_nd_cl", scatter_nd_cl},
     {"select_cl", select_cl},
+    {"space2depth_internal_cl", space2depth_internal_cl},
     {"swish_cl", swish_cl},
     {"tile_cl", tile_cl},
     {"upsample_cl", upsample_cl},

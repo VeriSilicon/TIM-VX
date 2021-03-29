@@ -1,0 +1,58 @@
+
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniConvertDatatoF32_4x4;
+_viv_uniform float output_scale;
+_viv_uniform float tail;
+
+#define UPSAMPLE_SCALETO_FUN(src_name, dst_name, read_type, src_type, dst_type, write_type, conv_func) \
+    __kernel void upsamplescale_##src_name##to##dst_name( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 int              stride, \
+                 float            scale) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    read_type  read_val; \
+    src_type   src_val; \
+    dst_type   dst_val; \
+    write_type write_val; \
+    VXC_ReadImage2DArray(read_val, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src_val, read_val, 16); \
+    coord.xy *= stride; \
+    int8 output_desc; \
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0; \
+    _viv_asm(MOV, coord.w, baseAddr); \
+    float4 data; \
+    VXC_DP4x4(data, src_val, src_val, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniConvertDatatoF32_4x4); \
+    data = data * output_scale + tail; \
+    _viv_asm(conv_func, dst_val, data); \
+    _viv_asm(COPY, write_val, dst_val, 16); \
+    int4 coord_out = coord; \
+    for (int y = 0; y < stride; y++) \
+    { \
+        coord_out.x = coord.x; \
+        for (int x = 0; x < stride; ) \
+        { \
+            VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, write_val, \
+                VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0)); \
+            x++; \
+            coord_out.x ++; \
+        } \
+        coord_out.y ++; \
+    } \
+}
+
+UPSAMPLE_SCALETO_FUN(F16, F16,  vxc_short8,  vxc_half8,   half4,  short4, CONV)
+UPSAMPLE_SCALETO_FUN(F16, I16,  vxc_short8,  vxc_half8,   int4,   short4, CONV_RTE)
+UPSAMPLE_SCALETO_FUN(F16, I8,   vxc_short8,  vxc_half8,   int4,   char4,  CONV_RTE)
+UPSAMPLE_SCALETO_FUN(F16, U8,   vxc_short8,  vxc_half8,   int4,   uchar4, CONV_RTE)
+UPSAMPLE_SCALETO_FUN(I16, I16,  vxc_short8,  vxc_short8,  int4,   short4, CONV_RTE)
+UPSAMPLE_SCALETO_FUN(I16, F16,  vxc_short8,  vxc_short8,  half4,  short4, CONV)
+UPSAMPLE_SCALETO_FUN(I8,  I8,   vxc_char16,  vxc_char16,  int4,   char4,  CONV_RTE)
+UPSAMPLE_SCALETO_FUN(I8,  F16,  vxc_short8,  vxc_short8,  half4,  short4, CONV)
+UPSAMPLE_SCALETO_FUN(U8,  U8,   vxc_uchar16, vxc_uchar16, int4,   uchar4, CONV_RTE)
+UPSAMPLE_SCALETO_FUN(U8,  F16,  vxc_short8,  vxc_short8,  half4,  short4, CONV)
+

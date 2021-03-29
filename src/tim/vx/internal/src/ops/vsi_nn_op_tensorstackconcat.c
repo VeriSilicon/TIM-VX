@@ -346,10 +346,10 @@ static vsi_bool op_check
 
     {
         BEGIN_IO_TYPE_DECL(TENSORSTACKCONCAT, 2, 1)
-            IO_TYPE(D_F16, D_F16, D_F16)
-            IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM)
-            IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP, D_I16|Q_DFP)
-            IO_TYPE(D_I8|Q_DFP, D_I8|Q_DFP, D_I8|Q_DFP)
+            IO_TYPE(D_F16, D_I32, D_F16)
+            IO_TYPE(D_U8|Q_ASYM, D_I32, D_U8|Q_ASYM)
+            IO_TYPE(D_I16|Q_DFP, D_I32, D_I16|Q_DFP)
+            IO_TYPE(D_I8|Q_DFP, D_I32, D_I8|Q_DFP)
         END_IO_TYPE_DECL(TENSORSTACKCONCAT)
         if(!VALIDATE_OP_IO_TYPES(TENSORSTACKCONCAT, self, inputs, self->input.num, outputs, self->output.num)) {
             char* desc = generate_op_io_types_desc(inputs,

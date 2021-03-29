@@ -219,7 +219,10 @@ static vsi_bool op_check
         IO_TYPE(D_F32, D_I32)
         IO_TYPE(D_F16, D_I32)
         IO_TYPE(D_I32, D_I32)
-        IO_TYPE(D_U8|Q_ASYM, D_I32)
+        IO_TYPE(D_I8|Q_DFP,   D_I32)
+        IO_TYPE(D_I8,         D_I32)
+        IO_TYPE(D_U8|Q_ASYM,  D_I32)
+        IO_TYPE(D_U8,         D_I32)
     END_IO_TYPE_DECL(ARGMIN)
     if(!VALIDATE_OP_IO_TYPES(ARGMIN, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,

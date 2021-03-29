@@ -70,6 +70,10 @@ typedef struct _vsi_nn_instancenorm_lcl_data2
     uint32_t reshapeFlg;
     uint32_t hash_idx;
     vsi_bool execute_on_sw;
+
+    /* handle 3D instance norm */
+    vsi_nn_tensor_t *reshaped_input;
+    vsi_nn_tensor_t *reshaped_output;
 } vsi_nn_instancenorm_lcl_data2;
 
 typedef struct _vsi_nn_instancenorm_lcl_data

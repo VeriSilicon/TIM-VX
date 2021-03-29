@@ -65,13 +65,13 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "adjointB", adjointB );
 
     n = vsi_nn_kernel_selector( self->graph, "matrixmul", inputs, 2, outputs, 1, param );
-    if( n != NULL )
+    if ( n != NULL )
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;
     }
 
-    if(param != NULL)
+    if (param != NULL)
     {
         vsi_nn_kernel_param_release( &param );
     }
@@ -103,15 +103,19 @@ static vsi_bool op_check
         IO_TYPE(D_I16|Q_DFP,  D_F16,  D_F16)
         IO_TYPE(D_F16,  D_U8|Q_ASYM,  D_F16)
         IO_TYPE(D_F16,  D_I16|Q_DFP,  D_F16)
+        IO_TYPE(D_F16,  D_I16|Q_DFP,  D_I16|Q_DFP)
         IO_TYPE(D_F16,  D_I8|Q_DFP,   D_F16)
         IO_TYPE(D_F16,  D_U8|Q_ASYM,  D_U8|Q_ASYM)
         IO_TYPE(D_F16,  D_F16,  D_F16)
         IO_TYPE(D_F32,  D_F32,  D_F32)
+        IO_TYPE(D_F32,  D_I8|Q_DFP,  D_F32)
+        IO_TYPE(D_F32,  D_I16|Q_DFP,  D_F32)
+        IO_TYPE(D_F32,  D_I32,  D_F32)
         IO_TYPE(D_F16,  D_F16,  D_I16|Q_DFP)
         IO_TYPE(D_F16,  D_F16,  D_I8|Q_DFP)
         IO_TYPE(D_F16,  D_F16,  D_U8|Q_ASYM)
     END_IO_TYPE_DECL(MATRIXMUL)
-    if(!VALIDATE_OP_IO_TYPES(MATRIXMUL, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(MATRIXMUL, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -141,7 +145,7 @@ static vsi_bool op_check
          return FALSE;
     }
 
-    if(inputs[0]->attr.dim_num > 2 && inputs[1]->attr.dim_num > 2
+    if (inputs[0]->attr.dim_num > 2 && inputs[1]->attr.dim_num > 2
         && inputs[0]->attr.size[2] != 1 && inputs[1]->attr.size[2] != 1
         && inputs[0]->attr.size[2] != inputs[1]->attr.size[2])
     {
@@ -160,7 +164,7 @@ static vsi_bool op_setup
     )
 {
     uint32_t i = 0;
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = vsi_nn_max(inputs[0]->attr.dim_num, inputs[1]->attr.dim_num);
 
@@ -188,21 +192,21 @@ static vsi_bool op_setup
             return FALSE;
         }
 
-        if(inputs[0]->attr.dim_num > inputs[1]->attr.dim_num)
+        if (inputs[0]->attr.dim_num > inputs[1]->attr.dim_num)
         {
             for (i = 2; i < inputs[0]->attr.dim_num; i++)
             {
                 outputs[0]->attr.size[i] = inputs[0]->attr.size[i];
             }
         }
-        else if(inputs[1]->attr.dim_num > inputs[0]->attr.dim_num)
+        else if (inputs[1]->attr.dim_num > inputs[0]->attr.dim_num)
         {
             for (i = 2; i < inputs[1]->attr.dim_num; i++)
             {
                 outputs[0]->attr.size[i] = inputs[1]->attr.size[i];
             }
         }
-        else if(inputs[0]->attr.size[2] >= inputs[1]->attr.size[2])
+        else if (inputs[0]->attr.size[2] >= inputs[1]->attr.size[2])
         {
             for (i = 2; i < inputs[0]->attr.dim_num; i++)
             {

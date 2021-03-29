@@ -109,7 +109,6 @@ static vsi_bool op_setup
 {
     /* TODO: Add code to comput outputs' shape. */
     vsi_nn_pre_process_bgra_param * p = NULL;
-    uint32_t axis = 0;
     uint32_t i = 0;
     p = (vsi_nn_pre_process_bgra_param *)&(self->nn_param.pre_process_bgra);
 
@@ -155,28 +154,8 @@ static vsi_bool op_setup
         }
     }
 
-    for (i = 0; i < self->nn_param.pre_process_bgra.dim_num; i++)
-    {
-        axis = self->nn_param.pre_process_bgra.perm[i];
-        if (axis != i)
-            break;
-    }
-
-    if (i == self->nn_param.pre_process_bgra.dim_num)
-        self->nn_param.pre_process_bgra.local.enable_perm = FALSE;
-    else
-        self->nn_param.pre_process_bgra.local.enable_perm = TRUE;
-
-    if (self->nn_param.pre_process_bgra.local.enable_perm == FALSE)
-    {
-        p->local.scale_x = (p->rect.width << 15) / outputs[0]->attr.size[0];
-        p->local.scale_y = (p->rect.height << 15) / outputs[0]->attr.size[1];
-    }
-    else
-    {
-        p->local.scale_x = (p->rect.width << 15) / outputs[0]->attr.size[1];
-        p->local.scale_y = (p->rect.height << 15) / outputs[0]->attr.size[2];
-    }
+    p->local.scale_x = (p->rect.width << 15) / outputs[0]->attr.size[0];
+    p->local.scale_y = (p->rect.height << 15) / outputs[0]->attr.size[1];
 
     p->local.enable_copy = ((p->local.scale_x == p->local.scale_y) && (p->local.scale_x == (1 << 15)));
 

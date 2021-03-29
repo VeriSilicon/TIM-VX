@@ -241,6 +241,31 @@ static void _set_preproc_node_input_attr
             input_attr->size[2] = 1;
         }
     }
+
+    if(*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR || *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_GRAY)
+    {
+        if(*source_layout == VSI_NN_SOURCE_LAYOUT_NHWC)
+        {
+            input_attr->size[0] = input_size->w;
+            input_attr->size[1] = input_size->h;
+            input_attr->size[2] = input_size->c;
+        }
+    }
+
+    if(*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_BGRA)
+    {
+        if(*source_layout == VSI_NN_SOURCE_LAYOUT_NHWC)
+        {
+            input_attr->size[0] = 4*input_attr->size[1];
+            input_attr->size[1] = input_attr->size[2];
+            input_attr->size[2] = 1;
+        }
+        else
+        {
+            input_attr->size[0] = 4*input_attr->size[0];
+            input_attr->size[2] = 1;
+        }
+    }
 } /*_set_preproc_node_input_attr() */
 
 static void _set_preproc_node_output_attr

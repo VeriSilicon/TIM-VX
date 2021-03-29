@@ -1,0 +1,135 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniExtractEvenUint8Stride2_2x8;
+_viv_uniform VXC_512Bits uniExtractOddUint8Stride2_2x8;
+_viv_uniform VXC_512Bits uniExtractEvenFp16Stride2_4x4;
+_viv_uniform VXC_512Bits uniExtractOddFp16Stride2_4x4;
+
+_viv_uniform int input_depth;
+
+#define SPACE2DEPTH_INTERNAL_QINT_TO_QINT(src0_type_name, src1_type_name, read_type) \
+__kernel void space2depth_internal_##src0_type_name##to##src1_type_name( \
+    image2d_array_t input, \
+    image2d_array_t output, \
+    int block_size_x, \
+    int block_size_y \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+    int4 coord = (int4)(gidx, gidy, gidz, 0); \
+    read_type src; \
+    VXC_ReadImage2DArray(src, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                    VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    ushort stride_x = (ushort)block_size_x; \
+    ushort stride_y = (ushort)block_size_y; \
+    ushort sidx = (ushort)gidx; \
+    ushort sidy = (ushort)gidy; \
+    ushort tmpX = sidx % stride_x; \
+    ushort tmpY = sidy % stride_y; \
+    int tmpId0 = tmpX; \
+    int tmpId1 = tmpY; \
+    int4 coord_out = (int4)((int)(sidx / stride_x), (int)(sidy / stride_y), 0, 0); \
+    coord_out.z = tmpId0 * input_depth + tmpId1 * block_size_x * input_depth + gidz; \
+    VXC_WriteImage2DArray(output, coord_out, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT(U8, U8, vxc_uchar16)
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT(I8, I8, vxc_char16)
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT(I16, I16, vxc_short8)
+
+__kernel void space2depth_internal_F16toF16(
+    image2d_array_t input,
+    image2d_array_t output,
+    int block_size_x,
+    int block_size_y
+    )
+{
+    int gidx = get_global_id(0);
+    int gidy = get_global_id(1);
+    int gidz = get_global_id(2);
+    int4 coord = (int4)(gidx, gidy, gidz, 0);
+    vxc_short8 data, imgVal0;
+    VXC_ReadImage2DArray(data, input, coord, VXC_5BITOFFSET_XY(0, 0),
+                    VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    ushort stride_x = (ushort)block_size_x;
+    ushort stride_y = (ushort)block_size_y;
+    ushort sidx = (ushort)gidx;
+    ushort sidy = (ushort)gidy;
+    ushort tmpX = sidx % stride_x;
+    ushort tmpY = sidy % stride_y;
+    int tmpId0 = tmpX;
+    int tmpId1 = tmpY;
+    int4 coord_out = (int4)((int)(sidx / stride_x), (int)(sidy / stride_y), 0, 0);
+    coord_out.z = tmpId0 * input_depth + tmpId1 * block_size_x * input_depth + gidz;
+
+    VXC_WriteImage2DArray(output, coord_out, data, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+#define SPACE2DEPTH_INTERNAL_QINT_TO_QINT_X2Y1(src0_type_name, src1_type_name, read_type, write_type) \
+__kernel void space2depth_internal_##src0_type_name##to##src1_type_name##_X2Y1( \
+    image2d_array_t input, \
+    image2d_array_t output, \
+    int block_size_x, \
+    int block_size_y \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+ \
+    int4 coord = (int4)(gidx, gidy, gidz, 0); \
+    int4 coord_out = (int4)(gidx >> 1, gidy, gidz, 0); \
+    int out_d1; \
+    read_type imageData; \
+    write_type  imgVal0, imgVal1; \
+ \
+    VXC_ReadImage2DArray(imageData, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                     VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+ \
+    out_d1 = gidz + input_depth; \
+ \
+    VXC_DP2x8(imgVal0, imageData, imageData,\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractEvenUint8Stride2_2x8); \
+    VXC_DP2x8(imgVal1, imageData, imageData,\
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddUint8Stride2_2x8); \
+    VXC_WriteImage2DArray(output, coord_out, imgVal0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    coord_out.z = out_d1; \
+    VXC_WriteImage2DArray(output, coord_out, imgVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT_X2Y1(U8, U8, vxc_uchar16, vxc_uchar16)
+SPACE2DEPTH_INTERNAL_QINT_TO_QINT_X2Y1(I8, I8, vxc_char16, vxc_char16)
+
+#define SPACE2DEPTH_INTERNAL_16BITS_X2Y1(src0_type_name, src1_type_name, read_type, write_type) \
+__kernel void space2depth_internal_##src0_type_name##to##src1_type_name##_X2Y1( \
+    image2d_array_t input, \
+    image2d_array_t output, \
+    int block_size_x, \
+    int block_size_y \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+ \
+    int4 coord = (int4)(gidx, gidy, gidz, 0); \
+    int4 coord_out = (int4)(gidx >> 1, gidy, gidz, 0); \
+    int out_d1; \
+    read_type imageData; \
+    write_type  imgVal0, imgVal1; \
+ \
+    VXC_ReadImage2DArray(imageData, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    out_d1 = gidz + input_depth; \
+    VXC_DP4x4(imgVal0, imageData, imageData, \
+                 VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractEvenFp16Stride2_4x4); \
+    VXC_DP4x4(imgVal1, imageData, imageData, \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractOddFp16Stride2_4x4); \
+    VXC_WriteImage2DArray(output, coord_out, imgVal0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    coord_out.z = out_d1; \
+    VXC_WriteImage2DArray(output, coord_out, imgVal1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+SPACE2DEPTH_INTERNAL_16BITS_X2Y1(I16, I16, vxc_short8, vxc_short8)
+SPACE2DEPTH_INTERNAL_16BITS_X2Y1(F16, F16, vxc_short8, vxc_short8)

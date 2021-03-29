@@ -255,7 +255,7 @@ REGISTER_CONV_OPENVX_KERNEL( depthwise_conv1d )
     vx_node node = NULL;
     vx_nn_convolution_params_ext2_t vxparam;
     vx_tensor temp_tensors[3] = { NULL };
-    int i;
+    int32_t i;
     vsi_bool need_explicit_padding = FALSE;
 
     _build_vx_conv2d_param(
@@ -277,8 +277,17 @@ REGISTER_CONV_OPENVX_KERNEL( depthwise_conv1d )
 
     if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
     {
-        temp_tensors[1] = _expand_tensor_dim( inputs[1]->t,
-                (int32_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
+        int32_t new_w_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+        uint32_t new_w_rank = 4;
+        new_w_shape[0] = 1;
+        new_w_shape[1] = inputs[1]->attr.size[0];
+        new_w_shape[2] = 1;
+        for (i = 1; i < (int32_t)(inputs[1]->attr.dim_num); i++)
+        {
+            new_w_shape[2] *= inputs[1]->attr.size[i];
+        }
+        new_w_shape[3] = 1;
+        temp_tensors[1] = vxReshapeTensor( inputs[1]->t, new_w_shape, new_w_rank );
         CHECK_PTR_FAIL_GOTO( temp_tensors[1], "Expand kernel dim fail.", final );
     }
     else

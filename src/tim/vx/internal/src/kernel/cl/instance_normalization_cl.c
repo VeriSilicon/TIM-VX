@@ -214,7 +214,7 @@ DEF_KERNEL_INITIALIZER(_instancenorm_mean_vari_initializer)
     width = input_shape->data[0];
     height = input_shape->data[1];
     chn = attr[1]->shape->data[1];
-    if(rsFlg)
+    if (rsFlg)
     {
         height = height / chn;
     }
@@ -281,7 +281,7 @@ DEF_KERNEL_INITIALIZER(_instancenorm_initializer)
     width = input_shape->data[0];
     height = input_shape->data[1];
     chn = attr[1]->shape->data[1];
-    if(rsFlg)
+    if (rsFlg)
     {
         height = height / chn;
     }
@@ -355,12 +355,12 @@ static vsi_status _query_kernel
 
     for( i = 0; i < kernel_map_size; i ++ )
     {
-        if( kernel_map[i].key == hashkey )
+        if ( kernel_map[i].key == hashkey )
         {
             break;
         }
     }
-    if( i < kernel_map_size )
+    if ( i < kernel_map_size )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
         kernel->info.parameters  = param_def;
@@ -413,19 +413,23 @@ static vsi_nn_kernel_node_t _setup
     int32_t width = inputs[0]->attr.size[0];
     int32_t height = inputs[0]->attr.size[1];
     int32_t group_num = (width + 15) / 16;
-    int32_t input_zp = inputs[0]->attr.dtype.zero_point;
-    float input_scale = inputs[0]->attr.dtype.scale;
-    int32_t input_fl = inputs[0]->attr.dtype.fl;
-    int32_t output_zp = outputs[0]->attr.dtype.zero_point;
-    float output_scale = outputs[0]->attr.dtype.scale;
-    int32_t output_fl = outputs[0]->attr.dtype.fl;
+    int32_t input_zp = 0;
+    float input_scale = 1.0f;
+    int32_t input_fl = 0;
+    int32_t output_zp = 0;
+    float output_scale = 1.0f;
+    int32_t output_fl = 0;
     float in_fl_scale = 1.0f, out_fl_scale = 1.0;
     float dim_ratio = (float)1.0 / (float)(width * height);
 
-    if(inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT8
-        || inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT16
-        || inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32)
+    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
     {
+        input_zp = inputs[0]->attr.dtype.zero_point;
+        input_scale = inputs[0]->attr.dtype.scale;
+    }
+    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
+    {
+        input_fl = inputs[0]->attr.dtype.fl;
         if (input_fl > 0)
         {
             in_fl_scale = (1.0f / ((float) ((int64_t)1 << input_fl)));
@@ -434,12 +438,17 @@ static vsi_nn_kernel_node_t _setup
         {
             in_fl_scale = ((float) ((int64_t)1 << -input_fl));
         }
+        input_zp = 0;
     }
 
-    if(outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT8
-        || outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT16
-        || outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32)
+    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
     {
+        output_zp = outputs[0]->attr.dtype.zero_point;
+        output_scale = 1.0f / outputs[0]->attr.dtype.scale;
+    }
+    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
+    {
+        output_fl = outputs[0]->attr.dtype.fl;
         if (output_fl > 0)
         {
             out_fl_scale = (float)((int64_t)1 << output_fl);
@@ -448,9 +457,10 @@ static vsi_nn_kernel_node_t _setup
         {
             out_fl_scale = (1.0f / (float)((int64_t)1 << -output_fl));
         }
+        output_zp = 0;
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -482,17 +492,17 @@ static vsi_nn_kernel_node_t _setup
     hashkey = HASH_INSTANCENORM_KEY( in0_dtype, out_dtype, reshape_flg );
 
     status = _query_kernel( ikernels[MEAN_VARI_INDEX], hashkeys[MEAN_VARI_INDEX], INTERNAL_KERNEL_MEAN_VARI );
-    if( VSI_SUCCESS != status )
+    if ( VSI_SUCCESS != status )
     {
         goto final;
     }
     status = _query_kernel( kernel, hashkey, INTERNAL_KERNEL_NORM );
-    if( VSI_SUCCESS != status )
+    if ( VSI_SUCCESS != status )
     {
         goto final;
     }
 
-    if(reshape_flg)
+    if (reshape_flg)
     {
         int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[0]->attr.size[0];
@@ -507,7 +517,7 @@ static vsi_nn_kernel_node_t _setup
         shape[3] = outputs[0]->attr.dim_num > 3 ? outputs[0]->attr.size[3] : 1;
         rs_output = vsi_nn_kernel_tensor_reshape( outputs[0]->t, shape, 4 );
     }
-    if(inputs[1]->attr.dim_num < 2)
+    if (inputs[1]->attr.dim_num < 2)
     {
         int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[1]->attr.size[0];
@@ -516,7 +526,7 @@ static vsi_nn_kernel_node_t _setup
         shape[3] = 1;
         rs_beta = vsi_nn_kernel_tensor_reshape( inputs[1]->t, shape, 4 );
     }
-    if(inputs[2]->attr.dim_num < 2)
+    if (inputs[2]->attr.dim_num < 2)
     {
         int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[2]->attr.size[0];
@@ -528,10 +538,10 @@ static vsi_nn_kernel_node_t _setup
     // Mean Vari
     {
         node = vsi_nn_kernel_create_node( graph, ikernels[MEAN_VARI_INDEX] );
-        if(node)
+        if (node)
         {
             uint32_t index = 0;
-            if(reshape_flg)
+            if (reshape_flg)
             {
                 mean_vari_node_params[index++] = rs_input;
             }
@@ -565,10 +575,10 @@ static vsi_nn_kernel_node_t _setup
     // Nomalization
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if(node)
+        if (node)
         {
             uint32_t index = 0;
-            if(reshape_flg)
+            if (reshape_flg)
             {
                 node_params[index++] = rs_input;
             }
@@ -576,7 +586,7 @@ static vsi_nn_kernel_node_t _setup
             {
                 node_params[index++] = (vsi_nn_kernel_node_param_t)inputs[0]->t;
             }
-            if(inputs[1]->attr.dim_num < 2)
+            if (inputs[1]->attr.dim_num < 2)
             {
                 node_params[index++] = rs_beta;
             }
@@ -584,7 +594,7 @@ static vsi_nn_kernel_node_t _setup
             {
                 node_params[index++] = (vsi_nn_kernel_node_param_t)inputs[1]->t;
             }
-            if(inputs[2]->attr.dim_num < 2)
+            if (inputs[2]->attr.dim_num < 2)
             {
                 node_params[index++] = rs_gamma;
             }
@@ -593,7 +603,7 @@ static vsi_nn_kernel_node_t _setup
                 node_params[index++] = (vsi_nn_kernel_node_param_t)inputs[2]->t;
             }
             node_params[index++] = (vsi_nn_kernel_node_param_t)tensors[MEAN_VARI_INDEX]->t;
-            if(reshape_flg)
+            if (reshape_flg)
             {
                 node_params[index++] = rs_output;
             }
@@ -634,26 +644,26 @@ static vsi_nn_kernel_node_t _setup
 
     /* Pass parameters to node. */
 final:
-    if(rs_beta)
+    if (rs_beta)
     {
         vsi_nn_kernel_tensor_release( &rs_beta );
     }
-    if(rs_gamma)
+    if (rs_gamma)
     {
         vsi_nn_kernel_tensor_release( &rs_gamma );
     }
-    if(reshape_flg)
+    if (reshape_flg)
     {
         vsi_nn_kernel_tensor_release( &rs_input );
         vsi_nn_kernel_tensor_release( &rs_output );
     }
     for( i = 0; i < INTERNAL_KERNEL_SIZE; i ++ )
     {
-        if( ikernels[i] )
+        if ( ikernels[i] )
         {
             vsi_nn_kernel_release( &ikernels[i] );
         }
-        if( tensors[i] )
+        if ( tensors[i] )
         {
             vsi_nn_ReleaseTensor( &tensors[i] );
         }

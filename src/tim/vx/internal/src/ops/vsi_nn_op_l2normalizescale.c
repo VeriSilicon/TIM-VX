@@ -115,6 +115,45 @@ final:
 }
 
 
+static vsi_bool _check_value_is_equal_to_one
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* tensor
+    )
+{
+    vsi_bool ret = TRUE;
+    float* tensor_data = NULL;
+    uint32_t elements = 0;
+    uint32_t i = 0;
+
+    elements = vsi_nn_GetElementNum( tensor );
+    tensor_data = vsi_nn_ConvertTensorToFloat32Data( graph, tensor );
+    if ( NULL == tensor_data )
+    {
+        VSILOGE( "Convert data fail." );
+        return FALSE;
+    }
+
+    for (i = 0; i < elements; i++)
+    {
+        if ( vsi_abs(tensor_data[i] - 1.0f) > 1e-5 )
+        {
+            ret = FALSE;
+            break;
+        }
+    }
+
+    if ( !tensor->attr.is_created_from_handle )
+    {
+        if ( tensor_data )
+        {
+            free(tensor_data);
+        }
+    }
+
+    return ret;
+}
+
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -140,6 +179,11 @@ static vsi_status op_compute
 
     p = &(self->nn_param.l2normalizescale);
     axis = p->axis;
+
+    if ( inputs[1]->attr.is_const == TRUE && _check_value_is_equal_to_one(self->graph, inputs[1]) )
+    {
+        return vsi_nn_internal_compute_node( self );
+    }
 
     param =vsi_nn_kernel_param_create();
 
@@ -240,6 +284,9 @@ static vsi_status op_deinit
             self->nn_param.l2normalizescale.local.local_tensor[i] = NULL;
         }
     }
+
+    vsi_nn_internal_deinit_node_wksp( self );
+
     vsi_nn_op_common_deinit(self);
 
     return VSI_SUCCESS;
@@ -253,10 +300,14 @@ static vsi_bool op_setup
     )
 {
     vsi_bool ret = TRUE;
+    vsi_nn_internal_node_t* curr = NULL;
+
     if( NULL == self )
     {
         return FALSE;
     }
+
+    vsi_nn_internal_init_node_wksp( self );
 
     if (self->nn_param.l2normalizescale.axis < 0)
     {
@@ -267,6 +318,15 @@ static vsi_bool op_setup
     {
         VSILOGD("l2normalizescale Invalid Axis: %d", self->nn_param.l2normalizescale.axis);
         return FALSE;
+    }
+
+    if ( inputs[1]->attr.is_const == TRUE && _check_value_is_equal_to_one( self->graph, inputs[1] ) )
+    {
+        curr = vsi_nn_internal_new_node(self, VSI_NN_OP_L2_NORMALIZE, 0, 0);
+        curr->node->nn_param.l2_normalize.axis = self->nn_param.l2normalizescale.axis;
+        curr->inputs[0] = inputs[0];
+        curr->outputs[0] = outputs[0];
+        vsi_nn_internal_setup_node( self, curr );
     }
 
     ret = vsi_nn_op_common_setup(self, inputs, outputs);
@@ -280,7 +340,7 @@ static vsi_status op_init
     )
 {
     vsi_status status = VSI_SUCCESS;
-    uint32_t  i;
+    uint32_t  i = 0;
 
     if (vsi_nn_compareVersion(self->graph, 1, 1, 13) == -1)
     {

@@ -59,6 +59,9 @@ __BEGIN_DECLS
 #define HASH_MATRIXMUL_TRANSA_SH_KERNEL_NAME(SRC0_TYPE, SRC1_TYPE, DST_TYPE, IMAGE_DIM) \
     CVIVANTE_NAMESPACE("cl.gemm_transa_"#SRC0_TYPE#SRC1_TYPE"to"#DST_TYPE#IMAGE_DIM)
 
+#define HASH_MATRIXMUL_TRANSB_SH_KERNEL_NAME(SRC0_TYPE, SRC1_TYPE, DST_TYPE, IMAGE_DIM) \
+    CVIVANTE_NAMESPACE("cl.gemm_transb_"#SRC0_TYPE#SRC1_TYPE"to"#DST_TYPE#IMAGE_DIM)
+
 #define TENSOR_MATRIXMUL_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
     { HASH_MATRIXMUL_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, 0), \
         HASH_MATRIXMUL_SH_KERNEL_NAME(F32, F32, F32, IMAGE_DIM), \
@@ -67,6 +70,11 @@ __BEGIN_DECLS
 #define TENSOR_MATRIXMUL_TRANSA_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
     { HASH_MATRIXMUL_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, 1), \
         HASH_MATRIXMUL_TRANSA_SH_KERNEL_NAME(F32, F32, F32, IMAGE_DIM), \
+        SOURCE },
+
+#define TENSOR_MATRIXMUL_TRANSB_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
+    { HASH_MATRIXMUL_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, 2), \
+        HASH_MATRIXMUL_TRANSB_SH_KERNEL_NAME(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM), \
         SOURCE },
 
 static const struct {
@@ -83,6 +91,10 @@ static const struct {
     TENSOR_MATRIXMUL_KERNELS(F32, F32, F32, _3D,           KERNEL_SOURCE_1)
     TENSOR_MATRIXMUL_TRANSA_KERNELS(F32, F32, F32, _2D,    KERNEL_SOURCE_2)
     TENSOR_MATRIXMUL_TRANSA_KERNELS(F32, F32, F32, _3D,    KERNEL_SOURCE_2)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, F32, F32, _2D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, F32, F32, _3D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, I8,  F32, _2D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, I8,  F32, _3D,    KERNEL_SOURCE_1)
 };
 
 /*
@@ -93,6 +105,12 @@ static vx_param_description_t _matrixmul_kernel_param_def[] =
     {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
@@ -130,7 +148,7 @@ DEF_KERNEL_INITIALIZER(_matrixmul_initializer)
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
 
     width = attr[0]->shape->data[0];
-    height = attr[0]->shape->data[0];
+    height = attr[0]->shape->data[1];
     chn = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
 
     gpu_param.global_scale[0]  = 1;
@@ -175,22 +193,27 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
-    if(depth > 1)
+    if (depth > 1)
     {
         dim_type = _3D;
+    }
+
+    if (input1_dtype == I16 || input1_dtype == I32)
+    {
+        input1_dtype = I8;
     }
 
     key = HASH_MATRIXMUL_KEY( input0_dtype, input1_dtype, output_dtype, dim_type, transa );
 
     for( i = 0; i < _cnt_of_array(matrixmul_map); i ++ )
     {
-        if( matrixmul_map[i].key == key )
+        if ( matrixmul_map[i].key == key )
         {
             break;
         }
     }
 
-    if( i < _cnt_of_array(matrixmul_map) )
+    if ( i < _cnt_of_array(matrixmul_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  matrixmul_map[i].function_name );
         kernel->info.parameters = _matrixmul_kernel_param_def;
@@ -223,48 +246,111 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     int32_t transposeA  = vsi_nn_kernel_param_get_int32( params, "transposeA" );
     int32_t transposeB  = vsi_nn_kernel_param_get_int32( params, "transposeB" );
+    int32_t transFlg    = 0;
     uint32_t M = inputs[0]->attr.size[1];
     uint32_t K = inputs[0]->attr.size[0];
     uint32_t N = inputs[1]->attr.size[0];
     uint32_t depth = outputs[0]->attr.dim_num > 2 ? outputs[0]->attr.size[2] : 1;
     uint32_t ac2zero = 0;
     uint32_t bc2zero = 0;
+    float    scale_a = 1.0f;
+    float    zp_a = 0;
+    float    scale_b = 1.0f;
+    float    zp_b = 0;
+    float    scale_out = 1.0f;
+    float    zp_out = 0;
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
 
-    if(transposeB)
+    if (transposeB)
     {
-        return NULL;
+        N = inputs[1]->attr.size[1];
+        transFlg = 2;
     }
 
-    if(transposeA)
+    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
+    {
+        if (inputs[0]->attr.dtype.fl > 0)
+        {
+            scale_a = (1.0f / ((float) ((int64_t)1 << inputs[0]->attr.dtype.fl)));
+        }
+        else
+        {
+            scale_a = ((float) ((int64_t)1 << -inputs[0]->attr.dtype.fl));
+        }
+        zp_a = 0;
+    }
+    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
+    {
+        zp_a = (float)inputs[0]->attr.dtype.zero_point;
+        scale_a = inputs[0]->attr.dtype.scale;
+    }
+
+    if (inputs[1]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
+    {
+        if (inputs[1]->attr.dtype.fl > 0)
+        {
+            scale_b = (1.0f / ((float) ((int64_t)1 << inputs[1]->attr.dtype.fl)));
+        }
+        else
+        {
+            scale_b = ((float) ((int64_t)1 << -inputs[1]->attr.dtype.fl));
+        }
+        zp_b = 0;
+    }
+    else if (inputs[1]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
+    {
+        zp_b = (float)inputs[1]->attr.dtype.zero_point;
+        scale_b = inputs[1]->attr.dtype.scale;
+    }
+
+    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
+    {
+        if (outputs[0]->attr.dtype.fl > 0)
+        {
+            scale_out = (float)((int64_t)1 << outputs[0]->attr.dtype.fl);
+        }
+        else
+        {
+            scale_out = (1.0f / (float)((int64_t)1 << -outputs[0]->attr.dtype.fl));
+        }
+        zp_out = 0;
+    }
+    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
+    {
+        zp_out = (float)outputs[0]->attr.dtype.zero_point;
+        scale_out = outputs[0]->attr.dtype.scale;
+    }
+
+    if (transposeA)
     {
         K = inputs[0]->attr.size[1];
         M = inputs[0]->attr.size[0];
+        transFlg = 1;
     }
 
-    if((inputs[0]->attr.dim_num > inputs[1]->attr.dim_num) ||
+    if ((inputs[0]->attr.dim_num > inputs[1]->attr.dim_num) ||
        (inputs[0]->attr.size[2] > inputs[1]->attr.size[2]
             && inputs[0]->attr.dim_num > 2 && inputs[1]->attr.dim_num > 2))
     {
         bc2zero = 1;
     }
-    else if((inputs[1]->attr.dim_num > inputs[0]->attr.dim_num) ||
+    else if ((inputs[1]->attr.dim_num > inputs[0]->attr.dim_num) ||
        (inputs[1]->attr.size[2] > inputs[0]->attr.size[2]
             && inputs[0]->attr.dim_num > 2 && inputs[1]->attr.dim_num > 2))
     {
         ac2zero = 1;
     }
 
-    status = _query_kernel( kernel, inputs, outputs, depth, transposeA );
-    if( VSI_SUCCESS == status)
+    status = _query_kernel( kernel, inputs, outputs, depth, transFlg );
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             uint32_t index = 3;
             /* Pass parameters to node. */
@@ -275,6 +361,12 @@ static vsi_nn_kernel_node_t _setup
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &N );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &ac2zero );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &bc2zero );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &scale_a );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &zp_a );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &scale_b );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &zp_b );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &scale_out );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &zp_out );
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _MATRIXMUL_PARAM_NUM );
             CHECK_STATUS(status);
@@ -283,6 +375,12 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &node_params[5] );
             vsi_nn_kernel_scalar_release( &node_params[6] );
             vsi_nn_kernel_scalar_release( &node_params[7] );
+            vsi_nn_kernel_scalar_release( &node_params[8] );
+            vsi_nn_kernel_scalar_release( &node_params[9] );
+            vsi_nn_kernel_scalar_release( &node_params[10] );
+            vsi_nn_kernel_scalar_release( &node_params[11] );
+            vsi_nn_kernel_scalar_release( &node_params[12] );
+            vsi_nn_kernel_scalar_release( &node_params[13] );
         }
     }
     return node;

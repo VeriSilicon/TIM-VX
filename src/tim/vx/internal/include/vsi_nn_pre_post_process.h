@@ -65,6 +65,12 @@ typedef enum
     VSI_NN_SOURCE_LAYOUT_NCHW,
 } vsi_nn_preprocess_source_layout_e;
 
+typedef enum
+{
+    VSI_NN_DEST_LAYOUT_NHWC = 0,
+    VSI_NN_DEST_LAYOUT_NCHW,
+} vsi_nn_preprocess_dest_layout_e;
+
 /**
  * Input source format
  */

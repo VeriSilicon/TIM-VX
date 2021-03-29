@@ -43,7 +43,6 @@ __BEGIN_DECLS
 #define VX_KERNEL_NAME_PRE_PROCESS_NV12_SCALE_U8TOU8     CVIVANTE_NAMESPACE("evis.pre_process_nv12_scale_U8toU8")
 #define VX_KERNEL_NAME_PRE_PROCESS_NV12_SCALE_U8TOI8     CVIVANTE_NAMESPACE("evis.pre_process_nv12_scale_U8toI8")
 #define VX_KERNEL_NAME_PRE_PROCESS_NV12_COPY_U8TOU8      CVIVANTE_NAMESPACE("evis.pre_process_nv12_copy_U8toU8")
-#define VX_KERNEL_NAME_PRE_PROCESS_NV12_TRANS_U8TOU8     CVIVANTE_NAMESPACE("evis.pre_process_nv12_trans_U8toU8")
 
 // greater than a quarter
 #define VX_KERNEL_NAME_PRE_PROCESS_NV12_SCALE_U8TOU8_GQ  CVIVANTE_NAMESPACE("evis.pre_process_nv12_scale_U8toU8_gq")
@@ -51,7 +50,6 @@ __BEGIN_DECLS
 
 #define KERNEL_SOURCE_1    "pre_process_nv12_scale_8bits",
 #define KERNEL_SOURCE_2    "pre_process_nv12_scale",
-#define KERNEL_SOURCE_3    "pre_process_nv12_trans_u8",
 #define KERNEL_SOURCE_4    "pre_process_nv12_scale_mix"
 
 typedef enum
@@ -85,7 +83,6 @@ static const struct {
     TENSOR_PRE_PROCESS_NV12_KERNELS(U8, U8,  COPY,         KERNEL_SOURCE_1)
     TENSOR_PRE_PROCESS_NV12_KERNELS(U8, F16, SCALE,        KERNEL_SOURCE_2)
     TENSOR_PRE_PROCESS_NV12_KERNELS(U8, I16, SCALE,        KERNEL_SOURCE_2)
-    TENSOR_PRE_PROCESS_NV12_KERNELS(U8, U8,  TRANS,        KERNEL_SOURCE_3)
     TENSOR_PRE_PROCESS_NV12_GQ_KERNELS(U8, U8,  SCALE,     KERNEL_SOURCE_4)
     TENSOR_PRE_PROCESS_NV12_GQ_KERNELS(U8, F16, SCALE,     KERNEL_SOURCE_4)
 };
@@ -156,17 +153,17 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
     width      = out_shape->data[0];
     height     = out_shape->data[1];
 
-    if(reorder != 0)
+    if (reorder != 0)
     {
         reorder = 2;
         order1 = 0;
     }
 
-    if(attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
+    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
         dstScale = 1.0f / dstScale;
     }
-    else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
+    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
     {
         if (attr[0]->dfp.fl > 0)
         {
@@ -178,7 +175,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
         }
         dstZP = 0;
     }
-    else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE)
+    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE)
     {
         dstScale = 1;
         dstZP = 0;
@@ -295,7 +292,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
     int32_t     dstZP      = 0;
     float       dstScale   = 1;
     int32_t     reorder    = 0;
-    int32_t     trans      = 0;
     int32_t     order1     = 2;
     uint32_t    width      = 0;
     uint32_t    height     = 0;
@@ -325,8 +321,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[11], &reorder);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
-    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[12], &trans);
-    CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[1]->shape;
     dstZP      = attr[1]->asymm.zero_point;
@@ -334,24 +328,21 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
     width      = out_shape->data[0];
     height     = out_shape->data[1];
 
-    if(reorder != 0)
+    if (reorder != 0)
     {
         reorder = 2;
         order1 = 0;
     }
-    if(trans)
-    {
-        width = width / 3;
-    }
+
     resize = (float)width / attr[0]->shape->data[0];
     xrIntFloat_16 = (attr[0]->shape->data[0] << 16) / width + 1;
     yrIntFloat_16 = (attr[0]->shape->data[1] << 16) / height + 1;
 
-    if(attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
+    if (attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
         dstScale = 1.0f / dstScale;
     }
-    else if(attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP)
+    else if (attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP)
     {
         if (attr[1]->dfp.fl > 0)
         {
@@ -363,7 +354,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
         }
         dstZP = 0;
     }
-    else if(attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE)
+    else if (attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE)
     {
         dstScale = 1;
         dstZP = 0;
@@ -450,27 +441,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
         }, GPU_DP_TYPE_16 };
 
         //trans
-        gpu_dp_inst_t uniTransPackBgr1st_2x8 = {{
-            0x11311311, // TCfg
-            0x00100100, // ASelt
-            0x01000400, 0x06020105, // ABin
-            0x22022022, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00002600, // AccumType, ConstantType, and PostShift
-            0x00000001, 0x00000001, 0x00000000, 0x00000001,
-            0x00000001, 0x00000000, 0x00000001, 0x00000001 // Constant
-        }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniTransPackBgr2nd_2x8 = {{
-            0x00003113, // TCfg
-            0x00001001, // ASelt
-            0x03070302, 0x00000000, // ABin
-            0x00000220, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00002600, // AccumType, ConstantType, and PostShift
-            0x00000000, 0x00000001, 0x00000001, 0x00000000,
-            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16 };
-
         gpu_dp_inst_t uniCalculateYShift_2x8 = {{
             0x00009999, // TCfg
             0x00000000, // ASelt
@@ -502,23 +472,15 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "bMeanScaleVarZp", &bMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "gMeanScaleVarZp", &gMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "rMeanScaleVarZp", &rMeanScaleVarZp);
-        if(resize >= 0.25 && (attr[1]->dtype == U8 || attr[1]->dtype == F16) && !trans)
+
+        if (resize >= 0.25 && (attr[1]->dtype == U8 || attr[1]->dtype == F16))
         {
             status |= vsi_nn_kernel_gpu_add_param(node, "uniCalculateYShift_2x8", &uniCalculateYShift_2x8);
             status |= vsi_nn_kernel_gpu_add_param(node, "uniCalculateUVShift_2x8", &uniCalculateUVShift_2x8);
         }
         CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-        if(trans && attr[1]->dtype == U8)
-        {
-            status = vsi_nn_kernel_gpu_add_param(node, "uniTransPackBgr1st_2x8", &uniTransPackBgr1st_2x8);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniTransPackBgr2nd_2x8", &uniTransPackBgr2nd_2x8);
-            CHECK_STATUS_FAIL_GOTO(status, OnError );
-        }
-        else
-        {
-            status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);
-        }
+        status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);
         status |= vsi_nn_kernel_gpu_add_param(node, "bOrder", &order1);
         CHECK_STATUS_FAIL_GOTO(status, OnError );
 
@@ -572,20 +534,15 @@ static vsi_status _query_kernel
     uint32_t key = 0;
     int i = 0;
     vsi_bool enable_copy  = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
-    vsi_bool enable_perm  = vsi_nn_kernel_param_get_int32( params, "enable_perm" );
     uint32_t srcWidth = inputs[0]->attr.size[0];
-    uint32_t dstWidth = enable_perm ? outputs[0]->attr.size[1] : outputs[0]->attr.size[0];
+    uint32_t dstWidth = outputs[0]->attr.size[0];
     float scaleVal = (float)dstWidth / srcWidth;
     uint32_t optFlg = 0;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    if(enable_perm)
-    {
-        convert_type = TRANS;
-    }
-    else if(enable_copy && output_dtype == U8)
+    if (enable_copy && output_dtype == U8)
     {
         convert_type = COPY;
     }
@@ -594,7 +551,7 @@ static vsi_status _query_kernel
         convert_type = SCALE;
     }
 
-    if(scaleVal >= 0.25 && (output_dtype == U8 || output_dtype == F16) && convert_type == SCALE)
+    if (scaleVal >= 0.25 && (output_dtype == U8 || output_dtype == F16) && convert_type == SCALE)
     {
         optFlg = 1;
     }
@@ -608,7 +565,7 @@ static vsi_status _query_kernel
             break;
         }
     }
-    if( i < _cnt_of_array(pre_process_nv12_map) )
+    if ( i < _cnt_of_array(pre_process_nv12_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  pre_process_nv12_map[i].function_name );
         kernel->info.parameters = vxPreProcessNv12Kernel_param_def;
@@ -646,21 +603,20 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t tmp_params[_EVIS_PRE_PROCESS_NV12_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
-    int32_t shapes[VSI_NN_MAX_DIM_NUM]  = {1, 1, 1, 1};
     vsi_nn_tensor_t* reshape_tensors[1] = {NULL};
-    int32_t trans    = vsi_nn_kernel_param_get_int32( params, "enable_perm" );
+    int32_t trans = 0;
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
 
     status = _query_kernel( inputs, outputs, kernel, params );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             uint32_t index = 3;
             int32_t scale_x  = vsi_nn_kernel_param_get_int32( params, "scale_x" );
@@ -674,22 +630,9 @@ static vsi_nn_kernel_node_t _setup
             int32_t reverse  = vsi_nn_kernel_param_get_int32( params, "reverse" );
 
             /* Pass parameters to node. */
-            if(trans)
-            {
-                shapes[0] = outputs[0]->attr.size[0] * outputs[0]->attr.size[1];
-                shapes[1] = outputs[0]->attr.size[2];
-
-                reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
-                    outputs[0], (uint32_t*)shapes, outputs[0]->attr.dim_num);
-
-                vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PRE_PROCESS_NV12_PARAM_NUM,
-                    inputs, 2, &reshape_tensors[0], 1 );
-            }
-            else
-            {
-                vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PRE_PROCESS_NV12_PARAM_NUM,
+            vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PRE_PROCESS_NV12_PARAM_NUM,
                     inputs, 2, outputs, 1 );
-            }
+
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &scale_x );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &scale_y );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &left );

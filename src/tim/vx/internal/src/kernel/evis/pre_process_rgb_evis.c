@@ -90,14 +90,6 @@ static const struct {
     TENSOR_PRE_PROCESS_RGB_KERNELS(U8, I16, COPY,         KERNEL_SOURCE_2)
     TENSOR_PRE_PROCESS_RGB_KERNELS(U8, U8,  COPY,         KERNEL_SOURCE_2)
     TENSOR_PRE_PROCESS_RGB_KERNELS(U8, I8,  COPY,         KERNEL_SOURCE_2)
-    TENSOR_PRE_PROCESS_RGB_KERNELS(U8, F16, SCALE_NHWC,   KERNEL_SOURCE_3)
-    TENSOR_PRE_PROCESS_RGB_KERNELS(U8, I16, SCALE_NHWC,   KERNEL_SOURCE_3)
-    TENSOR_PRE_PROCESS_RGB_KERNELS(U8, U8,  SCALE_NHWC,   KERNEL_SOURCE_3)
-    TENSOR_PRE_PROCESS_RGB_KERNELS(U8, I8,  SCALE_NHWC,   KERNEL_SOURCE_3)
-    TENSOR_PRE_PROCESS_RGB_KERNELS(U8, F16, COPY_NHWC,    KERNEL_SOURCE_4)
-    TENSOR_PRE_PROCESS_RGB_KERNELS(U8, I16, COPY_NHWC,    KERNEL_SOURCE_4)
-    TENSOR_PRE_PROCESS_RGB_KERNELS(U8, U8,  COPY_NHWC,    KERNEL_SOURCE_4)
-    TENSOR_PRE_PROCESS_RGB_KERNELS(U8, I8,  COPY_NHWC,    KERNEL_SOURCE_4)
 };
 
 static vx_param_description_t vxPreProcessRgbKernel_param_def[] =
@@ -156,8 +148,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[10], &reorder);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
-    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[11], &trans);
-    CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
     outputZP   = (float)attr[0]->asymm.zero_point;
@@ -165,14 +155,14 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
     width      = out_shape->data[0];
     height     = out_shape->data[1];
 
-    if(reorder != 0)
+    if (reorder != 0)
     {
         reorder = 2;
         order1 = 0;
     }
     enable_copy = (int32_t)(xRatio == (1 << 15) && yRatio == (1 << 15));
 
-    if(attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
+    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
     {
         if (attr[0]->dfp.fl > 0)
         {
@@ -184,11 +174,11 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
         }
         outputZP = 0;
     }
-    else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
+    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
         outputScale = 1.0f / outputScale;
     }
-    else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
+    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
     {
         outputScale = 1;
         outputZP = 0;
@@ -199,48 +189,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
 
     pack_key = _PACK_SELECT_KEY( enable_copy, reorder, trans);
     {
-        // trans and copy
-        gpu_dp_inst_t uniNormilizationLo_2x8 = {{
-            0x99999999, // TCfg
-            0x44444444, // ASelt
-            0x45002142, 0x27480324, // ABin
-            0x99999999, // BSelt
-            0x06060606, 0x06060606, // BBin
-            0x00000100, // AccumType, ConstantType, and PostShift
-            0x3c000000, 0x3c000000, 0x3c000000, 0x3c000000,
-            0x3c000000, 0x3c000000, 0x3c000000, 0x3c000000 // Constant
-        }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniNormilizationHi_2x8 = {{
-            0x09999999, // TCfg
-            0x04444444, // ASelt
-            0x092a4b06, 0x000c2d4e, // ABin
-            0x09999999, // BSelt
-            0x06060606, 0x00060606, // BBin
-            0x00000100, // AccumType, ConstantType, and PostShift
-            0x3c000000, 0x3c000000, 0x3c000000, 0x3c000000,
-            0x3c000000, 0x3c000000, 0x3c000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniNormilizationLo_NHWC_2x8 = {{
-            0x99999999, // TCfg
-            0x44444444, // ASelt
-            0x03422100, 0x27064524, // ABin
-            0x99999999, // BSelt
-            0x06060606, 0x06060606, // BBin
-            0x00000100, // AccumType, ConstantType, and PostShift
-            0x3c000000, 0x3c000000, 0x3c000000, 0x3c000000,
-            0x3c000000, 0x3c000000, 0x3c000000, 0x3c000000 // Constant
-        }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniNormilizationHi_NHWC_2x8 = {{
-            0x09999999, // TCfg
-            0x04444444, // ASelt
-            0x4b2a0948, 0x004e2d0c, // ABin
-            0x09999999, // BSelt
-            0x06060606, 0x00060606, // BBin
-            0x00000100, // AccumType, ConstantType, and PostShift
-            0x3c000000, 0x3c000000, 0x3c000000, 0x3c000000,
-            0x3c000000, 0x3c000000, 0x3c000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16 };
-
         // copy
         gpu_dp_inst_t uniExtractRtoF32_part0_4x4 = {{
             0x01010101, // TCfg
@@ -404,79 +352,9 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
             0x00000001, 0x00000000, 0x00000001, 0x00000000,
             0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniRePackRGBLo_2x8 = {{
-            0x00111111, // TCfg
-            0x00001001, // ASelt
-            0x01000400, 0x00000105, // ABin
-            0x00222222, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000600, // AccumType, ConstantType, and PostShift
-            0x00000001, 0x00000001, 0x00000001, 0x00000001,
-            0x00000001, 0x00000001, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniRePackRGBHi_2x8 = {{
-            0x00111111, // TCfg
-            0x00001001, // ASelt
-            0x03020602, 0x00000307, // ABin
-            0x00222222, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000600, // AccumType, ConstantType, and PostShift
-            0x00000001, 0x00000001, 0x00000001, 0x00000001,
-            0x00000001, 0x00000001, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniRePackRGBLo_NHWC_2x8 = {{
-            0x00111111, // TCfg
-            0x00100100, // ASelt
-            0x01000400, 0x00000105, // ABin
-            0x00222222, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000600, // AccumType, ConstantType, and PostShift
-            0x00000001, 0x00000001, 0x00000001, 0x00000001,
-            0x00000001, 0x00000001, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniRePackRGBHi_NHWC_2x8 = {{
-            0x00111111, // TCfg
-            0x00100100, // ASelt
-            0x03020602, 0x00000307, // ABin
-            0x00222222, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000600, // AccumType, ConstantType, and PostShift
-            0x00000001, 0x00000001, 0x00000001, 0x00000001,
-            0x00000001, 0x00000001, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16 };
 
-        switch( pack_key )
+        switch ( pack_key )
         {
-        case _PACK_SELECT_KEY( 1, 0, 1):  // copy         trans
-            {
-                shaderParam.global_scale[0]  = 15;
-                shaderParam.global_scale[1]  = 1;
-                shaderParam.global_scale[2]  = 1;
-                shaderParam.global_size[0]   = gpu_align_p2((width + shaderParam.global_scale[0] - 1)
-                    / shaderParam.global_scale[0], 4);
-                shaderParam.global_size[1]   = height;
-                shaderParam.global_size[2]   = 1;
-
-                status = vsi_nn_kernel_gpu_add_param(node, "uniNormilizationLo_2x8", &uniNormilizationLo_NHWC_2x8);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniNormilizationHi_2x8", &uniNormilizationHi_NHWC_2x8);
-                CHECK_STATUS_FAIL_GOTO(status, OnError);
-            }
-            break;
-        case _PACK_SELECT_KEY( 1, 2, 1):  // copy reorder  trans
-            {
-                shaderParam.global_scale[0]  = 15;
-                shaderParam.global_scale[1]  = 1;
-                shaderParam.global_scale[2]  = 1;
-                shaderParam.global_size[0]   = gpu_align_p2((width + shaderParam.global_scale[0] - 1)
-                    / shaderParam.global_scale[0], 4);
-                shaderParam.global_size[1]   = height;
-                shaderParam.global_size[2]   = 1;
-
-                status = vsi_nn_kernel_gpu_add_param(node, "uniNormilizationLo_2x8", &uniNormilizationLo_2x8);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniNormilizationHi_2x8", &uniNormilizationHi_2x8);
-                CHECK_STATUS_FAIL_GOTO(status, OnError);
-            }
-            break;
         case _PACK_SELECT_KEY( 1, 0, 0):  // copy
         case _PACK_SELECT_KEY( 1, 2, 0):  // copy  reorder
             {
@@ -539,68 +417,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
                 CHECK_STATUS_FAIL_GOTO(status, OnError);
             }
             break;
-        case _PACK_SELECT_KEY( 0, 0, 1):  //      trans
-            {
-                shaderParam.global_scale[0]  = 4;
-                shaderParam.global_scale[1]  = 1;
-                shaderParam.global_scale[2]  = 1;
-                shaderParam.global_size[0]   = gpu_align_p2((width / 3 + shaderParam.global_scale[0] - 1)
-                    / shaderParam.global_scale[0], 4);
-                shaderParam.global_size[1]   = height;
-                shaderParam.global_size[2]   = 1;
-
-                if(attr[0]->dtype == F16)
-                {
-                    status = vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractHalf8_2x8);
-                }
-                else
-                {
-                    status = vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractInteger_2x8);
-                }
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertIntergetoF32_4x4", &uniConvertIntergetoF32_4x4);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniUnpackToR", &uniUnpackToR);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniUnpackToG", &uniUnpackToG);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniUnpackToB", &uniUnpackToB);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniVecShift10", &uniVecShift10);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniAddRShift", &uniAddRShift);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniGetTempVal", &uniGetTempVal);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractBytes", &uniExtractBytes);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniRePackRGBLo_2x8", &uniRePackRGBLo_NHWC_2x8);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniRePackRGBHi_2x8", &uniRePackRGBHi_NHWC_2x8);
-                CHECK_STATUS_FAIL_GOTO(status, OnError);
-            }
-            break;
-        case _PACK_SELECT_KEY( 0, 2, 1):  //    reorder  trans
-            {
-                shaderParam.global_scale[0]  = 4;
-                shaderParam.global_scale[1]  = 1;
-                shaderParam.global_scale[2]  = 1;
-                shaderParam.global_size[0]   = gpu_align_p2((width / 3 + shaderParam.global_scale[0] - 1)
-                    / shaderParam.global_scale[0], 4);
-                shaderParam.global_size[1]   = height;
-                shaderParam.global_size[2]   = 1;
-
-                if(attr[0]->dtype == F16)
-                {
-                    status = vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractHalf8_2x8);
-                }
-                else
-                {
-                    status = vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractInteger_2x8);
-                }
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertIntergetoF32_4x4", &uniConvertIntergetoF32_4x4);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniUnpackToR", &uniUnpackToR);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniUnpackToG", &uniUnpackToG);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniUnpackToB", &uniUnpackToB);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniVecShift10", &uniVecShift10);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniAddRShift", &uniAddRShift);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniGetTempVal", &uniGetTempVal);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractBytes", &uniExtractBytes);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniRePackRGBLo_2x8", &uniRePackRGBLo_2x8);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniRePackRGBHi_2x8", &uniRePackRGBHi_2x8);
-                CHECK_STATUS_FAIL_GOTO(status, OnError);
-            }
-            break;
         default:
             break;
         }
@@ -637,22 +453,13 @@ static vsi_status _query_kernel
     uint32_t key = 0;
     int i = 0;
     vsi_bool enable_copy  = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
-    vsi_bool enable_perm  = vsi_nn_kernel_param_get_int32( params, "enable_perm" );
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    if(enable_copy && enable_perm)
-    {
-        convert_type = COPY_NHWC;
-    }
-    else if(enable_copy)
+    if (enable_copy)
     {
         convert_type = COPY;
-    }
-    else if(enable_perm)
-    {
-        convert_type = SCALE_NHWC;
     }
     else
     {
@@ -661,14 +468,14 @@ static vsi_status _query_kernel
 
     key = HASH_PRE_PROCESS_RGB_KEY( input0_dtype, output_dtype, convert_type, 0 );
 
-    for( i = 0; i < _cnt_of_array(pre_process_rgb_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(pre_process_rgb_map); i ++ )
     {
         if( pre_process_rgb_map[i].key == key )
         {
             break;
         }
     }
-    if( i < _cnt_of_array(pre_process_rgb_map) )
+    if ( i < _cnt_of_array(pre_process_rgb_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  pre_process_rgb_map[i].function_name );
         kernel->info.parameters = vxPreProcessRgbKernel_param_def;
@@ -698,21 +505,20 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t tmp_params[_EVIS_PRE_PROCESS_RGB_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
-    int32_t shapes[VSI_NN_MAX_DIM_NUM]  = {1, 1, 1, 1};
     vsi_nn_tensor_t* reshape_tensors[1] = {NULL};
-    int32_t trans    = vsi_nn_kernel_param_get_int32( params, "enable_perm" );
+    int32_t trans = 0;
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
 
     status = _query_kernel( inputs, outputs, kernel, params );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             uint32_t index = 2;
             int32_t scale_x  = vsi_nn_kernel_param_get_int32( params, "scale_x" );
@@ -726,18 +532,7 @@ static vsi_nn_kernel_node_t _setup
             int32_t reverse  = vsi_nn_kernel_param_get_int32( params, "reverse" );
 
             /* Pass parameters to node. */
-            if(trans)
-            {
-                shapes[0] = outputs[0]->attr.size[0] * outputs[0]->attr.size[1];
-                shapes[1] = outputs[0]->attr.size[2];
-
-                reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
-                    outputs[0], (uint32_t*)shapes, outputs[0]->attr.dim_num);
-
-                vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PRE_PROCESS_RGB_PARAM_NUM,
-                    inputs, 1, &reshape_tensors[0], 1 );
-            }
-            else
+            if (trans == 0)
             {
                 vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PRE_PROCESS_RGB_PARAM_NUM,
                     inputs, 1, outputs, 1 );
@@ -767,7 +562,7 @@ static vsi_nn_kernel_node_t _setup
         }
     }
 
-    if(reshape_tensors[0])
+    if (reshape_tensors[0])
     {
         vsi_nn_ReleaseTensor(&reshape_tensors[0]);
     }

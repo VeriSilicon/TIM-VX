@@ -79,8 +79,10 @@ typedef struct
 static const _kernel_map_type _a_times_b_plus_c_kernel_map[] =
 {
     PACK_KERNEL_MAP(F16, F16,  F16,  F16),
+    PACK_KERNEL_MAP(F16, F16,  F32,  F16),
 
     PACK_KERNEL_MAP_2D(F16, F16, F16, F16),
+    PACK_KERNEL_MAP_2D(F16, F16,  F32,  F16),
 };
 
 /*
@@ -106,7 +108,7 @@ DEF_KERNEL_INITIALIZER(_a_times_b_plus_c_initializer)
     )
 {
 #define _PACK_A_TIMES_B_PLUS_C_KEY( IN0_TYPE, IN1_TYPE, IN2_TYPE, OUT_TYPE )    \
-        (( IN1_TYPE << 24) | ( IN1_TYPE << 16) | ( IN0_TYPE << 8) | ( OUT_TYPE))
+        (( IN2_TYPE << 24) | ( IN1_TYPE << 16) | ( IN0_TYPE << 8) | ( OUT_TYPE))
     vsi_status status = VX_SUCCESS;
     // Alignment with a power of two value.
     gpu_param_t gpu_param = {
@@ -183,6 +185,48 @@ DEF_KERNEL_INITIALIZER(_a_times_b_plus_c_initializer)
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
+        case _PACK_A_TIMES_B_PLUS_C_KEY( F16, F16, F32, F16 ):
+        {
+            gpu_dp_inst_t uniA_Times_B_lo_4x4 = {{
+                0x01010101, // TCfg
+                0x00000000, // ASelt
+                0x00010000, 0x00030002, // ABin
+                0x01010101, // BSelt
+                0x00010000, 0x00030002, // BBin
+                0x00000400, // AccumType, ConstantType, and PostShift
+                0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+            }, GPU_DP_TYPE_16 };
+            gpu_dp_inst_t uniA_Times_B_hi_4x4 = {{
+                0x01010101, // TCfg
+                0x00000000, // ASelt
+                0x00050004, 0x00070006, // ABin
+                0x01010101, // BSelt
+                0x00050004, 0x00070006, // BBin
+                0x00000400, // AccumType, ConstantType, and PostShift
+                0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+            }, GPU_DP_TYPE_16 };
+            gpu_dp_inst_t uniExtractHalf8_2x8 = {{
+                0x11111111, // TCfg
+                0x11110000, // ASelt
+                0x06040200, 0x06040200, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00002100, // AccumType, ConstantType, and PostShift
+                0x00003c00, 0x00003c00, 0x00003c00, 0x00003c00,
+                0x00003c00, 0x00003c00, 0x00003c00, 0x00003c00 // Constant
+            }, GPU_DP_TYPE_16 };
+
+            status = vsi_nn_kernel_gpu_add_param( node,
+                    "uniA_Times_B_lo_4x4", &uniA_Times_B_lo_4x4 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniA_Times_B_hi_4x4", &uniA_Times_B_hi_4x4 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniExtractHalf8_2x8", &uniExtractHalf8_2x8 );
+            CHECK_STATUS_FAIL_GOTO(status, final );
+        }
+        break;
     default:
         break;
     }
@@ -223,13 +267,13 @@ static vsi_status _query_kernel
     vx_param_description_t * param_def  = _a_times_b_plus_c_kernel_param_def;
     size_t param_def_size               = _cnt_of_array( _a_times_b_plus_c_kernel_param_def );
     vx_kernel_initialize_f  initializer = _a_times_b_plus_c_initializer;
-    uint32_t key;
-    uint32_t i;
+    uint32_t key = 0;
+    uint32_t i = 0;
 
     in0_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
-    in1_dtype   = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
-    in2_dtype   = vsi_nn_kernel_map_dtype( inputs[2]->attr.dtype.vx_type );
-    out_dtype   = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+    in1_dtype  = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
+    in2_dtype  = vsi_nn_kernel_map_dtype( inputs[2]->attr.dtype.vx_type );
+    out_dtype  = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
     key = A_TIMES_B_PLUS_C_HASH_KEY(in0_dtype, in1_dtype, in2_dtype, out_dtype, image_2d);
 

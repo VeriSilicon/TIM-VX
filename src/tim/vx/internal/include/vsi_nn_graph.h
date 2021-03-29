@@ -677,6 +677,11 @@ OVXLIB_API vsi_status vsi_nn_TrySetupCompleteSignalNode
     vsi_nn_graph_t* graph
     );
 
+vsi_status vsi_nn_setup_binary_graph_inputs_outputs
+    (
+    vsi_nn_graph_t* graph
+    );
+
 void  vsi_nn_get_tensor_consumers
     (
     vsi_nn_graph_t* graph,

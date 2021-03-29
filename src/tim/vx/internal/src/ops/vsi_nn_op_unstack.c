@@ -182,7 +182,7 @@ static vsi_bool op_setup
     vsi_nn_internal_setup_node( self, curr );
 
     slices = (uint32_t *)vsi_nn_internal_new_node_param(curr,
-        VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        tensor_num * sizeof(uint32_t));
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_SPLIT, 1, tensor_num );
     curr->node->nn_param.split.axis = 1;
     curr->node->nn_param.split.slices = slices;

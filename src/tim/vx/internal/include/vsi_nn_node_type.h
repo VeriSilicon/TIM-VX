@@ -56,6 +56,7 @@
 #include "ops/vsi_nn_op_elu.h"
 #include "ops/vsi_nn_op_reverse.h"
 #include "ops/vsi_nn_op_space2depth.h"
+#include "ops/vsi_nn_op_space2depth_internal.h"
 #include "ops/vsi_nn_op_depth2space.h"
 #include "ops/vsi_nn_op_depth2space_internal.h"
 #include "ops/vsi_nn_op_maximum.h"
@@ -162,6 +163,7 @@
 #include "ops/vsi_nn_op_resize_1d.h"
 #include "ops/vsi_nn_op_resize_1d_bilinear_internal.h"
 #include "ops/vsi_nn_op_resize_1d_nearest_internal.h"
+#include "ops/vsi_nn_op_upsamplescale.h"
 /* custom node head define define */
 #include "custom/vsi_nn_custom_node_type.h"
 
@@ -204,6 +206,7 @@ typedef union _vsi_nn_nn_param
     vsi_nn_elu_param                elu;
     vsi_nn_reverse_param            reverse;
     vsi_nn_space2depth_param        space2depth;
+    vsi_nn_space2depth_internal_param space2depth_internal;
     vsi_nn_depth2space_param        depth2space;
     vsi_nn_depth2space_internal_param depth2space_internal;
     vsi_nn_maximum_param            maximum;
@@ -310,6 +313,7 @@ typedef union _vsi_nn_nn_param
     vsi_nn_resize_1d_param          resize_1d;
     vsi_nn_resize_1d_bilinear_internal_param resize_1d_bilinear_internal;
     vsi_nn_resize_1d_nearest_internal_param resize_1d_nearest_internal;
+    vsi_nn_upsamplescale_param      upsamplescale;
     uint8_t                         client_param[128];
 
     /* custom node data struct define */

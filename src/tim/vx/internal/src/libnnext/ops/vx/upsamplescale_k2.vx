@@ -1,0 +1,83 @@
+
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniUpScale2X_lo_2x8;
+_viv_uniform VXC_512Bits uniUpScale2X_hi_2x8;
+_viv_uniform int2 multAndoutZP;//[0:15] multiplier, [31:63] output zp
+
+#define UPSAMPLE_SCALETO8B_FUN(src_name, dst_name, read_type, src_type, dst_type) \
+    __kernel void upsamplescale_##src_name##to##dst_name##_K2( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 int              stride, \
+                 float            scale) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    read_type  read_val; \
+    src_type   src_val; \
+    dst_type   dst_val; \
+    VXC_ReadImage2DArray(read_val, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src_val, read_val, 16); \
+    coord.xy <<= 1; \
+    int8 output_desc; \
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0; \
+    _viv_asm(MOV, coord.w, baseAddr); \
+    vxc_ushort8 multiplier; \
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \
+    VXC_DP2x8(dst_val, src_val, multiplier, \
+          VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniUpScale2X_lo_2x8); \
+    VXC_DP2x8(dst_val, src_val, multiplier, \
+          VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniUpScale2X_hi_2x8); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, dst_val, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
+    coord.y ++; \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, dst_val, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
+}
+
+UPSAMPLE_SCALETO8B_FUN(F16, I8,  vxc_short8,  vxc_half8,   vxc_char16)
+UPSAMPLE_SCALETO8B_FUN(F16, U8,  vxc_short8,  vxc_half8,   vxc_uchar16)
+UPSAMPLE_SCALETO8B_FUN(I8,  I8,  vxc_char16,  vxc_char16,  vxc_char16)
+UPSAMPLE_SCALETO8B_FUN(U8,  U8,  vxc_uchar16, vxc_uchar16, vxc_uchar16)
+
+#define UPSAMPLE_SCALETO16B_FUN(src_name, dst_name, read_type, src_type, dst_type, write_type) \
+    __kernel void upsamplescale_##src_name##to##dst_name##_K2( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 int              stride, \
+                 float            scale) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    read_type  read_val; \
+    src_type   src_val; \
+    dst_type   dst0_val; \
+    dst_type   dst1_val; \
+    write_type write_val; \
+    VXC_ReadImage2DArray(read_val, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src_val, read_val, 16); \
+    coord.xy <<= 1; \
+    int8 output_desc; \
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
+    int baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0; \
+    _viv_asm(MOV, coord.w, baseAddr); \
+    vxc_ushort8 multiplier; \
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \
+    VXC_DP2x8(dst0_val, src_val, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniUpScale2X_lo_2x8); \
+    VXC_DP2x8(dst1_val, src_val, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniUpScale2X_hi_2x8); \
+    _viv_asm(COPY, write_val, dst0_val, 16); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+    coord.y ++; \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, write_val, dst1_val, 16); \
+    coord.xy = coord.xy + (int2)(8, -1); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+    coord.y ++; \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+}
+UPSAMPLE_SCALETO16B_FUN(F16, F16,  vxc_short8,  vxc_half8,   vxc_half8,  vxc_short8)
+UPSAMPLE_SCALETO16B_FUN(F16, I16,  vxc_short8,  vxc_half8,   vxc_short8, vxc_short8)
+UPSAMPLE_SCALETO16B_FUN(I8,  F16,  vxc_char16,  vxc_char16,  vxc_half8,  vxc_short8)
+UPSAMPLE_SCALETO16B_FUN(U8,  F16,  vxc_uchar16, vxc_uchar16, vxc_half8,  vxc_short8)
+UPSAMPLE_SCALETO16B_FUN(I16, F16,  vxc_short8,  vxc_short8,  vxc_half8,  vxc_short8)
+UPSAMPLE_SCALETO16B_FUN(I16, I16,  vxc_short8,  vxc_short8,  vxc_short8, vxc_short8)

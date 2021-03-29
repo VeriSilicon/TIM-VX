@@ -54,3 +54,81 @@ __kernel void a_times_b_plus_c_F16_F16_F16toF16_2D
     VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
 }
 
+_viv_uniform VXC_512Bits uniExtractHalf8_2x8;
+_viv_uniform VXC_512Bits uniA_Times_B_lo_4x4;
+_viv_uniform VXC_512Bits uniA_Times_B_hi_4x4;
+__kernel void a_times_b_plus_c_F16_F16_F32toF16
+    (
+    __read_only image2d_array_t   input0,
+    __read_only image2d_array_t   input1,
+    __read_only image2d_array_t   input2,
+    __write_only image2d_array_t  output
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+
+    vxc_half8   src0, src1, dst;
+    vxc_ushort8 vec0, vec1, result;
+    float4 b0, b1;
+    float4 dst0, dst1;
+
+    VXC_ReadImage2DArray(vec0, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, src0, vec0, 16);
+    VXC_ReadImage2DArray(vec1, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, src1, vec1, 16);
+    b0 = read_imagef(input2, coord);
+    coord.x += 4;
+    b1 = read_imagef(input2, coord);
+    coord.x -= 4;
+
+    VXC_DP4x4(dst0, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniA_Times_B_lo_4x4);
+    VXC_DP4x4(dst1, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniA_Times_B_hi_4x4);
+    dst0 += b0;
+    dst1 += b1;
+
+    half4 t0, t1;
+    _viv_asm(CONV, t0, dst0);
+    _viv_asm(CONV, t1, dst1);
+    VXC_DP2x8(dst, t0, t1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractHalf8_2x8);
+    _viv_asm(COPY, result, dst, 16);
+
+    VXC_WriteImage2DArray(output, coord, result, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+}
+
+__kernel void a_times_b_plus_c_F16_F16_F32toF16_2D
+    (
+    __read_only image2d_array_t   input0,
+    __read_only image2d_array_t   input1,
+    __read_only image2d_t         input2,
+    __write_only image2d_array_t  output
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);
+
+    vxc_half8   src0, src1, dst;
+    vxc_ushort8 vec0, vec1, result;
+    float4 b0, b1;
+    float4 dst0, dst1;
+
+    VXC_ReadImage(vec0, input0, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, src0, vec0, 16);
+    VXC_ReadImage(vec1, input1, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, src1, vec1, 16);
+    b0 = read_imagef(input2, coord.xy);
+    coord.z = coord.x + 4;
+    b1 = read_imagef(input2, coord.zy);
+
+    VXC_DP4x4(dst0, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniA_Times_B_lo_4x4);
+    VXC_DP4x4(dst1, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniA_Times_B_hi_4x4);
+    dst0 += b0;
+    dst1 += b1;
+
+    half4 t0, t1;
+    _viv_asm(CONV, t0, dst0);
+    _viv_asm(CONV, t1, dst1);
+    VXC_DP2x8(dst, t0, t1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractHalf8_2x8);
+    _viv_asm(COPY, result, dst, 16);
+
+    VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+}
+
