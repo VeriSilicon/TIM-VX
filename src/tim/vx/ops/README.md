@@ -40,7 +40,7 @@ Sigmoid|SIGMOID|Mapped
 Tanh|TANH|Mapped
 Sqrt|SQRT|Mapped
 Rsqrt|RSQRT|Mapped
-||SOFTRELU|Unmapped
+SoftRelu|SOFTRELU|Unmapped
 Div|DIVIDE|Mapped
 ||DROPOUT|Unmapped
 ||SHUFFLECHANNEL|Unmapped
@@ -136,8 +136,8 @@ GatherNd|GATHER_ND|Mapped
 ||BATCHNORM_SINGLE|Unmapped
 ||MOMENTS|Unmapped
 ||SQUEEZE|Unmapped
-||HARD_SIGMOID|Unmapped
-||MISH|Unmapped
+HardSigmoid|HARD_SIGMOID|Unmapped
+Mish|MISH|Unmapped
 ||EXPAND_BROADCAST|Unmapped
 ||PRE_PROCESS_YUV444|Unmapped
 ||PRE_PROCESS_NV12|Unmapped
