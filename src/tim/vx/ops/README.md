@@ -15,7 +15,7 @@ Concat|CONCAT|Mapped
 Split|SPLIT|Mapped
 ||NOOP|Unmapped
 ||ROI_POOL|Unmapped
-||BATCH_NORM|Unmapped
+BatchNorm|BATCH_NORM|Mapped
 ||PROPOSAL|Unmapped
 DeConv2d|DECONVOLUTION|Mapped
 Reshape|RESHAPE|Mapped
@@ -42,7 +42,7 @@ Sqrt|SQRT|Mapped
 Rsqrt|RSQRT|Mapped
 SoftRelu|SOFTRELU|Unmapped
 Div|DIVIDE|Mapped
-||DROPOUT|Unmapped
+Dropout|DROPOUT|Mapped
 ||SHUFFLECHANNEL|Unmapped
 Resize|RESIZE|Mapped
 Reverse|REVERSE|Mapped
@@ -94,7 +94,7 @@ Exp|EXP|Mapped
 ||EMBEDDING_LOOKUP|Unmapped
 ||LSH_PROJECTION|Unmapped
 ||RNN|Unmapped
-||CLIP|Unmapped
+Clip|CLIP|Mapped
 ||POST_PROCESS|Unmapped
 ||PRE_PROCESS_GRAY|Unmapped
 ||UNSTACK|Unmapped
