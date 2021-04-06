@@ -15,6 +15,16 @@ http_archive(
     ],
 )
 
+http_archive(
+    name = "aarch64_S905D3",
+    build_file = "@//prebuilt-sdk/x86_64_linux:BUILD",
+    sha256 = "22e1ddb62216d286a1c0e62b673a8210291d0c045c4b8a18197e704da1007f7a",
+    strip_prefix = "aarch64_S905D3_D312513_A294074_R311680_T312233_O312045",
+    urls = [
+        "https://github.com/VeriSilicon/TIM-VX/releases/download/v1.1.28/aarch64_S905D3_D312513_A294074_R311680_T312233_O312045.tgz",
+    ],
+)
+
 local_repository(
     name = 'TOOLCHAINS',
     path = 'toolchains',

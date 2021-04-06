@@ -11,6 +11,11 @@ config_setting(
 )
 
 config_setting(
+    name = "aarch64_S905D3",
+    values = {"define": "target_device=aarch64_S905D3"},
+)
+
+config_setting(
     name = "external_viv_sdk",
     values = {"define": "use_external_viv_sdk=true"},
 )
@@ -20,6 +25,7 @@ cc_library(
     deps = select({
         "external_viv_sdk": ["@external_viv_sdk//:VIV_SDK_LIB"],
         "aarch64_A311D": ["@aarch64_A311D//:VIV_SDK_LIB"],
+        "aarch64_S905D3": ["@aarch64_S905D3//:VIV_SDK_LIB"],
         "//conditions:default": ["//prebuilt-sdk/x86_64_linux:VIV_SDK_LIB"],
     }),
 )

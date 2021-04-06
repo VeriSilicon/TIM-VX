@@ -18,3 +18,15 @@ build:A311D --copt -Wno-unused-function
 build:A311D --copt -Wno-sequence-point
 build:A311D --copt -Wno-implicit-fallthrough
 build:A311D --define target_device=aarch64_A311D
+
+build:S905D3 --define linux=true
+build:S905D3 --spawn_strategy=standalone
+build:S905D3 --crosstool_top=@TOOLCHAINS//gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:toolchain
+build:S905D3 --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
+build:S905D3 --cpu=aarch64
+build:S905D3 --compiler=gcc
+build:S905D3 --copt -Wno-ignored-attributes
+build:S905D3 --copt -Wno-unused-function
+build:S905D3 --copt -Wno-sequence-point
+build:S905D3 --copt -Wno-implicit-fallthrough
+build:S905D3 --define target_device=aarch64_S905D3

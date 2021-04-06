@@ -11,6 +11,8 @@ add_definitions(-DOVXLIB_API=${OVXLIB_API_ATTR})
 
 if("${CONFIG}" STREQUAL "A311D")
     include(cmake/A311D.cmake)
+elseif("${CONFIG}" STREQUAL "S905D3")
+    include(cmake/S905D3.cmake)
 else()
     include(cmake/X86_64.cmake)
 endif()
