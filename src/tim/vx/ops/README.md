@@ -83,7 +83,7 @@ Select|SELECT|Mapped
 ||LSTMUNIT_OVXLIB|Unmapped
 ||TENSOR_ADD_MEAN_STDDEV_NORM|Unmapped
 Relu1|RELU1|Mapped
-||STACK|Unmapped
+Stack|STACK|Mapped
 ||FLOOR|Unmapped
 Square|SQUARE|Mapped
 Neg|NEG|Mapped
