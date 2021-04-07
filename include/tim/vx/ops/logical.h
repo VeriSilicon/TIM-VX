@@ -29,16 +29,16 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-#define DELCATE_LOGICAL_OP(NAME)           \
+#define DECLARE_LOGICAL_OP(NAME)           \
   class Logical##NAME : public Operation { \
    public:                                 \
     Logical##NAME(Graph* graph);           \
   };
 
-DELCATE_LOGICAL_OP(And);
-DELCATE_LOGICAL_OP(Or);
+DECLARE_LOGICAL_OP(And);
+DECLARE_LOGICAL_OP(Or);
 
-#undef DELCATE_LOGICAL_OP
+#undef DECLARE_LOGICAL_OP
 
 }  // namespace ops
 }  // namespace vx

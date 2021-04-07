@@ -29,7 +29,7 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-#define DELCATE_REDUCE_OP(NAME)                                  \
+#define DECLARE_REDUCE_OP(NAME)                                  \
   class Reduce##NAME : public Operation {                        \
    public:                                                       \
     Reduce##NAME(Graph* graph, const std::vector<int32_t>& axis, \
@@ -40,13 +40,13 @@ namespace ops {
     bool keep_dims_;                                             \
   };
 
-DELCATE_REDUCE_OP(Min);
-DELCATE_REDUCE_OP(Max);
-DELCATE_REDUCE_OP(Any);
-DELCATE_REDUCE_OP(Prod);
-DELCATE_REDUCE_OP(Mean);
+DECLARE_REDUCE_OP(Min);
+DECLARE_REDUCE_OP(Max);
+DECLARE_REDUCE_OP(Any);
+DECLARE_REDUCE_OP(Prod);
+DECLARE_REDUCE_OP(Mean);
 
-#undef DELCATE_REDUCE_OP
+#undef DECLARE_REDUCE_OP
 
 }  // namespace ops
 }  // namespace vx

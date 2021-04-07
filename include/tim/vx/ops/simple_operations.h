@@ -37,6 +37,16 @@ namespace ops {
 
 DECLARE_SIMPLE_OP(DataConvert)
 DECLARE_SIMPLE_OP(Neg)
+DECLARE_SIMPLE_OP(Abs)
+DECLARE_SIMPLE_OP(Sin)
+// TODO(jiangbo): enable it when internal ops supports `Cos`
+//DECLARE_SIMPLE_OP(Cos)
+DECLARE_SIMPLE_OP(Exp)
+DECLARE_SIMPLE_OP(Log)
+DECLARE_SIMPLE_OP(Sqrt)
+DECLARE_SIMPLE_OP(Rsqrt)
+DECLARE_SIMPLE_OP(Square)
+DECLARE_SIMPLE_OP(LogicalNot)
 
 #undef DECLARE_SIMPLE_OP
 

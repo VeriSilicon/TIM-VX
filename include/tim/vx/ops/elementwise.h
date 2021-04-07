@@ -29,36 +29,25 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-#define DELCATE_ELEMENTWISE_OP(NAME) \
+#define DECLARE_ELEMENTWISE_OP(NAME) \
   class NAME : public Operation {    \
    public:                           \
     NAME(Graph* graph);              \
   };
 
-DELCATE_ELEMENTWISE_OP(Abs)
-DELCATE_ELEMENTWISE_OP(Sin)
-// TODO(jiangbo): enable it when internal ops supports `Cos`
-//DELCATE_ELEMENTWISE_OP(Cos)
-DELCATE_ELEMENTWISE_OP(Exp)
-DELCATE_ELEMENTWISE_OP(Log)
-DELCATE_ELEMENTWISE_OP(Sqrt)
-DELCATE_ELEMENTWISE_OP(Rsqrt)
-DELCATE_ELEMENTWISE_OP(Square)
-DELCATE_ELEMENTWISE_OP(LogicalNot)
-
-DELCATE_ELEMENTWISE_OP(Minimum)
-DELCATE_ELEMENTWISE_OP(Maximum)
-DELCATE_ELEMENTWISE_OP(Add)
-DELCATE_ELEMENTWISE_OP(Sub)
-DELCATE_ELEMENTWISE_OP(Div)
-DELCATE_ELEMENTWISE_OP(Pow)
+DECLARE_ELEMENTWISE_OP(Minimum)
+DECLARE_ELEMENTWISE_OP(Maximum)
+DECLARE_ELEMENTWISE_OP(Add)
+DECLARE_ELEMENTWISE_OP(Sub)
+DECLARE_ELEMENTWISE_OP(Div)
+DECLARE_ELEMENTWISE_OP(Pow)
 
 class Multiply : public Operation {
   public:
     Multiply(Graph* graph, float scale = 1.0f);
 };
 
-#undef DELCATE_ELEMENTWISE_OP
+#undef DECLARE_ELEMENTWISE_OP
 
 }  // namespace ops
 }  // namespace vx
