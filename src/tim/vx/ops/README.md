@@ -135,7 +135,7 @@ GatherNd|GATHER_ND|Mapped
 ||LINEAR|Unmapped
 ||BATCHNORM_SINGLE|Unmapped
 ||MOMENTS|Unmapped
-||SQUEEZE|Unmapped
+Squeeze|SQUEEZE|Mapped
 HardSigmoid|HARD_SIGMOID|Unmapped
 Mish|MISH|Unmapped
 ||EXPAND_BROADCAST|Unmapped
