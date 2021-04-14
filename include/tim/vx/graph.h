@@ -33,6 +33,8 @@ namespace vx {
 class Tensor;
 class TensorSpec;
 
+class Operation;
+
 class Graph {
  public:
   virtual ~Graph() {}
@@ -54,8 +56,13 @@ class Graph {
 
   template <typename OpType, typename... Params>
   std::shared_ptr<OpType> CreateOperation(Params... parameters) {
-    return std::make_shared<OpType>(this, parameters...);
+    auto op = std::make_shared<OpType>(this, parameters...);
+    opVector.push_back(op);
+    return op;
   }
+
+private:
+  std::vector<std::shared_ptr<tim::vx::Operation>> opVector;
 };
 
 }  // namespace vx
