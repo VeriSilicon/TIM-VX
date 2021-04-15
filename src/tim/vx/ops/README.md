@@ -30,7 +30,7 @@ Relu|RELU|Mapped
 L2Normalization|L2_NORMALIZE|Mapped
 FullyConnected|FCL2|Mapped
 ||POOLWITHARGMAX|Unmapped
-||ARGMAX|Unmapped
+ArgMax|ARGMAX|Mapped
 Maximum|MAXIMUM|Mapped
 L2Normalization|L2NORMALIZESCALE|Mapped
 ||CROP|Unmapped
@@ -111,7 +111,7 @@ Gather|GATHER|Mapped
 LogicalNot|LOGICAL_NOT|Mapped
 Sin|SIN|Mapped
 Log|LOG|Mapped
-||ARGMIN|Unmapped
+ArgMin|ARGMIN|Mapped
 ||ROI_ALIGN|Unmapped
 ||HEATMAP_MAX_KEYPOINT|Unmapped
 ||AXIS_ALIGNED_BBOX_TRANSFORM|Unmapped
