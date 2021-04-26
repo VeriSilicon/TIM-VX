@@ -50,6 +50,7 @@ class TensorImpl : public Tensor {
   bool IsConstTensor() {
     return spec_.attr_ == tim::vx::TensorAttribute::CONSTANT;
   }
+  const void* GetDataRef() const { return data_; }
 
   GraphImpl* graph_;
   vsi_nn_tensor_id_t id_;
@@ -73,6 +74,7 @@ class TensorPlaceholder : public Tensor {
   bool IsConstTensor() {
     return spec_.attr_ == tim::vx::TensorAttribute::CONSTANT;
   }
+  const void* GetDataRef() const { return nullptr; }
 
   vsi_nn_tensor_id_t id_;
   TensorSpec spec_;

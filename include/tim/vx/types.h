@@ -73,6 +73,8 @@ enum class ActivationType {
 
 enum class ResizeType { NEAREST_NEIGHBOR, BILINEAR, AREA };
 
+enum class DataLayout { WHCN, CWHN, ANY };
+
 }  // namespace vx
 }  // namespace tim
 

@@ -34,16 +34,17 @@ namespace ops {
 Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
                const std::array<uint32_t, 2>& ksize,
                const std::array<uint32_t, 2>& stride,
-               const std::array<uint32_t, 2>& dilation, int32_t multiplier)
-    : Conv2d(graph, weights, padding, ksize, stride, dilation, {0, 0, 0, 0},
-             multiplier) {}
+               const std::array<uint32_t, 2>& dilation,
+               int32_t multiplier, DataLayout layout)
+    : Conv2d(graph, weights, padding, ksize, stride, dilation,
+             {0, 0, 0, 0}, multiplier, layout) {}
 
 Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
                const std::array<uint32_t, 2>& ksize,
                const std::array<uint32_t, 2>& stride,
                const std::array<uint32_t, 2>& dilation,
-               const std::array<uint32_t, 4>& pad, int32_t multiplier)
-    : Operation(graph, VSI_NN_OP_CONV2D),
+               const std::array<uint32_t, 4>& pad, int32_t multiplier, DataLayout layout)
+    : Operation(graph, VSI_NN_OP_CONV2D, 0, 0, layout),
       weights_(weights),
       padding_(padding),
       ksize_(ksize),

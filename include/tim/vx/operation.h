@@ -34,8 +34,8 @@ class OperationImpl;
 
 class Operation {
  public:
-  Operation(Graph* graph, uint32_t operation_id, int input_cnt = 0,
-            int ouput_cnt = 0);
+  Operation(Graph* graph, uint32_t operation_id,
+            int input_cnt = 0, int ouput_cnt = 0, DataLayout layout = DataLayout::ANY);
   virtual ~Operation();
   Operation& BindInput(const std::shared_ptr<Tensor>& tensor);
   Operation& BindOutput(const std::shared_ptr<Tensor>& tensor);
