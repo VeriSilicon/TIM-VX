@@ -129,7 +129,7 @@ vsi_enum TranslateRoundingPolicy(RoundingPolicy type) {
     default:
       break;
   }
-  return VX_ROUND_POLICY_TO_ZERO;
+  return VX_ROUND_POLICY_TO_NEAREST_EVEN;
 }
 
 vsi_enum TranslateDownScaleSizeRounding(DownScaleSizeRounding type) {

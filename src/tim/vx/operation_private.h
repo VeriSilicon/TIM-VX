@@ -38,7 +38,7 @@ class OperationImpl {
   OperationImpl& BindOutput(const std::shared_ptr<Tensor>& tensor);
   OperationImpl& SetRoundingPolicy(
       OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
-      RoundingPolicy rounding_policy = RoundingPolicy::TO_ZERO,
+      RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
       DownScaleSizeRounding down_scale_size_rounding =
           DownScaleSizeRounding::FLOOR,
       uint32_t accumulator_bits = 0);
