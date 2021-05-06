@@ -11,15 +11,15 @@ ifeq ($(VIVANTE_SDK_INC),)
 $(error Please set VIVANTE_SDK_INC path pointing to VX/CL header file locations)
 endif
 
-LOCAL_VENDOR_MODULE  := true
+LOCAL_VENDOR_MODULE := true
+
+TIMVX_SOURCES := $(wildcard $(LOCAL_PATH)/src/tim/vx/*.c**)
+TIMVX_SOURCES += $(wildcard $(LOCAL_PATH)/src/tim/vx/ops/*.c**)
+LOCAL_SRC_FILES := $(TIMVX_SOURCES:$(LOCAL_PATH)/%=%)
 
 INTERNAL_SRC_PATH := $(LOCAL_PATH)/src/tim/vx/internal/src
-SRC_FILES := $(wildcard $(LOCAL_PATH)/src/tim/vx/*.c**)
-SRC_FILES += $(wildcard $(LOCAL_PATH)/src/tim/vx/ops/*.c**)
-LOCAL_SRC_FILES := $(SRC_FILES:$(LOCAL_PATH)/%=%)
-
-INTERNAL_SOURCES := $(wildcard $(LOCAL_PATH)/src/tim/vx/internal/src/*.c)
-INTERNAL_SOURCES += $(wildcard $(LOCAL_PATH)/src/tim/vx/internal/src/*/*.c)
+INTERNAL_SOURCES := $(wildcard $(INTERNAL_SRC_PATH)/*.c)
+INTERNAL_SOURCES += $(wildcard $(INTERNAL_SRC_PATH)/*/*.c)
 LOCAL_SRC_FILES += $(INTERNAL_SOURCES:$(LOCAL_PATH)/%=%)
 
 LIBNNEXT_KERNEL_SOURCES := $(wildcard $(INTERNAL_SRC_PATH)/libnnext/ops/kernel/*.c)
@@ -34,27 +34,16 @@ KERNEL_SOURCES += $(wildcard $(INTERNAL_SRC_PATH)/custom/ops/kernel/*.c)
 LOCAL_SRC_FILES += $(KERNEL_SOURCES:$(LOCAL_PATH)/%=%)
 
 LOCAL_C_INCLUDES := \
-		    $(VIVANTE_SDK_INC)/VX \
-		    $(VIVANTE_SDK_INC)/CL \
-		    $(VIVANTE_SDK_INC)/ \
-		    $(LOCAL_PATH)/include \
-		    $(LOCAL_PATH)/include/tim/vx \
-		    $(LOCAL_PATH)/include/tim/vx/ops \
-		    $(LOCAL_PATH)/src/tim/vx \
-		    $(INTERNAL_SRC_PATH)/../include \
-		    $(INTERNAL_SRC_PATH)/../include/ops \
-		    $(INTERNAL_SRC_PATH)/../include/utils \
-		    $(INTERNAL_SRC_PATH)/../include/inference \
-		    $(INTERNAL_SRC_PATH)/../include/client \
-		    $(INTERNAL_SRC_PATH)/../include/libnnext
+    $(VIVANTE_SDK_INC) \
+    $(LOCAL_PATH)/include \
+    $(LOCAL_PATH)/src/tim/vx \
+    $(INTERNAL_SRC_PATH)/../include \
+    $(INTERNAL_SRC_PATH)/../include/ops \
+    $(INTERNAL_SRC_PATH)/../include/utils \
+    $(INTERNAL_SRC_PATH)/../include/client \
+    $(INTERNAL_SRC_PATH)/../include/libnnext
 
-LOCAL_SHARED_LIBRARIES := \
-    liblog \
-    libGAL \
-    libOpenVX \
-    libVSC \
-    libdl
-
+LOCAL_SHARED_LIBRARIES := liblog libGAL libOpenVX libVSC libdl
 LOCAL_STATIC_LIBRARIES := libgtest
 
 LOCAL_CFLAGS :=  \
@@ -83,10 +72,11 @@ endif
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
+LOCAL_VENDOR_MODULE := true
 LOCAL_CPP_EXTENSION := .cc
 LOCAL_SRC_FILES := samples/lenet/lenet_asymu8.cc
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/include
-LOCAL_SHARED_LIBRARIES := liblog libGAL libOpenVX libVSC libdl libtim-vx
+LOCAL_SHARED_LIBRARIES := libtim-vx
 LOCAL_MODULE := lenet_asymu8
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT_SBIN)
