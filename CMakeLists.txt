@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.3)
 project(tim-vx)
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Werror -fPIC")
+set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Werror -fPIC -Wno-enum-conversion")
 set(CMAKE_CXX_FLAGS "--std=c++14 -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Werror -fPIC")
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)

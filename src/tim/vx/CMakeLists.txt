@@ -25,4 +25,10 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     -Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
 
 add_library(${TARGET_NAME}-static STATIC ${SRC})
-target_link_libraries(${TARGET_NAME}-static PRIVATE tim_internal)
+target_link_libraries(${TARGET_NAME}-static PRIVATE
+	-Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
+
+install(TARGETS ${TARGET_NAME} ${TARGET_NAME}-static
+        DESTINATION ${CMAKE_BINARY_DIR}/install/lib)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include DESTINATION ${CMAKE_BINARY_DIR}/install)
