@@ -11,7 +11,7 @@ Main Features
 
 ## Framework Support
 
-- [Tensorflow-Lite Delegate](https://github.com/VeriSilicon/tensorflow/tree/dev/vx-delegate) (Unofficial)
+- [Tensorflow-Lite Delegate](https://github.com/VeriSilicon/tensorflow/tree/vx-delegate.v2.4.1) (Unofficial)
 - [Tengine](https://github.com/OAID/Tengine) (Official)
 - MLIR Dialect (In development)
 - TVM (In development)
@@ -44,7 +44,7 @@ bazel run //samples/lenet:lenet_asymu8_cc
 To build and run Tensorflow-Lite delegate on A311D platform
 ```shell
 # clone and cross build VeriSilicon tensorflow fork with TFlite delegate support
-git clone --single-branch --branch dev/vx-delegate git@github.com:VeriSilicon/tensorflow.git vx-delegate; cd vx-delegate
+git clone --single-branch --branch vx-delegate.v2.4.1 git@github.com:VeriSilicon/tensorflow.git vx-delegate; cd vx-delegate
 bazel build --config A311D //tensorflow/lite/tools/benchmark:benchmark_model
 
 # push benchmark_model onto device and run
