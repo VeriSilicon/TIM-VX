@@ -31,7 +31,7 @@ namespace tim {
 namespace vx {
 
 class Tensor;
-class TensorSpec;
+struct TensorSpec;
 
 class Operation;
 
