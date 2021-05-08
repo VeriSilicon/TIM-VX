@@ -58,6 +58,50 @@ void GraphImpl::AddOutput(vsi_nn_tensor_id_t id) {
   }
 }
 
+void GraphImpl::AddInput(const std::shared_ptr<Tensor>& tensor) {
+  if (inputs_tensor_.end() ==
+      std::find(inputs_tensor_.begin(), inputs_tensor_.end(), tensor)) {
+    inputs_tensor_.push_back(tensor);
+  }
+}
+
+void GraphImpl::AddOutput(const std::shared_ptr<Tensor>& tensor) {
+  if (outputs_tensor_.end() ==
+      std::find(outputs_tensor_.begin(), outputs_tensor_.end(), tensor)) {
+    outputs_tensor_.push_back(tensor);
+  }
+}
+
+const std::vector<std::shared_ptr<Tensor>> GraphImpl::InputsTensor() const {
+  return inputs_tensor_;
+}
+
+const std::vector<std::shared_ptr<Tensor>> GraphImpl::OutputsTensor() const {
+  return outputs_tensor_;
+}
+
+void GraphImpl::UpdateTensorConsumersMap(const std::shared_ptr<Tensor>& tensor,
+                                         const Operation* op) {
+  for (const auto& added_op : op_vector_) {
+    if (added_op.get() == op) {
+      tensor_consumers_[tensor].push_back(added_op);
+    }
+  }
+}
+
+const std::vector<std::shared_ptr<Operation>> GraphImpl::GetConsumersOp(
+    std::shared_ptr<Tensor> tensor) const {
+  auto consumers = tensor_consumers_.find(tensor);
+  if (tensor_consumers_.end() != consumers) {
+    return consumers->second;
+  } else {
+    VSILOGD("Tensor has no consumers, may be graph output.");
+    return {};
+  }
+}
+
+void GraphImpl::PrintGraph() const { vsi_nn_PrintGraph(this->graph_); }
+
 std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
                                                 const void* data) {
   return std::make_shared<TensorImpl>(this, spec, data);

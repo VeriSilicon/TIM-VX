@@ -140,6 +140,7 @@ class Tensor {
   virtual bool CopyDataFromTensor(void* data) = 0;
   virtual bool IsPlaceHolder() = 0;
   virtual bool IsConstTensor() = 0;
+  virtual const void* GetDataRef() const = 0;
 };
 
 }  // namespace vx

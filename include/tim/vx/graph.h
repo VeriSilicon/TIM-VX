@@ -57,12 +57,24 @@ class Graph {
   template <typename OpType, typename... Params>
   std::shared_ptr<OpType> CreateOperation(Params... parameters) {
     auto op = std::make_shared<OpType>(this, parameters...);
-    opVector.push_back(op);
+    op_vector_.push_back(op);
     return op;
   }
 
-private:
-  std::vector<std::shared_ptr<tim::vx::Operation>> opVector;
+  virtual const std::vector<std::shared_ptr<Tensor>> InputsTensor() const = 0;
+  virtual const std::vector<std::shared_ptr<Tensor>> OutputsTensor() const = 0;
+
+  virtual void UpdateTensorConsumersMap(
+      const std::shared_ptr<Tensor>& tensor,
+      const Operation* op) = 0;
+
+  virtual const std::vector<std::shared_ptr<Operation>> GetConsumersOp(
+      std::shared_ptr<Tensor> tensor) const = 0;
+  
+  virtual void PrintGraph() const = 0;
+
+ protected:
+  std::vector<std::shared_ptr<tim::vx::Operation>> op_vector_;
 };
 
 }  // namespace vx

@@ -33,8 +33,9 @@ namespace ops {
 
 Pool2d::Pool2d(Graph* graph, PoolType type, PadType padding,
                const std::array<uint32_t, 2>& ksize,
-               const std::array<uint32_t, 2>& stride, RoundType round_type)
-    : Operation(graph, VSI_NN_OP_POOL, 1, 1),
+               const std::array<uint32_t, 2>& stride, RoundType round_type,
+               DataLayout layout)
+    : Operation(graph, VSI_NN_OP_POOL, 1, 1, layout),
       type_(type),
       padding_(padding),
       ksize_(ksize),

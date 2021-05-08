@@ -38,7 +38,8 @@ class Pool2d : public Operation {
   Pool2d(Graph* graph, PoolType type, PadType padding,
          const std::array<uint32_t, 2>& ksize,
          const std::array<uint32_t, 2>& stride,
-         RoundType round_type = RoundType::FLOOR);
+         RoundType round_type = RoundType::FLOOR,
+         DataLayout layout = DataLayout::WHCN);
 
  protected:
   const PoolType type_;
