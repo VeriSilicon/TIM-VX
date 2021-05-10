@@ -36,7 +36,8 @@ cc_library(
         "src/tim/transform/layout_infer_context.h",
     ] + glob([
         "src/tim/vx/ops/*.cc"
-    ]) + glob(["src/tim/transform/ops/*.*"]),
+        ], exclude = ["src/tim/vx/ops/*_test.cc"]
+    ) + glob(["src/tim/transform/ops/*.*"]),
     deps = [
         "//src/tim/vx/internal:ovxlibimpl",
     ],

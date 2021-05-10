@@ -25,7 +25,7 @@ Prelu|PRELU|Mapped
 Relu|RELU|Mapped
 ||RELUN|Unmapped
 ||LSTM|Unmapped
-||REORG|Unmapped
+Reorg|REORG|Mapped
 ||VARIABLE|Unmapped
 L2Normalization|L2_NORMALIZE|Mapped
 FullyConnected|FCL2|Mapped
