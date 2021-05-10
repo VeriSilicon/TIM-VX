@@ -26,12 +26,15 @@
 
 #include <memory>
 
+#include "../layout_infer_context.h"
 #include "tim/layout_infer/layout_inference.h"
+#include "tim/vx/types.h"
 
 namespace tim {
 namespace transform {
 
 constexpr std::initializer_list<uint32_t> kCWHN2WHCN = {1, 2, 0, 3};
+constexpr std::initializer_list<uint32_t> KOcHWIc2OcIcHW = {0, 3, 1, 2};
 
 class OpLayoutInfer {
  public:
@@ -42,6 +45,8 @@ class OpLayoutInfer {
   virtual void OnInputs(std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) = 0;
   virtual void OnOutputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors);
+
+  virtual ~OpLayoutInfer() = default;
 
  protected:
   std::shared_ptr<vx::Tensor> InsertPermute(std::shared_ptr<vx::Tensor> input,
@@ -62,6 +67,14 @@ class OpLayoutInfer {
   std::shared_ptr<IPermuteVector> AlignPermuteVectorForMutilInputs();
 
   void ReverseInputsPermuteVector();
+
+  bool TransposeConstTensorData(const std::shared_ptr<vx::Tensor>& input,
+                                const std::shared_ptr<IPermuteVector>& pv,
+                                std::vector<uint8_t>& out_data);
+
+  std::shared_ptr<vx::Tensor> PermuteConstTensor(
+      const std::shared_ptr<vx::Tensor>& input,
+      const std::shared_ptr<IPermuteVector>& pv);
 
  protected:
   const std::shared_ptr<vx::Operation> op_;

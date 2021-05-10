@@ -4,6 +4,8 @@ project(tim-vx)
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Werror -fPIC -Wno-enum-conversion")
 set(CMAKE_CXX_FLAGS "--std=c++14 -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Werror -fPIC")
 
+OPTION(ENABLE_LAYOUT_INFER "add layout inference support" ON)
+
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(OVXLIB_API_ATTR "__attribute__\(\(visibility\(\"default\"\)\)\)")
 message(${OVXLIB_API_ATTR})
@@ -22,5 +24,5 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/include/tim/vx)
 include_directories(${OVXDRV_INCLUDE_DIRS})
 
-add_subdirectory("src/tim/vx")
+add_subdirectory("src/tim/")
 add_subdirectory("samples/lenet")

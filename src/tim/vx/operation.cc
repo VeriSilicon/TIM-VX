@@ -51,9 +51,6 @@ OperationImpl& OperationImpl::BindInput(const std::shared_ptr<Tensor>& tensor) {
   node_->input.tensors[input_tensor_index++] = tensor_id;
   if (tensor->GetSpec().attr_ & TensorAttribute::INPUT) {
     graph_->AddInput(tensor_id);
-  }
-  if (tensor->GetSpec().attr_ & TensorAttribute::INPUT ||
-      tensor->GetSpec().attr_ & TensorAttribute::CONSTANT) {
     graph_->AddInput(tensor);
   }
   return *this;

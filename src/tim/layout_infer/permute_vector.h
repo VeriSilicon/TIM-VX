@@ -28,6 +28,7 @@
 #include <cassert>
 #include <memory>
 #include <vector>
+#include <string>
 
 namespace tim {
 namespace transform {

@@ -22,20 +22,20 @@
  *
  *****************************************************************************/
 
-#include "src/tim/layout_infer/permute_vector.h"
+#include "permute_vector.h"
+#include "layout_infer_context.h"
 #include "tim/layout_infer/layout_inference.h"
-#include "src/tim/vx/operation_private.h"
-#include "src/tim/layout_infer/ops/conv2d_layout_inference.h"
-#include "src/tim/layout_infer/ops/reduce_layout_inference.h"
-#include "src/tim/layout_infer/ops/elementwise_layout_inference.h"
-#include "src/tim/layout_infer/ops/activation_layout_inference.h"
-#include "src/tim/layout_infer/ops/concat_layout_inferene.h"
-#include "src/tim/layout_infer/ops/reshape_layout_inference.h"
-#include "src/tim/layout_infer/ops/simple_ops_layout_inference.h"
-#include "src/tim/layout_infer/ops/pool2d_layout_inference.h"
-#include "src/tim/layout_infer/ops/softmax_layout_inference.h"
-#include "src/tim/layout_infer/ops/squeeze_layout_inference.h"
-#include "src/tim/layout_infer/ops/stack_layout_inference.h"
+#include "ops/conv2d_layout_inference.h"
+#include "ops/reduce_layout_inference.h"
+#include "ops/elementwise_layout_inference.h"
+#include "ops/activation_layout_inference.h"
+#include "ops/concat_layout_inferene.h"
+#include "ops/reshape_layout_inference.h"
+#include "ops/simple_ops_layout_inference.h"
+#include "ops/pool2d_layout_inference.h"
+#include "ops/softmax_layout_inference.h"
+#include "ops/squeeze_layout_inference.h"
+#include "ops/stack_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -43,6 +43,11 @@
 namespace tim {
 namespace transform {
 namespace layout_inference_impl {
+
+std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
+    std::shared_ptr<layout_inference_impl::LayoutInferContext>& ctx,
+    const std::shared_ptr<vx::Operation>& op);
+
 // Implemention for LayoutInferContext
 void LayoutInferContext::SetPermuteVector(std::shared_ptr<vx::Tensor> tensor,
                                           std::shared_ptr<IPermuteVector> pv) {
@@ -84,7 +89,8 @@ bool LayoutInferContext::IsVisited(const std::shared_ptr<vx::Operation>& op) con
 bool LayoutInferContext::IsReadyForInfer(
     const std::shared_ptr<vx::Operation>& op) const {
   for (const auto& tensor : op->impl()->InputsTensor()) {
-    if (tensor_pv_.end() == tensor_pv_.find(tensor)) {
+    if (!tensor->IsConstTensor() &&
+        (tensor_pv_.end() == tensor_pv_.find(tensor))) {
       return false;
     }
   }
@@ -187,16 +193,10 @@ std::pair<std::shared_ptr<vx::Graph>,
   std::deque<std::shared_ptr<vx::Tensor>> tensor_queue;
   auto graph_inputs = src_graph->InputsTensor();
   for (const auto& t_src : graph_inputs) {
-    if (t_src->IsConstTensor()) {
-      layout_infer_ctx->UpdateTensorMap(
-          t_src,
-          infer_graph->CreateTensor(t_src->GetSpec(), t_src->GetDataRef()));
-    } else {
-      auto input = infer_graph->CreateTensor(t_src->GetSpec());
-      layout_infer_ctx->UpdateTensorMap(t_src, input);
-      layout_infer_ctx->UpdateGraphInputMap(t_src, input);
-      tensor_queue.push_back(t_src);
-    }
+    auto input = infer_graph->CreateTensor(t_src->GetSpec());
+    layout_infer_ctx->UpdateTensorMap(t_src, input);
+    layout_infer_ctx->UpdateGraphInputMap(t_src, input);
+    tensor_queue.push_back(t_src);
     layout_infer_ctx->SetPermuteVector(t_src,
                                        MakeShared(t_src->GetShape().size()));
   }

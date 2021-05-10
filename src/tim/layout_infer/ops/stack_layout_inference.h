@@ -41,16 +41,14 @@ class StackLayoutInfer : public OpLayoutInfer {
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto input_tensors = op_->impl()->InputsTensor();
-    auto required_pv = context_->GetPermuteVector(input_tensors[0]);
+    ReverseInputsPermuteVector();
     int32_t axis = op_->impl()->node()->nn_param.stack.axis;
-    axis = MapAxis(required_pv->AsStdVec(), static_cast<uint32_t>(axis));
-
-    auto stack =
-        context_->infer_graph_->CreateOperation<vx::ops::Stack>(1, axis);
-    auto otensor_infer = CreateOutputsTensor(required_pv);
-    (*stack).BindInput(context_->GetMapedTensor(input_tensors[0]));
-    (*stack).BindOutput(otensor_infer[0]);
+    auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
+        axis, op_->impl()->input_cnt_);
+    (*stack).BindInput(context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
+    auto required_pv = MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
+    auto out_infer = CreateOutputsTensor(required_pv);
+    (*stack).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     // Add out tensor of src_graph into next_tensor
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
