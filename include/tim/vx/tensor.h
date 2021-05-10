@@ -97,6 +97,14 @@ struct TensorSpec {
 	  this->quantization_  = other.quantization_;
   }
 
+  TensorSpec& operator =(const TensorSpec& other) {
+    this->datatype_ = other.datatype_;
+	  this->shape_ = other.shape_;
+	  this->attr_ = other.attr_;
+	  this->quantization_  = other.quantization_;
+    return *this;
+  }
+
   TensorSpec& SetDataType(DataType datatype) {
     this->datatype_ = datatype;
     return *this;

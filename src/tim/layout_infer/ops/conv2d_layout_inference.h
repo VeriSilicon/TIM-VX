@@ -48,16 +48,41 @@ class Conv2dLayoutInfer : public OpLayoutInfer {
     }
     auto input_tensors = op_->impl()->InputsTensor();
 
-    // for input and weight
-    for (uint32_t i = 0; i < 2; i++) {
-      auto pv = context_->GetPermuteVector(input_tensors[i]);
-      auto final_pv = pv->Reverse()->Add(required_pv);
-      if (!final_pv->IsAligned()) {
-        auto perm_out =
-            InsertPermute(context_->GetMapedTensor(input_tensors[i]), final_pv);
-        context_->UpdateTensorMap(input_tensors[i], perm_out);
-        context_->SetPermuteVector(input_tensors[i], required_pv);
+    for (const auto& in : input_tensors) {
+      std::shared_ptr<vx::Tensor> infer_tensor;
+      std::shared_ptr<IPermuteVector> trans_pv;
+      if (in->IsConstTensor() &&
+          !(in->GetSpec().attr_ & vx::TensorAttribute::INPUT)) {
+            // For bias
+            if (in->GetShape().size() == 1) {
+              infer_tensor = context_->infer_graph_->CreateTensor(
+                  in->GetSpec(), in->GetDataRef());
+              trans_pv = MakeShared(1);
+            } else {
+              // For input/weight
+              if (!required_pv->IsAligned()) {
+                infer_tensor = PermuteConstTensor(in, required_pv);
+                trans_pv = required_pv;
+              } else {
+                infer_tensor = context_->infer_graph_->CreateTensor(
+                    in->GetSpec(), in->GetDataRef());
+                trans_pv = MakeShared(required_pv->Rank());
+              }
+            }
+      } else {
+        // For input/weight
+        auto pv = context_->GetPermuteVector(in);
+        auto final_pv = pv->Reverse()->Add(required_pv);
+        if (!final_pv->IsAligned()) {
+          infer_tensor = InsertPermute(context_->GetMapedTensor(in), final_pv);
+          trans_pv = required_pv;
+        } else {
+          infer_tensor = context_->GetMapedTensor(in);
+          trans_pv = pv;
+        }
       }
+      context_->UpdateTensorMap(in, infer_tensor);
+      context_->SetPermuteVector(in, trans_pv);
     }
 
     auto pad_type = TranslatePadType(op_->impl()->node()->nn_param.conv2d.pad_type);

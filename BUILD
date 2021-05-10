@@ -32,7 +32,8 @@ cc_library(
         "src/tim/vx/type_utils.h",
         "src/tim/vx/type_utils.cc",
         "src/tim/layout_infer/layout_inference.cc",
-        "src/tim/layout_infer/permute_vector.h"
+        "src/tim/layout_infer/permute_vector.h",
+        "src/tim/layout_infer/layout_infer_context.h",
     ] + glob([
         "src/tim/vx/ops/*.cc"
     ]) + glob(["src/tim/layout_infer/ops/*.*"]),
