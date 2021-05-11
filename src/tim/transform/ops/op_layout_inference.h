@@ -27,7 +27,7 @@
 #include <memory>
 
 #include "../layout_infer_context.h"
-#include "tim/layout_infer/layout_inference.h"
+#include "tim/transform/layout_inference.h"
 #include "tim/vx/types.h"
 
 namespace tim {

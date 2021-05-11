@@ -1,7 +1,7 @@
 #ifndef TIM_VX_LAYOUT_INFER_CONTEXT_H_
 #define TIM_VX_LAYOUT_INFER_CONTEXT_H_
 #include "permute_vector.h"
-#include "tim/layout_infer/layout_inference.h"
+#include "tim/transform/layout_inference.h"
 
 namespace tim {
 namespace transform {

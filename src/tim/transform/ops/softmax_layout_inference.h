@@ -21,42 +21,39 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_RESHAPE_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_RESHAPE_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_SOFTMAXT_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_SOFTMAXT_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/reshape.h"
+#include "tim/vx/ops/softmax.h"
 
-#include "src/tim/layout_infer/ops/op_layout_inference.h"
-#include "src/tim/layout_infer/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
+#include "src/tim/transform/permute_vector.h"
+#include "src/tim/transform/ops/op_layout_inference.h"
 
 namespace tim {
 namespace transform {
-class ReshapeLayoutInfer : public OpLayoutInfer {
+
+class SoftmaxLayoutInfer : public OpLayoutInfer {
  public:
-  ReshapeLayoutInfer(
+  SoftmaxLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
-  // reverse any applied permute on it's input tensor
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    ReverseInputsPermuteVector();
-    std::vector<uint32_t> perm;
-    for (uint32_t i = 0; i < op_->impl()->node()->nn_param.reshape.dim_num;
-         i++) {
-      perm.push_back(op_->impl()->node()->nn_param.reshape.size[i]);
-    }
-    auto reshape =
-        context_->infer_graph_->CreateOperation<vx::ops::Reshape>(perm);
-    (*reshape).BindInput(
-        context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
+    auto input_tensors = op_->impl()->InputsTensor();
+    auto required_pv = context_->GetPermuteVector(input_tensors[0]);
+    float beta = op_->impl()->node()->nn_param.softmax.beta;
+    int32_t axis = op_->impl()->node()->nn_param.softmax.axis;
+    axis = MapAxis(required_pv->AsStdVec(), static_cast<uint32_t>(axis));
 
-    auto required_pv =
-        MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    auto out_infer = CreateOutputsTensor(required_pv);
-    (*reshape).BindOutput(out_infer[0]);
+    auto softmax =
+        context_->infer_graph_->CreateOperation<vx::ops::Softmax>(beta, axis);
+    auto otensor_infer = CreateOutputsTensor(required_pv);
+    (*softmax).BindInput(context_->GetMapedTensor(input_tensors[0]));
+    (*softmax).BindOutput(otensor_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
+    // Add out tensor of src_graph into next_tensor
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };

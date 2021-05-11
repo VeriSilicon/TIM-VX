@@ -1,7 +1,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/conv2d.h"
-#include "tim/layout_infer/layout_inference.h"
+#include "tim/transform/layout_inference.h"
 
 #include "gtest/gtest.h"
 
@@ -38,9 +38,9 @@ TEST(LayoutInference, simple_conv2d) {
       std::array<uint32_t, 4>({0, 0, 0, 0}), 0, tim::vx::DataLayout::CWHN);
   (*conv2d).BindInputs({input, kernel, bias}).BindOutput(output);
   // Do layout inference
-  auto layout_infer = tim::transform::LayoutInference(src_graph, ctx);
-  auto infer_graph = layout_infer.first;
-  auto graph_io_map = layout_infer.second;
+  auto transform = tim::transform::LayoutInference(src_graph, ctx);
+  auto infer_graph = transform.first;
+  auto graph_io_map = transform.second;
   infer_graph->Compile();
   std::vector<float> input_data = {1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f};
   auto infer_input = graph_io_map[src_graph->InputsTensor()[0]];

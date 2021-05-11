@@ -21,41 +21,36 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_SQUEEZE_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_SQUEEZE_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_CONCAT_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_CONCAT_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/squeeze.h"
+#include "tim/vx/ops/concat.h"
 
-#include "src/tim/layout_infer/ops/op_layout_inference.h"
-#include "src/tim/layout_infer/permute_vector.h"
+#include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/transform/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
 
 namespace tim {
 namespace transform {
-class SqueezeLayoutInfer : public OpLayoutInfer {
+class ConcatLayoutInfer : public OpLayoutInfer {
  public:
-  SqueezeLayoutInfer(
+  ConcatLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
-  // reverse any applied permute on it's input tensor
+
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    ReverseInputsPermuteVector();
-    std::vector<uint32_t> axis;
-    for (uint32_t i = 0; i < op_->impl()->node()->nn_param.squeeze.axis_num;
-         i++) {
-      axis.push_back(op_->impl()->node()->nn_param.squeeze.axis[i]);
+    auto required_pv = AlignPermuteVectorForMutilInputs();
+    auto axis = MapAxis(required_pv->AsStdVec(),
+                        op_->impl()->node()->nn_param.concat.axis);
+    auto concat = context_->infer_graph_->CreateOperation<vx::ops::Concat>(
+        axis, op_->impl()->InputsTensor().size());
+    for (const auto& i_src : op_->impl()->InputsTensor()) {
+      (*concat).BindInput(context_->GetMapedTensor(i_src));
     }
-    auto squeeze =
-        context_->infer_graph_->CreateOperation<vx::ops::Squeeze>(axis);
-    (*squeeze).BindInput(
-        context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
-
-    auto required_pv =
-        MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
     auto out_infer = CreateOutputsTensor(required_pv);
-    (*squeeze).BindOutput(out_infer[0]);
+    (*concat).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }

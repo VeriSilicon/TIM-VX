@@ -21,37 +21,34 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_SOFTMAXT_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_SOFTMAXT_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/softmax.h"
+#include "tim/vx/ops/stack.h"
 
 #include "src/tim/vx/operation_private.h"
-#include "src/tim/layout_infer/permute_vector.h"
-#include "src/tim/layout_infer/ops/op_layout_inference.h"
+#include "src/tim/transform/permute_vector.h"
+#include "src/tim/transform/ops/op_layout_inference.h"
 
 namespace tim {
 namespace transform {
 
-class SoftmaxLayoutInfer : public OpLayoutInfer {
+class StackLayoutInfer : public OpLayoutInfer {
  public:
-  SoftmaxLayoutInfer(
+  StackLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto input_tensors = op_->impl()->InputsTensor();
-    auto required_pv = context_->GetPermuteVector(input_tensors[0]);
-    float beta = op_->impl()->node()->nn_param.softmax.beta;
-    int32_t axis = op_->impl()->node()->nn_param.softmax.axis;
-    axis = MapAxis(required_pv->AsStdVec(), static_cast<uint32_t>(axis));
-
-    auto softmax =
-        context_->infer_graph_->CreateOperation<vx::ops::Softmax>(beta, axis);
-    auto otensor_infer = CreateOutputsTensor(required_pv);
-    (*softmax).BindInput(context_->GetMapedTensor(input_tensors[0]));
-    (*softmax).BindOutput(otensor_infer[0]);
+    ReverseInputsPermuteVector();
+    int32_t axis = op_->impl()->node()->nn_param.stack.axis;
+    auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
+        axis, op_->impl()->input_cnt_);
+    (*stack).BindInput(context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
+    auto required_pv = MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
+    auto out_infer = CreateOutputsTensor(required_pv);
+    (*stack).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     // Add out tensor of src_graph into next_tensor
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);

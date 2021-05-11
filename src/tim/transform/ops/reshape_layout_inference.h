@@ -21,36 +21,41 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_CONCAT_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_CONCAT_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_RESHAPE_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_RESHAPE_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/concat.h"
+#include "tim/vx/ops/reshape.h"
 
-#include "src/tim/layout_infer/ops/op_layout_inference.h"
-#include "src/tim/layout_infer/permute_vector.h"
+#include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/transform/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
 
 namespace tim {
 namespace transform {
-class ConcatLayoutInfer : public OpLayoutInfer {
+class ReshapeLayoutInfer : public OpLayoutInfer {
  public:
-  ConcatLayoutInfer(
+  ReshapeLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
-
+  // reverse any applied permute on it's input tensor
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto required_pv = AlignPermuteVectorForMutilInputs();
-    auto axis = MapAxis(required_pv->AsStdVec(),
-                        op_->impl()->node()->nn_param.concat.axis);
-    auto concat = context_->infer_graph_->CreateOperation<vx::ops::Concat>(
-        axis, op_->impl()->InputsTensor().size());
-    for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*concat).BindInput(context_->GetMapedTensor(i_src));
+    ReverseInputsPermuteVector();
+    std::vector<uint32_t> perm;
+    for (uint32_t i = 0; i < op_->impl()->node()->nn_param.reshape.dim_num;
+         i++) {
+      perm.push_back(op_->impl()->node()->nn_param.reshape.size[i]);
     }
+    auto reshape =
+        context_->infer_graph_->CreateOperation<vx::ops::Reshape>(perm);
+    (*reshape).BindInput(
+        context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
+
+    auto required_pv =
+        MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
     auto out_infer = CreateOutputsTensor(required_pv);
-    (*concat).BindOutput(out_infer[0]);
+    (*reshape).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }

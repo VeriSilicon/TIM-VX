@@ -21,39 +21,54 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_SIMMPLE_OPS_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_SIMMPLE_OPS_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/stack.h"
+#include "tim/vx/ops/simple_operations.h"
 
+#include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/transform/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
-#include "src/tim/layout_infer/permute_vector.h"
-#include "src/tim/layout_infer/ops/op_layout_inference.h"
 
 namespace tim {
 namespace transform {
-
-class StackLayoutInfer : public OpLayoutInfer {
+template <typename OpType>
+class SimpleOpsLayoutInfer : public OpLayoutInfer {
  public:
-  StackLayoutInfer(
+  SimpleOpsLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
+
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    ReverseInputsPermuteVector();
-    int32_t axis = op_->impl()->node()->nn_param.stack.axis;
-    auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
-        axis, op_->impl()->input_cnt_);
-    (*stack).BindInput(context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
-    auto required_pv = MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    auto out_infer = CreateOutputsTensor(required_pv);
-    (*stack).BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
-    // Add out tensor of src_graph into next_tensor
+    // Transmit input pv to out pv directly for simple ops
+    assert(op_->impl()->InputsTensor().size() == 1);
+    auto i_src = op_->impl()->InputsTensor()[0];
+    auto input_pv = context_->GetPermuteVector(i_src);
+    auto out_infer = CreateOutputsTensor(input_pv);
+    auto simple_op = context_->infer_graph_->CreateOperation<OpType>();
+    (*simple_op)
+        .BindInput(context_->GetMapedTensor(i_src))
+        .BindOutput(out_infer[0]);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
+
+using DataConvertLayoutInfer = SimpleOpsLayoutInfer<vx::ops::DataConvert>;
+using NegLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Neg>;
+using AbsLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Abs>;
+using SinLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Sin>;
+// TODO(yzw): enable it when TIM-VX support 'Cos'
+// using CosLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Cos>;
+using ExpLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Exp>;
+using LogLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Log>;
+using SqrtLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Sqrt>;
+using RsqrtLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Rsqrt>;
+using SquareLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Square>;
+using LogicalNotLayoutInfer = SimpleOpsLayoutInfer<vx::ops::LogicalNot>;
+
 
 }  // namespace transform
 }  // namespace tim

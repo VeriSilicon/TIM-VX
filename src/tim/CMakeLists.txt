@@ -23,14 +23,14 @@ include_directories(${PROJECT_SOURCE_DIR}/src/tim/vx/internal/include)
 if(ENABLE_LAYOUT_INFER)
     include_directories(${PROJECT_SOURCE_DIR}/)
 
-    aux_source_directory(./layout_infer LAYOUT_INFER_FRAMEWORK_SRCS)
-    aux_source_directory(./layout_infer/ops LAYOUT_INFER_OP_SRCS)
+    aux_source_directory(./transform LAYOUT_INFER_FRAMEWORK_SRCS)
+    aux_source_directory(./transform/ops LAYOUT_INFER_OP_SRCS)
 
     list(APPEND SRC
         ${LAYOUT_INFER_FRAMEWORK_SRCS}
         ${LAYOUT_INFER_OP_SRCS}
     )
-    list(REMOVE_ITEM SRC ./layout_infer/layout_inference_test.cc)
+    list(REMOVE_ITEM SRC ./transform/layout_inference_test.cc)
 endif()
 
 add_library(${TARGET_NAME} SHARED ${SRC})
@@ -47,5 +47,5 @@ install(TARGETS ${TARGET_NAME} ${TARGET_NAME}-static
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx DESTINATION ${CMAKE_BINARY_DIR}/install/include/tim/)
 
 if(ENABLE_LAYOUT_INFER)
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/layout_infer DESTINATION ${CMAKE_BINARY_DIR}/install/include/tim/)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform DESTINATION ${CMAKE_BINARY_DIR}/install/include/tim/)
 endif()

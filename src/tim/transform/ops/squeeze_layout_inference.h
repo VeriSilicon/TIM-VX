@@ -21,54 +21,45 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_SIMMPLE_OPS_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_SIMMPLE_OPS_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_SQUEEZE_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_SQUEEZE_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/simple_operations.h"
+#include "tim/vx/ops/squeeze.h"
 
-#include "src/tim/layout_infer/ops/op_layout_inference.h"
-#include "src/tim/layout_infer/permute_vector.h"
+#include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/transform/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
 
 namespace tim {
 namespace transform {
-template <typename OpType>
-class SimpleOpsLayoutInfer : public OpLayoutInfer {
+class SqueezeLayoutInfer : public OpLayoutInfer {
  public:
-  SimpleOpsLayoutInfer(
+  SqueezeLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
-
+  // reverse any applied permute on it's input tensor
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    // Transmit input pv to out pv directly for simple ops
-    assert(op_->impl()->InputsTensor().size() == 1);
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto input_pv = context_->GetPermuteVector(i_src);
-    auto out_infer = CreateOutputsTensor(input_pv);
-    auto simple_op = context_->infer_graph_->CreateOperation<OpType>();
-    (*simple_op)
-        .BindInput(context_->GetMapedTensor(i_src))
-        .BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
+    ReverseInputsPermuteVector();
+    std::vector<uint32_t> axis;
+    for (uint32_t i = 0; i < op_->impl()->node()->nn_param.squeeze.axis_num;
+         i++) {
+      axis.push_back(op_->impl()->node()->nn_param.squeeze.axis[i]);
+    }
+    auto squeeze =
+        context_->infer_graph_->CreateOperation<vx::ops::Squeeze>(axis);
+    (*squeeze).BindInput(
+        context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
+
+    auto required_pv =
+        MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
+    auto out_infer = CreateOutputsTensor(required_pv);
+    (*squeeze).BindOutput(out_infer[0]);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
-
-using DataConvertLayoutInfer = SimpleOpsLayoutInfer<vx::ops::DataConvert>;
-using NegLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Neg>;
-using AbsLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Abs>;
-using SinLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Sin>;
-// TODO(yzw): enable it when TIM-VX support 'Cos'
-// using CosLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Cos>;
-using ExpLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Exp>;
-using LogLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Log>;
-using SqrtLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Sqrt>;
-using RsqrtLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Rsqrt>;
-using SquareLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Square>;
-using LogicalNotLayoutInfer = SimpleOpsLayoutInfer<vx::ops::LogicalNot>;
-
 
 }  // namespace transform
 }  // namespace tim
