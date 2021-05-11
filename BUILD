@@ -16,7 +16,7 @@ cc_library(
         "include/tim/vx/operation.h",
         "include/tim/vx/tensor.h",
         "include/tim/vx/types.h",
-        "include/tim/layout_infer/layout_inference.h"
+        "include/tim/transform/layout_inference.h"
     ] + glob([
         "include/tim/vx/ops/*.h"
     ]),
@@ -31,12 +31,12 @@ cc_library(
         "src/tim/vx/tensor_private.h",
         "src/tim/vx/type_utils.h",
         "src/tim/vx/type_utils.cc",
-        "src/tim/layout_infer/layout_inference.cc",
-        "src/tim/layout_infer/permute_vector.h",
-        "src/tim/layout_infer/layout_infer_context.h",
+        "src/tim/transform/layout_inference.cc",
+        "src/tim/transform/permute_vector.h",
+        "src/tim/transform/layout_infer_context.h",
     ] + glob([
         "src/tim/vx/ops/*.cc"
-    ]) + glob(["src/tim/layout_infer/ops/*.*"]),
+    ]) + glob(["src/tim/transform/ops/*.*"]),
     deps = [
         "//src/tim/vx/internal:ovxlibimpl",
     ],

@@ -28,8 +28,8 @@
 
 #include <set>
 
-#include "src/tim/layout_infer/ops/op_layout_inference.h"
-#include "src/tim/layout_infer/permute_vector.h"
+#include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/transform/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
 
 namespace tim {

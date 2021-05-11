@@ -24,7 +24,7 @@
 
 #include "permute_vector.h"
 #include "layout_infer_context.h"
-#include "tim/layout_infer/layout_inference.h"
+#include "tim/transform/layout_inference.h"
 #include "ops/conv2d_layout_inference.h"
 #include "ops/reduce_layout_inference.h"
 #include "ops/elementwise_layout_inference.h"
