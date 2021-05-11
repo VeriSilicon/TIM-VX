@@ -16,6 +16,7 @@
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
+*.swp
 
 # Build results
 *.o
@@ -33,6 +34,7 @@ NNApi0.3/
 NNApi0.4/
 OpenVX1.2/
 bazel-bin
+bazel-TIM-VX
 bazel-genfiles
 bazel-out
 bazel-ovxlib
