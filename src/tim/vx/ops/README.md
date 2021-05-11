@@ -23,7 +23,7 @@ Transpose|PERMUTE|Mapped
 Prelu|PRELU|Mapped
 ||UPSAMPLE|Unmapped
 Relu|RELU|Mapped
-||RELUN|Unmapped
+||RELUN|Deprecated
 ||LSTM|Unmapped
 Reorg|REORG|Mapped
 ||VARIABLE|Unmapped
@@ -84,7 +84,7 @@ Select|SELECT|Mapped
 ||TENSOR_ADD_MEAN_STDDEV_NORM|Unmapped
 Relu1|RELU1|Mapped
 Stack|STACK|Mapped
-||FLOOR|Unmapped
+Floor|FLOOR|Mapped
 Square|SQUARE|Mapped
 Neg|NEG|Mapped
 Exp|EXP|Mapped
@@ -131,7 +131,7 @@ ArgMin|ARGMIN|Mapped
 HardSwish|SWISH|Mapped
 ||DEPTHWISE_CONV1D|Unmapped
 GatherNd|GATHER_ND|Mapped
-||CAST|Unmapped
+Cast|CAST|Mapped
 ||LINEAR|Unmapped
 ||BATCHNORM_SINGLE|Unmapped
 ||MOMENTS|Unmapped
