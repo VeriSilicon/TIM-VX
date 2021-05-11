@@ -43,6 +43,8 @@ vsi_nn_type_e TranslateDataType(DataType dtype) {
       return VSI_NN_TYPE_FLOAT16;
     case DataType::FLOAT32:
       return VSI_NN_TYPE_FLOAT32;
+    case DataType::BOOL8:
+      return VSI_NN_TYPE_BOOL8;
     default:
       break;
   }

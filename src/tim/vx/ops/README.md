@@ -59,7 +59,11 @@ Pad|PAD|Mapped
 ||MATRIXMUL|Unmapped
 ||LSTMUNIT|Unmapped
 ||LAYER_NORM|Unmapped
-Min/Max/Any/prod/Mean|REDUCE|Mapped
+ReduceMin|REDUCE_MIN|Mapped
+ReduceMax|REDUCE_MAX|Mapped
+ReduceAny|REDUCE_ANY|Mapped
+ReduceProd|REDUCE_PROD|Mapped
+ReduceMean|REDUCE_MEAN|Mapped
 ||INSTANCE_NORM|Unmapped
 ||TENSORSTACKCONCAT|Unmapped
 StridedSlice|STRIDED_SLICE|Mapped
@@ -71,7 +75,12 @@ Abs|ABS|Mapped
 NBG|NBG|Mapped
 ||CONCATSHIFT|Unmapped
 LocalResponseNormalization|LRN2|Mapped
-||RELATIONAL_OPS|Unmapped
+Greater|RELATIONAL_OPS_GREATER|Mapped
+GreaterOrEqual|RELATIONAL_OPS_GREATER_EQUAL|Mapped
+Less|RELATIONAL_OPS_LESS|Mapped
+LessOrEqual|RELATIONAL_OPS_LESS_EQUAL|Mapped
+Equal|RELATIONAL_OPS_EQUAL|Mapped
+NotEqual|RELATIONAL_OPS_NOT_EQUAL|Mapped
 ||SYNC_HOST|Unmapped
 Pow|POW|Mapped
 ||FLOORDIV|Unmapped

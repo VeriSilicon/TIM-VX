@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2021 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,62 +21,29 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_TYPES_H_
-#define TIM_VX_TYPES_H_
+#include "tim/vx/ops/relational_operations.h"
+
+#include "operation_private.h"
+#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
+namespace ops {
 
-enum class DataType {
-  UNKNOWN,
-  INT8,
-  UINT8,
-  INT16,
-  UINT16,
-  INT32,
-  UINT32,
-  FLOAT16,
-  FLOAT32,
-  BOOL8
-};
+#define DEFINE_RELATIONAL_OP(NAME, VSI_OP_CODE) \
+  NAME::NAME(Graph* graph) : Operation(graph, VSI_NN_OP_RELATIONAL_OPS, 2, 1) { \
+    this->impl()->node()->nn_param.relational_ops.op = VSI_OP_CODE;    \
+  }
 
-enum class QuantType { NONE, ASYMMETRIC, SYMMETRIC_PER_CHANNEL };
+DEFINE_RELATIONAL_OP(Greater, VSI_NN_RELATIONAL_OPS_GREAT)
+DEFINE_RELATIONAL_OP(GreaterOrEqual, VSI_NN_RELATIONAL_OPS_GREAT_EQUAL)
+DEFINE_RELATIONAL_OP(Less, VSI_NN_RELATIONAL_OPS_LESS)
+DEFINE_RELATIONAL_OP(LessOrEqual, VSI_NN_RELATIONAL_OPS_LESS_EQUAL)
+DEFINE_RELATIONAL_OP(NotEqual, VSI_NN_RELATIONAL_OPS_NOT_EQUAL)
+DEFINE_RELATIONAL_OP(Equal, VSI_NN_RELATIONAL_OPS_EQUAL)
 
-enum TensorAttribute {
-  CONSTANT = 1 << 0,
-  TRANSIENT = 1 << 1,
-  VARIABLE = 1 << 2,
-  INPUT = 1 << 3,
-  OUTPUT = 1 << 4
-};
+#undef DEFINE_RELATIONAL_OP
 
-enum class PadType { NONE = -1, AUTO, VALID, SAME };
-
-enum class PoolType { MAX, AVG, L2, AVG_ANDROID };
-
-enum class RoundType { CEILING, FLOOR };
-
-enum class OverflowPolicy { WRAP, SATURATE };
-
-enum class RoundingPolicy { TO_ZERO, RTNE };
-
-enum class DownScaleSizeRounding { FLOOR, CEILING };
-
-enum class ActivationType {
-  NONE,
-  RELU,
-  RELU1,
-  RELU6,
-  TANH,
-  //SIGNBIT,
-  SIGMOID
-};
-
-enum class ResizeType { NEAREST_NEIGHBOR, BILINEAR, AREA };
-
-enum class DataLayout { WHCN, CWHN, ANY };
-
+}  // namespace ops
 }  // namespace vx
 }  // namespace tim
-
-#endif /* TIM_VX_TYPES_H_ */
