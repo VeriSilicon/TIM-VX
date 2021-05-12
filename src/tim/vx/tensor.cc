@@ -87,7 +87,7 @@ TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, const void* data)
 
 TensorImpl::~TensorImpl() {}
 
-bool TensorImpl::CopyDataToTensor(const void* data, uint32_t size) {
+bool TensorImpl::CopyDataToTensor(const void* data, uint32_t size_in_bytes) {
   if (!IsWriteable()) {
     return false;
   }
@@ -96,18 +96,31 @@ bool TensorImpl::CopyDataToTensor(const void* data, uint32_t size) {
   if (data && VSI_NN_TENSOR_ID_NA != id_) {
     retn = false;
     vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+    uint32_t tensor_bytes = vsi_nn_GetTensorSize(
+      tensor->attr.size, tensor->attr.dim_num, tensor->attr.dtype.vx_type);
     if (tensor) {
-      /*
-      argument `data` of vsi_nn_CopyDataToTensor is non-const
-      convert it from const data to non-const, will be fixed in ovxlib
-      */
-      uint32_t tensor_bytes = vsi_nn_GetTensorSize(
-          tensor->attr.size, tensor->attr.dim_num, tensor->attr.dtype.vx_type);
-      const uint8_t* end = static_cast<const uint8_t*>(data) + tensor_bytes;
-      std::vector<uint8_t> data_copy(static_cast<const uint8_t*>(data), end);
+      if (tensor->attr.is_created_from_handle) {
+        void *ptr = NULL;
+        vsi_nn_GetTensorHandle(tensor, &ptr);
+        if (ptr) {
+          memcpy(ptr, data, tensor_bytes);
+          vsi_nn_FlushHandle(tensor);
+          retn = true;
+        } else {
+          VSILOGE("GetTensorHandle fail");
+        }
+      }
+      else {
+        /*
+        argument `data` of vsi_nn_CopyDataToTensor is non-const
+        convert it from const data to non-const, will be fixed in ovxlib
+        */
+        const uint8_t* end = static_cast<const uint8_t*>(data) + tensor_bytes;
+        std::vector<uint8_t> data_copy(static_cast<const uint8_t*>(data), end);
 
-      retn = VSI_SUCCESS ==
+        retn = VSI_SUCCESS ==
              vsi_nn_CopyDataToTensor(graph_->graph(), tensor, data_copy.data());
+      }
     }
   }
   return retn;
@@ -122,19 +135,17 @@ bool TensorImpl::CopyDataFromTensor(void* data) {
   if (data && VSI_NN_TENSOR_ID_NA != id_) {
     retn = false;
     vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+    uint32_t tensor_bytes = vsi_nn_GetTensorSize(
+      tensor->attr.size, tensor->attr.dim_num, tensor->attr.dtype.vx_type);
     if (tensor) {
       if (tensor->attr.is_created_from_handle) {
-        void* old_ptr = NULL;
-        // TODO(jiangbo): current ovxlib didn't wrap this API
-        // use driver API directly
-        vxSwapTensorHandle(tensor->t, NULL, &old_ptr);
-        if (old_ptr) {
-          uint32_t tensor_bytes =
-              vsi_nn_GetTensorSize(tensor->attr.size, tensor->attr.dim_num,
-                                   tensor->attr.dtype.vx_type);
-
-          memcpy(data, old_ptr, tensor_bytes);
+        void* ptr = NULL;
+        vsi_nn_GetTensorHandle(tensor, &ptr);
+        if (ptr) {
+          memcpy(data, ptr, tensor_bytes);
           retn = true;
+        } else {
+          VSILOGE("GetTensorHandle fail");
         }
       } else {
         vsi_nn_CopyTensorToBuffer(graph_->graph(), tensor,
@@ -154,7 +165,7 @@ bool TensorImpl::Init() {
   attr.is_const = static_cast<bool>(spec_.attr_ & TensorAttribute::CONSTANT);
   attr.vtl = static_cast<bool>(spec_.attr_ & TensorAttribute::TRANSIENT);
 
-  // Use auto shape for virtual tensors so that tim-vx can perform it's own 
+  // Use auto shape for virtual tensors so that tim-vx can perform it's own
   // shape inference
   if (attr.vtl) {
     attr.dim_num = VSI_NN_DIM_AUTO;

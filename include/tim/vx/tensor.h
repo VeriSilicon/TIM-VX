@@ -144,7 +144,7 @@ class Tensor {
   virtual const Quantization& GetQuantization() = 0;
   virtual const TensorSpec& GetSpec() = 0;
   virtual uint32_t GetId() = 0;
-  virtual bool CopyDataToTensor(const void* data, uint32_t size = 0) = 0;
+  virtual bool CopyDataToTensor(const void* data, uint32_t size_in_bytes = 0) = 0;
   virtual bool CopyDataFromTensor(void* data) = 0;
   virtual bool IsPlaceHolder() = 0;
   virtual bool IsConstTensor() = 0;

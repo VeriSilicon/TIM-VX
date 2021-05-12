@@ -43,7 +43,7 @@ TEST(OP, floor_shape_5_1_fp32) {
     std::vector<float> in_data = { -2.5, -0.1, 0, 0.55, std::numeric_limits<float>::infinity() };
     std::vector<float> golden = {-3, -1, 0, 0, std::numeric_limits<float>::infinity() };
 
-    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::Floor>();
     (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});
@@ -71,7 +71,7 @@ TEST(OP, cast_shape_5_1_fp32_to_int32) {
     std::vector<float> in_data = { -2.5, -0.1, 0, 0.55, std::numeric_limits<float>::infinity() };
     std::vector<int> golden = {-2, 0, 0, 0, std::numeric_limits<int>::max()};
 
-    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::Cast>();
     (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});

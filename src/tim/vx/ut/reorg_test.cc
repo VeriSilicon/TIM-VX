@@ -96,7 +96,7 @@ TEST(OP, reorg_shape_4_4_4_1_fp32) {
         9, 11, 13, 15, 25, 27, 29, 31, 9, 11, 13, 15, 25, 27, 29, 31
     };
 
-    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::Reorg>(2);
     (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});

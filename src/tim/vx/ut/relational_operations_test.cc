@@ -82,8 +82,8 @@ TEST(OP, notequal_shape_5_fp32) {
 
     std::vector<uint8_t> golden = {1, 1, 1, 0, 0};
 
-    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()));
-    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()));
+    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()*4));
+    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::NotEqual>();
     (*add).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
@@ -117,8 +117,8 @@ TEST(OP, less_shape_5_1_fp32) {
 
     std::vector<uint8_t> golden = {0, 0, 1, 0, 0};
 
-    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()));
-    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()));
+    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()*4));
+    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::Less>();
     (*add).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
@@ -156,8 +156,8 @@ TEST(OP, greaterorequal_shape_5_2_1_fp32) {
 
     std::vector<uint8_t> golden = {0, 1, 0, 1, 1, 0, 1, 0, 1, 1};
 
-    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()));
-    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()));
+    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()*4));
+    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::GreaterOrEqual>();
     (*add).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
@@ -195,8 +195,8 @@ TEST(OP, greater_shape_5_2_1_1_fp32) {
 
     std::vector<uint8_t> golden = {0, 1, 0, 0, 0, 0, 1, 0, 0, 0};
 
-    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()));
-    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()));
+    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()*4));
+    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::Greater>();
     (*add).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
@@ -234,8 +234,8 @@ TEST(OP, lessorequal_shape_1_5_2_1_1_fp32) {
 
     std::vector<uint8_t> golden = {1, 0, 1, 1, 1, 1, 0, 1, 1, 1};
 
-    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()));
-    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()));
+    EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(), in_data1.size()*4));
+    EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(), in_data2.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::LessOrEqual>();
     (*add).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
