@@ -39,7 +39,7 @@ TEST(graph, gen_binary_graph_with_empty_graph) {
 }
 
 TEST(graph, gen_binary_graph_with_simple_add) {
-    auto ctx = tim::vx::Context::Create(); 
+    auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
     tim::vx::ShapeType io_shape({1,1,1,1});
@@ -47,13 +47,7 @@ TEST(graph, gen_binary_graph_with_simple_add) {
     tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, io_shape, tim::vx::TensorAttribute::OUTPUT);
     auto input_t0 = graph->CreateTensor(input_spec);
     auto input_t1 = graph->CreateTensor(input_spec);
-    auto output_t = graph->CreateTensor(output_spec);   
-
-    float in = 1.0f;
-    float expected_out = 2.0f;
-
-    EXPECT_TRUE(input_t0->CopyDataToTensor(&in, sizeof(in)));
-    EXPECT_TRUE(input_t1->CopyDataToTensor(&in, sizeof(in)));
+    auto output_t = graph->CreateTensor(output_spec);
 
     auto add = graph->CreateOperation<tim::vx::ops::Add>();
     (*add).BindInputs({input_t0, input_t1}).BindOutputs({output_t});
@@ -63,9 +57,15 @@ TEST(graph, gen_binary_graph_with_simple_add) {
     EXPECT_NE(bin_size, -1);
     std::vector<char> nbg_buf(bin_size);
 
+    // generate binary graph does't require input data
     EXPECT_TRUE(graph->CompileToBinary(nbg_buf.data(), &bin_size));
 
     // binary graph compilation doesn't impact current graph's execution
+    float in = 1.0f;
+    float expected_out = 2.0f;
+    EXPECT_TRUE(input_t0->CopyDataToTensor(&in, sizeof(in)));
+    EXPECT_TRUE(input_t1->CopyDataToTensor(&in, sizeof(in)));
+
     EXPECT_TRUE(graph->Run());
     float output = 0.0f;
     EXPECT_TRUE(output_t->CopyDataFromTensor(&output));
@@ -75,7 +75,7 @@ TEST(graph, gen_binary_graph_with_simple_add) {
     auto nbg_in0 = nbg_graph->CreateTensor(input_spec);
     auto nbg_in1 = nbg_graph->CreateTensor(input_spec);
     auto nbg_out = nbg_graph->CreateTensor(output_spec);
-    
+
     EXPECT_TRUE(nbg_in0->CopyDataToTensor(&in, sizeof(in)));
     EXPECT_TRUE(nbg_in1->CopyDataToTensor(&in, sizeof(in)));
 
