@@ -12,11 +12,6 @@ list(APPEND SRC
     ${VX_SRC}
     ${OPS_SRC}
     )
-list(REMOVE_ITEM SRC ./vx/context_test.cc)
-list(REMOVE_ITEM SRC ./vx/graph_test.cc)
-list(REMOVE_ITEM SRC ./vx/ops/reorg_test.cc)
-list(REMOVE_ITEM SRC ./vx/ops/simple_operations_test.cc)
-list(REMOVE_ITEM SRC ./vx/ops/relational_operations_test.cc)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/include/tim/vx)
