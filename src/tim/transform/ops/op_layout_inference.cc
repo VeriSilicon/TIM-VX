@@ -154,16 +154,36 @@ OpLayoutInfer::AlignPermuteVectorForMutilInputs() {
   auto src_inputs = op_->impl()->InputsTensor();
   // Suppose the inputs have same dimension rank
   // TODO(yzw): should choose a optimal required_pv
-  auto required_pv = context_->GetPermuteVector(src_inputs[0]);
-  for (const auto& i_src : src_inputs) {
-    std::shared_ptr<vx::Tensor> perm_out;
-    auto pv = context_->GetPermuteVector(i_src);
-    auto final_pv = pv->Reverse()->Add(required_pv);
-    if (!final_pv->IsAligned()) {
+  std::shared_ptr<IPermuteVector> required_pv = nullptr;
+  for (const auto& in : src_inputs) {
+    if (!in->IsConstTensor()) {
+      required_pv = context_->GetPermuteVector(in);
+      break;
+    }
+  }
+
+  if (!required_pv) {
+    // all inputs are constant tensors
+    for (const auto& i_src : src_inputs) {
+      context_->UpdateTensorMap(
+          i_src, context_->infer_graph_->CreateTensor(i_src->GetSpec(),
+                                                      i_src->GetDataRef()));
+      context_->SetPermuteVector(i_src, MakeShared(i_src->GetShape().size()));
+    }
+  } else {
+    for (const auto& i_src : src_inputs) {
+      std::shared_ptr<vx::Tensor> perm_out;
       if (i_src->IsConstTensor()) {
-        perm_out = PermuteConstTensor(i_src, final_pv);
+        required_pv->IsAligned()
+            ? perm_out = context_->infer_graph_->CreateTensor(i_src->GetSpec(),
+                                                              i_src->GetDataRef())
+            : perm_out = PermuteConstTensor(i_src, required_pv);
       } else {
-        perm_out = InsertPermute(context_->GetMapedTensor(i_src), final_pv);
+        auto final_pv =
+          context_->GetPermuteVector(i_src)->Reverse()->Add(required_pv);
+        final_pv->IsAligned() ? perm_out = context_->GetMapedTensor(i_src)
+                              : perm_out = InsertPermute(
+                                    context_->GetMapedTensor(i_src), final_pv);
       }
       context_->UpdateTensorMap(i_src, perm_out);
       context_->SetPermuteVector(i_src, required_pv);
@@ -175,17 +195,21 @@ OpLayoutInfer::AlignPermuteVectorForMutilInputs() {
 void OpLayoutInfer::ReverseInputsPermuteVector() {
   for (const auto& i_src : op_->impl()->InputsTensor()) {
     std::shared_ptr<vx::Tensor> perm_out;
-    auto input_pv = context_->GetPermuteVector(i_src);
-    if (!input_pv->IsAligned()) {
-      if (i_src->IsConstTensor()) {
-        perm_out = PermuteConstTensor(i_src, input_pv);
-      } else {
+    std::shared_ptr<IPermuteVector> input_pv;
+    if (i_src->IsConstTensor()) {
+      perm_out = context_->infer_graph_->CreateTensor(i_src->GetSpec(),
+                                                      i_src->GetDataRef());
+      input_pv = MakeShared(i_src->GetShape().size());
+    } else {
+      perm_out = context_->GetMapedTensor(i_src);
+      input_pv = context_->GetPermuteVector(i_src);
+      if (!input_pv->IsAligned()) {
         perm_out =
-            InsertPermute(context_->GetMapedTensor(i_src), input_pv->Reverse());
+            InsertPermute(perm_out, input_pv->Reverse());
       }
-      context_->UpdateTensorMap(i_src, perm_out);
-      context_->SetPermuteVector(i_src, MakeShared(input_pv->Rank()));
     }
+    context_->UpdateTensorMap(i_src, perm_out);
+    context_->SetPermuteVector(i_src, MakeShared(input_pv->Rank()));
   }
 }
 
@@ -202,12 +226,15 @@ bool OpLayoutInfer::TransposeConstTensorData(
     return false;
   }
 
-  std::vector<uint32_t> perm = KOcHWIc2OcIcHW;
   vx::ShapeType reverse_shape;
   for (int32_t i = input->GetShape().size() - 1; i >= 0; i--) {
     reverse_shape.push_back(input->GetShape()[i]);
   }
-
+  std::vector<uint32_t> perm = KOcHWIc2OcIcHW;
+  std::vector<uint32_t>tmp_vec = kOcIcWH2WHIcOc;
+  if (pv->AsStdVec() == tmp_vec) {
+    perm = kHWIcOc2OcIcHW;
+  }
   vsi_nn_Transpose(out_data.data(), (uint8_t*)(input->GetDataRef()),
                    (uint32_t*)(reverse_shape.data()),
                    static_cast<uint32_t>(input->GetShape().size()),
@@ -240,7 +267,7 @@ std::vector<uint32_t> OpLayoutInfer::MapPadding(const std::vector<uint32_t>& per
   assert(perm.size() == padding.size());
   std::vector<uint32_t> r(padding.size());
 
-  for (int i = 0; i < padding.size(); ++i) {
+  for (uint32_t i = 0; i < padding.size(); ++i) {
     r[i] = padding[perm[i]];
   }
 

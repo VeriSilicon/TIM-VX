@@ -61,8 +61,16 @@ class Conv2dLayoutInfer : public OpLayoutInfer {
             } else {
               // For input/weight
               if (!required_pv->IsAligned()) {
-                infer_tensor = PermuteConstTensor(in, required_pv);
-                trans_pv = required_pv;
+                auto src_conv2d = std::static_pointer_cast<vx::ops::Conv2d>(op_);
+                // Support TVM Kernel Layout
+                if (src_conv2d->KernelDataLayout() == vx::DataLayout::OcIcWH) {
+                  trans_pv = std::make_shared<PermuteVector<4>>(kOcIcWH2WHIcOc);
+                  infer_tensor = PermuteConstTensor(
+                      in, trans_pv);
+                } else {
+                  infer_tensor = PermuteConstTensor(in, required_pv);
+                  trans_pv = required_pv;
+                }
               } else {
                 infer_tensor = context_->infer_graph_->CreateTensor(
                     in->GetSpec(), in->GetDataRef());
@@ -108,11 +116,11 @@ class Conv2dLayoutInfer : public OpLayoutInfer {
     int32_t out_channels = op_->impl()->node()->nn_param.conv2d.weights;
     auto conv2d = context_->infer_graph_->CreateOperation<vx::ops::Conv2d>(
         out_channels, pad_type, ksize, stride, dilation, pad, multiplier,
-        vx::DataLayout::WHCN);
+        vx::DataLayout::WHCN, vx::DataLayout::WHIcOc);
     auto otensor_infer = CreateOutputsTensor(required_pv);
-    (*conv2d).BindInputs({context_->GetMapedTensor(input_tensors[0]),
-                          context_->GetMapedTensor(input_tensors[1]),
-                          context_->GetMapedTensor(input_tensors[2])});
+    for (const auto& i_src : input_tensors) {
+      (*conv2d).BindInput(context_->GetMapedTensor(i_src));
+    }
     (*conv2d).BindOutput(otensor_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     // Add out tensor of src_graph into next_tensor
