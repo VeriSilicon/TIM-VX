@@ -36,6 +36,12 @@
 #include "ops/softmax_layout_inference.h"
 #include "ops/squeeze_layout_inference.h"
 #include "ops/stack_layout_inference.h"
+#include "ops/space2depth_layout_inference.h"
+#include "ops/depth2space_layout_inference.h"
+#include "ops/space2batch_layout_inference.h"
+#include "ops/batch2space_layout_inference.h"
+#include "ops/pad_layout_inference.h"
+#include "ops/reduce_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -127,6 +133,23 @@ void LayoutInferContext::UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& 
     break;                                                        \
   }                                                               \
 
+#define REGIST_REDUCE_LAYOUT_INFERENCE(op_idx)                                                  \
+  case op_idx: {                                                               \
+    auto reduce_type = op->impl()->node()->nn_param.reduce.type;               \
+    switch (reduce_type) {                                                     \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MEAN, ReduceMean);                 \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MAX, ReduceMax);                   \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MIN, ReduceMin);                   \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_PROD, ReduceProd);                 \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_ANY, ReduceAny);                   \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_SUM, ReduceSum);                   \
+    default:                                                                   \
+      VSILOGW("Op %d: Default layout inference pass for reduce.", reduce_type);\
+      assert(false);                                                           \
+    }                                                                          \
+    break;                                                                     \
+  }                                                                            \
+
 std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     std::shared_ptr<layout_inference_impl::LayoutInferContext>& ctx,
     const std::shared_ptr<vx::Operation>& op) {
@@ -169,6 +192,12 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SOFTMAX, Softmax);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SQUEEZE, Squeeze);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_STACK, Stack);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2DEPTH, SpaceToDepth);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DEPTH2SPACE, DepthToSpace);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2BATCH, SpaceToBatch);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH2SPACE, BatchToSpace);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PAD, Pad);
+    REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
 
     default:
       VSILOGW("Op %d: Default layout inference pass.", op_id);

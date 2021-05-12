@@ -234,5 +234,17 @@ std::shared_ptr<vx::Tensor> OpLayoutInfer::PermuteConstTensor(
   }
   return context_->infer_graph_->CreateTensor(dst_spec, data.data());
 }
+
+std::vector<uint32_t> OpLayoutInfer::MapPadding(const std::vector<uint32_t>& perm,
+                                 const std::vector<uint32_t>& padding) {
+  assert(perm.size() == padding.size());
+  std::vector<uint32_t> r(padding.size());
+
+  for (int i = 0; i < padding.size(); ++i) {
+    r[i] = padding[perm[i]];
+  }
+
+  return r;
+}
 }  // namespace transform
 }  // namespace tim
