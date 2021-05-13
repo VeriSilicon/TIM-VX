@@ -75,6 +75,9 @@ class OpLayoutInfer {
   std::shared_ptr<vx::Tensor> PermuteConstTensor(
       const std::shared_ptr<vx::Tensor>& input,
       const std::shared_ptr<IPermuteVector>& pv);
+  
+  std::vector<uint32_t> MapPadding(const std::vector<uint32_t>& perm,
+                                   const std::vector<uint32_t>& padding);
 
  protected:
   const std::shared_ptr<vx::Operation> op_;

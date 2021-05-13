@@ -36,6 +36,7 @@ namespace tim {
 namespace transform {
 template <typename OpType>
 class ReduceLayoutInfer : public OpLayoutInfer {
+  public:
   ReduceLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
@@ -60,7 +61,7 @@ class ReduceLayoutInfer : public OpLayoutInfer {
     (*reduce).BindInput(context_->GetMapedTensor(t_src));
     if (op_->impl()->node()->nn_param.reduce.keep_dim) {
       auto otensor_infer = CreateOutputsTensor(pv);
-      (*reduce).BindOuput(otensor_infer[0]);
+      (*reduce).BindOutput(otensor_infer[0]);
       context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], pv);
     } else {
       auto out_pv = MakeShared(pv->Rank() - unique_axis.size());
@@ -87,6 +88,7 @@ using ReduceMaxLayoutInfer = ReduceLayoutInfer<tim::vx::ops::ReduceMax>;
 using ReduceAnyLayoutInfer = ReduceLayoutInfer<tim::vx::ops::ReduceAny>;
 using ReduceProdLayoutInfer = ReduceLayoutInfer<tim::vx::ops::ReduceProd>;
 using ReduceMeanLayoutInfer = ReduceLayoutInfer<tim::vx::ops::ReduceMean>;
+using ReduceSumLayoutInfer = ReduceLayoutInfer<tim::vx::ops::ReduceSum>;
 }  // namespace transform
 }  // namespace tim
 

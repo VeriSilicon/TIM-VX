@@ -30,9 +30,9 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-Batch2Space::Batch2Space(Graph* graph, const std::vector<int>& block_size,
-                         const std::vector<int>& crop)
-    : Operation(graph, VSI_NN_OP_BATCH2SPACE),
+BatchToSpace::BatchToSpace(Graph* graph, const std::vector<int>& block_size,
+                         const std::vector<int>& crop, DataLayout layout)
+    : Operation(graph, VSI_NN_OP_BATCH2SPACE, 0, 0, layout),
       block_size_(block_size),
       crop_(crop) {
   this->impl()->node()->nn_param.batch2space.block_size = block_size_.data();

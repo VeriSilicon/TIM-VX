@@ -31,7 +31,8 @@ namespace ops {
 
 class SpaceToDepth : public Operation {
  public:
-  SpaceToDepth(Graph* graph, std::vector<int> block_size);
+  SpaceToDepth(Graph* graph, std::vector<int> block_size,
+               DataLayout layout = DataLayout::WHCN);
 
  protected:
   std::vector<int> block_size_;

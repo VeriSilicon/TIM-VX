@@ -31,7 +31,8 @@ namespace ops {
 
 class DepthToSpace : public Operation {
  public:
-  DepthToSpace(Graph* Graph, int block_size);
+  DepthToSpace(Graph* Graph, int block_size,
+               DataLayout layout = DataLayout::WHCN);
 
  protected:
   int block_size_;

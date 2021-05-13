@@ -30,8 +30,9 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-DepthToSpace::DepthToSpace(Graph* graph, int block_size)
-    : Operation(graph, VSI_NN_OP_DEPTH2SPACE), block_size_(block_size) {
+DepthToSpace::DepthToSpace(Graph* graph, int block_size, DataLayout layout)
+    : Operation(graph, VSI_NN_OP_DEPTH2SPACE, 0, 0, layout),
+      block_size_(block_size) {
   this->impl()->node()->nn_param.depth2space.block_size = block_size_;
 }
 }  // namespace ops

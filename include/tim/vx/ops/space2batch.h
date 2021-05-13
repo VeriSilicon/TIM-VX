@@ -32,10 +32,11 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-class Space2Batch : public Operation {
+class SpaceToBatch : public Operation {
  public:
-  Space2Batch(Graph* graph, const std::vector<int>& block_size,
-              const std::vector<int>& pad);
+  SpaceToBatch(Graph* graph, const std::vector<int>& block_size,
+               const std::vector<int>& pad,
+               DataLayout layout = DataLayout::WHCN);
 
  protected:
   std::vector<int> block_size_;
