@@ -11,7 +11,7 @@ set(OVXLIB_API_ATTR "__attribute__\(\(visibility\(\"default\"\)\)\)")
 message(${OVXLIB_API_ATTR})
 add_definitions(-DOVXLIB_API=${OVXLIB_API_ATTR})
 
-if(VIP_SDK_DIR AND EXISTS ${VIP_SDK_DIR})
+if(EXTERNAL_VIV_SDK AND EXISTS ${EXTERNAL_VIV_SDK})
     # this is for internal development purpose
     include(cmake/local_sdk.cmake)
 else()
