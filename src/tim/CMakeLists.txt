@@ -28,8 +28,13 @@ if(ENABLE_LAYOUT_INFER)
         ${LAYOUT_INFER_FRAMEWORK_SRCS}
         ${LAYOUT_INFER_OP_SRCS}
     )
-    list(REMOVE_ITEM SRC ./transform/layout_inference_test.cc)
 endif()
+
+foreach(src_file ${SRC})
+    if(${src_file} MATCHES ".*_test\.cc")
+        list(REMOVE_ITEM SRC ${src_file})
+    endif()
+endforeach()
 
 add_library(${TARGET_NAME} SHARED ${SRC})
 target_link_libraries(${TARGET_NAME} PRIVATE
