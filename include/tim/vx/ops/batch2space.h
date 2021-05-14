@@ -32,9 +32,9 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-class BatchToSpace : public Operation {
+class Batch2Space : public Operation {
  public:
-  BatchToSpace(Graph* graph, const std::vector<int>& block_size,
+  Batch2Space(Graph* graph, const std::vector<int>& block_size,
                const std::vector<int>& crop,
                DataLayout layout = DataLayout::WHCN);
 
