@@ -29,3 +29,14 @@ cc_library(
         "//conditions:default": ["//prebuilt-sdk/x86_64_linux:VIV_SDK_LIB"],
     }),
 )
+config_setting(
+    name = "VIPLite_aarch64_A311D",
+    values = {"define": "target_device=VIPLite_aarch64_A311D"},
+)
+
+cc_library(
+    name = "VIP_LITE_LIB",
+    deps = select({
+        "VIPLite_aarch64_A311D": ["@VIPLite_aarch64_A311D//:VIP_LITE_LIB"],
+    }),
+)

@@ -25,6 +25,16 @@ http_archive(
     ],
 )
 
+http_archive(
+    name = "VIPLite_aarch64_A311D",
+    build_file = "@//prebuilt-sdk/VIPLite:BUILD",
+    sha256 = "63fafc2b6d4a92389298af42a60d82bc2767abed330a8c09f7428fc3828ca31f",
+    strip_prefix = "viplite",
+    urls = [
+        "https://github.com/VeriSilicon/TIM-VX/releases/download/v1.1.28/VIPLite_aarch64_A311D_1.3.5.tgz",
+    ],
+)
+
 local_repository(
     name = 'TOOLCHAINS',
     path = 'toolchains',

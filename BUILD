@@ -72,7 +72,7 @@ cc_library(
         "src/tim/lite/handle.cc",
     ],
     deps = [
-        "//viplite:VIP_LITE_LIB",
+        "//prebuilt-sdk:VIP_LITE_LIB",
     ],
     linkstatic = True,
     strip_include_prefix = "include",
