@@ -27,14 +27,25 @@
 #include <map>
 #include <vector>
 
-#include "tim/vx/context.h"
-#include "tim/vx/graph.h"
 
 namespace tim {
+
+namespace vx {
+    class Context;
+    class Graph;
+    class Tensor;
+    class Operation;
+}
+
 namespace transform {
-std::pair<std::shared_ptr<vx::Graph>, /* infer graph */
-          std::map<std::shared_ptr<vx::Tensor>,
-                   std::shared_ptr<vx::Tensor>> /* graph io tensor map */>
+std::pair<
+    /*graph after layout inference*/
+    std::shared_ptr<vx::Graph>,
+    /* tensor mapping between original graph and graph after layout infer*/
+   std::map<
+        std::shared_ptr<vx::Tensor>,
+        std::shared_ptr<vx::Tensor>>
+    >
 LayoutInference(const std::shared_ptr<vx::Graph>& src_graph,
                 std::shared_ptr<vx::Context>& ctx);
 
