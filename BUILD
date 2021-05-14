@@ -54,6 +54,40 @@ cc_binary(
     ],
 )
 
+cc_library(
+    name = "tim-lite_interface",
+    copts = ["-std=c++14", "-Werror", "-fvisibility=default"],
+    includes = [
+        "include",
+        "src/tim/lite",
+    ],
+    hdrs = [
+        "include/tim/lite/execution.h",
+        "include/tim/lite/handle.h",
+    ],
+    srcs = [
+        "src/tim/lite/execution_private.h",
+        "src/tim/lite/execution.cc",
+        "src/tim/lite/handle_private.h",
+        "src/tim/lite/handle.cc",
+    ],
+    deps = [
+        "//viplite:VIP_LITE_LIB",
+    ],
+    linkstatic = True,
+    strip_include_prefix = "include",
+)
+
+cc_binary(
+    name = "libtim-lite.so",
+    linkshared = True,
+    linkstatic = False,
+    deps = [
+        "tim-lite_interface",
+    ],
+)
+
+
 ##############################################################################
 # unit test
 ##############################################################################
