@@ -32,7 +32,8 @@ namespace ops {
 class Resize : public Operation {
  public:
   Resize(Graph* graph, ResizeType type, float factor, bool align_corners,
-         bool half_pixel_centers, int target_height, int target_width);
+         bool half_pixel_centers, int target_height, int target_width,
+         DataLayout layout = DataLayout::WHCN);
 
  protected:
   const ResizeType type_;
