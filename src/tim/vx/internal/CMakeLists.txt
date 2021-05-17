@@ -1,6 +1,8 @@
 message("src/tim/vx/internal")
 
 set(lib_name "tim_internal")
+set(OVXLIB_API_ATTR "__attribute__\(\(visibility\(\"default\"\)\)\)")
+add_definitions(-DOVXLIB_API=${OVXLIB_API_ATTR})
 
 aux_source_directory(src INTERNAL_SRC)
 aux_source_directory(src/kernel INTERNAL_KERNEL)

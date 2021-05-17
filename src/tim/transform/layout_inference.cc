@@ -24,6 +24,7 @@
 
 #include "permute_vector.h"
 #include "layout_infer_context.h"
+
 #include "tim/transform/layout_inference.h"
 #include "ops/conv2d_layout_inference.h"
 #include "ops/reduce_layout_inference.h"
@@ -47,6 +48,10 @@
 
 #include <algorithm>
 #include <deque>
+
+#include "tim/vx/context.h"
+#include "tim/vx/graph.h"
+#include "tim/vx/operation.h"
 
 namespace tim {
 namespace transform {
