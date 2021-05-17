@@ -123,13 +123,13 @@ int main(int argc, char** argv) {
         memset(output, 0, output_sz);
         memcpy(input, input_data.data(), input_data.size());
 
-        auto input_handle = exec->RegisterHandle<tim::lite::UserHandle>(
+        auto input_handle = std::make_shared<tim::lite::UserHandle>(
             input, input_data.size());
-        auto output_handle = exec->RegisterHandle<tim::lite::UserHandle>(
+        auto output_handle = std::make_shared<tim::lite::UserHandle>(
             output, lenet_output_size * sizeof(float));
         exec->BindInputs({input_handle});
         exec->BindOutputs({output_handle});
-        exec->Exec();
+        exec->Trigger();
         printTopN(output, lenet_output_size, 5);
         free(output);
         free(input);
