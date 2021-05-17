@@ -22,10 +22,9 @@
 *
 *****************************************************************************/
 
-#ifndef TIM_LITE_EXECUTION_H_
-#define TIM_LITE_EXECUTION_H_
+#ifndef __TIM_LITE_EXECUTION_H__
+#define __TIM_LITE_EXECUTION_H__
 
-#include <cstdint>
 #include <vector>
 #include <memory>
 #include "tim/lite/handle.h"
@@ -37,9 +36,13 @@ class Execution {
     public:
         static std::shared_ptr<Execution> Create(
             const void* executable, size_t executable_size);
-        virtual Execution& BindInputs(const std::vector<std::shared_ptr<Handle>>& handles) = 0;
-        virtual Execution& BindOutputs(const std::vector<std::shared_ptr<Handle>>& handles) = 0;
-        virtual bool Trigger() = 0;
+        template <typename HandleType, typename... Params>
+        std::shared_ptr<HandleType> RegisterHandle(Params... parameters) {
+            return std::make_shared<HandleType>(parameters...);
+        };
+        virtual Execution& BindInputs(std::vector<std::shared_ptr<Handle>> handles) = 0;
+        virtual Execution& BindOutputs(std::vector<std::shared_ptr<Handle>> handles) = 0;
+        virtual bool Exec() = 0;
 };
 
 }

@@ -22,8 +22,8 @@
 *
 *****************************************************************************/
 
-#ifndef TIME_LITE_HANDLE_PRIVATE_H_
-#define TIME_LITE_HANDLE_PRIVATE_H_
+#ifndef __TIME_LITE_HANDLE_PRIVATE_H__
+#define __TIME_LITE_HANDLE_PRIVATE_H__
 
 #include <mutex>
 #include "tim/lite/handle.h"
@@ -32,39 +32,28 @@
 namespace tim {
 namespace lite {
 
-class InternalHandle;
-
 class HandleImpl {
     public:
-        virtual std::shared_ptr<InternalHandle> Register(
-            vip_buffer_create_params_t& params) = 0;
+        HandleImpl() : handle_(nullptr) {}
+        virtual bool Register(vip_buffer_create_params_t& params) = 0;
+        virtual bool Unregister() = 0;
+        vip_buffer handle() { return handle_; }
+    protected:
+        vip_buffer handle_;
 };
 
 class UserHandleImpl : public HandleImpl {
     public:
         UserHandleImpl(void* buffer, size_t size)
             : user_buffer_(buffer), user_buffer_size_(size) {}
-        std::shared_ptr<InternalHandle> Register(
-            vip_buffer_create_params_t& params) override;
+        bool Register(vip_buffer_create_params_t& params) override;
+        bool Unregister() override;
         size_t user_buffer_size() const { return user_buffer_size_; }
         void* user_buffer() { return user_buffer_; }
     private:
         void* user_buffer_;
         size_t user_buffer_size_;
-};
-
-class InternalHandle {
-    public:
-        ~InternalHandle();
-        vip_buffer handle() { return handle_; };
-    protected:
-        vip_buffer handle_;
-};
-
-class InternalUserHandle : public InternalHandle {
-    public:
-        InternalUserHandle(void* user_buffer, size_t user_buffer_size,
-            vip_buffer_create_params_t& params);
+        std::once_flag register_once_;
 };
 
 }

@@ -21,12 +21,11 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_LITE_EXECUTION_PRIVATE_H_
-#define TIM_LITE_EXECUTION_PRIVATE_H_
+#ifndef __TIM_LITE_EXECUTION_PRIVATE_H__
+#define __TIM_LITE_EXECUTION_PRIVATE_H__
 
 #include <vector>
 #include <memory>
-#include <map>
 
 #include "tim/lite/execution.h"
 #include "handle_private.h"
@@ -39,14 +38,14 @@ class ExecutionImpl : public Execution {
     public :
         ExecutionImpl(const void* executable, size_t executable_size);
         ~ExecutionImpl();
-        Execution& BindInputs(const std::vector<std::shared_ptr<Handle>>& handles) override;
-        Execution& BindOutputs(const std::vector<std::shared_ptr<Handle>>& handles) override;
-        bool Trigger() override;
+        Execution& BindInputs(std::vector<std::shared_ptr<Handle>> handles) override;
+        Execution& BindOutputs(std::vector<std::shared_ptr<Handle>> handles) override;
+        bool Exec() override;
         bool IsValid() const { return valid_; };
         vip_network network() { return network_; };
     private:
-        std::map<std::shared_ptr<Handle>, std::shared_ptr<InternalHandle>> input_maps_;
-        std::map<std::shared_ptr<Handle>, std::shared_ptr<InternalHandle>> output_maps_;
+        std::vector<std::shared_ptr<Handle>> inputs_;
+        std::vector<std::shared_ptr<Handle>> outputs_;
         bool valid_;
         vip_network network_;
 };
