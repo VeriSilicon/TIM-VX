@@ -32,8 +32,9 @@ namespace vx {
 namespace ops {
 
 Resize::Resize(Graph* graph, ResizeType type, float factor, bool align_corners,
-               bool half_pixel_centers, int target_height, int target_width)
-    : Operation(graph, VSI_NN_OP_RESIZE),
+               bool half_pixel_centers, int target_height, int target_width,
+               DataLayout layout)
+    : Operation(graph, VSI_NN_OP_RESIZE, 0, 0, layout),
       type_(type),
       factor_(factor),
       align_corners_(align_corners),

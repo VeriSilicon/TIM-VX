@@ -67,7 +67,7 @@ class BatchToSpaceLayoutInfer : public OpLayoutInfer {
            sizeof(int) * 4);
 
     auto batch2space =
-        context_->infer_graph_->CreateOperation<vx::ops::BatchToSpace>(
+        context_->infer_graph_->CreateOperation<vx::ops::Batch2Space>(
             block_size, crop, vx::DataLayout::WHCN);
     auto out_tensor_infer = CreateOutputsTensor(required_pv);
     (*batch2space).BindInput(context_->GetMapedTensor(input_tensors[0]));

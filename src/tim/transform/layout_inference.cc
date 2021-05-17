@@ -24,6 +24,7 @@
 
 #include "permute_vector.h"
 #include "layout_infer_context.h"
+
 #include "tim/transform/layout_inference.h"
 #include "ops/conv2d_layout_inference.h"
 #include "ops/reduce_layout_inference.h"
@@ -42,9 +43,15 @@
 #include "ops/batch2space_layout_inference.h"
 #include "ops/pad_layout_inference.h"
 #include "ops/reduce_layout_inference.h"
+#include "ops/fullyconnected_layout_inference.h"
+#include "ops/resize_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
+
+#include "tim/vx/context.h"
+#include "tim/vx/graph.h"
+#include "tim/vx/operation.h"
 
 namespace tim {
 namespace transform {
@@ -198,7 +205,8 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH2SPACE, BatchToSpace);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PAD, Pad);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
-
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_FCL2, FullyConnected);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RESIZE, Resize);
     default:
       VSILOGW("Op %d: Default layout inference pass.", op_id);
       assert(false);
