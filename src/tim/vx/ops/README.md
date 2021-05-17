@@ -1,12 +1,10 @@
+INFO: Actual implementations may differ from reference link in terms of dimensions and parameters supported
+
 TIM-VX API |Internal Op |Status | Reference
 :------    |:----- |:------|:------
 Add|ADD|Mapped|[tf.math.add](https://tensorflow.google.cn/api_docs/python/tf/math/add)
 Multiply|MULTIPLY|Mapped|[tf.math.multiply](https://tensorflow.google.cn/api_docs/python/tf/math/multiply)
-Conv2d|CONV2D|Mapped|[tf.nn.conv2d](https://tensorflow.google.cn/api_docs/python/tf/nn/conv2d)
-||CONV_RELU|Deprecated
-||CONV_RELU_POOL|Deprecated
-||FCL|Deprecated
-||FCL_RELU|Deprecated
+Conv2d|CONV2D|Mapped|[tf.nn.conv2d](https://tensorflow.google.cn/api_docs/python/tf/nn/conv2d) [tf.nn.atros_conv2d](https://tensorflow.google.cn/api_docs/python/tf/nn/atrous_conv2d) [tf.nn.depthwise_conv2d](https://tensorflow.google.cn/api_docs/python/tf/nn/depthwise_conv2d)
 Softmax|SOFTMAX|Mapped|[tf.nn.softmax](https://tensorflow.google.cn/api_docs/python/tf/nn/softmax)
 Pool2d|POOL|Mapped|[tf.nn.pool](https://tensorflow.google.cn/api_docs/python/tf/nn/pool)
 LeakyRelu|LEAKY_RELU|Mapped|[tf.nn.leaky_relu](https://tensorflow.google.cn/api_docs/python/tf/nn/leaky_relu)
@@ -32,7 +30,7 @@ FullyConnected|FCL2|Mapped|[tf.keras.layers.Dense](https://tensorflow.google.cn/
 ||POOLWITHARGMAX|Unmapped|[tf.nn.max_pool_with_argmax](https://tensorflow.google.cn/api_docs/python/tf/nn/max_pool_with_argmax)
 ArgMax|ARGMAX|Mapped|[tf.math.argmax](https://tensorflow.google.cn/api_docs/python/tf/math/argmax)
 Maximum|MAXIMUM|Mapped|[tf.math.maximum](https://tensorflow.google.cn/api_docs/python/tf/math/maximum)
-|L2NORMALIZESCALE|UnMapped|
+||L2NORMALIZESCALE|UnMapped|
 ||CROP|Unmapped
 Sub|SUBTRACT|Mapped|[tf.math.subtract](https://tensorflow.google.cn/api_docs/python/tf/math/subtract)
 Relu6|RELU6|Mapped|[tf.nn.relu6](https://tensorflow.google.cn/api_docs/python/tf/nn/relu6)
@@ -68,7 +66,7 @@ ReduceMean|REDUCE_MEAN|Mapped|[tf.math.reduce_mean](https://tensorflow.google.cn
 ||TENSORSTACKCONCAT|Unmapped|
 StridedSlice|STRIDED_SLICE|Mapped|[tf.strided_slice](https://tensorflow.google.cn/api_docs/python/tf/strided_slice)
 ||SIGNAL_FRAME|Unmapped
-||A_TIMES_B_PLUS_C|[tf.add(tf.mul(a, X), Y)](https://github.com/hujie-frank/SENet/blob/master/include/caffe/layers/axpy_layer.hpp)
+||A_TIMES_B_PLUS_C|Unmapped|[tf.add(tf.mul(a, X), Y)](https://github.com/hujie-frank/SENet/blob/master/include/caffe/layers/axpy_layer.hpp)
 ||SVDF|Unmapped
 Abs|ABS|Mapped|[tf.math.abs](https://tensorflow.google.cn/api_docs/python/tf/math/abs)
 ||CONV1D|Unmapped|[tf.nn.conv1d](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d)
@@ -155,5 +153,8 @@ Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_
 ||DECONVOLUTION1D|Unmapped|[tf.nn.conv1d_transpose](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d_transpose)
 ||INTERP|Unmapped
 ||RESIZE_1D|Unmapped
+||CONV_RELU|Deprecated
+||CONV_RELU_POOL|Deprecated
+||FCL|Deprecated
+||FCL_RELU|Deprecated
 
-INFO: Actual implementations may differ from reference link in terms of dimensions and parameters supported
