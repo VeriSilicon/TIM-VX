@@ -26,6 +26,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include "execution_private.h"
 #include "vip_lite.h"
 
@@ -39,35 +40,36 @@ UserHandle::UserHandle(void* buffer, size_t size) {
     impl_ = std::make_unique<UserHandleImpl>(buffer, size);
 } 
 
-UserHandle::~UserHandle() {
-    impl()->Unregister();
+UserHandle::~UserHandle() {}
+
+std::shared_ptr<InternalHandle> UserHandleImpl::Register(
+    vip_buffer_create_params_t& params) {
+    auto internal_handle = std::make_shared<InternalUserHandle>(
+        user_buffer_, user_buffer_size_, params);
+    if (!internal_handle->handle()) {
+        internal_handle.reset();
+    }
+    return internal_handle;
 }
 
-bool UserHandleImpl::Register(vip_buffer_create_params_t& params) {
-    bool ret = true;
-    std::call_once(register_once_, [&ret, &params, this]() {
-        vip_status_e status = VIP_SUCCESS;
-        vip_buffer internal_buffer = nullptr;
-        status = vip_create_buffer_from_handle(&params,
-            this->user_buffer(),
-            this->user_buffer_size(),
-            &internal_buffer);
-            if (status == VIP_SUCCESS) {
-                this->handle_ = internal_buffer;
-                ret = true;
-            } else {
-                ret = false;
-            }
-    });
-    return ret;
-}
-
-bool UserHandleImpl::Unregister() {
+InternalHandle::~InternalHandle() {
     if (handle_) {
         vip_destroy_buffer(handle_);
         handle_ = nullptr;
     }
-    return true;
+}
+
+InternalUserHandle::InternalUserHandle(void* user_buffer, size_t user_buffer_size,
+    vip_buffer_create_params_t& params) {
+    vip_status_e status = VIP_SUCCESS;
+    vip_buffer internal_buffer = nullptr;
+    status = vip_create_buffer_from_handle(&params,
+        user_buffer, user_buffer_size, &internal_buffer);
+    if (status == VIP_SUCCESS) {
+        handle_ = internal_buffer;
+    } else {
+        handle_ = nullptr;
+    }
 }
 
 }
