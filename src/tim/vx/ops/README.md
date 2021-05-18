@@ -8,11 +8,10 @@ Conv2d|CONV2D|Mapped|[tf.nn.conv2d](https://tensorflow.google.cn/api_docs/python
 Softmax|SOFTMAX|Mapped|[tf.nn.softmax](https://tensorflow.google.cn/api_docs/python/tf/nn/softmax)
 Pool2d|POOL|Mapped|[tf.nn.pool](https://tensorflow.google.cn/api_docs/python/tf/nn/pool)
 LeakyRelu|LEAKY_RELU|Mapped|[tf.nn.leaky_relu](https://tensorflow.google.cn/api_docs/python/tf/nn/leaky_relu)
-||LRN|Deprecated
 Concat|CONCAT|Mapped|[tf.concat](https://tensorflow.google.cn/api_docs/python/tf/concat)
 Split|SPLIT|Mapped|[tf.split](https://tensorflow.google.cn/api_docs/python/tf/split)
 ||NOOP|Unmapped
-||ROI_POOL|Unmapped
+||ROI_POOL|Unmapped|[ANEURALNETWORKS_ROI_POOLING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6736198af337b2efbdb0b6b64dee7fe4)
 BatchNorm|BATCH_NORM|Mapped|[tf.nn.batch_normalization](https://tensorflow.google.cn/api_docs/python/tf/nn/batch_normalization)
 ||PROPOSAL|Unmapped
 DeConv2d|DECONVOLUTION|Mapped|[tf.nn.conv2d_transpose](https://tensorflow.google.cn/api_docs/python/tf/nn/conv2d_transpose)
@@ -41,13 +40,12 @@ Rsqrt|RSQRT|Mapped|[tf.math.rsqrt](https://tensorflow.google.cn/api_docs/python/
 SoftRelu|SOFTRELU|Mapped|[tf.math.softplus](https://tensorflow.google.cn/api_docs/python/tf/math/softplus)
 Div|DIVIDE|Mapped|[tf.math.divide](https://tensorflow.google.cn/api_docs/python/tf/math/divide)
 Dropout|DROPOUT|Mapped|[tf.nn.dropout](https://tensorflow.google.cn/api_docs/python/tf/nn/dropout)
-||SHUFFLECHANNEL|Unmapped
+||SHUFFLECHANNEL|Unmapped|[ANEURALNETWORKS_CHANNEL_SHUFFLE](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a5b993c1211c4b1bc52fb595a3025251d)
 Resize|RESIZE|Mapped|[tf.image.resize](https://tensorflow.google.cn/api_docs/python/tf/image/resize)
 Reverse|REVERSE|Mapped|[tf.reverse](https://tensorflow.google.cn/api_docs/python/tf/reverse)
 DepthToSpace|DEPTH2SPACE|Mapped|[tf.nn.depth_to_space](https://tensorflow.google.cn/api_docs/python/tf/nn/depth_to_space)
 SpaceToDepth|SPACE2DEPTH|Mapped|[tf.nn.space_to_depth](https://tensorflow.google.cn/api_docs/python/tf/nn/space_to_depth)
 DataConvert|DATACONVERT|Mapped
-||SCALE|Deprecated
 Slice|SLICE|Mapped|[tf.slice](https://tensorflow.google.cn/api_docs/python/tf/slice)
 Elu|ELU|Mapped|[tf.nn.elu](https://tensorflow.google.cn/api_docs/python/tf/nn/elu)
 Batch2Space|BATCH2SPACE|Mapped|[tf.batch_to_space](https://tensorflow.google.cn/api_docs/python/tf/batch_to_space)
@@ -67,7 +65,7 @@ ReduceMean|REDUCE_MEAN|Mapped|[tf.math.reduce_mean](https://tensorflow.google.cn
 StridedSlice|STRIDED_SLICE|Mapped|[tf.strided_slice](https://tensorflow.google.cn/api_docs/python/tf/strided_slice)
 ||SIGNAL_FRAME|Unmapped
 ||A_TIMES_B_PLUS_C|Unmapped|[tf.add(tf.mul(a, X), Y)](https://github.com/hujie-frank/SENet/blob/master/include/caffe/layers/axpy_layer.hpp)
-||SVDF|Unmapped
+||SVDF|Unmapped|[ANEURALNETWORKS_SVDF](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a7096de21038c1ce49d354a00cba7b552)
 Abs|ABS|Mapped|[tf.math.abs](https://tensorflow.google.cn/api_docs/python/tf/math/abs)
 ||CONV1D|Unmapped|[tf.nn.conv1d](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d)
 NBG|NBG|Mapped
@@ -98,10 +96,10 @@ Neg|NEG|Mapped|[tf.math.negative](https://tensorflow.google.cn/api_docs/python/t
 Exp|EXP|Mapped|[tf.math.exp](https://tensorflow.google.cn/api_docs/python/tf/math/exp)
 ||LSTM_OVXLIB|Unmapped
 ||PRE_PROCESS_TENSOR|Unmapped
-||HASHTABLE_LOOKUP|Unmapped
-||EMBEDDING_LOOKUP|Unmapped
-||LSH_PROJECTION|Unmapped
-||RNN|Unmapped
+||HASHTABLE_LOOKUP|Unmapped|[ANEURALNETWORKS_HASHTABLE_LOOKUP](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0aca92716c8c73c1f0fa7f0757916fee26)
+||EMBEDDING_LOOKUP|Unmapped|[ANEURALNETWORKS_EMBEDDING_LOOKUP](developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a8d2ada77adb74357fc0770405bca0e3)
+||LSH_PROJECTION|Unmapped|[ANEURALNETWORKS_LSH_PROJECTION](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a800cdcec5d7ba776789cb2d1ef669965)
+||RNN|Unmapped|[ANUERALNETWORKS_RNN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0acd2684ac9c73bb29767b534e78a332e8)
 Clip|CLIP|Mapped|[tf.clip_by_value](https://tensorflow.google.cn/api_docs/python/tf/clip_by_value)
 ||POST_PROCESS|Unmapped
 ||PRE_PROCESS_GRAY|Unmapped
@@ -110,23 +108,23 @@ Clip|CLIP|Mapped|[tf.clip_by_value](https://tensorflow.google.cn/api_docs/python
 ||PRE_PROCESS|Unmapped
 AddN|ADDN|Mapped|[tf.math.add_n](https://tensorflow.google.cn/api_docs/python/tf/math/add_n)
 ||PRE_PROCESS_YUV420|Unmapped
-||EXTRA_ENDING|Unmapped
+||EXTRA_ENDING|InternalOnly
 Gather|GATHER|Mapped|[tf.gather](https://tensorflow.google.cn/api_docs/python/tf/gather)
 ||TILE|Unmapped|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
-||GROUPED_CONV2D|Unmapped
+||GROUPED_CONV2D|Unmapped|[ANEURALNETWORKS_GROUPED_CONV_2D](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a847acf8d9f3d2343328c3dbe6d447c50)
 ||TOPK|Unmapped|[tf.math.top_k](https://tensorflow.google.cn/api_docs/python/tf/math/top_k)
 ||PRE_PROCESS_BGRA|Unmapped
 LogicalNot|LOGICAL_NOT|Mapped|[tf.math.logical_not](https://tensorflow.google.cn/api_docs/python/tf/math/logical_not)
 Sin|SIN|Mapped|[tf.math.sin](https://tensorflow.google.cn/api_docs/python/tf/math/sin)
 Log|LOG|Mapped|[tf.math.log](https://tensorflow.google.cn/api_docs/python/tf/math/log)
 ArgMin|ARGMIN|Mapped|[tf.math.argmin](https://tensorflow.google.cn/api_docs/python/tf/math/argmin)
-||ROI_ALIGN|Unmapped
-||HEATMAP_MAX_KEYPOINT|Unmapped
-||AXIS_ALIGNED_BBOX_TRANSFORM|Unmapped
-||BOX_WITH_NMS_LIMIT|Unmapped
-||GENERATE_PROPOSALS|Unmapped
-||DETECTION_POSTPROCESS|Unmapped
-||RANDOM_MULTINOMIAL|Unmapped|[tf.random.categorical](https://tensorflow.google.cn/api_docs/python/tf/random/categorical)
+||ROI_ALIGN|Unmapped|[ANEURALNETWORKS_ROI_ALIGN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a2848b39dd4bfba78f2438fda0d9397a4)
+||HEATMAP_MAX_KEYPOINT|Unmapped|[ANEURALNETWORKS_HEATMAP_MAX_KEYPOINT](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a5ffccf92d127766a741225ff7ad6f743)
+||AXIS_ALIGNED_BBOX_TRANSFORM|Unmapped|[ANEURALNETWORKS_AXIS_ALIGNED_BBOX_TRANSFORM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0afd7603dd54060e6a52f5861674448528)
+||BOX_WITH_NMS_LIMIT|Unmapped|[ANEURALNETWORKS_BOX_WITH_NMX_LIMIT](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a2d81e878c19e15700dad111ba6c0be89)
+||GENERATE_PROPOSALS|Unmapped|[ANEURALNETWORKS_GENERATE_PROPOSALS](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a72484020f2c41c814de0a7bf93dbbfd4)
+||DETECTION_POSTPROCESS|Unmapped|[ANEURALNETWORKS_DETECTION_POSTPROCESSING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0abd6365933837275bb1f5cde1fd9b8234)
+||RANDOM_MULTINOMIAL|Unmapped|[ANEURALNETWORKS_RANDOM_MULTINOMIAL](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6cb5032c09d3c4b542d18495c247b5b4)
 ||LOG_SOFTMAX|Unmapped|[tf.nn.log_softmax](https://tensorflow.google.cn/api_docs/python/tf/nn/log_softmax)
 ||RELU_KERAS|Unmapped|[tf.keras.layers.ReLU](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/ReLU)
 ||GRU_OVXLIB|Unmapped
@@ -140,7 +138,7 @@ HardSwish|SWISH|Mapped|[tf.keras.activations.swish](https://tensorflow.google.cn
 ||DEPTHWISE_CONV1D|Unmapped
 GatherNd|GATHER_ND|Mapped|[tf.gather_nd](https://tensorflow.google.cn/api_docs/python/tf/gather_nd)
 Cast|CAST|Mapped|[tf.cast](https://tensorflow.google.cn/api_docs/python/tf/cast)
-||LINEAR|Unmapped|activation f(x) = a*x + b
+||LINEAR|Unmapped|activation f(x) = a.x + b
 ||BATCHNORM_SINGLE|Unmapped
 ||MOMENTS|Unmapped|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
 Squeeze|SQUEEZE|Mapped|[tf.squeeze](https://tensorflow.google.cn/api_docs/python/tf/squeeze)
@@ -157,4 +155,5 @@ Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_
 ||CONV_RELU_POOL|Deprecated
 ||FCL|Deprecated
 ||FCL_RELU|Deprecated
-
+||LRN|Deprecated
+||SCALE|Deprecated
