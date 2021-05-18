@@ -32,6 +32,23 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Conv2d
+ *
+ * Performs a 2-D convolution operation, include classic Conv2D /
+ * Depthwise Conv2D / Group Conv2D / Dilation Conv2D.
+ *
+ * - weights : the channel number for weight tensor.
+ * - ksize : the height and width for weight tensor.
+ * - padding : AUTO, VALID or SAME.
+ * - pad : pad value for each spatial axis. 
+ * - stride : stride along each spatial axis.
+ * - dilation : dilation value along each spatial axis of the filter.
+ * - multiplier: function similar to group attribute on other framework,
+ * but the value is different. multiplier = weights / group.
+ * - layout : WHCN or CWHN.
+ */
+
 class Conv2d : public Operation {
  public:
   Conv2d(Graph* graph, int32_t weights, PadType padding,

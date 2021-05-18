@@ -30,6 +30,11 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Clip
+ *
+ * Clip(x) : min if x <= min; x if min < x < max; max if x >= max
+ */
 
 class Clip : public Operation {
   public:
