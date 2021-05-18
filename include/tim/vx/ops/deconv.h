@@ -32,6 +32,23 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## DeConv2d
+ *
+ * Performs the transpose of 2-D convolution operation.
+ *
+ * This operation is sometimes called "deconvolution" after Deconvolutional Networks,
+ * but is actually the transpose (gradient) of Conv2D rather than an actual deconvolution.
+ *
+ * - weights : the channel number for weight tensor.
+ * - ksize : the height and width for weight tensor.
+ * - padding : AUTO, VALID or SAME.
+ * - pad : pad value for each spatial axis.
+ * - stride : stride along each spatial axis.
+ * - output_padding : specifying the amount of padding along the height and width of
+ * the output tensor.
+ */
+
 class DeConv2d : public Operation {
   public:
     DeConv2d(Graph* graph, int32_t weights, PadType pad_type,

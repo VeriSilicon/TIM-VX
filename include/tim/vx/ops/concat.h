@@ -29,6 +29,13 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Concat
+ *
+ * Concatenate a list of tensors into a single tensor.
+ * - axis : Which axis to concat on.
+ */
+
 class Concat : public Operation {
  public:
   Concat(Graph* graph, uint32_t axis, int input_cnt);

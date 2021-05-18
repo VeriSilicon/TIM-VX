@@ -29,6 +29,14 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## AddN
+ *
+ * ```
+ *   AddN(x)                : Input0 + Input1 + ... + InputN
+ * ```
+ */
+
 class AddN : public Operation {
  public:
   AddN(Graph* graph, uint32_t num_inputs);

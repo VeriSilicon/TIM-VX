@@ -29,6 +29,13 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## ArgMin/ArgMax
+ *
+ * Computes the indices of the **min/max** elements of the input tensor's element
+ * along the provided **axis**. The type of the output tensor is integer.
+ */
+
 #define DECLARE_ARG_OP(NAME)               \
   class Arg##NAME : public Operation {     \
    public:                                 \
