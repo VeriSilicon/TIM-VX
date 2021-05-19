@@ -21,8 +21,9 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-
 #include "tim/vx/ops/deconv.h"
+
+#include <cassert>
 
 #include "operation_private.h"
 #include "type_utils.h"
@@ -32,33 +33,38 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-DeConv2d::DeConv2d(Graph* graph, int32_t weights, PadType pad_type,
+DeConv2d::DeConv2d(Graph* graph, int32_t oc_count, PadType pad_type,
     const std::array<uint32_t, 2>& ksize,
     const std::array<uint32_t, 2>& stride,
     const std::array<uint32_t, 2>& output_padding)
-  : DeConv2d(graph, weights, pad_type, ksize, stride, output_padding,
+  : DeConv2d(graph, oc_count, pad_type, ksize, stride, output_padding,
       {0, 0, 0, 0}) {
 }
 
-DeConv2d::DeConv2d(Graph* graph, int32_t weights, PadType pad_type,
+DeConv2d::DeConv2d(Graph* graph, int32_t oc_count, PadType pad_type,
     const std::array<uint32_t, 2>& ksize,
     const std::array<uint32_t, 2>& stride,
     const std::array<uint32_t, 2>& output_padding,
-    const std::array<uint32_t, 4>& pad)
+    const std::array<uint32_t, 4>& pad,
+    const uint32_t group)
   : Operation(graph, VSI_NN_OP_DECONVOLUTION),
-    weights_(weights),
+    oc_count_(oc_count),
     pad_type_(pad_type),
     ksize_(ksize),
     stride_(stride),
     output_padding_(output_padding),
-    pad_(pad) {
+    pad_(pad),
+    group_(group) {
+
+  // TODO(Sven): only support depthwise usage
+  assert(group != 1 && group == oc_count);
   this->impl()->node()->nn_param.deconv.ksize[0] = ksize_[0];
   this->impl()->node()->nn_param.deconv.ksize[1] = ksize_[1];
   this->impl()->node()->nn_param.deconv.stride[0] = stride_[0];
   this->impl()->node()->nn_param.deconv.stride[1] = stride_[1];
   this->impl()->node()->nn_param.deconv.pad_type = TranslatePadType(pad_type_);
-  this->impl()->node()->nn_param.deconv.weights = weights_;
-  this->impl()->node()->nn_param.deconv.group = 1;
+  this->impl()->node()->nn_param.deconv.weights = oc_count_;
+  this->impl()->node()->nn_param.deconv.group = group_;
   this->impl()->node()->nn_param.deconv.output_padding[0] = output_padding_[0];
   this->impl()->node()->nn_param.deconv.output_padding[1] = output_padding_[1];
   this->impl()->node()->nn_param.deconv.pad[0] = pad_[0];
