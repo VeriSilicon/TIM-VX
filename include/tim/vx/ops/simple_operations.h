@@ -35,6 +35,57 @@ namespace ops {
     NAME(Graph* graph);           \
   };
 
+/**
+ * ## DataConvert
+ *
+ * Change the format from input tensor to output tensor.
+ *
+ * ## Neg
+ *
+ * Neg(x) : -x
+ *
+ * ## Abs
+ *
+ * Abs(x) : x if x >= 0; -x if x < 0.
+ *
+ * ## Sin
+ *
+ * Sin(x) : sin(x)
+ *
+ * ## Exp
+ *
+ * Exp(x) : e^x
+ *
+ * ## Log
+ *
+ * Log(x) : ln(x)
+ *
+ * ## Sqrt
+ *
+ * Sqrt(x) : $$\sqrt{x}$$
+ *
+ * ## Rsqrt
+ *
+ * Rsqrt(x) : $$\frac{1}{\sqrt{x}}$$
+ *
+ * ## Square
+ *
+ * Square : x^2
+ *
+ * ## LogicalNot
+ *
+ * LogicalNot(x) : NOT x
+ *
+ * ## Floor
+ *
+ * returns the largest integer less than or equal to a given number.
+ *
+ * ## Cast
+ *
+ * Change the format from input tensor to output tensor. This operation ignores
+ * the scale and zeroPoint of quanized tensors.
+ */
+
 DECLARE_SIMPLE_OP(DataConvert)
 DECLARE_SIMPLE_OP(Neg)
 DECLARE_SIMPLE_OP(Abs)

@@ -29,6 +29,14 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Reshape
+ *
+ * Given tensor, this operation returns a tensor that has the same values as tensor, but with a newly specified shape.
+ *
+ * - size : defining the shape of the output tensor.
+ */
+
 class Reshape : public Operation {
  public:
   Reshape(Graph* graph, const std::vector<uint32_t>& perm);

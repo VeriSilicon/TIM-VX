@@ -29,6 +29,21 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Resize
+ *
+ * Resizes images to given size.
+ *
+ * - type : NEAREST_NEIGHBOR, BILINEAR or AREA.
+ * - factor : scale the input size. DO NOT use it with target_height / target_width together.
+ * - align_corners : If True, the centers of the 4 corner pixels of the input and output
+ * tensors are aligned, preserving the values at the corner pixels.
+ * - half_pixel_centers : If True, the pixel centers are assumed to be at (0.5, 0.5).
+ * This is the default behavior of image.resize in TF 2.0. If this parameter is True,
+ * then align_corners parameter must be False.
+ * - target_height / target_width : output height / width. DO NOT use it with factor together.
+ */
+
 class Resize : public Operation {
  public:
   Resize(Graph* graph, ResizeType type, float factor, bool align_corners,

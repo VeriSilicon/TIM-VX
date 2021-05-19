@@ -29,6 +29,12 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Gather
+ *
+ * Gather slices from input, **axis** according to **indices**.
+ */
+
 class Gather : public Operation {
  public:
   Gather(Graph* Graph, int axis);

@@ -29,6 +29,29 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## StridedSlice
+ *
+ * Extracts a strided slice of a tensor.
+ *
+ * Roughly speaking, this op extracts a slice of size (end - begin) / stride from
+ * the given input tensor. Starting at the location specified by begin the slice
+ * continues by adding stride to the index until all dimensions are not less than end.
+ * Note that a stride can be negative, which causes a reverse slice.
+ *
+ * - begin_dims : the starts of the dimensions of the input tensor to be sliced.
+ * - end_dims : the ends of the dimensions of the input tensor to be sliced.
+ * - stride_dims : the strides of the dimensions of the input tensor to be sliced.
+ * - begin_mask :  if the ith bit of begin_mask is set, begin[i] is ignored and
+ * the fullest possible range in that dimension is used instead.
+ * - end_mask : if the ith bit of end_mask is set, end[i] is ignored and the fullest
+ * possible range in that dimension is used instead.
+ * - shrink_axis_mask : if the ith bit of shrink_axis_mask is set, the ith dimension
+ * specification shrinks the dimensionality by 1, taking on the value at index begin[i].
+ * In this case, the ith specification must define a slice of size 1,
+ * e.g. begin[i] = x, end[i] = x + 1.
+ */
+
 class StridedSlice : public Operation {
  public:
   StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,

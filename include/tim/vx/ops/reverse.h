@@ -29,6 +29,14 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Reverse
+ *
+ * Reverses specific dimensions of a tensor.
+ *
+ * - axis : The indices of the dimensions to reverse. 
+ */
+
 class Reverse : public Operation {
  public:
   Reverse(Graph* graph, int32_t* axis, uint32_t axis_num);

@@ -29,6 +29,32 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Greater
+ *
+ * For input tensors x and y, computes x > y elementwise.
+ *
+ * ## GreaterOrEqual
+ *
+ * For input tensors x and y, computes x >= y elementwise.
+ *
+ * ## Less
+ *
+ * For input tensors x and y, computes x < y elementwise.
+ *
+ * ## LessOrEqual
+ *
+ * For input tensors x and y, computes x <= y elementwise.
+ *
+ * ## NotEqual
+ *
+ * For input tensors x and y, computes x != y elementwise.
+ *
+ * ## Equal
+ *
+ * For input tensors x and y, computes x == y elementwise.
+ */
+
 #define DECLARE_RELATIONAL_OP(NAME)  \
   class NAME : public Operation {    \
    public:                           \

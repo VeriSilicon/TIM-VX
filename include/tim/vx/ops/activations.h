@@ -58,7 +58,7 @@ namespace ops {
  *   LeakyRelu(x)           : alpha * x if x <= 0; x if x > 0. alpha is a scalar.
  *
  *   Prelu(x)               : alpha * x if x <= 0; x if x > 0. alpha is a tensor.
- *    - axis                : Describes the axis of the inputs when coerced to 2D.
+ *    - axis                : describes the axis of the inputs when coerced to 2D.
  * ```
  */
 

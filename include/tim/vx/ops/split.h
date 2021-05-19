@@ -31,6 +31,15 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Split
+ *
+ * Splits a tensor along a given axis into num_splits subtensors.
+ *
+ * - axis : the axis along which to split.
+ * - slices : ndicating the number of splits along given axis.
+ */
+
 class Split : public Operation {
  public:
   Split(Graph* graph, uint32_t axis, std::vector<uint32_t> slices);

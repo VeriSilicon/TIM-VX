@@ -29,6 +29,13 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Select
+ *
+ * Using a tensor of booleans c and input tensors x and y select values elementwise
+ * from both input tensors: O[i] = C[i] ? x[i] : y[i].
+ */
+
 class Select : public Operation {
  public:
   Select(Graph* graph);

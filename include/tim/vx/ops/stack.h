@@ -29,6 +29,13 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Stack
+ *
+ * Packs the list of tensors in inputs into a tensor with rank one higher than
+ * each tensor in values, by packing them along the **axis** dimension. 
+ */
+
 class Stack : public Operation {
  public:
   Stack(Graph* graph, uint32_t axis, int input_cnt);

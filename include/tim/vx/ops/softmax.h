@@ -29,6 +29,19 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Softmax
+ *
+ * Computes the softmax activation on the input tensor element-wise, per batch,
+ * by normalizing the input vector so the maximum coefficient is zero:
+ *
+ * ```
+ * output[batch, i] =
+ *     exp((input[batch, i] - max(input[batch, :])) * beta) /
+ *     sum_{k}{exp((input[batch, k] - max(input[batch, :])) * beta)}
+ * ```
+ */
+
 class Softmax : public Operation {
  public:
   Softmax(Graph* graph, float beta, int32_t axis);

@@ -29,6 +29,13 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## NBG
+ *
+ * Network Binary Graph is a precompile technology, which can compile a fuse graph into
+ * a bianry file.
+ */
+
 class NBG : public Operation {
  public:
   NBG(Graph* graph, const char* binary, size_t input_count, size_t output_count);

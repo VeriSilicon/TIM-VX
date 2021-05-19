@@ -32,6 +32,20 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Space2Batch
+ *
+ * This operation divides "spatial" dimensions [1, ..., M] of the input into a grid
+ * of blocks of shape **block_size**, and interleaves these blocks with the "batch"
+ * dimension (0) such that in the output, the spatial dimensions [1, ..., M] correspond
+ * to the position within the grid, and the batch dimension combines both the position
+ * within a spatial block and the original batch position. Prior to division into blocks,
+ * the spatial dimensions of the input are optionally zero padded according to paddings.
+ * This is the reverse transformation of Batch2Space.
+ *
+ * - pad : the paddings for each spatial dimension of the input tensor.
+ */
+
 class Space2Batch : public Operation {
  public:
   Space2Batch(Graph* graph, const std::vector<int>& block_size,

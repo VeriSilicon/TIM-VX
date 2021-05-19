@@ -29,6 +29,71 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## ReduceMin
+ *
+ * Reduces a tensor by computing the minimum of elements along given dimensions.
+ *
+ * - axis : the dimensions to reduce.
+ * - keep_dims : If keep_dims is true, the reduced dimensions are retained with
+ * length 1. Otherwise, the rank of the tensor is reduced by 1 for each entry
+ * in dimensions
+ *
+ * ## ReduceMax
+ *
+ * Reduces a tensor by computing the maximum of elements along given dimensions.
+ *
+ * - axis : the dimensions to reduce.
+ * - keep_dims : If keep_dims is true, the reduced dimensions are retained with
+ * length 1. Otherwise, the rank of the tensor is reduced by 1 for each entry
+ * in dimensions
+ *
+ * ## ReduceAny
+ *
+ * Reduces a tensor by computing the "logical or" of elements along given dimensions.
+ *
+ * - axis : the dimensions to reduce.
+ * - keep_dims : If keep_dims is true, the reduced dimensions are retained with
+ * length 1. Otherwise, the rank of the tensor is reduced by 1 for each entry
+ * in dimensions
+ *
+ * ## ReduceAll
+ *
+ * Reduces a tensor by computing the "logical and" of elements along given dimensions.
+ *
+ * - axis : the dimensions to reduce.
+ * - keep_dims : If keep_dims is true, the reduced dimensions are retained with
+ * length 1. Otherwise, the rank of the tensor is reduced by 1 for each entry
+ * in dimensions
+ *
+ * ## ReduceProd
+ *
+ * Reduces a tensor by computing the multiplying of elements along given dimensions.
+ *
+ * - axis : the dimensions to reduce.
+ * - keep_dims : If keep_dims is true, the reduced dimensions are retained with
+ * length 1. Otherwise, the rank of the tensor is reduced by 1 for each entry
+ * in dimensions
+ *
+ * ## ReduceMean
+ *
+ * Reduces a tensor by computing the mean of elements along given dimensions.
+ *
+ * - axis : the dimensions to reduce.
+ * - keep_dims : If keep_dims is true, the reduced dimensions are retained with
+ * length 1. Otherwise, the rank of the tensor is reduced by 1 for each entry
+ * in dimensions
+ *
+ * ## ReduceSum
+ *
+ * Reduces a tensor by computing the summing of elements along given dimensions.
+ *
+ * - axis : the dimensions to reduce.
+ * - keep_dims : If keep_dims is true, the reduced dimensions are retained with
+ * length 1. Otherwise, the rank of the tensor is reduced by 1 for each entry
+ * in dimensions
+ */
+
 #define DECLARE_REDUCE_OP(NAME)                                  \
   class Reduce##NAME : public Operation {                        \
    public:                                                       \
@@ -43,6 +108,7 @@ namespace ops {
 DECLARE_REDUCE_OP(Min);
 DECLARE_REDUCE_OP(Max);
 DECLARE_REDUCE_OP(Any);
+DECLARE_REDUCE_OP(All);
 DECLARE_REDUCE_OP(Prod);
 DECLARE_REDUCE_OP(Mean);
 DECLARE_REDUCE_OP(Sum);
