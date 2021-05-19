@@ -72,4 +72,44 @@
 */
 #define VX_ACTIVATION_EXT_SUPPORT 1
 
+/*
+ VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT is used to query more hardware parameter such as shader sub-group size.
+ [value]
+ 0: not support
+ 1: support
+*/
+#define VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT 1
+
+/*
+ VX_USER_LOOKUP_TABLE_SUPPORT is used to declare that openvx can support user lookuptable.
+ [value]
+ 0: not support
+ 1: support
+*/
+#define VX_USER_LOOKUP_TABLE_SUPPORT 1
+
+/*
+VX_PRELOAD_CONST_TENSOR_SUPPORT is used to declare that openvx can support preload weight/bias and const tensor
+ [value]
+ 0: not support
+ 1: support(NN conv and TP FC weightbias, and SH const tensor)
+*/
+#define VX_PRELOAD_CONST_TENSOR_SUPPORT 1
+
+/*
+VX_CREATE_TENSOR_SUPPORT_PHYSICAL is used to declare that openvx can support physical address for vxCreateTensorFromHandle
+ [value]
+ 0: not support
+ 1: support
+*/
+#define VX_CREATE_TENSOR_SUPPORT_PHYSICAL 1
+
+/*
+ VX_GRAPH_PREEMPTION_SUPPORT is used to declare that openvx can support different graph preemption function.
+ [value]
+ 0: not support
+ 1: support
+*/
+#define VX_GRAPH_PREEMPTION_SUPPORT 1
+
 #endif /* __VX_KHR_COMPATIBLE_H__ */

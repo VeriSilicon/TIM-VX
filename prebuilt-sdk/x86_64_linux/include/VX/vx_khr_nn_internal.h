@@ -207,6 +207,17 @@ typedef struct _vx_nn_convolution_relu_pooling_params_ext3_t
     vx_enum*        interDataType;
 } vx_nn_convolution_relu_pooling_params_ext3_t, * vx_nn_convolution_relu_pooling_params_ext3;
 
+typedef struct _vx_nn_convolution_relu_pooling_params_ext4_t
+{
+    vx_nn_convolution_relu_pooling_params_ext3_t ext3;  /*!< \brief convolution relu pooling params <tt>\ref vx_nn_convolution_relu_pooling_params__ext_t</tt> */
+    vx_uint32       poolingStrideX;
+    vx_uint32       poolingStrideY;
+    vx_uint32       poolingPadLeft;
+    vx_uint32       poolingPadRight;
+    vx_uint32       poolingPadTop;
+    vx_uint32       poolingPadBottom;
+} vx_nn_convolution_relu_pooling_params_ext4_t, * vx_nn_convolution_relu_pooling_params_ext4;
+
 /*! \brief [Graph] Creates a Convolutional Network Convolution and Activation(Relu) and Pooling Layer Node, this fucntion match kronos NN Extension 1.2 verion.
  * \details This function implement Convolutional Network Convolution and Activation(Relu) and Pooling layer.
  *  For fixed-point data types, a fixed point calculation is performed with round and saturate according to the number of accumulator bits. The number of the accumulator bits are implementation defined,
@@ -650,6 +661,242 @@ VX_API_ENTRY vx_node VX_API_CALL vxConvLSTMLayer(
     vx_tensor output
     );
 
+/*! \brief [Graph] Creates a Convolutional Network Pooling Layer Node.
+ * \details Pooling is done on the first 2 dimensions or the <tt>\ref vx_tensor</tt>. Therefore, we use here the term x for the first dimension and y for the second.\n
+ * Pooling operation is a function operation over a rectangle size and then a nearest neighbour down scale.
+ * Here we use pool_size_x and pool_size_y to specify the rectangle size on which the operation
+ * is performed. \n
+ * before the operation is done (average or maximum value). the data is padded in the first 2D with zeros.
+ * The down scale is done by picking the results according to a skip jump. The skip in the x and y dimension is determined by the output size dimensions.
+* \param [in] graph The handle to the graph.
+* \param [in] inputs The input tensor data. 3 lower dimensions represent a single input, 4th dimension for batch of inputs is optional.Dimension layout is [width, height, #IFM, #batches].
+* See <tt>\ref vxCreateTensor</tt> and <tt>\ref vxCreateVirtualTensor</tt> 
+* \param [in] pool_type [static] Either max pooling or average pooling (see <tt>\ref vx_convolutional_network_pooling_type_e</tt>).
+* \param [in] pool_size_x [static] Size of the pooling region in the x dimension
+* \param [in] pool_size_y [static] Size of the pooling region in the y dimension. 
+* \param [in] pool_pad_x [static] Padding size in the x dimension. 
+* \param [in] pool_pad_y [static] Padding size in the y dimension.
+* \param [in] rounding [static] The rounding method for calculating output dimensions. See <tt>\ref vx_convolutional_network_rounding_type_e</tt>
+* \param [out] outputs The output tensor data. Output will have the same number of dimensions as input.
+* \return <tt> vx_node</tt>.
+* \retval 0 Node could not be created.
+* \retval * Node handle.
+* \ingroup group_cnn
+*/
+VX_API_ENTRY vx_node VX_API_CALL vxPoolingLayer(vx_graph graph, vx_tensor inputs, vx_enum pooling_type,
+        vx_size pooling_size_x,
+        vx_size pooling_size_y,
+        vx_size pooling_padding_x,
+        vx_size pooling_padding_y,
+        vx_enum rounding, 
+        vx_tensor outputs);
+
+/*! \brief [Graph] Creates a Convolutional Network Softmax Layer Node.
+ * \details  the softmax function, is a generalization of the logistic function that "squashes" a K-dimensional vector \f$ z \f$ of arbitrary real values to a K-dimensional vector
+ * \f$ \sigma(z) \f$ of real values in the range (0, 1) that add up to 1. The function is given by:
+ * \f$ \sigma(z) = \frac{\exp^z}{\sum_i \exp^{z_i}} \f$
+ * \param [in] graph The handle to the graph.
+ * \param [in] inputs The input tensor,  with the number of dimensions according to the following scheme. 
+ * In case IFM dimension is 1. Softmax is be calculated on that dimension.
+ * In case IFM dimension is 2. Softmax is be calculated on the first dimension. The second dimension is batching.
+ * In case IFM dimension is 3. Dimensions are [Width, Height, Classes]. And Softmax is calculated on the third dimension.
+ * In case IFM dimension is 4. Dimensions are [Width, Height, Classes, batching]. Softmax is calculated on the third dimension.
+ * Regarding the layout specification, see <tt>\ref vxCreateTensor</tt> and <tt>\ref vxCreateVirtualTensor</tt>.
+ * \param [out] outputs The output tensor. Output will have the same number of dimensions as input. Output tensor data type must be same as the inputs.
+ * \ingroup group_cnn
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxSoftmaxLayer(vx_graph graph, vx_tensor inputs, vx_tensor outputs);
+
+/* vxCopyTensorPatchForNN11 is for back compatibility with spec 1.1, which is used in nn*/
+VX_API_ENTRY vx_status VX_API_CALL vxCopyTensorPatchForNN11(
+    vx_tensor tensor,
+    vx_tensor_view view,
+    vx_tensor_addressing user_addr,
+    void *user_ptr,
+    vx_enum usage,
+    vx_enum user_mem_type
+    );
+
+/* vxCreateTensorForNN11 is for back compatibility with spec 1.1, which is used in nn*/
+VX_API_ENTRY vx_tensor VX_API_CALL
+vxCreateTensorForNN11(
+    vx_context context,
+    vx_uint32 num_of_dims,
+    vx_uint32 *sizes,
+    vx_enum data_format,
+    vx_int8 fixed_point_pos
+    );
+
+/*! \brief [Graph] Creates a Convolutional Network Normalization Layer Node.
+* \details Normalizing over local input regions. Each input value is divided by \f$ (1+\frac{\alpha}{n}\sum_i x^2_i)^\beta \f$ , where n is the number of elements to normalize across.
+* and the sum is taken over the region centred at that value (zero padding is added where necessary).
+* \param [in] graph The handle to the graph.
+* \param [in] inputs The input tensor data. 3 lower dimensions represent a single input, 4th dimension for batch of inputs is optional.Dimension layout is [width, height, IFM, #batches].
+* See <tt>\ref vxCreateTensor2</tt> and <tt>\ref vxCreateVirtualTensor2</tt>.
+* \param [in] type [static] Either same map or across maps (see vx_convolutional_network_norm_type_e).
+* \param [in] norm_size [static] Number of elements to normalize across.
+* \param [in] alpha [static] Alpha parameter in the normalization equation.
+* \param [in] beta  [static ] Beta parameter in the normalization equation.
+* \param [out] outputs The output tensor data. Output will have the same number of dimensions as input.
+* \ingroup group_cnn
+* \return <tt> vx_node</tt>.
+* \retval 0 Node could not be created.
+* \retval * Node handle.
+*/
+VX_API_ENTRY vx_node VX_API_CALL vxNormalizationLayer(vx_graph graph, vx_tensor inputs, vx_enum type,
+        vx_size normalization_size,
+        vx_float32 alpha,
+        vx_float32 beta,
+        vx_tensor outputs);
+
+/*! \brief [Graph] Creates a Reorgnization Layer Node.
+ * \details Reorganize the layer. Picking up pixels from input tensor according to the rule \n
+ * dimension 1: i * stride + (k / out_c) % stride \n
+ * dimension 2: j * stride + (k / out_c) / stride \n
+ * dimension 3: k % out_c  \n
+ * out_c = input_c / (stride * stride), i is in range (0, input_w-1), j is in range (0, input_h-1), k is in range (0, input_c-1)
+ * Output value is in order sequence.
+ * \param [in] graph The reference to the parent graph.
+ * \param [in] inputs The input tensor data to reorg.
+ * \param [in] stride [static] Delta size of two pixels in each dimensions to do a reorg operation.
+ * \param [out] outputs The output tensor data. Output will have different number of each dimensions as input.
+ * \returns <tt> vx_node</tt>.
+ * \retval 0 Node could not be created.
+ * \retval * Node handle.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxReorgLayer(
+    vx_graph                    graph, 
+    vx_tensor                   inputs,
+    vx_uint32                   stride,
+    vx_tensor                   outputs
+    );
+
+/*! \brief [Graph] Creates a Convolutional Network L2Normalize Layer Node.
+* \param [in] graph The handle to the graph.
+* \param [in] inputs The input tensor. 3 lower dimensions represent a single input, and an optional 4th dimension for batch of inputs. Dimension layout is [width, height, #IFM, #batches].
+ * See <tt>\ref vxCreateTensor2</tt> and <tt>\ref vxCreateVirtualTensor2</tt>.
+* \param [out] outputs The output tensor data. Output will have the same number of dimensions as input.
+* \ingroup group_cnn
+* \return <tt> vx_node</tt>.
+* \retval 0 Node could not be created.
+* \retval * Node handle.
+*/
+VX_API_ENTRY vx_node VX_API_CALL vxL2NormalizeLayer(vx_graph graph, vx_tensor inputs, vx_tensor outputs);
+
+/*! \brief [Graph] Creates a Convolutional Network Convolution and Activation(Relu) and Pooling and Add Layer Node.
+ * \details This function implement Convolutional Network Convolution and Activation(Relu) and Pooling and Add layer.
+ *  For fixed-point data types, a fixed point calculation is performed with round and saturate according to the number of accumulator bits. The number of the accumulator bits are implementation defined,
+ * and should be at least 16.\n
+ * round: rounding according the <tt>vx_round_policy_e</tt> enumeration. \n
+ * saturate: A saturation according the <tt>vx_convert_policy_e</tt> enumeration.
+ * The following equation is implemented: \n
+ * \f$ outputs[j,k,i] = saturate(round(\sum_{l} (\sum_{m,n} inputs[j-m,k-n,l] \times weights[m,n,l,i])+biasses[j,k,i])) \f$\n
+ * Where \f$m,n\f$ are indexes on the convolution matrices. \f$ l\f$ is an index on all the convolutions per input.\f$ i\f$ is an index per output.
+ * \f$ j,k \f$ are the inputs/outputs spatial indexes.
+ * Convolution is done on the width and height dimensions of the <tt>\ref vx_tensor</tt>. Therefore, we use here the term x for index along the width dimension and y for index along the height dimension.\n
+ * before the Convolution is done, a padding with zeros of the width and height input dimensions is performed.
+ * Then down scale is done by picking the results according to a skip jump. The skip in the x and y is determined by the output size dimensions.
+ * The relation between input to output is as follows: \n
+ * \f$ width_{output} = round(\frac{(width_{input} + paddingleft_x + paddingright_x - kernel_x - (kernel_x -1) * dilation_x)}{skip_x} + 1) \f$\n
+ * and \n
+ * \f$ height_{output} = round(\frac{(height + paddingtop_y + paddingbottom_y - kernel_y - (kernel_y -1) * dilation_y)}{skip_y} + 1) \f$\n 
+ * where \f$width\f$ is the size of the input width dimension. \f$height\f$ is the size of the input height dimension.
+ * \f$width_{output}\f$ is the size of the output width dimension. \f$height_{output}\f$ is the size of the output height dimension.
+ * \f$kernel_x\f$ and \f$kernel_y\f$ are the convolution sizes in width and height dimensions.
+ * skip is calculated by the relation between input and output.
+ * rounding is done according to <tt>\ref vx_convolutional_network_rounding_type_e</tt>.
+ * \param [in] graph The handle to the graph.
+ * \param [in] inputs_conv The input tensor data for convolution. 3 lower dimensions represent a single input, all following dimensions represent number of batches, possibly nested.
+ * \param [in] inputs_add The input tensor data for add. 3 lower dimensions represent a single input, all following dimensions represent number of batches, possibly nested.
+ * The dimension order is [width, height, #IFM, #batches]. \n  
+ * \param [in] weights_biases [static] Point to WeightBiasesParameter data, vx_weights_biases_parameter is an opaque reference. 
+ * \param [in] convolution_relu_pooling_params [static] Pointer to parameters of type <tt>\ref vx_nn_convolution_relu_pooling_params_t</tt>
+ * \param [in] size_of_convolution_relu_pooling_params [static] Size in bytes of convolution_relu_pooling_params.
+ * \param [out] outputs_conv The convolution output tensor data. Output will have the same number and structure of dimensions as inputs_conv. 
+ * \param [out] outputs_add The final add output tensor data. Output will have the same number and structure of dimensions as input. 
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxConvolutionReluPoolingAddLayer2(
+    vx_graph                    graph,
+    vx_tensor                   inputs_conv,
+    vx_tensor                   inputs_add,
+    vx_weights_biases_parameter weights_biases,
+    const vx_nn_convolution_relu_pooling_params_t * convolution_relu_pooling_params,
+    vx_size                     size_of_convolution_relu_pooling_params,
+    vx_tensor                   outputs_conv,
+    vx_tensor                   outputs_add);
+
+/*! \brief [Graph] Creates a Convolutional Network Convolution and Activation(Relu) and Pooling and Multiply Layer Node.
+ * \details This function implement Convolutional Network Convolution and Activation(Relu) and Pooling and Multiply layer.
+ *  For fixed-point data types, a fixed point calculation is performed with round and saturate according to the number of accumulator bits. The number of the accumulator bits are implementation defined,
+ * and should be at least 16.\n
+ * round: rounding according the <tt>vx_round_policy_e</tt> enumeration. \n
+ * saturate: A saturation according the <tt>vx_convert_policy_e</tt> enumeration.
+ * The following equation is implemented: \n
+ * \f$ outputs[j,k,i] = saturate(round(\sum_{l} (\sum_{m,n} inputs[j-m,k-n,l] \times weights[m,n,l,i])+biasses[j,k,i])) \f$\n
+ * Where \f$m,n\f$ are indexes on the convolution matrices. \f$ l\f$ is an index on all the convolutions per input.\f$ i\f$ is an index per output.
+ * \f$ j,k \f$ are the inputs/outputs spatial indexes.
+ * Convolution is done on the width and height dimensions of the <tt>\ref vx_tensor</tt>. Therefore, we use here the term x for index along the width dimension and y for index along the height dimension.\n
+ * before the Convolution is done, a padding with zeros of the width and height input dimensions is performed.
+ * Then down scale is done by picking the results according to a skip jump. The skip in the x and y is determined by the output size dimensions.
+ * The relation between input to output is as follows: \n
+ * \f$ width_{output} = round(\frac{(width_{input} + paddingleft_x + paddingright_x - kernel_x - (kernel_x -1) * dilation_x)}{skip_x} + 1) \f$\n
+ * and \n
+ * \f$ height_{output} = round(\frac{(height + paddingtop_y + paddingbottom_y - kernel_y - (kernel_y -1) * dilation_y)}{skip_y} + 1) \f$\n 
+ * where \f$width\f$ is the size of the input width dimension. \f$height\f$ is the size of the input height dimension.
+ * \f$width_{output}\f$ is the size of the output width dimension. \f$height_{output}\f$ is the size of the output height dimension.
+ * \f$kernel_x\f$ and \f$kernel_y\f$ are the convolution sizes in width and height dimensions.
+ * skip is calculated by the relation between input and output.
+ * rounding is done according to <tt>\ref vx_convolutional_network_rounding_type_e</tt>.
+ * \param [in] graph The handle to the graph.
+ * \param [in] inputs_conv The input tensor data for convolution. 3 lower dimensions represent a single input, all following dimensions represent number of batches, possibly nested.
+ * \param [in] inputs_mul The input tensor data for mul. 3 lower dimensions represent a single input, all following dimensions represent number of batches, possibly nested.
+ * The dimension order is [width, height, #IFM, #batches]. \n  
+ * \param [in] scale A non-negative <tt>\ref VX_TYPE_FLOAT32</tt> multiplied to each product before overflow handling.
+ * \param [in] weights_biases [static] Point to WeightBiasesParameter data, vx_weights_biases_parameter is an opaque reference. 
+ * \param [in] convolution_relu_pooling_params [static] Pointer to parameters of type <tt>\ref vx_nn_convolution_relu_pooling_params_t</tt>
+ * \param [in] size_of_convolution_relu_pooling_params [static] Size in bytes of convolution_relu_pooling_params.
+ * \param [out] outputs_conv The convolution output tensor data. Output will have the same number and structure of dimensions as inputs_conv. 
+ * \param [out] outputs_mul The final mul output tensor data. Output will have the same number and structure of dimensions as input. 
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxConvolutionReluPoolingMultiplyLayer2(
+    vx_graph                    graph,
+    vx_tensor                   inputs_conv,
+    vx_tensor                   inputs_mul,
+    vx_float32                  input_scale,
+    vx_weights_biases_parameter weights_biases,
+    const vx_nn_convolution_relu_pooling_params_t * convolution_relu_pooling_params,
+    vx_size                     size_of_convolution_relu_pooling_params,
+    vx_tensor                   outputs_conv,
+    vx_tensor                   outputs_mul);
+/*! \brief [Graph] Performs LUT on element values in the input tensor data's.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input input tensor data.
+ * \param [in] InLut The look-up table of x value, of type <tt>\ref vx_lut</tt>.
+ * \param [in] OutLut The look-up table of y value, of type <tt>\ref vx_lut</tt>.
+ * \param [out] output The output tensor data with the same dimensions as the input tensor data's.
+ * \ingroup group_tensor
+ * \return <tt> vx_node</tt>.
+ * \retval 0 Node could not be created.
+ * \retval * Node handle.
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxTensorTableLookupLayer(
+    vx_graph graph,
+    vx_tensor input,
+    vx_lut InLut,
+    vx_lut OutLut,
+    vx_tensor output);
 #ifdef  __cplusplus
 }
 #endif
