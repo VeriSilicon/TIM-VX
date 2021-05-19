@@ -29,6 +29,16 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## And
+ *
+ * Returns the truth value of x AND y element-wise. This operation supports broadcasting.
+ *
+ * ## Or
+ *
+ * Returns the truth value of x OR y element-wise. This operation supports broadcasting.
+ */
+
 #define DECLARE_LOGICAL_OP(NAME)           \
   class Logical##NAME : public Operation { \
    public:                                 \

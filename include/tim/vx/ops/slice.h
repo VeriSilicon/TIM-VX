@@ -29,6 +29,15 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Slice
+ *
+ * Extracts a slice of specified size from the input tensor starting at a specified location.
+ *
+ * - start : the beginning indices of the slice in each dimension.
+ * - length : the size of the slice in each dimension.
+ */
+
 class Slice : public Operation {
  public:
   Slice(Graph* graph,

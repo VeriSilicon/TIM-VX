@@ -28,6 +28,15 @@
 namespace tim {
 namespace vx {
 namespace ops {
+
+/**
+ * ## Pad
+ *
+ * Pads a tensor.
+ *
+ * - const_val : the value to pad.
+ */
+
 class Pad : public Operation {
  public:
   Pad(Graph* graph, const std::vector<uint32_t>& front_size,

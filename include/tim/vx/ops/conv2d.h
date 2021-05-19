@@ -38,7 +38,7 @@ namespace ops {
  * Performs a 2-D convolution operation, include classic Conv2D /
  * Depthwise Conv2D / Group Conv2D / Dilation Conv2D.
  *
- * - weights : the channel number for weight tensor.
+ * - weights : the output channel number for weight tensor.
  * - ksize : the height and width for weight tensor.
  * - padding : AUTO, VALID or SAME.
  * - pad : pad value for each spatial axis. 

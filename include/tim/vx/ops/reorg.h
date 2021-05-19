@@ -29,6 +29,12 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Reorg
+ *
+ * The layer used in YOLOv2. See also https://github.com/pjreddie/darknet/blob/master/src/reorg_layer.c
+ */
+
 class Reorg : public Operation {
  public:
   Reorg(Graph* graph, const uint32_t stride);

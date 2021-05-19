@@ -30,6 +30,14 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Squeeze
+ *
+ * Removes dimensions of size 1 from the shape of a tensor. 
+ *
+ * - axis : the dimensions to squeeze.
+ */
+
 class Squeeze : public Operation {
  public:
   Squeeze(Graph* graph, std::vector<uint32_t> axis);

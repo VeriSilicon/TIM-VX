@@ -29,6 +29,22 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## DepthToSpace
+ *
+ * DepthToSpace rearranges (permutes) data from depth into blocks of spatial data.
+ * This is the reverse transformation of SpaceToDepth.
+ *
+ * Chunks of data of size block_size * block_size from depth are rearranged into
+ * non-overlapping blocks of size block_size x block_size.
+ *
+ * The width of the output tensor is input_depth * block_size, whereas the height
+ * is input_height * block_size. The depth of the input tensor must be divisible
+ * by block_size * block_size
+ *
+ * - crop : corp the output tensor for ROI usage.
+ */
+
 class DepthToSpace : public Operation {
  public:
   DepthToSpace(Graph* Graph, int block_size,

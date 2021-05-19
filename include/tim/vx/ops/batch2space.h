@@ -38,7 +38,7 @@ namespace ops {
  * This operation reshapes the batch dimension (dimension 0) into M + 1 dimensions
  * of shape **block_size** + [batch], interleaves these blocks back into the grid
  * defined by the spatial dimensions [1, ..., M], to obtain a result with the same
- * rank as the input.
+ * rank as the input. This is the reverse transformation of Space2Batch.
  *
  * - crop : corp the output tensor for ROI usage.
  */

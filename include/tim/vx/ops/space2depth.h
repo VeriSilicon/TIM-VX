@@ -29,6 +29,15 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## SpaceToDepth
+ *
+ * SpaceToDepth rearranges blocks of spatial data into depth. More specifically,
+ * this op outputs a copy of the input tensor where values from the height and
+ * width dimensions are moved to the depth dimension. This is the reverse
+ * transformation of DepthToSpace.
+ */
+
 class SpaceToDepth : public Operation {
  public:
   SpaceToDepth(Graph* graph, std::vector<int> block_size,

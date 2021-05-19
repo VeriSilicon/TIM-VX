@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import os
+from markdown_toclify import markdown_toclify
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 src_dir = root_dir + "/include/tim/vx/ops"
@@ -73,4 +73,7 @@ for index, line in enumerate(lines):
 with open(root_dir + md_file, mode='w',newline='\n', encoding='UTF-8') as fhndl:
     fhndl.writelines(new_lines)
 
-print(root_dir)
+cont = markdown_toclify(input_file=root_dir + md_file)
+
+with open(root_dir + md_file, mode='w',newline='\n', encoding='UTF-8') as fhndl:
+    fhndl.write(cont)

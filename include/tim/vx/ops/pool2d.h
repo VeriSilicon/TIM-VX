@@ -33,6 +33,18 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Pool2d
+ *
+ * Performs an 2-D pooling operation.
+ *
+ * - type : MAX, AVG, L2 or AVG_ANDROID.
+ * - padding : AUTO, VALID or SAME.
+ * - ksize : filter size.
+ * - stride : stride along each spatial axis.
+ * - round_type : CEILING or FLOOR.
+ */
+
 class Pool2d : public Operation {
  public:
   Pool2d(Graph* graph, PoolType type, PadType padding,

@@ -30,6 +30,15 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Dropout
+ *
+ * The Dropout layer randomly sets input units to 0 with a frequency of rate at
+ * each step during training time, which helps prevent overfitting.
+ *
+ * TIM-VX only focus on inference time, and just scaling input tensor by **ratio**
+ * for Dropout operator.
+ */
 
 class Dropout : public Operation {
   public:

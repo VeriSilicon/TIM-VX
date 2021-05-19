@@ -29,6 +29,39 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+/**
+ * ## Add
+ *
+ * Add(x, y) : x + y. This operation supports broadcasting.
+ *
+ * ## Sub
+ *
+ * Sub(x, y) : x - y. This operation supports broadcasting.
+ *
+ * ## Multiply
+ *
+ * Multiply(x, y) : Multiplies two tensors, element-wise, also known as Hadamard
+ * product. This operation supports broadcasting.
+ *
+ * - scale: scaling the product.
+ *
+ * ## Div
+ *
+ * Div(x, y) : x / y. This operation supports broadcasting.
+ *
+ * ## Pow
+ *
+ * Pow(x, y) : x ^ y. This operation supports broadcasting.
+ *
+ * ## Minimum
+ *
+ * Minimum(x, y) : min(x, y). This operation supports broadcasting.
+ *
+ * ## Maximum
+ *
+ * Maximum(x, y) : max(x, y). This operation supports broadcasting.
+ */
+
 #define DECLARE_ELEMENTWISE_OP(NAME) \
   class NAME : public Operation {    \
    public:                           \

@@ -33,6 +33,7 @@ namespace ops {
  * ## Concat
  *
  * Concatenate a list of tensors into a single tensor.
+ *
  * - axis : Which axis to concat on.
  */
 
