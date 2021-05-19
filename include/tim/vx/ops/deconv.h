@@ -34,23 +34,25 @@ namespace ops {
 
 class DeConv2d : public Operation {
   public:
-    DeConv2d(Graph* graph, int32_t weights, PadType pad_type,
+    DeConv2d(Graph* graph, int32_t oc_count_, PadType pad_type,
         const std::array<uint32_t, 2>& ksize,
         const std::array<uint32_t, 2>& stride,
         const std::array<uint32_t, 2>& output_padding);
-    DeConv2d(Graph* graph, int32_t weights, PadType pad_type,
+    DeConv2d(Graph* graph, int32_t oc_count_, PadType pad_type,
         const std::array<uint32_t, 2>& ksize,
         const std::array<uint32_t, 2>& stride,
         const std::array<uint32_t, 2>& output_padding,
-        const std::array<uint32_t, 4>& pad);
+        const std::array<uint32_t, 4>& pad,
+        const uint32_t group = 1);
 
   protected:
-    const uint32_t weights_;
+    const uint32_t oc_count_; // output channel count
     const PadType pad_type_;
     const std::array<uint32_t, 2> ksize_;
     const std::array<uint32_t, 2> stride_;
     const std::array<uint32_t, 2> output_padding_;
     const std::array<uint32_t, 4> pad_;
+    const uint32_t group_;
 };
 
 } // namespace ops
