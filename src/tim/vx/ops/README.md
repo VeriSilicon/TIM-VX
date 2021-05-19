@@ -60,7 +60,7 @@ ReduceMax|REDUCE_MAX|Mapped|[tf.math.reduce_max](https://tensorflow.google.cn/ap
 ReduceAny|REDUCE_ANY|Mapped|[tf.math.reduce_any](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_any)
 ReduceProd|REDUCE_PROD|Mapped|[tf.math.reduce_prod](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_prod)
 ReduceMean|REDUCE_MEAN|Mapped|[tf.math.reduce_mean](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_mean)
-||INSTANCE_NORM|Unmapped|[tfa.layers.InstanceNormalization](https://tensorflow.google.cn/addons/api_docs/python/tfa/layers/InstanceNormalization)
+|InstanceNormalization|INSTANCE_NORM|Mapped|[tfa.layers.InstanceNormalization](https://tensorflow.google.cn/addons/api_docs/python/tfa/layers/InstanceNormalization)
 ||TENSORSTACKCONCAT|Unmapped|
 StridedSlice|STRIDED_SLICE|Mapped|[tf.strided_slice](https://tensorflow.google.cn/api_docs/python/tf/strided_slice)
 ||SIGNAL_FRAME|Unmapped
