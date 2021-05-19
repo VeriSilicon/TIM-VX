@@ -22,8 +22,8 @@
 *
 *****************************************************************************/
 
-#ifndef TIM_LITE_HANDLE_H_
-#define TIM_LITE_HANDLE_H_
+#ifndef __TIM_LITE_HANDLE_H__
+#define __TIM_LITE_HANDLE_H__
 
 #include <memory>
 

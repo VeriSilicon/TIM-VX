@@ -35,8 +35,7 @@
 namespace tim {
 namespace lite {
 
-namespace {
-bool QueryInputBufferParameters(
+static bool _query_input_buffer_parameters(
     vip_buffer_create_params_t& param, uint32_t index, vip_network network) {
     uint32_t count = 0;
     vip_query_network(network, VIP_NETWORK_PROP_INPUT_COUNT, &count);
@@ -65,7 +64,7 @@ bool QueryInputBufferParameters(
     return true;
 }
 
-bool QueryOutputBufferParameters(
+static bool _query_output_buffer_parameters(
     vip_buffer_create_params_t& param, uint32_t index, vip_network network) {
     uint32_t count = 0;
     vip_query_network(network, VIP_NETWORK_PROP_OUTPUT_COUNT, &count);
@@ -93,7 +92,6 @@ bool QueryOutputBufferParameters(
         break;
     }
     return true;
-}
 }
 
 ExecutionImpl::ExecutionImpl(const void* executable, size_t executable_size) {
@@ -130,12 +128,12 @@ ExecutionImpl::~ExecutionImpl() {
         vip_finish_network(network_);
         vip_destroy_network(network_);
     }
-    input_maps_.clear();
-    output_maps_.clear();
+    inputs_.clear();
+    outputs_.clear();
     vip_destroy();
 }
 
-Execution& ExecutionImpl::BindInputs(const std::vector<std::shared_ptr<Handle>>& handles) {
+Execution& ExecutionImpl::BindInputs(std::vector<std::shared_ptr<Handle>> handles) {
     if (!IsValid()) {
         return *this;
     }
@@ -147,30 +145,25 @@ Execution& ExecutionImpl::BindInputs(const std::vector<std::shared_ptr<Handle>>&
             status = VIP_ERROR_FAILURE;
             break;
         }
-        std::shared_ptr<InternalHandle> internal_handle = nullptr;
-        if (input_maps_.find(handle) == input_maps_.end()) {
-            if (!QueryInputBufferParameters(param, i, network_)) {
-                status = VIP_ERROR_FAILURE;
-                break;
-            }
-            internal_handle = handle->impl()->Register(param);
-            if (!internal_handle) {
-                status = VIP_ERROR_FAILURE;
-                break;
-            }
-            input_maps_[handle] = internal_handle;
-        } else {
-            internal_handle = input_maps_.at(handle);
+        if (!_query_input_buffer_parameters(param, i, network_)) {
+            status = VIP_ERROR_FAILURE;
+            break;
         }
-        status = vip_set_input(network_, i, internal_handle->handle());
+        if (!handle->impl()->Register(param)) {
+            status = VIP_ERROR_FAILURE;
+            break;
+        }
+        status = vip_set_input(network_, i, handle->impl()->handle());
         if (status != VIP_SUCCESS) {
             break;
         }
     }
+    // Copy handles
+    inputs_ = handles;
     return *this;
 };
 
-Execution& ExecutionImpl::BindOutputs(const std::vector<std::shared_ptr<Handle>>& handles) {
+Execution& ExecutionImpl::BindOutputs(std::vector<std::shared_ptr<Handle>> handles) {
     if (!IsValid()) {
         return *this;
     }
@@ -182,30 +175,25 @@ Execution& ExecutionImpl::BindOutputs(const std::vector<std::shared_ptr<Handle>>
             status = VIP_ERROR_FAILURE;
             break;
         }
-        std::shared_ptr<InternalHandle> internal_handle = nullptr;
-        if (output_maps_.find(handle) == output_maps_.end()) {
-            if (!QueryOutputBufferParameters(param, i, network_)) {
-                status = VIP_ERROR_FAILURE;
-                break;
-            }
-            internal_handle = handle->impl()->Register(param);
-            if (!internal_handle) {
-                status = VIP_ERROR_FAILURE;
-                break;
-            }
-            output_maps_[handle] = internal_handle;
-        } else {
-            internal_handle = output_maps_.at(handle);
+        if (!_query_output_buffer_parameters(param, i, network_)) {
+            status = VIP_ERROR_FAILURE;
+            break;
         }
-        status = vip_set_output(network_, i, internal_handle->handle());
+        if (!handle->impl()->Register(param)) {
+            status = VIP_ERROR_FAILURE;
+            break;
+        }
+        status = vip_set_output(network_, i, handle->impl()->handle());
         if (status != VIP_SUCCESS) {
             break;
         }
     }
+    // Copy handles
+    outputs_ = handles;
     return *this;
 };
 
-bool ExecutionImpl::Trigger() {
+bool ExecutionImpl::Exec() {
     if (!IsValid()) {
         return false;
     }
