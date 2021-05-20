@@ -57,7 +57,7 @@ DeConv2d::DeConv2d(Graph* graph, int32_t oc_count, PadType pad_type,
     group_(group) {
 
   // TODO(Sven): only support depthwise usage
-  assert(group != 1 && group == oc_count);
+  assert((group == 1U) || group == oc_count);
   this->impl()->node()->nn_param.deconv.ksize[0] = ksize_[0];
   this->impl()->node()->nn_param.deconv.ksize[1] = ksize_[1];
   this->impl()->node()->nn_param.deconv.stride[0] = stride_[0];
