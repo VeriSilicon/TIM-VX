@@ -67,7 +67,7 @@ StridedSlice|STRIDED_SLICE|Mapped|[tf.strided_slice](https://tensorflow.google.c
 ||A_TIMES_B_PLUS_C|Unmapped|[tf.add(tf.mul(A, B), C)](https://github.com/hujie-frank/SENet/blob/master/include/caffe/layers/axpy_layer.hpp)
 ||SVDF|Unmapped|[ANEURALNETWORKS_SVDF](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a7096de21038c1ce49d354a00cba7b552)
 Abs|ABS|Mapped|[tf.math.abs](https://tensorflow.google.cn/api_docs/python/tf/math/abs)
-||CONV1D|Unmapped|[tf.nn.conv1d](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d)
+|Conv1d|CONV1D|Mapped|[tf.nn.conv1d](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d)
 NBG|NBG|Mapped
 ||CONCATSHIFT|Unmapped
 LocalResponseNormalization|LRN2|Mapped|[tf.nn.local_response_normalization](https://tensorflow.google.cn/api_docs/python/tf/nn/local_response_normalization)
