@@ -54,7 +54,7 @@ Pad|PAD|Mapped|[tf.pad](https://tensorflow.google.cn/api_docs/python/tf/pad)
 ||IMAGEPROCESS|Unmapped
 ||MATRIXMUL|Unmapped|[tf.experimental.numpy.matmul](https://www.tensorflow.org/api_docs/python/tf/experimental/numpy/matmul)
 ||LSTMUNIT|Unmapped
-||LAYER_NORM|Unmapped|[tf.keras.layers.LayerNormalization](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/LayerNormalization)
+|LayerNormalization|LAYER_NORM|Mapped|[tf.keras.layers.LayerNormalization](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/LayerNormalization)
 ReduceMin|REDUCE_MIN|Mapped|[tf.math.reduce_min](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_min)
 ReduceMax|REDUCE_MAX|Mapped|[tf.math.reduce_max](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_max)
 ReduceAny|REDUCE_ANY|Mapped|[tf.math.reduce_any](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_any)
