@@ -290,6 +290,20 @@ typedef struct _vx_object_array *vx_object_array;
  */
 typedef struct _vx_tensor_t * vx_tensor;
 
+/*! \brief The multi dimensional view data structure.
+* \details Used to split tensors into several views. Or concatenate several view into one tensor.
+* \see vxCreateTensorFromView
+* \ingroup group_tensor
+*/
+typedef struct _vx_tensor_view_t * vx_tensor_view;
+
+/*! \brief The addressing of a tensor view patch structure is used by the Host only
+* to address elements in a tensor view patch.
+* \see <tt>\ref vxCopyTensorPatch</tt>
+* \ingroup group_tensor
+*/
+typedef struct _vx_tensor_addressing_t  * vx_tensor_addressing;
+
 /*! \brief The weight bias parameter for fused layers
  * \ingroup group_cnn
  */
@@ -962,6 +976,9 @@ enum vx_node_attribute_e {
      * Use a <tt>\ref vx_bool</tt> parameter.
      */
     VX_NODE_VALID_RECT_RESET = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0x8,
+
+    VX_NODE_ATTRIBUTE_CONST_TENSOR_CACHE = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0x9,
+
 };
 
 /*! \brief The parameter attributes list
@@ -1288,6 +1305,8 @@ enum vx_memory_type_e {
     VX_MEMORY_TYPE_INTERNAL = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_MEMORY_TYPE) + 0x1,
 
     VX_MEMORY_TYPE_HOST_UNCACHED = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_MEMORY_TYPE) + 0x2,
+
+    VX_MEMORY_TYPE_HOST_PHYSICAL = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_MEMORY_TYPE) + 0x3,
 };
 
 /*! \brief The image reconstruction filters supported by image resampling operations.
@@ -1390,8 +1409,6 @@ enum vx_parameter_state_e {
      * to deference optional parameters until it is certain they are valid.
      */
     VX_PARAMETER_STATE_OPTIONAL = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_PARAMETER_STATE) + 0x1,
-
-    VX_NODE_ATTRIBUTE_WEIGHT_BIAS_CACHE = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_PARAMETER_STATE) + 0x2,
 };
 
 /*! \brief The border mode list.
@@ -1912,4 +1929,12 @@ enum vx_map_flag_e {
      VX_NOGAP_X = 1,  /*!< \brief No Gap. */
 };
 
+
+enum vx_const_tensor_cache_mode
+{
+    VX_PRELOAD_NULL = 0,
+    VX_PRELOAD_CONST_TENSOR_VIPSRAM = 1,
+    VX_PRELOAD_CONST_TENSOR_AXISRAM = 2,
+    VX_PRELOAD_TYPE_COUNT
+};
 #endif

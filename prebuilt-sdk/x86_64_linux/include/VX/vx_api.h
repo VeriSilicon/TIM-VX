@@ -379,6 +379,8 @@ VX_API_ENTRY vx_image VX_API_CALL vxCreateVirtualImage(vx_graph graph, vx_uint32
  */
 VX_API_ENTRY vx_image VX_API_CALL vxCreateImageFromHandle(vx_context context, vx_df_image color, const vx_imagepatch_addressing_t addrs[], void *const ptrs[], vx_enum memory_type);
 
+VX_API_ENTRY vx_image VX_API_CALL vxCreateImageFromHandleEx(vx_context context, vx_df_image color, const vx_imagepatch_addressing_t addrs[], vx_uint64 handles[], vx_enum memory_type);
+
 /*! \brief Swaps the image handle of an image previously created from handle.
  *
  * This function sets the new image handle (i.e. pointer to all image planes)
@@ -692,8 +694,6 @@ VX_API_ENTRY vx_image VX_API_CALL vxCreateImageFromChannel(vx_image img, vx_enum
  * \ingroup group_image
  */
 VX_API_ENTRY vx_status VX_API_CALL vxSetImageValidRectangle(vx_image image, const vx_rectangle_t *rect);
-
-
 
 /*==============================================================================
  KERNEL

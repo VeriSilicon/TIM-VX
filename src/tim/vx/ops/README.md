@@ -39,7 +39,7 @@ Sqrt|SQRT|Mapped|[tf.math.sqrt](https://tensorflow.google.cn/api_docs/python/tf/
 Rsqrt|RSQRT|Mapped|[tf.math.rsqrt](https://tensorflow.google.cn/api_docs/python/tf/math/rsqrt)
 SoftRelu|SOFTRELU|Mapped|[tf.math.softplus](https://tensorflow.google.cn/api_docs/python/tf/math/softplus)
 Div|DIVIDE|Mapped|[tf.math.divide](https://tensorflow.google.cn/api_docs/python/tf/math/divide)
-Dropout|DROPOUT|Mapped|[tf.nn.dropout](https://tensorflow.google.cn/api_docs/python/tf/nn/dropout)
+Dropout|DROPOUT|Mapped|f(x) = x\*ratio
 ||SHUFFLECHANNEL|Unmapped|[ANEURALNETWORKS_CHANNEL_SHUFFLE](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a5b993c1211c4b1bc52fb595a3025251d)
 Resize|RESIZE|Mapped|[tf.image.resize](https://tensorflow.google.cn/api_docs/python/tf/image/resize)
 Reverse|REVERSE|Mapped|[tf.reverse](https://tensorflow.google.cn/api_docs/python/tf/reverse)
@@ -52,7 +52,7 @@ Batch2Space|BATCH2SPACE|Mapped|[tf.batch_to_space](https://tensorflow.google.cn/
 Space2Batch|SPACE2BATCH|Mapped|[tf.space_to_batch](https://tensorflow.google.cn/api_docs/python/tf/space_to_batch)
 Pad|PAD|Mapped|[tf.pad](https://tensorflow.google.cn/api_docs/python/tf/pad)
 ||IMAGEPROCESS|Unmapped
-||MATRIXMUL|Unmapped
+||MATRIXMUL|Unmapped|[tf.experimental.numpy.matmul](https://www.tensorflow.org/api_docs/python/tf/experimental/numpy/matmul)
 ||LSTMUNIT|Unmapped
 ||LAYER_NORM|Unmapped|[tf.keras.layers.LayerNormalization](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/LayerNormalization)
 ReduceMin|REDUCE_MIN|Mapped|[tf.math.reduce_min](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_min)
@@ -64,7 +64,7 @@ ReduceMean|REDUCE_MEAN|Mapped|[tf.math.reduce_mean](https://tensorflow.google.cn
 ||TENSORSTACKCONCAT|Unmapped|
 StridedSlice|STRIDED_SLICE|Mapped|[tf.strided_slice](https://tensorflow.google.cn/api_docs/python/tf/strided_slice)
 ||SIGNAL_FRAME|Unmapped
-||A_TIMES_B_PLUS_C|Unmapped|[tf.add(tf.mul(a, X), Y)](https://github.com/hujie-frank/SENet/blob/master/include/caffe/layers/axpy_layer.hpp)
+||A_TIMES_B_PLUS_C|Unmapped|[tf.add(tf.mul(A, B), C)](https://github.com/hujie-frank/SENet/blob/master/include/caffe/layers/axpy_layer.hpp)
 ||SVDF|Unmapped|[ANEURALNETWORKS_SVDF](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a7096de21038c1ce49d354a00cba7b552)
 Abs|ABS|Mapped|[tf.math.abs](https://tensorflow.google.cn/api_docs/python/tf/math/abs)
 ||CONV1D|Unmapped|[tf.nn.conv1d](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d)
@@ -84,7 +84,7 @@ Minimum|MINIMUM|Mapped|[tf.math.minimum](https://tensorflow.google.cn/api_docs/p
 ||SPATIAL_TRANSFORMER|Unmapped
 And|LOGICAL_OPS|Mapped|[tf.math.logical_and](https://tensorflow.google.cn/api_docs/python/tf/math/logical_and)
 Or|LOGICAL_OPS|Mapped|[tf.math.logical_or](https://tensorflow.google.cn/api_docs/python/tf/math/logical_or)
-Select|SELECT|Mapped|[tf.experimental.numpy.select](https://tensorflow.google.cn/api_docs/python/tf/experimental/numpy/select)
+Select|SELECT|Mapped|[tf.where](https://tensorflow.google.cn/api_docs/python/tf/where)
 ||LSTMUNIT_ACTIVATION|Unmapped
 ||LSTMUNIT_OVXLIB|Unmapped
 ||TENSOR_ADD_MEAN_STDDEV_NORM|Unmapped
@@ -138,8 +138,8 @@ HardSwish|SWISH|Mapped|[tf.keras.activations.swish](https://tensorflow.google.cn
 ||DEPTHWISE_CONV1D|Unmapped
 GatherNd|GATHER_ND|Mapped|[tf.gather_nd](https://tensorflow.google.cn/api_docs/python/tf/gather_nd)
 Cast|CAST|Mapped|[tf.cast](https://tensorflow.google.cn/api_docs/python/tf/cast)
-||LINEAR|Unmapped|activation f(x) = a.x + b
-||BATCHNORM_SINGLE|Unmapped
+||LINEAR|Unmapped|f(x) = a\*x + b
+||BATCHNORM_SINGLE|Unmapped|[tf.nn.batch_normalization](https://tensorflow.google.cn/api_docs/python/tf/nn/batch_normalization)
 ||MOMENTS|Unmapped|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
 Squeeze|SQUEEZE|Mapped|[tf.squeeze](https://tensorflow.google.cn/api_docs/python/tf/squeeze)
 HardSigmoid|HARD_SIGMOID|Mapped|[tf.keras.activations.hard_sigmoid](https://tensorflow.google.cn/api_docs/python/tf/keras/activations/hard_sigmoid)
