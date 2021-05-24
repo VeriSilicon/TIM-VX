@@ -60,6 +60,10 @@ namespace ops {
  * ## Maximum
  *
  * Maximum(x, y) : max(x, y). This operation supports broadcasting.
+ *
+ * ## FloorDiv
+ *
+ * FloorDiv(x, y): floor( x / y ). This operation supports broadcasting.
  */
 
 #define DECLARE_ELEMENTWISE_OP(NAME) \
@@ -74,6 +78,7 @@ DECLARE_ELEMENTWISE_OP(Add)
 DECLARE_ELEMENTWISE_OP(Sub)
 DECLARE_ELEMENTWISE_OP(Div)
 DECLARE_ELEMENTWISE_OP(Pow)
+DECLARE_ELEMENTWISE_OP(FloorDiv)
 
 class Multiply : public Operation {
   public:

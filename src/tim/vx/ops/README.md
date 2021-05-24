@@ -79,7 +79,7 @@ Equal|RELATIONAL_OPS_EQUAL|Mapped|[tf.math.equal](https://tensorflow.google.cn/a
 NotEqual|RELATIONAL_OPS_NOT_EQUAL|Mapped|[tf.math.not_equal](https://tensorflow.google.cn/api_docs/python/tf/math/not_equal)
 ||SYNC_HOST|Unmapped
 Pow|POW|Mapped|[tf.math.pow](https://tensorflow.google.cn/api_docs/python/tf/math/pow)
-||FLOORDIV|Unmapped|[tf.math.floordiv](https://tensorflow.google.cn/api_docs/python/tf/math/floordiv)
+FloorDiv|FLOORDIV|Mapped|[tf.math.floordiv](https://tensorflow.google.cn/api_docs/python/tf/math/floordiv)
 Minimum|MINIMUM|Mapped|[tf.math.minimum](https://tensorflow.google.cn/api_docs/python/tf/math/minimum)
 ||SPATIAL_TRANSFORMER|Unmapped
 And|LOGICAL_OPS|Mapped|[tf.math.logical_and](https://tensorflow.google.cn/api_docs/python/tf/math/logical_and)

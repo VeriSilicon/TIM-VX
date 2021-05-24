@@ -27,7 +27,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(OP, floor_shape_5_1_fp32) {
+TEST(Floor, shape_5_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -55,7 +55,7 @@ TEST(OP, floor_shape_5_1_fp32) {
     EXPECT_EQ(golden, output);
 }
 
-TEST(OP, cast_shape_5_1_fp32_to_int32) {
+TEST(Cast, shape_5_1_fp32_to_int32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
