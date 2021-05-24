@@ -79,6 +79,8 @@ const std::shared_ptr<IPermuteVector> LayoutInferContext::GetPermuteVector(
     VSILOGE("Tensor PermuteVecor has not beed setted.");
     assert(false);
   }
+
+  return nullptr;
 }
 
 void LayoutInferContext::MarkVisited(const std::shared_ptr<vx::Operation>& op) {
@@ -125,6 +127,8 @@ std::shared_ptr<vx::Tensor> LayoutInferContext::GetMapedTensor(
     VSILOGE("Tensor has not beed inserted in tensor map.");
     assert(false);
   }
+
+  return nullptr;
 }
 
 void LayoutInferContext::UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& i_src,

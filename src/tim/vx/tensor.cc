@@ -88,6 +88,7 @@ TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, const void* data)
 TensorImpl::~TensorImpl() {}
 
 bool TensorImpl::CopyDataToTensor(const void* data, uint32_t size_in_bytes) {
+  (void)size_in_bytes;
   if (!IsWriteable()) {
     return false;
   }

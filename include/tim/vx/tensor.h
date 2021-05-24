@@ -74,7 +74,7 @@ class Quantization {
 
  protected:
   QuantType type_{QuantType::NONE};
-  int32_t channel_dim_;
+  int32_t channel_dim_{-1};
   std::vector<float> scales_;
   std::vector<int32_t> zero_points_;
 };

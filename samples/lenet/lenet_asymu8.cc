@@ -113,6 +113,7 @@ static void printTopN(const T* prob, int outputCount, int topNum) {
 }
 
 int main(int argc, char** argv) {
+  (void) argc, (void) argv;
   auto context = tim::vx::Context::Create();
   auto graph = context->CreateGraph();
 
