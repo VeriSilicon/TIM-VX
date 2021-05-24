@@ -247,7 +247,10 @@ std::shared_ptr<vx::Tensor> OpLayoutInfer::PermuteConstTensor(
     const std::shared_ptr<IPermuteVector>& pv) {
   std::vector<uint8_t> data;
   bool is_ok = TransposeConstTensorData(input, pv, data);
-  assert(is_ok);
+  if (!is_ok) {
+    assert(is_ok);
+    return nullptr;
+  }
   auto src_shape = input->GetShape();
   auto dst_spec = input->GetSpec();
   vx::ShapeType dst_shape;
