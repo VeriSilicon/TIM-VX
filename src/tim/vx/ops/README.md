@@ -148,7 +148,7 @@ Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_
 ||PRE_PROCESS_YUV444|Unmapped
 ||PRE_PROCESS_NV12|Unmapped
 ||SCATTER_ND|Unmapped|[tf.scatter_nd](https://tensorflow.google.cn/api_docs/python/tf/scatter_nd)
-||DECONVOLUTION1D|Unmapped|[tf.nn.conv1d_transpose](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d_transpose)
+|DeConv1d|DECONVOLUTION1D|Mapped|[tf.nn.conv1d_transpose](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d_transpose)
 ||INTERP|Unmapped
 ||RESIZE_1D|Unmapped
 ||CONV_RELU|Deprecated
