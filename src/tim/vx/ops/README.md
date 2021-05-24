@@ -150,7 +150,7 @@ Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_
 ||SCATTER_ND|Unmapped|[tf.scatter_nd](https://tensorflow.google.cn/api_docs/python/tf/scatter_nd)
 ||DECONVOLUTION1D|Unmapped|[tf.nn.conv1d_transpose](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d_transpose)
 ||INTERP|Unmapped
-||RESIZE_1D|Unmapped
+Resize1d|RESIZE_1D|Mapped|[Onnx.resize 1D image](https://github.com/onnx/onnx/blob/master/docs/Operators.md#resize)
 ||CONV_RELU|Deprecated
 ||CONV_RELU_POOL|Deprecated
 ||FCL|Deprecated
