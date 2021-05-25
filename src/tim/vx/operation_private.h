@@ -41,8 +41,7 @@ class OperationImpl {
   OperationImpl& SetRoundingPolicy(
       OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
       RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
-      DownScaleSizeRounding down_scale_size_rounding =
-          DownScaleSizeRounding::FLOOR,
+      RoundType down_scale_size_rounding = RoundType::FLOOR,
       uint32_t accumulator_bits = 0);
 
   vsi_nn_node_t* node() { return this->node_; }
