@@ -25,7 +25,7 @@ Reorg|REORG|Mapped|[darknet.reorg](https://github.com/pjreddie/darknet/blob/mast
 ||VARIABLE|Unmapped|[tf.variable](https://tensorflow.google.cn/api_docs/python/tf/Variable)
 L2Normalization|L2_NORMALIZE|Mapped|[tf.math.l2_normalize](https://tensorflow.google.cn/api_docs/python/tf/math/l2_normalize)
 FullyConnected|FCL2|Mapped|[tf.keras.layers.Dense](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/Dense)
-||POOLWITHARGMAX|Unmapped|[tf.nn.max_pool_with_argmax](https://tensorflow.google.cn/api_docs/python/tf/nn/max_pool_with_argmax)
+|MaxpoolWithArgmax|POOLWITHARGMAX|Mapped|[tf.nn.max_pool_with_argmax](https://tensorflow.google.cn/api_docs/python/tf/nn/max_pool_with_argmax)
 ArgMax|ARGMAX|Mapped|[tf.math.argmax](https://tensorflow.google.cn/api_docs/python/tf/math/argmax)
 Maximum|MAXIMUM|Mapped|[tf.math.maximum](https://tensorflow.google.cn/api_docs/python/tf/math/maximum)
 ||CROP|Unmapped

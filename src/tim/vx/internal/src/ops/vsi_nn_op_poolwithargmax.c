@@ -244,6 +244,14 @@ static vsi_bool op_setup
     )
 {
     vsi_bool ret = TRUE;
+    vsi_nn_compute_padding(
+        inputs[0]->attr.size,
+        self->nn_param.pool.ksize,
+        self->nn_param.pool.stride,
+        NULL,
+        self->nn_param.pool.pad_type,
+        self->nn_param.pool.pad
+    );
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
