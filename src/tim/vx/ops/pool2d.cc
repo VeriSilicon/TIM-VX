@@ -49,6 +49,12 @@ Pool2d::Pool2d(Graph* graph, PoolType type, PadType padding,
   this->impl()->node()->nn_param.pool.stride[0] = stride_[0];
   this->impl()->node()->nn_param.pool.stride[1] = stride_[1];
   this->impl()->node()->nn_param.pool.pad_type = TranslatePadType(padding_);
+  DownScaleSizeRounding down_scale_size_rounding = DownScaleSizeRounding::FLOOR;
+  if (RoundType::CEILING == round_type_) {
+    down_scale_size_rounding = DownScaleSizeRounding::CEILING;
+  }
+  this->SetRoundingPolicy(OverflowPolicy::SATURATE, RoundingPolicy::TO_ZERO,
+    down_scale_size_rounding);
 }
 
 }  // namespace ops
