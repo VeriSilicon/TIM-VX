@@ -77,7 +77,46 @@ TEST(Resize1d, shape_4_2_1_float_nearest_whcn) {
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
-TEST(Resize1d, shape_5_1_1_uint8_bilinear_align_corners_whcn) {
+TEST(Resize1d, shape_4_2_1_uint8_nearest_whcn) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType input_shape({4, 2, 1});
+    tim::vx::ShapeType output_shape({2, 2, 1});
+    tim::vx::Quantization input_quant(tim::vx::QuantType::ASYMMETRIC, 1, 0);
+    tim::vx::Quantization output_quant(tim::vx::QuantType::ASYMMETRIC, 1, 0);
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8,
+                            input_shape, tim::vx::TensorAttribute::INPUT, input_quant);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8,
+                            output_shape, tim::vx::TensorAttribute::OUTPUT, output_quant);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<uint8_t> in_data = {
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        };
+    std::vector<uint8_t> golden = {
+        1, 3,
+        5, 7,
+    };
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+
+    auto op = graph->CreateOperation<tim::vx::ops::Resize1d>(
+        tim::vx::ResizeType::NEAREST_NEIGHBOR, 0.6, false, false, 0);
+    (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<uint8_t> output(golden.size());
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(golden, output);
+}
+
+TEST(Resize1d, shape_5_1_1_float_bilinear_align_corners_whcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
