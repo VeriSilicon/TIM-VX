@@ -138,7 +138,7 @@ GatherNd|GATHER_ND|Mapped|[tf.gather_nd](https://tensorflow.google.cn/api_docs/p
 Cast|CAST|Mapped|[tf.cast](https://tensorflow.google.cn/api_docs/python/tf/cast)
 ||LINEAR|Unmapped|f(x) = a\*x + b
 ||BATCHNORM_SINGLE|Unmapped|[tf.nn.batch_normalization](https://tensorflow.google.cn/api_docs/python/tf/nn/batch_normalization)
-||MOMENTS|Unmapped|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
+Moments|MOMENTS|Mapped|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
 Squeeze|SQUEEZE|Mapped|[tf.squeeze](https://tensorflow.google.cn/api_docs/python/tf/squeeze)
 HardSigmoid|HARD_SIGMOID|Mapped|[tf.keras.activations.hard_sigmoid](https://tensorflow.google.cn/api_docs/python/tf/keras/activations/hard_sigmoid)
 Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_docs/python/tfa/activations/mish)
