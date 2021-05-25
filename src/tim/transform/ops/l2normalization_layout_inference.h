@@ -21,54 +21,39 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_PAD_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_PAD_LAYOUT_INFERENCE_H_
-
-#include "tim/vx/ops/pad.h"
+#ifndef TIM_LAYOUT_INFER_L2_NORMALIZATION_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_L2_NORMALIZATION_LAYOUT_INFERENCE_H_
 
 #include "src/tim/transform/ops/op_layout_inference.h"
-#include "src/tim/transform/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
+#include "tim/vx/ops/l2normalization.h"
+
 namespace tim {
 namespace transform {
-class PadLayoutInfer : public OpLayoutInfer {
+class L2NormalizationLayoutInfer : public OpLayoutInfer {
  public:
-  PadLayoutInfer(
-      const std::shared_ptr<vx::Operation> op,
+  L2NormalizationLayoutInfer(
+      const std::shared_ptr<vx::Operation>& op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
-
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    assert(op_->impl()->InputsTensor().size() == 1);
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto input_pv = context_->GetPermuteVector(i_src);
+    auto src_input = op_->impl()->InputsTensor()[0];
+    auto input_pv = context_->GetPermuteVector(src_input);
 
-    uint32_t dim_num = op_->impl()->node()->nn_param.pad.dim_num;
-    std::vector<uint32_t> front_size(dim_num);
-    std::vector<uint32_t> back_size(dim_num);
-    memcpy(front_size.data(), op_->impl()->node()->nn_param.pad.front_size,
-           sizeof(uint32_t) * dim_num);
-    memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
-           sizeof(uint32_t) * dim_num);
-    int32_t pad_value = op_->impl()->node()->nn_param.pad.const_val;
+    int32_t axis =
+        MapAxis(input_pv->AsStdVec(), op_->impl()->node()->nn_param.lrn.axis);
 
-    if (!input_pv->IsAligned()) {
-      front_size = MapMultipleAxis(input_pv->AsStdVec(), front_size);
-      back_size = MapMultipleAxis(input_pv->AsStdVec(), back_size);
-    }
+    auto l2norm =
+        context_->infer_graph_->CreateOperation<vx::ops::L2Normalization>(axis);
+    auto infer_out = CreateOutputsTensor(input_pv);
+    (*l2norm).BindInput(context_->GetMapedTensor(src_input));
+    (*l2norm).BindOutput(infer_out[0]);
 
-    auto pad = context_->infer_graph_->CreateOperation<vx::ops::Pad>(
-        front_size, back_size, pad_value);
-    auto out_infer = CreateOutputsTensor(input_pv);
-    (*pad).BindInput(context_->GetMapedTensor(i_src));
-    (*pad).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
-
 }  // namespace transform
 }  // namespace tim
-
 #endif

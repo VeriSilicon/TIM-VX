@@ -80,7 +80,29 @@ class LeakyReluLayoutInfer : public OpLayoutInfer {
   }
 };
 
-// TODO(yzw): Add Prelu
+class PReluLayoutInfer : public OpLayoutInfer {
+ public:
+  PReluLayoutInfer(
+      const std::shared_ptr<vx::Operation> op,
+      std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
+      : OpLayoutInfer(op, context) {}
+
+  void OnInputs(
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+    ReverseInputsPermuteVector();
+    auto src_input = op_->impl()->InputsTensor()[0];
+    auto input_pv = context_->GetPermuteVector(src_input);
+    auto prelu = context_->infer_graph_->CreateOperation<vx::ops::Prelu>(
+        op_->impl()->node()->nn_param.prelu.axis);
+    auto out_infer = CreateOutputsTensor(input_pv);
+    for (const auto& i_src : op_->impl()->InputsTensor()) {
+      (*prelu).BindInput(context_->GetMapedTensor(i_src));
+    }
+    (*prelu).BindOutput(out_infer[0]);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
+    next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
+  }
+};
 
 using ReluLayoutInfer = ActivationLayoutInfer<vx::ops::Relu>;
 using Relu1LayoutInfer = ActivationLayoutInfer<vx::ops::Relu1>;

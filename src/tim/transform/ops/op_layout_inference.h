@@ -71,7 +71,13 @@ class OpLayoutInfer {
 
   std::shared_ptr<IPermuteVector> AlignPermuteVectorForMutilInputs();
 
+  std::shared_ptr<IPermuteVector> AlignPermuteVectorForElementWise();
+
   void ReverseInputsPermuteVector();
+
+  std::vector<uint32_t> GetExpandedShape(
+      const std::vector<uint32_t>& ref_shape,
+      const std::vector<uint32_t>& origin_shape);
 
   bool TransposeConstTensorData(const std::shared_ptr<vx::Tensor>& input,
                                 const std::shared_ptr<IPermuteVector>& pv,
@@ -81,8 +87,10 @@ class OpLayoutInfer {
       const std::shared_ptr<vx::Tensor>& input,
       const std::shared_ptr<IPermuteVector>& pv);
   
-  std::vector<uint32_t> MapPadding(const std::vector<uint32_t>& perm,
-                                   const std::vector<uint32_t>& padding);
+  std::vector<uint32_t> MapMultipleAxis(const std::vector<uint32_t>& perm,
+                                   const std::vector<uint32_t>& axises);
+  std::vector<int32_t> MapMultipleAxis(const std::vector<uint32_t>& perm,
+                                   const std::vector<int32_t>& axises);
 
  protected:
   const std::shared_ptr<vx::Operation> op_;

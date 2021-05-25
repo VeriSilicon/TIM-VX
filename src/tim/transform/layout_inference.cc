@@ -45,6 +45,11 @@
 #include "ops/reduce_layout_inference.h"
 #include "ops/fullyconnected_layout_inference.h"
 #include "ops/resize_layout_inference.h"
+#include "ops/split_layout_inference.h"
+#include "ops/stridedslice_layout_inference.h"
+#include "ops/lrn_layout_inference.h"
+#include "ops/l2normalization_layout_inference.h"
+#include "ops/addn_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -211,6 +216,12 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_FCL2, FullyConnected);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RESIZE, Resize);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPLIT, Split);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_STRIDED_SLICE, StridedSlice);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LRN2, LRN);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_L2_NORMALIZE, L2Normalization);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ADDN, AddN);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PRELU, PRelu);
     default:
       VSILOGW("Op %d: Default layout inference pass.", op_id);
       assert(false);

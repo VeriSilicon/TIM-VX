@@ -42,7 +42,7 @@ class TensorImpl : public Tensor {
   const ShapeType& GetShape() { return spec_.shape_; }
   DataType GetDataType() { return spec_.datatype_; }
   const Quantization& GetQuantization() { return spec_.quantization_; }
-  const TensorSpec& GetSpec() { return spec_; }
+  TensorSpec& GetSpec() { return spec_; }
   uint32_t GetId();
   bool CopyDataToTensor(const void* data, uint32_t size = 0);
   bool CopyDataFromTensor(void* data);
@@ -66,7 +66,7 @@ class TensorPlaceholder : public Tensor {
   const ShapeType& GetShape() { return spec_.shape_; }
   DataType GetDataType() { return spec_.datatype_; }
   const Quantization& GetQuantization() { return spec_.quantization_; }
-  const TensorSpec& GetSpec() { return spec_; }
+  TensorSpec& GetSpec() { return spec_; }
   uint32_t GetId() { return id_; };
   bool CopyDataToTensor(const void* data, uint32_t size = 0) {
     (void)data, void(size);

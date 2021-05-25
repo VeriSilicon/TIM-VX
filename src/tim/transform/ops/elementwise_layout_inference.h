@@ -42,7 +42,7 @@ class ElementWiseLayoutInfer : public OpLayoutInfer {
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto required_pv = AlignPermuteVectorForMutilInputs();
+    auto required_pv = AlignPermuteVectorForElementWise();
     auto elementwise = context_->infer_graph_->CreateOperation<OpType>();
     for (const auto& i_src : op_->impl()->InputsTensor()) {
       (*elementwise).BindInput(context_->GetMapedTensor(i_src));
@@ -63,7 +63,7 @@ class MultiplyLayoutInfer : public OpLayoutInfer {
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto required_pv = AlignPermuteVectorForMutilInputs();
+    auto required_pv = AlignPermuteVectorForElementWise();
     auto multiply =
         context_->infer_graph_->CreateOperation<tim::vx::ops::Multiply>(
             op_->impl()->node()->nn_param.multiply.scale);
