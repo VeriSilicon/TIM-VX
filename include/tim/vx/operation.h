@@ -44,8 +44,7 @@ class Operation {
   Operation& SetRoundingPolicy(
       OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
       RoundingPolicy rounding_policy = RoundingPolicy::TO_ZERO,
-      DownScaleSizeRounding down_scale_size_rounding =
-          DownScaleSizeRounding::FLOOR,
+      RoundType down_scale_size_rounding = RoundType::FLOOR,
       uint32_t accumulator_bits = 0);
   std::unique_ptr<OperationImpl>& impl();
 

@@ -36,7 +36,7 @@ vsi_enum TranslatePoolType(PoolType type);
 vsi_nn_round_type_e TranslateRoundType(RoundType type);
 vsi_enum TranslateOverflowPolicy(OverflowPolicy type);
 vsi_enum TranslateRoundingPolicy(RoundingPolicy type);
-vsi_enum TranslateDownScaleSizeRounding(DownScaleSizeRounding type);
+vsi_enum TranslateDownScaleSizeRounding(RoundType type);
 vsi_enum TranslateResizeType(ResizeType type);
 vx_bool_e ToVxBool(bool val);
 }  // namespace vx
