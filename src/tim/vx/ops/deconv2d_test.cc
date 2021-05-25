@@ -17,7 +17,7 @@ size_t element_count(const tim::vx::ShapeType& shape) {
 
 }  // namespace
 
-TEST(OP, deconv_depthwise_two_channel) {
+TEST(deconv2d, shape_3_3_2_1_float_depthwise) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -85,7 +85,7 @@ TEST(OP, deconv_depthwise_two_channel) {
     EXPECT_EQ(golden, output_data) << "Result mismatch";
 }
 
-TEST(OP, deconv_single_channel) {
+TEST(deconv2d, shape_3_3_1_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
