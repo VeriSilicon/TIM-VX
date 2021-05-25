@@ -60,8 +60,6 @@ enum class OverflowPolicy { WRAP, SATURATE };
 
 enum class RoundingPolicy { TO_ZERO, RTNE };
 
-enum class DownScaleSizeRounding { FLOOR, CEILING };
-
 enum class ResizeType { NEAREST_NEIGHBOR, BILINEAR, AREA };
 
 enum class DataLayout {

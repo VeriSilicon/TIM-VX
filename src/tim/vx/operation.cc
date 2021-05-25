@@ -70,7 +70,7 @@ OperationImpl& OperationImpl::BindOutput(
 
 OperationImpl& OperationImpl::SetRoundingPolicy(
     OverflowPolicy overflow_policy, RoundingPolicy rounding_policy,
-    DownScaleSizeRounding down_scale_size_rounding, uint32_t accumulator_bits) {
+    RoundType down_scale_size_rounding, uint32_t accumulator_bits) {
   node_->vx_param.overflow_policy = TranslateOverflowPolicy(overflow_policy);
   node_->vx_param.rounding_policy = TranslateRoundingPolicy(rounding_policy);
   node_->vx_param.down_scale_size_rounding =
@@ -104,7 +104,7 @@ Operation& Operation::BindOutput(const std::shared_ptr<Tensor>& tensor) {
 
 Operation& Operation::SetRoundingPolicy(
     OverflowPolicy overflow_policy, RoundingPolicy rounding_policy,
-    DownScaleSizeRounding down_scale_size_rounding, uint32_t accumulator_bits) {
+    RoundType down_scale_size_rounding, uint32_t accumulator_bits) {
   impl_->SetRoundingPolicy(overflow_policy, rounding_policy,
                            down_scale_size_rounding, accumulator_bits);
   return *this;
