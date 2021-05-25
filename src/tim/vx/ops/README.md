@@ -21,7 +21,6 @@ Prelu|PRELU|Mapped|[tf.keras.layers.PReLU](https://tensorflow.google.cn/api_docs
 ||UPSAMPLE|Unmapped
 Relu|RELU|Mapped|[tf.nn.relu](https://tensorflow.google.cn/api_docs/python/tf/nn/relu)
 ||RELUN|Deprecated|[tf.keras.layers.ReLU(max_value=N)](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/ReLU)
-||LSTM|Unmapped|[tf.keras.layers.LSTM](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/LSTM)
 Reorg|REORG|Mapped|[darknet.reorg](https://github.com/pjreddie/darknet/blob/master/src/reorg_layer.c)
 ||VARIABLE|Unmapped|[tf.variable](https://tensorflow.google.cn/api_docs/python/tf/Variable)
 L2Normalization|L2_NORMALIZE|Mapped|[tf.math.l2_normalize](https://tensorflow.google.cn/api_docs/python/tf/math/l2_normalize)
@@ -29,7 +28,6 @@ FullyConnected|FCL2|Mapped|[tf.keras.layers.Dense](https://tensorflow.google.cn/
 ||POOLWITHARGMAX|Unmapped|[tf.nn.max_pool_with_argmax](https://tensorflow.google.cn/api_docs/python/tf/nn/max_pool_with_argmax)
 ArgMax|ARGMAX|Mapped|[tf.math.argmax](https://tensorflow.google.cn/api_docs/python/tf/math/argmax)
 Maximum|MAXIMUM|Mapped|[tf.math.maximum](https://tensorflow.google.cn/api_docs/python/tf/math/maximum)
-||L2NORMALIZESCALE|UnMapped|
 ||CROP|Unmapped
 Sub|SUBTRACT|Mapped|[tf.math.subtract](https://tensorflow.google.cn/api_docs/python/tf/math/subtract)
 Relu6|RELU6|Mapped|[tf.nn.relu6](https://tensorflow.google.cn/api_docs/python/tf/nn/relu6)
@@ -51,9 +49,7 @@ Elu|ELU|Mapped|[tf.nn.elu](https://tensorflow.google.cn/api_docs/python/tf/nn/el
 Batch2Space|BATCH2SPACE|Mapped|[tf.batch_to_space](https://tensorflow.google.cn/api_docs/python/tf/batch_to_space)
 Space2Batch|SPACE2BATCH|Mapped|[tf.space_to_batch](https://tensorflow.google.cn/api_docs/python/tf/space_to_batch)
 Pad|PAD|Mapped|[tf.pad](https://tensorflow.google.cn/api_docs/python/tf/pad)
-||IMAGEPROCESS|Unmapped
 ||MATRIXMUL|Unmapped|[tf.experimental.numpy.matmul](https://www.tensorflow.org/api_docs/python/tf/experimental/numpy/matmul)
-||LSTMUNIT|Unmapped
 |LayerNormalization|LAYER_NORM|Mapped|[tf.keras.layers.LayerNormalization](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/LayerNormalization)
 ReduceMin|REDUCE_MIN|Mapped|[tf.math.reduce_min](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_min)
 ReduceMax|REDUCE_MAX|Mapped|[tf.math.reduce_max](https://tensorflow.google.cn/api_docs/python/tf/math/reduce_max)
@@ -77,7 +73,6 @@ Less|RELATIONAL_OPS_LESS|Mapped|[tf.math.less](https://tensorflow.google.cn/api_
 LessOrEqual|RELATIONAL_OPS_LESS_EQUAL|Mapped|[tf.math.less_equal](https://tensorflow.google.cn/api_docs/python/tf/math/less_equal)
 Equal|RELATIONAL_OPS_EQUAL|Mapped|[tf.math.equal](https://tensorflow.google.cn/api_docs/python/tf/math/equal)
 NotEqual|RELATIONAL_OPS_NOT_EQUAL|Mapped|[tf.math.not_equal](https://tensorflow.google.cn/api_docs/python/tf/math/not_equal)
-||SYNC_HOST|Unmapped
 Pow|POW|Mapped|[tf.math.pow](https://tensorflow.google.cn/api_docs/python/tf/math/pow)
 FloorDiv|FLOORDIV|Mapped|[tf.math.floordiv](https://tensorflow.google.cn/api_docs/python/tf/math/floordiv)
 Minimum|MINIMUM|Mapped|[tf.math.minimum](https://tensorflow.google.cn/api_docs/python/tf/math/minimum)
@@ -85,8 +80,6 @@ Minimum|MINIMUM|Mapped|[tf.math.minimum](https://tensorflow.google.cn/api_docs/p
 And|LOGICAL_OPS|Mapped|[tf.math.logical_and](https://tensorflow.google.cn/api_docs/python/tf/math/logical_and)
 Or|LOGICAL_OPS|Mapped|[tf.math.logical_or](https://tensorflow.google.cn/api_docs/python/tf/math/logical_or)
 Select|SELECT|Mapped|[tf.where](https://tensorflow.google.cn/api_docs/python/tf/where)
-||LSTMUNIT_ACTIVATION|Unmapped
-||LSTMUNIT_OVXLIB|Unmapped
 ||TENSOR_ADD_MEAN_STDDEV_NORM|Unmapped
 Relu1|RELU1|Mapped|[tf.keras.layers.ReLU(max_value=1.0)](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/ReLU)
 Stack|STACK|Mapped|[tf.stack](https://tensorflow.google.cn/api_docs/python/tf/stack)
@@ -94,26 +87,27 @@ Floor|FLOOR|Mapped|[tf.math.floor](https://tensorflow.google.cn/api_docs/python/
 Square|SQUARE|Mapped|[tf.math.square](https://tensorflow.google.cn/api_docs/python/tf/math/square)
 Neg|NEG|Mapped|[tf.math.negative](https://tensorflow.google.cn/api_docs/python/tf/math/negative)
 Exp|EXP|Mapped|[tf.math.exp](https://tensorflow.google.cn/api_docs/python/tf/math/exp)
-||LSTM_OVXLIB|Unmapped
-||PRE_PROCESS_TENSOR|Unmapped
 ||HASHTABLE_LOOKUP|Unmapped|[ANEURALNETWORKS_HASHTABLE_LOOKUP](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0aca92716c8c73c1f0fa7f0757916fee26)
 ||EMBEDDING_LOOKUP|Unmapped|[ANEURALNETWORKS_EMBEDDING_LOOKUP](developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a8d2ada77adb74357fc0770405bca0e3)
 ||LSH_PROJECTION|Unmapped|[ANEURALNETWORKS_LSH_PROJECTION](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a800cdcec5d7ba776789cb2d1ef669965)
 ||RNN|Unmapped|[ANUERALNETWORKS_RNN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0acd2684ac9c73bb29767b534e78a332e8)
 Clip|CLIP|Mapped|[tf.clip_by_value](https://tensorflow.google.cn/api_docs/python/tf/clip_by_value)
-||POST_PROCESS|Unmapped
-||PRE_PROCESS_GRAY|Unmapped
 ||UNSTACK|Unmapped|[tf.unstack](https://tensorflow.google.cn/api_docs/python/tf/unstack)
-||PRE_PROCESS_RGB|Unmapped
 ||PRE_PROCESS|Unmapped
-AddN|ADDN|Mapped|[tf.math.add_n](https://tensorflow.google.cn/api_docs/python/tf/math/add_n)
+||PRE_PROCESS_RGB|Unmapped
+||PRE_PROCESS_GRAY|Unmapped
+||PRE_PROCESS_YUV444|Unmapped
+||PRE_PROCESS_NV12|Unmapped
 ||PRE_PROCESS_YUV420|Unmapped
-||EXTRA_ENDING|InternalOnly
+||PRE_PROCESS_BGRA|Unmapped
+||PRE_PROCESS_TENSOR|Unmapped
+||IMAGEPROCESS|Unmapped
+||POST_PROCESS|Unmapped
+AddN|ADDN|Mapped|[tf.math.add_n](https://tensorflow.google.cn/api_docs/python/tf/math/add_n)
 Gather|GATHER|Mapped|[tf.gather](https://tensorflow.google.cn/api_docs/python/tf/gather)
 ||TILE|Unmapped|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
 ||GROUPED_CONV2D|Unmapped|[ANEURALNETWORKS_GROUPED_CONV_2D](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a847acf8d9f3d2343328c3dbe6d447c50)
 ||TOPK|Unmapped|[tf.math.top_k](https://tensorflow.google.cn/api_docs/python/tf/math/top_k)
-||PRE_PROCESS_BGRA|Unmapped
 LogicalNot|LOGICAL_NOT|Mapped|[tf.math.logical_not](https://tensorflow.google.cn/api_docs/python/tf/math/logical_not)
 Sin|SIN|Mapped|[tf.math.sin](https://tensorflow.google.cn/api_docs/python/tf/math/sin)
 Log|LOG|Mapped|[tf.math.log](https://tensorflow.google.cn/api_docs/python/tf/math/log)
@@ -134,8 +128,12 @@ ArgMin|ARGMIN|Mapped|[tf.math.argmin](https://tensorflow.google.cn/api_docs/pyth
 ||BIDIRECTIONAL_SEQUENCE_RNN|Unmapped
 ||BIDIRECTIONAL_SEQUENCE_LSTM|Unmapped
 ||RNNCELL_OVXLIB|Unmapped
+||LSTM|Unmapped|[tf.keras.layers.LSTM](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/LSTM)
+||LSTM_OVXLIB|Unmapped
+||LSTMUNIT|Unmapped
+||LSTMUNIT_ACTIVATION|Unmapped
+||LSTMUNIT_OVXLIB|Unmapped
 HardSwish|SWISH|Mapped|[tf.keras.activations.swish](https://tensorflow.google.cn/api_docs/python/tf/keras/activations/swish)
-||DEPTHWISE_CONV1D|Unmapped
 GatherNd|GATHER_ND|Mapped|[tf.gather_nd](https://tensorflow.google.cn/api_docs/python/tf/gather_nd)
 Cast|CAST|Mapped|[tf.cast](https://tensorflow.google.cn/api_docs/python/tf/cast)
 ||LINEAR|Unmapped|f(x) = a\*x + b
@@ -145,11 +143,8 @@ Squeeze|SQUEEZE|Mapped|[tf.squeeze](https://tensorflow.google.cn/api_docs/python
 HardSigmoid|HARD_SIGMOID|Mapped|[tf.keras.activations.hard_sigmoid](https://tensorflow.google.cn/api_docs/python/tf/keras/activations/hard_sigmoid)
 Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_docs/python/tfa/activations/mish)
 ||EXPAND_BROADCAST|Unmapped
-||PRE_PROCESS_YUV444|Unmapped
-||PRE_PROCESS_NV12|Unmapped
 ||SCATTER_ND|Unmapped|[tf.scatter_nd](https://tensorflow.google.cn/api_docs/python/tf/scatter_nd)
 |DeConv1d|DECONVOLUTION1D|Mapped|[tf.nn.conv1d_transpose](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d_transpose)
-||INTERP|Unmapped
 Resize1d|RESIZE_1D|Mapped|[Onnx.resize 1D image](https://github.com/onnx/onnx/blob/master/docs/Operators.md#resize)
 ||CONV_RELU|Deprecated
 ||CONV_RELU_POOL|Deprecated
@@ -157,3 +152,8 @@ Resize1d|RESIZE_1D|Mapped|[Onnx.resize 1D image](https://github.com/onnx/onnx/bl
 ||FCL_RELU|Deprecated
 ||LRN|Deprecated
 ||SCALE|Deprecated
+||DEPTHWISE_CONV1D|Deprecated
+||L2NORMALIZESCALE|Deprecated
+||INTERP|Deprecated
+||EXTRA_ENDING|InternalOnly
+||SYNC_HOST|InternalOnly
