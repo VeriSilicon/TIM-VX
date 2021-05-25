@@ -40,7 +40,7 @@ template<typename T>
 }
 }
 
-TEST(Conv1d, ksize_1_stride_1_weights_3_no_bias_whcn_shape_3_6_1_float) {
+TEST(Conv1d, shape_3_6_1_float_ksize_1_stride_1_weights_3_no_bias_whcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -58,7 +58,7 @@ TEST(Conv1d, ksize_1_stride_1_weights_3_no_bias_whcn_shape_3_6_1_float) {
     auto output_tensor = graph->CreateTensor(output_spec);
 
     std::vector<float> in_data = {
-        -1,    0,   1,                                                                                                                                                                                                                                                          
+        -1,    0,   1,
         -1.5,  0.5, 1.5,
         -2,   -0.5, 2,
         -2.5,  0,   2.5,
@@ -91,7 +91,7 @@ TEST(Conv1d, ksize_1_stride_1_weights_3_no_bias_whcn_shape_3_6_1_float) {
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
-TEST(Conv1d, ksize_6_stride_1_weights_2_whcn_shape_6_2_1_uint8) {
+TEST(Conv1d, shape_6_2_1_uint8_ksize_6_stride_1_weights_2_whcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -157,7 +157,7 @@ TEST(Conv1d, ksize_6_stride_1_weights_2_whcn_shape_6_2_1_uint8) {
     EXPECT_TRUE(ArraysMatch(golden, output, static_cast<uint8_t>(0)));
 }
 
-TEST(Conv1d, ksize_3_stride_1_pad_1_weights_2_no_bias_whcn_shape_6_2_1_uint8) {
+TEST(Conv1d, shape_6_2_1_uint8_ksize_3_stride_1_pad_1_weights_2_no_bias_whcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -212,7 +212,7 @@ TEST(Conv1d, ksize_3_stride_1_pad_1_weights_2_no_bias_whcn_shape_6_2_1_uint8) {
 #if 0
 // Fail case
 // Internal impl conv1d don't support multiplier, need wait for the fix.
-TEST(Conv1d, ksize_3_stride_2_multiplier_1_whcn_shape_7_2_1_uint8) {
+TEST(Conv1d, shape_7_2_1_uint8_ksize_3_stride_2_multiplier_1_whcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 

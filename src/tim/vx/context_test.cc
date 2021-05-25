@@ -28,5 +28,6 @@ TEST(Context, create) {
     auto ctx0 = tim::vx::Context::Create();
     {auto ctx0 = tim::vx::Context::Create();}
     auto ctx1 = tim::vx::Context::Create();
-    // EXPECT_TRUE(0);
+    EXPECT_TRUE(nullptr != ctx0);
+    EXPECT_TRUE(nullptr != ctx1);
 }

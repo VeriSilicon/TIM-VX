@@ -40,7 +40,7 @@ template<typename T>
 }
 }
 
-TEST(OP, instance_norm_shape_3_6_1_float) {
+TEST(instance_norm, shape_3_6_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -97,7 +97,7 @@ TEST(OP, instance_norm_shape_3_6_1_float) {
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
-TEST(OP, instance_norm_shape_3_3_6_1_float) {
+TEST(instance_norm, shape_3_3_6_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
