@@ -62,16 +62,6 @@ enum class RoundingPolicy { TO_ZERO, RTNE };
 
 enum class DownScaleSizeRounding { FLOOR, CEILING };
 
-enum class ActivationType {
-  NONE,
-  RELU,
-  RELU1,
-  RELU6,
-  TANH,
-  //SIGNBIT,
-  SIGMOID
-};
-
 enum class ResizeType { NEAREST_NEIGHBOR, BILINEAR, AREA };
 
 enum class DataLayout {
