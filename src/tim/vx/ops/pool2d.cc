@@ -49,6 +49,7 @@ Pool2d::Pool2d(Graph* graph, PoolType type, PadType padding,
   this->impl()->node()->nn_param.pool.stride[0] = stride_[0];
   this->impl()->node()->nn_param.pool.stride[1] = stride_[1];
   this->impl()->node()->nn_param.pool.pad_type = TranslatePadType(padding_);
+  this->SetRoundingPolicy(OverflowPolicy::SATURATE, RoundingPolicy::RTNE, round_type_);
 }
 
 }  // namespace ops
