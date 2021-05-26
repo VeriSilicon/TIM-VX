@@ -119,7 +119,7 @@ ArgMin|ARGMIN|Mapped|[tf.math.argmin](https://tensorflow.google.cn/api_docs/pyth
 ||GENERATE_PROPOSALS|Unmapped|[ANEURALNETWORKS_GENERATE_PROPOSALS](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a72484020f2c41c814de0a7bf93dbbfd4)
 ||DETECTION_POSTPROCESS|Unmapped|[ANEURALNETWORKS_DETECTION_POSTPROCESSING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0abd6365933837275bb1f5cde1fd9b8234)
 ||RANDOM_MULTINOMIAL|Unmapped|[ANEURALNETWORKS_RANDOM_MULTINOMIAL](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6cb5032c09d3c4b542d18495c247b5b4)
-||LOG_SOFTMAX|Unmapped|[tf.nn.log_softmax](https://tensorflow.google.cn/api_docs/python/tf/nn/log_softmax)
+LogSoftmax|LOG_SOFTMAX|Mapped|[tf.nn.log_softmax](https://tensorflow.google.cn/api_docs/python/tf/nn/log_softmax)
 ||RELU_KERAS|Unmapped|[tf.keras.layers.ReLU](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/ReLU)
 ||GRU_OVXLIB|Unmapped
 ||GRUCELL_OVXLIB|Unmapped
