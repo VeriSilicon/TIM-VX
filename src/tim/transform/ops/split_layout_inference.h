@@ -21,54 +21,44 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_PAD_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_PAD_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_SPLIT_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_SPLIT_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/pad.h"
+#include "tim/vx/ops/split.h"
 
 #include "src/tim/transform/ops/op_layout_inference.h"
 #include "src/tim/transform/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
+
 namespace tim {
 namespace transform {
-class PadLayoutInfer : public OpLayoutInfer {
+class SplitLayoutInfer : public OpLayoutInfer {
  public:
-  PadLayoutInfer(
+  SplitLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
-
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    assert(op_->impl()->InputsTensor().size() == 1);
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto input_pv = context_->GetPermuteVector(i_src);
-
-    uint32_t dim_num = op_->impl()->node()->nn_param.pad.dim_num;
-    std::vector<uint32_t> front_size(dim_num);
-    std::vector<uint32_t> back_size(dim_num);
-    memcpy(front_size.data(), op_->impl()->node()->nn_param.pad.front_size,
-           sizeof(uint32_t) * dim_num);
-    memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
-           sizeof(uint32_t) * dim_num);
-    int32_t pad_value = op_->impl()->node()->nn_param.pad.const_val;
-
-    if (!input_pv->IsAligned()) {
-      front_size = MapMultipleAxis(input_pv->AsStdVec(), front_size);
-      back_size = MapMultipleAxis(input_pv->AsStdVec(), back_size);
+    auto input_tensor = op_->impl()->InputsTensor()[0];
+    uint32_t slices_num = op_->impl()->node()->nn_param.split.slices_num;
+    std::vector<uint32_t> slices(slices_num);
+    memcpy(slices.data(), op_->impl()->node()->nn_param.split.slices,
+           slices_num * sizeof(uint32_t));
+    auto input_pv = context_->GetPermuteVector(input_tensor);
+    uint32_t axis =
+        MapAxis(input_pv->AsStdVec(), op_->impl()->node()->nn_param.split.axis);
+    auto split =
+        context_->infer_graph_->CreateOperation<vx::ops::Split>(axis, slices);
+    auto infer_out = CreateOutputsTensor(input_pv);
+    (*split).BindInput(context_->GetMapedTensor(input_tensor));
+    (*split).BindOutputs(infer_out);
+    for (const auto& out : op_->impl()->OutputsTensor()) {
+        context_->SetPermuteVector(out, input_pv);
+        next_tensors.push_back(out);
     }
-
-    auto pad = context_->infer_graph_->CreateOperation<vx::ops::Pad>(
-        front_size, back_size, pad_value);
-    auto out_infer = CreateOutputsTensor(input_pv);
-    (*pad).BindInput(context_->GetMapedTensor(i_src));
-    (*pad).BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
-    next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
-
 }  // namespace transform
 }  // namespace tim
-
 #endif

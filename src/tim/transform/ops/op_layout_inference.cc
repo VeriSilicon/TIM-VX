@@ -180,7 +180,7 @@ OpLayoutInfer::AlignPermuteVectorForMutilInputs() {
             : perm_out = PermuteConstTensor(i_src, required_pv);
       } else {
         auto final_pv =
-          context_->GetPermuteVector(i_src)->Reverse()->Add(required_pv);
+            context_->GetPermuteVector(i_src)->Reverse()->Add(required_pv);
         final_pv->IsAligned() ? perm_out = context_->GetMapedTensor(i_src)
                               : perm_out = InsertPermute(
                                     context_->GetMapedTensor(i_src), final_pv);
@@ -191,6 +191,49 @@ OpLayoutInfer::AlignPermuteVectorForMutilInputs() {
   }
   return required_pv;
 }
+
+std::shared_ptr<IPermuteVector>
+OpLayoutInfer::AlignPermuteVectorForElementWise() {
+  auto src_inputs = op_->impl()->InputsTensor();
+  std::shared_ptr<IPermuteVector> required_pv = nullptr;
+  std::shared_ptr<vx::Tensor> ref_input;
+  for (const auto& in : src_inputs) {
+    if (!in->IsConstTensor()) {
+      required_pv = context_->GetPermuteVector(in);
+      ref_input = in;
+      break;
+    }
+  }
+
+  for (auto i_src : src_inputs) {
+    std::shared_ptr<vx::Tensor> perm_out;
+    if (i_src->IsConstTensor()) {
+      if (required_pv->IsAligned()) {
+        perm_out = context_->infer_graph_->CreateTensor(i_src->GetSpec(),
+                                                        i_src->GetDataRef());
+      } else if (i_src->GetShape().size() == required_pv->Rank()) {
+        perm_out = PermuteConstTensor(i_src, required_pv);
+        // need shape expansion
+      } else {
+        auto ref_shape = ref_input->GetShape();
+        auto origin_shape = i_src->GetShape();
+        auto expanded_shape = GetExpandedShape(ref_shape, origin_shape);
+        i_src->GetSpec().SetShape(expanded_shape);
+        perm_out = PermuteConstTensor(i_src, required_pv);
+      }
+    } else {
+      auto final_pv =
+          context_->GetPermuteVector(i_src)->Reverse()->Add(required_pv);
+      final_pv->IsAligned()
+          ? perm_out = context_->GetMapedTensor(i_src)
+          : perm_out = InsertPermute(context_->GetMapedTensor(i_src), final_pv);
+    }
+    context_->UpdateTensorMap(i_src, perm_out);
+    context_->SetPermuteVector(i_src, required_pv);
+  }
+  return required_pv;
+}
+
 
 void OpLayoutInfer::ReverseInputsPermuteVector() {
   for (const auto& i_src : op_->impl()->InputsTensor()) {
@@ -211,6 +254,21 @@ void OpLayoutInfer::ReverseInputsPermuteVector() {
     context_->UpdateTensorMap(i_src, perm_out);
     context_->SetPermuteVector(i_src, MakeShared(input_pv->Rank()));
   }
+}
+
+std::vector<uint32_t> OpLayoutInfer::GetExpandedShape(
+    const std::vector<uint32_t>& ref_shape,
+    const std::vector<uint32_t>& origin_shape) {
+  std::vector<uint32_t> expanded_shape;
+  for (uint32_t i = 0, j = 0; i < ref_shape.size(); ++i) {
+    if (ref_shape[i] == origin_shape[j] && j < origin_shape.size()) {
+      expanded_shape.push_back(origin_shape[j]);
+      ++j;
+    } else {
+      expanded_shape.push_back(1);
+    }
+  }
+  return expanded_shape;
 }
 
 bool OpLayoutInfer::TransposeConstTensorData(
@@ -265,16 +323,29 @@ std::shared_ptr<vx::Tensor> OpLayoutInfer::PermuteConstTensor(
   return context_->infer_graph_->CreateTensor(dst_spec, data.data());
 }
 
-std::vector<uint32_t> OpLayoutInfer::MapPadding(const std::vector<uint32_t>& perm,
-                                 const std::vector<uint32_t>& padding) {
-  assert(perm.size() == padding.size());
-  std::vector<uint32_t> r(padding.size());
+std::vector<uint32_t> OpLayoutInfer::MapMultipleAxis(
+    const std::vector<uint32_t>& perm, const std::vector<uint32_t>& axises) {
+  assert(perm.size() == axises.size());
+  std::vector<uint32_t> r(axises.size());
 
-  for (uint32_t i = 0; i < padding.size(); ++i) {
-    r[i] = padding[perm[i]];
+  for (uint32_t i = 0; i < axises.size(); ++i) {
+    r[i] = axises[perm[i]];
   }
 
   return r;
 }
+
+std::vector<int32_t> OpLayoutInfer::MapMultipleAxis(
+    const std::vector<uint32_t>& perm, const std::vector<int32_t>& axises) {
+  assert(perm.size() == axises.size());
+  std::vector<int32_t> r(axises.size());
+
+  for (uint32_t i = 0; i < axises.size(); ++i) {
+    r[i] = axises[perm[i]];
+  }
+
+  return r;
+}
+
 }  // namespace transform
 }  // namespace tim

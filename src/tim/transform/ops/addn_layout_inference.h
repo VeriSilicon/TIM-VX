@@ -21,54 +21,39 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_PAD_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_PAD_LAYOUT_INFERENCE_H_
-
-#include "tim/vx/ops/pad.h"
+#ifndef TIM_LAYOUT_INFER_ADDN_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_ADDN_LAYOUT_INFERENCE_H_
 
 #include "src/tim/transform/ops/op_layout_inference.h"
-#include "src/tim/transform/permute_vector.h"
 #include "src/tim/vx/operation_private.h"
+#include "tim/vx/ops/addn.h"
+
 namespace tim {
 namespace transform {
-class PadLayoutInfer : public OpLayoutInfer {
+class AddNLayoutInfer : public OpLayoutInfer {
  public:
-  PadLayoutInfer(
-      const std::shared_ptr<vx::Operation> op,
+  AddNLayoutInfer(
+      const std::shared_ptr<vx::Operation>& op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
-
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    assert(op_->impl()->InputsTensor().size() == 1);
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto input_pv = context_->GetPermuteVector(i_src);
+    auto required_pv = AlignPermuteVectorForMutilInputs();
+    uint32_t num_inputs = op_->impl()->input_cnt_;
 
-    uint32_t dim_num = op_->impl()->node()->nn_param.pad.dim_num;
-    std::vector<uint32_t> front_size(dim_num);
-    std::vector<uint32_t> back_size(dim_num);
-    memcpy(front_size.data(), op_->impl()->node()->nn_param.pad.front_size,
-           sizeof(uint32_t) * dim_num);
-    memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
-           sizeof(uint32_t) * dim_num);
-    int32_t pad_value = op_->impl()->node()->nn_param.pad.const_val;
+    auto addn =
+        context_->infer_graph_->CreateOperation<vx::ops::AddN>(num_inputs);
 
-    if (!input_pv->IsAligned()) {
-      front_size = MapMultipleAxis(input_pv->AsStdVec(), front_size);
-      back_size = MapMultipleAxis(input_pv->AsStdVec(), back_size);
+    for (const auto& i_src : op_->impl()->InputsTensor()) {
+      (*addn).BindInput(context_->GetMapedTensor(i_src));
     }
+    auto infer_out = CreateOutputsTensor(required_pv);
+    (*addn).BindOutput(infer_out[0]);
 
-    auto pad = context_->infer_graph_->CreateOperation<vx::ops::Pad>(
-        front_size, back_size, pad_value);
-    auto out_infer = CreateOutputsTensor(input_pv);
-    (*pad).BindInput(context_->GetMapedTensor(i_src));
-    (*pad).BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
-
 }  // namespace transform
 }  // namespace tim
-
 #endif
