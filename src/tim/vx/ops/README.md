@@ -18,7 +18,7 @@ DeConv2d|DECONVOLUTION|Mapped|[tf.nn.conv2d_transpose](https://tensorflow.google
 Reshape|RESHAPE|Mapped|[tf.reshape](https://tensorflow.google.cn/api_docs/python/tf/reshape)
 Transpose|PERMUTE|Mapped|[tf.transpose](https://tensorflow.google.cn/api_docs/python/tf/transpose)
 Prelu|PRELU|Mapped|[tf.keras.layers.PReLU](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/PReLU)
-||UPSAMPLE|Unmapped
+UnMaxpool2d|UPSAMPLE|Mapped| Recover pixel from the outputs of MaxpoolWithArgmax.
 Relu|RELU|Mapped|[tf.nn.relu](https://tensorflow.google.cn/api_docs/python/tf/nn/relu)
 ||RELUN|Deprecated|[tf.keras.layers.ReLU(max_value=N)](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/ReLU)
 Reorg|REORG|Mapped|[darknet.reorg](https://github.com/pjreddie/darknet/blob/master/src/reorg_layer.c)
