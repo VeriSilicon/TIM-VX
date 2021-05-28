@@ -23,11 +23,11 @@
 *****************************************************************************/
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
-#include "tim/vx/ops/unmaxpool2d.h"
+#include "tim/vx/ops/maxunpool2d.h"
 
 #include "gtest/gtest.h"
 
-TEST(UnMaxpool2d, shape_2_2_1_fp32_kernel_2_stride_2) {
+TEST(MaxUnpool2d, shape_2_2_1_fp32_kernel_2_stride_2) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -59,7 +59,7 @@ TEST(UnMaxpool2d, shape_2_2_1_fp32_kernel_2_stride_2) {
     EXPECT_TRUE(indices_tensor->CopyDataToTensor(indices.data(), indices.size()*4));
     std::array<uint32_t, 2> ksize = {2, 2};
     std::array<uint32_t, 2> stride = {2, 2};
-    auto op = graph->CreateOperation<tim::vx::ops::UnMaxpool2d>(ksize, stride);
+    auto op = graph->CreateOperation<tim::vx::ops::MaxUnpool2d>(ksize, stride);
     (*op).BindInputs({values_tensor, indices_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
@@ -70,7 +70,7 @@ TEST(UnMaxpool2d, shape_2_2_1_fp32_kernel_2_stride_2) {
     EXPECT_EQ(golden, output);
 }
 
-TEST(UnMaxpool2d, shape_2_2_1_uint8_kernel_2_stride_2) {
+TEST(MaxUnpool2d, shape_2_2_1_uint8_kernel_2_stride_2) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -104,7 +104,7 @@ TEST(UnMaxpool2d, shape_2_2_1_uint8_kernel_2_stride_2) {
     EXPECT_TRUE(indices_tensor->CopyDataToTensor(indices.data(), indices.size()));
     std::array<uint32_t, 2> ksize = {2, 2};
     std::array<uint32_t, 2> stride = {2, 2};
-    auto op = graph->CreateOperation<tim::vx::ops::UnMaxpool2d>(ksize, stride);
+    auto op = graph->CreateOperation<tim::vx::ops::MaxUnpool2d>(ksize, stride);
     (*op).BindInputs({values_tensor, indices_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());

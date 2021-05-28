@@ -21,26 +21,39 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/ops/unmaxpool2d.h"
+#ifndef TIM_VX_OPS_MAXUNPOOL2D_H_
+#define TIM_VX_OPS_MAXUNPOOL2D_H_
 
-#include "operation_private.h"
-#include "type_utils.h"
-#include "vsi_nn_pub.h"
+#include <array>
+
+#include "tim/vx/operation.h"
+#include "tim/vx/types.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-UnMaxpool2d::UnMaxpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
-    const std::array<uint32_t, 2>& stride, DataLayout layout)
-    : Operation(graph, VSI_NN_OP_UPSAMPLE, 2, 1, layout),
-      ksize_(ksize), stride_(stride) {
-  this->impl()->node()->nn_param.upsample.scale[0] = stride_[0];
-  this->impl()->node()->nn_param.upsample.scale[1] = stride_[1];
-  this->impl()->node()->nn_param.upsample.size[0] = ksize_[0];
-  this->impl()->node()->nn_param.upsample.size[1] = ksize_[1];
-}
+/**
+ * ## MaxUnpool2d
+ *
+ * Performs an 2-D Max pooling operation upsample 
+ *
+ * - stride : stride along each spatial axis.
+ * - ksize : filter size.
+ */
+
+class MaxUnpool2d : public Operation {
+ public:
+  MaxUnpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
+         const std::array<uint32_t, 2>& stride, DataLayout layout = DataLayout::WHCN);
+
+ protected:
+  const std::array<uint32_t, 2> ksize_;
+  const std::array<uint32_t, 2> stride_;
+};
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+
+#endif /* TIM_VX_OPS_MAXUNPOOL2D_H_ */

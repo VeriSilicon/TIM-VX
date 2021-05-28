@@ -21,39 +21,26 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_UNMAXPOOL2D_H_
-#define TIM_VX_OPS_UNMAXPOOL2D_H_
+#include "tim/vx/ops/maxunpool2d.h"
 
-#include <array>
-
-#include "tim/vx/operation.h"
-#include "tim/vx/types.h"
+#include "operation_private.h"
+#include "type_utils.h"
+#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-/**
- * ## UnMaxpool2d
- *
- * Performs an 2-D Max pooling operation upsample 
- *
- * - stride : stride along each spatial axis.
- * - ksize : filter size.
- */
-
-class UnMaxpool2d : public Operation {
- public:
-  UnMaxpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
-         const std::array<uint32_t, 2>& stride, DataLayout layout = DataLayout::WHCN);
-
- protected:
-  const std::array<uint32_t, 2> ksize_;
-  const std::array<uint32_t, 2> stride_;
-};
+MaxUnpool2d::MaxUnpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
+    const std::array<uint32_t, 2>& stride, DataLayout layout)
+    : Operation(graph, VSI_NN_OP_UPSAMPLE, 2, 1, layout),
+      ksize_(ksize), stride_(stride) {
+  this->impl()->node()->nn_param.upsample.scale[0] = stride_[0];
+  this->impl()->node()->nn_param.upsample.scale[1] = stride_[1];
+  this->impl()->node()->nn_param.upsample.size[0] = ksize_[0];
+  this->impl()->node()->nn_param.upsample.size[1] = ksize_[1];
+}
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
-
-#endif /* TIM_VX_OPS_UNMAXPOOL2D_H_ */
