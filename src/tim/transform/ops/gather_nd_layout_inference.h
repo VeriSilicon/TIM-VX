@@ -21,43 +21,41 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_GATHER_ND_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_GATHER_ND_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/stack.h"
-
-#include "src/tim/vx/operation_private.h"
-#include "src/tim/transform/permute_vector.h"
 #include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/vx/operation_private.h"
+#include "tim/vx/ops/gathernd.h"
 
 namespace tim {
 namespace transform {
-
-class StackLayoutInfer : public OpLayoutInfer {
+class GatherNdLayoutInfer : public OpLayoutInfer {
  public:
-  StackLayoutInfer(
-      const std::shared_ptr<vx::Operation> op,
+  GatherNdLayoutInfer(
+      const std::shared_ptr<vx::Operation>& op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
     ReverseInputsPermuteVector();
-    int32_t axis = op_->impl()->node()->nn_param.stack.axis;
-    auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
-        axis, op_->impl()->input_cnt_);
+    uint32_t input_rank = op_->impl()->InputsTensor()[0]->GetShape().size();
+    uint32_t position_rank = op_->impl()->InputsTensor()[1]->GetShape().size();
+    uint32_t indices_rank = op_->impl()->InputsTensor()[1]->GetShape()[0];
+    int32_t output_rank = input_rank + position_rank - indices_rank - 1;
+
+    auto gather = context_->infer_graph_->CreateOperation<vx::ops::GatherNd>();
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*stack).BindInput(context_->GetMapedTensor(i_src));
+      (*gather).BindInput(context_->GetMapedTensor(i_src));
     }
-    auto required_pv = MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    auto out_infer = CreateOutputsTensor(required_pv);
-    (*stack).BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
-    // Add out tensor of src_graph into next_tensor
+    auto infer_out = CreateOutputsTensor(
+        context_->GetPermuteVector(op_->impl()->InputsTensor()[0]));
+    (*gather).BindOutput(infer_out[0]);
+    auto output_pv = MakeShared(output_rank);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], output_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
-
 }  // namespace transform
 }  // namespace tim
-
 #endif

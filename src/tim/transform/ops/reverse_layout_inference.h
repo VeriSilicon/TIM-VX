@@ -21,43 +21,41 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_REVERSE_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_REVERSE_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/stack.h"
-
-#include "src/tim/vx/operation_private.h"
-#include "src/tim/transform/permute_vector.h"
 #include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/vx/operation_private.h"
+#include "tim/vx/ops/reverse.h"
 
 namespace tim {
 namespace transform {
-
-class StackLayoutInfer : public OpLayoutInfer {
+class ReverseLayoutInfer : public OpLayoutInfer {
  public:
-  StackLayoutInfer(
-      const std::shared_ptr<vx::Operation> op,
+  ReverseLayoutInfer(
+      const std::shared_ptr<vx::Operation>& op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    ReverseInputsPermuteVector();
-    int32_t axis = op_->impl()->node()->nn_param.stack.axis;
-    auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
-        axis, op_->impl()->input_cnt_);
-    for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*stack).BindInput(context_->GetMapedTensor(i_src));
+    auto src_input = op_->impl()->InputsTensor()[0];
+    auto input_pv = context_->GetPermuteVector(src_input);
+    std::vector<int32_t> axis(op_->impl()->node()->nn_param.reverse.axis_num);
+    memcpy(axis.data(), op_->impl()->node()->nn_param.reverse.axis,
+           axis.size() * sizeof(int32_t));
+    for (uint32_t i = 0; i < axis.size(); ++i) {
+      axis[i] = MapAxis(input_pv->AsStdVec(), axis[i]);
     }
-    auto required_pv = MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    auto out_infer = CreateOutputsTensor(required_pv);
-    (*stack).BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
-    // Add out tensor of src_graph into next_tensor
+
+    auto reverse = context_->infer_graph_->CreateOperation<vx::ops::Reverse>(
+        axis);
+    (*reverse).BindInput(context_->GetMapedTensor(src_input));
+    auto infer_out = CreateOutputsTensor(input_pv);
+    (*reverse).BindOutput(infer_out[0]);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
-
 }  // namespace transform
 }  // namespace tim
-
 #endif

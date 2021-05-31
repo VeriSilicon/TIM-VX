@@ -36,25 +36,29 @@ namespace ops {
 DeConv2d::DeConv2d(Graph* graph, int32_t oc_count, PadType pad_type,
     const std::array<uint32_t, 2>& ksize,
     const std::array<uint32_t, 2>& stride,
-    const std::array<uint32_t, 2>& output_padding)
+    const std::array<uint32_t, 2>& output_padding,
+    DataLayout input_layout,
+    DataLayout kernel_layout)
   : DeConv2d(graph, oc_count, pad_type, ksize, stride, output_padding,
-      {0, 0, 0, 0}) {
-}
+      {0, 0, 0, 0}, 1, input_layout, kernel_layout) {}
 
 DeConv2d::DeConv2d(Graph* graph, int32_t oc_count, PadType pad_type,
     const std::array<uint32_t, 2>& ksize,
     const std::array<uint32_t, 2>& stride,
     const std::array<uint32_t, 2>& output_padding,
     const std::array<uint32_t, 4>& pad,
-    const uint32_t group)
-  : Operation(graph, VSI_NN_OP_DECONVOLUTION),
+    const uint32_t group,
+    DataLayout input_layout,
+    DataLayout kernel_layout)
+  : Operation(graph, VSI_NN_OP_DECONVOLUTION, 0, 0, input_layout),
     oc_count_(oc_count),
     pad_type_(pad_type),
     ksize_(ksize),
     stride_(stride),
     output_padding_(output_padding),
     pad_(pad),
-    group_(group) {
+    group_(group),
+    kernel_layout_(kernel_layout) {
 
   // TODO(Sven): only support depthwise usage
   assert((group == 1U) || group == static_cast<uint32_t>(oc_count));

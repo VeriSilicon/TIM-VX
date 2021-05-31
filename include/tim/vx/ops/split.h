@@ -37,7 +37,7 @@ namespace ops {
  * Splits a tensor along a given axis into num_splits subtensors.
  *
  * - axis : the axis along which to split.
- * - slices : ndicating the number of splits along given axis.
+ * - slices : indicating the number of splits along given axis.
  */
 
 class Split : public Operation {
