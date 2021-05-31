@@ -37,11 +37,17 @@ namespace ops {
  *
  * Performs a 2-D convolution operation, include classic Conv2D /
  * Depthwise Conv2D / Group Conv2D / Dilation Conv2D.
+ * 
+ * Input:
+ * - input [WHCN or CWHN].
+ * - kernel [ WHIcOc ] (Ic: Input Channels. Oc: Output Channels).
+ * - bias [ O ]. Optional.
  *
+ * Attribute:
  * - weights : the output channel number for weight tensor.
  * - ksize : the height and width for weight tensor.
  * - padding : AUTO, VALID or SAME.
- * - pad : pad value for each spatial axis. 
+ * - pad : pad value for each spatial axis.
  * - stride : stride along each spatial axis.
  * - dilation : dilation value along each spatial axis of the filter.
  * - multiplier: function similar to group attribute on other framework,

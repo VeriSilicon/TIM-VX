@@ -1,3 +1,23 @@
+# Memory Layout
+
+There are two different memory layout mode:
+
+- Row-Major. Also called C contiguous, which is firstly introduced in C by AT&T Bell Lab(1960s). Caffe/TensorFlow/Pytorch follow the Row-Major layout mode.
+
+- Column-Major. Also called Fortran contiguous, which is firstly introduced in Fortran by IBM(1958). Matlab/OpenGL/OpenCL/OpenVX follow the Column-Major layout mode.
+
+See also :
+
+http://eigen.tuxfamily.org/dox/group__TopicStorageOrders.html
+
+On the other hand, a memory layout can be described by both Row-Major and Column-Major mode.
+
+It easily tranlate the layout mode from one to another: just reverse the dimesions of the tensor.
+
+For example, TensorFlow usually describe the tensor as NHWC format. This is equal the CWHN format in OpenVX.
+
+Likewise, the WHCN format in OpenVX is equal the NCHW format in Caffe.
+
 # Operators
 
 {DOCS}
