@@ -21,43 +21,41 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_LOGICAL_OPS_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_LOGICAL_OPS_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/stack.h"
-
-#include "src/tim/vx/operation_private.h"
-#include "src/tim/transform/permute_vector.h"
 #include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/vx/operation_private.h"
+#include "tim/vx/ops/logical.h"
 
 namespace tim {
 namespace transform {
-
-class StackLayoutInfer : public OpLayoutInfer {
+template <typename OpTpye>
+class LogicalOpsLayoutInfer : public OpLayoutInfer {
  public:
-  StackLayoutInfer(
+  LogicalOpsLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
+
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    ReverseInputsPermuteVector();
-    int32_t axis = op_->impl()->node()->nn_param.stack.axis;
-    auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
-        axis, op_->impl()->input_cnt_);
+    auto required_pv = AlignPermuteVectorForMutilInputs();
+    auto infer_out = CreateOutputsTensor(required_pv);
+    auto logical_op = context_->infer_graph_->CreateOperation<OpTpye>();
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*stack).BindInput(context_->GetMapedTensor(i_src));
+      (*logical_op).BindInput(context_->GetMapedTensor(i_src));
     }
-    auto required_pv = MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    auto out_infer = CreateOutputsTensor(required_pv);
-    (*stack).BindOutput(out_infer[0]);
+    (*logical_op).BindOutput(infer_out[0]);
+
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
-    // Add out tensor of src_graph into next_tensor
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
 
+using LogicalAndLayoutInfer = LogicalOpsLayoutInfer<vx::ops::LogicalAnd>;
+using LogicalOrLayoutInfer = LogicalOpsLayoutInfer<vx::ops::LogicalOr>;
+
 }  // namespace transform
 }  // namespace tim
-
 #endif

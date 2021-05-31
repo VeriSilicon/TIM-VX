@@ -50,6 +50,14 @@
 #include "ops/lrn_layout_inference.h"
 #include "ops/l2normalization_layout_inference.h"
 #include "ops/addn_layout_inference.h"
+#include "ops/gather_layout_inference.h"
+#include "ops/gather_nd_layout_inference.h"
+#include "ops/reverse_layout_inference.h"
+#include "ops/slice_layout_inference.h"
+#include "ops/select_layout_inference.h"
+#include "ops/logical_layout_inference.h"
+#include "ops/arg_layout_inference.h"
+#include "ops/deconv2d_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -149,7 +157,7 @@ void LayoutInferContext::UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& 
     break;                                                        \
   }                                                               \
 
-#define REGIST_REDUCE_LAYOUT_INFERENCE(op_idx)                                                  \
+#define REGIST_REDUCE_LAYOUT_INFERENCE(op_idx)                                 \
   case op_idx: {                                                               \
     auto reduce_type = op->impl()->node()->nn_param.reduce.type;               \
     switch (reduce_type) {                                                     \
@@ -165,6 +173,20 @@ void LayoutInferContext::UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& 
     }                                                                          \
     break;                                                                     \
   }                                                                            \
+
+#define REGIST_LOGICAL_LAYOUT_INFERENCE(op_idx)                                  \
+  case op_idx: {                                                                 \
+    auto logical_type = op->impl()->node()->nn_param.relational_ops.op;          \
+    switch (logical_type)                                                        \
+    {                                                                            \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_LOGICAL_AND, LogicalAnd);                   \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_LOGICAL_OR, LogicalOr);                     \
+    default:                                                                     \
+      VSILOGW("Op %d: Default layout inference pass for logical.", logical_type);\
+      assert(false);                                                             \
+    }                                                                            \
+    break;                                                                       \
+  }                                                                              \
 
 std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     std::shared_ptr<layout_inference_impl::LayoutInferContext>& ctx,
@@ -213,7 +235,6 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2BATCH, SpaceToBatch);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH2SPACE, BatchToSpace);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PAD, Pad);
-    REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_FCL2, FullyConnected);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RESIZE, Resize);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPLIT, Split);
@@ -222,6 +243,16 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_L2_NORMALIZE, L2Normalization);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ADDN, AddN);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PRELU, PRelu);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GATHER, Gather);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GATHER_ND, GatherNd);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_REVERSE, Reverse);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SLICE, Slice);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SELECT, Select);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMAX, ArgMax);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMIN, ArgMin);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DECONVOLUTION, DeConv2d);
+    REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
+    REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     default:
       VSILOGW("Op %d: Default layout inference pass.", op_id);
       assert(false);

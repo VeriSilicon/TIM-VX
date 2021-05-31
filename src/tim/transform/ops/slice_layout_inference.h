@@ -21,43 +21,45 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_SLICE_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_SLICE_LAYOUT_INFERENCE_H_
 
-#include "tim/vx/ops/stack.h"
-
-#include "src/tim/vx/operation_private.h"
-#include "src/tim/transform/permute_vector.h"
 #include "src/tim/transform/ops/op_layout_inference.h"
+#include "src/tim/vx/operation_private.h"
+#include "tim/vx/ops/slice.h"
 
 namespace tim {
 namespace transform {
-
-class StackLayoutInfer : public OpLayoutInfer {
+class SliceLayoutInfer : public OpLayoutInfer {
  public:
-  StackLayoutInfer(
-      const std::shared_ptr<vx::Operation> op,
+  SliceLayoutInfer(
+      const std::shared_ptr<vx::Operation>& op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    ReverseInputsPermuteVector();
-    int32_t axis = op_->impl()->node()->nn_param.stack.axis;
-    auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
-        axis, op_->impl()->input_cnt_);
-    for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*stack).BindInput(context_->GetMapedTensor(i_src));
-    }
-    auto required_pv = MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    auto out_infer = CreateOutputsTensor(required_pv);
-    (*stack).BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
-    // Add out tensor of src_graph into next_tensor
+    auto src_input = op_->impl()->InputsTensor()[0];
+    auto input_pv = context_->GetPermuteVector(src_input);
+
+    uint32_t dims = op_->impl()->node()->nn_param.slice.dims;
+    const uint32_t* start_ptr = op_->impl()->node()->nn_param.slice.start;
+    const uint32_t* length_ptr = op_->impl()->node()->nn_param.slice.length;
+    std::vector<int32_t> start(dims);
+    std::vector<int32_t> length(dims);
+    memcpy(start.data(), start_ptr, dims * sizeof(uint32_t));
+    memcpy(length.data(), length_ptr, dims * sizeof(uint32_t));
+    start = MapMultipleAxis(input_pv->AsStdVec(), start);
+    length = MapMultipleAxis(input_pv->AsStdVec(), length);
+
+    auto slice = context_->infer_graph_->CreateOperation<vx::ops::Slice>(
+        dims, start, length);
+    auto infer_out = CreateOutputsTensor(input_pv);
+    (*slice).BindInput(context_->GetMapedTensor(src_input));
+    (*slice).BindOutput(infer_out[0]);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };
-
 }  // namespace transform
 }  // namespace tim
-
 #endif

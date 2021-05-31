@@ -40,13 +40,17 @@ namespace ops {
  * This operation is sometimes called "deconvolution" after Deconvolutional Networks,
  * but is actually the transpose (gradient) of Conv2D rather than an actual deconvolution.
  *
- * - weights : the channel number for weight tensor.
+ * - oc_count_ : the out channel count for weight tensor.
+ * - pad_type : SAME, VALID or AUTO.
  * - ksize : the height and width for weight tensor.
  * - padding : AUTO, VALID or SAME.
  * - pad : pad value for each spatial axis.
  * - stride : stride along each spatial axis.
  * - output_padding : specifying the amount of padding along the height and width of
  * the output tensor.
+ * - group : the feature count of each group.
+ * - input_layout : Layout for input, WHCN by default.
+ * - kernel_layout: Layout for kernel, WHIO by default.
  */
 
 class DeConv2d : public Operation {
@@ -54,22 +58,28 @@ class DeConv2d : public Operation {
     DeConv2d(Graph* graph, int32_t oc_count_, PadType pad_type,
         const std::array<uint32_t, 2>& ksize,
         const std::array<uint32_t, 2>& stride,
-        const std::array<uint32_t, 2>& output_padding);
+        const std::array<uint32_t, 2>& output_padding,
+        DataLayout input_layout = DataLayout::WHCN,
+        DataLayout kernel_layout = DataLayout::WHIcOc);
     DeConv2d(Graph* graph, int32_t oc_count_, PadType pad_type,
         const std::array<uint32_t, 2>& ksize,
         const std::array<uint32_t, 2>& stride,
         const std::array<uint32_t, 2>& output_padding,
         const std::array<uint32_t, 4>& pad,
-        const uint32_t group = 1);
+        const uint32_t group = 1,
+        DataLayout input_layout = DataLayout::WHCN,
+        DataLayout kernel_layout = DataLayout::WHIcOc);
 
+    DataLayout KernelDataLayout() { return kernel_layout_; }
   protected:
-    const uint32_t oc_count_; // output channel count
+    const uint32_t oc_count_;
     const PadType pad_type_;
     const std::array<uint32_t, 2> ksize_;
     const std::array<uint32_t, 2> stride_;
     const std::array<uint32_t, 2> output_padding_;
     const std::array<uint32_t, 4> pad_;
     const uint32_t group_;
+    const DataLayout kernel_layout_;
 };
 
 } // namespace ops

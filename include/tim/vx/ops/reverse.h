@@ -39,11 +39,10 @@ namespace ops {
 
 class Reverse : public Operation {
  public:
-  Reverse(Graph* graph, int32_t* axis, uint32_t axis_num);
+  Reverse(Graph* graph, const std::vector<int32_t>& axis);
 
  protected:
-  int32_t* axis_;
-  uint32_t axis_num_;
+  const std::vector<int32_t> axis_;
 };
 
 }  // namespace ops
