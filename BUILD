@@ -35,7 +35,8 @@ cc_library(
         "src/tim/transform/permute_vector.h",
         "src/tim/transform/layout_infer_context.h",
     ] + glob([
-        "src/tim/vx/ops/*.cc"
+        "src/tim/vx/ops/*.cc",
+        "src/tim/vx/ops/*.h"
         ], exclude = ["src/tim/vx/ops/*_test.cc"]
     ) + glob(["src/tim/transform/ops/*.*"]),
     deps = [
@@ -94,7 +95,9 @@ cc_binary(
 cc_test (
     name = "unit_test",
     copts = ["-std=c++14", "-Werror"],
-    srcs = glob(["src/tim/**/*_test.cc"]),
+    srcs = [
+        "src/tim/vx/test_utils.h",
+    ] + glob(["src/tim/**/*_test.cc"]),
     deps = [
         "@gtest//:gtest",
         "@gtest//:gtest_main",
