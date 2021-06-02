@@ -52,6 +52,19 @@ Pool2d::Pool2d(Graph* graph, PoolType type, PadType padding,
   this->SetRoundingPolicy(OverflowPolicy::SATURATE, RoundingPolicy::RTNE, round_type_);
 }
 
+Pool2d::Pool2d(Graph* graph, PoolType type, PadType padding,
+               const std::array<uint32_t, 2>& ksize,
+               const std::array<uint32_t, 2>& stride,
+               const std::array<uint32_t, 4>& pad,
+               RoundType round_type,
+               DataLayout layout)
+    : Pool2d(graph, type, padding, ksize, stride, round_type, layout){
+  this->impl()->node()->nn_param.pool.pad[0] = pad[0];
+  this->impl()->node()->nn_param.pool.pad[1] = pad[1];
+  this->impl()->node()->nn_param.pool.pad[2] = pad[2];
+  this->impl()->node()->nn_param.pool.pad[3] = pad[3];
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
