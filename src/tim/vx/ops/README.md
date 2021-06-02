@@ -15,7 +15,7 @@ DeConv2d|DECONVOLUTION|Mapped|[tf.nn.conv2d_transpose](https://tensorflow.google
 Reshape|RESHAPE|Mapped|[tf.reshape](https://tensorflow.google.cn/api_docs/python/tf/reshape)
 Transpose|PERMUTE|Mapped|[tf.transpose](https://tensorflow.google.cn/api_docs/python/tf/transpose)
 Prelu|PRELU|Mapped|[tf.keras.layers.PReLU](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/PReLU)
-MaxUnpool2d|UPSAMPLE|Mapped| Recover pixel from the outputs of MaxpoolWithArgmax.
+MaxUnpool2d|UPSAMPLE|Mapped|[tfa.layers.MaxUnpooling2D](https://tensorflow.google.cn/addons/api_docs/python/tfa/layers/MaxUnpooling2D)
 Relu|RELU|Mapped|[tf.nn.relu](https://tensorflow.google.cn/api_docs/python/tf/nn/relu)
 Reorg|REORG|Mapped|[darknet.reorg](https://github.com/pjreddie/darknet/blob/master/src/reorg_layer.c)
 L2Normalization|L2_NORMALIZE|Mapped|[tf.math.l2_normalize](https://tensorflow.google.cn/api_docs/python/tf/math/l2_normalize)
@@ -36,7 +36,7 @@ Resize|RESIZE|Mapped|[tf.image.resize](https://tensorflow.google.cn/api_docs/pyt
 Reverse|REVERSE|Mapped|[tf.reverse](https://tensorflow.google.cn/api_docs/python/tf/reverse)
 DepthToSpace|DEPTH2SPACE|Mapped|[tf.nn.depth_to_space](https://tensorflow.google.cn/api_docs/python/tf/nn/depth_to_space)
 SpaceToDepth|SPACE2DEPTH|Mapped|[tf.nn.space_to_depth](https://tensorflow.google.cn/api_docs/python/tf/nn/space_to_depth)
-DataConvert|DATACONVERT|Mapped
+DataConvert|DATACONVERT|Mapped|Data Format Conversion
 Slice|SLICE|Mapped|[tf.slice](https://tensorflow.google.cn/api_docs/python/tf/slice)
 Elu|ELU|Mapped|[tf.nn.elu](https://tensorflow.google.cn/api_docs/python/tf/nn/elu)
 Batch2Space|BATCH2SPACE|Mapped|[tf.batch_to_space](https://tensorflow.google.cn/api_docs/python/tf/batch_to_space)
@@ -52,7 +52,7 @@ ReduceMean|REDUCE_MEAN|Mapped|[tf.math.reduce_mean](https://tensorflow.google.cn
 StridedSlice|STRIDED_SLICE|Mapped|[tf.strided_slice](https://tensorflow.google.cn/api_docs/python/tf/strided_slice)
 Abs|ABS|Mapped|[tf.math.abs](https://tensorflow.google.cn/api_docs/python/tf/math/abs)
 |Conv1d|CONV1D|Mapped|[tf.nn.conv1d](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d)
-NBG|NBG|Mapped
+NBG|NBG|Mapped|Network Binary Graph
 LocalResponseNormalization|LRN2|Mapped|[tf.nn.local_response_normalization](https://tensorflow.google.cn/api_docs/python/tf/nn/local_response_normalization)
 Greater|RELATIONAL_OPS_GREATER|Mapped|[tf.math.greater](https://tensorflow.google.cn/api_docs/python/tf/math/greater)
 GreaterOrEqual|RELATIONAL_OPS_GREATER_EQUAL|Mapped|[tf.math.greater_equal](https://tensorflow.google.cn/api_docs/python/tf/math/greater_equal)
@@ -88,37 +88,24 @@ HardSigmoid|HARD_SIGMOID|Mapped|[tf.keras.activations.hard_sigmoid](https://tens
 Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_docs/python/tfa/activations/mish)
 |DeConv1d|DECONVOLUTION1D|Mapped|[tf.nn.conv1d_transpose](https://tensorflow.google.cn/api_docs/python/tf/nn/conv1d_transpose)
 Resize1d|RESIZE_1D|Mapped|[Onnx.resize 1D image](https://github.com/onnx/onnx/blob/master/docs/Operators.md#resize)
-||LINEAR|Unmapped|f(x) = a\*x + b
-||BATCHNORM_SINGLE|Unmapped|[tf.nn.batch_normalization](https://tensorflow.google.cn/api_docs/python/tf/nn/batch_normalization)
+|Linear|LINEAR|Unmapped|[tf.keras.activations.linear](https://www.tensorflow.org/api_docs/python/tf/keras/activations/linear)
 ||MOMENTS|Unmapped|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
-||EXPAND_BROADCAST|Unmapped
 ||SCATTER_ND|Unmapped|[tf.scatter_nd](https://tensorflow.google.cn/api_docs/python/tf/scatter_nd)
-||ROI_POOL|Unmapped|[ANEURALNETWORKS_ROI_POOLING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6736198af337b2efbdb0b6b64dee7fe4)
-||PROPOSAL|Unmapped
+||PROPOSAL|Unmapped|[Faster-RCNN Proposal Layer](https://github.com/intel/caffe/blob/master/examples/faster-rcnn/lib/rpn/proposal_layer.py)
 ||MATRIXMUL|Unmapped|[tf.experimental.numpy.matmul](https://www.tensorflow.org/api_docs/python/tf/experimental/numpy/matmul)
-||SIGNAL_FRAME|Unmapped|tf.signal.frame
+||SIGNAL_FRAME|Unmapped|[tf.signal.frame](https://tensorflow.google.cn/api_docs/python/tf/signal/frame)
 ||A_TIMES_B_PLUS_C|Unmapped|[tf.add(tf.mul(A, B), C)](https://github.com/hujie-frank/SENet/blob/master/include/caffe/layers/axpy_layer.hpp)
+||UNSTACK|Unmapped|[tf.unstack](https://tensorflow.google.cn/api_docs/python/tf/unstack)
+||PRE_PROCESS|Unmapped|Graph Preprocessing (YUV2RGB, Input Normalization, Resizing, etc)
+||TILE|Unmapped|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
+||TOPK|Unmapped|[tf.math.top_k](https://tensorflow.google.cn/api_docs/python/tf/math/top_k)
+||ROI_POOL|Unmapped|[ANEURALNETWORKS_ROI_POOLING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6736198af337b2efbdb0b6b64dee7fe4)
 ||SVDF|Unmapped|[ANEURALNETWORKS_SVDF](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a7096de21038c1ce49d354a00cba7b552)
-||CONCATSHIFT|Unmapped
-||SPATIAL_TRANSFORMER|Unmapped
 ||SHUFFLECHANNEL|Unmapped|[ANEURALNETWORKS_CHANNEL_SHUFFLE](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a5b993c1211c4b1bc52fb595a3025251d)
 ||HASHTABLE_LOOKUP|Unmapped|[ANEURALNETWORKS_HASHTABLE_LOOKUP](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0aca92716c8c73c1f0fa7f0757916fee26)
 ||EMBEDDING_LOOKUP|Unmapped|[ANEURALNETWORKS_EMBEDDING_LOOKUP](developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a8d2ada77adb74357fc0770405bca0e3)
 ||LSH_PROJECTION|Unmapped|[ANEURALNETWORKS_LSH_PROJECTION](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a800cdcec5d7ba776789cb2d1ef669965)
-||UNSTACK|Unmapped|[tf.unstack](https://tensorflow.google.cn/api_docs/python/tf/unstack)
-||PRE_PROCESS|Unmapped
-||PRE_PROCESS_RGB|Unmapped
-||PRE_PROCESS_GRAY|Unmapped
-||PRE_PROCESS_YUV444|Unmapped
-||PRE_PROCESS_NV12|Unmapped
-||PRE_PROCESS_YUV420|Unmapped
-||PRE_PROCESS_BGRA|Unmapped
-||PRE_PROCESS_TENSOR|Unmapped
-||IMAGEPROCESS|Unmapped
-||POST_PROCESS|Unmapped
-||TILE|Unmapped|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
 ||GROUPED_CONV2D|Unmapped|[ANEURALNETWORKS_GROUPED_CONV_2D](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a847acf8d9f3d2343328c3dbe6d447c50)
-||TOPK|Unmapped|[tf.math.top_k](https://tensorflow.google.cn/api_docs/python/tf/math/top_k)
 ||ROI_ALIGN|Unmapped|[ANEURALNETWORKS_ROI_ALIGN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a2848b39dd4bfba78f2438fda0d9397a4)
 ||HEATMAP_MAX_KEYPOINT|Unmapped|[ANEURALNETWORKS_HEATMAP_MAX_KEYPOINT](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a5ffccf92d127766a741225ff7ad6f743)
 ||AXIS_ALIGNED_BBOX_TRANSFORM|Unmapped|[ANEURALNETWORKS_AXIS_ALIGNED_BBOX_TRANSFORM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0afd7603dd54060e6a52f5861674448528)
@@ -143,8 +130,6 @@ Resize1d|RESIZE_1D|Mapped|[Onnx.resize 1D image](https://github.com/onnx/onnx/bl
 ||DEPTHWISE_CONV1D|Deprecated
 ||L2NORMALIZESCALE|Deprecated
 ||INTERP|Deprecated
-||EXTRA_ENDING|InternalOnly
-||SYNC_HOST|InternalOnly
 ||NOOP|Deprecated
 ||TENSORSTACKCONCAT|Deprecated|
 ||VARIABLE|InternalOnly|[tf.variable](https://tensorflow.google.cn/api_docs/python/tf/Variable)
@@ -157,3 +142,18 @@ Resize1d|RESIZE_1D|Mapped|[Onnx.resize 1D image](https://github.com/onnx/onnx/bl
 ||QUANTIZED_16BIT_LSTM|InternalOnly
 ||LSTMUNIT|Deprecated|Driver LSTM Unit
 ||RELU_KERAS|Deprecated|[tf.keras.layers.ReLU](https://tensorflow.google.cn/api_docs/python/tf/keras/layers/ReLU)
+||PRE_PROCESS_RGB|InternalOnly
+||PRE_PROCESS_GRAY|InternalOnly
+||PRE_PROCESS_YUV444|InternalOnly
+||PRE_PROCESS_NV12|InternalOnly
+||PRE_PROCESS_YUV420|InternalOnly
+||PRE_PROCESS_BGRA|InternalOnly
+||PRE_PROCESS_TENSOR|InternalOnly
+||IMAGEPROCESS|Deprecated
+||POST_PROCESS|InternalOnly
+||SPATIAL_TRANSFORMER|InternalOnly|[SpatialTransformer](https://github.com/daerduoCarey/SpatialTransformerLayer)
+||EXTRA_ENDING|InternalOnly
+||SYNC_HOST|InternalOnly
+||BATCHNORM_SINGLE|InternalOnly|[tf.nn.batch_normalization](https://tensorflow.google.cn/api_docs/python/tf/nn/batch_normalization)
+||EXPAND_BROADCAST|Deprecated|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
+||CONCATSHIFT|InternalOnly

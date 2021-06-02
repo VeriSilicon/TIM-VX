@@ -65,6 +65,12 @@ LeakyRelu::LeakyRelu(Graph* graph, float alpha)
   this->impl()->node()->nn_param.activation.leaky_ratio = alpha_;
 }
 
+Linear::Linear(Graph* graph, float a, float b)
+    : Operation(graph, VSI_NN_OP_LINEAR), a_(a), b_(b) {
+  this->impl()->node()->nn_param.linear.a = a_;
+  this->impl()->node()->nn_param.linear.b = b_;
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

@@ -59,6 +59,8 @@ namespace ops {
  *
  *   Prelu(x)               : alpha * x if x <= 0; x if x > 0. alpha is a tensor.
  *    - axis                : describes the axis of the inputs when coerced to 2D.
+ *
+ *   Linear(x, a, b)        : a*x + b.
  * ```
  */
 
@@ -95,6 +97,14 @@ class LeakyRelu : public Operation {
 
  protected:
   float alpha_;
+};
+
+class Linear : public Operation {
+ public:
+  Linear(Graph* graph, float a, float b=0.0);
+ protected:
+  float a_;
+  float b_;
 };
 
 }  // namespace ops
