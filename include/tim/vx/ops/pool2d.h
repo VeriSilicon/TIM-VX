@@ -52,6 +52,12 @@ class Pool2d : public Operation {
          const std::array<uint32_t, 2>& stride,
          RoundType round_type = RoundType::FLOOR,
          DataLayout layout = DataLayout::WHCN);
+  Pool2d(Graph* graph, PoolType type,
+         const std::array<uint32_t, 4>& pad,
+         const std::array<uint32_t, 2>& ksize,
+         const std::array<uint32_t, 2>& stride,
+         RoundType round_type = RoundType::FLOOR,
+         DataLayout layout = DataLayout::WHCN);
 
  protected:
   const PoolType type_;
@@ -59,6 +65,7 @@ class Pool2d : public Operation {
   const std::array<uint32_t, 2> ksize_;
   const std::array<uint32_t, 2> stride_;
   const RoundType round_type_;
+  const std::array<uint32_t, 4> pad_;
 };
 
 }  // namespace ops
