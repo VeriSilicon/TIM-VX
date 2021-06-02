@@ -71,6 +71,15 @@ class Conv2d : public Operation {
          DataLayout input_layout = DataLayout::WHCN,
          DataLayout kernel_layout = DataLayout::WHIcOc);
 
+  Conv2d(Graph* graph, int32_t weights, PadType padding,
+         const std::array<uint32_t, 2>& ksize,
+         const std::array<uint32_t, 2>& stride,
+         const std::array<uint32_t, 2>& dilation,
+         const std::array<uint32_t, 4>& pad,
+         uint32_t group = 1, int32_t multiplier = 0,
+         DataLayout input_layout = DataLayout::WHCN,
+         DataLayout kernel_layout = DataLayout::WHIcOc);
+
   DataLayout KernelDataLayout() { return kernel_layout_; }
 
  protected:

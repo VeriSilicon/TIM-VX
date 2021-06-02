@@ -70,6 +70,18 @@ Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
   this->impl()->node()->nn_param.conv2d.multiplier = multiplier_;
 }
 
+Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
+               const std::array<uint32_t, 2>& ksize,
+               const std::array<uint32_t, 2>& stride,
+               const std::array<uint32_t, 2>& dilation,
+               const std::array<uint32_t, 4>& pad,
+               uint32_t group, int32_t multiplier,
+               DataLayout input_layout, DataLayout kernel_layout)
+    : Conv2d(graph, weights, padding, ksize, stride, dilation, pad,
+             multiplier, input_layout, kernel_layout) {
+    this->impl()->node()->nn_param.conv2d.group = group;
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
