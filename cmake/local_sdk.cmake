@@ -3,8 +3,8 @@ set(PKG_NAME "OVXDRV")
 message("include driver sdk from ${EXTERNAL_VIV_SDK}")
 set(OVXDRV_INCLUDE_DIRS)
 list(APPEND OVXDRV_INCLUDE_DIRS
-        ${EXTERNAL_VIV_SDK}include
-        ${EXTERNAL_VIV_SDK}include/CL)
+    ${EXTERNAL_VIV_SDK}/include
+    ${EXTERNAL_VIV_SDK}/include/CL)
 
 set(OVXDRV_LIBRARIES)
 list(APPEND OVXDRV_LIBRARIES
