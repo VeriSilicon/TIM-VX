@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2021 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,24 +21,20 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VSI_NN_OP_SCATTER_ND_H
-#define _VSI_NN_OP_SCATTER_ND_H
+#include "tim/vx/ops/scatternd.h"
 
-#include "vsi_nn_types.h"
+#include "operation_private.h"
+#include "vsi_nn_pub.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace tim {
+namespace vx {
+namespace ops {
 
-typedef struct _vsi_nn_scatter_nd_param
-{
-    uint32_t dim_num;
-    const uint32_t* shape;
-} vsi_nn_scatter_nd_param;
-
-#ifdef __cplusplus
+ScatterND::ScatterND(Graph* graph, const std::vector<uint32_t>& shape)
+    : Operation(graph, VSI_NN_OP_SCATTER_ND), shape_(shape) {
+  this->impl()->node()->nn_param.scatter_nd.dim_num = shape_.size();
+  this->impl()->node()->nn_param.scatter_nd.shape = shape_.data();
 }
-#endif
-
-#endif
-
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim

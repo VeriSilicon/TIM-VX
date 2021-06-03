@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2021 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,24 +21,32 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VSI_NN_OP_SCATTER_ND_H
-#define _VSI_NN_OP_SCATTER_ND_H
+#ifndef TIM_VX_OPS_SCATTERND_H_
+#define TIM_VX_OPS_SCATTERND_H_
+#include "tim/vx/operation.h"
 
-#include "vsi_nn_types.h"
+namespace tim {
+namespace vx {
+namespace ops {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/**
+ * ## ScatterND
+ *
+ * Scatter updates into a new tensor according to indices.
+ *
+ * - shape : The shape of the resulting tensor. 
+ */
 
-typedef struct _vsi_nn_scatter_nd_param
-{
-    uint32_t dim_num;
-    const uint32_t* shape;
-} vsi_nn_scatter_nd_param;
+class ScatterND : public Operation {
+ public:
+  ScatterND(Graph* graph, const std::vector<uint32_t>& shape);
 
-#ifdef __cplusplus
-}
-#endif
+ protected:
+  const std::vector<uint32_t> shape_;
+};
 
-#endif
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim
 
+#endif /* TIM_VX_OPS_SCATTERND_H_ */

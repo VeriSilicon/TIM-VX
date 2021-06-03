@@ -90,7 +90,7 @@ Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_
 Resize1d|RESIZE_1D|Mapped|[Onnx.resize 1D image](https://github.com/onnx/onnx/blob/master/docs/Operators.md#resize)
 |Linear|LINEAR|Unmapped|[tf.keras.activations.linear](https://www.tensorflow.org/api_docs/python/tf/keras/activations/linear)
 ||MOMENTS|Unmapped|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
-||SCATTER_ND|Unmapped|[tf.scatter_nd](https://tensorflow.google.cn/api_docs/python/tf/scatter_nd)
+ScatterND|SCATTER_ND|Mapped|[tf.scatter_nd](https://tensorflow.google.cn/api_docs/python/tf/scatter_nd)
 ||PROPOSAL|Unmapped|[Faster-RCNN Proposal Layer](https://github.com/intel/caffe/blob/master/examples/faster-rcnn/lib/rpn/proposal_layer.py)
 ||MATRIXMUL|Unmapped|[tf.experimental.numpy.matmul](https://www.tensorflow.org/api_docs/python/tf/experimental/numpy/matmul)
 ||SIGNAL_FRAME|Unmapped|[tf.signal.frame](https://tensorflow.google.cn/api_docs/python/tf/signal/frame)
