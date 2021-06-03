@@ -93,7 +93,7 @@ ScatterND|SCATTER_ND|Mapped|[tf.scatter_nd](https://tensorflow.google.cn/api_doc
 ||MOMENTS|Planned 21Q2|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
 ||MATRIXMUL|Planned 21Q2|[tf.experimental.numpy.matmul](https://www.tensorflow.org/api_docs/python/tf/experimental/numpy/matmul)
 Unstack|UNSTACK|Mapped|[tf.unstack](https://tensorflow.google.cn/api_docs/python/tf/unstack)
-||TILE|Planned 21Q2|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
+Tile|TILE|Mapped|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
 ||TOPK|Planned 21Q2|[tf.math.top_k](https://tensorflow.google.cn/api_docs/python/tf/math/top_k)
 ||GROUPED_CONV2D|Planned 21Q2|[ANEURALNETWORKS_GROUPED_CONV_2D](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a847acf8d9f3d2343328c3dbe6d447c50)
 ||PROPOSAL|Planned 21Q3|[Faster-RCNN Proposal Layer](https://github.com/intel/caffe/blob/master/examples/faster-rcnn/lib/rpn/proposal_layer.py)
