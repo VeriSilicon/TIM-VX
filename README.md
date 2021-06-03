@@ -6,9 +6,9 @@
 TIM-VX is a software integration module provided by VeriSilicon to facilitate deployment of Neural-Networks on OpenVX enabled ML accelerators. It serves as the backend binding for runtime frameworks such as Android NN, Tensorflow-Lite, MLIR, TVM and more.
 
 Main Features
- - Over 130 internal operators with rich format support for both quantized and floating point
- - Simplified binding API calls to create Tensors and Operations
- - Dynamic graph construction and supports shape inferencing
+ - Over [130 operators](https://github.com/VeriSilicon/TIM-VX/blob/main/src/tim/vx/ops/README.md) with rich format support for both quantized and floating point
+ - Simplified C++ binding API calls to create Tensors and Operations
+ - Dynamic graph construction with support for shape inference and layout inference
  - Built-in custom layer extensions
  - A set of utility functions for debugging
 
