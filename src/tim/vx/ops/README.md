@@ -92,7 +92,7 @@ Linear|LINEAR|Mapped|[tf.keras.activations.linear](https://www.tensorflow.org/ap
 ScatterND|SCATTER_ND|Mapped|[tf.scatter_nd](https://tensorflow.google.cn/api_docs/python/tf/scatter_nd)
 ||MOMENTS|Planned 21Q2|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
 ||MATRIXMUL|Planned 21Q2|[tf.experimental.numpy.matmul](https://www.tensorflow.org/api_docs/python/tf/experimental/numpy/matmul)
-||UNSTACK|Planned 21Q2|[tf.unstack](https://tensorflow.google.cn/api_docs/python/tf/unstack)
+Unstack|UNSTACK|Mapped|[tf.unstack](https://tensorflow.google.cn/api_docs/python/tf/unstack)
 ||TILE|Planned 21Q2|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
 ||TOPK|Planned 21Q2|[tf.math.top_k](https://tensorflow.google.cn/api_docs/python/tf/math/top_k)
 ||GROUPED_CONV2D|Planned 21Q2|[ANEURALNETWORKS_GROUPED_CONV_2D](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a847acf8d9f3d2343328c3dbe6d447c50)
