@@ -34,6 +34,14 @@ namespace ops {
 
 class Conv1d : public Operation {
  public:
+  Conv1d(Graph* graph, PadType padding, uint32_t stride,
+         uint32_t dilation, int32_t multiplier = 0,
+         DataLayout input_layout = DataLayout::WHCN,
+         DataLayout kernel_layout = DataLayout::WHIcOc);
+  Conv1d(Graph* graph, const std::array<uint32_t, 2>& pad,
+         uint32_t stride, uint32_t dilation, int32_t multiplier = 0,
+         DataLayout input_layout = DataLayout::WHCN,
+         DataLayout kernel_layout = DataLayout::WHIcOc);
   Conv1d(Graph* graph, int32_t weights, PadType padding,
          uint32_t ksize, uint32_t stride,
          uint32_t dilation, int32_t multiplier = 0,

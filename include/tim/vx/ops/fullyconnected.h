@@ -41,6 +41,7 @@ namespace ops {
 
 class FullyConnected : public Operation {
  public:
+  FullyConnected(Graph* graph, uint32_t axis);
   FullyConnected(Graph* graph, uint32_t axis, uint32_t weights);
 
  protected:
