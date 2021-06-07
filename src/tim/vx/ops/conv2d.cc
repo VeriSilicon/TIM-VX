@@ -31,6 +31,20 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+Conv2d::Conv2d(Graph* graph, PadType padding,
+               const std::array<uint32_t, 2>& stride,
+               const std::array<uint32_t, 2>& dilation, int32_t multiplier,
+               DataLayout input_layout, DataLayout kernel_layout)
+    : Conv2d(graph, 0, padding, {0, 0}, stride, dilation, {0, 0, 0, 0},
+             multiplier, input_layout, kernel_layout) {}
+
+Conv2d::Conv2d(Graph* graph, const std::array<uint32_t, 4> pad,
+               const std::array<uint32_t, 2>& stride,
+               const std::array<uint32_t, 2>& dilation, int32_t multiplier,
+               DataLayout input_layout, DataLayout kernel_layout)
+    : Conv2d(graph, 0, PadType::AUTO, {0, 0}, stride, dilation, pad,
+             multiplier, input_layout, kernel_layout) {}
+
 Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
                const std::array<uint32_t, 2>& ksize,
                const std::array<uint32_t, 2>& stride,
@@ -54,12 +68,9 @@ Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
       pad_(pad),
       multiplier_(multiplier),
       kernel_layout_(kernel_layout) {
-  this->impl()->node()->nn_param.conv2d.ksize[0] = ksize_[0];
-  this->impl()->node()->nn_param.conv2d.ksize[1] = ksize_[1];
   this->impl()->node()->nn_param.conv2d.stride[0] = stride_[0];
   this->impl()->node()->nn_param.conv2d.stride[1] = stride_[1];
   this->impl()->node()->nn_param.conv2d.pad_type = TranslatePadType(padding_);
-  this->impl()->node()->nn_param.conv2d.weights = weights;
   this->impl()->node()->nn_param.conv2d.group = 1;
   this->impl()->node()->nn_param.conv2d.dilation[0] = dilation_[0];
   this->impl()->node()->nn_param.conv2d.dilation[1] = dilation_[1];
