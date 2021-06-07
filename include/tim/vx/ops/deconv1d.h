@@ -51,6 +51,14 @@ namespace ops {
 
 class DeConv1d : public Operation {
   public:
+    DeConv1d(Graph* graph, PadType pad_type,
+        uint32_t stride, uint32_t output_padding, uint32_t group = 1,
+        DataLayout input_layout = DataLayout::WHCN,
+        DataLayout kernel_layout = DataLayout::WHIcOc);
+    DeConv1d(Graph* graph, const std::array<uint32_t, 2>& pad,
+        uint32_t stride, uint32_t output_padding, uint32_t group = 1,
+        DataLayout input_layout = DataLayout::WHCN,
+        DataLayout kernel_layout = DataLayout::WHIcOc);
     DeConv1d(Graph* graph, int32_t oc_count_, PadType pad_type,
         uint32_t ksize,
         uint32_t stride,
@@ -61,6 +69,10 @@ class DeConv1d : public Operation {
         uint32_t output_padding,
         const std::array<uint32_t, 2>& pad,
         uint32_t group = 1);
+    DeConv1d(Graph* graph, PadType pad_type,
+        uint32_t stride, uint32_t output_padding,
+        const std::array<uint32_t, 2>& pad, uint32_t group,
+        DataLayout input_layout, DataLayout kernel_layout);
 
   protected:
     const uint32_t oc_count_; // output channel count
@@ -70,6 +82,7 @@ class DeConv1d : public Operation {
     const uint32_t output_padding_;
     const std::array<uint32_t, 2> pad_;
     const uint32_t group_;
+    const DataLayout kernel_layout_;
 };
 
 } // namespace ops

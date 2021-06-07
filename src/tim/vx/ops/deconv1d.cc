@@ -33,28 +33,49 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+DeConv1d::DeConv1d(Graph* graph, PadType pad_type,
+    uint32_t stride, uint32_t output_padding, uint32_t group,
+    DataLayout input_layout, DataLayout kernel_layout)
+  : DeConv1d(graph, pad_type, stride, output_padding, {0, 0}, group,
+    input_layout, kernel_layout) {
+}
+
+DeConv1d::DeConv1d(Graph* graph, const std::array<uint32_t, 2>& pad,
+    uint32_t stride, uint32_t output_padding, uint32_t group,
+    DataLayout input_layout, DataLayout kernel_layout)
+  : DeConv1d(graph, PadType::AUTO, stride, output_padding, pad, group,
+    input_layout, kernel_layout) {
+}
+
 DeConv1d::DeConv1d(Graph* graph, int32_t oc_count, PadType pad_type,
     uint32_t ksize, uint32_t stride, uint32_t output_padding)
-  : DeConv1d(graph, oc_count, pad_type, ksize, stride, output_padding,
-      {0, 0}) {
+  : DeConv1d(graph, pad_type, stride, output_padding,
+      {0, 0}, 1, DataLayout::WHCN, DataLayout::WHIcOc) {
 }
 
 DeConv1d::DeConv1d(Graph* graph, int32_t oc_count, PadType pad_type,
     uint32_t ksize, uint32_t stride, uint32_t output_padding,
     const std::array<uint32_t, 2>& pad, uint32_t group)
+  : DeConv1d(graph, pad_type, stride, output_padding,
+    pad, group, DataLayout::WHCN, DataLayout::WHIcOc) {
+}
+
+DeConv1d::DeConv1d(Graph* graph, PadType pad_type,
+    uint32_t stride, uint32_t output_padding,
+    const std::array<uint32_t, 2>& pad, uint32_t group,
+    DataLayout input_layout, DataLayout kernel_layout)
   : Operation(graph, VSI_NN_OP_DECONVOLUTION1D),
-    oc_count_(oc_count),
+    oc_count_(0),
     pad_type_(pad_type),
-    ksize_(ksize),
+    ksize_(0),
     stride_(stride),
     output_padding_(output_padding),
     pad_(pad),
-    group_(group) {
+    group_(group),
+    kernel_layout_(kernel_layout) {
 
-  this->impl()->node()->nn_param.deconvolution1d.ksize = ksize_;
   this->impl()->node()->nn_param.deconvolution1d.stride = stride_;
   this->impl()->node()->nn_param.deconvolution1d.pad_type = TranslatePadType(pad_type_);
-  this->impl()->node()->nn_param.deconvolution1d.weights = oc_count_;
   this->impl()->node()->nn_param.deconvolution1d.group = group_;
   this->impl()->node()->nn_param.deconvolution1d.output_padding = output_padding_;
   this->impl()->node()->nn_param.deconvolution1d.pad[0] = pad_[0];
