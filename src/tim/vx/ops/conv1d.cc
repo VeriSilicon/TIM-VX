@@ -31,6 +31,18 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+Conv1d::Conv1d(Graph* graph, PadType padding, uint32_t stride,
+               uint32_t dilation, int32_t multiplier,
+               DataLayout input_layout, DataLayout kernel_layout)
+    : Conv1d(graph, 0, padding, 0, stride, dilation, {0, 0},
+             multiplier, input_layout, kernel_layout) {}
+
+Conv1d::Conv1d(Graph* graph, const std::array<uint32_t, 2>& pad,
+               uint32_t stride, uint32_t dilation, int32_t multiplier,
+               DataLayout input_layout, DataLayout kernel_layout)
+    : Conv1d(graph, 0, PadType::AUTO, 0, stride, dilation, pad,
+             multiplier, input_layout, kernel_layout) {}
+
 Conv1d::Conv1d(Graph* graph, int32_t weights, PadType padding,
                uint32_t ksize, uint32_t stride,
                uint32_t dilation, int32_t multiplier,
@@ -51,10 +63,8 @@ Conv1d::Conv1d(Graph* graph, int32_t weights, PadType padding,
       pad_(pad),
       multiplier_(multiplier),
       kernel_layout_(kernel_layout) {
-  this->impl()->node()->nn_param.conv1d.ksize = ksize_;
   this->impl()->node()->nn_param.conv1d.stride = stride_;
   this->impl()->node()->nn_param.conv1d.pad_type = TranslatePadType(padding_);
-  this->impl()->node()->nn_param.conv1d.weights = weights;
   this->impl()->node()->nn_param.conv1d.group = 1;
   this->impl()->node()->nn_param.conv1d.dilation = dilation_;
   this->impl()->node()->nn_param.conv1d.pad[0] = pad_[0];
