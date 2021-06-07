@@ -30,10 +30,14 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+FullyConnected::FullyConnected(Graph* graph, uint32_t axis)
+    : FullyConnected(graph, axis, 0) {
+}
+
 FullyConnected::FullyConnected(Graph* graph, uint32_t axis, uint32_t weights)
     : Operation(graph, VSI_NN_OP_FCL2) {
+  (void)weights;
   this->impl()->node()->nn_param.fcl.axis = axis;
-  this->impl()->node()->nn_param.fcl.weights = weights;
 }
 
 }  // namespace ops
