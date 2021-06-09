@@ -17,7 +17,7 @@ size_t element_count(const tim::vx::ShapeType& shape) {
 
 }  // namespace
 
-TEST(deconv2d, shape_3_3_2_1_float_depthwise) {
+TEST(DeConv2d, shape_3_3_2_1_float_depthwise) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -55,7 +55,7 @@ TEST(deconv2d, shape_3_3_2_1_float_depthwise) {
     EXPECT_TRUE(input_tensor->CopyDataToTensor(input_data.data(), input_data.size()*4));
     EXPECT_TRUE(kernel_tensor->CopyDataToTensor(kernel_data.data(), kernel_data.size()*4));
 
-    auto add = graph->CreateOperation<tim::vx::ops::DeConv2d>(
+    auto op = graph->CreateOperation<tim::vx::ops::DeConv2d>(
         2,
         tim::vx::PadType::SAME,
         std::array<uint32_t, 2>({3, 3}),    /*ksize*/
@@ -63,7 +63,7 @@ TEST(deconv2d, shape_3_3_2_1_float_depthwise) {
         std::array<uint32_t, 2>({1, 1}),    /*dilation*/
         std::array<uint32_t, 4>({0, 0, 0, 0}), /*pad*/
         2/*group*/);
-    (*add).BindInputs({input_tensor, kernel_tensor}).BindOutputs({output_tensor});
+    (*op).BindInputs({input_tensor, kernel_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());
@@ -85,7 +85,7 @@ TEST(deconv2d, shape_3_3_2_1_float_depthwise) {
     EXPECT_EQ(golden, output_data) << "Result mismatch";
 }
 
-TEST(deconv2d, shape_3_3_1_1_float) {
+TEST(DeConv2d, shape_3_3_1_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -114,7 +114,7 @@ TEST(deconv2d, shape_3_3_1_1_float) {
     EXPECT_TRUE(input_tensor->CopyDataToTensor(input_data.data(), input_data.size()*4));
     EXPECT_TRUE(kernel_tensor->CopyDataToTensor(kernel_data.data(), kernel_data.size()*4));
 
-    auto add = graph->CreateOperation<tim::vx::ops::DeConv2d>(
+    auto op = graph->CreateOperation<tim::vx::ops::DeConv2d>(
         1,
         tim::vx::PadType::SAME,
         std::array<uint32_t, 2>({3, 3}),    /*ksize*/
@@ -122,7 +122,7 @@ TEST(deconv2d, shape_3_3_1_1_float) {
         std::array<uint32_t, 2>({1, 1}),    /*dilation*/
         std::array<uint32_t, 4>({0, 0, 0, 0}), /*pad*/
         1/*group*/);
-    (*add).BindInputs({input_tensor, kernel_tensor}).BindOutputs({output_tensor});
+    (*op).BindInputs({input_tensor, kernel_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());

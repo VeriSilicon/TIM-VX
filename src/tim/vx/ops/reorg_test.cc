@@ -29,7 +29,7 @@
 
 // FIXME (KC) : There seems to be a limitation that Channel needs to be >= 4,
 //              also stride other than 2 is not tested
-TEST(OP, reorg_shape_4_4_4_1_u8) {
+TEST(Reorg, shape_4_4_4_1_u8) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -59,8 +59,8 @@ TEST(OP, reorg_shape_4_4_4_1_u8) {
 
     EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
 
-    auto add = graph->CreateOperation<tim::vx::ops::Reorg>(2);
-    (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});
+    auto op = graph->CreateOperation<tim::vx::ops::Reorg>(2);
+    (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());
@@ -69,7 +69,7 @@ TEST(OP, reorg_shape_4_4_4_1_u8) {
     EXPECT_EQ(golden, output);
 }
 
-TEST(OP, reorg_shape_4_4_4_1_fp32) {
+TEST(Reorg, shape_4_4_4_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -98,8 +98,8 @@ TEST(OP, reorg_shape_4_4_4_1_fp32) {
 
     EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
 
-    auto add = graph->CreateOperation<tim::vx::ops::Reorg>(2);
-    (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});
+    auto op = graph->CreateOperation<tim::vx::ops::Reorg>(2);
+    (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());
