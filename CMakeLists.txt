@@ -45,6 +45,7 @@ if(TIM_VX_ENABLE_TEST)
     )
 
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
 endif()
 
