@@ -4,6 +4,7 @@ project(tim-vx)
 OPTION(TIM_VX_ENABLE_TEST           "Build the unit test"                   ON)
 OPTION(TIM_VX_ENABLE_LAYOUT_INFER   "Enable layout inference support"       ON)
 OPTION(TIM_VX_CODE_COVERAGE         "Run code coverage with gconv(gcc only" OFF)
+option(TIM_VX_USE_EXTERNAL_OVXLIB   "Use external OVXLIB"                   OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
