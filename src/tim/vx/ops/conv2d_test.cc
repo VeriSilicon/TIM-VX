@@ -2,7 +2,6 @@
 
 #include "gtest/gtest.h"
 #include "src/tim/vx/test_utils.h"
-#include "tim/transform/layout_inference.h"
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/types.h"
@@ -54,13 +53,12 @@ TEST(Conv2d, shape_4_2_1_1_float32_PaddingTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::SAME;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::SAME;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -124,13 +122,12 @@ TEST(Conv2d, shape_4_2_2_2_float32_PointwiseTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::SAME;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::SAME;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -196,13 +193,12 @@ TEST(Conv2d, shape_4_2_1_2_float32_SimpleTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::SAME;
   std::array<uint32_t, 2> stride({2, 2});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::SAME;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -263,13 +259,12 @@ TEST(Conv2d, shape_4_2_2_2_float32_SimpleChannelsTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::SAME;
   std::array<uint32_t, 2> stride({2, 2});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::SAME;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -335,13 +330,12 @@ TEST(Conv2d, shape_6_3_1_1_float32_SimpleAnisotropicStridesTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({3, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -401,13 +395,12 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::SAME;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::SAME;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -467,13 +460,12 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedConstFilterTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::SAME;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::SAME;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -533,13 +525,12 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedBiasTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::SAME;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::SAME;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -598,13 +589,12 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedValidTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -667,13 +657,12 @@ TEST(Conv2d, shape_4_2_2_2_float32_DisabledPointwiseMultifilterTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -736,13 +725,12 @@ TEST(Conv2d, shape_9_9_1_1_float32_SimpleDilationTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({3, 3});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -803,13 +791,12 @@ TEST(Conv2d, shape_4_2_1_2_float32_StrideTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -869,13 +856,12 @@ TEST(Conv2d, shape_4_2_1_2_float32_InputAndFilterSameWidthHeightTest) {
 
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -974,13 +960,12 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest1) {
   auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({2, 2});
   std::array<uint32_t, 2> dilation({1, 1});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1080,13 +1065,12 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest2) {
   auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({2, 2});
   std::array<uint32_t, 2> dilation({1, 1});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1185,13 +1169,12 @@ TEST(Conv2d, shape_6_3_1_1_uint8_AnisotropicStridesQuantizedTest) {
   auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({3, 1});
   std::array<uint32_t, 2> dilation({1, 1});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1293,13 +1276,12 @@ TEST(Conv2d, shape_9_9_1_1_uint8_DilationQuantizedTest) {
   auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({3, 3});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1397,13 +1379,12 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerTensorTest) {
   auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({1, 1});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1500,13 +1481,12 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerChannelTest) {
   auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::array<uint32_t, 2> ksize({weight_shape[1], weight_shape[2]});
+  auto padding = tim::vx::PadType::VALID;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({1, 1});
-  auto padding = tim::vx::PadType::VALID;
 
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      weight_shape[3], padding, ksize, stride, dilation);
+      padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
