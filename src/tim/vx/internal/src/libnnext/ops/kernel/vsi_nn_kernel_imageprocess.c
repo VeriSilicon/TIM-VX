@@ -35,7 +35,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_math.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "libnnext/vx_lib_nnext.h"
 
 #define _VX_KERNEL_VAR          (vx_kernel_IMAGEPROCESS)

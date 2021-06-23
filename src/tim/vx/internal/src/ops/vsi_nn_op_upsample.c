@@ -35,7 +35,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
 #include "ops/vsi_nn_op_upsample.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel_eltwise.h"
 #include "utils/vsi_nn_constraint_check.h"
 

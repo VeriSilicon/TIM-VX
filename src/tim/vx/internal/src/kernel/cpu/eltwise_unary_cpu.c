@@ -32,7 +32,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_error.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 
 __BEGIN_DECLS
 
@@ -46,6 +46,7 @@ typedef enum
     UNARY_NEG,
     UNARY_HSIGMOID,
     UNARY_MISH,
+    UNARY_ROUND,
 } unary_type_e;
 
 
@@ -97,6 +98,13 @@ static float soft_plus_eval(float data)
 static float mish_eval(float data)
 {
     data = (float)(data * tanh(soft_plus_eval(data)));
+
+    return data;
+}
+
+static float round_eval(float data)
+{
+    data = (float)(vsi_rtne(data));
 
     return data;
 }
@@ -164,6 +172,9 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
             break;
         case UNARY_MISH:
             data = mish_eval(data);
+            break;
+        case UNARY_ROUND:
+            data = round_eval(data);
             break;
         default:
             break;
@@ -298,3 +309,4 @@ REGISTER_ELTWISE_UNARY_BACKEND_CPU( elu,          UNARY_ELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( neg,          UNARY_NEG )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( hard_sigmoid, UNARY_HSIGMOID )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( mish,         UNARY_MISH )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( round,        UNARY_ROUND )

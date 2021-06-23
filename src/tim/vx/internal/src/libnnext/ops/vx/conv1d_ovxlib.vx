@@ -1,0 +1,151 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniConv1DK3_Lo0_4x4;
+_viv_uniform VXC_512Bits uniConv1DK3_Lo1_4x4;
+_viv_uniform VXC_512Bits uniConv1DK3_Lo2_4x4;
+_viv_uniform VXC_512Bits uniConv1DK3_Hi0_4x4;
+_viv_uniform VXC_512Bits uniConv1DK3_Hi1_4x4;
+_viv_uniform VXC_512Bits uniConv1DK3_Hi2_4x4;
+_viv_uniform VXC_512Bits uniDataConvK3_2x8;
+_viv_uniform VXC_512Bits uniSumOrderUchar_2x8;
+
+_viv_uniform int input_ZP;
+_viv_uniform int weight_ZP;
+_viv_uniform float output_ZP;
+_viv_uniform float scaleOut;
+_viv_uniform int input_height;
+
+__kernel void conv1d_U8U8I32toU8_K3_S1(
+     __read_only image2d_array_t   input,
+     __read_only image2d_array_t   weight,
+     __read_only image2d_t         bias,
+    __write_only image2d_array_t   output,
+                 int               stride,
+                 int               pad_front,
+                 int               pad_end,
+                 int               dilation,
+                 int               overflow_policy)
+{
+    int4 coord   = (int4)(get_global_id(0), get_global_id(1), 0, 0);
+    int4 coord_w = (int4)(0, 0, get_global_id(1), 0);
+    float4 sum0, sum1, dst;
+    vxc_short8 weight_val_s =(short)input_ZP;
+    vxc_uchar16 input_val = 0, weight_val = 0;
+    int temp = 0, i;
+
+    temp = read_imagei(bias, coord.yz).x;
+    sum0 = convert_float(temp);
+    sum1 = sum0;
+    weight_val_s.s5 = (short)weight_ZP;
+
+    for (i = 0; i < input_height; i++)
+    {
+        VXC_ReadImage2DArray(weight_val, weight, coord_w, VXC_5BITOFFSET_XY(0, 0), \
+                             VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0));
+        VXC_ReadImage(input_val, input, coord.xz, VXC_5BITOFFSET_XY(0, 0), \
+                             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        VXC_DP2x8(weight_val_s, weight_val, weight_val_s, \
+                             VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0), uniDataConvK3_2x8);
+
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Lo0_4x4);
+        sum0 += dst;
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Hi0_4x4);
+        sum1 += dst;
+        coord.x += dilation;
+        VXC_ReadImage(input_val, input, coord.xz, VXC_5BITOFFSET_XY(0, 0), \
+                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Lo1_4x4);
+        sum0 += dst;
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Hi1_4x4);
+        sum1 += dst;
+        coord.x += dilation;
+        VXC_ReadImage(input_val, input, coord.xz, VXC_5BITOFFSET_XY(0, 0), \
+                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Lo2_4x4);
+        sum0 += dst;
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Hi2_4x4);
+        sum1 += dst;
+        coord_w.y++;
+        coord.z++;
+        coord.x = get_global_id(0);
+    }
+
+    sum0 = sum0 * scaleOut + output_ZP;
+    sum1 = sum1 * scaleOut + output_ZP;
+    uchar4 result0, result1;
+    _viv_asm(CONV_SAT_RTE, result0, sum0);
+    _viv_asm(CONV_SAT_RTE, result1, sum1);
+    vxc_uchar8 result;
+    VXC_DP2x8(result, result0, result1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSumOrderUchar_2x8);
+    VXC_WriteImage(output, coord.xy, result, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void conv1d_U8U8I32toU8_K3_S1_D2_D4(
+     __read_only image2d_array_t   input,
+     __read_only image2d_array_t   weight,
+     __read_only image2d_t         bias,
+    __write_only image2d_array_t   output,
+                 int               stride,
+                 int               pad_front,
+                 int               pad_end,
+                 int               dilation,
+                 int               overflow_policy)
+{
+    int4 coord   = (int4)(get_global_id(0), get_global_id(1), 0, 0);
+    int4 coord_w = (int4)(0, 0, get_global_id(1), 0);
+    float4 sum0, sum1, dst;
+    vxc_short8 weight_val_s =(short)input_ZP;
+    vxc_uchar16 input_val = 0, weight_val = 0;
+    int temp = 0, i;
+
+    temp = read_imagei(bias, coord.yz).x;
+    sum0 = convert_float(temp);
+    sum1 = sum0;
+    weight_val_s.s5 = (short)weight_ZP;
+
+    for (i = 0; i < input_height; i++)
+    {
+        VXC_ReadImage2DArray(weight_val, weight, coord_w, VXC_5BITOFFSET_XY(0, 0), \
+                             VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0));
+        VXC_ReadImage(input_val, input, coord.xz, VXC_5BITOFFSET_XY(0, 0), \
+                             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+        VXC_DP2x8(weight_val_s, weight_val, weight_val_s, \
+                             VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0), uniDataConvK3_2x8);
+
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Lo0_4x4);
+        sum0 += dst;
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Hi0_4x4);
+        sum1 += dst;
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Lo1_4x4);
+        sum0 += dst;
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Hi1_4x4);
+        sum1 += dst;
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Lo2_4x4);
+        sum0 += dst;
+        VXC_DP4x4(dst, input_val, weight_val_s, \
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConv1DK3_Hi2_4x4);
+        sum1 += dst;
+        coord_w.y++;
+        coord.z++;
+    }
+
+    sum0 = sum0 * scaleOut + output_ZP;
+    sum1 = sum1 * scaleOut + output_ZP;
+    uchar4 result0, result1;
+    _viv_asm(CONV_SAT_RTE, result0, sum0);
+    _viv_asm(CONV_SAT_RTE, result1, sum1);
+    vxc_uchar8 result;
+    VXC_DP2x8(result, result0, result1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSumOrderUchar_2x8);
+    VXC_WriteImage(output, coord.xy, result, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}

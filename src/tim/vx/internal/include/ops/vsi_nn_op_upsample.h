@@ -34,7 +34,7 @@ extern "C" {
 
 typedef struct _vsi_nn_upsample_lcl_data
 {
-    vx_tensor   local_tensor[_VSI_NN_POOLWITHARGMAX_LOCAL_TENSOR_NUM];
+    vx_tensor   local_tensor[_VSI_NN_UPSAMPLE_LOCAL_TENSOR_NUM];
 } vsi_nn_upsample_lcl_data;
 
 typedef struct _vsi_nn_upsample_param

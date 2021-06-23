@@ -33,7 +33,7 @@
 #include "utils/vsi_nn_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "vsi_nn_internal_node.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 

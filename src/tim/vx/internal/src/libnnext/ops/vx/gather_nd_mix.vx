@@ -26,7 +26,10 @@ __kernel void gather_nd_##src0_type_name##toF16_1D( \
     int gidy = get_global_id(1); \
  \
     int4 coord = (int4)(0, gidy, gidx, 0); \
-    int4 indice = read_imagei(input1, coord.xy); \
+    Image img = create_image_from_image2d(input1, 4); \
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \
+    int4 indice = ((int4 *)indice_ptr)[0]; \
+ \
     coord.w = indice.x; \
  \
     read_type src; \
@@ -57,7 +60,10 @@ __kernel void gather_nd_F16to##src1_type_name##_1D( \
     int gidy = get_global_id(1); \
  \
     int4 coord = (int4)(0, gidy, gidx, 0); \
-    int4 indice = read_imagei(input1, coord.xy); \
+    Image img = create_image_from_image2d(input1, 4); \
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \
+    int4 indice = ((int4 *)indice_ptr)[0]; \
+ \
     coord.w = indice.x; \
  \
     vxc_short8 src; \

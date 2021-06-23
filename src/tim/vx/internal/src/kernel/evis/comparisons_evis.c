@@ -455,6 +455,7 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+    output_dtype = output_dtype == I8 ? BOOL8 : output_dtype;
     key = HASH_COMPARISONS_KEY( operation, input0_dtype, input1_dtype, output_dtype, image_2d );
 
     for( i = 0; i < _cnt_of_array(_comparisons_evis_kernel_map); i ++ )

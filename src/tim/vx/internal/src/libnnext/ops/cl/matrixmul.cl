@@ -143,7 +143,7 @@ __kernel void gemm_transb_F32F32toF32_3D(
 
     coord_a.x = get_global_id(0);
     coord_a.z = get_global_id(2);
-    write_imagef(output, coord_b, sum);
+    write_imagef(output, coord_a, sum);
 }
 
 __kernel void gemm_transb_F32I8toF32_2D(
@@ -219,5 +219,5 @@ __kernel void gemm_transb_F32I8toF32_3D(
 
     coord_a.x = get_global_id(0);
     coord_a.z = get_global_id(2);
-    write_imagef(output, coord_b, sum);
+    write_imagef(output, coord_a, sum);
 }

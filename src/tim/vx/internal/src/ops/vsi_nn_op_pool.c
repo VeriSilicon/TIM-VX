@@ -22,6 +22,7 @@
 *
 *****************************************************************************/
 #include <string.h>
+#include <stdlib.h>
 
 #include "vsi_nn_types.h"
 #include "vsi_nn_platform.h"
@@ -35,6 +36,32 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_constraint_check.h"
 
+static vsi_bool _is_pool1d
+    (
+    vsi_nn_node_t * self,
+    vsi_nn_tensor_t ** inputs
+    )
+{
+    /*
+        support pool1d from version 1.1.31
+    */
+    if (vsi_nn_compareVersion(self->graph, 1, 1, 31) == -1)
+    {
+        return FALSE;
+    }
+    else
+    {
+        if ( 3 == inputs[0]->attr.dim_num )
+        {
+            return TRUE;
+        }
+        else
+        {
+            return FALSE;
+        }
+    }
+}
+
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -44,26 +71,53 @@ static vsi_status op_compute
 {
     vsi_status status;
     vx_nn_pooling_params_ext_t params;
+    vsi_nn_tensor_t * tmp_inputs[1]  = {NULL};
+    vsi_nn_tensor_t * tmp_outputs[1] = {NULL};
+    vsi_nn_pool_lcl_data *local = self->nn_param.pool.local;
+
     status = VSI_FAILURE;
 
     memset( &params, 0, sizeof( params ) );
-    params.base.pool_type = self->nn_param.pool.type;
-    params.base.pool_size_x = self->nn_param.pool.ksize[0];
-    params.base.pool_size_y = self->nn_param.pool.ksize[1];
-    params.base.pool_pad_x_left = self->nn_param.pool.pad[0];
-    params.base.pool_pad_x_right = self->nn_param.pool.pad[1];
-    params.base.pool_pad_y_top = self->nn_param.pool.pad[2];
-    params.base.pool_pad_y_bottom = self->nn_param.pool.pad[3];
-    params.base.rounding = self->vx_param.down_scale_size_rounding;
-    params.stride_x = self->nn_param.pool.stride[0];
-    params.stride_y = self->nn_param.pool.stride[1];
+    if(_is_pool1d(self, inputs))
+    {
+        // pool1d
+        tmp_inputs[0]  = local->reshaped_input;
+        tmp_outputs[0] = local->reshaped_output;
+
+        params.base.pool_type = self->nn_param.pool.type;
+        params.base.pool_size_x = self->nn_param.pool.ksize[0];
+        params.base.pool_size_y = 1;
+        params.base.pool_pad_x_left = self->nn_param.pool.pad[0];
+        params.base.pool_pad_x_right = self->nn_param.pool.pad[1];
+        params.base.pool_pad_y_top = 0;
+        params.base.pool_pad_y_bottom = 0;
+        params.base.rounding = self->vx_param.down_scale_size_rounding;
+        params.stride_x = self->nn_param.pool.stride[0];
+        params.stride_y = 1;
+    }
+    else
+    {
+        tmp_inputs[0] = inputs[0];
+        tmp_outputs[0] = outputs[0];
+
+        params.base.pool_type = self->nn_param.pool.type;
+        params.base.pool_size_x = self->nn_param.pool.ksize[0];
+        params.base.pool_size_y = self->nn_param.pool.ksize[1];
+        params.base.pool_pad_x_left = self->nn_param.pool.pad[0];
+        params.base.pool_pad_x_right = self->nn_param.pool.pad[1];
+        params.base.pool_pad_y_top = self->nn_param.pool.pad[2];
+        params.base.pool_pad_y_bottom = self->nn_param.pool.pad[3];
+        params.base.rounding = self->vx_param.down_scale_size_rounding;
+        params.stride_x = self->nn_param.pool.stride[0];
+        params.stride_y = self->nn_param.pool.stride[1];
+    }
 
     self->n = vxPoolingLayer2(
         self->graph->g,
-        inputs[0]->t,
+        tmp_inputs[0]->t,
         (vx_nn_pooling_params_t *)&params,
         sizeof( params ),
-        outputs[0]->t
+        tmp_outputs[0]->t
         );
 
     if( NULL != self->n )
@@ -72,6 +126,65 @@ static vsi_status op_compute
     }
     return status;
 } /* op_compute() */
+
+static vsi_status op_optimize
+    (
+    vsi_nn_node_t * self,
+    vsi_nn_tensor_t ** inputs,
+    vsi_nn_tensor_t ** outputs,
+    vsi_nn_opt_direction_e direction
+    )
+{
+    uint32_t dim = 0;
+    vsi_nn_pool_lcl_data *local = NULL;
+    uint32_t shape[VSI_NN_MAX_DIM_NUM];
+    char tensor_name[128];
+
+    dim = inputs[0]->attr.dim_num;
+    if(FALSE == _is_pool1d(self, inputs))
+    {
+        return VSI_SUCCESS;
+    }
+
+    VSILOGD("Optimize pool1d %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
+    /*
+        insert a reshape node before and after pool1d
+    */
+    local = self->nn_param.pool.local;
+    if (VSI_NN_OPTIMIZE_FORWARD == direction)
+    {
+        /* reshape 3d input (xcn) --> 4d input (whcn) */
+        shape[0] = inputs[0]->attr.size[0];//width
+        shape[1] = 1;//height
+        shape[2] = inputs[0]->attr.size[1];
+        shape[3] = inputs[0]->attr.size[2];
+        dim = 4;
+        local->reshaped_input = vsi_nn_reshape_tensor(self->graph, inputs[0], shape, dim);
+    }
+    else
+    {
+        /* reshape 3d output(xcn) --> 4d output(whcn) */
+        shape[0] = outputs[0]->attr.size[0];//width
+        shape[1] = 1;//height
+        shape[2] = outputs[0]->attr.size[1];
+        shape[3] = outputs[0]->attr.size[2];
+        dim = 4;
+        local->reshaped_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shape, dim);
+        if(local->reshaped_output && local->reshaped_output->t)
+        {
+            memset(tensor_name, 0, sizeof(tensor_name));
+            snprintf(tensor_name, sizeof(tensor_name), "uid_%u_reshape_out_0", self->uid);
+            if(vxSetReferenceName((vx_reference)local->reshaped_output->t, tensor_name) == VSI_FAILURE)
+            {
+                VSILOGW("Set uid %u pool1d reshaped output name fail", self->uid);
+                return VSI_FAILURE;
+            }
+        }
+    }
+
+    return VSI_SUCCESS;
+} /* op_optimize() */
+
 
 static vsi_bool op_check
     (
@@ -119,6 +232,54 @@ static vsi_bool op_check
     return TRUE;
 } /* op_check() */
 
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+
+    self->nn_param.pool.local =
+    (vsi_nn_pool_lcl_data *)malloc(sizeof(vsi_nn_pool_lcl_data));
+    if (NULL == self->nn_param.pool.local)
+    {
+        return  VX_ERROR_NO_MEMORY;
+    }
+
+    memset( self->nn_param.pool.local, 0, sizeof(vsi_nn_pool_lcl_data) );
+
+    self->nn_param.pool.local->reshaped_input = NULL;
+    self->nn_param.pool.local->reshaped_output = NULL;
+
+    return status;
+} /* op_init() */
+
+static vsi_status op_deinit
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_nn_pool_param *p = &(self->nn_param.pool);
+    if(p->local->reshaped_input)
+    {
+        vsi_nn_ReleaseTensor(&(p->local->reshaped_input));
+        p->local->reshaped_input = NULL;
+    }
+    if(p->local->reshaped_output)
+    {
+        vsi_nn_ReleaseTensor(&(p->local->reshaped_output));
+        p->local->reshaped_output = NULL;
+    }
+    if(self->nn_param.pool.local)
+    {
+        free(self->nn_param.pool.local);
+        self->nn_param.pool.local = NULL;
+    }
+    vsi_nn_op_common_deinit(self);
+
+    return VSI_SUCCESS;
+} /* op_deinit() */
+
 static vsi_bool op_setup
     (
     vsi_nn_node_t * self,
@@ -129,38 +290,69 @@ static vsi_bool op_setup
     vsi_bool ret;
 
     ret = TRUE;
-    vsi_nn_compute_padding(
-        inputs[0]->attr.size,
-        self->nn_param.pool.ksize,
-        self->nn_param.pool.stride,
-        NULL,
-        self->nn_param.pool.pad_type,
-        self->nn_param.pool.pad
-    );
 
-    /* Pooling */
-    outputs[0]->attr.size[0] = vsi_nn_ComputeFilterSize
-        (
-        inputs[0]->attr.size[0],
-        self->nn_param.pool.ksize[0],
-        &self->nn_param.pool.pad[0],
-        self->nn_param.pool.stride[0],
-        0,
-        self->nn_param.pool.round_type
+    if(_is_pool1d(self, inputs))
+    {
+        vsi_nn_compute_padding_conv1d(
+            inputs[0]->attr.size,
+            self->nn_param.pool.ksize,
+            self->nn_param.pool.stride,
+            NULL,
+            self->nn_param.pool.pad_type,
+            self->nn_param.pool.pad
         );
-    outputs[0]->attr.size[1] = vsi_nn_ComputeFilterSize
-        (
-        inputs[0]->attr.size[1],
-        self->nn_param.pool.ksize[1],
-        &self->nn_param.pool.pad[2],
-        self->nn_param.pool.stride[1],
-        0,
-        self->nn_param.pool.round_type
+
+        /* Pooling */
+        outputs[0]->attr.size[0] = vsi_nn_ComputeFilterSize
+            (
+            inputs[0]->attr.size[0],
+            self->nn_param.pool.ksize[0],
+            &self->nn_param.pool.pad[0],
+            self->nn_param.pool.stride[0],
+            0,
+            self->nn_param.pool.round_type
+            );
+
+        outputs[0]->attr.size[1] = inputs[0]->attr.size[1];
+        outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
+    }
+    else
+    {
+        vsi_nn_compute_padding(
+            inputs[0]->attr.size,
+            self->nn_param.pool.ksize,
+            self->nn_param.pool.stride,
+            NULL,
+            self->nn_param.pool.pad_type,
+            self->nn_param.pool.pad
         );
+
+        /* Pooling */
+        outputs[0]->attr.size[0] = vsi_nn_ComputeFilterSize
+            (
+            inputs[0]->attr.size[0],
+            self->nn_param.pool.ksize[0],
+            &self->nn_param.pool.pad[0],
+            self->nn_param.pool.stride[0],
+            0,
+            self->nn_param.pool.round_type
+            );
+
+        outputs[0]->attr.size[1] = vsi_nn_ComputeFilterSize
+            (
+            inputs[0]->attr.size[1],
+            self->nn_param.pool.ksize[1],
+            &self->nn_param.pool.pad[2],
+            self->nn_param.pool.stride[1],
+            0,
+            self->nn_param.pool.round_type
+            );
+
+        outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
+        outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+    }
 
     outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
-    outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
-    outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
     if( NULL != outputs[1] )
     {
         outputs[1]->attr.dim_num = outputs[0]->attr.dim_num;
@@ -178,12 +370,12 @@ extern "C" {
 DEF_OP_REG
     (
     /* op_name    */ POOL,
-    /* init       */ NULL,
+    /* init       */ op_init,
     /* compute    */ op_compute,
-    /* deinit     */ vsi_nn_op_common_deinit,
+    /* deinit     */ op_deinit,
     /* check      */ op_check,
     /* setup      */ op_setup,
-    /* optimize   */ NULL,
+    /* optimize   */ op_optimize,
     /* input_num  */ 1,
     /* output_num */ 1
     );

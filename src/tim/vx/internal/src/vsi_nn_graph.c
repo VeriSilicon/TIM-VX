@@ -41,7 +41,7 @@
 #include "utils/vsi_nn_map.h"
 #include "vsi_nn_graph_optimization.h"
 
-static vsi_status _set_reference_name
+static vsi_status _set_reference_node_name
     (
     vsi_nn_graph_t *graph,
     vsi_nn_node_t *node
@@ -49,10 +49,7 @@ static vsi_status _set_reference_name
 {
 #define _NODE_ID_LEN 64
     vsi_status status;
-    vsi_nn_tensor_t *tensor;
-    uint32_t i;
     char name[_NODE_ID_LEN];
-
     if(NULL == node || NULL == graph)
     {
         return VSI_FAILURE;
@@ -66,6 +63,28 @@ static vsi_status _set_reference_name
         status = vxSetReferenceName((vx_reference)node->n, name);
     }
     TEST_CHECK_STATUS(status, final);
+
+final:
+    return status;
+} /* _set_reference_node_name() */
+
+static vsi_status _set_reference_tensor_name
+    (
+    vsi_nn_graph_t *graph,
+    vsi_nn_node_t *node
+    )
+{
+#define _NODE_ID_LEN 64
+    vsi_status status;
+    vsi_nn_tensor_t *tensor;
+    uint32_t i;
+    char name[_NODE_ID_LEN];
+    if(NULL == node || NULL == graph)
+    {
+        return VSI_FAILURE;
+    }
+
+    status = VSI_SUCCESS;
     for(i = 0; i < node->output.num; i++)
     {
         memset(name, 0, sizeof(char) * _NODE_ID_LEN);
@@ -80,7 +99,7 @@ static vsi_status _set_reference_name
 
 final:
     return status;
-} /* _set_reference_name() */
+} /* _set_reference_tensor_name() */
 
 static vsi_status _check_swapped_tensors
     (
@@ -345,6 +364,12 @@ static vsi_status compute_node
                 continue;
             vsi_nn_TensorReinit( graph, outputs[j] );
         }
+        status = _set_reference_tensor_name(graph, node);
+        if( VSI_SUCCESS != status )
+        {
+            VSILOGW("Set reference node[%d] %s output tensor name fail",
+                node_id, vsi_nn_OpGetName(node->op));
+        }
 
         /* Create vx node */
         VSILOGD("Instance node[%d] \"%s\" ...", node_id, vsi_nn_OpGetName(node->op));
@@ -354,7 +379,7 @@ static vsi_status compute_node
             VSILOGE( "Create node[%d] %s fail", node_id, vsi_nn_OpGetName(node->op));
             break;
         }
-        status = _set_reference_name(graph, node);
+        status = _set_reference_node_name(graph, node);
         if( VSI_SUCCESS != status )
         {
             VSILOGW("Set reference name fail");
@@ -465,6 +490,65 @@ final:
     return status;
 } /* setup_node() */
 
+static vsi_status set_graph_precision
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_node_id_t *node_list
+    )
+{
+    uint32_t i, j;
+    vsi_status status;
+    vsi_nn_tensor_t **inputs;
+    vsi_nn_tensor_t **outputs;
+    vsi_nn_node_id_t node_id;
+    vsi_nn_node_t   *node;
+
+    status = VSI_SUCCESS;
+    inputs = allocate_io_buffer(graph);
+    outputs = allocate_io_buffer(graph);
+    if(NULL == inputs || NULL == outputs)
+    {
+        VSILOGE("allocate io buffer fail");
+        status =  VSI_FAILURE;
+        goto final;
+    }
+
+    if(vsi_nn_IsGraphFastMode(graph))
+    {
+        goto final;
+    }
+    for( i = 0; i < graph->node_num; i++ )
+    {
+        node_id = node_list[i];
+        memset( inputs, 0, graph->max_node_io * sizeof( vsi_nn_tensor_t * ) );
+        memset( outputs, 0, graph->max_node_io * sizeof( vsi_nn_tensor_t * ) );
+        /* Get inputs, outputs. */
+        node = vsi_nn_GetNode( graph, node_id );
+        vsi_nn_GetTensors( graph, node->input.tensors,
+            node->input.num, inputs );
+        vsi_nn_GetTensors( graph, node->output.tensors,
+            node->output.num, outputs );
+
+        for(j = 0; j < node->input.num; j++)
+        {
+            if(inputs[j] != NULL && inputs[j]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32)
+            {
+                vsi_nn_SetTensorAttr(inputs[j], VSI_NN_TENSOR_ATTR_HIGH_PRECISION);
+            }
+        }
+        for(j = 0; j < node->output.num; j++)
+        {
+            if(outputs[j] != NULL && outputs[j]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32)
+            {
+                vsi_nn_SetTensorAttr(outputs[j], VSI_NN_TENSOR_ATTR_HIGH_PRECISION);
+            }
+        }
+    }
+final:
+    free_io_buffer(inputs);
+    free_io_buffer(outputs);
+    return status;
+}
 vsi_nn_graph_t * vsi_nn_CreateGraph
     (
     vsi_nn_context_t ctx,
@@ -507,6 +591,7 @@ vsi_nn_graph_t * vsi_nn_CreateGraph
             graph->rnn_wksp = NULL;
             graph->node_table = (vsi_nn_map_t *)malloc( sizeof( vsi_nn_map_t ) );
             graph->tensor_table = (vsi_nn_map_t *)malloc( sizeof( vsi_nn_map_t ) );
+            graph->isAllowFastMode = TRUE;
             vsi_nn_MapInit( graph->node_table );
             vsi_nn_MapInit( graph->tensor_table );
         }
@@ -532,6 +617,18 @@ void vsi_nn_ReleaseGraph
     ptr = *graph;
     if( NULL != graph && NULL != * graph )
     {
+        if( NULL != ptr->nodes )
+        {
+            for( i = 0; i < ptr->node_num; i++ )
+            {
+                vsi_nn_RemoveNode( *graph, (vsi_nn_node_id_t)i );
+            }
+            free( (*graph)->node_table );
+        }
+        if( NULL != ptr->g )
+        {
+            vxReleaseGraph( &ptr->g );
+        }
         if( NULL != ptr->tensors )
         {
             for( i = 0; i < ptr->tensor_num; i++ )
@@ -545,14 +642,6 @@ void vsi_nn_ReleaseGraph
         {
             vsi_nn_ReleaseTensor( &ptr->complete_signal.tensor );
         }
-        if( NULL != ptr->nodes )
-        {
-            for( i = 0; i < ptr->node_num; i++ )
-            {
-                vsi_nn_RemoveNode( *graph, (vsi_nn_node_id_t)i );
-            }
-            free( (*graph)->node_table );
-        }
         if( NULL != ptr->input.tensors )
         {
             free( ptr->input.tensors );
@@ -564,10 +653,6 @@ void vsi_nn_ReleaseGraph
         if( NULL != ptr->rnn_wksp )
         {
             vsi_nn_rnn_DeinitWksp( ptr );
-        }
-        if( NULL != ptr->g )
-        {
-            vxReleaseGraph( &ptr->g );
         }
         free( ptr );
         *graph = NULL;
@@ -661,6 +746,12 @@ vsi_status vsi_nn_SetupGraph
         goto final;
     }
 
+    /* Set all of tensor attribute in graph to high precision */
+    status = set_graph_precision(graph, nodes_list);
+    if(VSI_SUCCESS != status)
+    {
+        goto final;
+    }
     /* Try setup graph complete signal node. */
     status = vsi_nn_TrySetupCompleteSignalNode( graph );
     TEST_CHECK_STATUS( status, final );
@@ -1369,7 +1460,7 @@ void vsi_nn_DumpGraphNodeOutputsEx
 #define _SHAPE_BUF_SZ   (64)
     char shape[_SHAPE_BUF_SZ] = { 0 };
     char filename[_MAX_TENSOR_NAME_SZ] = { 0 };
-    char filename_prefix[_SHAPE_BUF_SZ] = { 0 };
+    char filename_prefix[_SHAPE_BUF_SZ + 1] = { 0 };
     const char * op_name;
     uint32_t i;
     uint32_t o;
@@ -1997,4 +2088,30 @@ vsi_status vsi_nn_SetGraphPriority
     VSILOGE("Current driver not support graph priority.");
 #endif
     return status;
+}
+
+vsi_status vsi_nn_SetGraphFastMode
+    (
+    vsi_nn_graph_t* graph,
+    vsi_bool fastmode
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    if(graph)
+    {
+        graph->isAllowFastMode = fastmode;
+    }
+    else
+    {
+        status = VSI_FAILURE;
+    }
+    return status;
+}
+
+vsi_bool vsi_nn_IsGraphFastMode
+    (
+    const vsi_nn_graph_t* graph
+    )
+{
+    return NULL == graph ? FALSE : graph->isAllowFastMode;
 }

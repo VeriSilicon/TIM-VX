@@ -115,7 +115,12 @@ static vsi_bool op_check
     /* Check fl and scale*/
     ret = vsi_nn_QuantCheck(inputs[0], inputs[1], inputs[2]);
 
-    ret = ret && vsi_nn_OpCheck(VSI_NN_OP_FCL_RELU, self, inputs, outputs);
+    if (!ret)
+    {
+        return ret;
+    }
+
+    ret = vsi_nn_OpCheck(VSI_NN_OP_FCL_RELU, self, inputs, outputs);
 
     if(!ret) {
         /* check inputs outputs data type */

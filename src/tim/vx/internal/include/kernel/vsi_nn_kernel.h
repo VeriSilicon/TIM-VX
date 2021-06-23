@@ -244,6 +244,12 @@ vsi_bool vsi_nn_kernel_param_add_buffer
 void * vsi_nn_kernel_param_get_buffer
     ( const vsi_nn_kernel_param_t * params, const char * key, size_t * size);
 
+vsi_bool vsi_nn_kernel_param_add_const_buffer
+    ( vsi_nn_kernel_param_t * params, const char * key, const void * buf, size_t size);
+
+const void * vsi_nn_kernel_param_get_const_buffer
+    ( const vsi_nn_kernel_param_t * params, const char * key, size_t * size);
+
 /** Kernel register */
 #define REGISTER_KERNEL_BACKEND(kernel_name, kernel_type, func)   \
         _INITIALIZER(_register_kernel_##kernel_name##_##kernel_type) \

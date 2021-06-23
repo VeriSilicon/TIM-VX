@@ -41,50 +41,54 @@ __BEGIN_DECLS
 /*
  * Define kernel meta.
  */
-#define HASH_TILE_KEY(_input_type, _output_type, _image_2d, _remainder) \
-    ((_input_type << 18) | (_output_type << 4) | (_image_2d << 3) | (_remainder))
+#define HASH_TILE_KEY(_input_type, _output_type, _image_2d, _is_size1, _remainder) \
+    ((_input_type << 19) | (_output_type << 5) | (_image_2d << 4) | (_is_size1 << 3) | (_remainder))
 
 #define KERNEL_SOURCE    "tile",
 #define KERNEL_SOURCE1   "tile_mix",
 
 #define STR(a) #a
 
+ #define TENSOR_TILE_KEY_DIM0_IS1_2D(SRC_TYPE, OUT_TYPE) \
+    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 1, 1, 1), \
+        CVIVANTE_NAMESPACE("evis.tile_1toN_"#SRC_TYPE"to"#OUT_TYPE"_2D"), \
+        KERNEL_SOURCE },
+
 #define HASH_TILE_SH_KERNEL_NAME(SRC_TYPE, DST_TYPE, REMAINDER) \
     CVIVANTE_NAMESPACE("evis.tile_remain"STR(REMAINDER)"_"#SRC_TYPE"to"#DST_TYPE)
 
-#define TENSOR_TILE_KERNELS(SRC_TYPE, OUT_TYPE, REMAINDER) \
-    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 0, REMAINDER), \
+#define TENSOR_TILE_KERNELS(SRC_TYPE, OUT_TYPE, ISSIZE1, REMAINDER) \
+    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 0, ISSIZE1, REMAINDER), \
         HASH_TILE_SH_KERNEL_NAME(SRC_TYPE, OUT_TYPE, REMAINDER), \
         KERNEL_SOURCE1 },
 
 #define HASH_TILE_SH_KERNEL_2D_NAME(SRC_TYPE, DST_TYPE, REMAINDER) \
     CVIVANTE_NAMESPACE("evis.tile_remain"STR(REMAINDER)"_"#SRC_TYPE"to"#DST_TYPE"_2D")
 
-#define TENSOR_TILE_KERNELS_2D(SRC_TYPE, OUT_TYPE, REMAINDER) \
-    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 1, REMAINDER), \
+#define TENSOR_TILE_KERNELS_2D(SRC_TYPE, OUT_TYPE, ISSIZE1, REMAINDER) \
+    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 1, ISSIZE1, REMAINDER), \
         HASH_TILE_SH_KERNEL_2D_NAME(SRC_TYPE, OUT_TYPE, REMAINDER), \
         KERNEL_SOURCE1 },
 
 #define TENSOR_TILE_8BITS_KERNELS(SRC_TYPE, OUT_TYPE, REMAINDER) \
-    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 0, REMAINDER), \
+    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 0, 0, REMAINDER), \
         HASH_TILE_SH_KERNEL_NAME(U8, U8, REMAINDER), \
         KERNEL_SOURCE },
 
 #define TENSOR_TILE_16BITS_KERNELS(SRC_TYPE, OUT_TYPE, REMAINDER) \
-    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 0, REMAINDER), \
+    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 0, 0, REMAINDER), \
         HASH_TILE_SH_KERNEL_NAME(I16, I16, REMAINDER), \
         KERNEL_SOURCE },
 
  #define TENSOR_TILE_8BITS_2D_KERNELS(SRC_TYPE, OUT_TYPE, REMAINDER) \
-    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 1, REMAINDER), \
+    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 1, 0, REMAINDER), \
         HASH_TILE_SH_KERNEL_2D_NAME(U8, U8, REMAINDER), \
         KERNEL_SOURCE },
 
  #define TENSOR_TILE_16BITS_2D_KERNELS(SRC_TYPE, OUT_TYPE, REMAINDER) \
-    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 1, REMAINDER), \
+    {   HASH_TILE_KEY(SRC_TYPE, OUT_TYPE, 1, 0, REMAINDER), \
         HASH_TILE_SH_KERNEL_2D_NAME(I16, I16, REMAINDER), \
         KERNEL_SOURCE },
-
 
 static const struct {
         uint32_t key;
@@ -176,23 +180,44 @@ static const struct {
     TENSOR_TILE_16BITS_2D_KERNELS( BF16, BF16, 6)
     TENSOR_TILE_16BITS_2D_KERNELS( BF16, BF16, 7)
 
-    TENSOR_TILE_KERNELS( U8,   F16, 0)
-    TENSOR_TILE_KERNELS( U8,   F16, 1)
-    TENSOR_TILE_KERNELS( U8,   F16, 2)
-    TENSOR_TILE_KERNELS( U8,   F16, 3)
-    TENSOR_TILE_KERNELS( U8,   F16, 4)
-    TENSOR_TILE_KERNELS( U8,   F16, 5)
-    TENSOR_TILE_KERNELS( U8,   F16, 6)
-    TENSOR_TILE_KERNELS( U8,   F16, 7)
+    TENSOR_TILE_KERNELS( U8,   F16, 0, 0)
+    TENSOR_TILE_KERNELS( U8,   F16, 0, 1)
+    TENSOR_TILE_KERNELS( U8,   F16, 0, 2)
+    TENSOR_TILE_KERNELS( U8,   F16, 0, 3)
+    TENSOR_TILE_KERNELS( U8,   F16, 0, 4)
+    TENSOR_TILE_KERNELS( U8,   F16, 0, 5)
+    TENSOR_TILE_KERNELS( U8,   F16, 0, 6)
+    TENSOR_TILE_KERNELS( U8,   F16, 0, 7)
 
-    TENSOR_TILE_KERNELS_2D( U8,   F16, 0)
-    TENSOR_TILE_KERNELS_2D( U8,   F16, 1)
-    TENSOR_TILE_KERNELS_2D( U8,   F16, 2)
-    TENSOR_TILE_KERNELS_2D( U8,   F16, 3)
-    TENSOR_TILE_KERNELS_2D( U8,   F16, 4)
-    TENSOR_TILE_KERNELS_2D( U8,   F16, 5)
-    TENSOR_TILE_KERNELS_2D( U8,   F16, 6)
-    TENSOR_TILE_KERNELS_2D( U8,   F16, 7)
+    TENSOR_TILE_KERNELS( U8,   F16, 1, 0)
+    TENSOR_TILE_KERNELS( U8,   F16, 1, 1)
+    TENSOR_TILE_KERNELS( U8,   F16, 1, 2)
+    TENSOR_TILE_KERNELS( U8,   F16, 1, 3)
+    TENSOR_TILE_KERNELS( U8,   F16, 1, 4)
+    TENSOR_TILE_KERNELS( U8,   F16, 1, 5)
+    TENSOR_TILE_KERNELS( U8,   F16, 1, 6)
+    TENSOR_TILE_KERNELS( U8,   F16, 1, 7)
+
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 0, 0)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 0, 1)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 0, 2)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 0, 3)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 0, 4)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 0, 5)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 0, 6)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 0, 7)
+
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 1, 0)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 1, 1)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 1, 2)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 1, 3)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 1, 4)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 1, 5)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 1, 6)
+    TENSOR_TILE_KERNELS_2D( U8,   F16, 1, 7)
+
+    TENSOR_TILE_KEY_DIM0_IS1_2D(U8,  U8)
+    TENSOR_TILE_KEY_DIM0_IS1_2D(I16, I16)
 };
 
 /*
@@ -383,11 +408,24 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype;
     vsi_status status = VSI_FAILURE;
     uint32_t key;
-    int i;
+    int32_t i = 0;
+    int32_t dim0_size1 = inputs[0]->attr.size[0] == 1 ? 1 : 0;
 
     input_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
-    key = HASH_TILE_KEY( input_dtype, output_dtype, image_2d, remainder);
+
+    if (input_dtype == output_dtype && image_2d == TRUE && dim0_size1)
+    {
+        input_dtype = input_dtype == I8 ? U8 : input_dtype;
+        input_dtype = input_dtype == F16 ? I16 : input_dtype;
+        input_dtype = input_dtype == BF16 ? I16 : input_dtype;
+        output_dtype = input_dtype;
+        key = HASH_TILE_KEY(input_dtype, output_dtype, 1, 1, 1);
+    }
+    else
+    {
+        key = HASH_TILE_KEY( input_dtype, output_dtype, image_2d, dim0_size1, remainder);
+    }
 
     for( i = 0; i < _cnt_of_array(_tile_evis_kernel_map); i ++ )
     {

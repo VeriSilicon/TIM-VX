@@ -30,17 +30,19 @@
 extern "C" {
 #endif
 
-typedef struct _vsi_nn_conv1d_lcl_data_t
-{
-    vx_tensor input_tensor;
-    vx_tensor weight_tensor;
-    vx_tensor output_tensor;
-} vsi_nn_conv1d_lcl_data_t;
-
 typedef struct _vsi_nn_conv1d_param
 {
     /* local data must be the first. */
-    vsi_nn_conv1d_lcl_data_t local;
+    union
+    {
+        struct _conv1d_local_data_t *local;
+
+        struct {
+            vx_tensor input_tensor;
+            vx_tensor weight_tensor;
+            vx_tensor output_tensor;
+        } reserved;
+    };
 
     uint32_t     ksize;
     uint32_t     stride;
@@ -53,6 +55,8 @@ typedef struct _vsi_nn_conv1d_param
     uint32_t     dilation;
     int32_t      multiplier;
 } vsi_nn_conv1d_param;
+_compiler_assert(offsetof(vsi_nn_conv1d_param, local) == 0, \
+    vsi_nn_vsi_nn_conv1d_h );
 
 #ifdef __cplusplus
 }

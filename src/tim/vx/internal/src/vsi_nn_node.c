@@ -166,7 +166,7 @@ void vsi_nn_PrintNode
     vsi_nn_node_id_t id
     )
 {
-#define _MAX_PRINT_BUF_SZ   (256)
+#define _MAX_PRINT_BUF_SZ   (1024)
     uint32_t i;
     int count;
     char buf[_MAX_PRINT_BUF_SZ];

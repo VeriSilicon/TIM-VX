@@ -202,8 +202,28 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
         }, GPU_DP_TYPE_16 };
         gpu_dp_inst_t uniExtractRtoF32_part1_4x4 = {{
             0x01010101, // TCfg
-            0x01010100, // ASelt
-            0x0000000c, 0x00060003, // ABin
+            0x01010000, // ASelt
+            0x000f000c, 0x00050002, // ABin
+            0x02020202, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractRtoF32_part2_4x4 = {{
+            0x01010101, // TCfg
+            0x01000000, // ASelt
+            0x000b0008, 0x0001000e, // ABin
+            0x02020202, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractRtoF32_part3_4x4 = {{
+            0x01010101, // TCfg
+            0x01010101, // ASelt
+            0x00070004, 0x000d000a, // ABin
             0x02020202, // BSelt
             0x00000000, 0x00000000, // BBin
             0x00000600, // AccumType, ConstantType, and PostShift
@@ -223,7 +243,27 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
         gpu_dp_inst_t uniExtractGtoF32_part1_4x4 = {{
             0x01010101, // TCfg
             0x01010100, // ASelt
-            0x0001000d, 0x00070004, // ABin
+            0x0000000d, 0x00060003, // ABin
+            0x02020202, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractGtoF32_part2_4x4 = {{
+            0x01010101, // TCfg
+            0x01000000, // ASelt
+            0x000c0009, 0x0002000f, // ABin
+            0x02020202, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractGtoF32_part3_4x4 = {{
+            0x01010101, // TCfg
+            0x01010101, // ASelt
+            0x00080005, 0x000e000b, // ABin
             0x02020202, // BSelt
             0x00000000, 0x00000000, // BBin
             0x00000600, // AccumType, ConstantType, and PostShift
@@ -243,7 +283,27 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
         gpu_dp_inst_t uniExtractBtoF32_part1_4x4 = {{
             0x01010101, // TCfg
             0x01010100, // ASelt
-            0x0002000e, 0x00080005, // ABin
+            0x0001000e, 0x00070004, // ABin
+            0x02020202, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractBtoF32_part2_4x4 = {{
+            0x01010101, // TCfg
+            0x01010000, // ASelt
+            0x000d000a, 0x00030000, // ABin
+            0x02020202, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractBtoF32_part3_4x4 = {{
+            0x01010101, // TCfg
+            0x01010101, // ASelt
+            0x00090006, 0x000f000c, // ABin
             0x02020202, // BSelt
             0x00000000, 0x00000000, // BBin
             0x00000600, // AccumType, ConstantType, and PostShift
@@ -358,7 +418,14 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
         case _PACK_SELECT_KEY( 1, 0, 0):  // copy
         case _PACK_SELECT_KEY( 1, 2, 0):  // copy  reorder
             {
-                shaderParam.global_scale[0]  = 8;
+                if (attr[0]->dtype == I8 || attr[0]->dtype == U8)
+                {
+                    shaderParam.global_scale[0]  = 16;
+                }
+                else
+                {
+                    shaderParam.global_scale[0]  = 8;
+                }
                 shaderParam.global_scale[1]  = 1;
                 shaderParam.global_scale[2]  = 1;
                 shaderParam.global_size[0]   = gpu_align_p2((width + shaderParam.global_scale[0] - 1)
@@ -366,7 +433,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
                 shaderParam.global_size[1]   = height;
                 shaderParam.global_size[2]   = 1;
 
-                if(attr[0]->dtype == F16)
+                if (attr[0]->dtype == F16)
                 {
                     status = vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractHalf8_2x8);
                 }
@@ -376,10 +443,16 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
                 }
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractRtoF32_part0_4x4", &uniExtractRtoF32_part0_4x4);
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractRtoF32_part1_4x4", &uniExtractRtoF32_part1_4x4);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractRtoF32_part2_4x4", &uniExtractRtoF32_part2_4x4);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractRtoF32_part3_4x4", &uniExtractRtoF32_part3_4x4);
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractGtoF32_part0_4x4", &uniExtractGtoF32_part0_4x4);
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractGtoF32_part1_4x4", &uniExtractGtoF32_part1_4x4);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractGtoF32_part2_4x4", &uniExtractGtoF32_part2_4x4);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractGtoF32_part3_4x4", &uniExtractGtoF32_part3_4x4);
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractBtoF32_part0_4x4", &uniExtractBtoF32_part0_4x4);
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractBtoF32_part1_4x4", &uniExtractBtoF32_part1_4x4);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractBtoF32_part2_4x4", &uniExtractBtoF32_part2_4x4);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractBtoF32_part3_4x4", &uniExtractBtoF32_part3_4x4);
                 status |= vsi_nn_kernel_gpu_add_param(node, "r_order", &reorder);
                 status |= vsi_nn_kernel_gpu_add_param(node, "b_order", &order1);
                 CHECK_STATUS_FAIL_GOTO(status, OnError);

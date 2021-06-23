@@ -438,6 +438,7 @@ static inline vsi_status float32_to_dtype
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_INT16:
     case VSI_NN_TYPE_INT32:
+    case VSI_NN_TYPE_UINT32:
         {
             int32_t dst_value = 0;
             switch( dst_dtype->qnt_type )

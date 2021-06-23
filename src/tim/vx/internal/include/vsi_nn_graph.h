@@ -165,6 +165,8 @@ struct _vsi_nn_graph
          * so please keep it NULL.*/
         vsi_nn_tensor_t* tensor;
     } complete_signal;
+
+    vsi_bool isAllowFastMode;
 };
 
 /**
@@ -716,6 +718,16 @@ OVXLIB_API vsi_status vsi_nn_SetGraphPriority
     uint32_t priority
     );
 
+OVXLIB_API vsi_status vsi_nn_SetGraphFastMode
+    (
+    vsi_nn_graph_t* graph,
+    vsi_bool fastmode
+    );
+
+OVXLIB_API vsi_bool vsi_nn_IsGraphFastMode
+    (
+    const vsi_nn_graph_t* graph
+    );
 #ifdef __cplusplus
 }
 #endif

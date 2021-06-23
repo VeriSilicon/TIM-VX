@@ -119,7 +119,7 @@ vsi_bool is_item_in_array
 enum { NAME##_INPUT_COUNT = INPUT_COUNT,                            \
     NAME##_OUTPUT_COUNT = OUTPUT_COUNT,                             \
     NAME##_IO_COUNT = NAME##_INPUT_COUNT + NAME##_OUTPUT_COUNT};    \
-static const struct {vsi_nn_type_e types[NAME##_IO_COUNT];}         \
+static const struct {int types[NAME##_IO_COUNT];}         \
 NAME##_supported_io_types[] = {
 
 #define DECL_OP_CONSTRAINT_REG(NAME) \

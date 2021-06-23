@@ -37,7 +37,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_link_list.h"
 #include "utils/vsi_nn_dtype_util.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 
 #define _ARG_NUM            (1)
 #define _INPUT_NUM          VSI_NN_STACK_MAX_INPUTS

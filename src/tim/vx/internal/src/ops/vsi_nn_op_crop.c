@@ -35,7 +35,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 #define _ARG_NUM            (3)

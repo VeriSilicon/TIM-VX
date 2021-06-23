@@ -1,0 +1,239 @@
+#include "cl_viv_vx_ext.h"
+
+#define SLICE_SAMLEFL_SH_IMPL(name, data_type, end_bin) \
+__kernel void slice_##name##_I32to##name##_SAMEFL \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_t       input1, \
+    __write_only image2d_array_t output, \
+    int is_samefl \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    int4 coord_in; \
+    Image begin_img = create_image_from_image2d(input1, 4); \
+    uchar* begin_ptr = begin_img.ptr; \
+    int4 begin = ((int4 *)begin_ptr)[0]; \
+    \
+    coord_in = coord + begin; \
+    data_type src; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, end_bin, 0, VXC_RM_TowardZero, 0)); \
+    VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, end_bin, 0, VXC_RM_TowardZero, 0)); \
+}
+SLICE_SAMLEFL_SH_IMPL(U8, vxc_uchar16, 15)
+SLICE_SAMLEFL_SH_IMPL(I16, vxc_short8, 7)
+
+
+#define SLICE_SAMLEFL_2D_SH_IMPL(name, data_type, end_bin) \
+__kernel void slice_##name##_I32to##name##_SAMEFL_2D \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_t       input1, \
+    __write_only image2d_array_t output, \
+    int is_samefl \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    int2 coord_in; \
+    Image begin_img = create_image_from_image2d(input1, 4); \
+    uchar* begin_ptr = begin_img.ptr; \
+    int2 begin = ((int2 *)begin_ptr)[0]; \
+    \
+    coord_in = coord + begin; \
+    data_type src; \
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, end_bin, 0, VXC_RM_TowardZero, 0)); \
+    VXC_WriteImage(output, coord, src, VXC_MODIFIER(0, end_bin, 0, VXC_RM_TowardZero, 0)); \
+}
+SLICE_SAMLEFL_2D_SH_IMPL(U8, vxc_uchar16, 15)
+SLICE_SAMLEFL_2D_SH_IMPL(I16, vxc_short8, 7)
+
+_viv_uniform VXC_512Bits uniU8MulAndPostShift_Lo_2x8;
+_viv_uniform VXC_512Bits uniU8MulAndPostShift_Hi_2x8;
+_viv_uniform int2 multAndoutZP;//[0:15] multiplier, [31:63] output zp
+#define SLICE_8BITSTO16BITS(name0, name1, src_type, dst_type, save_type) \
+__kernel void slice_##name0##_I32to##name1 \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_t       input1, \
+    __write_only image2d_array_t output, \
+    int is_samefl \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    src_type src; \
+    dst_type dst0; \
+    int4 coord_in; \
+    Image begin_img = create_image_from_image2d(input1, 4); \
+    uchar* begin_ptr = begin_img.ptr; \
+    int4 begin = ((int4 *)begin_ptr)[0]; \
+    \
+    coord_in = coord + begin; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    vxc_ushort8 multiplier; \
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \
+    VXC_DP2x8(dst0, src, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift_Lo_2x8); \
+    save_type dst; \
+    _viv_asm(COPY, dst, dst0, 16); \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+}
+SLICE_8BITSTO16BITS(I8, F16, vxc_char16,  vxc_half8,  vxc_short8)
+SLICE_8BITSTO16BITS(U8, F16, vxc_uchar16, vxc_half8,  vxc_short8)
+
+#define SLICE_8BITSTO16BITS_2D(name0, name1, src_type, dst_type, save_type) \
+__kernel void slice_##name0##_I32to##name1##_2D \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_t       input1, \
+    __write_only image2d_array_t output, \
+    int is_samefl \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    src_type src; \
+    dst_type dst0; \
+    int2 coord_in; \
+    Image begin_img = create_image_from_image2d(input1, 4); \
+    uchar* begin_ptr = begin_img.ptr; \
+    int2 begin = ((int2 *)begin_ptr)[0]; \
+    \
+    coord_in = coord + begin; \
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    vxc_ushort8 multiplier; \
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \
+    VXC_DP2x8(dst0, src, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift_Lo_2x8); \
+    save_type dst; \
+    _viv_asm(COPY, dst, dst0, 16); \
+    VXC_WriteImage(output, coord.xy, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+}
+SLICE_8BITSTO16BITS_2D(I8, F16, vxc_char16,  vxc_half8,  vxc_short8)
+SLICE_8BITSTO16BITS_2D(U8, F16, vxc_uchar16, vxc_half8,  vxc_short8)
+
+#define SLICE_8BITSTO8BITS(name0, name1, src_type, dst_type) \
+__kernel void slice_##name0##_I32to##name1 \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_t       input1, \
+    __write_only image2d_array_t output, \
+    int is_samefl \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    src_type src; \
+    dst_type dst; \
+    int4 coord_in; \
+    Image begin_img = create_image_from_image2d(input1, 4); \
+    uchar* begin_ptr = begin_img.ptr; \
+    int4 begin = ((int4 *)begin_ptr)[0]; \
+    \
+    coord_in = coord + begin; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+ \
+    vxc_ushort8 multiplier; \
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \
+    VXC_DP2x8(dst, src, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift_Lo_2x8); \
+    VXC_DP2x8(dst, src, multiplier, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift_Hi_2x8); \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
+}
+SLICE_8BITSTO8BITS(I8, I8, vxc_char16,  vxc_char16)
+SLICE_8BITSTO8BITS(U8, U8, vxc_uchar16, vxc_uchar16)
+
+#define SLICE_8BITSTO8BITS_2D(name0, name1, src_type, dst_type) \
+__kernel void slice_##name0##_I32to##name1##_2D \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_t       input1, \
+    __write_only image2d_array_t output, \
+    int is_samefl \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    src_type src; \
+    dst_type dst; \
+    int2 coord_in; \
+    Image begin_img = create_image_from_image2d(input1, 4); \
+    uchar* begin_ptr = begin_img.ptr; \
+    int2 begin = ((int2 *)begin_ptr)[0]; \
+    \
+    coord_in = coord + begin; \
+    VXC_ReadImage(src, input0, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+ \
+    vxc_ushort8 multiplier; \
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \
+    VXC_DP2x8(dst, src, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift_Lo_2x8); \
+    VXC_DP2x8(dst, src, multiplier, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift_Hi_2x8); \
+    VXC_WriteImage(output, coord.xy, dst, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
+}
+SLICE_8BITSTO8BITS_2D(I8, I8, vxc_char16,  vxc_char16)
+SLICE_8BITSTO8BITS_2D(U8, U8, vxc_uchar16, vxc_uchar16)
+
+#define SLICE_16BITS_TO(name0, name1, src_type, copy_type, dst_type) \
+__kernel void slice_##name0##_I32to##name1 \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_t       input1, \
+    __write_only image2d_array_t output, \
+    int is_samefl \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    src_type src; \
+    copy_type src0; \
+    dst_type dst; \
+    int4 coord_in; \
+    Image begin_img = create_image_from_image2d(input1, 4); \
+    uchar* begin_ptr = begin_img.ptr; \
+    int4 begin = ((int4 *)begin_ptr)[0]; \
+    \
+    coord_in = coord + begin; \
+    VXC_ReadImage2DArray(src0, input0, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, src0, 16); \
+ \
+    vxc_ushort8 multiplier; \
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \
+    VXC_DP2x8(dst, src, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift_Lo_2x8); \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+}
+SLICE_16BITS_TO(F16, I8,  vxc_half8,  vxc_short8, vxc_char16)
+SLICE_16BITS_TO(F16, U8,  vxc_half8,  vxc_short8, vxc_uchar16)
+SLICE_16BITS_TO(F16, I16, vxc_half8,  vxc_short8, vxc_short8)
+
+#define SLICE_16BITS_TO_2D(name0, name1, src_type, copy_type, dst_type) \
+__kernel void slice_##name0##_I32to##name1##_2D \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_t       input1, \
+    __write_only image2d_array_t output, \
+    int is_samefl \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    src_type src; \
+    copy_type src0; \
+    dst_type dst; \
+    int2 coord_in; \
+    Image begin_img = create_image_from_image2d(input1, 4); \
+    uchar* begin_ptr = begin_img.ptr; \
+    int2 begin = ((int2 *)begin_ptr)[0]; \
+    \
+    coord_in = coord + begin; \
+    VXC_ReadImage(src0, input0, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, src0, 16); \
+ \
+    vxc_ushort8 multiplier; \
+    _viv_asm(COPY, multiplier, multAndoutZP, 16); \
+    VXC_DP2x8(dst, src, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift_Lo_2x8); \
+    VXC_WriteImage(output, coord.xy, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+}
+SLICE_16BITS_TO_2D(F16, I8,  vxc_half8,  vxc_short8, vxc_char16)
+SLICE_16BITS_TO_2D(F16, U8,  vxc_half8,  vxc_short8, vxc_uchar16)
+SLICE_16BITS_TO_2D(F16, I16, vxc_half8,  vxc_short8, vxc_short8)

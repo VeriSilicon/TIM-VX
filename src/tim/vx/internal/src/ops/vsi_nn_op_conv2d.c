@@ -118,6 +118,7 @@ static vsi_bool op_check
         BEGIN_IO_TYPE_DECL(CONV2D, 3, 1)
             /* IO_TYPE(INPUT, WEIGHT, BIAS, OUTPUT) */
             IO_TYPE(D_F32, D_F32, D_F32, D_F32)
+            IO_TYPE(D_F32, D_F32, D_F32, D_F16)
 
             IO_TYPE(D_F16, D_F16, D_F16, D_F16)
             IO_TYPE(D_F16, D_F16, D_F32, D_F16)

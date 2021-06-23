@@ -32,9 +32,9 @@ extern "C" {
 
 typedef struct _vsi_nn_moments_param
 {
-    int32_t*   axis;
-    int32_t    axis_num;
-    vsi_bool   keep_dim;
+    const int32_t*  axis;
+    int32_t         axis_num;
+    vsi_bool        keep_dim;
 } vsi_nn_moments_param;
 
 #ifdef __cplusplus

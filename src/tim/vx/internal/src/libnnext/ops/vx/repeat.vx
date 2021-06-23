@@ -1,0 +1,224 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniIntegralHorAcc_4x4;
+_viv_uniform VXC_512Bits uniExtract1to8Short_2x8;
+_viv_uniform int width;
+
+// workgroup size is 32
+__kernel void preprocess_start_idx(image2d_t input, image2d_t output)
+{
+    int lidx = get_local_id(0);
+    __local int lcl_sum[32];
+    __local int last_round[1];
+    Image img = create_image_from_image2d(input, 4);
+    Image dst = create_image_from_image2d(output, 4);
+    __global int* index_ptr = (__global int*)img.ptr + get_global_id(0);
+    __global int* output_org = (__global int*)dst.ptr;
+    __global int* output_ptr = output_org + get_global_id(0) + 1;
+
+    if (lidx == 0)
+    {
+        last_round[0] = 0;
+        output_org[0] = 0;
+    }
+    int4 accSum0, accSum1, accSum2, accSum3;
+
+    for(int i = 0; i < width; i += 512)
+    {
+        int4 data0 = vload4(0, index_ptr + i);
+        int4 data1 = vload4(1, index_ptr + i);
+        int4 data2 = vload4(2, index_ptr + i);
+        int4 data3 = vload4(3, index_ptr + i);
+        barrier(CLK_LOCAL_MEM_FENCE);
+        int prevSum = last_round[0];
+
+        VXC_DP4x4(accSum0, data0, data0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniIntegralHorAcc_4x4);
+        VXC_DP4x4(accSum1, data1, data1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniIntegralHorAcc_4x4);
+        VXC_DP4x4(accSum2, data2, data2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniIntegralHorAcc_4x4);
+        VXC_DP4x4(accSum3, data3, data3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniIntegralHorAcc_4x4);
+        accSum1 += accSum0.w;
+        accSum2 += accSum1.w;
+        accSum3 += accSum2.w;
+
+        lcl_sum[lidx] = accSum3.w;
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for(int j = 0; j < lidx; j++)
+        {
+            prevSum += lcl_sum[j];
+        }
+        accSum0 += prevSum;
+        accSum1 += prevSum;
+        accSum2 += prevSum;
+        accSum3 += prevSum;
+        if(lidx == 31)
+        {
+            last_round[0] = accSum3.w;
+        }
+        vstore4(accSum0, 0, output_ptr + i);
+        vstore4(accSum1, 1, output_ptr + i);
+        vstore4(accSum2, 2, output_ptr + i);
+        vstore4(accSum3, 3, output_ptr + i);
+    }
+}
+
+__kernel void repeat_I16_axis0(
+    image2d_array_t  input0, image2d_t  input1, image2d_t  input2,
+    image2d_array_t  output, int axis)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    vxc_short8 src0;
+    VXC_ReadImage2DArray(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0),
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    Image img1 = create_image_from_image2d(input1, 4);
+    Image img2 = create_image_from_image2d(input2, 4);
+    __global int* len_ptr = (__global int*)img1.ptr;
+    __global int* index_ptr = (__global int*)img2.ptr;
+
+    int len = len_ptr[get_global_id(1)];
+    int start = index_ptr[get_global_id(1)];
+
+    int8 output_desc;
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));
+    int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
+    _viv_asm(MOV, coord.z, baseAddr);
+    int end = len + start;
+
+    for(coord.y = start; coord.y < end; coord.y++)
+    {
+        VXC_OP4_NoDest(img_store_3d, output, coord, src0, \
+                VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+    }
+}
+
+__kernel void repeat_I16_axis2(
+    image2d_array_t  input0, image2d_t  input1, image2d_t  input2,
+    image2d_array_t  output, int axis)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    vxc_short8 src0;
+    VXC_ReadImage2DArray(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0),
+             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    Image img1 = create_image_from_image2d(input1, 4);
+    Image img2 = create_image_from_image2d(input2, 4);
+    __global int* len_ptr = (__global int*)img1.ptr;
+    __global int* index_ptr = (__global int*)img2.ptr;
+
+    int len = len_ptr[get_global_id(2)];
+    int start = index_ptr[get_global_id(2)];
+    int end = len + start;
+
+    for(coord.z = start; coord.z < end; coord.z++)
+    {
+        VXC_WriteImage2DArray(output, coord, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    }
+}
+
+#define REPEAT_1D(src0_type_name, data_type) \
+__kernel void repeat_##src0_type_name##_1D( \
+    image2d_t  input0, image2d_t  input1, image2d_t  input2, \
+    image2d_t  output, int axis) \
+{ \
+    int2 coord = (int2)(get_global_id(0), 0); \
+    data_type src0; \
+    VXC_ReadImage(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0), \
+             VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+    Image img1 = create_image_from_image2d(input1, 4); \
+    Image img2 = create_image_from_image2d(input2, 4); \
+    __global int* len_ptr = (__global int*)img1.ptr; \
+    __global int* index_ptr = (__global int*)img2.ptr; \
+    int len = len_ptr[get_global_id(0)]; \
+    int start = index_ptr[get_global_id(0)]; \
+ \
+    int iter = len >> 3; \
+    int res = len & 7; \
+    int end = start + iter * 8; \
+    VXC_DP2x8(src0, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract1to8Short_2x8); \
+    for(coord.x = start; coord.x < end; coord.x+=8) \
+    { \
+        VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    } \
+ \
+    if(res == 7) \
+    { \
+        VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 6, 0, VXC_RM_TowardZero, 0)); \
+    } \
+    else if(res == 6) \
+    { \
+        VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \
+    } \
+    else if(res == 5) \
+    { \
+        VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 4, 0, VXC_RM_TowardZero, 0)); \
+    } \
+    else if(res == 4) \
+    { \
+        VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    } \
+    else if(res == 3) \
+    { \
+        VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0)); \
+    } \
+    else if(res == 2) \
+    { \
+        VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0)); \
+    } \
+    else if(res == 1) \
+    { \
+        VXC_WriteImage(output, coord, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+    } \
+}
+REPEAT_1D(U8,  vxc_uchar16)
+REPEAT_1D(I16, vxc_short8)
+
+__kernel void repeat_U8_axis0(
+    image2d_array_t  input0, image2d_t  input1, image2d_t  input2,
+    image2d_array_t  output, int axis)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    vxc_uchar16 src0;
+    VXC_ReadImage2DArray(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0),
+             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    Image img1 = create_image_from_image2d(input1, 4);
+    Image img2 = create_image_from_image2d(input2, 4);
+    __global int* len_ptr = (__global int*)img1.ptr;
+    __global int* index_ptr = (__global int*)img2.ptr;
+
+    int len = len_ptr[get_global_id(1)];
+    int start = index_ptr[get_global_id(1)];
+
+    int8 output_desc;
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));
+    int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
+    _viv_asm(MOV, coord.z, baseAddr);
+    int end = len + start;
+
+    for(coord.y = start; coord.y < end; coord.y++)
+    {
+        VXC_OP4_NoDest(img_store_3d, output, coord, src0, \
+                VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+    }
+}
+
+__kernel void repeat_U8_axis2(
+    image2d_array_t  input0, image2d_t  input1, image2d_t  input2,
+    image2d_array_t  output, int axis)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    vxc_uchar16 src0;
+    VXC_ReadImage2DArray(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0),
+             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    Image img1 = create_image_from_image2d(input1, 4);
+    Image img2 = create_image_from_image2d(input2, 4);
+    __global int* len_ptr = (__global int*)img1.ptr;
+    __global int* index_ptr = (__global int*)img2.ptr;
+
+    int len = len_ptr[get_global_id(2)];
+    int start = index_ptr[get_global_id(2)];
+    int end = len + start;
+
+    for(coord.z = start; coord.z < end; coord.z++)
+    {
+        VXC_WriteImage2DArray(output, coord, src0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    }
+}

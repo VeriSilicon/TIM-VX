@@ -37,7 +37,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_link_list.h"
 #include "utils/vsi_nn_dtype_util.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)

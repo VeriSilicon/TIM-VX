@@ -34,7 +34,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "vsi_nn_internal_node.h"
 
 #define _INPUT_NUM          (1)

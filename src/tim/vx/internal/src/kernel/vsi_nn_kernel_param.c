@@ -42,6 +42,7 @@ typedef enum
     _PARAM_I64,
     _PARAM_F32,
     _PARAM_BUFFER,
+    _PARAM_CONST_BUFFER,
     _PARAM_STR,
 } _param_dtype_e;
 
@@ -54,6 +55,7 @@ typedef struct
         int64_t     int64;
         float       float32;
         void*       buffer;
+        const void* const_buffer;
         const char* str;
     } value;
     size_t size;
@@ -163,6 +165,45 @@ void* vsi_nn_kernel_param_get_buffer
     }
     return p->value.buffer;
 } /* vsi_nn_kernel_param_get_buffer() */
+
+vsi_bool vsi_nn_kernel_param_add_const_buffer
+    (
+    vsi_nn_kernel_param_t * params,
+    const char * key,
+    const void * value,
+    size_t size
+    )
+{
+    _param_type* p;
+    CHECK_PARAM_NULL( params, FALSE, "Params is null ptr." );
+    CHECK_PARAM_NULL( key, FALSE, "Param key is null ptr." );
+    p = malloc( sizeof(_param_type) );
+    CHECK_PARAM_NULL( p, FALSE, "Out of memory, add param fail." );
+    p->type = _PARAM_CONST_BUFFER;
+    p->value.const_buffer = value;
+    p->size = size;
+    vsi_nn_hashmap_add( params, key, p );
+    return TRUE;
+} /* vsi_nn_kernel_param_add_const_buffer() */
+
+const void* vsi_nn_kernel_param_get_const_buffer
+    ( const vsi_nn_kernel_param_t * params, const char * key, size_t * size)
+{
+    _param_type* p;
+    CHECK_PARAM_NULL( params, FALSE, "Params is null ptr." );
+    CHECK_PARAM_NULL( key, FALSE, "Param key is null ptr." );
+    p = vsi_nn_hashmap_get( params, key );
+    CHECK_PARAM_NULL( p, 0, "Key %s not in params.", key );
+    if( p->type != _PARAM_CONST_BUFFER )
+    {
+        VSILOGW("Key %s is not \"const buffer\"", key );
+    }
+    if( size != NULL )
+    {
+        *size = p->size;
+    }
+    return p->value.const_buffer;
+} /* vsi_nn_kernel_param_get_const_buffer() */
 
 vsi_nn_kernel_param_t* vsi_nn_kernel_param_create()
 {

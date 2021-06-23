@@ -64,6 +64,11 @@ float4 eltwise_unary_mish(float4 x, float alpha)
     return x;
 }
 
+float4 eltwise_unary_round(float4 x, float alpha)
+{
+    return convert_float4(convert_int4_rte(x));
+}
+
 #define ELTWISE_UNARY_F32(func_name) \
 __kernel void func_name##_F32toF32 \
     ( \
@@ -91,6 +96,7 @@ ELTWISE_UNARY_F32(elu)
 ELTWISE_UNARY_F32(neg)
 ELTWISE_UNARY_F32(mish)
 ELTWISE_UNARY_F32(hard_sigmoid)
+ELTWISE_UNARY_F32(round)
 
 #define ELTWISE_UNARY_F32_2D(func_name) \
 __kernel void func_name##_F32toF32_2D \
@@ -119,6 +125,7 @@ ELTWISE_UNARY_F32_2D(elu)
 ELTWISE_UNARY_F32_2D(neg)
 ELTWISE_UNARY_F32_2D(mish)
 ELTWISE_UNARY_F32_2D(hard_sigmoid)
+ELTWISE_UNARY_F32_2D(round)
 
 #define ELTWISE_UNARY_U8(func_name) \
 __kernel void func_name##_U8toU8 \
@@ -149,6 +156,7 @@ ELTWISE_UNARY_U8(elu)
 ELTWISE_UNARY_U8(neg)
 ELTWISE_UNARY_U8(mish)
 ELTWISE_UNARY_U8(hard_sigmoid)
+ELTWISE_UNARY_U8(round)
 
 #define ELTWISE_UNARY_U8_2D(func_name) \
 __kernel void func_name##_U8toU8_2D \
@@ -179,7 +187,7 @@ ELTWISE_UNARY_U8_2D(elu)
 ELTWISE_UNARY_U8_2D(neg)
 ELTWISE_UNARY_U8_2D(mish)
 ELTWISE_UNARY_U8_2D(hard_sigmoid)
-
+ELTWISE_UNARY_U8_2D(round)
 
 __kernel void neg_I32toI32
     (

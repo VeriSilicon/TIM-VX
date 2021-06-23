@@ -34,7 +34,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -51,28 +51,11 @@ static vsi_status op_compute
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
-    float eps = self->nn_param.instancenorm.eps;
-    uint32_t *input_size = inputs[0]->attr.size;
-    uint32_t dims_num = inputs[0]->attr.dim_num;
-    int32_t rs_flg = 0;
-    int32_t wh_flg = 0;
+    float eps = self->nn_param.layernorm.eps;
 
-    param =vsi_nn_kernel_param_create();
-
-    if (input_size[0] >= GPU_TENSOR_MAX_WIDTH)
-    {
-        wh_flg = 1;
-    }
-
-    if ((input_size[1] * input_size[2] < GPU_TENSOR_MAX_WIDTH)
-        && dims_num > 2)
-    {
-        rs_flg = 1;
-    }
+    param = vsi_nn_kernel_param_create();
 
     vsi_nn_kernel_param_add_float32( param, "eps", eps );
-    vsi_nn_kernel_param_add_int32( param, "reshape_flg", rs_flg );
-    vsi_nn_kernel_param_add_int32( param, "wh_flg", wh_flg );
     n = vsi_nn_kernel_selector( self->graph, "layer_norm",
                     inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
     if ( n != NULL )
@@ -99,10 +82,14 @@ static vsi_bool op_check
     BEGIN_IO_TYPE_DECL(LAYER_NORM, 3, 1)
         IO_TYPE(D_F32,  D_F32,  D_F32,  D_F32)
         IO_TYPE(D_F16,  D_F32,  D_F16,  D_F16)
+        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F16)
         IO_TYPE(D_F16,  D_F32,  D_F16,  D_U8|Q_ASYM)
+        IO_TYPE(D_BF16, D_F32,  D_F32,  D_BF16)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F16,  D_F16)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F16,  D_U8|Q_ASYM)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F16,  D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F32,  D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F32,  D_I16|Q_DFP)
     END_IO_TYPE_DECL(LAYER_NORM)
     if (!VALIDATE_OP_IO_TYPES(LAYER_NORM, self, inputs, self->input.num, outputs, self->output.num))
     {

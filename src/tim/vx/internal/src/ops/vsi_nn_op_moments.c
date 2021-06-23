@@ -37,6 +37,31 @@
 #define _INPUT_NUM    1
 #define _OUTPUT_NUM   2
 
+static void _squeeze_axis
+    (
+    vsi_nn_tensor_t *input,
+    const int32_t* axis_in,
+    int32_t axis_num,
+    int32_t* axis_out,
+    int32_t *axis_num_out
+    )
+{
+    int32_t i = 0;
+
+    memcpy(axis_out, axis_in, sizeof(int32_t) * axis_num);
+    *axis_num_out = axis_num;
+
+    for (i = 0; i < axis_num; i++)
+    {
+        if (axis_in[i] == 3 && input->attr.size[3] == 1)
+        {
+            *axis_num_out = axis_num - 1;
+            axis_out[i] = 0;
+            break;
+        }
+    }
+}
+
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -47,22 +72,25 @@ static vsi_status op_compute
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
-    int32_t* axis = self->nn_param.moments.axis;
+    int32_t axes_copy[VSI_NN_MAX_DIM_NUM] = { 0 };
+    const int32_t* axis = self->nn_param.moments.axis;
     int32_t axis_num = self->nn_param.moments.axis_num;
     int32_t keep_dim = self->nn_param.moments.keep_dim ? 1 : 0;
 
-    param =vsi_nn_kernel_param_create();
+    _squeeze_axis(inputs[0], axis, axis_num, axes_copy, &axis_num);
 
-    vsi_nn_kernel_param_add_buffer( param, "axis", axis, axis_num);
+    param = vsi_nn_kernel_param_create();
+
+    vsi_nn_kernel_param_add_buffer( param, "axis", axes_copy, axis_num);
     vsi_nn_kernel_param_add_int32( param, "keep_dim", keep_dim);
     n = vsi_nn_kernel_selector( self->graph, "moments", inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
-    if( n != NULL )
+    if (n != NULL)
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;
     }
 
-    if(param != NULL)
+    if (param != NULL)
     {
         vsi_nn_kernel_param_release( &param );
     }
@@ -77,6 +105,10 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    int32_t axes_copy[VSI_NN_MAX_DIM_NUM] = { 0 };
+    int32_t axes_num = 0;
+    int32_t i = 0;
+
     BEGIN_IO_TYPE_DECL(MOMENTS, 1, 2)
         IO_TYPE(D_U8|Q_ASYM,  D_F16,  D_F16)
         IO_TYPE(D_I8|Q_DFP,   D_F16,  D_F16)
@@ -85,12 +117,24 @@ static vsi_bool op_check
         IO_TYPE(D_F32,   D_F32,  D_F32)
         IO_TYPE(D_I32,   D_F32,  D_F32)
     END_IO_TYPE_DECL(MOMENTS)
-    if(!VALIDATE_OP_IO_TYPES(MOMENTS, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(MOMENTS, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
         destroy_op_io_types_desc(desc);
         return FALSE;
+    }
+
+    _squeeze_axis(inputs[0], self->nn_param.moments.axis,
+        self->nn_param.moments.axis_num, axes_copy, &axes_num);
+
+    for (i = 0; i < axes_num; i++)
+    {
+        if (axes_copy[i] > 2)
+        {
+            VSILOGE("moments shader path not support axis: %d", axes_copy[i]);
+            return FALSE;
+        }
     }
 
     return TRUE;
@@ -107,23 +151,15 @@ static vsi_bool op_setup
     int32_t i = 0, j = 0;
     vsi_nn_moments_param * p = NULL;
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if (VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num)
     {
-        int32_t* axis = NULL;
+        const int32_t* axis = NULL;
         int32_t axis_num = 0;
         p = &(self->nn_param.moments);
         axis = p->axis;
         axis_num = p->axis_num;
 
-        for(i = 0; i < axis_num; i++)
-        {
-            if(axis[i] > 2)
-            {
-                return FALSE;
-            }
-        }
-
-        if(p->keep_dim)
+        if (p->keep_dim)
         {
             outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
             outputs[1]->attr.dim_num = inputs[0]->attr.dim_num;
@@ -133,45 +169,35 @@ static vsi_bool op_setup
                 outputs[0]->attr.size[i] = inputs[0]->attr.size[i];
                 outputs[1]->attr.size[i] = inputs[0]->attr.size[i];
             }
-            switch(axis_num)
+
+            for (i = 0; i < axis_num; i++)
             {
-            case 1:
-                outputs[0]->attr.size[axis[0]] = 1;
-                outputs[1]->attr.size[axis[0]] = 1;
-                break;
-            case 2:
-                outputs[0]->attr.size[axis[0]] = 1;
-                outputs[0]->attr.size[axis[1]] = 1;
-                outputs[1]->attr.size[axis[0]] = 1;
-                outputs[1]->attr.size[axis[1]] = 1;
-                break;
-            case 3:
-                outputs[0]->attr.size[axis[0]] = 1;
-                outputs[0]->attr.size[axis[1]] = 1;
-                outputs[0]->attr.size[axis[2]] = 1;
-                outputs[1]->attr.size[axis[0]] = 1;
-                outputs[1]->attr.size[axis[1]] = 1;
-                outputs[1]->attr.size[axis[2]] = 1;
-                break;
-            default:
-                return FALSE;
+                outputs[0]->attr.size[axis[i]] = 1;
+                outputs[1]->attr.size[axis[i]] = 1;
             }
         }
         else
         {
+            int32_t idx = 0;
+
             outputs[0]->attr.dim_num = inputs[0]->attr.dim_num - axis_num;
             outputs[1]->attr.dim_num = inputs[0]->attr.dim_num - axis_num;
 
-            for (i = 0; i < axis[0]; i++)
+            for (i = 0; i < (int32_t)inputs[0]->attr.dim_num; i++)
             {
-                outputs[0]->attr.size[i] = inputs[0]->attr.size[i];
-                outputs[1]->attr.size[i] = inputs[0]->attr.size[i];
-            }
+                for (j = 0; j < axis_num; j++)
+                {
+                    if ( i == axis[j] )
+                    {
+                        break;
+                    }
+                }
 
-            for (j = axis[0] + axis_num; j < (int32_t)inputs[0]->attr.dim_num; j++)
-            {
-                outputs[0]->attr.size[i] = inputs[0]->attr.size[j];
-                outputs[1]->attr.size[i++] = inputs[0]->attr.size[j];
+                if (j == axis_num)
+                {
+                    outputs[0]->attr.size[idx] = inputs[0]->attr.size[i];
+                    outputs[1]->attr.size[idx++] = inputs[0]->attr.size[i];
+                }
             }
         }
     }

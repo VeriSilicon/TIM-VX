@@ -289,6 +289,12 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE && output_dtype == I8)
+    {
+        output_dtype = BOOL8;
+    }
+
     key = HASH_COMPARISONS_KEY( operation, input0_dtype, input1_dtype, output_dtype, image_2d );
 
     for( i = 0; i < _cnt_of_array(_comparisons_cl_kernel_map); i ++ )

@@ -186,7 +186,7 @@ static vsi_status _query_kernel
     {
         in_dtype = F32;
     }
-    else if ((I8 == in_dtype) || (I16 == in_dtype))
+    else if ((I8 == in_dtype) || (BOOL8 == in_dtype) || (I16 == in_dtype))
     {
         in_dtype = I32;
     }

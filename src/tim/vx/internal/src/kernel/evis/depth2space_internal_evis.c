@@ -42,26 +42,42 @@ __BEGIN_DECLS
 /*
  * Define kernel meta.
  */
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_U8TOU8       CVIVANTE_NAMESPACE("evis.depth2space_crd_U8toU8")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I8TOI8       CVIVANTE_NAMESPACE("evis.depth2space_crd_I8toI8")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I16TOI16     CVIVANTE_NAMESPACE("evis.depth2space_crd_I16toI16")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOF16     CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toF16")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I8TOF16      CVIVANTE_NAMESPACE("evis.depth2space_crd_I8toF16")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I16TOF16     CVIVANTE_NAMESPACE("evis.depth2space_crd_I16toF16")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOI8      CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toI8")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOI16     CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toI16")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_U8TOF16      CVIVANTE_NAMESPACE("evis.depth2space_crd_U8toF16")
-#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOU8      CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toU8")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_U8TOU8         CVIVANTE_NAMESPACE("evis.depth2space_crd_U8toU8")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I8TOI8         CVIVANTE_NAMESPACE("evis.depth2space_crd_I8toI8")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I16TOI16       CVIVANTE_NAMESPACE("evis.depth2space_crd_I16toI16")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOF16       CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toF16")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I8TOF16        CVIVANTE_NAMESPACE("evis.depth2space_crd_I8toF16")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I16TOF16       CVIVANTE_NAMESPACE("evis.depth2space_crd_I16toF16")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOI8        CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toI8")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOI16       CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toI16")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_U8TOF16        CVIVANTE_NAMESPACE("evis.depth2space_crd_U8toF16")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOU8        CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toU8")
+
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_U8TOU8_BLK2    CVIVANTE_NAMESPACE("evis.depth2space_crd_U8toU8_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I8TOI8_BLK2    CVIVANTE_NAMESPACE("evis.depth2space_crd_I8toI8_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I16TOI16_BLK2  CVIVANTE_NAMESPACE("evis.depth2space_crd_I16toI16_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOF16_BLK2  CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toF16_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I8TOF16_BLK2   CVIVANTE_NAMESPACE("evis.depth2space_crd_I8toF16_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_I16TOF16_BLK2  CVIVANTE_NAMESPACE("evis.depth2space_crd_I16toF16_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOI8_BLK2   CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toI8_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOI16_BLK2  CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toI16_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_U8TOF16_BLK2   CVIVANTE_NAMESPACE("evis.depth2space_crd_U8toF16_blk2")
+#define VX_KERNEL_NAME_DEPTH2SPACE_CRD_F16TOU8_BLK2   CVIVANTE_NAMESPACE("evis.depth2space_crd_F16toU8_blk2")
 
 #define KERNEL_SOURCE_1    "depth2space_crd"
 
 // Add kernel hashtable here
-#define HASH_DEPTH2SPACE_CRD_KEY(_input0_type, _output_type, _quant_type) \
-    ((_input0_type << 24) | (_output_type << 16) | (_quant_type << 8))
+#define HASH_DEPTH2SPACE_CRD_KEY(_input0_type, _output_type, _blk_size) \
+    ((_input0_type << 24) | (_output_type << 16) | (_blk_size << 8))
 
 #define TENSOR_DEPTH2SPACE_CRD_KERNELS(IN0_TYPE, OUT_TYPE, SOURCE) \
     { HASH_DEPTH2SPACE_CRD_KEY(IN0_TYPE, OUT_TYPE, 0), \
         VX_KERNEL_NAME_DEPTH2SPACE_CRD_##IN0_TYPE##TO##OUT_TYPE, \
+        SOURCE },
+
+#define TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(IN0_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_DEPTH2SPACE_CRD_KEY(IN0_TYPE, OUT_TYPE, 1), \
+        VX_KERNEL_NAME_DEPTH2SPACE_CRD_##IN0_TYPE##TO##OUT_TYPE##_BLK2, \
         SOURCE },
 
 static const struct {
@@ -80,6 +96,17 @@ static const struct {
     TENSOR_DEPTH2SPACE_CRD_KERNELS(F16, I16,       KERNEL_SOURCE_1)
     TENSOR_DEPTH2SPACE_CRD_KERNELS(U8,  F16,       KERNEL_SOURCE_1)
     TENSOR_DEPTH2SPACE_CRD_KERNELS(F16, U8,        KERNEL_SOURCE_1)
+
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(U8,  U8,   KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(I8,  I8,   KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(I16, I16,  KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(F16, F16,  KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(I8,  F16,  KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(I16, F16,  KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(F16, I8,   KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(F16, I16,  KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(U8,  F16,  KERNEL_SOURCE_1)
+    TENSOR_DEPTH2SPACE_CRD_BLK2_KERNELS(F16, U8,   KERNEL_SOURCE_1)
 };
 
 /*
@@ -118,9 +145,10 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
     int32_t     output_height = 0;
     int32_t     output_chn = 0;
     int32_t     src0ZP     = 0;
-    float       src0Scale  = 0;
+    float       src0Scale  = 1.0f;
     int32_t     dstZP      = 0;
-    float       dstScale   = 0;
+    float       dstScale   = 1.0f;
+    int32_t     block_size = 0;
 
     uint32_t pack_key = 0;
 
@@ -128,12 +156,15 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", OnError );
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[2], &block_size);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    src0ZP     = attr[0]->asymm.zero_point;
-    src0Scale  = attr[0]->asymm.scale;
-    dstZP      = attr[1]->asymm.zero_point;
-    dstScale   = attr[1]->asymm.scale;
-    if( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
+    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
+    {
+        src0ZP     = attr[0]->asymm.zero_point;
+        src0Scale  = attr[0]->asymm.scale;
+    }
+    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         if (attr[0]->dfp.fl > 0)
         {
@@ -143,27 +174,35 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
         {
             src0Scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
         }
+        src0ZP = 0;
     }
-    else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
+    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
     {
         src0Scale = 1;
+        src0ZP = 0;
     }
 
-    if( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
+    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
+    {
+        dstZP      = attr[1]->asymm.zero_point;
+        dstScale   = attr[1]->asymm.scale;
+    }
+    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         if (attr[1]->dfp.fl > 0)
         {
-            dstScale = (float)((int64_t)1 << attr[1]->dfp.fl);
+            dstScale = (1.0f / (float)((int64_t)1 << attr[1]->dfp.fl));
         }
         else
         {
-            dstScale = (1.0f / (float)((int64_t)1 << -attr[1]->dfp.fl));
+            dstScale = (float)((int64_t)1 << -attr[1]->dfp.fl);
         }
-        dstScale = 1.0f/dstScale;
+        dstZP = 0;
     }
-    else if( attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE )
+    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE )
     {
         dstScale = 1;
+        dstZP = 0;
     }
 
     output_dims = (uint32_t)attr[1]->shape->size;
@@ -178,6 +217,17 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
         / shaderParam.global_scale[0], 4);
     shaderParam.global_size[1]   = output_height;
     shaderParam.global_size[2]   = output_chn;
+
+    if (block_size == 2)
+    {
+        shaderParam.global_scale[0]  = 16;
+        shaderParam.global_scale[1]  = 1;
+        shaderParam.global_scale[2]  = 1;
+        shaderParam.global_size[0]   = gpu_align_p2((output_width + shaderParam.global_scale[0] - 1)
+            / shaderParam.global_scale[0], 4);
+        shaderParam.global_size[1]   = output_height;
+        shaderParam.global_size[2]   = output_chn;
+    }
 
     status = vsi_nn_kernel_gpu_config( node, &shaderParam );
     CHECK_STATUS_FAIL_GOTO(status, OnError);
@@ -202,6 +252,43 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
                 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
 
+        gpu_dp_inst_t uniU8MulAndPostShift_ExLo_2x8 = {{
+            0xdddddddd, // TCfg
+            0x44444444, // ASelt
+            0x19111810, 0x1b131a12, // ABin
+            0x11111111, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00005600, // AccumType, ConstantType, and PostShift
+            0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniU8MulAndPostShift_ExHi_2x8 = {{
+            0xdddddddd, // TCfg
+            0x44444444, // ASelt
+            0x1d151c14, 0x1f171e16, // ABin
+            0x11111111, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00002600, // AccumType, ConstantType, and PostShift
+            0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniDepth2SpaceF16Blk2_lo_2x8 = {{
+            0x11111111, // TCfg
+            0x10101010, // ASelt
+            0x01010000, 0x03030202, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniDepth2SpaceF16Blk2_hi_2x8 = {{
+            0x11111111, // TCfg
+            0x10101010, // ASelt
+            0x05050404, 0x07070606, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+
         switch( pack_key )
         {
         case _PACK_SELECT_KEY( U8, F16):
@@ -213,14 +300,25 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
         case _PACK_SELECT_KEY( U8, U8):
         case _PACK_SELECT_KEY( I8, I8):
         case _PACK_SELECT_KEY( I16, I16):
+        case _PACK_SELECT_KEY( F16, F16):
             {
                 gpu_quantize_multiplier_16bit( (double)src0Scale / dstScale, &M0, &postShift);
                 multAndoutZP0[0] = (uint32_t)(M0);
                 multAndoutZP0[1] = (uint32_t)((dstZP << postShift) - src0ZP * M0);
 
                 gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift_0_Lo_2x8, postShift );
+                gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift_ExLo_2x8, postShift );
+                gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift_ExHi_2x8, postShift );
                 status = vsi_nn_kernel_gpu_add_param( node,
                     "uniU8MulAndPostShift_0_Lo_2x8", &uniU8MulAndPostShift_0_Lo_2x8 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniU8MulAndPostShift_ExLo_2x8", &uniU8MulAndPostShift_ExLo_2x8 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniU8MulAndPostShift_ExHi_2x8", &uniU8MulAndPostShift_ExHi_2x8 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniDepth2SpaceF16Blk2_lo_2x8", &uniDepth2SpaceF16Blk2_lo_2x8 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniDepth2SpaceF16Blk2_hi_2x8", &uniDepth2SpaceF16Blk2_hi_2x8 );
                 status |= vsi_nn_kernel_gpu_add_param( node, "multAndoutZP0", &multAndoutZP0 );
                 CHECK_STATUS_FAIL_GOTO(status, OnError );
             }
@@ -256,7 +354,8 @@ static vsi_status _query_kernel
     vsi_nn_tensor_t* const* const inputs,
     vsi_nn_tensor_t* const* const outputs,
     vsi_nn_kernel_t* kernel,
-    const vsi_nn_kernel_param_t * params
+    const vsi_nn_kernel_param_t * params,
+    int32_t blk_flg
     )
 {
     vsi_status status = VSI_FAILURE;
@@ -268,16 +367,16 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    key = HASH_DEPTH2SPACE_CRD_KEY( input0_dtype, output_dtype, 0 );
+    key = HASH_DEPTH2SPACE_CRD_KEY( input0_dtype, output_dtype, blk_flg );
 
     for( i = 0; i < _cnt_of_array(depth2space_crd_map); i ++ )
     {
-        if( depth2space_crd_map[i].key == key )
+        if ( depth2space_crd_map[i].key == key )
         {
             break;
         }
     }
-    if( i < _cnt_of_array(depth2space_crd_map) )
+    if ( i < _cnt_of_array(depth2space_crd_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  depth2space_crd_map[i].function_name );
         kernel->info.parameters = _depth2space_crd_kernel_param_def;
@@ -310,18 +409,19 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t tmp_params[_DEPTH2SPACE_CRD_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
     int32_t block_size  = vsi_nn_kernel_param_get_int32( params, "block_size" );
+    int32_t blk_flg = block_size == 2 ? 1 : 0;
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
 
-    status = _query_kernel( inputs, outputs, kernel, params );
-    if( VSI_SUCCESS == status)
+    status = _query_kernel( inputs, outputs, kernel, params, blk_flg);
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             vsi_nn_kernel_node_pack_io( tmp_params, _DEPTH2SPACE_CRD_PARAM_NUM, inputs, 1, outputs, 1 );
             tmp_params[2] = vsi_nn_kernel_scalar_create( graph, I32, &block_size );

@@ -135,13 +135,31 @@ static vsi_bool op_check
     {
         BEGIN_IO_TYPE_DECL(SPLIT, 1, 1)
             IO_TYPE(D_F16,  D_F16)
+            IO_TYPE(D_F16,  D_I8|Q_DFP)
+            IO_TYPE(D_F16,  D_I16|Q_DFP)
+            IO_TYPE(D_F16,  D_U8|Q_ASYM)
+            IO_TYPE(D_I8|Q_DFP,  D_F16)
+            IO_TYPE(D_I16|Q_DFP, D_F16)
+            IO_TYPE(D_U8|Q_ASYM, D_F16)
             IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP)
             IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
             IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
+            IO_TYPE(D_F16,  D_I8)
+            IO_TYPE(D_F16,  D_I16)
+            IO_TYPE(D_F16,  D_U8)
+            IO_TYPE(D_I8,   D_F16)
+            IO_TYPE(D_I16,  D_F16)
+            IO_TYPE(D_U8,   D_F16)
+            IO_TYPE(D_I8,   D_I8)
+            IO_TYPE(D_I16,  D_I16)
+            IO_TYPE(D_U8,   D_U8)
             IO_TYPE(D_F32,  D_F32)
             IO_TYPE(D_F32,  D_BF16)
             IO_TYPE(D_BF16, D_F32)
             IO_TYPE(D_I32,  D_I32)
+
+            /* HW 9.0 */
+            IO_TYPE(D_BF16, D_BF16)
         END_IO_TYPE_DECL(SPLIT)
         if(!VALIDATE_OP_IO_TYPES(SPLIT, self, inputs, 1, &outputs[i], 1)) {
             char* desc = generate_op_io_types_desc(inputs, 1, &outputs[i], 1);
@@ -197,18 +215,17 @@ static vsi_bool op_setup
         end[i] = inputs[0]->attr.size[i];
     }
     end[axis] = 0;
-    for(i = 0; i < num; i++)
+    for (i = 0; i < num; i++)
     {
-        int j;
+        int32_t j;
         start[axis] = end[axis];
-        if(slices_num == 0)
+        if (slices_num == 0)
             end[axis] += average;
         else
             end[axis] += slices[i];
 
-        memcpy(&outputs[i]->attr.dtype, &inputs[0]->attr.dtype, sizeof(vsi_nn_dtype_t));
         outputs[i]->attr.dim_num = inputs[0]->attr.dim_num;
-        for(j = 0; j < VSI_NN_MAX_DIM_NUM; j++)
+        for (j = 0; j < VSI_NN_MAX_DIM_NUM; j++)
         {
             outputs[i]->attr.size[j] = inputs[0]->attr.size[j];
         }
@@ -225,6 +242,7 @@ static vsi_bool op_setup
         curr->node->nn_param.strided_slice.begin_mask = 0;
         curr->node->nn_param.strided_slice.end_mask = 0;
         curr->node->nn_param.strided_slice.shrink_axis_mask = 0;
+        curr->node->nn_param.strided_slice.new_axis_mask = 0;
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[i];
         vsi_nn_internal_setup_node( self, curr );

@@ -429,7 +429,8 @@ void vsi_nn_internal_init_tensor_attr
 
     if( dtype->qnt_type == VSI_NN_QNT_TYPE_NONE &&
         ( dtype->vx_type != VSI_NN_TYPE_FLOAT16 &&
-          dtype->vx_type != VSI_NN_TYPE_FLOAT32 ) )
+          dtype->vx_type != VSI_NN_TYPE_FLOAT32 &&
+          dtype->vx_type != VSI_NN_TYPE_BFLOAT16 ) )
     {
         attr->dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
         attr->dtype.vx_type = VSI_NN_TYPE_FLOAT16;

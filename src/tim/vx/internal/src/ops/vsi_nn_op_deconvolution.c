@@ -33,6 +33,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "vsi_nn_log.h"
+#include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 #define COMPUTE_DECONV_SZ( in, ksize, pad_1, pad_2, stride, output_padding )\
@@ -181,6 +182,8 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    vsi_bool ret = FALSE;
+
     BEGIN_IO_TYPE_DECL(DECONVOLUTION, 3, 1)
         IO_TYPE(D_F16,  D_F16,  D_NONE, D_F16)
         IO_TYPE(D_F16,  D_F16,  D_F32, D_F16)
@@ -197,6 +200,8 @@ static vsi_bool op_check
         IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,  D_I32|Q_DFP, D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC, D_U8|Q_ASYM)
         IO_TYPE(D_I8|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC, D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM, D_I8|Q_SYM_PC,  D_NONE, D_I8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_NONE, D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_NONE, D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_I32|Q_ASYM, D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_I32|Q_ASYM, D_I8|Q_DFP)
@@ -225,7 +230,10 @@ static vsi_bool op_check
         return FALSE;
     }
 
-    return TRUE;
+    /* Check fl and scale*/
+    ret = vsi_nn_QuantCheck(inputs[0], inputs[1], inputs[2]);
+
+    return ret;
 } /* op_check() */
 
 static vsi_bool op_setup

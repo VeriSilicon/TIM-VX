@@ -34,7 +34,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "kernel/vsi_nn_kernel.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -52,7 +52,24 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    return vsi_nn_internal_compute_node( self );
+    if (self->input.num > 1)
+    {
+        vsi_status status = VSI_FAILURE;
+
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "slice",
+            inputs, 2, outputs, _OUTPUT_NUM, NULL );
+
+        if( self->n )
+        {
+            status = VSI_SUCCESS;
+        }
+
+        return status;
+    }
+    else
+    {
+        return vsi_nn_internal_compute_node( self );
+    }
 } /* op_compute() */
 
 static vsi_bool op_check
@@ -64,7 +81,39 @@ static vsi_bool op_check
 {
     vsi_bool ret = FALSE;
 
-    ret = vsi_nn_OpCheck(VSI_NN_OP_STRIDED_SLICE, self, inputs, outputs);
+    if (self->input.num > 1)
+    {
+        BEGIN_IO_TYPE_DECL(SLICE, 2, 1)
+            IO_TYPE(D_F16,       D_I32,  D_F16)
+            IO_TYPE(D_F16,       D_I32,  D_I8|Q_DFP)
+            IO_TYPE(D_F16,       D_I32,  D_I16|Q_DFP)
+            IO_TYPE(D_F16,       D_I32,  D_U8|Q_ASYM)
+            IO_TYPE(D_I8|Q_DFP,  D_I32,  D_F16)
+            IO_TYPE(D_I16|Q_DFP, D_I32,  D_F16)
+            IO_TYPE(D_U8|Q_ASYM, D_I32,  D_F16)
+            IO_TYPE(D_I8|Q_DFP,  D_I32,  D_I8|Q_DFP)
+            IO_TYPE(D_I16|Q_DFP, D_I32,  D_I16|Q_DFP)
+            IO_TYPE(D_U8|Q_ASYM, D_I32,  D_U8|Q_ASYM)
+            IO_TYPE(D_F32,       D_I32,  D_F32)
+            IO_TYPE(D_I32,       D_I32,  D_I32)
+
+            /* HW 9.0 */
+            IO_TYPE(D_BF16,     D_I32,    D_BF16)
+            END_IO_TYPE_DECL(SLICE)
+            if (!VALIDATE_OP_IO_TYPES(SLICE, self, inputs, self->input.num, outputs, self->output.num))
+            {
+                char* desc = generate_op_io_types_desc(inputs,
+                    self->input.num, outputs, self->output.num);
+                VSILOGE("Inputs/Outputs data type not support: %s", desc);
+                destroy_op_io_types_desc(desc);
+                return FALSE;
+            }
+            return TRUE;
+    }
+    else
+    {
+        ret = vsi_nn_OpCheck(VSI_NN_OP_STRIDED_SLICE, self, inputs, outputs);
+    }
 
     return ret;
 } /* op_check() */
@@ -77,7 +126,14 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
-    return vsi_nn_internal_optimize_node( self, direction );
+    if (self->input.num > 1)
+    {
+        return VSI_SUCCESS;
+    }
+    else
+    {
+        return vsi_nn_internal_optimize_node( self, direction );
+    }
 }
 
 static vsi_bool op_setup
@@ -90,21 +146,27 @@ static vsi_bool op_setup
     vsi_nn_slice_param * p;
     vsi_nn_internal_node_t* curr = NULL;
     uint32_t i;
-    if(self->nn_param.slice.dims == 0)
+
+    if (self->nn_param.slice.dims == 0)
     {
         self->nn_param.slice.dims = inputs[0]->attr.dim_num;
     }
 
-    p = (vsi_nn_slice_param *)&(self->nn_param.slice);
     vsi_nn_internal_init_node_wksp( self );
+    p = (vsi_nn_slice_param *)&(self->nn_param.slice);
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         for(i = 0; i < p->dims; i++)
         {
             outputs[0]->attr.size[i] = p->length[i];
         }
         outputs[0]->attr.dim_num = p->dims;
+    }
+
+    if (self->input.num > 1)
+    {
+        return TRUE;
     }
 
     for (i = 0; i < self->nn_param.slice.dims; i++)
@@ -124,6 +186,7 @@ static vsi_bool op_setup
     curr->node->nn_param.strided_slice.begin_mask = 0;
     curr->node->nn_param.strided_slice.end_mask = 0;
     curr->node->nn_param.strided_slice.shrink_axis_mask = 0;
+    curr->node->nn_param.strided_slice.new_axis_mask = 0;
     curr->inputs[0] = inputs[0];
     curr->outputs[0] = outputs[0];
     vsi_nn_internal_setup_node( self, curr );
@@ -143,7 +206,7 @@ static vsi_status op_init
     p = &(self->nn_param.slice);
 
     p->lcl_data   =
-    (vsi_nn_slice_lcl_data *)malloc(sizeof(vsi_nn_slice_lcl_data));
+        (vsi_nn_slice_lcl_data *)malloc(sizeof(vsi_nn_slice_lcl_data));
     if (NULL == p->lcl_data)
     {
         return  VX_ERROR_NO_MEMORY;
@@ -169,6 +232,7 @@ static vsi_status op_deinit
     }
 
     vsi_nn_internal_deinit_node_wksp( self );
+    vsi_nn_op_common_deinit(self);
 
     return VSI_SUCCESS;
 } /* op_deinit() */
@@ -177,20 +241,19 @@ static vsi_status op_deinit
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* Registrar */
-DEF_OP_REG
-    (
-    /* op_name    */ SLICE,
-    /* init       */ op_init,
-    /* compute    */ op_compute,
-    /* deinit     */ op_deinit,
-    /* check      */ op_check,
-    /* setup      */ op_setup,
-    /* optimize   */ op_optimize,
-    /* input_num  */ 1,
-    /* output_num */ 1
-    );
+    /* Registrar */
+    DEF_OP_REG
+        (
+        /* op_name    */ SLICE,
+        /* init       */ op_init,
+        /* compute    */ op_compute,
+        /* deinit     */ op_deinit,
+        /* check      */ op_check,
+        /* setup      */ op_setup,
+        /* optimize   */ op_optimize,
+        /* input_num  */ 1,
+        /* output_num */ 1
+        );
 #ifdef __cplusplus
 }
 #endif
-

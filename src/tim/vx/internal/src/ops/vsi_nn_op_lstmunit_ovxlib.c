@@ -35,7 +35,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "ops/vsi_nn_op_lstmunit_ovxlib.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
@@ -307,7 +307,7 @@ static vsi_bool op_setup
     p->local->use_cifg = ( NULL == inputs[LSTMUNIT_INPUT_WEIGHT_I2I] );
     p->local->use_layer_norm = ( NULL != inputs[LSTMUNIT_INPUT_LAYERNORM_F] );
     p->local->use_projection = ( NULL != inputs[LSTMUNIT_INPUT_WEIGHT_PROJ] );
-    p->local->use_projection_bias = FALSE;//NULL != inputs[19];
+    p->local->use_projection_bias = ( NULL != inputs[LSTMUNIT_INPUT_BIAS_PROJ] );
     p->local->multi_batch = ( inputs[LSTMUNIT_INPUT_INPUT]->attr.size[1] > 1 );
     p->local->use_peephole = ( NULL != inputs[LSTMUNIT_INPUT_WEIGHT_C2O] );
     ifco_start_index = p->local->use_cifg ? 1 : 0;
@@ -621,8 +621,6 @@ static vsi_bool op_setup
         curr->inputs[1] = inputs[LSTMUNIT_INPUT_WEIGHT_PROJ];
         curr->inputs[2] = zero_bias_tensor;
 
-        tmp_tensor = output_tensor;
-
         /* Save output to h_state first and copy to output */
         if( p->local->use_hybrid && p->local->use_projection_bias )
         {
@@ -635,6 +633,8 @@ static vsi_bool op_setup
         {
             curr->outputs[0] = outputs[LSTMUNIT_OUTPUT_H_STATE];
         }
+
+        tmp_tensor = output_tensor;
 
         vsi_nn_internal_setup_node(self, curr);
 

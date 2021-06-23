@@ -57,12 +57,27 @@ KERNEL_SELECTOR( depthwise_conv1d )
     vsi_nn_kernel_selector_t    * selector
     )
 {
+    int32_t dilation   = vsi_nn_kernel_param_get_int32( params, "dilation" );
+    int32_t kernel = inputs[1]->attr.size[0];
+    int32_t real_kernel = 0;
+    int32_t stride = vsi_nn_kernel_param_get_int32( params, "stride" );
     vsi_nn_kernel_pirority_t pirority[] = {
         { VSI_NN_KERNEL_TYPE_VX,    0 },
         { VSI_NN_KERNEL_TYPE_EVIS,  3 },
         { VSI_NN_KERNEL_TYPE_CL,    2 },
         { VSI_NN_KERNEL_TYPE_CPU,   1 },
         };
+    dilation = dilation == 0 ? 0 : dilation - 1;
+    real_kernel = (kernel - 1) * dilation + kernel;
+
+    if (real_kernel < 16 && stride < 3)
+    {
+        pirority[0].fps = 3;
+        pirority[1].fps = 2;
+        pirority[2].fps = 1;
+        pirority[3].fps = 0;
+    }
+
     return vsi_nn_kernel_pirority_set( selector, pirority, _cnt_of_array(pirority) );
 } /* depthwise_conv1d */
 
@@ -111,5 +126,6 @@ REGISTER_VX_FIRST_KERNEL_SELECTOR(mish)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(hard_sigmoid)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(clip)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(relu_keras)
+REGISTER_VX_FIRST_KERNEL_SELECTOR(erf)
 
 __END_DECLS

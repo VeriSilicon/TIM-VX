@@ -36,7 +36,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_dtype_util.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 #define _ARG_NUM            (1)
@@ -207,7 +207,11 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
-    return vsi_nn_OpCheck(VSI_NN_OP_CONV2D, self, inputs, outputs);
+    vsi_bool ret = FALSE;
+
+    ret = vsi_nn_OpCheck(VSI_NN_OP_CONV2D, self, inputs, outputs);
+
+    return ret;
 } /* op_check() */
 
 static vsi_bool op_setup

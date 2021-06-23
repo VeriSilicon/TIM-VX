@@ -25,7 +25,7 @@
 #include <stdlib.h>
 
 #include "vsi_nn_pub.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 
 #define _ARG_NUM            (0)
 #define _INPUT_NUM          (1)

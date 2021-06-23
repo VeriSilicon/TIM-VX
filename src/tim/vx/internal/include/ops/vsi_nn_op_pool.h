@@ -30,12 +30,12 @@
 extern "C" {
 #endif
 
-#define _VSI_NN_POOLWITHARGMAX_LOCAL_TENSOR_NUM 3
-
-typedef struct _vsi_nn_poolwithargmax_lcl_data
+typedef struct _vsi_nn_pool_lcl_data
 {
-    vx_tensor   local_tensor[_VSI_NN_POOLWITHARGMAX_LOCAL_TENSOR_NUM];
-} vsi_nn_poolwithargmax_lcl_data;
+    /* handle pool1d */
+    vsi_nn_tensor_t *reshaped_input;
+    vsi_nn_tensor_t *reshaped_output;
+} vsi_nn_pool_lcl_data;
 
 typedef struct _vsi_nn_pool_param
 {
@@ -49,7 +49,7 @@ typedef struct _vsi_nn_pool_param
     /* Pad type default value shall be AUTO */
     vsi_nn_pad_e pad_type;
     /* poolwithargmax layer local data structure */
-    vsi_nn_poolwithargmax_lcl_data local;
+    vsi_nn_pool_lcl_data *local;
 } vsi_nn_pool_param;
 
 #ifdef __cplusplus

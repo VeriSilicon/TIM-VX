@@ -1,0 +1,205 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniDataConvert_0_4x4;
+_viv_uniform VXC_512Bits uniDataConvert_1_4x4;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform int depth;
+#define ONE_HOT_SH_IMPL(name0, name1, src_type, copy_type, dst_type) \
+__kernel void one_hot_##name0##to##name1 \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+                 int             suffix_sz, \
+                 int             on_val, \
+                 int             off_val \
+    ) \
+{ \
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), 0, 0); \
+ \
+    copy_type src; \
+    src_type  val; \
+ \
+    VXC_ReadImage(val, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, val, 16); \
+ \
+    int4 data0, data1; \
+    VXC_DP4x4(data0, src, src, \
+         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataConvert_0_4x4); \
+    VXC_DP4x4(data1, src, src, \
+         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataConvert_1_4x4); \
+ \
+    do \
+    { \
+        int4 d0 = data0 == coord.zzzz ? on_val : off_val; \
+        int4 d1 = data1 == coord.zzzz ? on_val : off_val; \
+ \
+        dst_type dst; \
+        VXC_DP2x8(dst, d0, d1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+ \
+        VXC_WriteImage2DArray(output, coord.xzyw, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+ \
+        coord.z ++; \
+    } while (coord.z < depth); \
+}
+ONE_HOT_SH_IMPL(F16, F16, vxc_ushort8, vxc_half8,  vxc_ushort8)
+ONE_HOT_SH_IMPL(F16, I16, vxc_ushort8, vxc_half8,  vxc_ushort8)
+ONE_HOT_SH_IMPL(F16, I8,  vxc_ushort8, vxc_half8,  vxc_uchar8)
+ONE_HOT_SH_IMPL(F16, U8,  vxc_ushort8, vxc_half8,  vxc_uchar8)
+ONE_HOT_SH_IMPL(I16, F16, vxc_short8,  vxc_short8, vxc_ushort8)
+ONE_HOT_SH_IMPL(I16, I16, vxc_short8,  vxc_short8, vxc_ushort8)
+ONE_HOT_SH_IMPL(I8,  F16, vxc_char8,   vxc_char8,  vxc_ushort8)
+ONE_HOT_SH_IMPL(I8,  I8,  vxc_char8,   vxc_char8,  vxc_uchar8)
+
+#define ONE_HOT_SH_IMPL_2D(name0, name1, src_type, copy_type, dst_type) \
+__kernel void one_hot_##name0##to##name1##_2D \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+                 int             suffix_sz, \
+                 int             on_val, \
+                 int             off_val \
+    ) \
+{ \
+    int4 coord =  (int4)(get_global_id(0), 0, get_global_id(0), get_global_id(0)); \
+ \
+    copy_type src; \
+    src_type  val; \
+ \
+    VXC_ReadImage(val, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, val, 16); \
+ \
+    int4 data, data0, data1; \
+    VXC_DP4x4(data, src, src, \
+         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataConvert_0_4x4); \
+    int4 d4 = (int4)(0, 1, 2, 3); \
+ \
+    do \
+    { \
+        coord.zw = coord.xx + (int2)(0, 1); \
+        dst_type dst; \
+        data0 = data.xxxx == d4 ? on_val : off_val; \
+        data1 = data.yyyy == d4 ? on_val : off_val; \
+ \
+        VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+ \
+        VXC_WriteImage(output, coord.yz, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
+        VXC_WriteImage(output, coord.yw, dst, VXC_MODIFIER(4, 7, 0,VXC_RM_TowardZero, 0)); \
+        coord.zw = coord.zw + (int2)(2, 2); \
+ \
+        data0 = data.zzzz == d4 ? on_val : off_val; \
+        data1 = data.wwww == d4 ? on_val : off_val; \
+ \
+        VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+ \
+        VXC_WriteImage(output, coord.yz, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
+        VXC_WriteImage(output, coord.yw, dst, VXC_MODIFIER(4, 7, 0,VXC_RM_TowardZero, 0)); \
+        d4 += 4; \
+        coord.y += 4; \
+    } while (coord.y < depth); \
+}
+ONE_HOT_SH_IMPL_2D(F16, F16, vxc_ushort8, vxc_half8,  vxc_ushort8)
+ONE_HOT_SH_IMPL_2D(F16, I16, vxc_ushort8, vxc_half8,  vxc_ushort8)
+ONE_HOT_SH_IMPL_2D(F16, I8,  vxc_ushort8, vxc_half8,  vxc_uchar8)
+ONE_HOT_SH_IMPL_2D(F16, U8,  vxc_ushort8, vxc_half8,  vxc_uchar8)
+ONE_HOT_SH_IMPL_2D(I16, F16, vxc_short8,  vxc_short8, vxc_ushort8)
+ONE_HOT_SH_IMPL_2D(I16, I16, vxc_short8,  vxc_short8, vxc_ushort8)
+ONE_HOT_SH_IMPL_2D(I8,  F16, vxc_char8,   vxc_char8,  vxc_ushort8)
+ONE_HOT_SH_IMPL_2D(I8,  I8,  vxc_char8,   vxc_char8,  vxc_uchar8)
+
+_viv_uniform float input_scale;
+_viv_uniform float input_tail;
+#define ONE_HOT_ASYM_SH_IMPL(name0, name1, src_type, copy_type, dst_type) \
+__kernel void one_hot_##name0##to##name1 \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+                 int             suffix_sz, \
+                 int             on_val, \
+                 int             off_val \
+    ) \
+{ \
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), 0, 0); \
+ \
+    copy_type src; \
+    src_type  val; \
+ \
+    VXC_ReadImage(val, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, val, 16); \
+ \
+    int4 data0, data1; \
+    float4 v0, v1; \
+    VXC_DP4x4(v0, src, src, \
+         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataConvert_0_4x4); \
+    VXC_DP4x4(v1, src, src, \
+         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataConvert_1_4x4); \
+ \
+    data0 = convert_int4(v0 * input_scale + input_tail); \
+    data1 = convert_int4(v1 * input_scale + input_tail); \
+    do \
+    { \
+        int4 d0 = data0 == coord.zzzz ? on_val : off_val; \
+        int4 d1 = data1 == coord.zzzz ? on_val : off_val; \
+ \
+        dst_type dst; \
+        VXC_DP2x8(dst, d0, d1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+ \
+        VXC_WriteImage2DArray(output, coord.xzyw, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+ \
+        coord.z ++; \
+    } while (coord.z < depth); \
+}
+ONE_HOT_ASYM_SH_IMPL(U8,  F16, vxc_uchar8,  vxc_uchar8, vxc_ushort8)
+ONE_HOT_ASYM_SH_IMPL(U8,  U8,  vxc_uchar8,  vxc_uchar8, vxc_uchar8)
+
+#define ONE_HOT_ASYM_SH_IMPL_2D(name0, name1, src_type, copy_type, dst_type) \
+__kernel void one_hot_##name0##to##name1##_2D \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+                 int             suffix_sz, \
+                 int             on_val, \
+                 int             off_val \
+    ) \
+{ \
+    int4 coord =  (int4)(get_global_id(0), 0, get_global_id(0), get_global_id(0)); \
+ \
+    copy_type src; \
+    src_type  val; \
+ \
+    VXC_ReadImage(val, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src, val, 16); \
+ \
+    int4 data, data0, data1; \
+    float4 v0; \
+    VXC_DP4x4(v0, src, src, \
+         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataConvert_0_4x4); \
+    int4 d4 = (int4)(0, 1, 2, 3); \
+    data = convert_int4(v0 * input_scale + input_tail); \
+ \
+    do \
+    { \
+        coord.zw = coord.xx + (int2)(0, 1); \
+        dst_type dst; \
+        data0 = data.xxxx == d4 ? on_val : off_val; \
+        data1 = data.yyyy == d4 ? on_val : off_val; \
+ \
+        VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+ \
+        VXC_WriteImage(output, coord.yz, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
+        VXC_WriteImage(output, coord.yw, dst, VXC_MODIFIER(4, 7, 0,VXC_RM_TowardZero, 0)); \
+        coord.zw = coord.zw + (int2)(2, 2); \
+ \
+        data0 = data.zzzz == d4 ? on_val : off_val; \
+        data1 = data.wwww == d4 ? on_val : off_val; \
+ \
+        VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+ \
+        VXC_WriteImage(output, coord.yz, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
+        VXC_WriteImage(output, coord.yw, dst, VXC_MODIFIER(4, 7, 0,VXC_RM_TowardZero, 0)); \
+        d4 += 4; \
+        coord.y += 4; \
+    } while (coord.y < depth); \
+}
+ONE_HOT_ASYM_SH_IMPL_2D(U8,  F16, vxc_uchar8,  vxc_uchar8, vxc_ushort8)
+ONE_HOT_ASYM_SH_IMPL_2D(U8,  U8,  vxc_uchar8,  vxc_uchar8, vxc_uchar8)
+

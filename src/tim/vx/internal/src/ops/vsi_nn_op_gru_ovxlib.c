@@ -35,7 +35,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
 
@@ -265,6 +265,17 @@ static vsi_bool op_setup_default
         curr->node->nn_param.grucell_ovxlib.activation = curr_param->activation;
         curr->node->nn_param.grucell_ovxlib.recurrent_activation = curr_param->recurrent_activation;
         curr->node->nn_param.grucell_ovxlib.linear_before_reset = curr_param->linear_before_reset;
+        if ( reshape_output->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 )
+        {
+            int32_t k = 0;
+            for (k = 0; k < sizeof( curr_param->internal_dtype ) / sizeof(curr_param->internal_dtype[0]); k++)
+            {
+                if (curr_param->internal_dtype[k].vx_type == VSI_NN_TYPE_NONE)
+                {
+                    curr_param->internal_dtype[k].vx_type = VSI_NN_TYPE_BFLOAT16;
+                }
+            }
+        }
         memcpy( curr->node->nn_param.grucell_ovxlib.internal_dtype,
             curr_param->internal_dtype, sizeof( curr_param->internal_dtype ) );
         curr->node->nn_param.grucell_ovxlib.use_cudnn_implementation = curr_param->use_cudnn_implementation;

@@ -176,19 +176,19 @@ static int32_t get_moments_output_reshape_size
     }
     sizes[3] = out_dims_num > 3 ? output_size[3] : 1;
 
-    if(axis_num == 1 && axis[0] == 0)
+    if (axis_num == 1 && axis[0] == 0)
     {
         sizes[0] = output_size[1];
         sizes[1] = out_dims_num > 2 ? output_size[2] : 1;
         out_rs_flg = 1;
     }
-    else if(axis_num == 1 && axis[0] == 1)
+    else if (axis_num == 1 && axis[0] == 1)
     {
         sizes[0] = output_size[0];
         sizes[1] = out_dims_num > 2 ? output_size[2] : 1;
         out_rs_flg = 1;
     }
-    else if(axis_num == 2 && axis[0] == 0 && axis[1] == 1)
+    else if (axis_num == 2 && axis[0] == 0 && axis[1] == 1)
     {
         sizes[0] = out_dims_num > 2 ? output_size[2] : 1;
         out_rs_flg = 1;
@@ -240,25 +240,25 @@ DEF_KERNEL_INITIALIZER(_moments_initializer)
     gpu_param.global_scale[0]  = 1;
     gpu_param.global_scale[1]  = 1;
     gpu_param.global_scale[2]  = 1;
-    if(axis_num == 1 && axis == 0)
+    if (axis_num == 1 && axis == 0)
     {
         gpu_param.global_size[0]   = gpu_align_p2((height + gpu_param.global_scale[0] - 1)
             / gpu_param.global_scale[0], 4);
         gpu_param.global_size[1]   = chn;
     }
-    else if(axis_num == 1 && axis == 1)
+    else if (axis_num == 1 && axis == 1)
     {
         gpu_param.global_size[0]   = gpu_align_p2((width + gpu_param.global_scale[0] - 1)
             / gpu_param.global_scale[0], 4);
         gpu_param.global_size[1]   = chn;
     }
-    else if(axis_num == 1 && axis == 2)
+    else if (axis_num == 1 && axis == 2)
     {
         gpu_param.global_size[0]   = gpu_align_p2((width + gpu_param.global_scale[0] - 1)
             / gpu_param.global_scale[0], 4);
         gpu_param.global_size[1]   = height;
     }
-    else if(axis_num == 2)
+    else if (axis_num == 2)
     {
         gpu_param.local_size[0]  = 16;
         gpu_param.local_size[1]  = 1;
@@ -266,7 +266,7 @@ DEF_KERNEL_INITIALIZER(_moments_initializer)
         gpu_param.global_size[0]   = 16;
         gpu_param.global_size[1]   = chn;
     }
-    else if(axis_num == 3)
+    else if (axis_num == 3)
     {
         gpu_param.local_size[0]  = 16;
         gpu_param.local_size[1]  = 1;
@@ -315,13 +315,13 @@ static vsi_status _query_kernel
 
     for( i = 0; i < _cnt_of_array(moments_map); i ++ )
     {
-        if( moments_map[i].key == key )
+        if ( moments_map[i].key == key )
         {
             break;
         }
     }
 
-    if( i < _cnt_of_array(moments_map) )
+    if ( i < _cnt_of_array(moments_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  moments_map[i].function_name );
         kernel->info.parameters = _moments_kernel_param_def;
@@ -354,6 +354,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_MOMENTS_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
     int32_t  out_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t  out_rs_flg = 0;
     int32_t axis_num  = 0;
     size_t axis_num_temp = 0;
@@ -362,6 +363,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t first_axis = axis[0];
     int32_t i = 0;
     vsi_nn_kernel_scalar_t scalar_list[INTERNAL_MOMENTS_SCALAR_NUM] = {NULL};
+    vsi_nn_kernel_tensor_t reshape_tensors[3] = { NULL };
 
     int32_t width = inputs[0]->attr.size[0];
     int32_t height = inputs[0]->attr.size[1];
@@ -372,7 +374,7 @@ static vsi_nn_kernel_node_t _setup
 
     axis_num = (int32_t)axis_num_temp;
 
-    if(inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
+    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
     {
         if (inputs[0]->attr.dtype.fl > 0)
         {
@@ -385,36 +387,50 @@ static vsi_nn_kernel_node_t _setup
         input_zp = 0;
     }
 
-    if(axis_num == 1 && axis[0] == 0)
+    if (axis_num == 1 && axis[0] == 0)
     {
         dim_ratio = (float)1.0 / (float)(width);
     }
-    else if(axis_num == 1 && axis[0] == 1)
+    else if (axis_num == 1 && axis[0] == 1)
     {
         dim_ratio = (float)1.0 / (float)(height);
     }
-    else if(axis_num == 1 && axis[0] == 2)
+    else if (axis_num == 1 && axis[0] == 2)
     {
         dim_ratio = (float)1.0 / (float)(chn);
     }
-    else if(axis_num == 2 && axis[0] == 0 && axis[1] == 1)
+    else if (axis_num == 2 && axis[0] == 0 && axis[1] == 1)
     {
         dim_ratio = (float)1.0 / (float)(width * height);
     }
-    else if(axis_num == 3)
+    else if (axis_num == 3)
     {
         dim_ratio = (float)1.0 / (float)(width * height * chn);
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
 
-    if(keep_dim)
+    if (keep_dim)
     {
         out_rs_flg = get_moments_output_reshape_size(&outputs[0], out_shape, axis, axis_num);
+    }
+
+    if (inputs[0]->attr.dim_num < 2)
+    {
+        shape[0] = inputs[0]->attr.size[0];
+        shape[1] = 1;
+        reshape_tensors[0] = vsi_nn_kernel_tensor_reshape( inputs[0]->t, shape, 2 );
+    }
+    if (outputs[0]->attr.dim_num < 2)
+    {
+        shape[0] = outputs[0]->attr.size[0];
+        shape[1] = 1;
+        reshape_tensors[1] = vsi_nn_kernel_tensor_reshape( outputs[0]->t, shape, 2 );
+        reshape_tensors[2] = vsi_nn_kernel_tensor_reshape( outputs[1]->t, shape, 2 );
     }
 
     scalar_list[AXIS]       = vsi_nn_kernel_scalar_create( graph, I32, &first_axis );
@@ -427,18 +443,30 @@ static vsi_nn_kernel_node_t _setup
     scalar_list[DIMRATIO]   = vsi_nn_kernel_scalar_create( graph, F32, &dim_ratio );
 
     status = _query_kernel( inputs, outputs, kernel, params, axis, axis_num, 0 );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             uint32_t index = 0;
             /* Pass parameters to node. */
-            node_params[index++] = (vsi_nn_kernel_node_param_t)(inputs[0]->t);
-            if(out_rs_flg)
+            if (reshape_tensors[0])
+            {
+                node_params[index++] = reshape_tensors[0];
+            }
+            else
+            {
+                node_params[index++] = (vsi_nn_kernel_node_param_t)(inputs[0]->t);
+            }
+            if (out_rs_flg)
             {
                 node_params[index++] = vsi_nn_kernel_tensor_reshape( outputs[0]->t, out_shape, 4 );
                 node_params[index++] = vsi_nn_kernel_tensor_reshape( outputs[1]->t, out_shape, 4 );
+            }
+            else if (reshape_tensors[1])
+            {
+                node_params[index++] = reshape_tensors[1];
+                node_params[index++] = reshape_tensors[2];
             }
             else
             {
@@ -455,7 +483,7 @@ static vsi_nn_kernel_node_t _setup
             node_params[index++] = scalar_list[DIMRATIO];
             status = vsi_nn_kernel_node_pass_param( node, node_params, _MOMENTS_PARAM_NUM );
             CHECK_STATUS(status);
-            if(out_rs_flg)
+            if (out_rs_flg)
             {
                 vsi_nn_kernel_tensor_release( &node_params[1] );
                 vsi_nn_kernel_tensor_release( &node_params[2] );
@@ -465,10 +493,22 @@ static vsi_nn_kernel_node_t _setup
         }
     }
 
+    if (reshape_tensors[0])
+    {
+        vsi_nn_kernel_tensor_release( &reshape_tensors[0] );
+    }
+    if (reshape_tensors[1])
+    {
+        vsi_nn_kernel_tensor_release( &reshape_tensors[1] );
+    }
+    if (reshape_tensors[2])
+    {
+        vsi_nn_kernel_tensor_release( &reshape_tensors[2] );
+    }
     /* Pass parameters to node. */
     for( i = 0; i < INTERNAL_MOMENTS_SCALAR_NUM; i ++ )
     {
-        if(scalar_list[i])
+        if (scalar_list[i])
         {
             vsi_nn_kernel_scalar_release( &scalar_list[i] );
         }

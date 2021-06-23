@@ -35,7 +35,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "ops/vsi_nn_op_grucell_ovxlib.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
@@ -236,7 +236,15 @@ static vsi_bool op_setup_float
         use_virtual_tensor, inputs[GRUCELL_INPUT_INPUT], inputs[GRUCELL_INPUT_H_STATE]);
 
     dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if ( input_hstate->t->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+         input_hstate->t->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+    {
+        dtype.vx_type = input_hstate->t->attr.dtype.vx_type;
+    }
+    else
+    {
+        dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
     tmp_tensor = vsi_nn_rnn_create_tp_fc(self, input_hstate->t,
         p->local->weights_z_r, p->local->bias_z_r, &dtype, use_virtual_tensor);
 
@@ -261,7 +269,15 @@ static vsi_bool op_setup_float
             inputs[GRUCELL_INPUT_INPUT], tensor_rt->t);
 
         dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-        dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+        if ( tmp_tensor->t->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+             tmp_tensor->t->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+        {
+            dtype.vx_type = input_hstate->t->attr.dtype.vx_type;
+        }
+        else
+        {
+            dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+        }
         /* W{c} x [x{t}, r{t}] */
         tmp_tensor = vsi_nn_rnn_create_tp_fc(self, tmp_tensor->t, p->local->weights_c, p->local->bias_c,
             &dtype, use_virtual_tensor);
@@ -270,7 +286,15 @@ static vsi_bool op_setup_float
     else
     {
         dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-        dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+        if ( inputs[GRUCELL_INPUT_H_STATE]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+             inputs[GRUCELL_INPUT_H_STATE]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+        {
+            dtype.vx_type = inputs[GRUCELL_INPUT_H_STATE]->attr.dtype.vx_type;
+        }
+        else
+        {
+            dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+        }
         /* r.(hstate*w_hc + b_hc) */
         tmp_tensor = vsi_nn_rnn_create_tp_fc(self, inputs[GRUCELL_INPUT_H_STATE], inputs[GRUCELL_INPUT_WEIGHT_H2C],
             inputs[GRUCELL_INPUT_BIAS_H2C], &dtype, use_virtual_tensor);
@@ -635,12 +659,28 @@ static vsi_bool op_setup_float_cudnn_v2
         use_virtual_tensor, inputs[GRUCELL_INPUT_INPUT], inputs[GRUCELL_INPUT_H_STATE]);
 
     dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if ( concated_input->t->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+         concated_input->t->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+    {
+        dtype.vx_type = concated_input->t->attr.dtype.vx_type;
+    }
+    else
+    {
+        dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
     tmp_tensor = vsi_nn_rnn_create_tp_fc(self, concated_input->t, p->local->weights_input,
         p->local->bias_z_r, &dtype, use_virtual_tensor);
 
     dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if ( splited_input_fc_output_tensors[0]->t->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+         splited_input_fc_output_tensors[0]->t->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+    {
+        dtype.vx_type = splited_input_fc_output_tensors[0]->t->attr.dtype.vx_type;
+    }
+    else
+    {
+        dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
     {
         uint32_t _slices[] = { inputs[GRUCELL_INPUT_INPUT]->attr.size[0],
             inputs[GRUCELL_INPUT_H_STATE]->attr.size[0] };
@@ -651,7 +691,15 @@ static vsi_bool op_setup_float_cudnn_v2
         inputs[GRUCELL_INPUT_WEIGHT_I2C], inputs[GRUCELL_INPUT_BIAS_I2C], &dtype, use_virtual_tensor);
 
     dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if ( inputs[GRUCELL_INPUT_H_STATE]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+         inputs[GRUCELL_INPUT_H_STATE]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+    {
+        dtype.vx_type = inputs[GRUCELL_INPUT_H_STATE]->attr.dtype.vx_type;
+    }
+    else
+    {
+        dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
     recurrent2cand_output = vsi_nn_rnn_create_tp_fc(self, inputs[GRUCELL_INPUT_H_STATE],
         inputs[GRUCELL_INPUT_WEIGHT_H2C], inputs[GRUCELL_INPUT_BIAS_H2C], &dtype, use_virtual_tensor);
 
@@ -668,7 +716,15 @@ static vsi_bool op_setup_float_cudnn_v2
     attr.vtl = use_virtual_tensor;
     attr.is_const = FALSE;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if ( splited_input_fc_output_tensors[0]->t->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+         splited_input_fc_output_tensors[0]->t->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+    {
+        dtype.vx_type = splited_input_fc_output_tensors[0]->t->attr.dtype.vx_type;
+    }
+    else
+    {
+        dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
     tmp_tensor = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_A_TIMES_B_PLUS_C, 0, 0 );
@@ -969,7 +1025,15 @@ static vsi_bool op_setup_default
 
             memcpy(&attr, &(inputs[GRUCELL_INPUT_WEIGHT_H2C]->attr), sizeof(attr));
             attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-            attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+            if ( rh_mul_outputs->t->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+                 rh_mul_outputs->t->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+            {
+                attr.dtype.vx_type = rh_mul_outputs->t->attr.dtype.vx_type;
+            }
+            else
+            {
+                attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+            }
 
             wei_r2c_tensor = vsi_nn_ConvertTensorDtype(self->graph, inputs[GRUCELL_INPUT_WEIGHT_H2C], &(attr.dtype));
             rh_cand_fc_output = vsi_nn_rnn_create_tp_fc(self,
@@ -1049,7 +1113,16 @@ static vsi_bool op_setup_default
     attr.vtl = use_virtual_tensor;
     attr.is_const = FALSE;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if ( input_tensor->t->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+         input_tensor->t->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+    {
+        attr.dtype.vx_type = input_tensor->t->attr.dtype.vx_type;
+    }
+    else
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
+
     tmp_tensor = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
 
     /* create internal tensor sub node (1-zt)*c */

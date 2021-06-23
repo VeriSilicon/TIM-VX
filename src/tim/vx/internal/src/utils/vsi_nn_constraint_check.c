@@ -158,6 +158,8 @@ vsi_bool validate_op_io_types
 
     if(self && self->attr.enable_op_constraint_check) {
         uint32_t i = 0;
+        int32_t j = 0;
+        int32_t reg_tensor_num = op_constraint_reg->reg_input_num + op_constraint_reg->reg_output_num;
 
         node_io_signature_t* sig = _get_op_signature(inputs, inputs_num,
                 outputs, outputs_num, op_constraint_reg);
@@ -167,7 +169,22 @@ vsi_bool validate_op_io_types
             for(i = 0; i < op_constraint_reg->io_types_item_count; i++) {
                 const uint8_t* curr = ((const uint8_t*)op_constraint_reg->types) \
                         + op_constraint_reg->io_types_item_size * i;
-                if(!memcmp(curr, sig->types, op_constraint_reg->io_types_item_size)) {
+                vsi_nn_type_e *curr_type = (vsi_nn_type_e *)curr;
+
+                for (j = 0; j < reg_tensor_num; j++)
+                {
+                    vsi_nn_type_e qnt_type = sig->types[j] >> Q_SHIFT;
+                    vsi_nn_type_e data_type = sig->types[j] & ((1 << Q_SHIFT) - 1);
+                    vsi_nn_type_e curr_qnt_type = curr_type[j] >> Q_SHIFT;
+                    vsi_nn_type_e curr_data_type = curr_type[j] & ((1 << Q_SHIFT) - 1);
+                   if ( (qnt_type != (vsi_nn_type_e)VSI_NN_QNT_TYPE_NONE && qnt_type != curr_qnt_type) ||
+                       data_type != curr_data_type )
+                   {
+                       break;
+                   }
+                }
+                if (j == reg_tensor_num)
+                {
                     matched = TRUE;
                     break;
                 }

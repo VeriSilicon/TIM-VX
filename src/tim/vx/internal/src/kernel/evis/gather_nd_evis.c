@@ -387,6 +387,15 @@ static vsi_status _query_kernel
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+    if (input0_dtype == BF16)
+    {
+        input0_dtype = F16;
+    }
+    if (output_dtype == BF16)
+    {
+        output_dtype = F16;
+    }
+
     if(coord_dim == 1)
     {
         coord_type = _1D;

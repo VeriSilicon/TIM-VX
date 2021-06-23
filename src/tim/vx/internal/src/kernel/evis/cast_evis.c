@@ -241,6 +241,7 @@ static vsi_status _query_kernel
     uint32_t i;
 
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
+    in_dtype  = in_dtype == BOOL8 ? I8 : in_dtype;
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
     key = CAST_HASH_KEY( in_dtype, out_dtype, image_2d );

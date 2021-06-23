@@ -32,7 +32,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_error.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 
 __BEGIN_DECLS
 
@@ -164,8 +164,8 @@ DEF_KERNEL_EXECUTOR(_comparisons_exec)
         buffer[2][i] = (float)data;
     }
 
-    status = vsi_nn_kernel_tensor_write_from_float( tensors[1], attr[1],
-            buffer[1], out_elements );
+    status = vsi_nn_kernel_tensor_write_from_float( tensors[2], attr[2],
+            buffer[2], out_elements );
     CHECK_STATUS_FAIL_GOTO( status, final );
 
 final:

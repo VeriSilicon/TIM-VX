@@ -178,10 +178,18 @@ static vsi_status _query_kernel
     {
         in_dtype  = F32;
     }
+    else if (I16 == in_dtype && inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE)
+    {
+        in_dtype  = I32;
+    }
 
     if (F16 == out_dtype)
     {
         out_dtype  = F32;
+    }
+    else if (I16 == out_dtype && outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE)
+    {
+        out_dtype  = I32;
     }
 
     key = HASH_REDUCEMAX_HASH_KEY( axis, in_dtype, out_dtype, image_2d );

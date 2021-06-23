@@ -12,7 +12,10 @@ __kernel void gather_nd_I8toI8_3D(
     int gidy = get_global_id(1);  // indices_num
 
     int4 coord = (int4)(0, gidy, gidx, 0);
-    int4 indice = read_imagei(input1, coord.xy);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
     indice.x = indice.x * block_size + gidx;
     indice.w = 0;
 
@@ -34,7 +37,11 @@ __kernel void gather_nd_U8toU8_3D(
     int gidy = get_global_id(1);  // indices_num
 
     int4 coord = (int4)(0, gidy, gidx, 0);
-    int4 indice = read_imagei(input1, coord.xy);
+
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
     indice.x = indice.x * block_size + gidx;
     indice.w = 0;
 
@@ -55,7 +62,10 @@ __kernel void gather_nd_I16toI16_3D(
     int gidy = get_global_id(1);  // indices_num
 
     int4 coord = (int4)(0, gidy, gidx, 0);
-    int4 indice = read_imagei(input1, coord.xy);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
     indice.x = indice.x * block_size + gidx;
     indice.w = 0;
 
@@ -76,7 +86,10 @@ __kernel void gather_nd_F16toF16_3D(
     int gidy = get_global_id(1);  // indices_num
 
     int4 coord = (int4)(0, gidy, gidx, 0);
-    int4 indice = read_imagei(input1, coord.xy);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
     indice.x = indice.x * block_size + gidx;
     indice.w = 0;
 
@@ -84,3 +97,4 @@ __kernel void gather_nd_F16toF16_3D(
     VXC_ReadImage2DArray(src, input0, indice, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
     VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
 }
+

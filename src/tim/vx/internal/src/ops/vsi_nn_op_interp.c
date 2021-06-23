@@ -174,6 +174,7 @@ static vsi_bool op_setup
         curr->node->nn_param.strided_slice.begin_mask = 0;
         curr->node->nn_param.strided_slice.end_mask = 0;
         curr->node->nn_param.strided_slice.shrink_axis_mask = 0;
+        curr->node->nn_param.strided_slice.new_axis_mask = 0;
         begin_dims = (int32_t *)vsi_nn_internal_new_node_param(curr,
             VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
         end_dims   = (int32_t *)vsi_nn_internal_new_node_param(curr,

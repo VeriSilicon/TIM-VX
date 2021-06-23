@@ -807,10 +807,25 @@ vsi_status vsi_nn_OptimizeGraph
     vsi_bool *dirty
     )
 {
-    vsi_status status = VSI_FAILURE;
+    vsi_status status = VSI_SUCCESS;
+    uint32_t i = 0;
+    vsi_bool nbg_flag = FALSE;
+    vsi_nn_node_t* node = NULL;
+    for(i = 0; i < graph->node_num; i++)
+    {
+        node = vsi_nn_GetNode(graph, i);
+        if(node->op == VSI_NN_OP_NBG)
+        {
+            nbg_flag = TRUE;
+            break;
+        }
+    }
 
-    status = _graph_optimization_convert_int8_to_uint8(graph, dirty);
-    TEST_CHECK_STATUS(status, final);
+    if (!nbg_flag)
+    {
+        status = _graph_optimization_convert_int8_to_uint8(graph, dirty);
+        TEST_CHECK_STATUS(status, final);
+    }
 
 final:
     return status;

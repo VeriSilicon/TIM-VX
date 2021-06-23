@@ -35,7 +35,7 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 
 __BEGIN_DECLS
 
@@ -143,8 +143,8 @@ DEF_KERNEL_EXECUTOR(_layer_norm_exec)
                 {
                     int idx = (outer * axisSize + i) * innerSize + inner;
                     float data = buffer[0][idx] - mean;
-                    float scaleVal = buffer[2][idx];
-                    float biasVal = buffer[1][idx];
+                    float scaleVal = buffer[2][i];
+                    float biasVal = buffer[1][i];
                     float normVal = data * vari * scaleVal + biasVal;
                     buffer[3][idx] = normVal;
                 }

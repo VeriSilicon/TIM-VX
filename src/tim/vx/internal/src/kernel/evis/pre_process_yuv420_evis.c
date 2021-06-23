@@ -43,6 +43,7 @@ __BEGIN_DECLS
 #define VX_KERNEL_NAME_PRE_PROCESS_YUV420_SCALE_U8TOU8     CVIVANTE_NAMESPACE("evis.pre_process_yuv420_scale_U8toU8")
 #define VX_KERNEL_NAME_PRE_PROCESS_YUV420_SCALE_U8TOI8     CVIVANTE_NAMESPACE("evis.pre_process_yuv420_scale_U8toI8")
 #define VX_KERNEL_NAME_PRE_PROCESS_YUV420_COPY_U8TOU8      CVIVANTE_NAMESPACE("evis.pre_process_yuv420_copy_U8toU8")
+#define VX_KERNEL_NAME_PRE_PROCESS_YUV420_COPY_U8TOF16     CVIVANTE_NAMESPACE("evis.pre_process_yuv420_copy_U8toF16")
 
 #define KERNEL_SOURCE_1    "pre_process_yuv420_scale_u8",
 #define KERNEL_SOURCE_2    "pre_process_yuv420_copy_u8",
@@ -77,6 +78,7 @@ static const struct {
     TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, U8,  SCALE,        KERNEL_SOURCE_1)
     TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, I8,  SCALE,        KERNEL_SOURCE_5)
     TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, U8,  COPY,         KERNEL_SOURCE_2)
+    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, F16, COPY,         KERNEL_SOURCE_2)
 };
 
 static vx_param_description_t vxPreProcessYuv420Kernel_param_def[] =
@@ -155,10 +157,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_copy_initializer)
     }
 
     shaderParam.global_scale[0]  = 16;
-    if (attr[0]->dtype == I16 || attr[0]->dtype == F16)
-    {
-        shaderParam.global_scale[0]  = 8;
-    }
     shaderParam.global_scale[1]  = 1;
     shaderParam.global_scale[2]  = 1;
     shaderParam.global_size[0]   = gpu_align_p2((width + shaderParam.global_scale[0] - 1)
@@ -418,6 +416,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_copy_initializer)
         switch( attr[0]->dtype )
         {
         case U8:
+        case F16:
             {
                 // R
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniCalculateTmpR1st_4x4", &uniCalculateTmpR1st_4x4);
@@ -866,7 +865,7 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    if (enable_copy && output_dtype == U8)
+    if (enable_copy && (output_dtype == U8 || output_dtype == F16))
     {
         convert_type = COPY;
     }
@@ -890,7 +889,7 @@ static vsi_status _query_kernel
         kernel->info.parameters = vxPreProcessYuv420Kernel_param_def;
         kernel->info.numParams = _cnt_of_array( vxPreProcessYuv420Kernel_param_def );
 
-        if (enable_copy && output_dtype == U8)
+        if (enable_copy && (output_dtype == U8 || output_dtype == F16))
         {
             kernel->info.initialize = _pre_process_yuv420_copy_initializer;
         }

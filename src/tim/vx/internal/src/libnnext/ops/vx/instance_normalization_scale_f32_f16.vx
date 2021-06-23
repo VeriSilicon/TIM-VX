@@ -1,0 +1,143 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int height;
+_viv_uniform float dimRatio;
+_viv_uniform int group_num;
+_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;
+_viv_uniform VXC_512Bits uniConvertHalfToFp16_2x8;
+
+_viv_uniform VXC_512Bits uniConvertEndInt16Fp32_4x4;
+
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_F16F32toF16(
+    image2d_array_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,
+    image2d_array_t output, float eps, int rsFlg)
+{
+    int gidz = get_global_id(1);
+    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);
+    vxc_short8 src0;
+    vxc_half8  in_h;
+    float scale_vari, bias_val;
+    vxc_float4 mean_vari = (vxc_float4)(0);
+
+    Image img1 = create_image_from_image2d(bias, 4);
+    Image img2 = create_image_from_image2d(scale, 4);
+    Image img3 = create_image_from_image2d(meanVari, 4);
+    __global float* bias_ptr = (__global float*)img1.ptr;
+    __global float* scal_ptr = (__global float*)img2.ptr;
+    __global uchar* sumVari_ptr = (__global uchar*)get_image_ptr_from_coord(img3, coord.wz);
+    __global float4* vari_ptr = (__global float4*)sumVari_ptr;
+
+    float bval = bias_ptr[gidz];
+    float sval = scal_ptr[gidz];
+
+    for(int i = 0; i < group_num; i++)
+    {
+        mean_vari += vari_ptr[i];
+    }
+
+    mean_vari *= dimRatio;
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
+    mean_vari.s1 = rsqrt(mean_vari.s1);
+
+    scale_vari = sval * mean_vari.s1;
+    vxc_float4  tmpData0, tmpData1;
+    vxc_short8 outval;
+    half4 tmpVal0, tmpVal1;
+    bias_val = (bval - scale_vari * mean_vari.s0);
+    vxc_half8 dst;
+
+    int8 input_desc, output_desc;
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));
+    int baseAddr_a = (int)get_global_id(1) * input_desc.s4 + input_desc.s0;
+    _viv_asm(MOV, coord.z, baseAddr_a);
+
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));
+    int baseAddr = (int)get_global_id(1) * output_desc.s4 + output_desc.s0;
+    _viv_asm(MOV, coord.w, baseAddr);
+
+    for(coord.y = 0; coord.y < height; coord.y++)
+    {
+    VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, in_h, src0, 16);
+
+    VXC_DP4x4(tmpData0, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+        UniFP16toFP32Lo4_dp4x4);
+    VXC_DP4x4(tmpData1, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+        uniConvertEndInt16Fp32_4x4);
+
+    vxc_float4 norm;
+    norm = scale_vari * tmpData0 + bias_val;
+    _viv_asm(CONV, tmpVal0, norm);
+    norm = scale_vari * tmpData1 + bias_val;
+    _viv_asm(CONV, tmpVal1, norm);
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+        uniConvertHalfToFp16_2x8);
+    _viv_asm(COPY, outval, dst, 16);
+    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, outval, \
+                    VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+    }
+}
+
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_F16F32toF16_2D(
+    image2d_array_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,
+    image2d_array_t output, float eps, int rsFlg)
+{
+    int gidz = get_global_id(1);
+    int gidy = gidz * height;
+    int2 coord = (int2)(get_global_id(0), gidy);
+    int2 coord_para = (int2)(gidz, 0);
+    int endH = gidy + height;
+    vxc_short8 src0;
+    vxc_half8  in_h;
+    float scale_vari, bias_val;
+    vxc_float4 mean_vari = (vxc_float4)(0);
+
+    Image img1 = create_image_from_image2d(bias, 4);
+    Image img2 = create_image_from_image2d(scale, 4);
+    Image img3 = create_image_from_image2d(meanVari, 4);
+    __global float* bias_ptr = (__global float*)img1.ptr;
+    __global float* scal_ptr = (__global float*)img2.ptr;
+    __global uchar* sumVari_ptr = (__global uchar*)get_image_ptr_from_coord(img3, coord_para.yx);
+    __global float4* vari_ptr = (__global float4*)sumVari_ptr;
+
+    float bval = bias_ptr[gidz];
+    float sval = scal_ptr[gidz];
+
+    for(int i = 0; i < group_num; i++)
+    {
+        mean_vari += vari_ptr[i];
+    }
+
+    mean_vari *= dimRatio;
+    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
+    mean_vari.s1 = rsqrt(mean_vari.s1);
+
+    scale_vari = sval * mean_vari.s1;
+    vxc_float4  tmpData0, tmpData1;
+    vxc_short8 outval;
+    half4 tmpVal0, tmpVal1;
+    bias_val = (bval - scale_vari * mean_vari.s0);
+    vxc_half8 dst;
+
+    for(; coord.y < endH; coord.y++)
+    {
+    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, in_h, src0, 16);
+
+    VXC_DP4x4(tmpData0, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+        UniFP16toFP32Lo4_dp4x4);
+    VXC_DP4x4(tmpData1, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+        uniConvertEndInt16Fp32_4x4);
+    vxc_float4 norm;
+    norm = scale_vari * tmpData0 + bias_val;
+    _viv_asm(CONV, tmpVal0, norm);
+    norm = scale_vari * tmpData1 + bias_val;
+    _viv_asm(CONV, tmpVal1, norm);
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+        uniConvertHalfToFp16_2x8);
+    _viv_asm(COPY, outval, dst, 16);
+    VXC_WriteImage(output, coord.xy, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    }
+}

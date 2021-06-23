@@ -241,7 +241,7 @@ DEF_KERNEL_INITIALIZER(_maximum_initializer)
     pack_key = _PACK_SELECT_KEY( attr[0]->dtype,
             attr[1]->dtype, attr[2]->dtype );
 
-    if ( (attr[2]->dtype == F16 || attr[2]->dtype == I16)
+    if ( (attr[2]->dtype == F16 || attr[2]->dtype == I16 || attr[2]->dtype == BF16)
         || ((attr[2]->dtype == I8 || attr[2]->dtype == U8) && (attr[0]->dtype == F16 && attr[1]->dtype == F16)) )
     {
         gpu_param.global_scale[0] = 8;

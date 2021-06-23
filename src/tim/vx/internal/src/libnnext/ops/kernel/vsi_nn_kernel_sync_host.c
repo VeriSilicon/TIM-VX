@@ -29,7 +29,7 @@
 
 #include "vsi_nn_pub.h"
 #include "utils/vsi_nn_util.h"
-#include "client/vsi_nn_vxkernel.h"
+#include "libnnext/vsi_nn_vxkernel.h"
 #include "libnnext/vx_lib_nnext.h"
 
 #define _VX_KERNEL_VAR_CPU      (vx_client_kernel_cpu_SYNC_HOST)

@@ -69,7 +69,9 @@ filegroup(
     name = "custom_srcs",
     srcs = glob([
         "src/custom/ops/*.c",
-        "src/custom/ops/kernel/*.c",
+        "src/custom/ops/kernel/evis/*.c",
+        "src/custom/ops/kernel/cl/*.c",
+        "src/custom/ops/kernel/cpu/*.c",
     ])
 )
 
@@ -128,7 +130,6 @@ cc_library(
         "include/quantization/vsi_nn_asymmetric_affine.h",
         "include/quantization/vsi_nn_dynamic_fixed_point.h",
         "include/quantization/vsi_nn_perchannel_symmetric_affine.h",
-        "include/client/vsi_nn_vxkernel.h",
         "include/interface/ops.def",
         "include/kernel/vsi_nn_kernel.h",
         "include/kernel/vsi_nn_gpu.h",
@@ -139,6 +140,7 @@ cc_library(
         "include/vsi_nn_error.h",
 
         # libnnext
+        "include/libnnext/vsi_nn_vxkernel.h",
         "include/libnnext/vx_lib_nnext.h",
         "include/libnnext/vsi_nn_libnnext_resource.h",
 
@@ -167,7 +169,6 @@ cc_library(
         "src/vsi_nn_daemon.c",
         "src/vsi_nn_graph_optimization.c",
         "src/vsi_nn_pre_post_process.c",
-        "src/client/vsi_nn_vxkernel.c",
         "src/utils/vsi_nn_link_list.c",
         "src/utils/vsi_nn_util.c",
         "src/utils/vsi_nn_math.c",
@@ -200,12 +201,10 @@ cc_library(
         "src/libnnext/ops/kernel/vsi_nn_kernel_sync_host.c",
         "src/libnnext/ops/kernel/vsi_nn_kernel_spatial_transformer.c",
         "src/libnnext/ops/kernel/vsi_nn_kernel_extra_ending.c",
-        "src/libnnext/ops/kernel/vsi_nn_kernel_topk.c",
         "src/libnnext/ops/kernel/vsi_nn_kernel_heatmap_max_keypoint.c",
-        "src/libnnext/ops/kernel/vsi_nn_kernel_axis_aligned_bbox_transform.c",
         "src/libnnext/ops/kernel/vsi_nn_kernel_box_with_nms_limit.c",
-        "src/libnnext/ops/kernel/vsi_nn_kernel_generate_proposals.c",
         "src/libnnext/vsi_nn_libnnext_resource.c",
+        "src/libnnext/vsi_nn_vxkernel.c",
     ] + [":kernel_srcs"]
       + [":operation_srcs"]
       + [":custom_srcs"],

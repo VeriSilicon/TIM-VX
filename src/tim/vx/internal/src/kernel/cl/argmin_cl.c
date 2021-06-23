@@ -183,20 +183,26 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype;
     vsi_status status = VSI_FAILURE;
     uint32_t key;
-    int i;
+    int32_t i;
 
     input_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    if (output_dtype == I16)
+    {
+        output_dtype = I32;
+    }
+
     key = HASH_ARGMIN_KEY( axis, input_dtype, output_dtype, image_2d );
 
-    for( i = 0; i < _cnt_of_array(kernel_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(kernel_map); i ++ )
     {
-        if( kernel_map[i].key == key )
+        if ( kernel_map[i].key == key )
         {
             break;
         }
     }
-    if( i < _cnt_of_array(kernel_map) )
+    if ( i < _cnt_of_array(kernel_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
         kernel->info.parameters = kernel_param_def;
@@ -231,7 +237,7 @@ static vsi_nn_kernel_node_t _setup
 
     axis = vsi_nn_kernel_param_get_int32(params, "axis");
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
      || !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
                 outputs[0]->attr.dim_num )
@@ -244,11 +250,11 @@ static vsi_nn_kernel_node_t _setup
 
     image_2d = (inputs[0]->attr.dim_num == 2 || inputs[0]->attr.size[2] == 1);
     status = _query_kernel( inputs, outputs, axis, image_2d, kernel );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
 
-        if( node )
+        if ( node )
         {
             vsi_nn_kernel_node_pack_io( node_params, _CL_PARAM_NUM,
                     inputs, 1, outputs, 1 );

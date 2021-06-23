@@ -32,6 +32,22 @@
 extern "C" {
 #endif
 
+typedef struct _strided_slice_param
+{
+    int32_t *begin_dims;
+    int32_t begin_dims_num;
+    int32_t *end_dims;
+    int32_t end_dims_num;
+    int32_t *stride_dims;
+    int32_t stride_dims_num;
+    int32_t begin_mask;
+    int32_t end_mask;
+    int32_t shrink_axis_mask;
+    int32_t new_axis_mask;
+
+    int32_t num_add_axis;
+} strided_slice_param;
+
 typedef struct _vsi_nn_strided_slice_lcl_data2
 {
     vsi_nn_link_list_t link_list;
@@ -55,6 +71,8 @@ typedef struct _vsi_nn_strided_slice_lcl_data2
 
     vsi_bool is_dataconvert_op;
     vsi_bool is_optimized;
+
+    strided_slice_param params;
 } vsi_nn_strided_slice_lcl_data2;
 
 typedef struct _vsi_nn_strided_slice_lcl_data_t
@@ -78,6 +96,7 @@ typedef struct _vsi_nn_strided_slice_param
     vx_int32 begin_mask;
     vx_int32 end_mask;
     vx_int32 shrink_axis_mask;
+    int32_t new_axis_mask;
 
     vsi_nn_strided_slice_lcl_data2  * lcl2_data;
 } vsi_nn_strided_slice_param;

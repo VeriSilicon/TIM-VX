@@ -9,7 +9,7 @@ _viv_uniform float output_scale;
 _viv_uniform float output_zp;
 
 #define BATCH_NORM_SH_IMPL(name0, name1, src_type, read_type, conv_type, dst_type, save_type) \
-__kernel void batch_norm_##name0##to##name1##_brdcst1( \
+__kernel void batch_norm_##name0##_F16_F16_F16_F32to##name1##_brdcst1( \
     __read_only  image2d_array_t input, \
     __read_only  image2d_array_t Mean, \
     __read_only  image2d_array_t Variance, \
@@ -73,7 +73,7 @@ BATCH_NORM_SH_IMPL(I8,  I8,  vxc_char16,  vxc_char16,  int4,  vxc_char16,  vxc_c
 BATCH_NORM_SH_IMPL(I8,  F16, vxc_char16,  vxc_char16,  half4, vxc_half8,   vxc_ushort8)
 
 #define BATCH_NORM_SH_IMPL_2D(name0, name1, src_type, read_type, conv_type, dst_type, save_type) \
-__kernel void batch_norm_##name0##to##name1##_brdcst1_2D( \
+__kernel void batch_norm_##name0##_F16_F16_F16_F32to##name1##_brdcst1_2D( \
     __read_only  image2d_array_t input, \
     __read_only  image2d_t       Mean, \
     __read_only  image2d_t       Variance, \
@@ -138,7 +138,7 @@ BATCH_NORM_SH_IMPL_2D(I8,  F16, vxc_char16,  vxc_char16,  half4, vxc_half8,   vx
 
 
 #define BATCH_NORM_SH_IMPL_AXIS1(name0, name1, src_type, read_type, conv_type, dst_type, save_type) \
-__kernel void batch_norm_##name0##to##name1##_brdcst0( \
+__kernel void batch_norm_##name0##_F16_F16_F16_F32to##name1##_brdcst0( \
     __read_only  image2d_array_t input, \
     __read_only  image2d_array_t Mean, \
     __read_only  image2d_array_t Variance, \
@@ -205,7 +205,7 @@ BATCH_NORM_SH_IMPL_AXIS1(I8,  I8,  vxc_char16,  vxc_char16,  int4,  vxc_char16, 
 BATCH_NORM_SH_IMPL_AXIS1(I8,  F16, vxc_char16,  vxc_char16,  half4, vxc_half8,   vxc_ushort8)
 
 #define BATCH_NORM_SH_IMPL_AXIS1_2D(name0, name1, src_type, read_type, conv_type, dst_type, save_type) \
-__kernel void batch_norm_##name0##to##name1##_brdcst0_2D( \
+__kernel void batch_norm_##name0##_F16_F16_F16_F32to##name1##_brdcst0_2D( \
     __read_only  image2d_array_t input, \
     __read_only  image2d_t       Mean, \
     __read_only  image2d_t       Variance, \

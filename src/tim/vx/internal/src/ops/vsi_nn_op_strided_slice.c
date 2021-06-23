@@ -33,6 +33,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
+#include "vsi_nn_test.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_constraint_check.h"
@@ -106,12 +107,13 @@ static vsi_bool _get_stride_slice_start_stop_stride
     vsi_nn_tensor_t ** outputs
     )
 {
-    vx_uint32 i = 0;
-    vx_int32 int32_value = 0;
+    int32_t i = 0;
+    int32_t int32_value = 0;
     vsi_nn_strided_slice_param *p = &(self->nn_param.strided_slice);
     int32_t *start = p->lcl2_data->begin_dims;
     int32_t *stop = p->lcl2_data->end_dims;
     int32_t *stride = p->lcl2_data->stride_dims;
+    strided_slice_param* params = &p->lcl2_data->params;
 
     for (i = 0; i < VSI_NN_MAX_DIM_NUM; i ++)
     {
@@ -120,36 +122,36 @@ static vsi_bool _get_stride_slice_start_stop_stride
         stride[i]   = 1;
     }
 
-    for (i = 0; i < p->stride_dims_num; ++i)
+    for (i = 0; i < params->stride_dims_num; ++i)
     {
-        stride[i] = p->stride_dims[i];
+        stride[i] = params->stride_dims[i];
     }
 
-    for (i = 0; i < p->begin_dims_num; ++i)
+    for (i = 0; i < params->begin_dims_num; ++i)
     {
-        int32_value = p->begin_dims[i];
+        int32_value = params->begin_dims[i];
 
         start[i] = get_slice_axis_value(int32_value, inputs[0]->attr.size[i]);
     }
 
-    for (i = 0; i < p->end_dims_num; ++i)
+    for (i = 0; i < params->end_dims_num; ++i)
     {
-        int32_value = p->end_dims[i];
+        int32_value = params->end_dims[i];
 
         stop[i] = get_slice_axis_value(int32_value, inputs[0]->attr.size[i]);
     }
 
     /*if the ith bit of mask is set, the start or stop will be the fullest possible range in that dimension.*/
-    for (i = 0; i < inputs[0]->attr.dim_num; i ++)
+    for (i = 0; i < (int32_t)inputs[0]->attr.dim_num; i ++)
     {
-        if (p->begin_mask & (1 << i))
+        if (params->begin_mask & (1 << i))
         {
             start[i] = get_slice_mask_start_value(stride[i], inputs[0]->attr.size[i]);
         }
 
         start[i] = vsi_nn_clamp(start[i], 0, (vx_int32)(inputs[0]->attr.size[i] - 1));
 
-        if (p->shrink_axis_mask & (1 << i))
+        if (params->shrink_axis_mask & (1 << i))
         {
             stop[i] = start[i] + 1;
         }
@@ -163,7 +165,7 @@ static vsi_bool _get_stride_slice_start_stop_stride
     }
 
     /* reset start stop and stride when output size is 1*/
-    for (i = 0; i < outputs[0]->attr.dim_num; i ++)
+    for (i = 0; i < (int32_t)outputs[0]->attr.dim_num; i ++)
     {
         if (outputs[0]->attr.size[i] == 1 && stride[i] < 0)
         {
@@ -174,12 +176,12 @@ static vsi_bool _get_stride_slice_start_stop_stride
 
     if (_check_neg_start_end_dims(start, stop, inputs[0]->attr.dim_num))
     {
-        memcpy(start, p->begin_dims, sizeof(int32_t) * p->begin_dims_num);
-        memcpy(stop, p->end_dims, sizeof(int32_t) * p->end_dims_num);
-        memcpy(stride, p->stride_dims, sizeof(int32_t) * p->stride_dims_num);
-        p->lcl2_data->begin_mask = p->begin_mask;
-        p->lcl2_data->end_mask = p->end_mask;
-        p->lcl2_data->shrink_axis_mask = p->shrink_axis_mask;
+        memcpy(start, params->begin_dims, sizeof(int32_t) * params->begin_dims_num);
+        memcpy(stop, params->end_dims, sizeof(int32_t) * params->end_dims_num);
+        memcpy(stride, params->stride_dims, sizeof(int32_t) * params->stride_dims_num);
+        p->lcl2_data->begin_mask = params->begin_mask;
+        p->lcl2_data->end_mask = params->end_mask;
+        p->lcl2_data->shrink_axis_mask = params->shrink_axis_mask;
     }
 
     return TRUE;
@@ -276,6 +278,7 @@ static vsi_status op_compute
     int32_t   *stop_dims = NULL;
     int32_t   *stride_dims = NULL;
     vsi_nn_strided_slice_lcl_data2 * p = self->nn_param.strided_slice.lcl2_data;
+    strided_slice_param* params = &p->params;
 
     start_dims = p->begin_dims;
     stop_dims = p->end_dims;
@@ -301,12 +304,12 @@ static vsi_status op_compute
     {
         uint32_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
         uint32_t dims = inputs[0]->attr.dim_num;
-        int32_t  shrink_axis_mask = self->nn_param.strided_slice.shrink_axis_mask;
+        int32_t  shrink_axis_mask = params->shrink_axis_mask;
 
         memset(&param, 0, sizeof(vx_nn_stride_slice_params_t));
 
         memset(&attr, 0, sizeof(attr));
-        attr.size[0] = self->nn_param.strided_slice.begin_dims_num;
+        attr.size[0] = params->begin_dims_num;
         attr.dim_num = 1;
         attr.is_const = TRUE;
         attr.dtype.vx_type = VSI_NN_TYPE_INT32;
@@ -325,7 +328,7 @@ static vsi_status op_compute
         param.begin_dims = REQUIRED_IO(begin_dims_tensor);
 
         memset(&attr, 0, sizeof(attr));
-        attr.size[0] = self->nn_param.strided_slice.end_dims_num;
+        attr.size[0] = params->end_dims_num;
         attr.dim_num = 1;
         attr.is_const = TRUE;
         attr.dtype.vx_type = VSI_NN_TYPE_INT32;
@@ -344,7 +347,7 @@ static vsi_status op_compute
         param.end_dims = REQUIRED_IO(end_dims_tensor);
 
         memset(&attr, 0, sizeof(attr));
-        attr.size[0] = self->nn_param.strided_slice.stride_dims_num;
+        attr.size[0] = params->stride_dims_num;
         attr.dim_num = 1;
         attr.is_const = TRUE;
         attr.dtype.vx_type = VSI_NN_TYPE_INT32;
@@ -461,6 +464,77 @@ static vsi_bool op_check
     return TRUE;
 } /* op_check() */
 
+static vsi_bool _build_strided_slice_params(vsi_nn_strided_slice_param * op_params, int32_t input_dims)
+{
+    uint32_t i = 0;
+    int32_t num_add_axis = 0;
+    int32_t added_ellipsis = 0;
+    int32_t begin_mask = op_params->begin_mask;
+    int32_t end_mask = op_params->end_mask;
+    int32_t shrink_axis_mask = op_params->shrink_axis_mask;
+    const int32_t *begin_dims = op_params->begin_dims;
+    const int32_t *end_dims = op_params->end_dims;
+    const int32_t *stride_dims = op_params->stride_dims;
+    strided_slice_param *params = &op_params->lcl2_data->params;
+
+    for (i = 0; i < op_params->begin_dims_num; i++)
+    {
+        if ( op_params->new_axis_mask & (1 << i))
+        {
+            num_add_axis ++;
+        }
+    }
+
+    params->num_add_axis = num_add_axis;
+
+    for (i = 0; i < (uint32_t)(input_dims + num_add_axis); i++)
+    {
+        if ( op_params->new_axis_mask & (1 << i) )
+        {
+            continue;
+        }
+        else if (i >= op_params->begin_dims_num + added_ellipsis)
+        {
+            params->begin_mask |= (1 << params->begin_dims_num);
+            params->end_mask |= (1 << params->end_dims_num);
+            params->begin_dims[params->begin_dims_num ++ ] =
+                0;
+            params->end_dims[params->end_dims_num ++] =
+                0;
+            params->stride_dims[params->stride_dims_num ++] =
+                1;
+        }
+        else
+        {
+            int32_t orig_idx = i - added_ellipsis;
+
+            if (begin_mask & (1 << orig_idx))
+            {
+                params->begin_mask |= (1 << params->begin_dims_num);
+            }
+
+            if (end_mask & (1 << orig_idx))
+            {
+                params->end_mask |= (1 << params->end_dims_num);
+            }
+
+            if (shrink_axis_mask & (1 << orig_idx))
+            {
+                params->shrink_axis_mask |= (1 << params->begin_dims_num);
+            }
+
+            params->begin_dims[params->begin_dims_num ++] =
+                begin_dims[orig_idx];
+            params->end_dims[params->end_dims_num ++] =
+                end_dims[orig_idx];
+            params->stride_dims[params->stride_dims_num ++] =
+                stride_dims[orig_idx];
+        }
+    }
+
+    return TRUE;
+}
+
 static vsi_bool op_setup
     (
     vsi_nn_node_t * self,
@@ -468,18 +542,26 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    if(self->nn_param.strided_slice.begin_dims_num == 0)
+    uint32_t i = 0;
+    vsi_nn_strided_slice_param *p = &(self->nn_param.strided_slice);
+    strided_slice_param *params = &p->lcl2_data->params;
+
+    if ( vsi_nn_compareVersion(self->graph, 1, 1, 32) == -1
+        && self->nn_param.strided_slice.begin_dims_num == 0)
     {
         self->nn_param.strided_slice.begin_dims_num = inputs[0]->attr.dim_num;
         self->nn_param.strided_slice.end_dims_num = inputs[0]->attr.dim_num;
         self->nn_param.strided_slice.stride_dims_num = inputs[0]->attr.dim_num;
     }
+
+    _build_strided_slice_params(p, inputs[0]->attr.dim_num);
+
     /* TODO: Add code to comput outputs' shape. */
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        vsi_nn_strided_slice_param *p = &(self->nn_param.strided_slice);
-        vx_uint32 i;
+        int32_t idx = 0;
+
         for (i = 0; i < inputs[0]->attr.dim_num; i++)
         {
             vx_int32 begin = 0, end = 1, stride = 1;
@@ -487,20 +569,20 @@ static vsi_bool op_setup
             vx_int32 output_size = 0;
             vx_int32 j;
 
-            begin = get_slice_axis_value(p->begin_dims[i], input_size);
-            end = get_slice_axis_value(p->end_dims[i], input_size);
-            stride = p->stride_dims[i];
-            if (p->begin_mask & (1 << i))
+            begin = get_slice_axis_value(params->begin_dims[i], input_size);
+            end = get_slice_axis_value(params->end_dims[i], input_size);
+            stride = params->stride_dims[i];
+            if (params->begin_mask & (1 << i))
             {
                 begin = get_slice_mask_start_value(stride, input_size);
             }
             begin = vsi_nn_clamp(begin, 0, (vx_int32)(input_size - 1));
-            if (p->shrink_axis_mask & (1 << i))
+            if (params->shrink_axis_mask & (1 << i))
             {
                 end = begin + 1;
             }
 
-            if (p->end_mask & (1 << i))
+            if (params->end_mask & (1 << i))
             {
                 end = get_slice_mask_stop_value(stride, input_size);
             }
@@ -512,11 +594,25 @@ static vsi_bool op_setup
             outputs[0]->attr.size[i] = output_size;
         }
         outputs[0]->attr.dim_num = 0;
-        for (i = 0; i < inputs[0]->attr.dim_num; i++)
+        for (idx = 0, i = 0; i < inputs[0]->attr.dim_num + params->num_add_axis; i++)
         {
-            if (p->shrink_axis_mask & (1 << i)) continue;
+            if (p->new_axis_mask & (1 << i))
+            {
+                outputs[0]->attr.size[outputs[0]->
+                    attr.dim_num] = 1;
+
+                outputs[0]->attr.dim_num++;
+                continue;
+            }
+            else if (params->shrink_axis_mask & (1 << idx))
+            {
+                idx ++;
+                continue;
+            }
+
             outputs[0]->attr.size[outputs[0]->
-                attr.dim_num] = outputs[0]->attr.size[i];
+                attr.dim_num] = outputs[0]->attr.size[idx ++];
+
             outputs[0]->attr.dim_num++;
         }
     }
@@ -600,14 +696,16 @@ static vsi_status op_deinit
     )
 {
     vsi_nn_strided_slice_lcl_data2 * lcl2_data;
-
+    strided_slice_param *params = NULL;
     if(NULL == self)
     {
         return VSI_FAILURE;
     }
 
     lcl2_data = self->nn_param.strided_slice.lcl2_data;
-    if(self->n)
+    params = &lcl2_data->params;
+
+    if (self->n)
     {
         if( NULL != self && NULL != self->n )
         {
@@ -615,6 +713,10 @@ static vsi_status op_deinit
             self->n = NULL;
         }
     }
+
+    vsi_nn_safe_free( params->begin_dims );
+    vsi_nn_safe_free( params->end_dims );
+    vsi_nn_safe_free( params->stride_dims );
 
     if (lcl2_data->cp_node)
     {
@@ -674,42 +776,74 @@ static vsi_status op_init
     )
 {
     vsi_status status = VSI_SUCCESS;
+    vsi_nn_strided_slice_lcl_data2 * lcl2_data = NULL;
+    strided_slice_param* params = NULL;
+
+    if (vsi_nn_compareVersion(self->graph, 1, 1, 32) == -1)
+    {
+        self->nn_param.strided_slice.new_axis_mask = 0;
+    }
 
     self->nn_param.strided_slice.lcl2_data =
-    (vsi_nn_strided_slice_lcl_data2 *)malloc(sizeof(vsi_nn_strided_slice_lcl_data2));
+        (vsi_nn_strided_slice_lcl_data2 *)malloc(sizeof(vsi_nn_strided_slice_lcl_data2));
     if (NULL == self->nn_param.strided_slice.lcl2_data)
     {
         return  VX_ERROR_NO_MEMORY;
     }
 
-    memset( self->nn_param.strided_slice.lcl2_data, 0, sizeof(vsi_nn_strided_slice_lcl_data2) );
+    lcl2_data = self->nn_param.strided_slice.lcl2_data;
 
-    self->nn_param.strided_slice.lcl2_data->begin_dims =
+    memset( lcl2_data, 0, sizeof(vsi_nn_strided_slice_lcl_data2) );
+
+    params = &lcl2_data->params;
+
+    lcl2_data->begin_dims =
         (int32_t *)malloc(sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
-    if (NULL == self->nn_param.strided_slice.lcl2_data->begin_dims)
+    if (NULL == lcl2_data->begin_dims)
     {
         return  VX_ERROR_NO_MEMORY;
     }
-    memset(self->nn_param.strided_slice.lcl2_data->begin_dims, 0,
-        sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+    memset(lcl2_data->begin_dims, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
 
-    self->nn_param.strided_slice.lcl2_data->end_dims =
+    params->begin_dims =
         (int32_t *)malloc(sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
-    if (NULL == self->nn_param.strided_slice.lcl2_data->end_dims)
+    if (NULL == lcl2_data->begin_dims)
     {
         return  VX_ERROR_NO_MEMORY;
     }
-    memset(self->nn_param.strided_slice.lcl2_data->end_dims, 0,
-        sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+    memset(params->begin_dims, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
 
-    self->nn_param.strided_slice.lcl2_data->stride_dims =
+    lcl2_data->end_dims =
         (int32_t *)malloc(sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
-    if (NULL == self->nn_param.strided_slice.lcl2_data->stride_dims)
+    if (NULL == lcl2_data->end_dims)
     {
         return  VX_ERROR_NO_MEMORY;
     }
-    memset(self->nn_param.strided_slice.lcl2_data->stride_dims, 0,
-        sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+    memset(lcl2_data->end_dims, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+
+    params->end_dims =
+        (int32_t *)malloc(sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+    if (NULL == params->end_dims)
+    {
+        return  VX_ERROR_NO_MEMORY;
+    }
+    memset(params->end_dims, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+
+    lcl2_data->stride_dims =
+        (int32_t *)malloc(sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+    if (NULL == lcl2_data->stride_dims)
+    {
+        return  VX_ERROR_NO_MEMORY;
+    }
+    memset(lcl2_data->stride_dims, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+
+    params->stride_dims =
+        (int32_t *)malloc(sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+    if (NULL == params->stride_dims)
+    {
+        return  VX_ERROR_NO_MEMORY;
+    }
+    memset(params->stride_dims, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
 
     return status;
 } /* op_init() */

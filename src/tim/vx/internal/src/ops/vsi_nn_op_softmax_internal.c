@@ -35,7 +35,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_link_list.h"
 
-#define MAX_SOFTMAX_BATCH 65535
+#define MAX_SOFTMAX_BATCH 65520
 
 static vsi_bool _need_split_softmax
     (

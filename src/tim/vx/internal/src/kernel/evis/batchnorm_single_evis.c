@@ -44,23 +44,26 @@ typedef enum _internal_img_dim_e
     IMAGE_2D,
 } internal_img_dim_e;
 
-#define _BATCH_NORM_KERNEL_SOURCE      "batchnorm_single"
+#define SOURCE0      "batchnorm_single"
+#define SOURCE1      "batchnorm_single_f32"
 
 #define STR(a) #a
 
 // Add kernel hashtable here
-#define BATCH_NORM_HASH_KEY(IN_DTYPE, OUT_DTYPE, BRDCST, _image_2d) \
-        ( ( IN_DTYPE << 16 ) | ( OUT_DTYPE << 3) | ( BRDCST << 1) | (_image_2d) )
+#define BATCH_NORM_HASH_KEY(IN_DTYPE, GAMMA_TYPE, OUT_DTYPE, BRDCST, _image_2d) \
+        ( ( IN_DTYPE << 24 ) | ( GAMMA_TYPE << 16 ) | ( OUT_DTYPE << 3) | ( BRDCST << 1) | (_image_2d) )
 
-#define PACK_KERNEL_MAP( IN_DTYPE, OUT_DTYPE, BRDCST) \
-        { BATCH_NORM_HASH_KEY( IN_DTYPE, OUT_DTYPE, BRDCST, IMAGE), \
-        CVIVANTE_NAMESPACE("evis.batch_norm_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)"_brdcst"#BRDCST), \
-        _BATCH_NORM_KERNEL_SOURCE}
+#define PACK_KERNEL_MAP( IN_DTYPE, GAMMA_TYPE, OUT_DTYPE, BRDCST, source) \
+        { BATCH_NORM_HASH_KEY( IN_DTYPE, GAMMA_TYPE, OUT_DTYPE, BRDCST, IMAGE), \
+        CVIVANTE_NAMESPACE("evis.batch_norm_"STR(IN_DTYPE)"_F16_F16_" \
+        STR(GAMMA_TYPE)"_F32to"STR(OUT_DTYPE)"_brdcst"#BRDCST), \
+        source}
 
-#define PACK_KERNEL_MAP_2D( IN_DTYPE, OUT_DTYPE, BRDCST) \
-        { BATCH_NORM_HASH_KEY( IN_DTYPE, OUT_DTYPE, BRDCST, IMAGE_2D), \
-        CVIVANTE_NAMESPACE("evis.batch_norm_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)"_brdcst"#BRDCST"_2D"), \
-        _BATCH_NORM_KERNEL_SOURCE}
+#define PACK_KERNEL_MAP_2D( IN_DTYPE, GAMMA_TYPE, OUT_DTYPE, BRDCST, source) \
+        { BATCH_NORM_HASH_KEY( IN_DTYPE, GAMMA_TYPE, OUT_DTYPE, BRDCST, IMAGE_2D), \
+          CVIVANTE_NAMESPACE("evis.batch_norm_"STR(IN_DTYPE)"_F16_F16_" \
+          STR(GAMMA_TYPE)"_F32to"STR(OUT_DTYPE)"_brdcst"#BRDCST"_2D"), \
+          source}
 
 typedef struct
 {
@@ -71,47 +74,89 @@ typedef struct
 
 static const _kernel_map_type _batch_norm_kernel_map[] =
 {
-    PACK_KERNEL_MAP(F16, F16, 0),
-    PACK_KERNEL_MAP(F16, I16, 0),
-    PACK_KERNEL_MAP(F16, U8,  0),
-    PACK_KERNEL_MAP(F16, I8,  0),
-    PACK_KERNEL_MAP(U8,  U8,  0),
-    PACK_KERNEL_MAP(U8,  F16, 0),
-    PACK_KERNEL_MAP(I8,  I8,  0),
-    PACK_KERNEL_MAP(I8,  F16, 0),
-    PACK_KERNEL_MAP(I16, I16, 0),
-    PACK_KERNEL_MAP(I16, F16, 0),
-    PACK_KERNEL_MAP(F16, F16, 1),
-    PACK_KERNEL_MAP(F16, I16, 1),
-    PACK_KERNEL_MAP(F16, U8,  1),
-    PACK_KERNEL_MAP(F16, I8,  1),
-    PACK_KERNEL_MAP(U8,  U8,  1),
-    PACK_KERNEL_MAP(U8,  F16, 1),
-    PACK_KERNEL_MAP(I8,  I8,  1),
-    PACK_KERNEL_MAP(I8,  F16, 1),
-    PACK_KERNEL_MAP(I16, I16, 1),
-    PACK_KERNEL_MAP(I16, F16, 1),
+    PACK_KERNEL_MAP(F16, F16, F16, 0, SOURCE0),
+    PACK_KERNEL_MAP(F16, F16, I16, 0, SOURCE0),
+    PACK_KERNEL_MAP(F16, F16, U8,  0, SOURCE0),
+    PACK_KERNEL_MAP(F16, F16, I8,  0, SOURCE0),
+    PACK_KERNEL_MAP(U8,  F16, U8,  0, SOURCE0),
+    PACK_KERNEL_MAP(U8,  F16, F16, 0, SOURCE0),
+    PACK_KERNEL_MAP(I8,  F16, I8,  0, SOURCE0),
+    PACK_KERNEL_MAP(I8,  F16, F16, 0, SOURCE0),
+    PACK_KERNEL_MAP(I16, F16, I16, 0, SOURCE0),
+    PACK_KERNEL_MAP(I16, F16, F16, 0, SOURCE0),
+    PACK_KERNEL_MAP(F16, F16, F16, 1, SOURCE0),
+    PACK_KERNEL_MAP(F16, F16, I16, 1, SOURCE0),
+    PACK_KERNEL_MAP(F16, F16, U8,  1, SOURCE0),
+    PACK_KERNEL_MAP(F16, F16, I8,  1, SOURCE0),
+    PACK_KERNEL_MAP(U8,  F16, U8,  1, SOURCE0),
+    PACK_KERNEL_MAP(U8,  F16, F16, 1, SOURCE0),
+    PACK_KERNEL_MAP(I8,  F16, I8,  1, SOURCE0),
+    PACK_KERNEL_MAP(I8,  F16, F16, 1, SOURCE0),
+    PACK_KERNEL_MAP(I16, F16, I16, 1, SOURCE0),
+    PACK_KERNEL_MAP(I16, F16, F16, 1, SOURCE0),
 
-    PACK_KERNEL_MAP_2D(F16, F16, 0),
-    PACK_KERNEL_MAP_2D(F16, I16, 0),
-    PACK_KERNEL_MAP_2D(F16, U8 , 0),
-    PACK_KERNEL_MAP_2D(F16, I8 , 0),
-    PACK_KERNEL_MAP_2D(U8,  U8 , 0),
-    PACK_KERNEL_MAP_2D(U8,  F16, 0),
-    PACK_KERNEL_MAP_2D(I8,  I8,  0),
-    PACK_KERNEL_MAP_2D(I8,  F16, 0),
-    PACK_KERNEL_MAP_2D(I16, I16, 0),
-    PACK_KERNEL_MAP_2D(I16, F16, 0),
-    PACK_KERNEL_MAP_2D(F16, F16, 1),
-    PACK_KERNEL_MAP_2D(F16, I16, 1),
-    PACK_KERNEL_MAP_2D(F16, U8 , 1),
-    PACK_KERNEL_MAP_2D(F16, I8 , 1),
-    PACK_KERNEL_MAP_2D(U8,  U8 , 1),
-    PACK_KERNEL_MAP_2D(U8,  F16, 1),
-    PACK_KERNEL_MAP_2D(I8,  I8,  1),
-    PACK_KERNEL_MAP_2D(I8,  F16, 1),
-    PACK_KERNEL_MAP_2D(I16, I16, 1),
-    PACK_KERNEL_MAP_2D(I16, F16, 1),
+    PACK_KERNEL_MAP(F16, F32, F16, 0, SOURCE1),
+    PACK_KERNEL_MAP(F16, F32, I16, 0, SOURCE1),
+    PACK_KERNEL_MAP(F16, F32, U8,  0, SOURCE1),
+    PACK_KERNEL_MAP(F16, F32, I8,  0, SOURCE1),
+    PACK_KERNEL_MAP(U8,  F32, U8,  0, SOURCE1),
+    PACK_KERNEL_MAP(U8,  F32, F16, 0, SOURCE1),
+    PACK_KERNEL_MAP(I8,  F32, I8,  0, SOURCE1),
+    PACK_KERNEL_MAP(I8,  F32, F16, 0, SOURCE1),
+    PACK_KERNEL_MAP(I16, F32, I16, 0, SOURCE1),
+    PACK_KERNEL_MAP(I16, F32, F16, 0, SOURCE1),
+    PACK_KERNEL_MAP(F16, F32, F16, 1, SOURCE1),
+    PACK_KERNEL_MAP(F16, F32, I16, 1, SOURCE1),
+    PACK_KERNEL_MAP(F16, F32, U8,  1, SOURCE1),
+    PACK_KERNEL_MAP(F16, F32, I8,  1, SOURCE1),
+    PACK_KERNEL_MAP(U8,  F32, U8,  1, SOURCE1),
+    PACK_KERNEL_MAP(U8,  F32, F16, 1, SOURCE1),
+    PACK_KERNEL_MAP(I8,  F32, I8,  1, SOURCE1),
+    PACK_KERNEL_MAP(I8,  F32, F16, 1, SOURCE1),
+    PACK_KERNEL_MAP(I16, F32, I16, 1, SOURCE1),
+    PACK_KERNEL_MAP(I16, F32, F16, 1, SOURCE1),
+
+    PACK_KERNEL_MAP_2D(F16, F16, F16, 0, SOURCE0),
+    PACK_KERNEL_MAP_2D(F16, F16, I16, 0, SOURCE0),
+    PACK_KERNEL_MAP_2D(F16, F16, U8,  0, SOURCE0),
+    PACK_KERNEL_MAP_2D(F16, F16, I8,  0, SOURCE0),
+    PACK_KERNEL_MAP_2D(U8,  F16, U8,  0, SOURCE0),
+    PACK_KERNEL_MAP_2D(U8,  F16, F16, 0, SOURCE0),
+    PACK_KERNEL_MAP_2D(I8,  F16, I8,  0, SOURCE0),
+    PACK_KERNEL_MAP_2D(I8,  F16, F16, 0, SOURCE0),
+    PACK_KERNEL_MAP_2D(I16, F16, I16, 0, SOURCE0),
+    PACK_KERNEL_MAP_2D(I16, F16, F16, 0, SOURCE0),
+    PACK_KERNEL_MAP_2D(F16, F16, F16, 1, SOURCE0),
+    PACK_KERNEL_MAP_2D(F16, F16, I16, 1, SOURCE0),
+    PACK_KERNEL_MAP_2D(F16, F16, U8,  1, SOURCE0),
+    PACK_KERNEL_MAP_2D(F16, F16, I8,  1, SOURCE0),
+    PACK_KERNEL_MAP_2D(U8,  F16, U8,  1, SOURCE0),
+    PACK_KERNEL_MAP_2D(U8,  F16, F16, 1, SOURCE0),
+    PACK_KERNEL_MAP_2D(I8,  F16, I8,  1, SOURCE0),
+    PACK_KERNEL_MAP_2D(I8,  F16, F16, 1, SOURCE0),
+    PACK_KERNEL_MAP_2D(I16, F16, I16, 1, SOURCE0),
+    PACK_KERNEL_MAP_2D(I16, F16, F16, 1, SOURCE0),
+
+    PACK_KERNEL_MAP_2D(F16, F32, F16, 0, SOURCE1),
+    PACK_KERNEL_MAP_2D(F16, F32, I16, 0, SOURCE1),
+    PACK_KERNEL_MAP_2D(F16, F32, U8,  0, SOURCE1),
+    PACK_KERNEL_MAP_2D(F16, F32, I8,  0, SOURCE1),
+    PACK_KERNEL_MAP_2D(U8,  F32, U8,  0, SOURCE1),
+    PACK_KERNEL_MAP_2D(U8,  F32, F16, 0, SOURCE1),
+    PACK_KERNEL_MAP_2D(I8,  F32, I8,  0, SOURCE1),
+    PACK_KERNEL_MAP_2D(I8,  F32, F16, 0, SOURCE1),
+    PACK_KERNEL_MAP_2D(I16, F32, I16, 0, SOURCE1),
+    PACK_KERNEL_MAP_2D(I16, F32, F16, 0, SOURCE1),
+    PACK_KERNEL_MAP_2D(F16, F32, F16, 1, SOURCE1),
+    PACK_KERNEL_MAP_2D(F16, F32, I16, 1, SOURCE1),
+    PACK_KERNEL_MAP_2D(F16, F32, U8,  1, SOURCE1),
+    PACK_KERNEL_MAP_2D(F16, F32, I8,  1, SOURCE1),
+    PACK_KERNEL_MAP_2D(U8,  F32, U8,  1, SOURCE1),
+    PACK_KERNEL_MAP_2D(U8,  F32, F16, 1, SOURCE1),
+    PACK_KERNEL_MAP_2D(I8,  F32, I8,  1, SOURCE1),
+    PACK_KERNEL_MAP_2D(I8,  F32, F16, 1, SOURCE1),
+    PACK_KERNEL_MAP_2D(I16, F32, I16, 1, SOURCE1),
+    PACK_KERNEL_MAP_2D(I16, F32, F16, 1, SOURCE1),
 };
 
 /*
@@ -329,6 +374,7 @@ static vsi_status _query_kernel
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_dtype_e in_dtype;
+    vsi_nn_kernel_dtype_e gamma_dtype;
     vsi_nn_kernel_dtype_e out_dtype;
     const _kernel_map_type * kernel_map = _batch_norm_kernel_map;
     size_t kernel_map_size              = _cnt_of_array( _batch_norm_kernel_map );
@@ -340,6 +386,7 @@ static vsi_status _query_kernel
     uint32_t brdcst = 0;
 
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
+    gamma_dtype  = vsi_nn_kernel_map_dtype( inputs[3]->attr.dtype.vx_type );
     out_dtype   = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
     if (inputs[BATCHNORM_INPUT]->attr.size[0] != 1 && inputs[BATCHNORM_INPUT_BETA]->attr.size[0] == 1)
@@ -347,7 +394,7 @@ static vsi_status _query_kernel
         brdcst = 1;
     }
 
-    key = BATCH_NORM_HASH_KEY(in_dtype, out_dtype, brdcst, image_2d);
+    key = BATCH_NORM_HASH_KEY(in_dtype, gamma_dtype, out_dtype, brdcst, image_2d);
 
     for( i = 0; i < kernel_map_size; i ++ )
     {
@@ -397,7 +444,6 @@ static vsi_nn_kernel_node_t _setup
     if ( (inputs[1]->attr.is_const && inputs[2]->attr.is_const)
         || (inputs[1]->attr.dtype.vx_type != VSI_NN_TYPE_FLOAT16)
         || (inputs[2]->attr.dtype.vx_type != VSI_NN_TYPE_FLOAT16)
-        || (inputs[3]->attr.dtype.vx_type != VSI_NN_TYPE_FLOAT16)
         || (inputs[4]->attr.dtype.vx_type != VSI_NN_TYPE_FLOAT32) )
     {
         return NULL;

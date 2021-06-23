@@ -34,11 +34,11 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "client/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "utils/vsi_nn_dtype_util.h"
 
 #define _INPUT_NUM          (2)
 #define _OUTPUT_NUM         (1)
@@ -84,7 +84,8 @@ static vsi_nn_tensor_t* _expand_scale_tensor
     attr.size[0] = scale_size_out;
     attr.size[1] = 1;
     attr.dim_num = 2;
-    attr.dtype.vx_type = scale->attr.dtype.vx_type;
+    out_dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+    attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
     attr.vtl = FALSE;
     scale_tensor = vsi_nn_CreateTensor(graph, &attr);
     out_dtype          = scale->attr.dtype;
@@ -154,6 +155,65 @@ static vsi_bool _check_value_is_equal_to_one
     return ret;
 }
 
+static vsi_bool _tensor_data_convert
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* in_tensor,
+    vsi_nn_tensor_t* out_tensor
+    )
+{
+    vsi_bool ret = TRUE;
+    float* tensor_data = NULL;
+    uint32_t size = 0;
+    uint32_t stride[VSI_NN_MAX_DIM_NUM] = { 0 };
+    uint8_t* data = NULL;
+
+    tensor_data = vsi_nn_ConvertTensorToFloat32Data( graph, in_tensor );
+    if ( NULL == tensor_data )
+    {
+        VSILOGE( "Convert data fail." );
+        return FALSE;
+    }
+
+    size = vsi_nn_GetStrideSize( &out_tensor->attr, stride );
+    data = (uint8_t *)malloc( size );
+
+    if ( data )
+    {
+        uint32_t i = 0;
+        uint32_t elements = size / stride[0];
+        vsi_status status = VSI_SUCCESS;
+
+        for ( i = 0; i < elements; i ++ )
+        {
+            status = vsi_nn_Float32ToDtype( tensor_data[i], &data[stride[0] * i], &out_tensor->attr.dtype );
+            if( VSI_FAILURE == status )
+            {
+                VSILOGE("Convert default_value to dtype fail");
+                break;
+            }
+        }
+
+        status = vsi_nn_CopyDataToTensor( graph, out_tensor, data );
+        free( data );
+        data = NULL;
+        if ( VSI_FAILURE == status )
+        {
+            VSILOGE("Copy data to tensor fail");
+        }
+    }
+
+    if ( !in_tensor->attr.is_created_from_handle )
+    {
+        if ( tensor_data )
+        {
+            free(tensor_data);
+        }
+    }
+
+    return ret;
+}
+
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -180,7 +240,10 @@ static vsi_status op_compute
     p = &(self->nn_param.l2normalizescale);
     axis = p->axis;
 
-    if ( inputs[1]->attr.is_const == TRUE && _check_value_is_equal_to_one(self->graph, inputs[1]) )
+    if ( (inputs[1]->attr.is_const == TRUE && _check_value_is_equal_to_one(self->graph, inputs[1])) ||
+        ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 &&
+          outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 )
+        )
     {
         return vsi_nn_internal_compute_node( self );
     }
@@ -203,10 +266,10 @@ static vsi_status op_compute
     shapes[1][2] = 1;
     shapes[1][3] = 1;
     scale_size = shapes[0][new_axis];
-    is_expand_scale = (vx_bool)((size < scale_size) && (TRUE == inputs[1]->attr.is_const));
+    is_expand_scale = (vx_bool)(TRUE == inputs[1]->attr.is_const);
     vsi_nn_kernel_param_add_int32( param, "axis",  new_axis );
 
-    if( ret )
+    if ( ret )
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
                 inputs[0], (uint32_t*)shapes[0], rank_in );
@@ -249,13 +312,20 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(L2NORMALIZESCALE, _INPUT_NUM, _OUTPUT_NUM)
-        IO_TYPE(D_F16, D_F16, D_F16)
-        IO_TYPE(D_I8|Q_DFP, D_F16, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP, D_F16, D_F16)
+        IO_TYPE(D_F16,  D_F16,  D_F16)
+        IO_TYPE(D_F16,  D_F32,  D_F16)
+        IO_TYPE(D_BF16, D_BF16, D_BF16)
+        IO_TYPE(D_BF16, D_F32,  D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_F16, D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_F16, D_F16)
+        IO_TYPE(D_I8|Q_DFP,  D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_F32, D_F16)
         IO_TYPE(D_U8|Q_ASYM, D_F16, D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16)
         IO_TYPE(D_I16|Q_DFP, D_F16, D_I16|Q_DFP)
         IO_TYPE(D_I16|Q_DFP, D_F16, D_F16)
+        IO_TYPE(D_I16|Q_DFP, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP, D_F32, D_F16)
         IO_TYPE(D_F32, D_F32, D_F32)
         IO_TYPE(D_U8|Q_ASYM, D_F32, D_U8|Q_ASYM)
     END_IO_TYPE_DECL(L2NORMALIZESCALE)
@@ -328,8 +398,53 @@ static vsi_bool op_setup
         curr->outputs[0] = outputs[0];
         vsi_nn_internal_setup_node( self, curr );
     }
+    else if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 &&
+        outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 )
+    {
+        vsi_nn_internal_tensor_t* output_tensor = NULL;
+        vsi_nn_internal_tensor_t* reshape_tensor = NULL;
+        vsi_nn_tensor_attr_t attr;
+        int32_t dim_num = inputs[0]->attr.dim_num;
+        int32_t i = 0;
 
-    ret = vsi_nn_op_common_setup(self, inputs, outputs);
+        memcpy( &attr, &outputs[0]->attr, sizeof( attr ) );
+        attr.vtl = TRUE;
+        attr.is_const = FALSE;
+        output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+
+        curr = vsi_nn_internal_new_node(self, VSI_NN_OP_L2_NORMALIZE, 0, 0);
+        curr->node->nn_param.l2_normalize.axis = self->nn_param.l2normalizescale.axis;
+        curr->inputs[0] = inputs[0];
+        curr->outputs[0] = output_tensor->t;
+        vsi_nn_internal_setup_node( self, curr );
+
+        memcpy( &attr, &inputs[1]->attr, sizeof( attr ) );
+        for (i = 0; i < dim_num; i++)
+        {
+            attr.size[i] = i == self->nn_param.l2normalizescale.axis ? inputs[0]->attr.size[i] : 1;
+        }
+        attr.dim_num = dim_num;
+        if (attr.dtype.vx_type != VSI_NN_TYPE_BFLOAT16)
+        {
+            attr.dtype.vx_type = VSI_NN_TYPE_BFLOAT16;
+            attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+        }
+        reshape_tensor = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+        _tensor_data_convert(self->graph, inputs[1], reshape_tensor->t);
+
+        curr = vsi_nn_internal_new_node(self, VSI_NN_OP_MULTIPLY, 0, 0);
+        curr->inputs[0] = output_tensor->t;
+        curr->inputs[1] = reshape_tensor->t;
+        curr->node->nn_param.multiply.scale = 1.0f;
+        curr->node->vx_param.overflow_policy = VX_CONVERT_POLICY_SATURATE;
+        curr->node->vx_param.rounding_policy = VX_ROUND_POLICY_TO_NEAREST_EVEN;
+        curr->outputs[0] = outputs[0];
+        vsi_nn_internal_setup_node( self, curr );
+    }
+    else
+    {
+        ret = vsi_nn_op_common_setup(self, inputs, outputs);
+    }
 
     return ret;
 }
