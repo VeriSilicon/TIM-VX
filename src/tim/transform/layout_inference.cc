@@ -58,6 +58,7 @@
 #include "ops/logical_layout_inference.h"
 #include "ops/arg_layout_inference.h"
 #include "ops/deconv2d_layout_inference.h"
+#include "ops/nbg_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -251,10 +252,11 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMAX, ArgMax);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMIN, ArgMin);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DECONVOLUTION, DeConv2d);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_NBG, Nbg);
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     default:
-      VSILOGW("Op %d: Default layout inference pass.", op_id);
+      VSILOGW("Op %d: not support layout inference.", op_id);
       assert(false);
   }
   return next_tensors;
