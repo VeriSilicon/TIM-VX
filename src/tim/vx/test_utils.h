@@ -5,6 +5,20 @@
 #include <limits>
 #include <ostream>
 #include <vector>
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+
+// A gmock matcher that check that elements of a float vector match to a given
+// tolerance.
+inline std::vector<::testing::Matcher<float>> ArrayFloatNear(
+    const std::vector<float>& values, float max_abs_error = 1e-5) {
+  std::vector<::testing::Matcher<float>> matchers;
+  matchers.reserve(values.size());
+  for (const float& v : values) {
+    matchers.emplace_back(testing::FloatNear(v, max_abs_error));
+  }
+  return matchers;
+}
 
 template <typename T>
 std::pair<float, int32_t> QuantizationParams(float f_min, float f_max) {
@@ -83,5 +97,17 @@ inline std::vector<T> Quantize(const std::vector<float>& data, float scale,
   }
   return q;
 }
+
+template <typename T>
+inline std::vector<float> Dequantize(const std::vector<T>& data, float scale,
+                                     int32_t zero_point) {
+  std::vector<float> f;
+  f.reserve(data.size());
+  for (const T& q : data) {
+    f.push_back(scale * (q - zero_point));
+  }
+  return f;
+}
+
 
 #endif /* TIM_VX_TEST_UTILS_H_ */

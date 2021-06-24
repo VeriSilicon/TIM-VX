@@ -75,7 +75,7 @@ if (TIM_VX_ENABLE_TEST)
     include(GoogleTest)
 
     add_executable(unit_test ${UT_SRC})
-    target_link_libraries(unit_test gtest gtest_main ${TARGET_NAME}-static)
+    target_link_libraries(unit_test gtest gtest_main gmock gmock_main ${TARGET_NAME}-static)
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 endif()
