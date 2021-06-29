@@ -83,6 +83,7 @@ LogSoftmax|LOG_SOFTMAX|Mapped|[tf.nn.log_softmax](https://tensorflow.google.cn/a
 HardSwish|SWISH|Mapped|[tf.keras.activations.swish](https://tensorflow.google.cn/api_docs/python/tf/keras/activations/swish)
 GatherNd|GATHER_ND|Mapped|[tf.gather_nd](https://tensorflow.google.cn/api_docs/python/tf/gather_nd)
 Cast|CAST|Mapped|[tf.cast](https://tensorflow.google.cn/api_docs/python/tf/cast)
+Moments|MOMENTS|Mapped|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
 Squeeze|SQUEEZE|Mapped|[tf.squeeze](https://tensorflow.google.cn/api_docs/python/tf/squeeze)
 HardSigmoid|HARD_SIGMOID|Mapped|[tf.keras.activations.hard_sigmoid](https://tensorflow.google.cn/api_docs/python/tf/keras/activations/hard_sigmoid)
 Mish|MISH|Mapped|[tfa.activations.mish](https://tensorflow.google.cn/addons/api_docs/python/tfa/activations/mish)
