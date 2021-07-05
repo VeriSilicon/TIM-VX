@@ -41,6 +41,8 @@ class Unstack : public Operation {
  public:
   Unstack(Graph* graph, int32_t axis, uint32_t output_num);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   int32_t axis_;
 };

@@ -72,6 +72,13 @@ Conv1d::Conv1d(Graph* graph, int32_t weights, PadType padding,
   this->impl()->node()->nn_param.conv1d.multiplier = multiplier_;
 }
 
+std::shared_ptr<Operation> Conv1d::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Conv1d>(
+      this->weights_, this->padding_, this->ksize_, this->stride_,
+      this->dilation_, this->pad_, this->multiplier_, this->impl_->layout_,
+      this->kernel_layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

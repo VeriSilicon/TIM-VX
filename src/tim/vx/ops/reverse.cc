@@ -35,6 +35,11 @@ Reverse::Reverse(Graph* graph, const std::vector<int32_t>& axis)
   this->impl()->node()->nn_param.reverse.axis = axis_.data();
   this->impl()->node()->nn_param.reverse.axis_num = axis_.size();
 }
+
+std::shared_ptr<Operation> Reverse::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Reverse>(this->axis_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

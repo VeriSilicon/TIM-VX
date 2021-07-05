@@ -41,6 +41,8 @@ class ScatterND : public Operation {
  public:
   ScatterND(Graph* graph, const std::vector<uint32_t>& shape);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const std::vector<uint32_t> shape_;
 };

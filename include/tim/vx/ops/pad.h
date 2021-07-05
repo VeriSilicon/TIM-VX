@@ -42,6 +42,8 @@ class Pad : public Operation {
   Pad(Graph* graph, const std::vector<uint32_t>& front_size,
       const std::vector<uint32_t>& back_size, int32_t const_val);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   std::vector<uint32_t> front_size_;
   std::vector<uint32_t> back_size_;

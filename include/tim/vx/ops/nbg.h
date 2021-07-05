@@ -40,6 +40,8 @@ class NBG : public Operation {
  public:
   NBG(Graph* graph, const char* binary, size_t input_count, size_t output_count);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
 };
 
 }  // namespace ops

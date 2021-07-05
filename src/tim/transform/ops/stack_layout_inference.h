@@ -32,7 +32,6 @@
 
 namespace tim {
 namespace transform {
-
 class StackLayoutInfer : public OpLayoutInfer {
  public:
   StackLayoutInfer(

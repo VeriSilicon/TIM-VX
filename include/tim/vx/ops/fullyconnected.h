@@ -44,6 +44,8 @@ class FullyConnected : public Operation {
   FullyConnected(Graph* graph, uint32_t axis);
   FullyConnected(Graph* graph, uint32_t axis, uint32_t weights);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   uint32_t axis_;
   uint32_t weights_;

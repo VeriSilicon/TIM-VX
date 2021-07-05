@@ -36,6 +36,10 @@ Softmax::Softmax(Graph* graph, float beta, int32_t axis)
   this->impl()->node()->nn_param.softmax.axis = axis_;
 }
 
+std::shared_ptr<Operation> Softmax::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Softmax>(this->beta_, this->axis_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

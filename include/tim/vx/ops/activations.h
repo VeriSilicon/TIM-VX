@@ -64,10 +64,12 @@ namespace ops {
  * ```
  */
 
-#define DECLARE_NO_PARAMETER_ACTIVATION(NAME) \
-  class NAME : public Operation {             \
-   public:                                    \
-    NAME(Graph* graph);                       \
+#define DECLARE_NO_PARAMETER_ACTIVATION(NAME)          \
+  class NAME : public Operation {                      \
+   public:                                             \
+    NAME(Graph* graph);                                \
+    std::shared_ptr<Operation> Clone(                  \
+        std::shared_ptr<Graph>& graph) const override; \
   };
 
 DECLARE_NO_PARAMETER_ACTIVATION(Relu)
@@ -86,6 +88,8 @@ DECLARE_NO_PARAMETER_ACTIVATION(SoftRelu)
 class Prelu : public Operation {
  public:
   Prelu(Graph* graph, int axis);
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 
  protected:
   int axis_;
@@ -94,6 +98,8 @@ class Prelu : public Operation {
 class LeakyRelu : public Operation {
  public:
   LeakyRelu(Graph* graph, float alpha);
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 
  protected:
   float alpha_;
@@ -101,7 +107,10 @@ class LeakyRelu : public Operation {
 
 class Linear : public Operation {
  public:
-  Linear(Graph* graph, float a, float b=0.0);
+  Linear(Graph* graph, float a, float b = 0.0);
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
  protected:
   float a_;
   float b_;

@@ -35,6 +35,10 @@ Concat::Concat(Graph* graph, uint32_t axis, int input_cnt)
   this->impl()->node()->nn_param.concat.axis = axis_;
 }
 
+std::shared_ptr<Operation> Concat::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Concat>(this->axis_, this->impl_->input_cnt_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

@@ -71,6 +71,9 @@ class DeConv2d : public Operation {
         DataLayout kernel_layout = DataLayout::WHIcOc);
 
     DataLayout KernelDataLayout() { return kernel_layout_; }
+  
+    std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
   protected:
     const uint32_t oc_count_;
     const PadType pad_type_;

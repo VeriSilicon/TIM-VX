@@ -40,6 +40,9 @@ namespace ops {
 class Tile : public Operation {
  public:
   Tile(Graph* graph, const std::vector<int32_t>& multiples);
+
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const std::vector<int32_t> multiples_;
 };

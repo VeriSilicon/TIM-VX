@@ -47,6 +47,13 @@ Resize1d::Resize1d(Graph* graph, ResizeType type, float factor, bool align_corne
   impl()->node()->nn_param.resize_1d.size[0] = target_size;
 }
 
+std::shared_ptr<Operation> Resize1d::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Resize1d>(
+      this->type_, this->factor_, this->align_corners_,
+      this->half_pixel_centers_, this->target_size_, this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

@@ -36,13 +36,12 @@ class AddNLayoutInfer : public OpLayoutInfer {
       const std::shared_ptr<vx::Operation>& op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
+
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
     auto required_pv = AlignPermuteVectorForMutilInputs();
-    uint32_t num_inputs = op_->impl()->input_cnt_;
 
-    auto addn =
-        context_->infer_graph_->CreateOperation<vx::ops::AddN>(num_inputs);
+    auto addn = op_->Clone(context_->infer_graph_);
 
     for (const auto& i_src : op_->impl()->InputsTensor()) {
       (*addn).BindInput(context_->GetMapedTensor(i_src));

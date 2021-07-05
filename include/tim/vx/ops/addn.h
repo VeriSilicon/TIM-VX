@@ -40,6 +40,8 @@ namespace ops {
 class AddN : public Operation {
  public:
   AddN(Graph* graph, uint32_t num_inputs);
+
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 };
 
 }  // namespace ops

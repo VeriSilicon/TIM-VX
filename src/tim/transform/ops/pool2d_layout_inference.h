@@ -31,7 +31,6 @@
 
 namespace tim {
 namespace transform {
-
 class Pool2dLayoutInfer : public OpLayoutInfer {
  public:
   Pool2dLayoutInfer(

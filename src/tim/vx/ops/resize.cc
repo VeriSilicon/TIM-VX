@@ -50,6 +50,13 @@ Resize::Resize(Graph* graph, ResizeType type, float factor, bool align_corners,
   impl()->node()->nn_param.resize.size[1] = target_height;
 }
 
+std::shared_ptr<Operation> Resize::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Resize>(
+      this->type_, this->factor_, this->align_corners_,
+      this->half_pixel_centers_, this->target_height_, this->target_width_,
+      this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

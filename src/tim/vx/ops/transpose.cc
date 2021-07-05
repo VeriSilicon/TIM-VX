@@ -36,6 +36,10 @@ Transpose::Transpose(Graph* graph, const std::vector<uint32_t>& perm)
   this->impl()->node()->nn_param.permute.dim_num = perm_.size();
 }
 
+std::shared_ptr<Operation> Transpose::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Transpose>(this->perm_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

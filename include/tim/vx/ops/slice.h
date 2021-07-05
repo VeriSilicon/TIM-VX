@@ -45,6 +45,8 @@ class Slice : public Operation {
         const std::vector<int32_t>& start,
         const std::vector<int32_t>& length);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   uint32_t dims_;
   const std::vector<int32_t> start_;

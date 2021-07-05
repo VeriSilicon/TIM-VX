@@ -45,6 +45,8 @@ class Matmul : public Operation {
   Matmul(Graph* graph, bool transpose_a = false, bool transpose_b = false,
     bool adjoint_a = false, bool adjoint_b = false);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   bool transpose_a_;
   bool transpose_b_;

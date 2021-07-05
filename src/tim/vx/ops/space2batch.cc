@@ -43,6 +43,12 @@ Space2Batch::Space2Batch(Graph* graph, const std::vector<int>& block_size,
   }
 }
 
+std::shared_ptr<Operation> Space2Batch::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Space2Batch>(this->block_size_, this->pad_,
+                                             this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

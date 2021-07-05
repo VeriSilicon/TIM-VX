@@ -34,6 +34,11 @@ InstanceNormalization::InstanceNormalization(Graph* graph, float eps)
   this->impl()->node()->nn_param.instancenorm.eps = eps_;
 }
 
+std::shared_ptr<Operation> InstanceNormalization::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<InstanceNormalization>(this->eps_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

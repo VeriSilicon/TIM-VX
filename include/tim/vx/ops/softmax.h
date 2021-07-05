@@ -46,6 +46,8 @@ class Softmax : public Operation {
  public:
   Softmax(Graph* graph, float beta, int32_t axis);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   float beta_;
   int32_t axis_;

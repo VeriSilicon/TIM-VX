@@ -31,9 +31,9 @@
 #include "src/tim/vx/operation_private.h"
 namespace tim {
 namespace transform {
-class SpaceToBatchLayoutInfer : public OpLayoutInfer {
+class Space2BatchLayoutInfer : public OpLayoutInfer {
  public:
-  SpaceToBatchLayoutInfer(
+  Space2BatchLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}

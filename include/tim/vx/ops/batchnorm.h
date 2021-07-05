@@ -44,7 +44,9 @@ class BatchNorm : public Operation {
   public:
     BatchNorm(Graph* graph, float eps);
 
-  protected:
+    std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
+   protected:
     float eps_;
 };
 

@@ -77,6 +77,14 @@ DeConv2d::DeConv2d(Graph* graph, int32_t oc_count, PadType pad_type,
   this->impl()->node()->nn_param.deconv.pad[3] = pad_[3];
 }
 
+std::shared_ptr<Operation> DeConv2d::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<DeConv2d>(
+      this->oc_count_, this->pad_type_, this->ksize_, this->stride_,
+      this->output_padding_, this->pad_, this->group_, this->impl_->layout_,
+      this->kernel_layout_);
+}
+
 } // namespace ops
 } // namespace vx
 } // namespace tim

@@ -30,8 +30,12 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-#define DEFINE_ELEMENTWISE_OP(NAME, VSI_OP_CODE) \
-  NAME::NAME(Graph* graph) : Operation(graph, VSI_OP_CODE, 2, 1) {}
+#define DEFINE_ELEMENTWISE_OP(NAME, VSI_OP_CODE)                        \
+  NAME::NAME(Graph* graph) : Operation(graph, VSI_OP_CODE, 2, 1) {}     \
+  std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
+      const {                                                           \
+    return graph->CreateOperation<NAME>();                              \
+  }
 
 DEFINE_ELEMENTWISE_OP(Minimum, VSI_NN_OP_MINIMUM)
 DEFINE_ELEMENTWISE_OP(Maximum, VSI_NN_OP_MAXIMUM)
@@ -46,6 +50,12 @@ DEFINE_ELEMENTWISE_OP(FloorDiv, VSI_NN_OP_FLOORDIV)
 Multiply::Multiply(Graph* graph, float scale)
   : Operation(graph, VSI_NN_OP_MULTIPLY, 2, 1) {
     this->impl()->node()->nn_param.multiply.scale = scale;
+}
+
+std::shared_ptr<Operation> Multiply::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Multiply>(
+      this->impl_->node_->nn_param.multiply.scale);
 }
 
 }  // namespace ops

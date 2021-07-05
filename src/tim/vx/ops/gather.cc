@@ -34,6 +34,11 @@ Gather::Gather(Graph* graph, int axis)
     : Operation(graph, VSI_NN_OP_GATHER), axis_(axis) {
   this->impl()->node()->nn_param.gather.axis = axis_;
 }
+
+std::shared_ptr<Operation> Gather::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Gather>(this->axis_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

@@ -59,6 +59,8 @@ class Pool2d : public Operation {
          RoundType round_type = RoundType::FLOOR,
          DataLayout layout = DataLayout::WHCN);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const PoolType type_;
   const PadType padding_;

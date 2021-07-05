@@ -31,10 +31,14 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-#define DEFINE_ARG_OP(NAME, VSI_OP_TYPE, OP_PARAM)                  \
-  Arg##NAME::Arg##NAME(Graph* graph, int32_t axis)                  \
-      : Operation(graph, VSI_NN_OP_ARG##VSI_OP_TYPE), axis_(axis) { \
-    this->impl()->node()->nn_param.arg##OP_PARAM.axis = axis_;      \
+#define DEFINE_ARG_OP(NAME, VSI_OP_TYPE, OP_PARAM)                           \
+  Arg##NAME::Arg##NAME(Graph* graph, int32_t axis)                           \
+      : Operation(graph, VSI_NN_OP_ARG##VSI_OP_TYPE), axis_(axis) {          \
+    this->impl()->node()->nn_param.arg##OP_PARAM.axis = axis_;               \
+  }                                                                          \
+  std::shared_ptr<Operation> Arg##NAME::Clone(std::shared_ptr<Graph>& graph) \
+      const {                                                                \
+    return graph->CreateOperation<Arg##NAME>(this->axis_);                   \
   }
 
 DEFINE_ARG_OP(Max, MAX, max);

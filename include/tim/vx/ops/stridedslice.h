@@ -59,6 +59,8 @@ class StridedSlice : public Operation {
                const std::vector<int32_t> stride_dims, int32_t begin_mask,
                int32_t end_mask, int32_t shrink_axis_mask);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   std::vector<int32_t> begin_dims_;
   std::vector<int32_t> end_dims_;

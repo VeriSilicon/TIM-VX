@@ -35,6 +35,13 @@ DepthToSpace::DepthToSpace(Graph* graph, int block_size, DataLayout layout)
       block_size_(block_size) {
   this->impl()->node()->nn_param.depth2space.block_size = block_size_;
 }
+
+std::shared_ptr<Operation> DepthToSpace::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<DepthToSpace>(this->block_size_,
+                                              this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

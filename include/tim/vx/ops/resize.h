@@ -50,6 +50,8 @@ class Resize : public Operation {
          bool half_pixel_centers, int target_height, int target_width,
          DataLayout layout = DataLayout::WHCN);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const ResizeType type_;
   const float factor_;

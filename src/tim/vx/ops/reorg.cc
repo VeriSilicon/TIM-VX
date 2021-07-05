@@ -35,6 +35,10 @@ Reorg::Reorg(Graph* graph, const uint32_t stride)
   this->impl()->node()->nn_param.reorg.stride = stride_;
 }
 
+std::shared_ptr<Operation> Reorg::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Reorg>(this->stride_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

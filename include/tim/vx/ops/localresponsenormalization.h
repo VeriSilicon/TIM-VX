@@ -45,6 +45,8 @@ class LocalResponseNormalization : public Operation {
   LocalResponseNormalization(Graph* graph, uint32_t size, float alpha,
                              float beta, float bias, int32_t axis);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   uint32_t size_;
   float alpha_;
@@ -52,6 +54,8 @@ class LocalResponseNormalization : public Operation {
   float bias_;
   int32_t axis_;
 };
+
+using LRN = LocalResponseNormalization;
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

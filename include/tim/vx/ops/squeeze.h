@@ -42,6 +42,8 @@ class Squeeze : public Operation {
  public:
   Squeeze(Graph* graph, std::vector<uint32_t> axis);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   std::vector<uint32_t> axis_;
 };

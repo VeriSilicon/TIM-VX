@@ -37,6 +37,7 @@ class Operation {
   Operation(Graph* graph, uint32_t operation_id,
             int input_cnt = 0, int ouput_cnt = 0, DataLayout layout = DataLayout::ANY);
   virtual ~Operation();
+  virtual std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const = 0;
   Operation& BindInput(const std::shared_ptr<Tensor>& tensor);
   Operation& BindOutput(const std::shared_ptr<Tensor>& tensor);
   Operation& BindInputs(const std::vector<std::shared_ptr<Tensor>>& tensors);

@@ -43,6 +43,8 @@ class LogSoftmax : public Operation {
  public:
   LogSoftmax(Graph* graph, int32_t axis, float beta = 1.f);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   int32_t axis_;
   float beta_;

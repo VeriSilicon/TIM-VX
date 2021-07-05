@@ -42,6 +42,11 @@ Slice::Slice(Graph* graph, uint32_t dims, const std::vector<int32_t>& start,
   this->impl()->node()->nn_param.slice.length =
       reinterpret_cast<const uint32_t*>(length_.data());
 }
+
+std::shared_ptr<Operation> Slice::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Slice>(this->dims_, this->start_, this->length_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

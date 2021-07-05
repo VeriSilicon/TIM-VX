@@ -36,6 +36,10 @@ Squeeze::Squeeze(Graph* graph, std::vector<uint32_t> axis)
   this->impl()->node()->nn_param.squeeze.axis_num = axis_.size();
 }
 
+std::shared_ptr<Operation> Squeeze::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Squeeze>(this->axis_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

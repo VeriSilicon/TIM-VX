@@ -41,6 +41,8 @@ class Reverse : public Operation {
  public:
   Reverse(Graph* graph, const std::vector<int32_t>& axis);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const std::vector<int32_t> axis_;
 };

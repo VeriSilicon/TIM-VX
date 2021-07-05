@@ -36,6 +36,11 @@ Reshape::Reshape(Graph* graph, const std::vector<uint32_t>& size)
   this->impl()->node()->nn_param.reshape.dim_num = size_.size();
 }
 
+std::shared_ptr<Operation> Reshape::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Reshape>(this->size_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

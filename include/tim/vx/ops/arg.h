@@ -36,13 +36,15 @@ namespace ops {
  * along the provided **axis**. The type of the output tensor is integer.
  */
 
-#define DECLARE_ARG_OP(NAME)               \
-  class Arg##NAME : public Operation {     \
-   public:                                 \
-    Arg##NAME(Graph* graph, int32_t axis); \
-                                           \
-   protected:                              \
-    int32_t axis_;                         \
+#define DECLARE_ARG_OP(NAME)                           \
+  class Arg##NAME : public Operation {                 \
+   public:                                             \
+    Arg##NAME(Graph* graph, int32_t axis);             \
+    std::shared_ptr<Operation> Clone(                  \
+        std::shared_ptr<Graph>& graph) const override; \
+                                                       \
+   protected:                                          \
+    int32_t axis_;                                     \
   };
 
 DECLARE_ARG_OP(Min);

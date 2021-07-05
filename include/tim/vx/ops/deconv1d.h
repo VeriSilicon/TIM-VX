@@ -74,6 +74,8 @@ class DeConv1d : public Operation {
         const std::array<uint32_t, 2>& pad, uint32_t group,
         DataLayout input_layout, DataLayout kernel_layout);
 
+   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
   protected:
     const uint32_t oc_count_; // output channel count
     const PadType pad_type_;

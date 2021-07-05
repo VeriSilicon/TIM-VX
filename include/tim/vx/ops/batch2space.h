@@ -49,6 +49,8 @@ class Batch2Space : public Operation {
                const std::vector<int>& crop,
                DataLayout layout = DataLayout::WHCN);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   std::vector<int> block_size_;
   std::vector<int> crop_;

@@ -99,6 +99,8 @@ namespace ops {
    public:                                                       \
     Reduce##NAME(Graph* graph, const std::vector<int32_t>& axis, \
                  bool keep_dims);                                \
+  std::shared_ptr<Operation>                                     \
+    Clone(std::shared_ptr<Graph>& graph) const override;         \
                                                                  \
    protected:                                                    \
     std::vector<int32_t> axis_;                                  \

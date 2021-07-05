@@ -71,6 +71,8 @@ class GroupedConv2d : public Operation {
 
   DataLayout KernelDataLayout() { return kernel_layout_; }
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const PadType padding_;
   const std::array<uint32_t, 2> strides_;

@@ -52,6 +52,13 @@ MaxpoolWithArgmax::MaxpoolWithArgmax(Graph* graph, PadType padding,
   this->SetRoundingPolicy(OverflowPolicy::SATURATE, RoundingPolicy::RTNE, round_type_);
 }
 
+std::shared_ptr<Operation> MaxpoolWithArgmax::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<MaxpoolWithArgmax>(
+      this->padding_, this->ksize_, this->stride_, this->round_type_,
+      this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

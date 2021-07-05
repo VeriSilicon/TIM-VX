@@ -40,6 +40,11 @@ Clip::Clip(Graph* graph, float min, float max)
   this->impl()->node()->nn_param.clip.max = max_;
 }
 
+std::shared_ptr<Operation> Clip::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Clip>(this->impl_->node()->nn_param.clip.min,
+                                      this->impl_->node_->nn_param.clip.max);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

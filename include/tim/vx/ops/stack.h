@@ -40,6 +40,8 @@ class Stack : public Operation {
  public:
   Stack(Graph* graph, uint32_t axis, int input_cnt);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   uint32_t axis_;
 };

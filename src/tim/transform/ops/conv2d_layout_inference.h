@@ -32,7 +32,6 @@
 
 namespace tim {
 namespace transform {
-
 class Conv2dLayoutInfer : public OpLayoutInfer {
  public:
   Conv2dLayoutInfer(

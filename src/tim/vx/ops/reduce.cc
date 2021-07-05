@@ -40,6 +40,11 @@ namespace ops {
     this->impl()->node()->nn_param.reduce.axis = axis_.data();               \
     this->impl()->node()->nn_param.reduce.axis_num = axis_.size();           \
     this->impl()->node()->nn_param.reduce.keep_dim = keep_dims_;             \
+  }                                                                          \
+  std::shared_ptr<Operation> Reduce##NAME::Clone(                            \
+      std::shared_ptr<Graph>& graph) const {                                 \
+    return graph->CreateOperation<Reduce##NAME>(this->axis_,                 \
+                                                this->keep_dims_);           \
   }
 
 DEFINE_REDUCE_OP(Min, VSI_NN_REDUCE_MIN);

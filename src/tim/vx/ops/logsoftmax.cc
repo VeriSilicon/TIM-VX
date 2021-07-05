@@ -36,6 +36,11 @@ LogSoftmax::LogSoftmax(Graph* graph, int32_t axis, float beta)
   this->impl()->node()->nn_param.log_softmax.axis = axis_;
 }
 
+std::shared_ptr<Operation> LogSoftmax::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<LogSoftmax>(this->axis_, this->beta_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
