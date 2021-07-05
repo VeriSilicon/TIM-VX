@@ -35,9 +35,14 @@ FullyConnected::FullyConnected(Graph* graph, uint32_t axis)
 }
 
 FullyConnected::FullyConnected(Graph* graph, uint32_t axis, uint32_t weights)
-    : Operation(graph, VSI_NN_OP_FCL2) {
+    : Operation(graph, VSI_NN_OP_FCL2), axis_(axis), weights_(weights) {
   this->impl()->node()->nn_param.fcl.axis = axis;
   this->impl()->node()->nn_param.fcl.weights = weights;
+}
+
+std::shared_ptr<Operation> FullyConnected::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<FullyConnected>(this->axis_, this->weights_);
 }
 
 }  // namespace ops

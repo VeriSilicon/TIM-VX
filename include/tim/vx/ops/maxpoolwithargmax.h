@@ -52,6 +52,8 @@ class MaxpoolWithArgmax : public Operation {
          RoundType round_type = RoundType::FLOOR,
          DataLayout layout = DataLayout::WHCN);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const PadType padding_;
   const std::array<uint32_t, 2> ksize_;

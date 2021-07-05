@@ -41,7 +41,7 @@ class FullyConnectedLayoutInfer : public OpLayoutInfer {
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    
+
     auto input_tensors = op_->impl()->InputsTensor();
     for (const auto& in : input_tensors) {
       if (in->IsConstTensor()) {

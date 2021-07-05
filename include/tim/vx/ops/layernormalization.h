@@ -34,6 +34,8 @@ class LayerNormalization : public Operation {
  public:
   LayerNormalization(Graph* graph, int32_t axis = 0, float eps = 1e-5f);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   int32_t axis_;
   int32_t eps_;

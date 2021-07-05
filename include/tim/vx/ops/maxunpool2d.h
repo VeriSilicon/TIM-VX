@@ -47,6 +47,8 @@ class MaxUnpool2d : public Operation {
   MaxUnpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
          const std::array<uint32_t, 2>& stride, DataLayout layout = DataLayout::WHCN);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const std::array<uint32_t, 2> ksize_;
   const std::array<uint32_t, 2> stride_;

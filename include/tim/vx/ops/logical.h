@@ -39,10 +39,12 @@ namespace ops {
  * Returns the truth value of x OR y element-wise. This operation supports broadcasting.
  */
 
-#define DECLARE_LOGICAL_OP(NAME)           \
-  class Logical##NAME : public Operation { \
-   public:                                 \
-    Logical##NAME(Graph* graph);           \
+#define DECLARE_LOGICAL_OP(NAME)                       \
+  class Logical##NAME : public Operation {             \
+   public:                                             \
+    Logical##NAME(Graph* graph);                       \
+    std::shared_ptr<Operation> Clone(                  \
+        std::shared_ptr<Graph>& graph) const override; \
   };
 
 DECLARE_LOGICAL_OP(And);

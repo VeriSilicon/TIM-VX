@@ -36,6 +36,10 @@ Tile::Tile(Graph* graph, const std::vector<int32_t>& multiples)
   this->impl()->node()->nn_param.tile.multiples_num = multiples_.size();
 }
 
+std::shared_ptr<Operation> Tile::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Tile>(this->multiples_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

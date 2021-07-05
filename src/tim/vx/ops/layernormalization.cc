@@ -40,6 +40,11 @@ LayerNormalization::LayerNormalization(Graph* graph, int32_t axis, float eps)
   this->impl()->node()->nn_param.instancenorm.eps = eps_;
 }
 
+std::shared_ptr<Operation> LayerNormalization::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<LayerNormalization>(this->axis_, this->eps_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

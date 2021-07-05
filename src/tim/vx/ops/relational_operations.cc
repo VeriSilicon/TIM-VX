@@ -30,9 +30,14 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-#define DEFINE_RELATIONAL_OP(NAME, VSI_OP_CODE) \
-  NAME::NAME(Graph* graph) : Operation(graph, VSI_NN_OP_RELATIONAL_OPS, 2, 1) { \
-    this->impl()->node()->nn_param.relational_ops.op = VSI_OP_CODE;    \
+#define DEFINE_RELATIONAL_OP(NAME, VSI_OP_CODE)                         \
+  NAME::NAME(Graph* graph)                                              \
+      : Operation(graph, VSI_NN_OP_RELATIONAL_OPS, 2, 1) {              \
+    this->impl()->node()->nn_param.relational_ops.op = VSI_OP_CODE;     \
+  }                                                                     \
+  std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
+      const {                                                           \
+    return graph->CreateOperation<NAME>();                              \
   }
 
 DEFINE_RELATIONAL_OP(Greater, VSI_NN_RELATIONAL_OPS_GREAT)

@@ -38,6 +38,10 @@ Dropout::Dropout(Graph* graph, float ratio)
   this->impl()->node()->nn_param.dropout.ratio = ratio_;
 }
 
+std::shared_ptr<Operation> Dropout::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Dropout>(this->ratio_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

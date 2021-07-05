@@ -47,6 +47,13 @@ LocalResponseNormalization::LocalResponseNormalization(Graph* graph,
   this->impl()->node()->nn_param.lrn.type =
       VX_CONVOLUTIONAL_NETWORK_NORM_ACROSS_MAPS;
 }
+
+std::shared_ptr<Operation> LocalResponseNormalization::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<LocalResponseNormalization>(
+      this->size_, this->alpha_, this->beta_, this->bias_, this->axis_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

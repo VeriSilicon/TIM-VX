@@ -23,19 +23,22 @@
 *****************************************************************************/
 #include "tim/vx/ops/batchnorm.h"
 
-#include "vsi_nn_pub.h"
-
 #include "operation_private.h"
+#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-
 BatchNorm::BatchNorm(Graph* graph, float eps)
-  : Operation(graph, VSI_NN_OP_BATCH_NORM),
-    eps_(eps) {
+    : Operation(graph, VSI_NN_OP_BATCH_NORM), eps_(eps) {
   this->impl()->node()->nn_param.batch_norm.eps = eps_;
+}
+
+std::shared_ptr<Operation> BatchNorm::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<BatchNorm>(
+      this->impl_->node_->nn_param.batch_norm.eps);
 }
 
 }  // namespace ops

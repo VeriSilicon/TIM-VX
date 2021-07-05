@@ -44,6 +44,8 @@ class L2Normalization : public Operation {
  public:
   L2Normalization(Graph* graph, int32_t axis);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   int32_t axis_;
 };

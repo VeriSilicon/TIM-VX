@@ -66,10 +66,12 @@ namespace ops {
  * FloorDiv(x, y): floor( x / y ). This operation supports broadcasting.
  */
 
-#define DECLARE_ELEMENTWISE_OP(NAME) \
-  class NAME : public Operation {    \
-   public:                           \
-    NAME(Graph* graph);              \
+#define DECLARE_ELEMENTWISE_OP(NAME)                   \
+  class NAME : public Operation {                      \
+   public:                                             \
+    NAME(Graph* graph);                                \
+    std::shared_ptr<Operation> Clone(                  \
+        std::shared_ptr<Graph>& graph) const override; \
   };
 
 DECLARE_ELEMENTWISE_OP(Minimum)
@@ -81,8 +83,10 @@ DECLARE_ELEMENTWISE_OP(Pow)
 DECLARE_ELEMENTWISE_OP(FloorDiv)
 
 class Multiply : public Operation {
-  public:
-    Multiply(Graph* graph, float scale = 1.0f);
+ public:
+  Multiply(Graph* graph, float scale = 1.0f);
+
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 };
 
 #undef DECLARE_ELEMENTWISE_OP

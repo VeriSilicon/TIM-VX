@@ -39,6 +39,8 @@ namespace ops {
 class Select : public Operation {
  public:
   Select(Graph* graph);
+
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 };
 
 }  // namespace ops

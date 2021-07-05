@@ -32,7 +32,6 @@
 
 namespace tim {
 namespace transform {
-
 class SoftmaxLayoutInfer : public OpLayoutInfer {
  public:
   SoftmaxLayoutInfer(

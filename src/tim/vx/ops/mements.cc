@@ -30,12 +30,17 @@
 namespace tim {
 namespace vx {
 namespace ops {
-    Moments::Moments(Graph* graph, const std::vector<int32_t>& axes, bool keep_dims)
-        : Operation(graph, VSI_NN_OP_MOMENTS), axes_(axes), keep_dims_(keep_dims) {
-        this->impl()->node()->nn_param.moments.axis = axes_.data();
-        this->impl()->node()->nn_param.moments.axis_num = axes_.size();
-        this->impl()->node()->nn_param.moments.keep_dim = ToVxBool(keep_dims_);
-    }
+Moments::Moments(Graph* graph, const std::vector<int32_t>& axes, bool keep_dims)
+    : Operation(graph, VSI_NN_OP_MOMENTS), axes_(axes), keep_dims_(keep_dims) {
+  this->impl()->node()->nn_param.moments.axis = axes_.data();
+  this->impl()->node()->nn_param.moments.axis_num = axes_.size();
+  this->impl()->node()->nn_param.moments.keep_dim = ToVxBool(keep_dims_);
+}
+
+std::shared_ptr<Operation> Moments::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Moments>(this->axes_, this->keep_dims_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

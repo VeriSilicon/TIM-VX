@@ -39,7 +39,10 @@ namespace ops {
 class Clip : public Operation {
   public:
     Clip(Graph* graph, float min, float max);
-  protected:
+
+    std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
+   protected:
     float min_;
     float max_;
 };

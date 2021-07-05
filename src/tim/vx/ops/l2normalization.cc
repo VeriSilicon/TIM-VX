@@ -34,6 +34,11 @@ L2Normalization::L2Normalization(Graph* graph, int32_t axis)
   this->impl()->node()->nn_param.l2_normalize.axis = axis_;
 }
 
+std::shared_ptr<Operation> L2Normalization::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<L2Normalization>(this->axis_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

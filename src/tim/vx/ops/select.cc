@@ -32,6 +32,11 @@ namespace ops {
 
 Select::Select(Graph* graph)
     : Operation(graph, VSI_NN_OP_SELECT) {}
+
+std::shared_ptr<Operation> Select::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Select>();
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

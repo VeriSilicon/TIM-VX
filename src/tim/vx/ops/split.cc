@@ -39,6 +39,10 @@ Split::Split(Graph* graph, uint32_t axis, std::vector<uint32_t> slices)
   this->impl()->node()->nn_param.split.slices_num = slices_.size();
 }
 
+std::shared_ptr<Operation> Split::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Split>(this->axis_, this->slices_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

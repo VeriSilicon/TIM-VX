@@ -35,6 +35,10 @@ Unstack::Unstack(Graph* graph, int32_t axis, uint32_t output_num)
   this->impl()->node()->nn_param.unstack.axis = axis_;
 }
 
+std::shared_ptr<Operation> Unstack::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Unstack>(this->axis_, this->impl_->output_cnt_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

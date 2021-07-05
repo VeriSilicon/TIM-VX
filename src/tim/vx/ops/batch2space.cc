@@ -42,6 +42,13 @@ Batch2Space::Batch2Space(Graph* graph, const std::vector<int>& block_size,
     this->impl()->node()->nn_param.batch2space.crop[i] = crop_[i];
   }
 }
+
+std::shared_ptr<Operation> Batch2Space::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Batch2Space>(this->block_size_, this->crop_,
+                                             this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

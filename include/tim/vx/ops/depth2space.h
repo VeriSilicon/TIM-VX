@@ -50,6 +50,8 @@ class DepthToSpace : public Operation {
   DepthToSpace(Graph* Graph, int block_size,
                DataLayout layout = DataLayout::WHCN);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   int block_size_;
 };

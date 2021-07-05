@@ -44,6 +44,8 @@ class Split : public Operation {
  public:
   Split(Graph* graph, uint32_t axis, std::vector<uint32_t> slices);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   uint32_t axis_;
   std::vector<uint32_t> slices_;

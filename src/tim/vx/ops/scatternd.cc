@@ -35,6 +35,11 @@ ScatterND::ScatterND(Graph* graph, const std::vector<uint32_t>& shape)
   this->impl()->node()->nn_param.scatter_nd.dim_num = shape_.size();
   this->impl()->node()->nn_param.scatter_nd.shape = shape_.data();
 }
+
+std::shared_ptr<Operation> ScatterND::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<ScatterND>(this->shape_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

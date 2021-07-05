@@ -41,6 +41,11 @@ Matmul::Matmul(Graph* graph, bool transpose_a, bool transpose_b,
   this->impl()->node()->nn_param.matrixmul.adjoint[1] = ToVxBool(adjoint_b_);
 }
 
+std::shared_ptr<Operation> Matmul::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Matmul>(this->transpose_a_, this->transpose_b_,
+                                        this->adjoint_a_, this->adjoint_b_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

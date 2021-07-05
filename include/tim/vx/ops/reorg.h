@@ -39,6 +39,8 @@ class Reorg : public Operation {
  public:
   Reorg(Graph* graph, const uint32_t stride);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   uint32_t stride_;
 };

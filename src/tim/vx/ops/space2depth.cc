@@ -37,6 +37,13 @@ SpaceToDepth::SpaceToDepth(Graph* graph, std::vector<int> block_size,
   this->impl()->node()->nn_param.space2depth.block_size[0] = block_size_[0];
   this->impl()->node()->nn_param.space2depth.block_size[1] = block_size_[1];
 }
+
+std::shared_ptr<Operation> SpaceToDepth::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<SpaceToDepth>(this->block_size_,
+                                              this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

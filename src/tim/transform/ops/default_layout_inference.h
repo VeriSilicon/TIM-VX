@@ -21,10 +21,15 @@
  *    DEALINGS IN THE SOFTWARE.
  *
  *****************************************************************************/
-#ifndef TIM_LAYOUT_INFER_RESHAPE_LAYOUT_INFERENCE_H_
-#define TIM_LAYOUT_INFER_RESHAPE_LAYOUT_INFERENCE_H_
+#ifndef TIM_LAYOUT_INFER_DEFAULT_LAYOUT_INFERENCE_H_
+#define TIM_LAYOUT_INFER_DEFAULT_LAYOUT_INFERENCE_H_
 
 #include "tim/vx/ops/reshape.h"
+#include "tim/vx/ops/nbg.h"
+#include "tim/vx/ops/transpose.h"
+#include "tim/vx/ops/batchnorm.h"
+#include "tim/vx/ops/clip.h"
+
 
 #include "src/tim/transform/ops/op_layout_inference.h"
 #include "src/tim/transform/permute_vector.h"
@@ -32,30 +37,30 @@
 
 namespace tim {
 namespace transform {
-class ReshapeLayoutInfer : public OpLayoutInfer {
+
+class DefaultLayoutInfer : public OpLayoutInfer {
  public:
-  ReshapeLayoutInfer(
+  DefaultLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : OpLayoutInfer(op, context) {}
+
   // reverse any applied permute on it's input tensor
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
     ReverseInputsPermuteVector();
-    std::vector<uint32_t> perm;
-    for (uint32_t i = 0; i < op_->impl()->node()->nn_param.reshape.dim_num;
-         i++) {
-      perm.push_back(op_->impl()->node()->nn_param.reshape.size[i]);
-    }
-    auto reshape =
-        context_->infer_graph_->CreateOperation<vx::ops::Reshape>(perm);
-    (*reshape).BindInput(
-        context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
 
+    auto cloned_op = op_->Clone(context_->infer_graph_);
+
+    for (const auto& i_src : op_->impl()->InputsTensor()) {
+      (*cloned_op).BindInput(context_->GetMapedTensor(i_src));
+    }
     auto required_pv =
         MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
     auto out_infer = CreateOutputsTensor(required_pv);
-    (*reshape).BindOutput(out_infer[0]);
+
+    // TODO: bind all output
+    (*cloned_op).BindOutputs(out_infer);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }

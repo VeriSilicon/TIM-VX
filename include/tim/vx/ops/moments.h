@@ -40,13 +40,15 @@ namespace ops {
  */
 
 class Moments : public Operation {
-    public:
-        Moments(Graph* graph, const std::vector<int32_t>& axes,
-               bool keep_dims = false);
+ public:
+  Moments(Graph* graph, const std::vector<int32_t>& axes,
+          bool keep_dims = false);
 
-    protected:
-        const std::vector<int32_t> axes_;
-        const bool keep_dims_;
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  const std::vector<int32_t> axes_;
+  const bool keep_dims_;
 };
 
 }  // namespace ops

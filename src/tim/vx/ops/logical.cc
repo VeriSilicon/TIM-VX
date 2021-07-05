@@ -35,6 +35,10 @@ namespace ops {
       : Operation(graph, VSI_NN_OP_LOGICAL_OPS) {      \
     this->impl()->node()->nn_param.relational_ops.op = \
         VSI_NN_LOGICAL_##VSI_OP_CODE;                  \
+  }                                                    \
+  std::shared_ptr<Operation> Logical##NAME::Clone(     \
+      std::shared_ptr<Graph>& graph) const {           \
+    return graph->CreateOperation<Logical##NAME>();    \
   }
 
 DEFINE_LOGICAL_OP(And, AND);

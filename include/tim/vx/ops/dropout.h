@@ -41,11 +41,13 @@ namespace ops {
  */
 
 class Dropout : public Operation {
-  public:
-    Dropout(Graph* graph, float ratio);
+ public:
+  Dropout(Graph* graph, float ratio);
 
-  protected:
-    float ratio_;
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float ratio_;
 };
 
 }  // namespace ops

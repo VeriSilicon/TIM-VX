@@ -85,6 +85,12 @@ DeConv1d::DeConv1d(Graph* graph, PadType pad_type,
   this->impl()->node()->nn_param.deconvolution1d.pad[1] = pad_[1];
 }
 
+std::shared_ptr<Operation> DeConv1d::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<DeConv1d>(
+      this->pad_type_, this->stride_, this->output_padding_, this->pad_,
+      this->group_, this->impl_->layout_, this->kernel_layout_);
+}
 } // namespace ops
 } // namespace vx
 } // namespace tim

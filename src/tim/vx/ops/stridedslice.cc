@@ -57,6 +57,13 @@ StridedSlice::StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
       stride_dims_.size();
 }
 
+std::shared_ptr<Operation> StridedSlice::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<StridedSlice>(
+      this->begin_dims_, this->end_dims_, this->stride_dims_, this->begin_mask_,
+      this->end_mask_, this->shrink_axis_mask_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

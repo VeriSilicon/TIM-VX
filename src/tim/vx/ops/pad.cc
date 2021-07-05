@@ -41,6 +41,11 @@ Pad::Pad(Graph* graph, const std::vector<uint32_t>& front_size,
   this->impl()->node()->nn_param.pad.const_val = const_val_;
   this->impl()->node()->nn_param.pad.mode = VSI_NN_PAD_MODE_CONSTANT;
 }
+
+std::shared_ptr<Operation> Pad::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Pad>(this->front_size_, this->back_size_, this->const_val_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

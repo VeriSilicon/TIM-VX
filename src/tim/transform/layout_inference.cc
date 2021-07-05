@@ -31,7 +31,6 @@
 #include "ops/elementwise_layout_inference.h"
 #include "ops/activation_layout_inference.h"
 #include "ops/concat_layout_inferene.h"
-#include "ops/reshape_layout_inference.h"
 #include "ops/simple_ops_layout_inference.h"
 #include "ops/pool2d_layout_inference.h"
 #include "ops/softmax_layout_inference.h"
@@ -58,7 +57,7 @@
 #include "ops/logical_layout_inference.h"
 #include "ops/arg_layout_inference.h"
 #include "ops/deconv2d_layout_inference.h"
-#include "ops/nbg_layout_inference.h"
+#include "ops/default_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -216,7 +215,6 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_POW, Pow);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_MINIMUM, Minimum);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_MAXIMUM, Maximum);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RESHAPE, Reshape);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DATACONVERT, DataConvert);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_NEG, Neg);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ABS, Abs);
@@ -233,8 +231,8 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_STACK, Stack);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2DEPTH, SpaceToDepth);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DEPTH2SPACE, DepthToSpace);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2BATCH, SpaceToBatch);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH2SPACE, BatchToSpace);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2BATCH, Space2Batch);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH2SPACE, Batch2Space);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PAD, Pad);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_FCL2, FullyConnected);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RESIZE, Resize);
@@ -249,15 +247,18 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_REVERSE, Reverse);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SLICE, Slice);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SELECT, Select);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMAX, ArgMax);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMIN, ArgMin);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMAX, Arg);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMIN, Arg);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DECONVOLUTION, DeConv2d);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_NBG, Nbg);
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
-    default:
-      VSILOGW("Op %d: not support layout inference.", op_id);
-      assert(false);
+    // use default layout inference
+    default: {
+      VSILOGW("Op %d: default layout inference pass.", op_id);
+      auto op_infer = std::make_shared<DefaultLayoutInfer>(op, ctx);
+      op_infer->OnInputs(next_tensors);
+      op_infer->OnOutputs(next_tensors);
+    }
   }
   return next_tensors;
 }

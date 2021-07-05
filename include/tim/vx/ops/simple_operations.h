@@ -29,10 +29,12 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-#define DECLARE_SIMPLE_OP(NAME)   \
-  class NAME : public Operation { \
-   public:                        \
-    NAME(Graph* graph);           \
+#define DECLARE_SIMPLE_OP(NAME)                        \
+  class NAME : public Operation {                      \
+   public:                                             \
+    NAME(Graph* graph);                                \
+    std::shared_ptr<Operation> Clone(                  \
+        std::shared_ptr<Graph>& graph) const override; \
   };
 
 /**

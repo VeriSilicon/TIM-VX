@@ -39,7 +39,9 @@ namespace ops {
 
 class Reshape : public Operation {
  public:
-  Reshape(Graph* graph, const std::vector<uint32_t>& perm);
+  Reshape(Graph* graph, const std::vector<uint32_t>& size);
+
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
  protected:
   std::vector<uint32_t> size_;

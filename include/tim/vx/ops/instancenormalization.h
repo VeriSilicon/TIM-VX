@@ -32,6 +32,8 @@ class InstanceNormalization : public Operation {
  public:
   InstanceNormalization(Graph* graph, float eps = 1e-5f);
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   float eps_;
 };

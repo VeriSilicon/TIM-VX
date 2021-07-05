@@ -55,6 +55,8 @@ class Conv1d : public Operation {
 
   DataLayout KernelDataLayout() { return kernel_layout_; }
 
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const uint32_t weights_;
   const PadType padding_;

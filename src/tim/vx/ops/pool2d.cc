@@ -75,6 +75,12 @@ Pool2d::Pool2d(Graph* graph, PoolType type,
   this->SetRoundingPolicy(OverflowPolicy::SATURATE, RoundingPolicy::RTNE, round_type_);
 }
 
+std::shared_ptr<Operation> Pool2d::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Pool2d>(this->type_, this->pad_, this->ksize_,
+                                        this->stride_, this->round_type_,
+                                        this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

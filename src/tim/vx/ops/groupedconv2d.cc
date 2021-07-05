@@ -65,6 +65,13 @@ GroupedConv2d::GroupedConv2d(Graph* graph,
   this->impl()->node()->nn_param.conv2d.dilation[1] = dilation_[1];
 }
 
+std::shared_ptr<Operation> GroupedConv2d::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<GroupedConv2d>(
+      this->pad_, this->strides_, this->dilation_, this->group_number_,
+      this->impl_->layout_, this->kernel_layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

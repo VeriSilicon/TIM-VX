@@ -41,6 +41,12 @@ MaxUnpool2d::MaxUnpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
   this->impl()->node()->nn_param.upsample.size[1] = ksize_[1];
 }
 
+std::shared_ptr<Operation> MaxUnpool2d::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<MaxUnpool2d>(this->ksize_, this->stride_,
+                                             this->impl_->layout_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

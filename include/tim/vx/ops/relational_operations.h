@@ -55,10 +55,12 @@ namespace ops {
  * For input tensors x and y, computes x == y elementwise.
  */
 
-#define DECLARE_RELATIONAL_OP(NAME)  \
-  class NAME : public Operation {    \
-   public:                           \
-    NAME(Graph* graph);              \
+#define DECLARE_RELATIONAL_OP(NAME)                    \
+  class NAME : public Operation {                      \
+   public:                                             \
+    NAME(Graph* graph);                                \
+    std::shared_ptr<Operation> Clone(                  \
+        std::shared_ptr<Graph>& graph) const override; \
   };
 
 DECLARE_RELATIONAL_OP(Greater)

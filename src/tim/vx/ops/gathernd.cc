@@ -31,6 +31,11 @@ namespace vx {
 namespace ops {
 
 GatherNd::GatherNd(Graph* graph) : Operation(graph, VSI_NN_OP_GATHER_ND) {}
+
+std::shared_ptr<Operation> GatherNd::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<GatherNd>();
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

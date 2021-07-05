@@ -35,6 +35,10 @@ Stack::Stack(Graph* graph, uint32_t axis, int input_cnt)
   this->impl()->node()->nn_param.stack.axis = axis_;
 }
 
+std::shared_ptr<Operation> Stack::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Stack>(this->axis_, this->impl_->input_cnt_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
