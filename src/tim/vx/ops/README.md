@@ -95,6 +95,7 @@ ScatterND|SCATTER_ND|Mapped|[tf.scatter_nd](https://tensorflow.google.cn/api_doc
 Unstack|UNSTACK|Mapped|[tf.unstack](https://tensorflow.google.cn/api_docs/python/tf/unstack)
 Tile|TILE|Mapped|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
 GroupedConv2d|GROUPED_CONV2D|Mapped|[ANEURALNETWORKS_GROUPED_CONV_2D](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a847acf8d9f3d2343328c3dbe6d447c50)
+SpatialTransformer|SPATIAL_TRANSFORMER|Mapped|[SpatialTransformer](https://github.com/daerduoCarey/SpatialTransformerLayer)
 ||PROPOSAL|Planned 21Q3|[Faster-RCNN Proposal Layer](https://github.com/intel/caffe/blob/master/examples/faster-rcnn/lib/rpn/proposal_layer.py)
 ||ROI_POOL|Planned 21Q3|[ANEURALNETWORKS_ROI_POOLING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6736198af337b2efbdb0b6b64dee7fe4)
 ||ROI_ALIGN|Planned 21Q3|[ANEURALNETWORKS_ROI_ALIGN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a2848b39dd4bfba78f2438fda0d9397a4)
@@ -149,7 +150,6 @@ GroupedConv2d|GROUPED_CONV2D|Mapped|[ANEURALNETWORKS_GROUPED_CONV_2D](https://de
 ||PRE_PROCESS_TENSOR|InternalOnly
 ||IMAGEPROCESS|Deprecated
 ||POST_PROCESS|InternalOnly
-||SPATIAL_TRANSFORMER|InternalOnly|[SpatialTransformer](https://github.com/daerduoCarey/SpatialTransformerLayer)
 ||EXTRA_ENDING|InternalOnly
 ||SYNC_HOST|InternalOnly
 ||BATCHNORM_SINGLE|InternalOnly|
