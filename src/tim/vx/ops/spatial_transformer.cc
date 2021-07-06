@@ -56,6 +56,16 @@ SpatialTransformer::SpatialTransformer(Graph* graph, uint32_t output_h, uint32_t
   this->impl()->node()->nn_param.spatial_transformer.theta_2_3 = theta_2_3_;
 }
 
+std::shared_ptr<Operation> SpatialTransformer::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<SpatialTransformer>(
+      this->output_h_, this->output_w_, this->has_theta_1_1_,
+      this->has_theta_1_2_, this->has_theta_1_3_, this->has_theta_2_1_,
+      this->has_theta_2_2_, this->has_theta_2_3_, this->theta_1_1_,
+      this->theta_1_2_, this->theta_1_3_, this->theta_2_1_, this->theta_2_2_,
+      this->theta_2_3_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
