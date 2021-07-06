@@ -47,6 +47,9 @@ class SpatialTransformer : public Operation {
     bool has_theta_2_1, bool has_theta_2_2, bool has_theta_2_3,
     float theta_1_1, float theta_1_2, float theta_1_3,
     float theta_2_1, float theta_2_2, float theta_2_3);
+
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
  protected:
   const uint32_t output_h_;
   const uint32_t output_w_;
