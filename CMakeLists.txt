@@ -63,4 +63,5 @@ include_directories(${PROJECT_SOURCE_DIR}/include/tim/vx)
 include_directories(${OVXDRV_INCLUDE_DIRS})
 
 add_subdirectory("src/tim/")
+add_subdirectory("samples/benchmark_test")
 add_subdirectory("samples/lenet")
