@@ -1439,7 +1439,7 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerChannelTest) {
   tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 2,
                                    scalesInput, zeroPointsInput);
   tim::vx::Quantization quantWeight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    2, scalesWeight, zeroPointsWeight);
+                                    3, scalesWeight, zeroPointsWeight);
   tim::vx::Quantization quantBias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
                                   scalesBias, zeroPointsBias);
   tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 2,
