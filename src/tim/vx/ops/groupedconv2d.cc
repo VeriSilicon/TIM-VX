@@ -61,6 +61,10 @@ GroupedConv2d::GroupedConv2d(Graph* graph,
   this->impl()->node()->nn_param.conv2d.stride[0] = strides_[0];
   this->impl()->node()->nn_param.conv2d.stride[1] = strides_[1];
   this->impl()->node()->nn_param.conv2d.group = group_number_;
+  this->impl()->node()->nn_param.conv2d.pad[0] = pad_[0];
+  this->impl()->node()->nn_param.conv2d.pad[1] = pad_[1];
+  this->impl()->node()->nn_param.conv2d.pad[2] = pad_[2];
+  this->impl()->node()->nn_param.conv2d.pad[3] = pad_[3];
   this->impl()->node()->nn_param.conv2d.dilation[0] = dilation_[0];
   this->impl()->node()->nn_param.conv2d.dilation[1] = dilation_[1];
 }
