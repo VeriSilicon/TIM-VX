@@ -1508,6 +1508,7 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerChannelTest) {
   EXPECT_EQ(golden, output);
 }
 
+#if 0
 TEST(Conv2d, shape_w_h_128_1_ksize_1_1_stride_2_int8_QuantizedPerChannel_customer_Test) {
   tim::vx::ShapeType input_shape({2, 2, 128, 1});     //whcn
   tim::vx::ShapeType weight_shape({1, 1, 128, 256});  //whio
@@ -1631,3 +1632,4 @@ TEST(Conv2d, shape_w_h_128_1_ksize_1_1_stride_2_int8_QuantizedPerChannel_custome
     }
   }
 }
+#endif
