@@ -15,8 +15,8 @@ __kernel void func_name##_F32F32toBOOL8 \
  \
     float4 src0; \
     float4 src1; \
-    readImage2DArray(src0, input0, coord); \
-    readImage2DArray(src1, input1, coord); \
+    READ_IMAGEF_2DARRAY(src0, input0, coord); \
+    READ_IMAGEF_2DARRAY(src1, input1, coord); \
  \
     int4 dst = (src0)comp_op(src1); \
     dst &= 1; \
@@ -75,8 +75,8 @@ __kernel void func_name##_U32U32toBOOL8 \
  \
     uint4 data0; \
     uint4 data1; \
-    readImage2DArray(data0, input0, coord); \
-    readImage2DArray(data1, input1, coord); \
+    READ_IMAGEUI_2DARRAY(data0, input0, coord); \
+    READ_IMAGEUI_2DARRAY(data1, input1, coord); \
  \
     float4 src0 = convert_float4(data0) * input0Scale - input0Tail; \
     float4 src1 = convert_float4(data1) * input1Scale - input1Tail; \
@@ -139,8 +139,8 @@ __kernel void func_name##_I32I32toBOOL8 \
  \
     int4 src0; \
     int4 src1; \
-    readImage2DArray(src0, input0, coord); \
-    readImage2DArray(src1, input1, coord); \
+    READ_IMAGEI_2DARRAY(src0, input0, coord); \
+    READ_IMAGEI_2DARRAY(src1, input1, coord); \
  \
     int4 dst = (src0)comp_op(src1); \
     dst &= 1; \

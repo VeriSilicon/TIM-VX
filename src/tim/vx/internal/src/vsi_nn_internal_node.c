@@ -159,7 +159,8 @@ vsi_nn_internal_tensor_t* vsi_nn_internal_create_zero_bias_tensor
     (
     vsi_nn_node_t* node,
     vsi_nn_tensor_attr_t* input_attr,
-    vsi_nn_tensor_attr_t* weight_attr
+    vsi_nn_tensor_attr_t* weight_attr,
+    vsi_bool use_virtual_tensor
     )
 {
     vsi_nn_tensor_attr_t attr;
@@ -171,8 +172,8 @@ vsi_nn_internal_tensor_t* vsi_nn_internal_create_zero_bias_tensor
     /* create zero bias for NN/TP */
     attr.size[0] = weight_attr->size[1];
     attr.dim_num = 1;
-    attr.vtl = FALSE;
-    attr.is_const = TRUE;
+    attr.vtl = use_virtual_tensor;
+    attr.is_const = !use_virtual_tensor;
 
     if(input_attr->dtype.qnt_type != VSI_NN_QNT_TYPE_NONE &&
         input_attr->dtype.qnt_type != weight_attr->dtype.qnt_type)
@@ -366,20 +367,19 @@ vsi_nn_internal_node_t* vsi_nn_internal_get_node_by_uid
     int uid
     )
 {
-    vsi_nn_internal_node_t* head = NULL;
     vsi_nn_internal_node_t* curr = NULL;
 
     if( node && node->internal_node_wksp )
     {
-        head = WKSP(node)->nodes;
-        while( NULL != head )
+        curr = WKSP(node)->nodes;
+        while( NULL != curr )
         {
-            curr = (vsi_nn_internal_node_t *)vsi_nn_LinkListPopStart(
-                (vsi_nn_link_list_t **)&head );
             if( curr->node->uid == (uint32_t)uid )
             {
                 return curr;
             }
+
+            curr = (vsi_nn_internal_node_t *)vsi_nn_LinkListNext( (vsi_nn_link_list_t *)curr );
         }
     }
 

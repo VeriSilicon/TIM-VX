@@ -39,7 +39,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_sumSq
     {
         for(coord.y = 0; coord.y < height;)
         {
-            VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),
+            VXC_OP4(img_load_3d, src0, input, coord.xywz, VXC_5BITOFFSET_XY(0, 0),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
             coord.y++;
             _viv_asm(COPY, in_h, src0, 16);
@@ -134,7 +134,8 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16to
     image2d_array_t output, float eps)
 {
     int gidz = get_global_id(1);
-    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);
+    int4 coord = (int4)(get_global_id(0), 0, gidz, gidz);
+    int4 coord_in = (int4)(get_global_id(0), 0, gidz, gidz);
     int2 coord_sum = (int2)(0, gidz);
     int4 coord_para = coord;
     coord_para.z = (ushort)gidz / (ushort)(height_depth);
@@ -157,8 +158,8 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16to
 
     int8 input_desc, scale_desc, output_desc;
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
-    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;
-    _viv_asm(MOV, coord.w, baseAddr_a);
+    int baseAddr_a = (int)coord_in.z * input_desc.s4 + input_desc.s0;
+    _viv_asm(MOV, coord_in.z, baseAddr_a);
 
     _viv_asm(COPY, scale_desc, scale, sizeof(scale_desc));
     int baseAddr_c = (int)coord_para.z * scale_desc.s4 + scale_desc.s0;
@@ -175,11 +176,12 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16to
 
     for(coord.y = 0; coord.y < height; coord.y++)
     {
-        VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0),
                             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        coord_in.y ++;
         coord_para.y = coord.y;
         coord_bias.y = coord.y;
-        VXC_OP4(img_load_3d, src1, scale, coord_para.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src1, scale, coord_para.xywz, VXC_5BITOFFSET_XY(0, 0),
                         VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
         bias_f0 = read_imagef(bias, coord_bias);
         coord_bias.x += 4;
@@ -208,7 +210,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16to
         VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
                     uniConvertHalfToFp16_2x8);
         _viv_asm(COPY, outval, dst, 16);
-        VXC_OP4_NoDest(img_store_3d, output, coord.xyzz, outval, \
+        VXC_OP4_NoDest(img_store_3d, output, coord, outval, \
                 VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
     }
 }
@@ -284,7 +286,8 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16to
     image2d_array_t output, float eps)
 {
     int gidz = get_global_id(1);
-    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);
+    int4 coord = (int4)(get_global_id(0), 0, gidz, gidz);
+    int4 coord_in = (int4)(get_global_id(0), 0, gidz, gidz);
     int2 coord_sum = (int2)(0, gidz);
     int4 coord_para = coord;
     coord_para.z = (ushort)gidz / (ushort)(height_depth);
@@ -307,8 +310,8 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16to
 
     int8 input_desc, scale_desc, output_desc;
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
-    int baseAddr_a = (int)coord.z * input_desc.s4 + input_desc.s0;
-    _viv_asm(MOV, coord.w, baseAddr_a);
+    int baseAddr_a = (int)coord_in.z * input_desc.s4 + input_desc.s0;
+    _viv_asm(MOV, coord_in.z, baseAddr_a);
 
     _viv_asm(COPY, scale_desc, scale, sizeof(scale_desc));
     int baseAddr_c = (int)coord_para.z * scale_desc.s4 + scale_desc.s0;
@@ -324,11 +327,12 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16to
 
     for(coord.y = 0; coord.y < height; coord.y++)
     {
-        VXC_OP4(img_load_3d, src0, input, coord.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0),
                             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        coord_in.y ++;
         coord_para.y = coord.y;
         coord_bias.y = coord.y;
-        VXC_OP4(img_load_3d, src1, scale, coord_para.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src1, scale, coord_para.xywz, VXC_5BITOFFSET_XY(0, 0),
                         VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
         bias_f0 = read_imagef(bias, coord_bias);
         coord_bias.x += 4;
@@ -356,7 +360,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void layernorm_wh_F16to
         tmpVal1 = convert_int4_rte(norm * outputScale + output_zp);
         VXC_DP2x8(outval, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\
                 uniConvertInt32toUint8_2x8);
-        VXC_OP4_NoDest(img_store_3d, output, coord.xyzz, outval, \
+        VXC_OP4_NoDest(img_store_3d, output, coord, outval, \
                 VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
     }
 }

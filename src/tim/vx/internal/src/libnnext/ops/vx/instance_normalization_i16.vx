@@ -26,7 +26,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_mean
     int gidx = get_global_id(0) << 3;
     int lidx = get_local_id(0);
     int gidz = get_global_id(1);
-    int4 coord = (int4)(gidx, 0, gidz, 0);
+    int4 coord = (int4)(gidx, 0, gidz, gidz);
     vxc_short8 src0;
     float sum = 0, sqr = 0;
     vxc_float4 sumsqr = (vxc_float4)(0);
@@ -43,7 +43,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_mean
     {
         for(coord.y = 0; coord.y < height;)
         {
-            VXC_OP4(img_load_3d, src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+            VXC_OP4(img_load_3d, src0, input, coord, 0, \
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
             coord.y++;
             VXC_DP8x2(sumsqr, src0, src0, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\
@@ -106,7 +106,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_mean
     {
         for(; coord.y < endH;)
         {
-            VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),
+            VXC_ReadImage(src0, input, coord, 0,
                 VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
             coord.y++;
             VXC_DP8x2(sumsqr, src0, src0, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\
@@ -154,7 +154,8 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
               int rsFlg)
 {
     int gidz = get_global_id(1);
-    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);
+    int4 coord = (int4)(get_global_id(0), 0, gidz, gidz);
+    int4 coord_in = (int4)(get_global_id(0), 0, gidz, gidz);
     int4 coord_para = (int4)(gidz, 0, 0, 0);
     vxc_short8 src0;
     vxc_short8 src1;
@@ -162,7 +163,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
     float scale_vari, bias_val;
     vxc_float4 bias_f, scale_f, mean_vari = (vxc_float4)(0);
 
-    VXC_ReadImage(src1, scale, coord_para.xy, VXC_5BITOFFSET_XY(0, 0),\
+    VXC_ReadImage(src1, scale, coord_para.xy, 0,\
         VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
     _viv_asm(COPY, scale_h, src1, 16);
     VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
@@ -190,16 +191,17 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
     int8 input_desc, output_desc;
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
     int baseAddr_a = (int)get_global_id(1) * input_desc.s4 + input_desc.s0;
-    _viv_asm(MOV, coord.z, baseAddr_a);
+    _viv_asm(MOV, coord_in.z, baseAddr_a);
 
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(1) * output_desc.s4 + output_desc.s0;
-    _viv_asm(MOV, coord.w, baseAddr);
+    _viv_asm(MOV, coord.z, baseAddr);
 
     for(coord.y = 0; coord.y < height; coord.y++)
     {
-    VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \
+    VXC_OP4(img_load_3d, src0, input, coord_in, 0, \
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    coord_in.y ++;
     VXC_DP4x4(tmpData0, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
         uniConvertInt16Fp32Fst_4x4);
     VXC_DP4x4(tmpData1, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
@@ -213,7 +215,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
     VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
         uniConvertHalfToFp16_2x8);
     _viv_asm(COPY, outval, dst, 16);
-    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, outval, \
+    VXC_OP4_NoDest(img_store_3d, output, coord, outval, \
                     VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
     }
 }
@@ -238,7 +240,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
     float scale_vari, bias_val;
     vxc_float4 bias_f, scale_f, mean_vari = (vxc_float4)(0);
 
-    VXC_ReadImage(src1, scale, coord_para.xy, VXC_5BITOFFSET_XY(0, 0),\
+    VXC_ReadImage(src1, scale, coord_para.xy, 0,\
         VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
     _viv_asm(COPY, scale_h, src1, 16);
     VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
@@ -265,7 +267,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
 
     for(; coord.y < endH; coord.y++)
     {
-    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
+    VXC_ReadImage(src0, input, coord.xy, 0,\
         VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 
     VXC_DP4x4(tmpData0, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
@@ -294,7 +296,8 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
               int rsFlg)
 {
     int gidz = get_global_id(1);
-    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);
+    int4 coord = (int4)(get_global_id(0), 0, gidz, gidz);
+    int4 coord_in = (int4)(get_global_id(0), 0, gidz, gidz);
     int4 coord_para = (int4)(gidz, 0, 0, 0);
     vxc_short8 src0, src2;
     vxc_short8 src1;
@@ -302,7 +305,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
     float scale_vari, bias_val;
     vxc_float4 bias_f, scale_f, mean_vari = (vxc_float4)(0);
 
-    VXC_ReadImage(src1, scale, coord_para.xy, VXC_5BITOFFSET_XY(0, 0),\
+    VXC_ReadImage(src1, scale, coord_para.xy, 0,\
         VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
     _viv_asm(COPY, scale_h, src1, 16);
     VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), UniFP16toFP32Lo4_dp4x4);
@@ -326,15 +329,16 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
     int8 input_desc, output_desc;
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
     int baseAddr_a = (int)get_global_id(1) * input_desc.s4 + input_desc.s0;
-    _viv_asm(MOV, coord.z, baseAddr_a);
+    _viv_asm(MOV, coord_in.z, baseAddr_a);
 
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(1) * output_desc.s4 + output_desc.s0;
-    _viv_asm(MOV, coord.w, baseAddr);
+    _viv_asm(MOV, coord.z, baseAddr);
     for(coord.y = 0; coord.y < height; coord.y++)
     {
-    VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \
+    VXC_OP4(img_load_3d, src0, input, coord_in, 0, \
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    coord_in.y ++;
     VXC_DP4x4(tmpData0, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
         uniConvertInt16Fp32Fst_4x4);
     VXC_DP4x4(tmpData1, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
@@ -346,7 +350,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
     tmpVal1 = convert_int4_rte(norm);
     VXC_DP2x8(src2, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\
         uniConvertInt32toInt16_2x8);
-    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, src2, \
+    VXC_OP4_NoDest(img_store_3d, output, coord, src2, \
                     VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
     }
 }
@@ -371,7 +375,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
     float scale_vari, bias_val;
     vxc_float4 bias_f, scale_f, mean_vari = (vxc_float4)(0);
 
-    VXC_ReadImage(src1, scale, coord_para.xy, VXC_5BITOFFSET_XY(0, 0),\
+    VXC_ReadImage(src1, scale, coord_para.xy, 0,\
         VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
     _viv_asm(COPY, scale_h, src1, 16);
     VXC_DP4x4(scale_f, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), UniFP16toFP32Lo4_dp4x4);
@@ -394,7 +398,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_I16t
 
     for(; coord.y < endH; coord.y++)
     {
-    VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\
+    VXC_ReadImage(src0, input, coord, 0,\
         VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
     VXC_DP4x4(tmpData0, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
         uniConvertInt16Fp32Fst_4x4);

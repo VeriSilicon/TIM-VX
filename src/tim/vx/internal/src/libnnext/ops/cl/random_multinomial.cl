@@ -1,14 +1,5 @@
 #pragma OPENCL EXTENSION CL_VIV_asm : enable
 
-inline uchar* get_image2D_array_ptr(image2d_array_t  input)
-{
-    int8 desc;
-    _viv_asm(COPY, desc, input, sizeof(desc));
-    uchar *src_ptr = (uchar*)desc.s0;
-
-    return src_ptr;
-}
-
 uint4 _philox4x32bumpkey(uint4 key)
 {
     uint4 mask = (uint4)((uint)0x9E3779B9, (uint)0xBB67AE85, 0, 0);
@@ -61,14 +52,16 @@ __kernel void random_seed(
                  float            re_rand_max
     )
 {
-    __global uint* seeds_ptr = (__global uint*)get_image2D_array_ptr(seeds);
+    Tensor s_tensor = create_tensor_from_image2d_array(seeds, 4);
+    __global uint* seeds_ptr = (__global uint*)s_tensor.ptr;
     seeds_ptr = seeds_ptr;
     uint4 key = vload4(0, seeds_ptr);
 
     uint4 ctr = (uint4)(0);
     float4 result = 0;
 
-    __global float* output_ptr = (__global float*)get_image2D_array_ptr(output);
+    Tensor o_tensor = create_tensor_from_image2d_array(output, 4);
+    __global float* output_ptr = (__global float*)o_tensor.ptr;
 
     for(int i = 0; i < iter; i++)
     {
@@ -152,17 +145,20 @@ __kernel void random_multinomial
     int class_size = get_image_width(cdfs);
 
     int offset = gidy * class_size;
-    __global float* cdf_ptr = (__global float*)get_image2D_array_ptr(cdfs);
+    Tensor cdf_tensor = create_tensor_from_image2d_array(cdfs, 4);
+    __global float* cdf_ptr = (__global uint*)cdf_tensor.ptr;
     __global float* cdfPtr = cdf_ptr + offset;
 
     int width = get_image_width(randoms);
     offset = coord.x + coord.y * width;
-    __global float* randoms_ptr = (__global float*)get_image2D_array_ptr(randoms);
+    Tensor r_tensor = create_tensor_from_image2d_array(randoms, 4);
+    __global float* randoms_ptr = (__global float*)r_tensor.ptr;
     randoms_ptr = randoms_ptr + offset;
 
     width = get_image_width(output);
     offset = coord.x + coord.y * width;
-    __global uint* output_ptr = (__global uint*)get_image2D_array_ptr(output);
+    Tensor o_tensor = create_tensor_from_image2d_array(output, 4);
+    __global uint* output_ptr = (__global uint*)o_tensor.ptr;
     output_ptr = output_ptr + offset;
 
     float4 ran = vload4(0, randoms_ptr);

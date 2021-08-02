@@ -1,0 +1,64 @@
+#include "cl_viv_vx_ext.h"
+
+__kernel void tensorstackconcat_16bits
+    (
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       index,
+    __write_only image2d_array_t output
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    vxc_short8 src0;
+    VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    coord.w = 0;
+    coord.y = read_imagei(index, coord.ww).x;
+    VXC_WriteImage2DArray(output, coord, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void tensorstackconcat_8bits
+    (
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       index,
+    __write_only image2d_array_t output
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int idx = coord.x;
+    vxc_char16 src0, src1;
+    VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    coord.y = read_imagei(index, coord.ww).x;
+    VXC_WriteImage2DArray(output, coord, src0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void tensorstackconcat_16bits_2D
+    (
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       index,
+    __write_only image2d_array_t output
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    vxc_short8 src0;
+    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    coord.y = read_imagei(index, coord.ww).x;
+    VXC_WriteImage(output, coord.xy, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void tensorstackconcat_8bits_2D
+    (
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       index,
+    __write_only image2d_array_t output
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int idx = coord.x;
+    vxc_char16 src0, src1;
+    VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    coord.y = read_imagei(index, coord.ww).x;
+    VXC_WriteImage(output, coord.xy, src0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+}

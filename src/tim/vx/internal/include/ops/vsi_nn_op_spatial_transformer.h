@@ -55,8 +55,7 @@ typedef struct _vsi_nn_spatial_transformer_param
     float         theta_2_1;
     float         theta_2_2;
     float         theta_2_3;
-
-    vsi_nn_spatial_transformer_lcl_data lcl;
+    vsi_bool      align_corners;
 } vsi_nn_spatial_transformer_param;
 
 #ifdef __cplusplus
@@ -64,4 +63,3 @@ typedef struct _vsi_nn_spatial_transformer_param
 #endif
 
 #endif
-

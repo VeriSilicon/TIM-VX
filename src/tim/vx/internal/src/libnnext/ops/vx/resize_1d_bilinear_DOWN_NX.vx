@@ -19,12 +19,12 @@ _viv_uniform int out_height;
  \
     while (coord_out.y < out_height) \
     { \
-        VXC_OP4(img_load_3d, read_data, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, read_data, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0), \
                 VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
         _viv_asm(COPY, in0, read_data, 16); \
         VXC_DP2x8(result, in0, in0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResizeNxDown_2x8); \
         _viv_asm(COPY, save_data, result, 16); \
-        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, save_data, \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, save_data, \
             VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
         coord_in.y++; \
         coord_out.y++; \
@@ -83,15 +83,15 @@ RESIZE_1D_2X_DOWN_8BIT_SAME(I8,  I8,  vxc_char16,  vxc_char16)
  \
     while (coord_out.y < out_height) \
     { \
-        VXC_OP4(img_load_3d, read_data, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, read_data, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0), \
                 VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
         _viv_asm(COPY, in0, read_data, 16); \
-        VXC_OP4(img_load_3d, read_data1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0), \
+        VXC_OP4(img_load_3d, read_data1, input, coord_in.xywz, VXC_5BITOFFSET_XY(8, 0), \
                 VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
         _viv_asm(COPY, in1, read_data1, 16); \
         VXC_DP2x8(result, in0, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResizeNxDown_2x8); \
         _viv_asm(COPY, save_data, result, 16); \
-        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, save_data, \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, save_data, \
             VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
         coord_in.y++; \
         coord_out.y++; \

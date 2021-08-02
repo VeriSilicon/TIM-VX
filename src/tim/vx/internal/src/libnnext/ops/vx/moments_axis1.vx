@@ -26,15 +26,22 @@ __kernel void moments_axis1_##src0_type_name##toF16( \
     short zp = inputZP;\
     float4 tmpData0;\
  \
-    for(coord.y = 0; coord.y < height; coord.y++) \
+    VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    for(coord.y = 1; coord.y < height; ) \
     { \
-        VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
-                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
         VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
                 uniConvert1stUint8SubZpToFp32_4x4); \
+        VXC_ReadImage2DArray(src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+        coord.y++; \
         sum += (tmpData0); \
         sqr += (tmpData0 * tmpData0); \
     } \
+    VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+            uniConvert1stUint8SubZpToFp32_4x4); \
+    sum += (tmpData0); \
+    sqr += (tmpData0 * tmpData0); \
     sum *= input_scale; \
     sqr *= e2InScale; \
  \
@@ -71,16 +78,23 @@ __kernel void moments_axis1_##src0_type_name##toF16_2D( \
     float4 sum = 0, sqr = 0; \
     short zp = inputZP;\
     float4 tmpData0;\
+    VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+            VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
  \
-    for(coord.y = 0; coord.y < height; coord.y++) \
+    for (coord.y = 1; coord.y < height; ) \
     { \
-        VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
-                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
         VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
                 uniConvert1stUint8SubZpToFp32_4x4); \
+        VXC_ReadImage(src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+        coord.y++; \
         sum += (tmpData0); \
         sqr += (tmpData0 * tmpData0); \
     } \
+    VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+           uniConvert1stUint8SubZpToFp32_4x4); \
+    sum += (tmpData0); \
+    sqr += (tmpData0 * tmpData0); \
     sum *= input_scale; \
     sqr *= e2InScale; \
  \

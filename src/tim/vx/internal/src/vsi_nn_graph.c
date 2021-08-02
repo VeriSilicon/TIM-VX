@@ -739,6 +739,13 @@ vsi_status vsi_nn_SetupGraph
         goto final;
     }
 
+    /* Set all of tensor attribute in graph to high precision */
+    status = set_graph_precision(graph, nodes_list);
+    if(VSI_SUCCESS != status)
+    {
+        goto final;
+    }
+
     /* Create vx node and vx virtual tensor */
     status = compute_node( graph, nodes_list );
     if(VSI_SUCCESS != status)
@@ -746,12 +753,6 @@ vsi_status vsi_nn_SetupGraph
         goto final;
     }
 
-    /* Set all of tensor attribute in graph to high precision */
-    status = set_graph_precision(graph, nodes_list);
-    if(VSI_SUCCESS != status)
-    {
-        goto final;
-    }
     /* Try setup graph complete signal node. */
     status = vsi_nn_TrySetupCompleteSignalNode( graph );
     TEST_CHECK_STATUS( status, final );

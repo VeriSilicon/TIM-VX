@@ -53,7 +53,11 @@ typedef struct _vsi_nn_signalframe_param
     uint32_t window_length;
     uint32_t step;
     uint32_t pad_end;
-    uint32_t pad;
+    union
+    {
+        uint32_t pad;
+        float pad_value;
+    };
     uint32_t axis;
 } vsi_nn_signalframe_param;
 

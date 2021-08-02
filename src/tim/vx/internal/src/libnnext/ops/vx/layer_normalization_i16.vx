@@ -21,24 +21,25 @@ __kernel void layer_norm_I16toI16(
     image2d_array_t input, image2d_t bias, image2d_t scale,
     image2d_array_t output, float eps)
 {
-    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0);
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), get_global_id(2));
+    int4 coord_in = (int4)(0, get_global_id(1), get_global_id(2), get_global_id(2));
 
     int8 input_desc, output_desc;
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
     int baseAddr_a = (int)get_global_id(2) * input_desc.s4 + input_desc.s0;
-    _viv_asm(MOV, coord.z, baseAddr_a);
+    _viv_asm(MOV, coord_in.z, baseAddr_a);
 
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
-    _viv_asm(MOV, coord.w, baseAddr);
+    _viv_asm(MOV, coord.z, baseAddr);
 
     vxc_short8 src0, src1, dst;
     vxc_float sum = 0, sqr = 0;
-    for(; coord.x < width;)
+    for(; coord_in.x < width;)
     {
-        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        coord.x += 8;
+        coord_in.x += 8;
         vxc_float4 sumsqr;
         VXC_DP8x2(sumsqr, src0, src0, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0),\
                     uniInt16SumSqr_dp8x2);
@@ -60,11 +61,11 @@ __kernel void layer_norm_I16toI16(
 
     int2 coord_bias = (int2)(0, 0);
 
-    for(coord.x = 0; coord.x < width; coord.x += 8)
+    for(coord_in.x = 0; coord_in.x < width; coord_in.x += 8, coord.x += 8)
     {
-        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        coord_bias.x = coord.x;
+        coord_bias.x = coord_in.x;
         VXC_ReadImage(src1, scale, coord_bias, VXC_5BITOFFSET_XY(0, 0),\
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
         bias_f0 = read_imagef(bias, coord_bias);
@@ -92,7 +93,7 @@ __kernel void layer_norm_I16toI16(
 
         VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\
                 uniConvertInt32toUint8_2x8);
-        VXC_OP4_NoDest(img_store_3d, output, coord.xyww, dst, \
+        VXC_OP4_NoDest(img_store_3d, output, coord, dst, \
                 VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
     }
 }

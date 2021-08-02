@@ -15,8 +15,8 @@ __kernel void prelu_FP32FP32toFP32
 
     float4 src0;
     float4 src1;
-    readImage2DArray(src0, input0, coord);
-    readImage2DArray(src1, input1, coord);
+    READ_IMAGEF_2DARRAY(src0, input0, coord);
+    READ_IMAGEF_2DARRAY(src1, input1, coord);
 
     float4 maxData = src0 >= 0 ? src0 : 0;
     float4 minData = src0 < 0 ? src0 : 0;
@@ -67,8 +67,8 @@ __kernel void prelu_U8U8toU8
 
     uint4 src0;
     uint4 src1;
-    readImage2DArray(src0, input0, coord);
-    readImage2DArray(src1, input1, coord);
+    READ_IMAGEUI_2DARRAY(src0, input0, coord);
+    READ_IMAGEUI_2DARRAY(src1, input1, coord);
 
     float4 data0 = convert_float4(src0) * input0Scale - input0Tail;
     float4 data1 = convert_float4(src1) * input1Scale - input1Tail;
@@ -130,8 +130,8 @@ __kernel void prelu_I32I32toI32
 
     int4 src0;
     int4 src1;
-    readImage2DArray(src0, input0, coord);
-    readImage2DArray(src1, input1, coord);
+    READ_IMAGEI_2DARRAY(src0, input0, coord);
+    READ_IMAGEI_2DARRAY(src1, input1, coord);
 
     float4 data0 = convert_float4(src0) * input0Scale - input0Tail;
     float4 data1 = convert_float4(src1) * input1Scale - input1Tail;

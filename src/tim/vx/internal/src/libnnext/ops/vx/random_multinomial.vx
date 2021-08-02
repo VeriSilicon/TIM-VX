@@ -8,15 +8,6 @@ _viv_uniform int iter;
 _viv_uniform int stride;
 _viv_uniform float re_rand_max;
 
-inline uchar* get_image2D_array_ptr(image2d_array_t  input)
-{
-    int8 desc;
-    _viv_asm(COPY, desc, input, sizeof(desc));
-    uchar *src_ptr = (uchar*)desc.s0;
-
-    return src_ptr;
-}
-
 uint4 _philox4x32bumpkey(uint4 key)
 {
     uint4 mask = (uint4)((uint)0x9E3779B9, (uint)0xBB67AE85, 0, 0);
@@ -72,15 +63,16 @@ uint4 philox4x32_R_10(uint4 ctr, uint4 key)
 }
 
 __kernel void random_seed(
-    __read_only  image2d_array_t  seeds,
-    __write_only image2d_array_t  output)
+    __read_only  image2d_t  seeds,
+    __write_only image2d_t  output)
 {
     int gidx = get_global_id(0);
     int gidy = get_global_id(1);
     int4 coord = (int4)(gidx << 1, gidy, 0, 0);
 
     int width = get_image_width(seeds);
-    __global uint* seeds_ptr = (__global uint*)get_image2D_array_ptr(seeds);
+    Image s_img = create_image_from_image2d(seeds, 4);
+    __global uint* seeds_ptr = (__global uint*)s_img.ptr;
     seeds_ptr = seeds_ptr + coord.x + coord.y * width;
     uint4 key = vload4(0, seeds_ptr);
 
@@ -88,8 +80,9 @@ __kernel void random_seed(
     float4 result = 0;
 
     width = get_image_width(output);
+    Image o_img = create_image_from_image2d(output, 4);
     coord.x = gidx * stride + width * coord.y;
-    __global float* output_ptr = (__global float*)get_image2D_array_ptr(output);
+    __global float* output_ptr = (__global float*)o_img.ptr;
     output_ptr += coord.x;
 
     for(int i = 0; i < iter; i++)
@@ -111,8 +104,8 @@ float4 eltwise_unary_exp(float4 x)
 // x dim = 1
 __kernel void random_multinomial_cdf_F16
     (
-    __read_only  image2d_array_t   input,
-    __write_only image2d_array_t  output
+    __read_only  image2d_t  input,
+    __write_only image2d_t  output
     )
 {
     int gidx = get_global_id(0);
@@ -127,7 +120,8 @@ __kernel void random_multinomial_cdf_F16
 
     int class_max_stride = get_image_width(input);
     int offset = gidy * class_max_stride;
-    __global float* output_ptr = (__global float*)get_image2D_array_ptr(output);
+    Image o_img = create_image_from_image2d(output, 4);
+    __global float* output_ptr = (__global float*)o_img.ptr;
     __global float* cdfPtr = output_ptr + offset;
 
     VXC_ReadImage(maxData, input, coord, VXC_5BITOFFSET_XY(0, 0),\
@@ -170,8 +164,8 @@ __kernel void random_multinomial_cdf_F16
 
 __kernel void random_multinomial_cdf_F32
     (
-    __read_only  image2d_array_t input,
-    __write_only image2d_array_t output
+    __read_only  image2d_t input,
+    __write_only image2d_t output
     )
 {
     int gidx = get_global_id(0);
@@ -187,11 +181,13 @@ __kernel void random_multinomial_cdf_F32
     int class_max_stride = get_image_width(input);
     float tmp = 0;
     int offset = gidy * class_max_stride;
-    __global float* output_ptr = (__global float*)get_image2D_array_ptr(output);
+    Image o_img = create_image_from_image2d(output, 4);
+    __global float* output_ptr = (__global float*)o_img.ptr;
     __global float* cdfPtr = output_ptr + offset;
 
     int width = get_image_width(input);
-    __global float* input_ptr = (__global float*)get_image2D_array_ptr(input);
+    Image i_img = create_image_from_image2d(input, 4);
+    __global float* input_ptr = (__global float*)i_img.ptr;
     input_ptr = input_ptr + coord.x + coord.y * width;
 
     float4 maxVal = vload4(0, input_ptr);
@@ -235,10 +231,10 @@ uint upper_bound(float* a, int n, float x)
 // one thread calculate 4
 __kernel void random_multinomial
     (
-    __read_only image2d_array_t   randoms,
-    __read_only image2d_array_t   cdfs,
-   __write_only image2d_array_t   output,
-                int               class_size
+    __read_only image2d_t   randoms,
+    __read_only image2d_t   cdfs,
+   __write_only image2d_t   output,
+                int         class_size
     )
 {
     int gidx = get_global_id(0);
@@ -247,17 +243,20 @@ __kernel void random_multinomial
 
     int class_max_stride = get_image_width(cdfs);
     int offset = gidy * class_max_stride;
-    __global float* cdf_ptr = (__global float*)get_image2D_array_ptr(cdfs);
+    Image cdf_img = create_image_from_image2d(cdfs, 4);
+    __global float* cdf_ptr = (__global float*)cdf_img.ptr;
     __global float* cdfPtr = cdf_ptr + offset;
 
     int width = get_image_width(randoms);
     offset = coord.x + coord.y * width;
-    __global float* randoms_ptr = (__global float*)get_image2D_array_ptr(randoms);
+    Image r_img = create_image_from_image2d(randoms, 4);
+    __global float* randoms_ptr = (__global float*)r_img.ptr;
     randoms_ptr = randoms_ptr + offset;
 
     width = get_image_width(output);
     offset = coord.x + coord.y * width;
-    __global uint* output_ptr = (__global uint*)get_image2D_array_ptr(output);
+    Image o_img = create_image_from_image2d(output, 4);
+    __global uint* output_ptr = (__global uint*)o_img.ptr;
     output_ptr = output_ptr + offset;
 
     float4 ran = vload4(0, randoms_ptr);

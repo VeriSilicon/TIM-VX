@@ -40,9 +40,9 @@ __kernel void resize_1d_bilinear_I16toI16_UP
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
     int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;
     _viv_asm(MOV, coord_in.w, baseAddr);
-    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, src0, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),
+    VXC_OP4(img_load_3d, src1, input, coord_in.xywz, VXC_5BITOFFSET_XY(8, 0),
             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 
     vxc_ushort8 bitextract_p0;
@@ -67,9 +67,9 @@ __kernel void resize_1d_bilinear_I16toI16_UP
         float4 right4;
 
         coord_in.y ++;
-        VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src0, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
                 VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(8, 0),
+        VXC_OP4(img_load_3d, src1, input, coord_in.xywz, VXC_5BITOFFSET_XY(8, 0),
                 VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 
         VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_4x4);
@@ -79,7 +79,7 @@ __kernel void resize_1d_bilinear_I16toI16_UP
         int4 dst     = convert_int4_rte(dst4);
         VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);
 
-        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top,
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, top,
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
         coord_out.y ++;
     } while (coord_out.y < out_height);
@@ -117,16 +117,16 @@ __kernel void resize_1d_bilinear_I16toI16_DOWN
 
     do
     {
-        VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));
         coord_in.x = left_x_idx.y;
-        VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));
         coord_in.x = left_x_idx.z;
-        VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));
         coord_in.x = left_x_idx.w;
-        VXC_OP4(img_load_3d, src, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, src, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
 
         VXC_DP4x4(left4, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_left_4x4);
@@ -138,7 +138,7 @@ __kernel void resize_1d_bilinear_I16toI16_DOWN
         int4 dst     = convert_int4_rte(dst4);
 
         VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);
-        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, result,
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, result,
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
         coord_in.y++;
         coord_out.y ++;

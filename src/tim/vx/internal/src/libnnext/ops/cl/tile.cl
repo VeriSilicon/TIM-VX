@@ -1,5 +1,5 @@
 
-#define TILE_3D(name0, name1, data_type, write_image_func) \
+#define TILE_3D(name0, name1, data_type, read_image_func, write_image_func) \
 __kernel void tile_##name0##to##name1 \
     ( \
     __read_only  image2d_array_t input, \
@@ -19,7 +19,7 @@ __kernel void tile_##name0##to##name1 \
     int height = get_image_height(input); \
  \
     data_type src; \
-    readImage2DArray(src, input, coord); \
+    read_image_func(src, input, coord); \
  \
     int batch_id = (short)coord.z / (short)depthIn; \
     coord.z = (short)coord.z % (short)depthIn; \
@@ -46,11 +46,11 @@ __kernel void tile_##name0##to##name1 \
         } \
     } \
 }
-TILE_3D(I32, I32, int4,   write_imagei)
-TILE_3D(U32, U32, uint4,  write_imageui)
-TILE_3D(F32, F32, float4, write_imagef)
+TILE_3D(I32, I32, int4,   READ_IMAGEI_2DARRAY,  write_imagei)
+TILE_3D(U32, U32, uint4,  READ_IMAGEUI_2DARRAY, write_imageui)
+TILE_3D(F32, F32, float4, READ_IMAGEF_2DARRAY,  write_imagef)
 
-#define TILE_2D(name0, name1, data_type) \
+#define TILE_2D(name0, name1, data_type, read_image_func, write_image_func) \
 __kernel void tile_##name0##to##name1##_2D \
     ( \
     __read_only  image2d_t input, \
@@ -70,23 +70,22 @@ __kernel void tile_##name0##to##name1##_2D \
     int output_width = get_image_width(output); \
     int output_height = get_image_height(output); \
  \
-    data_type src; \
-    readImage(src, input, coord); \
+    data_type src = read_image_func(input, coord); \
  \
     do \
     { \
         do \
         { \
-            writeImage(output, coord, src); \
+            write_image_func(output, coord, src); \
             coord.x += width; \
         } while (coord.x < output_width); \
         coord.x = get_global_id(0); \
         coord.y += height; \
     } while (coord.y < output_height); \
 }
-TILE_2D(I32, I32, int4)
-TILE_2D(U32, U32, uint4)
-TILE_2D(F32, F32, float4)
+TILE_2D(I32, I32, int4,   read_imagei,  write_imagei)
+TILE_2D(U32, U32, uint4,  read_imageui, write_imageui)
+TILE_2D(F32, F32, float4, read_imagef,  write_imagef)
 
 
 

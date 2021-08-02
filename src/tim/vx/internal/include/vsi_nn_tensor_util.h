@@ -721,6 +721,13 @@ vsi_status vsi_nn_SwapHandle
     void ** old_ptr
     );
 
+vsi_bool vsi_nn_ConvertTensor
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* input,
+    vsi_nn_tensor_t* output
+    );
+
 #ifdef __cplusplus
 }
 #endif

@@ -66,7 +66,7 @@ __kernel void repeat_I16_axis0(
     image2d_array_t  input0, image2d_t  input1, image2d_t  input2,
     image2d_array_t  output, int axis)
 {
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2));
     vxc_short8 src0;
     VXC_ReadImage2DArray(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0),
                 VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
@@ -83,6 +83,7 @@ __kernel void repeat_I16_axis0(
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord.z, baseAddr);
     int end = len + start;
+    coord.w = get_global_id(2);
 
     for(coord.y = start; coord.y < end; coord.y++)
     {
@@ -192,6 +193,7 @@ __kernel void repeat_U8_axis0(
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord.z, baseAddr);
     int end = len + start;
+    coord.w = get_global_id(2);
 
     for(coord.y = start; coord.y < end; coord.y++)
     {

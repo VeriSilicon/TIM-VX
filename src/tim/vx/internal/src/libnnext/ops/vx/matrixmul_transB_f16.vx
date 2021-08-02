@@ -36,21 +36,21 @@ __kernel void gemm_transb_F16F16toF16(image2d_array_t inputA,
     {
         vxc_short8 srcA0,srcA1,srcA2,srcA3;
         vxc_short8 srcB0,srcB1,srcB2,srcB3;
-        VXC_OP4(img_load_3d, srcA0, inputA, coord_a.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, srcA0, inputA, coord_a.xywz, VXC_5BITOFFSET_XY(0, 0),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, srcA1, inputA, coord_a.xyww, VXC_5BITOFFSET_XY(0, 1),
+        VXC_OP4(img_load_3d, srcA1, inputA, coord_a.xywz, VXC_5BITOFFSET_XY(0, 1),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, srcA2, inputA, coord_a.xyww, VXC_5BITOFFSET_XY(0, 2),
+        VXC_OP4(img_load_3d, srcA2, inputA, coord_a.xywz, VXC_5BITOFFSET_XY(0, 2),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, srcA3, inputA, coord_a.xyww, VXC_5BITOFFSET_XY(0, 3),
+        VXC_OP4(img_load_3d, srcA3, inputA, coord_a.xywz, VXC_5BITOFFSET_XY(0, 3),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, srcB0, inputB, coord_b.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, srcB0, inputB, coord_b.xywz, VXC_5BITOFFSET_XY(0, 0),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, srcB1, inputB, coord_b.xyww, VXC_5BITOFFSET_XY(0, 1),
+        VXC_OP4(img_load_3d, srcB1, inputB, coord_b.xywz, VXC_5BITOFFSET_XY(0, 1),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, srcB2, inputB, coord_b.xyww, VXC_5BITOFFSET_XY(0, 2),
+        VXC_OP4(img_load_3d, srcB2, inputB, coord_b.xywz, VXC_5BITOFFSET_XY(0, 2),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, srcB3, inputB, coord_b.xyww, VXC_5BITOFFSET_XY(0, 3),
+        VXC_OP4(img_load_3d, srcB3, inputB, coord_b.xywz, VXC_5BITOFFSET_XY(0, 3),
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
         coord_a.x += 8;
         coord_b.x += 8;

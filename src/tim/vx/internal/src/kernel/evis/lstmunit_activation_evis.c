@@ -991,8 +991,8 @@ DEF_KERNEL_INITIALIZER(_lstmunit_activation_initializer)
     int32_t                      _is_ln                 = 0;
     int32_t                      _is_cifg               = 0;
     int32_t                      _is_hybrid             = 0;
-    vsi_nn_kernel_tensor_attr_t* input_attr[9];
-    vsi_nn_kernel_tensor_attr_t* attr[2];
+    vsi_nn_kernel_tensor_attr_t* input_attr[9]          = {NULL};
+    vsi_nn_kernel_tensor_attr_t* attr[2]                = {NULL};;
 
     status = vsi_nn_kernel_scalar_read_int32( (vsi_nn_kernel_scalar_t)param[param_size - 5], &_is_ln );
     CHECK_STATUS_FAIL_GOTO(status, final );

@@ -155,65 +155,6 @@ static vsi_bool _check_value_is_equal_to_one
     return ret;
 }
 
-static vsi_bool _tensor_data_convert
-    (
-    vsi_nn_graph_t* graph,
-    vsi_nn_tensor_t* in_tensor,
-    vsi_nn_tensor_t* out_tensor
-    )
-{
-    vsi_bool ret = TRUE;
-    float* tensor_data = NULL;
-    uint32_t size = 0;
-    uint32_t stride[VSI_NN_MAX_DIM_NUM] = { 0 };
-    uint8_t* data = NULL;
-
-    tensor_data = vsi_nn_ConvertTensorToFloat32Data( graph, in_tensor );
-    if ( NULL == tensor_data )
-    {
-        VSILOGE( "Convert data fail." );
-        return FALSE;
-    }
-
-    size = vsi_nn_GetStrideSize( &out_tensor->attr, stride );
-    data = (uint8_t *)malloc( size );
-
-    if ( data )
-    {
-        uint32_t i = 0;
-        uint32_t elements = size / stride[0];
-        vsi_status status = VSI_SUCCESS;
-
-        for ( i = 0; i < elements; i ++ )
-        {
-            status = vsi_nn_Float32ToDtype( tensor_data[i], &data[stride[0] * i], &out_tensor->attr.dtype );
-            if( VSI_FAILURE == status )
-            {
-                VSILOGE("Convert default_value to dtype fail");
-                break;
-            }
-        }
-
-        status = vsi_nn_CopyDataToTensor( graph, out_tensor, data );
-        free( data );
-        data = NULL;
-        if ( VSI_FAILURE == status )
-        {
-            VSILOGE("Copy data to tensor fail");
-        }
-    }
-
-    if ( !in_tensor->attr.is_created_from_handle )
-    {
-        if ( tensor_data )
-        {
-            free(tensor_data);
-        }
-    }
-
-    return ret;
-}
-
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -430,7 +371,7 @@ static vsi_bool op_setup
             attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
         }
         reshape_tensor = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
-        _tensor_data_convert(self->graph, inputs[1], reshape_tensor->t);
+        vsi_nn_ConvertTensor(self->graph, inputs[1], reshape_tensor->t);
 
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_MULTIPLY, 0, 0);
         curr->inputs[0] = output_tensor->t;

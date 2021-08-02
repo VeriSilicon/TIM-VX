@@ -238,11 +238,11 @@ static vsi_status vsi_nn_RegisterVXKernel
     if(evis == VSI_NN_HW_EVIS_NONE)
     {
         // set default evis version is 2
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=2");
+        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
     }
     else
     {
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=%d", evis);
+        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
     }
     status = vxBuildProgram(program, cmd);
 
@@ -323,11 +323,11 @@ static vsi_status vsi_nn_RegisterBinKernel
     if(evis == VSI_NN_HW_EVIS_NONE)
     {
         // set default evis version is 2
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=2");
+        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
     }
     else
     {
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=%d", evis);
+        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
     }
 #else
     sprintf(cmd, "-cl-viv-vx-extension");

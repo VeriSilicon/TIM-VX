@@ -1,6 +1,7 @@
 #define MUL2_RSQRTPI    (1.1283791670955126f)
-float eltwise_unary_erf(float x)
+float eltwise_unary_erf(float _x)
 {
+    float x = clamp(_x, -2, 2);
     float res = 0;
     float tmp = x;
     float factorial = 1;

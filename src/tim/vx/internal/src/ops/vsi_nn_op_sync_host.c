@@ -24,72 +24,15 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "vsi_nn_pub.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_types.h"
+#include "vsi_nn_platform.h"
+#include "vsi_nn_prv.h"
+#include "vsi_nn_graph.h"
+#include "kernel/vsi_nn_kernel.h"
 
-#define _ARG_NUM            (0)
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (1)
-#define _VX_KERNEL_VAR      (vx_client_kernel_SYNC_HOST)
-#define _IO_NUM             (_INPUT_NUM + _OUTPUT_NUM)
-#define _PARAM_NUM          (_ARG_NUM + _IO_NUM)
-#define _VSI_PARAM          (vsi_nn_client_sync_host_param)
 
-extern vx_kernel_description_t * vx_kernel_SYNC_HOST_list[];
-
-static void _set_inputs_outputs
-    (
-    vx_reference * params,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    uint32_t i;
-    uint32_t cnt;
-
-    /* Set inputs */
-    cnt = 0;
-    for( i = 0; i < _INPUT_NUM; i ++, cnt ++ )
-    {
-        params[cnt] = (vx_reference)inputs[i]->t;
-    }
-
-    /* Set outputs */
-    for( i = 0; i < _OUTPUT_NUM; i ++, cnt ++ )
-    {
-        params[cnt] = (vx_reference)outputs[i]->t;
-    }
-} /* _set_inputs_outputs() */
-
-static vsi_status cpu_op_compute
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    vsi_status status = VSI_SUCCESS;
-    vx_reference params[_PARAM_NUM];
-
-    if( NULL == self->n )
-    {
-        return VSI_FAILURE;
-    }
-
-    /* Set inputs and outputs */
-    _set_inputs_outputs( params, inputs, outputs );
-
-    /* Pass parameters to node. */
-    status = vsi_nn_ClientNodePassParameters( self->n, params, _PARAM_NUM );
-
-    return status;
-}
-
-static vsi_nn_op_compute_t op_compute_list[] =
-{
-    cpu_op_compute,
-    NULL
-};
 
 static vsi_status op_compute
     (
@@ -98,48 +41,20 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status;
-    vsi_nn_kernel_info_t kernel_info;
-    char *path = NULL;
+    vsi_status status = VSI_FAILURE;
 
-    memset(&kernel_info, 0x0, sizeof(vsi_nn_kernel_info_t));
-    status = VSI_FAILURE;
-    kernel_info.type = VX_KERNEL_TYPE_CPU;
-    kernel_info.kernel = vx_kernel_SYNC_HOST_list;
-    kernel_info.resource_num = 1;
-    kernel_info.resource_name = (char **)malloc(kernel_info.resource_num * sizeof(char *));
-    kernel_info.resource_name[0] = "sync_host";
-    path = getenv("USER_VX_SOURCE_PATH");
-    if(path)
-        vsi_nn_VxResourceSetPath(path);
+    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+        "sync_host",
+        inputs, 1,
+        outputs, 1, NULL );
 
-    if( kernel_info.type == VX_KERNEL_TYPE_VX)
+    if( self->n )
     {
-        kernel_info.kernel_index = 1;
-        kernel_info.init_index = 1;
-    }
-    else /*kernel_info.type = VX_KERNEL_TYPE_CPU;*/
-    {
-        kernel_info.kernel_index = 0;
-        kernel_info.init_index = 0;
+        status = VSI_SUCCESS;
     }
 
-    self->n = vsi_nn_RegisterClientKernelAndNewNode(
-            self->graph, &kernel_info);
-    if (kernel_info.resource_name)
-    {
-        free(kernel_info.resource_name);
-    }
-    if( NULL == self->n )
-    {
-        return VSI_FAILURE;
-    }
-    if (NULL != op_compute_list[kernel_info.init_index])
-    {
-        status = op_compute_list[kernel_info.init_index](self, inputs, outputs);
-    }
     return status;
-} /* op_compute() */
+}/* op_compute() */
 
 static vsi_bool op_check
     (

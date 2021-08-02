@@ -48,9 +48,9 @@ __kernel void gemm_transa_##src0_type_name##src1_type_name##to##dst_type_name( \
  \
     for(coord_a.y = 0, coord_b.y = 0; coord_a.y < K;) \
     { \
-        VXC_OP4(img_load_3d, srcA, inputA, coord_a.xyww, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, srcA, inputA, coord_a.xywz, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
-        VXC_OP4(img_load_3d, srcB, inputB, coord_b.xyww, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, srcB, inputB, coord_b.xywz, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
         coord_a.y++; \
         coord_b.y++; \
@@ -72,10 +72,10 @@ __kernel void gemm_transa_##src0_type_name##src1_type_name##to##dst_type_name( \
     tmpOut1 = convert_int4_rte(sum1 * outputScale + output_ZP); \
     VXC_DP2x8(outC, tmpOut0, tmpOut1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\
         uniConvertInt32toUint8_2x8); \
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s0123, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s0123, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
     coord_b.y++; \
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s4567, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s4567, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
  \
     coord_b.y++; \
@@ -83,10 +83,10 @@ __kernel void gemm_transa_##src0_type_name##src1_type_name##to##dst_type_name( \
     tmpOut1 = convert_int4_rte(sum3 * outputScale + output_ZP); \
     VXC_DP2x8(outC, tmpOut0, tmpOut1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\
         uniConvertInt32toUint8_2x8); \
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s0123, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s0123, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
     coord_b.y++; \
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s4567, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s4567, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
 }
 GEMM_TRANSA_QINT(U8, U8, U8, vxc_uchar16, vxc_uchar16, vxc_uchar16)
@@ -133,9 +133,9 @@ __kernel void gemm_transa_##src0_type_name##F16to##src0_type_name( \
  \
     for(coord_a.y = 0, coord_b.y = 0; coord_a.y < K;) \
     { \
-        VXC_OP4(img_load_3d, srcA, inputA, coord_a.xyww, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, srcA, inputA, coord_a.xywz, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
-        VXC_OP4(img_load_3d, srcB, inputB, coord_b.xyww, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, srcB, inputB, coord_b.xywz, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
         coord_a.y++; \
         coord_b.y++; \
@@ -157,10 +157,10 @@ __kernel void gemm_transa_##src0_type_name##F16to##src0_type_name( \
     tmpOut1 = convert_int4_rte(sum1 * outputScale + output_ZP); \
     VXC_DP2x8(outC, tmpOut0, tmpOut1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\
         uniConvertInt32toUint8_2x8); \
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s0123, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s0123, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
     coord_b.y++; \
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s4567, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s4567, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
  \
     coord_b.y++; \
@@ -168,10 +168,10 @@ __kernel void gemm_transa_##src0_type_name##F16to##src0_type_name( \
     tmpOut1 = convert_int4_rte(sum3 * outputScale + output_ZP); \
     VXC_DP2x8(outC, tmpOut0, tmpOut1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\
         uniConvertInt32toUint8_2x8); \
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s0123, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s0123, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
     coord_b.y++; \
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s4567, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s4567, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0)); \
 }
 GEMM_TRANSA_INPUTB_F16(U8, vxc_uchar16)
@@ -215,9 +215,9 @@ __kernel void gemm_transa_F16F16toF16(
 
     for(coord_a.y = 0, coord_b.y = 0; coord_a.y < K;)
     {
-        VXC_OP4(img_load_3d, srcA, inputA, coord_a.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, srcA, inputA, coord_a.xywz, VXC_5BITOFFSET_XY(0, 0),
                     VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, srcB, inputB, coord_b.xyww, VXC_5BITOFFSET_XY(0, 0),
+        VXC_OP4(img_load_3d, srcB, inputB, coord_b.xywz, VXC_5BITOFFSET_XY(0, 0),
                     VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
         coord_a.y++;
         coord_b.y++;
@@ -237,24 +237,24 @@ __kernel void gemm_transa_F16F16toF16(
     _viv_asm(MOV, coord_b.w, baseAddr);
     _viv_asm(CONV, valC, sum0);
     _viv_asm(COPY, outC, valC, 16);
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s0246, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s0246, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
 
     coord_b.y++;
     _viv_asm(CONV, valC, sum1);
     _viv_asm(COPY, outC, valC, 16);
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s0246, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s0246, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
 
     coord_b.y++;
     _viv_asm(CONV, valC, sum2);
     _viv_asm(COPY, outC, valC, 16);
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s0246, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s0246, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
 
     coord_b.y++;
     _viv_asm(CONV, valC, sum3);
     _viv_asm(COPY, outC, valC, 16);
-    VXC_OP4_NoDest(img_store_3d, output, coord_b.xyww, outC.s0246, \
+    VXC_OP4_NoDest(img_store_3d, output, coord_b.xywz, outC.s0246, \
                 VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
 }

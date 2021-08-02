@@ -2356,3 +2356,66 @@ vsi_status vsi_nn_SwapHandle
     return VSI_SUCCESS;
 } /* vsi_nn_SwapHandle() */
 
+vsi_bool vsi_nn_ConvertTensor
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* input,
+    vsi_nn_tensor_t* output
+    )
+{
+    vsi_bool ret = TRUE;
+    uint8_t* src_buf = NULL;
+    uint32_t sz = 0;
+    uint32_t src_stride = 0;
+    uint32_t dst_stride = 0;
+    uint32_t dst_buf_sz = 0;
+    uint8_t* dst_buf = NULL;
+
+    if( NULL == graph || NULL == input || NULL == output )
+    {
+        return FALSE;
+    }
+
+    src_buf = vsi_nn_ConvertTensorToData( graph, input );
+    if ( NULL == src_buf )
+    {
+        VSILOGE( "Convert data fail." );
+        return FALSE;
+    }
+
+    sz = vsi_nn_GetElementNum( output );
+    src_stride = vsi_nn_TypeGetBytes( input->attr.dtype.vx_type );
+    dst_stride = vsi_nn_TypeGetBytes( output->attr.dtype.vx_type );
+    dst_buf_sz = sz * dst_stride;
+    dst_buf = (uint8_t *)malloc( dst_buf_sz );
+
+    if ( dst_buf )
+    {
+        uint32_t i = 0;
+        vsi_status status = VSI_SUCCESS;
+
+        for ( i = 0; i < sz; i ++ )
+        {
+            status = vsi_nn_DtypeConvert( &src_buf[src_stride * i],
+                &input->attr.dtype, &dst_buf[dst_stride * i], &output->attr.dtype );
+            if( VSI_FAILURE == status )
+            {
+                ret = FALSE;
+                VSILOGE("Convert default_value to dtype fail");
+                break;
+            }
+        }
+
+        status = vsi_nn_CopyDataToTensor( graph, output, dst_buf );
+        if ( VSI_FAILURE == status )
+        {
+            ret = FALSE;
+            VSILOGE("Copy data to tensor fail");
+        }
+    }
+
+    vsi_nn_safe_free( src_buf );
+    vsi_nn_safe_free( dst_buf );
+
+    return ret;
+}

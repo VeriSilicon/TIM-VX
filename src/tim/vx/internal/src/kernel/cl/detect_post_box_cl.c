@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -191,7 +190,6 @@ static vsi_status _query_kernel
     {
         *is_use_u8_kernel = FALSE;
         param_def_size    = _DETECT_POST_BOX_F32_PARAM_NUM;
-
     }
 
     key = DETECT_POST_BOX_HASH_KEY( in0_dtype, in1_dtype, out_dtype );
@@ -311,4 +309,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( detect_post_box, _setup )
-

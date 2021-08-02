@@ -240,11 +240,6 @@ static vsi_bool op_check
         return FALSE;
     }
 
-    if ( vsi_nn_compareVersion(self->graph, 1, 1, 20) >= 0 )
-    {
-        vsi_nn_OpCheck( VSI_NN_OP_MULTIPLY, self, inputs, outputs );
-    }
-
     return TRUE;
 } /* op_check() */
 
