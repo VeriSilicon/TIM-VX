@@ -1,9 +1,11 @@
 #include "cl_viv_vx_ext.h"
 
-__kernel void vxcExtra_ending_i16(
+__kernel void extra_ending_I16
+    (
     __read_only image2d_array_t   input0,
     __read_only image2d_array_t   input,
-    __write_only image2d_array_t  output)
+    __write_only image2d_array_t  output
+    )
 {
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
 
@@ -14,10 +16,28 @@ __kernel void vxcExtra_ending_i16(
     VXC_WriteImage2DArray(output, coord, data, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 }
 
-__kernel void vxcExtra_ending_i8(
+__kernel void extra_ending_F16
+    (
     __read_only image2d_array_t   input0,
     __read_only image2d_array_t   input,
-    __write_only image2d_array_t  output)
+    __write_only image2d_array_t  output
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+
+    vxc_short8 data;
+    VXC_ReadImage2DArray(data, input, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+    VXC_WriteImage2DArray(output, coord, data, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void extra_ending_I8
+    (
+    __read_only image2d_array_t   input0,
+    __read_only image2d_array_t   input,
+    __write_only image2d_array_t  output
+    )
 {
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
 
@@ -28,10 +48,12 @@ __kernel void vxcExtra_ending_i8(
     VXC_WriteImage2DArray(output, coord, data, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 }
 
-__kernel void vxcExtra_ending_u8(
+__kernel void extra_ending_U8
+    (
     __read_only image2d_array_t   input0,
     __read_only image2d_array_t   input,
-    __write_only image2d_array_t  output)
+    __write_only image2d_array_t  output
+    )
 {
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
 

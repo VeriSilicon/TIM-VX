@@ -34,7 +34,7 @@ namespace ops {
  *
  * 'Spatial Transformer Networks', Jaderberg et. al,
  *  (https://arxiv.org/abs/1506.02025)
- * 
+ *
  * - theta : Affine transform tensor of shape (B, 6). Permits cropping,
             translation and isotropic scaling. Initialize to identity matrix.
             It is the output of the localization network.
@@ -46,7 +46,7 @@ class SpatialTransformer : public Operation {
     bool has_theta_1_1, bool has_theta_1_2, bool has_theta_1_3,
     bool has_theta_2_1, bool has_theta_2_2, bool has_theta_2_3,
     float theta_1_1, float theta_1_2, float theta_1_3,
-    float theta_2_1, float theta_2_2, float theta_2_3);
+    float theta_2_1, float theta_2_2, float theta_2_3, bool align_corners = false);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
@@ -65,6 +65,7 @@ class SpatialTransformer : public Operation {
   float theta_2_1_;
   float theta_2_2_;
   float theta_2_3_;
+  bool align_corners_;
 };
 
 }  // namespace ops

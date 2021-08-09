@@ -444,14 +444,15 @@ static vsi_status _gpu_register
         if( VSI_NN_KERNEL_TYPE_EVIS == kernel->type )
         {
             cost_bytes = snprintf( cmd, MAX_BUILDPROGRAM_LEN,
-                    "-cl-viv-vx-extension -D VX_VERSION=2" );
+                    "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d",
+                    context->config.use_40bits_va );
         }
     }
     else
     {
         cost_bytes = snprintf( cmd, MAX_BUILDPROGRAM_LEN,
-                "-cl-viv-vx-extension -D VX_VERSION=%d",
-                context->config.evis.ver );
+                "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d",
+                context->config.evis.ver, context->config.use_40bits_va );
     }
     // Pack build option
     if( kernel->gpu.sources[active_fmt].build_option.data )
@@ -812,7 +813,6 @@ void vsi_nn_kernel_add_build_option
     }
     snprintf( &buf[org_size], item_size + 2, " %s", option );
     build_option->data = buf;
-
 } /* vsi_nn_kernel_add_build_option() */
 
 void vsi_nn_kernel_release
@@ -1224,18 +1224,7 @@ vsi_status vsi_nn_kernel_pirority_set
 
 static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
 {
-    char *envctrl;
-    static int32_t enableShader = -1;
-
-    if (enableShader == -1)
-    {
-        enableShader = 1;
-        envctrl = getenv("VIV_VX_ENABLE_SHADER");
-        if (envctrl)
-        {
-            enableShader = atoi(envctrl);
-        }
-    }
+    int32_t enableShader = graph->ctx->options.enable_shader;
 
 #if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
     if ( graph->ctx->config.subGroupSize == 0 )
@@ -1251,4 +1240,3 @@ static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
 
     return FALSE;
 }
-

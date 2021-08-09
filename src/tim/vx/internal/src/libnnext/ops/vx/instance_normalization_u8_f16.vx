@@ -19,7 +19,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_U8to
     image2d_array_t output, float eps, int rsFlg)
 {
     int gidz = get_global_id(1);
-    int4 coord = (int4)(get_global_id(0), 0, gidz, 0);
+    int4 coord = (int4)(get_global_id(0), 0, gidz, gidz);
     int4 coord_para = (int4)(gidz, 0, 0, 0);
     vxc_uchar16 src0;
     vxc_short8 src1, outval;

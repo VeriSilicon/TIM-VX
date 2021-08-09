@@ -114,7 +114,7 @@ DEF_KERNEL_INITIALIZER(_detect_post_box_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * input_attr   = NULL;
-    vsi_nn_kernel_tensor_attr_t * input1_attr   = NULL;
+    vsi_nn_kernel_tensor_attr_t * input1_attr  = NULL;
     vsi_int_array_t * in_shape                 = NULL;
     float             logE                     = (float)(log10(exp(1.0f)) / log10(2.0f));
     float     scaleIn0        = 1.0f;
@@ -224,6 +224,7 @@ DEF_KERNEL_INITIALIZER(_detect_post_box_initializer)
 final:
 #define SAFE_FREE_TENSOR_ATTR(_PTR) if( _PTR ) { vsi_nn_kernel_tensor_attr_release( &_PTR ); _PTR = NULL; }
     SAFE_FREE_TENSOR_ATTR(input_attr);
+    SAFE_FREE_TENSOR_ATTR(input1_attr);
 
     return status;
 } /* _detect_post_box_initializer() */

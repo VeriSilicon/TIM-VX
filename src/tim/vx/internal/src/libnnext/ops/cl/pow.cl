@@ -9,8 +9,8 @@ __kernel void pow_FP32FP32toFP32
 
     float4 src0, src1;
     float4 dst;
-    readImage2DArray(src0, input0, coord);
-    readImage2DArray(src1, input1, coord);
+    READ_IMAGEF_2DARRAY(src0, input0, coord);
+    READ_IMAGEF_2DARRAY(src1, input1, coord);
 
     float4  s0 = sign(src0);
     int4 t0 = convert_int4(src1) & 1;

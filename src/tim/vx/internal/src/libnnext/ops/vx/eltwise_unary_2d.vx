@@ -72,6 +72,56 @@ float4 eltwise_unary_round(float4 x)
     return convert_float4(convert_int4_rte(x));
 }
 
+#define MUL2_RSQRTPI    (1.1283791670955126f)
+float erf_eval(float x)
+{
+    float res = 0;
+    float tmp = x;
+    float factorial = 1;
+    float x_pow = x;
+    float one = 1.0f;
+    float n = 1;
+
+    if (x <= -3)
+        return -1;
+    else if(x >= 3)
+        return 1;
+
+    while (fabs(tmp) > 1e-5)
+    {
+        res += tmp;
+
+        factorial *= n;
+        one *= -1;
+        x_pow *= x * x;
+        tmp = one / factorial * x_pow / ( 2 * n + 1);
+
+        n += 1.0f;
+    }
+    return res * MUL2_RSQRTPI;
+}
+#define RSQRT2      (0.70710678118654752440084436210485f)
+float4 eltwise_unary_gelu(float4 x)
+{
+    float4 erf, data;
+    data = x * RSQRT2;
+    erf.x = erf_eval(data.x);
+    erf.y = erf_eval(data.y);
+    erf.z = erf_eval(data.z);
+    erf.w = erf_eval(data.w);
+    x = 0.5f * x * (1 + erf);
+
+    return x;
+}
+
+#define SQRT_2_RCP_PI  0.7978845834732056f
+float4 eltwise_unary_hard_gelu(float4 x)
+{
+    float4 cdf = 0.5f + 0.5f * _tanh(SQRT_2_RCP_PI *
+                        (x + 0.044715f * x * x * x));
+    return x * cdf;
+}
+
 _viv_uniform float inputScale;
 _viv_uniform float inputTail;
 _viv_uniform float outputScale;
@@ -203,6 +253,28 @@ ELTSISE_UNARY_2D(round, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc
 ELTSISE_UNARY_2D(round, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
 ELTSISE_UNARY_2D(round, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
 ELTSISE_UNARY_2D(round, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//GELU
+ELTSISE_UNARY_2D(gelu, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(gelu, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_2D(gelu, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_2D(gelu, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_2D(gelu, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_2D(gelu, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(gelu, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_2D(gelu, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(gelu, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_2D(gelu, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//HARD_GELU
+ELTSISE_UNARY_2D(hard_gelu, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(hard_gelu, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_2D(hard_gelu, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_2D(hard_gelu, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_2D(hard_gelu, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_2D(hard_gelu, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(hard_gelu, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_2D(hard_gelu, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(hard_gelu, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_2D(hard_gelu, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
 
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
@@ -252,3 +324,7 @@ ELTSISE_UNARY_BF16_2D(mish)
 ELTSISE_UNARY_BF16_2D(hard_sigmoid)
 //ROUND
 ELTSISE_UNARY_BF16_2D(round)
+//GELU
+ELTSISE_UNARY_BF16_2D(gelu)
+//HARD_GELU
+ELTSISE_UNARY_BF16_2D(hard_gelu)

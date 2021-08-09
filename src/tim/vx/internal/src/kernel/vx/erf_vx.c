@@ -38,8 +38,9 @@ typedef struct _sort_lut_s
     float val;
 } sort_lut;
 
-static float erf_eval(float x)
+static float erf_eval(float _x)
 {
+    float x = vsi_clamp(_x, -2, 2);
     float res = 0;
     float tmp = x;
     float factorial = 1; /*n!*/

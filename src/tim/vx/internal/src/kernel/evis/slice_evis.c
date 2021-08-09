@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,7 +38,6 @@
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 
 __BEGIN_DECLS
-
 
 #define _SLICE_KERNEL_SOURCE      "slice"
 #define _SLICE_KERNEL_NAME        CVIVANTE_NAMESPACE("evis.slice")
@@ -379,7 +377,6 @@ static vsi_status _query_kernel
     return status;
 } /* _query_kernel() */
 
-
 static vsi_nn_kernel_node_t _setup
     (
     vsi_nn_graph_t              * graph,
@@ -421,7 +418,7 @@ static vsi_nn_kernel_node_t _setup
     if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)reshape_tensors[0]->attr.size,
         reshape_tensors[0]->attr.dim_num ) || input_batch != output_batch )
     {
-        return NULL;
+        goto final;
     }
 
     image_2d = (rank[0] < 3 || shapes[0][2] == 1);
@@ -441,6 +438,12 @@ static vsi_nn_kernel_node_t _setup
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _SLICE_PARAM_NUM );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_SAMLEFL_VALUE] );
         }
+    }
+
+final:
+    for (i = 0; i < _IO_NUM; i++)
+    {
+        vsi_safe_release_tensor(reshape_tensors[i]);
     }
 
     return node;

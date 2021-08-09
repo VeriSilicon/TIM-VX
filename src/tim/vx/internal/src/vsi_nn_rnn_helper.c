@@ -339,7 +339,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tp_fc
     if( !bias )
     {
         /* create zero bias for NN/TP */
-        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr);
+        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr, FALSE);
         tensor = tensor1->t;
     }
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
@@ -382,7 +382,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc
     if( !bias )
     {
         /* create zero bias for NN/TP */
-        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr);
+        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr, FALSE);
         tensor = tensor1->t;
     }
 
@@ -475,7 +475,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc_relu
     if( !bias )
     {
         /* create zero bias for NN/TP */
-        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr);
+        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr, FALSE);
         tensor = tensor1->t;
     }
 

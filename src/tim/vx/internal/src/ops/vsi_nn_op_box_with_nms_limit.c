@@ -34,163 +34,10 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "kernel/vsi_nn_kernel.h"
 
-#define _ARG_NUM            (6)
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (4)
-#define _IO_NUM             (_INPUT_NUM + _OUTPUT_NUM)
-#define _PARAM_NUM          (_ARG_NUM + _IO_NUM)
-
-extern vx_kernel_description_t * vx_kernel_BOX_WITH_NMS_LIMIT_list[];
-
-static void _set_inputs_outputs
-    (
-    vx_reference * params,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    uint32_t i;
-    uint32_t cnt;
-
-    /* Set inputs */
-    cnt = 0;
-    for( i = 0; i < _INPUT_NUM; i ++, cnt ++ )
-    {
-        params[cnt] = (vx_reference)inputs[i]->t;
-    }
-
-    /* Set outputs */
-    for( i = 0; i < _OUTPUT_NUM; i ++, cnt ++ )
-    {
-        params[cnt] = (vx_reference)outputs[i]->t;
-    }
-} /* _set_inputs_outputs() */
-
-static vsi_status _create_params
-    (
-    vsi_nn_node_t * node,
-    vx_reference * params,
-    uint32_t num
-    )
-{
-    vsi_status status;
-    vx_context ctx;
-    vsi_nn_box_with_nms_limit_param * p;
-    if( 0 == num )
-    {
-        return VSI_SUCCESS;
-    }
-    memset( params, 0, sizeof( vx_reference * ) * num );
-    p = &(node->nn_param.box_with_nms_limit);
-    ctx = vxGetContext( (vx_reference)node->graph->g );
-    /* Init parameters */
-    #define _SET_PARAM( i, type, arg ) do{ \
-        params[i] = (vx_reference)vxCreateScalar( ctx, type, &p->arg ); \
-        status = vxGetStatus( params[i] ); \
-        if( VSI_SUCCESS != status ) { \
-            goto set_param_error; \
-            } \
-        } while(0)
-    _SET_PARAM( 0, VX_TYPE_FLOAT32, score_threshold );
-    _SET_PARAM( 1, VX_TYPE_INT32, max_num_bbox );
-    _SET_PARAM( 2, VX_TYPE_INT32, nms_kernel_method );
-    _SET_PARAM( 3, VX_TYPE_FLOAT32, iou_threshold );
-    _SET_PARAM( 4, VX_TYPE_FLOAT32, sigma );
-    _SET_PARAM( 5, VX_TYPE_FLOAT32, nms_score_threshold );
-    #undef _SET_PARAM
-set_param_error:
-
-    return status;
-} /* _create_params */
-
-static void _release_params
-    (
-    vx_reference * params,
-    uint32_t num
-    )
-{
-    uint32_t i;
-    vx_scalar scalar;
-    for( i = 0; i < num; i ++ )
-    {
-        scalar = (vx_scalar)params[i];
-        vxReleaseScalar( &scalar );
-    }
-} /* _release_params() */
-
-static vsi_status cpu_op_compute
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    vsi_status status = VSI_SUCCESS;
-    vx_reference params[_PARAM_NUM];
-    vx_reference * args;
-
-    args = &params[_IO_NUM];
-
-    if( NULL == self->n )
-    {
-        return VSI_FAILURE;
-    }
-
-    /* Set inputs and outputs */
-    _set_inputs_outputs( params, inputs, outputs );
-
-    /* Init parameters. */
-    _create_params( self, args, _ARG_NUM );
-
-    /* Pass parameters to node. */
-    status = vsi_nn_ClientNodePassParameters( self->n, params, _PARAM_NUM );
-
-    _release_params( args, _ARG_NUM );
-
-    return status;
-}
-
-static vsi_status vx_op_compute
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    vsi_status status = VSI_SUCCESS;
-    vx_reference params[_PARAM_NUM];
-    vx_reference * args;
-
-    args = &params[_IO_NUM];
-
-    if( NULL == self->n )
-    {
-        return VSI_FAILURE;
-    }
-
-    /* Set inputs and outputs */
-    _set_inputs_outputs( params, inputs, outputs );
-    /*TODO: Add code if need to change your parameter*/
-
-    /* Init parameters. */
-    _create_params( self, args, _ARG_NUM );
-
-    /* Pass parameters to node. */
-    status = vsi_nn_ClientNodePassParameters( self->n, params, _PARAM_NUM );
-
-    _release_params( args, _ARG_NUM );
-
-    return status;
-}
-
-static vsi_nn_op_compute_t op_compute_list[] =
-{
-    cpu_op_compute,
-    vx_op_compute,
-    NULL
-};
 
 static vsi_status op_compute
     (
@@ -199,46 +46,31 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status;
-    vsi_nn_kernel_info_t kernel_info;
-    char *path = NULL;
+    vsi_status status = VSI_FAILURE;
+    vsi_nn_kernel_param_t * param = NULL;
+    vsi_nn_box_with_nms_limit_param *p = &self->nn_param.box_with_nms_limit;
 
-    memset(&kernel_info, 0x0, sizeof(vsi_nn_kernel_info_t));
-    status = VSI_FAILURE;
-    kernel_info.type = VX_KERNEL_TYPE_CPU;
-    kernel_info.kernel = vx_kernel_BOX_WITH_NMS_LIMIT_list;
-    kernel_info.resource_num = 1;
-    kernel_info.resource_name = (char **)malloc(kernel_info.resource_num * sizeof(char *));
-    kernel_info.resource_name[0] = "vsi_nn_kernel_box_with_nms_limit";
-    path = getenv("USER_VX_SOURCE_PATH");
-    if(path)
-        vsi_nn_VxResourceSetPath(path);
+    param = vsi_nn_kernel_param_create();
 
-    if( kernel_info.type == VX_KERNEL_TYPE_VX)
+    vsi_nn_kernel_param_add_float32( param, "score_threshold",  p->score_threshold );
+    vsi_nn_kernel_param_add_int32( param, "max_num_detections",  p->max_num_bbox );
+    vsi_nn_kernel_param_add_int32( param, "nms_kernel_method",  p->nms_kernel_method );
+    vsi_nn_kernel_param_add_float32( param, "iou_threshold",  p->iou_threshold );
+    vsi_nn_kernel_param_add_float32( param, "sigma",  p->sigma );
+    vsi_nn_kernel_param_add_float32( param, "nms_score_threshold",  p->nms_score_threshold );
+
+    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+        "box_with_nms_limit",
+        inputs, _INPUT_NUM,
+        outputs, _OUTPUT_NUM, param );
+
+    if( self->n )
     {
-        kernel_info.kernel_index = 1;
-        kernel_info.init_index = 1;
-    }
-    else /*kernel_info.type = VX_KERNEL_TYPE_CPU;*/
-    {
-        kernel_info.kernel_index = 0;
-        kernel_info.init_index = 0;
+        status = VSI_SUCCESS;
     }
 
-    self->n = vsi_nn_RegisterClientKernelAndNewNode(
-            self->graph, &kernel_info);
-    if (kernel_info.resource_name)
-    {
-        free(kernel_info.resource_name);
-    }
-    if( NULL == self->n )
-    {
-        return VSI_FAILURE;
-    }
-    if (NULL != op_compute_list[kernel_info.init_index])
-    {
-        status = op_compute_list[kernel_info.init_index](self, inputs, outputs);
-    }
+    vsi_nn_kernel_param_release( &param );
+
     return status;
 } /* op_compute() */
 
@@ -264,17 +96,27 @@ static vsi_bool op_setup
     {
         outputs[0]->attr.dim_num = 1;
         outputs[0]->attr.size[0] = inputs[0]->attr.size[1];
+    }
 
+    if( VSI_NN_DIM_AUTO == outputs[1]->attr.dim_num )
+    {
         outputs[1]->attr.dim_num = 2;
         outputs[1]->attr.size[0] = 4;
         outputs[1]->attr.size[1] = inputs[0]->attr.size[1];
-
-        outputs[2]->attr.dim_num = 1;
-        outputs[2]->attr.size[0] = inputs[0]->attr.size[1];
-
-        outputs[3]->attr.dim_num = 1;
-        outputs[3]->attr.size[0] = inputs[0]->attr.size[1];
     }
+
+    if( VSI_NN_DIM_AUTO == outputs[2]->attr.dim_num )
+    {
+        outputs[0]->attr.dim_num = 1;
+        outputs[0]->attr.size[0] = inputs[0]->attr.size[1];
+    }
+
+    if( VSI_NN_DIM_AUTO == outputs[3]->attr.dim_num )
+    {
+        outputs[0]->attr.dim_num = 1;
+        outputs[0]->attr.size[0] = inputs[0]->attr.size[1];
+    }
+
     return TRUE;
 } /* op_setup() */
 

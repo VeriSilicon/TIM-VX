@@ -37,24 +37,24 @@ __kernel void resize_bilinear_U8toF16_DOWN
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
     int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;
     _viv_asm(MOV, coord_in.w, baseAddr);
-    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));
     coord_in.x = left_x_idx.y;
-    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));
     coord_in.x = left_x_idx.z;
-    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));
     coord_in.x = left_x_idx.w;
-    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
 
     float4 left4;
@@ -87,7 +87,7 @@ __kernel void resize_bilinear_U8toF16_DOWN
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord_out.w, baseAddr);
-    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, dst_short.s0246,
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, dst_short.s0246,
                    VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
 }
 
@@ -128,9 +128,9 @@ __kernel void resize_bilinear_U8toU8_UP
     int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;
     _viv_asm(MOV, coord_in.w, baseAddr);
 
-    VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, src0, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, src1, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
 
     vxc_ushort8 bitextract_p0;
@@ -157,12 +157,12 @@ __kernel void resize_bilinear_U8toU8_UP
         VXC_BitExtract(top, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
         VXC_BitExtract(bottom, src1, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 
-        coord_in.w += input_desc.s4;
-        VXC_OP4(img_load_3d, src0, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+        coord_in.zw += (int2)(1, input_desc.s4);
+        VXC_OP4(img_load_3d, src0, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
                 VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
-        VXC_OP4(img_load_3d, src1, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+        VXC_OP4(img_load_3d, src1, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
                 VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
-        coord_in.z ++;
+
         unsigned char inputZP;
         _viv_asm(COPY, inputZP, input_ZP, 4);
         VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
@@ -179,8 +179,8 @@ __kernel void resize_bilinear_U8toU8_UP
         dst4         = dst4 * uint8Scale + output_ZP;
         int4 dst     = convert_int4_rte(dst4);
         VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);
-        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
-        coord_out.w += output_desc.s4;
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
+        coord_out.zw += (int2)(1, output_desc.s4);
     }
 
     VXC_BitExtract(top, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
@@ -201,7 +201,7 @@ __kernel void resize_bilinear_U8toU8_UP
     dst4         = dst4 * uint8Scale + output_ZP;
     int4 dst     = convert_int4_rte(dst4);
     VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);
-    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
 }
 
 __kernel void resize_bilinear_U8toU8_DOWN
@@ -229,24 +229,24 @@ __kernel void resize_bilinear_U8toU8_DOWN
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
     int baseAddr = (int)coord_in.z * input_desc.s4 + input_desc.s0;
     _viv_asm(MOV, coord_in.w, baseAddr);
-    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0));
     coord_in.x = left_x_idx.y;
-    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0));
     coord_in.x = left_x_idx.z;
-    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0));
     coord_in.x = left_x_idx.w;
-    VXC_OP4(img_load_3d, top, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 0),
+    VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
-    VXC_OP4(img_load_3d, bottom, input, coord_in.xyww, VXC_5BITOFFSET_XY(0, 1),
+    VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
 
     float4 left4;
@@ -276,6 +276,6 @@ __kernel void resize_bilinear_U8toU8_DOWN
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord_out.w, baseAddr);
-    VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, result,
+    VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, result,
                    VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
 }

@@ -26,6 +26,7 @@
 #include "vsi_nn_client_op.h"
 #include "vsi_nn_node.h"
 #include "vsi_nn_types.h"
+#include "vsi_nn_graph.h"
 #include "vsi_nn_log.h"
 
 #define DEF_OP(NAME, ...) extern vsi_nn_op_proc_t vsi_nn_op_##NAME;
@@ -268,12 +269,12 @@ vsi_bool vsi_nn_OpCheck
 
     ret = FALSE;
     proc = vsi_nn_OpGetProc( op );
-    if( NULL != proc )
+    if ( NULL != proc )
     {
         ret = TRUE;
-        if( proc->check )
+        if ( proc->check && node->graph->ctx->options.enable_opcheck)
         {
-        ret = proc->check( node, inputs, outputs );
+            ret = proc->check( node, inputs, outputs );
         }
     }
     return ret;
@@ -380,4 +381,3 @@ const char * vsi_nn_OpGetName
     }
     return name;
 } /* vsi_nn_GetOpName() */
-

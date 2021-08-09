@@ -6,14 +6,6 @@ do \
 VXC_OP3_NoDest(vstore3, Pointer, byteOffset, Data); } \
 while(0)
 
-inline uchar* get_image2D_array_ptr(image2d_array_t  input)
-{
-    int8 desc;
-    _viv_asm(COPY, desc, input, sizeof(desc));
-    uchar *src_ptr = (uchar*)desc.s0;
-    return src_ptr;
-}
-
 #define L2NORMSCALE_SWITCH_PROCESS(case_value, vec_val, ZpValue) \
                 switch (case_value) \
                 { \
@@ -104,8 +96,10 @@ _viv_uniform int inputZP;
 
 #define L2NORMSCALE_MUL_AXIS0_PROCESS(dst_type, convert_type, output_type, copy_type) \
     vxc_float4 rsqrt0;\
-    dst_type  *dst_ptr = (dst_type *)get_image2D_array_ptr(output); \
-    short *scale_ptr = (short *)get_image2D_array_ptr(scale); \
+    Image dst_img = create_image_from_image2d(output, 1); \
+    dst_type  *dst_ptr = (dst_type *)dst_img.ptr; \
+    Image s_img = create_image_from_image2d(scale, 2); \
+    short *scale_ptr = (short *)s_img.ptr; \
     vxc_float4 vec0, vec1;\
     convert_type dst0, dst1;\
     vxc_short8 scale_s16;\
@@ -188,15 +182,16 @@ _viv_uniform int inputZP;
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) \
      void l2normalizescale_axis0_##in0_name##_##in1_name##to##out_name##_2D \
     (\
-    __read_only  image2d_array_t input,\
-    __read_only  image2d_array_t scale,\
-    __write_only image2d_array_t output,\
+    __read_only  image2d_t input,\
+    __read_only  image2d_t scale,\
+    __write_only image2d_t output,\
     int axis\
     )\
 { \
     int lidx = get_local_id(0); \
     int offset  = get_global_id(0); \
-    read_type *src_ptr_base = (read_type *)get_image2D_array_ptr(input); \
+    Image src_img = create_image_from_image2d(input, 1); \
+    read_type *src_ptr_base = (read_type *)src_img.ptr; \
     read_type *src_ptr; \
     read_type2 src0, src1; \
     src_type   val0, val1; \
@@ -267,7 +262,8 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) \
 { \
     int lidx = get_local_id(0); \
     int offset  = get_global_id(0); \
-    uchar *src_ptr_base = (uchar *)get_image2D_array_ptr(input); \
+    Image src_img = create_image_from_image2d(input, 1);
+    uchar *src_ptr_base = (uchar *)src_img.ptr; \
     uchar *src_ptr; \
     vxc_uchar8 src0, src1; \
     vxc_uchar8   val0, val1; \

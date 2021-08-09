@@ -10,15 +10,6 @@ _viv_uniform int offsetX;
 _viv_uniform int offsetY;
 _viv_uniform int offsetZ;
 
-inline uchar* get_image2D_array_ptr(image2d_t  input)
-{
-    int8 desc;
-    _viv_asm(COPY, desc, input, sizeof(desc));
-    uchar *src_ptr = (uchar*)desc.s0;
-
-    return src_ptr;
-}
-
 __kernel void scatter_nd_F16toF16_big(
     __read_only image2d_t   input0,
     __read_only image2d_t   input1,
@@ -34,9 +25,12 @@ __kernel void scatter_nd_F16toF16_big(
     vxc_short8 tmpVal = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
     vxc_half8 sum;
     _viv_asm(COPY, sum, tmpVal, 16);
-    __global int* index_ptr = (__global int*)get_image2D_array_ptr(input0);
-    __global short* update_ptr = (__global short*)get_image2D_array_ptr(input1);
-    __global short* output_ptr = (__global short*)get_image2D_array_ptr(output);
+    Image i0_img = create_image_from_image2d(input0, 4);
+    __global int* index_ptr = (__global int*)i0_img.ptr;
+    Image i1_img = create_image_from_image2d(input1, 2);
+    __global short* update_ptr = (__global short*)i1_img.ptr;
+    Image o_img = create_image_from_image2d(output, 2);
+    __global short* output_ptr = (__global short*)o_img.ptr;
     for(int i = 0; i < index_num; i++)
     {
         int4 indice = vload4(0, index_ptr + i * coord_dim);
@@ -70,9 +64,12 @@ __kernel void scatter_nd_##src0_type_name##to##src0_type_name##_big( \
     int firstFlg = 1; \
  \
     data_type sum = (data_type)(0, 0, 0, 0, 0, 0, 0, 0); \
-    __global int* index_ptr = (__global int*)get_image2D_array_ptr(input0); \
-    __global ptr_type* update_ptr = (__global ptr_type*)get_image2D_array_ptr(input1); \
-    __global ptr_type* output_ptr = (__global ptr_type*)get_image2D_array_ptr(output); \
+    Image i0_img = create_image_from_image2d(input0, 2); \
+    __global int* index_ptr = (__global int*)i0_img.ptr; \
+    Image i1_img = create_image_from_image2d(input1, 2); \
+    __global ptr_type* update_ptr = (__global ptr_type*)i1_img.ptr; \
+    Image o_img = create_image_from_image2d(output, 2); \
+    __global ptr_type* output_ptr = (__global ptr_type*)o_img.ptr; \
     for(int i = 0; i < index_num; i++) \
     { \
         int4 indice = vload4(0, index_ptr + i * coord_dim); \

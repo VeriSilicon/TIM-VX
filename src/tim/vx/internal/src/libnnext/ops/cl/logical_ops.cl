@@ -7,8 +7,8 @@ __kernel void logical_##name##_I8toI8( \
     int4 coord =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
     int4 src0; \
     int4 src1; \
-    readImage2DArray(src0, input, coord); \
-    readImage2DArray(src1, input1, coord); \
+    READ_IMAGEI_2DARRAY(src0, input, coord); \
+    READ_IMAGEI_2DARRAY(src1, input1, coord); \
     int4 dst  = (lgc_op2(src0))lgc_op(lgc_op2(src1)); \
     dst.x = dst.x & 1; \
     write_imagei(output, coord, dst); \

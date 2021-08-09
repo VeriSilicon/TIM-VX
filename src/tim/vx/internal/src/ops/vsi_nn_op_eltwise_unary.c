@@ -59,8 +59,17 @@ static vsi_status _eltwise_unary_op_compute
 
     // TODO: This optimzie is a hack for gpu path,
     // it should be moved to gpu kernel setup.
-    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
-        kernel_name, inputs, 1, outputs, 1, param );
+    if (strcmp(kernel_name, "gelu") == 0 && self->nn_param.gelu.approximate)
+    {
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+                    "hard_gelu", inputs, 1, outputs, 1, param );
+    }
+    else
+    {
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+            kernel_name, inputs, 1, outputs, 1, param );
+    }
+
 
     if( self->n )
     {
@@ -197,6 +206,7 @@ DEF_ELEMENT_WISE_UNARY_OP( NEG, neg );
 DEF_ELEMENT_WISE_UNARY_OP( HARD_SIGMOID, hard_sigmoid );
 DEF_ELEMENT_WISE_UNARY_OP( MISH, mish );
 DEF_ELEMENT_WISE_UNARY_OP( ROUND, round );
+DEF_ELEMENT_WISE_UNARY_OP( GELU, gelu );
 
 #undef DEF_ELEMENT_UNARY_WISE_OP
 

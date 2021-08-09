@@ -47,6 +47,8 @@ typedef enum
     UNARY_HSIGMOID,
     UNARY_MISH,
     UNARY_ROUND,
+    UNARY_GELU,
+    UNARY_HGELU,
 } unary_type_e;
 
 
@@ -107,6 +109,58 @@ static float round_eval(float data)
     data = (float)(vsi_rtne(data));
 
     return data;
+}
+
+static float erf_eval(float x)
+{
+    float res = 0;
+    float tmp = x;
+    float factorial = 1; /*n!*/
+    float x_pow = x;
+    int32_t one = 1;
+    int32_t n = 1;
+
+    if (x <= -3)
+    {
+        return -1;
+    }
+    else if (x >= 3)
+    {
+        return 1;
+    }
+
+    while (vsi_abs(tmp) > 1e-5)
+    {
+        res += tmp;
+
+        factorial *= n;
+        one *= -1;
+        x_pow *= x * x;
+        tmp = one / factorial * x_pow / ( 2 * n + 1);
+
+        n ++;
+    }
+#define VSI_MUL2_RSQRTPI    (1.1283791670955126f)
+
+    res *= VSI_MUL2_RSQRTPI;
+
+    return res;
+}
+
+static float gelu_eval(float data)
+{
+    data = (float)(0.5f * data * (1 + erf_eval(data / (float)sqrt(2.0f))));
+
+    return data;
+}
+
+#define VSI_SQRT_2_RCP_PI  0.7978845834732056f
+static float hgelu_eval(float data)
+{
+    float cdf = (float)(0.5f * (1.0f + tanh((VSI_SQRT_2_RCP_PI *
+        (data + 0.044715f * data * data * data)))));
+
+    return data * cdf;
 }
 
 DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
@@ -175,6 +229,12 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
             break;
         case UNARY_ROUND:
             data = round_eval(data);
+            break;
+        case UNARY_GELU:
+            data = gelu_eval(data);
+            break;
+        case UNARY_HGELU:
+            data = hgelu_eval(data);
             break;
         default:
             break;
@@ -310,3 +370,5 @@ REGISTER_ELTWISE_UNARY_BACKEND_CPU( neg,          UNARY_NEG )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( hard_sigmoid, UNARY_HSIGMOID )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( mish,         UNARY_MISH )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( round,        UNARY_ROUND )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( gelu,         UNARY_GELU )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( hard_gelu,    UNARY_HGELU )

@@ -12,9 +12,9 @@ __kernel void select_I8_U8_U8toU8(
     int4  value;
     uint4 src0, src1, src, dst;
     float inputScale, inputTail;
-    readImage2DArray(value, condition, coord);
-    readImage2DArray(src0, input0, coord);
-    readImage2DArray(src1, input1, coord);
+    READ_IMAGEI_2DARRAY(value, condition, coord);
+    READ_IMAGEF_2DARRAY(src0, input0, coord);
+    READ_IMAGEF_2DARRAY(src1, input1, coord);
     src   = (value != 0 ? src0 : src1);
     inputScale = (value.x != 0 ? input0Scale : input1Scale);
     inputTail  = (value.x != 0 ? input0Tail  : input1Tail);
@@ -56,9 +56,9 @@ __kernel void select_I8_I32_I32toI32(
     int4 coord  = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
     int4  value;
     int4 src0, src1, dst;
-    readImage2DArray(value, condition, coord);
-    readImage2DArray(src0, input0, coord);
-    readImage2DArray(src1, input1, coord);
+    READ_IMAGEI_2DARRAY(value, condition, coord);
+    READ_IMAGEI_2DARRAY(src0, input0, coord);
+    READ_IMAGEI_2DARRAY(src1, input1, coord);
     dst   = (value != 0 ? src0 : src1);
     write_imagei(output, coord, dst);
 }
@@ -94,9 +94,9 @@ __kernel void select_I8_F32_F32toF32(
     int4 coord  = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
     int4  value;
     float4 src0, src1, dst;
-    readImage2DArray(value, condition, coord);
-    readImage2DArray(src0, input0, coord);
-    readImage2DArray(src1, input1, coord);
+    READ_IMAGEI_2DARRAY(value, condition, coord);
+    READ_IMAGEF_2DARRAY(src0, input0, coord);
+    READ_IMAGEF_2DARRAY(src1, input1, coord);
     dst   = (value != 0 ? src0 : src1);
     write_imagef(output, coord, dst);
 }

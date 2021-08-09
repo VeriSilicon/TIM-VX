@@ -83,14 +83,6 @@ __kernel void conv1d_U8U8I32toU8_K1024_SMALL(
     VXC_WriteImage(output, coord.wy, result, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 }
 
-inline uchar* get_image2D_array_ptr(image2d_array_t  input)
-{
-    int8 desc;
-    _viv_asm(COPY, desc, input, sizeof(desc));
-    uchar *src_ptr = (uchar*)desc.s0;
-    return src_ptr;
-}
-
 __kernel void conv1d_U8U8I32toU8_K1024_LARGE(
      __read_only image2d_array_t   input,
      __read_only image2d_array_t   weight,
@@ -112,9 +104,11 @@ __kernel void conv1d_U8U8I32toU8_K1024_LARGE(
     vxc_short8 w_zp = (short)weight_ZP;
     vxc_uchar16 input_val = 0, weight_val = 0;
     int temp = 0, i, j;
-    uchar *src_ptr_base = (uchar *)get_image2D_array_ptr(input);
+    Tensor src_tensor = create_image_from_image2d(input, 1);
+    uchar *src_ptr_base = (uchar *)src_image.ptr;
     uchar *src_ptr;
-    uchar *dst_ptr = (uchar *)get_image2D_array_ptr(output);
+    Tensor dst_tensor = create_image_from_image2d(output, 1);
+    uchar *dst_ptr = (uchar *)dst_tensor.ptr;
 
     temp = read_imagei(bias, coord.yz).x;
     sum0 = convert_float(temp);
@@ -122,7 +116,7 @@ __kernel void conv1d_U8U8I32toU8_K1024_LARGE(
 
     for (i = 0; i < input_height; i++)
     {
-        src_ptr = src_ptr_base + (coord.x + coord.z * input_width);
+        src_ptr = src_ptr_base + (coord.x + coord.z * src_image.stride_y);
         for (j = 0; j < kernel_cnt_x16; j++)
         {
             VXC_ReadImage2DArray(weight_val, weight, coord_w, VXC_5BITOFFSET_XY(0, 0), \
@@ -161,7 +155,7 @@ __kernel void conv1d_U8U8I32toU8_K1024_LARGE(
     _viv_asm(CONV_SAT_RTE, result1, sum1);
     vxc_uchar8 result;
     VXC_DP2x8(result, result0, result1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSumOrderUchar_2x8);
-    dst_ptr = dst_ptr + (coord.w + coord.y * output_width);
+    dst_ptr = dst_ptr + (coord.w + coord.y * dst_tensor.stride_y);
     VXC_Vstore8(dst_ptr, 0, result);
 }
 

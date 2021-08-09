@@ -25,7 +25,7 @@ __kernel void repeat_I16_axis1(
     image2d_array_t  output, int axis)
 {
     int gidy = get_global_id(1);
-    int4 coord = (int4)(get_global_id(0), gidy, get_global_id(2), 0);
+    int4 coord = (int4)(get_global_id(0), gidy, get_global_id(2), get_global_id(2));
     vxc_short8 src0, src1, src2, src3, src4, src5, src6, src7;
 
     int8 input_desc, output_desc;
@@ -130,7 +130,7 @@ __kernel void repeat_U8_axis1(
     image2d_array_t  output, int axis)
 {
     int gidy = get_global_id(1);
-    int4 coord = (int4)(get_global_id(0), gidy, get_global_id(2), 0);
+    int4 coord = (int4)(get_global_id(0), gidy, get_global_id(2), get_global_id(2));
     vxc_uchar16 src0, src1, src2, src3, src4, src5, src6, src7;
 
     int8 input_desc, output_desc;

@@ -1,0 +1,89 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniConvertDatatoF32_0_4x4;
+_viv_uniform VXC_512Bits uniConvertDatatoF32_1_4x4;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform float input_scale;
+_viv_uniform float input_tail;
+_viv_uniform float output_scale;
+_viv_uniform float output_zp;
+#define WARP_AFFINE_SH_IMPL(name0, name1, src_type, src_copy_type, convert_type, dst_type, dst_copy_type) \
+__kernel void warp_affine_##name0##to##name1 \
+    ( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_t       matrix, \
+    __write_only image2d_array_t output \
+    ) \
+{ \
+    int4   coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2)); \
+    int4   coord_in = (int4)(get_global_id(0), get_global_id(1), get_global_id(0) + 1, get_global_id(1)); \
+ \
+    float4 coord_f = convert_float4(coord_in); \
+ \
+    int2 m_coord = (int2)(0, 0); \
+    vxc_ushort8 m0, m1; \
+    VXC_ReadImage(m0, matrix, m_coord, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(m1, matrix, m_coord, VXC_5BITOFFSET_XY(8, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    float4 matrix0, matrix1; \
+    _viv_asm(COPY, matrix0, m0, 16); \
+    _viv_asm(COPY, matrix1, m1, 16); \
+ \
+    coord_f = coord_f.xxzz * matrix0.xyxy + coord_f.yyww * matrix0.zwzw + matrix1.xyxy; \
+ \
+    coord_in = convert_int4(coord_f < 0 ? coord_f - 2 : coord_f); \
+ \
+    int4 coord_in0 = (int4)(coord_in.xy, coord.zw); \
+    int8 input_desc; \
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+    int baseAddr = (int)coord_in0.z * input_desc.s4 + input_desc.s0; \
+    _viv_asm(MOV, coord_in0.z, baseAddr); \
+ \
+    src_type v0, v1; \
+    src_copy_type top, bot; \
+    VXC_OP4(img_load_3d, v0, input, coord_in0, VXC_5BITOFFSET_XY(0, 0), \
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0)); \
+    VXC_OP4(img_load_3d, v1, input, coord_in0, VXC_5BITOFFSET_XY(0, 1), \
+            VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0)); \
+    coord_in0.xy = coord_in.zw; \
+    VXC_OP4(img_load_3d, v0, input, coord_in0, VXC_5BITOFFSET_XY(0, 0), \
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0)); \
+    VXC_OP4(img_load_3d, v1, input, coord_in0, VXC_5BITOFFSET_XY(0, 1), \
+            VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, top, v0, 16); \
+    _viv_asm(COPY, bot, v1, 16); \
+ \
+    float4 lerp       = coord_f - floor(coord_f); \
+    float4 minus_lerp = 1.0f - lerp; \
+    float4 coef0          = (float4)( minus_lerp.x * minus_lerp.y, lerp.x * minus_lerp.y, \
+                                      minus_lerp.x * lerp.y,       lerp.x * lerp.y); \
+ \
+    float4 coef1          = (float4)( minus_lerp.z * minus_lerp.w, lerp.z * minus_lerp.w, \
+                               minus_lerp.z * lerp.w,       lerp.z * lerp.w); \
+ \
+    float4 data0, data1, result = 0; \
+    VXC_DP4x4(data0, top, bot, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDatatoF32_0_4x4); \
+    VXC_DP4x4(data1, top, bot, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDatatoF32_1_4x4); \
+ \
+    data0 = data0 * input_scale + input_tail; \
+    data1 = data1 * input_scale + input_tail; \
+    result.x = dot(data0, coef0); \
+    result.y = dot(data1, coef1); \
+    result.xy = result.xy * output_scale + output_zp; \
+    convert_type dst0; \
+    _viv_asm(CONV_RTE, dst0, result); \
+    dst_type dst1; \
+    VXC_DP2x8(dst1, dst0, dst0, VXC_MODIFIER(0, 1, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \
+    dst_copy_type dst; \
+    _viv_asm(COPY, dst, dst1, 8); \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 1, 0,VXC_RM_TowardZero, 0)); \
+}
+WARP_AFFINE_SH_IMPL(F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+WARP_AFFINE_SH_IMPL(F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+WARP_AFFINE_SH_IMPL(F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+WARP_AFFINE_SH_IMPL(F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+WARP_AFFINE_SH_IMPL(I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+WARP_AFFINE_SH_IMPL(I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+WARP_AFFINE_SH_IMPL(U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+WARP_AFFINE_SH_IMPL(U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+WARP_AFFINE_SH_IMPL(I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+WARP_AFFINE_SH_IMPL(I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)

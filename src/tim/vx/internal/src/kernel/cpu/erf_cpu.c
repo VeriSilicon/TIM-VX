@@ -101,11 +101,11 @@ DEF_KERNEL_EXECUTOR(_compute)
         CHECK_PTR_FAIL_GOTO( f32_out_buffer[i], "Create output buffer fail.", final );
         memset( f32_out_buffer[i], 0, out_bytes[i] );
     }
-#define ERF_PI  3.141592653589793
+#define VSI_ERF_PI  3.141592653589793
     for (i = 0; i < out_elements[0]; i ++)
     {
         /* 2 / sqrt(pi) * (sum[(-1)^n! * x ^ (2n + 1)] + x) */
-        float x = f32_in_buffer[0][i];
+        float x = vsi_clamp(f32_in_buffer[0][i], -2, 2);
         float res = 0;
         float tmp = x;
         float factorial = 1; /*n!*/
@@ -126,7 +126,7 @@ DEF_KERNEL_EXECUTOR(_compute)
         }
 
 
-        res *= 2.0f / (float)sqrt(ERF_PI);
+        res *= 2.0f / (float)sqrt(VSI_ERF_PI);
 
         f32_out_buffer[0][i] = res;
     }

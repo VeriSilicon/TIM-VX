@@ -39,6 +39,8 @@
 #include "ops/vsi_nn_op_lstmunit_ovxlib.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
+#include "utils/vsi_nn_dtype_util.h"
+
 
 static vsi_nn_internal_tensor_t* create_tp_fc
     (
@@ -62,7 +64,7 @@ static vsi_nn_internal_tensor_t* create_tp_fc
     if( !bias || p->local->use_layer_norm || p->local->use_hybrid )
     {
         /* create zero bias for NN/TP */
-        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr);
+        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr, FALSE);
         tensor = tensor1->t;
     }
 
@@ -108,7 +110,7 @@ static vsi_nn_internal_tensor_t* create_nn_fc
     if( !bias || p->local->use_layer_norm || p->local->use_hybrid )
     {
         /* create zero bias for NN/TP */
-        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr);
+        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr, FALSE);
         tensor = tensor1->t;
     }
 
@@ -283,7 +285,6 @@ static vsi_bool op_setup
     vsi_bool is_recurrent_fc_on_tp = FALSE;
     vsi_nn_internal_tensor_t* input_tensor = NULL;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
-    vsi_nn_internal_tensor_t* tmp_tensor = NULL;
     vsi_nn_internal_tensor_t* recurrent_input_tensor = NULL;
     vsi_nn_internal_tensor_t* input_fc_outputs[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
     vsi_nn_internal_tensor_t* aux_input_fc_outputs[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
@@ -602,10 +603,30 @@ static vsi_bool op_setup
 
     if( p->local->use_projection )
     {
-        if( p->local->use_hybrid || !p->local->use_projection_bias )
+        if ( p->local->use_hybrid && p->local->use_projection_bias )
+        {
+            vsi_bool use_virtual_tensor = inputs[LSTMUNIT_INPUT_BIAS_PROJ]->attr.vtl;
+            input_tensor = vsi_nn_internal_create_zero_bias_tensor(self, &output_tensor->t->attr,
+                &inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr, FALSE);
+            zero_bias_tensor = input_tensor->t;
+
+            if (use_virtual_tensor)
+            {
+                curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+                curr->inputs[0] = inputs[LSTMUNIT_INPUT_BIAS_PROJ];
+                curr->outputs[0] = zero_bias_tensor;
+
+                vsi_nn_internal_setup_node(self, curr);
+            }
+            else
+            {
+                vsi_nn_ConvertTensor(self->graph, inputs[1], zero_bias_tensor);
+            }
+        }
+        else if ( p->local->use_hybrid || !p->local->use_projection_bias )
         {
             input_tensor = vsi_nn_internal_create_zero_bias_tensor(self, &output_tensor->t->attr,
-                &inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr);
+                &inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr, FALSE);
             zero_bias_tensor = input_tensor->t;
         }
         else
@@ -634,18 +655,7 @@ static vsi_bool op_setup
             curr->outputs[0] = outputs[LSTMUNIT_OUTPUT_H_STATE];
         }
 
-        tmp_tensor = output_tensor;
-
         vsi_nn_internal_setup_node(self, curr);
-
-        if( p->local->use_hybrid && p->local->use_projection_bias )
-        {
-            curr = vsi_nn_internal_new_node( self, VSI_NN_OP_ADD, 0, 0 );
-            curr->inputs[0] = tmp_tensor->t;
-            curr->inputs[1] = inputs[LSTMUNIT_INPUT_BIAS_PROJ];
-            curr->outputs[0] = outputs[LSTMUNIT_OUTPUT_H_STATE];
-            vsi_nn_internal_setup_node(self, curr);
-        }
 
         /* copy h_state to output */
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );

@@ -36,7 +36,7 @@ _viv_uniform float tail;
         coord_out.x = coord.x; \
         for (int x = 0; x < stride; ) \
         { \
-            VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, write_val, \
+            VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, write_val, \
                 VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0)); \
             x++; \
             coord_out.x ++; \

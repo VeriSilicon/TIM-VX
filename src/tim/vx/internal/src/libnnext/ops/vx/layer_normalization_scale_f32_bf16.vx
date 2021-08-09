@@ -11,7 +11,7 @@ __kernel void layer_norm_BF16F32toBF16(
     image2d_array_t input, image2d_t bias, image2d_t scale,
     image2d_array_t output, float eps)
 {
-    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0);
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), get_global_id(2));
     int4 coord_out = coord;
 
     int8 input_desc, output_desc;
@@ -30,7 +30,7 @@ __kernel void layer_norm_BF16F32toBF16(
 
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
-    _viv_asm(MOV, coord_out.w, baseAddr);
+    _viv_asm(MOV, coord_out.z, baseAddr);
     float4 srcA, srcB;
     for(coord.x = 8; coord.x < (width+8); coord.x += 8)
     {
@@ -40,7 +40,7 @@ __kernel void layer_norm_BF16F32toBF16(
                      uniConvBF16toF32_Part1_2x8);
         _viv_asm(COPY, srcA, src1, 16);
         _viv_asm(COPY, srcB, src2, 16);
-        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
         sum += dot(srcA, ones) + dot(srcB, ones);
         sqr += dot(srcA * srcA, ones) + dot(srcB * srcB, ones);
@@ -52,12 +52,12 @@ __kernel void layer_norm_BF16F32toBF16(
     vari += eps;
     vari = rsqrt(vari);
     vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;
-    __global float* bias_ptr = (__global float*)get_image_ptr_from_coord(img1, coord.ww);
-    __global float* scale_ptr = (__global float*)get_image_ptr_from_coord(img2, coord.ww);
+    __global float* bias_ptr = (__global float*)get_image_ptr_from_coord(img1, (int2)(0, 0));
+    __global float* scale_ptr = (__global float*)get_image_ptr_from_coord(img2, (int2)(0, 0));
 
     for(coord.x = 0; coord.x < width; coord.x += 8)
     {
-        VXC_OP4(img_load_3d, src0, input, coord.xyzz, VXC_5BITOFFSET_XY(0, 0), \
+        VXC_OP4(img_load_3d, src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
         bias_f0 = vload4(0, bias_ptr);
         bias_f1 = vload4(1, bias_ptr);
@@ -85,7 +85,7 @@ __kernel void layer_norm_BF16F32toBF16(
         VXC_DP2x8(src2, src0, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
 
         coord_out.x = coord.x;
-        VXC_OP4_NoDest(img_store_3d, output, coord_out.xyww, src2, \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out, src2, \
                 VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
     }
 }

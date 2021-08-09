@@ -307,7 +307,8 @@ static vsi_status _query_kernel
         kernel->info.parameters  = param_def;
         kernel->info.numParams   = (uint32_t)param_size;
         kernel->info.initialize  = initializer;
-        vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 1,
+        vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 2,
+                "eltwise_ops_helper",
                 kernel_map[i].source_name );
         vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_EXECUTABLE, 1,
                 kernel_map[i].source_name );

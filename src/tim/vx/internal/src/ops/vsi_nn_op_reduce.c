@@ -1028,9 +1028,8 @@ static vsi_bool op_setup
             int index = 0;
             if (valid_dim_num == 0)
             {
-                outputs[0]->attr.dim_num = 2;
+                outputs[0]->attr.dim_num = 1;
                 outputs[0]->attr.size[0] = 1;
-                outputs[0]->attr.size[1] = 1;
             }
             else
             {
@@ -1042,11 +1041,6 @@ static vsi_bool op_setup
                         outputs[0]->attr.size[index] = inputs[0]->attr.size[i];
                         index++;
                     }
-                }
-                if (1 == outputs[0]->attr.dim_num)
-                {
-                    outputs[0]->attr.dim_num = 2;
-                    outputs[0]->attr.size[1] = 1;
                 }
             }
         }

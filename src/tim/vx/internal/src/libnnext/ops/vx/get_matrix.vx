@@ -1,0 +1,185 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float4 theta_1;
+_viv_uniform float4 theta_2;
+_viv_uniform float4 scale;
+_viv_uniform float input_scale;
+_viv_uniform float input_tail;
+
+#define GET_MATRIX_SH_IMPL(name0, in_type, read_func) \
+__kernel void get_matrix_##name0##toF32 \
+    ( \
+    __read_only  image2d_t input, \
+    __write_only image2d_t output, \
+                 int       has_theta_1_1,  \
+                 int       has_theta_1_2,  \
+                 int       has_theta_1_3,  \
+                 int       has_theta_2_1,  \
+                 int       has_theta_2_2,  \
+                 int       has_theta_2_3,  \
+                 float     theta_1_1,  \
+                 float     theta_1_2,  \
+                 float     theta_1_3,  \
+                 float     theta_2_1,  \
+                 float     theta_2_2,  \
+                 float     theta_2_3,  \
+                 float     i_width, \
+                 float     i_height, \
+                 float     o_width, \
+                 float     o_height \
+    ) \
+{ \
+    int2 coord =  (int2)(0, get_global_id(1)); \
+    float4 matrix0, matrix1; \
+    float4 theta1, theta2; \
+    _viv_asm(COPY, theta1, theta_1, 16); \
+    _viv_asm(COPY, theta2, theta_2, 16); \
+ \
+    if (has_theta_1_1 == 0) \
+    { \
+        in_type data = read_func(input, coord); \
+        coord.x ++; \
+        theta1.x = convert_float(data.x) * input_scale + input_tail; \
+    } \
+ \
+    if (has_theta_1_2 == 0) \
+    { \
+        in_type data = read_func(input, coord); \
+        coord.x ++; \
+        theta1.y = convert_float(data.x) * input_scale + input_tail; \
+    } \
+ \
+    if (has_theta_1_3 == 0) \
+    { \
+        in_type data = read_func(input, coord); \
+        coord.x ++; \
+        theta1.z = convert_float(data.x) * input_scale + input_tail; \
+    } \
+ \
+    if (has_theta_2_1 == 0) \
+    { \
+        in_type data = read_func(input, coord); \
+        coord.x ++; \
+        theta2.x = convert_float(data.x) * input_scale + input_tail; \
+    } \
+ \
+    if (has_theta_2_2 == 0) \
+    { \
+        in_type data = read_func(input, coord); \
+        coord.x ++; \
+        theta2.y = convert_float(data.x) * input_scale + input_tail; \
+    } \
+ \
+    if (has_theta_2_3 == 0) \
+    { \
+        in_type data = read_func(input, coord); \
+        coord.x ++; \
+        theta2.z = convert_float(data.x) * input_scale + input_tail; \
+    } \
+ \
+    matrix0.x = theta2.y * scale.x; \
+    matrix0.z = theta2.x * scale.z; \
+    matrix1.x = ( theta2.z - theta2.y - theta2.x + 1) * i_width * 0.5f; \
+    matrix0.y = theta1.y * scale.w; \
+    matrix0.w = theta1.x * scale.y; \
+    matrix1.y = ( theta1.z - theta1.y - theta1.x + 1) * i_height * 0.5f; \
+    matrix1.zw = 2.0f * matrix0.xy; \
+ \
+    coord.x = 0; \
+    vxc_ushort8 dst; \
+    _viv_asm(COPY, dst, matrix0, 16); \
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, dst, matrix1, 16); \
+    coord.x = 8; \
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+GET_MATRIX_SH_IMPL(I16, int4,  read_imagei)
+GET_MATRIX_SH_IMPL(I8,  int4,  read_imagei)
+GET_MATRIX_SH_IMPL(U8,  uint4, read_imageui)
+
+__kernel void get_matrix_F16toF32
+    (
+    __read_only  image2d_t input,
+    __write_only image2d_t output,
+                 int       has_theta_1_1,
+                 int       has_theta_1_2,
+                 int       has_theta_1_3,
+                 int       has_theta_2_1,
+                 int       has_theta_2_2,
+                 int       has_theta_2_3,
+                 float     theta_1_1,
+                 float     theta_1_2,
+                 float     theta_1_3,
+                 float     theta_2_1,
+                 float     theta_2_2,
+                 float     theta_2_3,
+                 float     i_width,
+                 float     i_height,
+                 float     o_width,
+                 float     o_height
+    )
+{
+    int2 coord =  (int2)(0, get_global_id(1));
+    float4 matrix0, matrix1;
+    float4 theta1, theta2;
+    _viv_asm(COPY, theta1, theta_1, 16);
+    _viv_asm(COPY, theta2, theta_2, 16);
+
+    if (has_theta_1_1 == 0)
+    {
+        float4 data = read_imagef(input, coord);
+        coord.x ++;
+        theta1.x = data.x;
+    }
+
+    if (has_theta_1_2 == 0)
+    {
+        float4 data = read_imagef(input, coord);
+        coord.x ++;
+        theta1.y = data.x;
+    }
+
+    if (has_theta_1_3 == 0)
+    {
+        float4 data = read_imagef(input, coord);
+        coord.x ++;
+        theta1.z = data.x;
+    }
+
+    if (has_theta_2_1 == 0)
+    {
+        float4 data = read_imagef(input, coord);
+        coord.x ++;
+        theta2.x = data.x;
+    }
+
+    if (has_theta_2_2 == 0)
+    {
+        float4 data = read_imagef(input, coord);
+        coord.x ++;
+        theta2.y = data.x;
+    }
+
+    if (has_theta_2_3 == 0)
+    {
+        float4 data = read_imagef(input, coord);
+        coord.x ++;
+        theta2.z = data.x;
+    }
+
+    matrix0.x = theta2.y * scale.x;
+    matrix0.z = theta2.x * scale.z;
+    matrix1.x = ( theta2.z - theta2.y - theta2.x + 1) * i_width * 0.5f;
+    matrix0.y = theta1.y * scale.w;
+    matrix0.w = theta1.x * scale.y;
+    matrix1.y = ( theta1.z - theta1.y - theta1.x + 1) * i_height * 0.5f;
+    matrix1.zw = 2.0f * matrix0.xy;
+
+    coord.x = 0;
+    vxc_ushort8 dst;
+    _viv_asm(COPY, dst, matrix0, 16);
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, dst, matrix1, 16);
+    coord.x = 8;
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}

@@ -18,11 +18,19 @@ inline Image create_image_from_image2d(image2d_t input, int stride_x)
     int8 desc;
     _viv_asm(COPY, desc, input, sizeof(desc));
 
+#if (USE_40BITS_VA==0)
+    uint address = as_uint(desc.s0);
+    int stride_y = desc.s1;
+#else
+    ulong address = as_ulong(desc.s05);
+    int stride_y = desc.s6;
+#endif
+
     Image img =
     {
-        .ptr                           = (uchar*)desc.s0,
+        .ptr                           = (uchar*)address,
         .stride_x                      = stride_x,
-        .stride_y                      = desc.s1
+        .stride_y                      = stride_y
     };
 
     return img;
@@ -36,53 +44,60 @@ typedef struct Tensor
     int             stride_z;
 } Tensor;
 
-inline uchar* create_tensor_ptr_from_coord(Tensor t, int4 coord)
+inline uchar* get_tensor_ptr_from_coord(Tensor t, int4 coord)
 {
     return t.ptr + coord.x * t.stride_x + coord.y * t.stride_y + coord.z * t.stride_z;
 }
 
 inline Tensor create_tensor_from_image2d_array(image2d_array_t input, int stride_x)
 {
+#if (USE_40BITS_VA==0)
     int8 desc;
     _viv_asm(COPY, desc, input, sizeof(desc));
 
+    uint address = as_uint(desc.s0);
+    int stride_y = desc.s1;
+    int stride_z = desc.s4;
+#else
+    int16 desc;
+    _viv_asm(COPY, desc, input, sizeof(desc));
+
+    ulong address = as_ulong(desc.s05);
+    int stride_y = desc.s6;
+    int stride_z = desc.sa;
+#endif
+
     Tensor t =
     {
-        .ptr                           = (uchar*)desc.s0,
+        .ptr                           = (uchar*)address,
         .stride_x                      = stride_x,
-        .stride_y                      = desc.s1,
-        .stride_z                      = desc.s4
+        .stride_y                      = stride_y,
+        .stride_z                      = stride_z
     };
 
     return t;
 }
 
-#define readImage2DArray(Dest, Image, Coord)         \
-    do {                                                       \
-       int8 desc;                                              \
-       _viv_asm(COPY, desc, Image, sizeof(desc));              \
-       _viv_asm(CLAMP0MAX, (Coord).w, (Coord).z, desc.s5 - 1); \
-       int baseAddr =  (int)(Coord).w * desc.s4 + desc.s0;     \
-       _viv_asm(MOV, (Coord).w, baseAddr);                     \
-       _viv_asm(IMAGE_READ_3D, Dest, Image, (Coord).xyww);     \
-    } while (0)
+#define READ_IMAGEF_2DARRAY(dest, tensor, coord) \
+    do { \
+        int depth = get_image_array_size(tensor); \
+        int4 coord_in = coord; \
+        _viv_asm(CLAMP0MAX, coord_in.z, coord_in.z, depth - 1); \
+        dest = read_imagef(tensor, coord_in); \
+       } while(0)
 
-#define writeImage2DArray(Image, Coord, Color)                 \
-    do {                                                       \
-       int8 desc;                                              \
-       _viv_asm(COPY, desc, Image, sizeof(desc));              \
-       _viv_asm(CLAMP0MAX, (Coord).w, (Coord).z, desc.s5 - 1); \
-       int baseAddr =  (int)(Coord).w * desc.s4 + desc.s0;     \
-       _viv_asm(MOV, (Coord).w, baseAddr);                     \
-       _viv_asm(IMAGE_WRITE_3D, Color, Image, (Coord).xyww);   \
-    } while (0)
+#define READ_IMAGEI_2DARRAY(dest, tensor, coord) \
+    do { \
+        int depth = get_image_array_size(tensor); \
+        int4 coord_in = coord; \
+        _viv_asm(CLAMP0MAX, coord_in.z, coord_in.z, depth - 1); \
+        dest = read_imagei(tensor, coord_in); \
+       } while(0)
 
-#define readImage(Dest, Image, Coord)               \
-    do {                                            \
-       _viv_asm(IMAGE_READ, Dest, Image, Coord);    \
-    } while (0)
-
-#define writeImage(Image, Coord, Color)             \
-    do {                                            \
-       _viv_asm(IMAGE_WRITE, Color, Image, Coord);   \
-    } while (0)
+#define READ_IMAGEUI_2DARRAY(dest, tensor, coord) \
+    do { \
+        int depth = get_image_array_size(tensor); \
+        int4 coord_in = coord; \
+        _viv_asm(CLAMP0MAX, coord_in.z, coord_in.z, depth - 1); \
+        dest = read_imageui(tensor, coord_in); \
+       } while(0)

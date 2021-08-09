@@ -30,9 +30,9 @@ _viv_uniform int2 multAndoutZP;//[0:15] multiplier, [31:63] output zp
           VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniUpScale2X_lo_2x8); \
     VXC_DP2x8(dst_val, src_val, multiplier, \
           VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniUpScale2X_hi_2x8); \
-    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, dst_val, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst_val, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
     coord.y ++; \
-    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, dst_val, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst_val, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
 }
 
 UPSAMPLE_SCALETO8B_FUN(F16, I8,  vxc_short8,  vxc_half8,   vxc_char16)
@@ -66,14 +66,14 @@ UPSAMPLE_SCALETO8B_FUN(U8,  U8,  vxc_uchar16, vxc_uchar16, vxc_uchar16)
     VXC_DP2x8(dst0_val, src_val, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniUpScale2X_lo_2x8); \
     VXC_DP2x8(dst1_val, src_val, multiplier, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniUpScale2X_hi_2x8); \
     _viv_asm(COPY, write_val, dst0_val, 16); \
-    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
     coord.y ++; \
-    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
     _viv_asm(COPY, write_val, dst1_val, 16); \
     coord.xy = coord.xy + (int2)(8, -1); \
-    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
     coord.y ++; \
-    VXC_OP4_NoDest(img_store_3d, output, coord.xyww, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, write_val, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
 }
 UPSAMPLE_SCALETO16B_FUN(F16, F16,  vxc_short8,  vxc_half8,   vxc_half8,  vxc_short8)
 UPSAMPLE_SCALETO16B_FUN(F16, I16,  vxc_short8,  vxc_half8,   vxc_short8, vxc_short8)

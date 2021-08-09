@@ -90,6 +90,7 @@ Operation::Operation(Graph* graph, uint32_t operation_id,
 Operation::~Operation() {}
 
 std::unique_ptr<OperationImpl>& Operation::impl() { return impl_; }
+const std::unique_ptr<OperationImpl>& Operation::impl() const { return impl_; }
 
 Operation& Operation::BindInput(const std::shared_ptr<Tensor>& tensor) {
   impl_->BindInput(tensor);

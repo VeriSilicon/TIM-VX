@@ -14,19 +14,17 @@ Main Features
 
 ## Framework Support
 
-- [Tensorflow-Lite Delegate](https://github.com/VeriSilicon/tensorflow/tree/vx-delegate.v2.4.1) (Unofficial)
+- [Tensorflow-Lite](https://github.com/VeriSilicon/tflite-vx-delegate) (External Delegate)
 - [Tengine](https://github.com/OAID/Tengine) (Official)
+- [TVM](https://github.com/VeriSilicon/tvm) (Fork)
 - MLIR Dialect (In development)
-- TVM (In development)
 
-## Roadmap
-
-Roadmap of TIM-VX will be updated here in the future.
+Feel free to raise a github issue if you wish to add TIM-VX for other frameworks.
 
 ## Get started
 
 ### Build and Run
-TIM-VX uses [bazel](https://bazel.build) build system by default. [Install bazel](https://docs.bazel.build/versions/master/install.html) first to get started.
+TIM-VX supports both [bazel](https://bazel.build) and cmake. [Install bazel](https://docs.bazel.build/versions/master/install.html) to get started.
 
 TIM-VX needs to be compiled and linked against VeriSilicon OpenVX SDK which provides related header files and pre-compiled libraries. A default linux-x86_64 SDK is provided which contains the simulation environment on PC. Platform specific SDKs can be obtained from respective SoC vendors.
 
@@ -44,12 +42,5 @@ bazel build //samples/lenet:lenet_asymu8_cc
 bazel run //samples/lenet:lenet_asymu8_cc
 ```
 
-To build and run Tensorflow-Lite delegate on A311D platform
-```shell
-# clone and cross build VeriSilicon tensorflow fork with TFlite delegate support
-git clone --single-branch --branch vx-delegate.v2.4.1 git@github.com:VeriSilicon/tensorflow.git vx-delegate; cd vx-delegate
-bazel build --config A311D //tensorflow/lite/tools/benchmark:benchmark_model
-
-# push benchmark_model onto device and run
-./benchmark_model --graph=mobilenet_v1_1.0_224_quant.tflite --use_vxdelegate=true
-```
+To build and run Tensorflow-Lite with TIM-VX, please see [README](https://github.com/VeriSilicon/tflite-vx-delegate#readme)
+To build and run TVM with TIM-VX, please see [TVM](https://github.com/VeriSilicon/tvm)

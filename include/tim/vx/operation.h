@@ -48,6 +48,7 @@ class Operation {
       RoundType down_scale_size_rounding = RoundType::FLOOR,
       uint32_t accumulator_bits = 0);
   std::unique_ptr<OperationImpl>& impl();
+  const std::unique_ptr<OperationImpl>& impl() const;
 
  protected:
   std::unique_ptr<OperationImpl> impl_;

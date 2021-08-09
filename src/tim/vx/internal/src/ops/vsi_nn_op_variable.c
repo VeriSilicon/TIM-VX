@@ -35,6 +35,7 @@
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_log.h"
+#include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_util.h"
 
 static vsi_status op_compute
@@ -96,7 +97,8 @@ static vsi_status op_optimize
         return VSI_FAILURE;
     }
     memset(local, 0, sizeof(vsi_nn_variable_lcl_data));
-    if( NULL != inputs[0]->t && NULL == outputs[0]->t )
+    if( NULL != inputs[0]->t && NULL == outputs[0]->t &&
+        vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype))
     {
         VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
         outputs[0]->t = vxReshapeTensor(inputs[0]->t, (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num);

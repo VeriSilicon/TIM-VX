@@ -92,8 +92,6 @@ DeConv1d|DECONVOLUTION1D|Mapped|[tf.nn.conv1d_transpose](https://tensorflow.goog
 Resize1d|RESIZE_1D|Mapped|[Onnx.resize 1D image](https://github.com/onnx/onnx/blob/master/docs/Operators.md#resize)
 Linear|LINEAR|Mapped|[tf.keras.activations.linear](https://www.tensorflow.org/api_docs/python/tf/keras/activations/linear)
 ScatterND|SCATTER_ND|Mapped|[tf.scatter_nd](https://tensorflow.google.cn/api_docs/python/tf/scatter_nd)
-||MOMENTS|Planned 21Q2|[tf.moments](https://tensorflow.google.cn/api_docs/python/tf/nn/moments)
-||MATRIXMUL|Planned 21Q2|[tf.experimental.numpy.matmul](https://www.tensorflow.org/api_docs/python/tf/experimental/numpy/matmul)
 Unstack|UNSTACK|Mapped|[tf.unstack](https://tensorflow.google.cn/api_docs/python/tf/unstack)
 Tile|TILE|Mapped|[tf.tile](https://tensorflow.google.cn/api_docs/python/tf/tile)
 GroupedConv2d|GROUPED_CONV2D|Mapped|[ANEURALNETWORKS_GROUPED_CONV_2D](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a847acf8d9f3d2343328c3dbe6d447c50)
@@ -110,8 +108,8 @@ SpatialTransformer|SPATIAL_TRANSFORMER|Mapped|[SpatialTransformer](https://githu
 |BidirectionalSequenceRNN|BIDIRECTIONAL_SEQUENCE_RNN|Planned 21Q4|[ANEURALNETWORKS_BIDIRECTIONAL_SEQUENCE_RNN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a487fc5ae247de828f13e62b99f259f3c)
 |RNNCell|RNNCELL_OVXLIB|Planned 21Q3|[ANEURALNETWORKS_RNN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0acd2684ac9c73bb29767b534e78a332e8)
 |BidirectionalSequenceLSTM|BIDIRECTIONAL_SEQUENCE_LSTM|Planned 21Q4|[ANEURALNETWORKS_BIDIRECTIONAL_SEQUENCE_LSTM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a492a71cb7aa50b9a1a834a3cb269d778)
-|UnidirectionalSequenceLSTM|LSTM_OVXLIB|Planned 21Q4|[ANEURALNETWORKS_UNIDIRECTIONAL_SEQUENCE_LSTM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0aaf30e491ad0b1fc7602cbde695b2c859)
-|LSTMCell|LSTMUNIT_OVXLIB|Planned 21Q3|[ANEURALNETWORKS_LSTM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0ad0377e8c305e596fb7f64ff896671fc5)
+|UnidirectionalSequenceLSTM|LSTM_OVXLIB|Mapped|[ANEURALNETWORKS_UNIDIRECTIONAL_SEQUENCE_LSTM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0aaf30e491ad0b1fc7602cbde695b2c859)
+|LSTMCell|LSTMUNIT_OVXLIB|replace with UnidirectionalSequenceLSTM by set n_step = 1 |[ANEURALNETWORKS_LSTM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0ad0377e8c305e596fb7f64ff896671fc5)
 ||PRE_PROCESS|Planned 21Q4|Image Preprocessing (YUV2RGB, Input Normalization, Resizing, etc)
 ||HASHTABLE_LOOKUP|Planned 21Q4|[ANEURALNETWORKS_HASHTABLE_LOOKUP](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0aca92716c8c73c1f0fa7f0757916fee26)
 ||EMBEDDING_LOOKUP|Planned 21Q4|[ANEURALNETWORKS_EMBEDDING_LOOKUP](developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a8d2ada77adb74357fc0770405bca0e3)
@@ -123,6 +121,18 @@ SpatialTransformer|SPATIAL_TRANSFORMER|Mapped|[SpatialTransformer](https://githu
 ||GENERATE_PROPOSALS|Planned 21Q4|[ANEURALNETWORKS_GENERATE_PROPOSALS](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a72484020f2c41c814de0a7bf93dbbfd4)
 ||DETECTION_POSTPROCESS|Planned 21Q4|[ANEURALNETWORKS_DETECTION_POSTPROCESSING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0abd6365933837275bb1f5cde1fd9b8234)
 ||RANDOM_MULTINOMIAL|Planned 21Q4|[ANEURALNETWORKS_RANDOM_MULTINOMIAL](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6cb5032c09d3c4b542d18495c247b5b4)
+||UPSAMPLESCALE|Planned 21Q4|[Unoffical Caffe layer](https://github.com/BVLC/caffe/pull/6384)
+||GROUP_NORM|Planned 21Q4|[tfa.layers.GroupNormalization](https://tensorflow.google.cn/addons/api_docs/python/tfa/layers/GroupNormalization)
+||ROUND|Planned 21Q4|[tf.math.round](https://tensorflow.google.cn/api_docs/python/tf/math/round)
+||CEIL|Planned 21Q4|[tf.math.ceil](https://tensorflow.google.cn/api_docs/python/tf/math/ceil)
+||SEQUENCE_MASK|Planned 21Q4|[tf.math.ceil](https://tensorflow.google.cn/api_docs/python/tf/sequence_mask)
+||REPEAT|Planned 21Q4|[tf.repeat](https://tensorflow.google.cn/api_docs/python/tf/repeat)
+||ERF|Planned 21Q4|[tf.math.erf](https://tensorflow.google.cn/api_docs/python/tf/math/erf)
+||ONE_HOT|Planned 21Q4|[tf.one_hot](https://tensorflow.google.cn/api_docs/python/tf/one_hot)
+||NMS|Planned 21Q4|[tf.image.non_max_suppression](https://tensorflow.google.cn/api_docs/python/tf/image/non_max_suppression)
+||GROUPED_CONV1D|Planned 21Q4|
+||SCATTER_ND_UPDATE|Planned 21Q4|[tf.compat.v1.scatter_nd_update](https://tensorflow.google.cn/api_docs/python/tf/compat/v1/scatter_nd_update)
+||GELU|Planned 21Q4|[tf.nn.gelu](https://tensorflow.google.cn/api_docs/python/tf/nn/gelu)
 ||CONV_RELU|Deprecated
 ||CONV_RELU_POOL|Deprecated
 ||FCL|Deprecated

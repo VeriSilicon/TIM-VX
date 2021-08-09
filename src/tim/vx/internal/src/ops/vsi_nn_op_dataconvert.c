@@ -188,7 +188,8 @@ static vsi_bool op_check
         IO_TYPE(D_F16,        D_I8)
         IO_TYPE(D_F16,        D_U8)
         IO_TYPE(D_F32,        D_F32)
-        IO_TYPE(D_F32,        D_I32)
+        IO_TYPE(D_F32,        D_I32|Q_DFP)
+        IO_TYPE(D_F32,        D_I32|Q_ASYM)
         IO_TYPE(D_F32,        D_U32)
         IO_TYPE(D_F32,        D_F16)
         IO_TYPE(D_F32,        D_BF16)
@@ -292,7 +293,7 @@ static vsi_bool op_check
     {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
-        VSILOGE("Inputs/Outputs data type not support: %s", desc);
+        VSILOGD("Inputs/Outputs data type not support: %s", desc);
         destroy_op_io_types_desc(desc);
         return FALSE;
     }
