@@ -21,40 +21,45 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPERATION_H_
-#define TIM_VX_OPERATION_H_
-
-#include "tim/vx/graph.h"
-#include "tim/vx/tensor.h"
+#ifndef TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_LSTM_H_
+#define TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_LSTM_H_
+#include "tim/vx/operation.h"
 
 namespace tim {
 namespace vx {
+namespace ops {
+    /**
+     * ## Unidirectional sequence lstm
+     *  how to bind input/output: take unidirectional_sequence_lstm_test.cc
+     */
+    class UnidirectionalSequenceLstm: public Operation {
+     public:
+      enum ActivationType {
+        kNONE = 0,
+        kRELU = 1,
+        kRELU6 = 2,
+        kTANH = 3,
+        kSIGMOID = 4,
+        kHARDSIGMOID = 5,
+        kCOUNT
+      };
 
-class OperationImpl;
+      UnidirectionalSequenceLstm(
+          Graph* graph, float cell_clip, float proj_clip,
+          ActivationType act_type, float forget_bias, bool time_major = false,
+          ActivationType recurrent_act_type = ActivationType::kNONE,
+          bool return_sequences = false /*False: only return last state*/
+      );
 
-class Operation {
- public:
-  Operation(Graph* graph, uint32_t operation_id,
-            int input_cnt = 0, int ouput_cnt = 0, DataLayout layout = DataLayout::ANY);
-  virtual ~Operation();
-  virtual std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const = 0;
-  Operation& BindInput(const std::shared_ptr<Tensor>& tensor);
-  Operation& BindOutput(const std::shared_ptr<Tensor>& tensor);
-  Operation& BindInputs(const std::vector<std::shared_ptr<Tensor>>& tensors);
-  Operation& BindOutputs(const std::vector<std::shared_ptr<Tensor>>& tensors);
-  Operation& SetRoundingPolicy(
-      OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
-      RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
-      RoundType down_scale_size_rounding = RoundType::FLOOR,
-      uint32_t accumulator_bits = 0);
-  std::unique_ptr<OperationImpl>& impl();
-  const std::unique_ptr<OperationImpl>& impl() const;
+      std::shared_ptr<Operation> Clone(
+          std::shared_ptr<Graph>& graph) const override;
 
- protected:
-  std::unique_ptr<OperationImpl> impl_;
-};
-
+     protected:
+      ActivationType act_type_;
+      ActivationType recurrent_act_type_;
+    };
+}
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPERATION_H_ */
+#endif
