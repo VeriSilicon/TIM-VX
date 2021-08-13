@@ -615,69 +615,69 @@ TEST(DepthwiseConv, shape_2_3_2_1_uint8_QuantizedTest) {
   tim::vx::ShapeType output_shape(
       {1, 2, weight_shape[2], input_shape[3]});  //whcn
 
-  float InputMin = -63.5, InputMax = 64, WeightMin = -63.5, WeightMax = 64,
-        OutputMin = -127, OutputMax = 128;
+  float input_min = -63.5, input_max = 64, weight_min = -63.5, weight_max = 64,
+        output_min = -127, output_max = 128;
 
-  std::pair<float, int32_t> scalesAndZp;
+  std::pair<float, int32_t> scales_zp;
 
-  scalesAndZp = QuantizationParams<u_int8_t>(InputMin, InputMax);
-  std::vector<float> scalesInput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsInput = {scalesAndZp.second};
+  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  std::vector<float> scales_input = {scales_zp.first};
+  std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scalesAndZp = QuantizationParams<u_int8_t>(WeightMin, WeightMax);
-  std::vector<float> scalesWeight = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsWeight = {scalesAndZp.second};
+  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  std::vector<float> scales_weight = {scales_zp.first};
+  std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
-  std::vector<float> scalesBias = {scalesInput[0] * scalesWeight[0]};
-  std::vector<int32_t> zeroPointsBias = {0};
+  std::vector<float> scales_bias = {scales_input[0] * scales_weight[0]};
+  std::vector<int32_t> zero_point_bias = {0};
 
-  scalesAndZp = QuantizationParams<u_int8_t>(OutputMin, OutputMax);
-  std::vector<float> scalesOutput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
-  tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scalesInput, zeroPointsInput);
-  tim::vx::Quantization quantWeight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesWeight, zeroPointsWeight);
-  tim::vx::Quantization quantBias(tim::vx::QuantType::ASYMMETRIC, 2, scalesBias,
-                                  zeroPointsBias);
-  tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesOutput, zeroPointsOutput);
+  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  std::vector<float> scales_output = {scales_zp.first};
+  std::vector<int32_t> zero_point_output = {scales_zp.second};
+  tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_input, zero_point_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
+                                  zero_point_bias);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
-                                 tim::vx::TensorAttribute::INPUT, quantInput);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::UINT8, weight_shape,
                                   tim::vx::TensorAttribute::CONSTANT,
-                                  quantWeight);
+                                  quant_weight);
   tim::vx::TensorSpec bias_spec(tim::vx::DataType::INT32, bias_shape,
-                                tim::vx::TensorAttribute::CONSTANT, quantBias);
+                                tim::vx::TensorAttribute::CONSTANT, quant_bias);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT,
-                                  quantOutput);
+                                  quant_output);
 
   // Input data  nchw
   // min:-63.5  max:64  scale:0.5  Zp:-1
   std::vector<float> input_data_float = {1, 7, 3, 9, 5, 11, 2, 8, 4, 10, 6, 12};
   std::vector<uint8_t> input_data =
-      Quantize<uint8_t>(input_data_float, scalesInput[0], zeroPointsInput[0]);
+      Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   iohw
   // min:-63.5  max:64  scale:0.5  Zp:-1
   std::vector<float> weight_data_float = {1, -9,  5, 13, 2, 10, 6, -14,
                                           3, -11, 7, 15, 4, 12, 8, -16};
   std::vector<uint8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scalesWeight[0], zeroPointsInput[0]);
+      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
 
   // bias data
   // scale:0.25  Zp:0
   std::vector<float> bias_data_float = {1, 2, 3, 4};
   std::vector<int32_t> bias_data =
-      Quantize<int32_t>(bias_data_float, scalesBias[0], zeroPointsBias[0]);
+      Quantize<int32_t>(bias_data_float, scales_bias[0], zero_point_bias[0]);
 
   // golden
   // min:-127  max:128  scale:1  Zp:-1
   std::vector<float> golden_float = {71, 91, -34, -26, 99, 127, -20, -4};
   std::vector<u_int8_t> golden =
-      Quantize<uint8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
+      Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
@@ -723,44 +723,44 @@ TEST(DepthwiseConv, shape_9_9_1_1_uint8_QuantizedDilationdValidTest) {
   tim::vx::ShapeType output_shape(
       {3, 3, weight_shape[2], input_shape[3]});  //whcn
 
-  float InputMin = 0, InputMax = 255, WeightMin = 0, WeightMax = 255,
-        OutputMin = 0, OutputMax = 255;
+  float input_min = 0, input_max = 255, weight_min = 0, weight_max = 255,
+        output_min = 0, output_max = 255;
 
-  std::pair<float, int32_t> scalesAndZp;
+  std::pair<float, int32_t> scales_zp;
 
-  scalesAndZp = QuantizationParams<u_int8_t>(InputMin, InputMax);
-  std::vector<float> scalesInput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsInput = {scalesAndZp.second};
+  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  std::vector<float> scales_input = {scales_zp.first};
+  std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scalesAndZp = QuantizationParams<u_int8_t>(WeightMin, WeightMax);
-  std::vector<float> scalesWeight = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsWeight = {scalesAndZp.second};
+  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  std::vector<float> scales_weight = {scales_zp.first};
+  std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
-  std::vector<float> scalesBias = {scalesInput[0] * scalesWeight[0]};
-  std::vector<int32_t> zeroPointsBias = {0};
+  std::vector<float> scales_bias = {scales_input[0] * scales_weight[0]};
+  std::vector<int32_t> zero_point_bias = {0};
 
-  scalesAndZp = QuantizationParams<u_int8_t>(OutputMin, OutputMax);
-  std::vector<float> scalesOutput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
-  tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scalesInput, zeroPointsInput);
-  tim::vx::Quantization quantWeight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesWeight, zeroPointsWeight);
-  tim::vx::Quantization quantBias(tim::vx::QuantType::ASYMMETRIC, 2, scalesBias,
-                                  zeroPointsBias);
-  tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesOutput, zeroPointsOutput);
+  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  std::vector<float> scales_output = {scales_zp.first};
+  std::vector<int32_t> zero_point_output = {scales_zp.second};
+  tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_input, zero_point_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
+                                  zero_point_bias);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
-                                 tim::vx::TensorAttribute::INPUT, quantInput);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::UINT8, weight_shape,
                                   tim::vx::TensorAttribute::CONSTANT,
-                                  quantWeight);
+                                  quant_weight);
   tim::vx::TensorSpec bias_spec(tim::vx::DataType::INT32, bias_shape,
-                                tim::vx::TensorAttribute::CONSTANT, quantBias);
+                                tim::vx::TensorAttribute::CONSTANT, quant_bias);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT,
-                                  quantOutput);
+                                  quant_output);
 
   // Input data  nchw
   // min:0  max:255  scale:1  Zp:-128
@@ -770,25 +770,25 @@ TEST(DepthwiseConv, shape_9_9_1_1_uint8_QuantizedDilationdValidTest) {
       0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   std::vector<uint8_t> input_data =
-      Quantize<uint8_t>(input_data_float, scalesInput[0], zeroPointsInput[0]);
+      Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   iohw
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> weight_data_float = {1, 2, 3, 4, 5, 6, 7, 8, 9};
   std::vector<uint8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scalesWeight[0], zeroPointsInput[0]);
+      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
 
   // bias data
   // scale:1  Zp:0
   std::vector<float> bias_data_float = {0};
   std::vector<int32_t> bias_data =
-      Quantize<int32_t>(bias_data_float, scalesBias[0], zeroPointsBias[0]);
+      Quantize<int32_t>(bias_data_float, scales_bias[0], zero_point_bias[0]);
 
   // golden
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> golden_float = {5, 5, 5, 5, 5, 5, 5, 5, 5};
   std::vector<u_int8_t> golden =
-      Quantize<uint8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
+      Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
@@ -834,68 +834,68 @@ TEST(DepthwiseConv, shape_3_3_1_1_uint8_QuantizedDilationdSameTest) {
   tim::vx::ShapeType output_shape(
       {3, 3, weight_shape[2], input_shape[3]});  //whcn
 
-  float InputMin = 0, InputMax = 255, WeightMin = 0, WeightMax = 255,
-        OutputMin = 0, OutputMax = 255;
+  float input_min = 0, input_max = 255, weight_min = 0, weight_max = 255,
+        output_min = 0, output_max = 255;
 
-  std::pair<float, int32_t> scalesAndZp;
+  std::pair<float, int32_t> scales_zp;
 
-  scalesAndZp = QuantizationParams<u_int8_t>(InputMin, InputMax);
-  std::vector<float> scalesInput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsInput = {scalesAndZp.second};
+  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  std::vector<float> scales_input = {scales_zp.first};
+  std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scalesAndZp = QuantizationParams<u_int8_t>(WeightMin, WeightMax);
-  std::vector<float> scalesWeight = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsWeight = {scalesAndZp.second};
+  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  std::vector<float> scales_weight = {scales_zp.first};
+  std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
-  std::vector<float> scalesBias = {scalesInput[0] * scalesWeight[0]};
-  std::vector<int32_t> zeroPointsBias = {0};
+  std::vector<float> scales_bias = {scales_input[0] * scales_weight[0]};
+  std::vector<int32_t> zero_point_bias = {0};
 
-  scalesAndZp = QuantizationParams<u_int8_t>(OutputMin, OutputMax);
-  std::vector<float> scalesOutput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
-  tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scalesInput, zeroPointsInput);
-  tim::vx::Quantization quantWeight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesWeight, zeroPointsWeight);
-  tim::vx::Quantization quantBias(tim::vx::QuantType::ASYMMETRIC, 2, scalesBias,
-                                  zeroPointsBias);
-  tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesOutput, zeroPointsOutput);
+  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  std::vector<float> scales_output = {scales_zp.first};
+  std::vector<int32_t> zero_point_output = {scales_zp.second};
+  tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_input, zero_point_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
+                                  zero_point_bias);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
-                                 tim::vx::TensorAttribute::INPUT, quantInput);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::UINT8, weight_shape,
                                   tim::vx::TensorAttribute::CONSTANT,
-                                  quantWeight);
+                                  quant_weight);
   tim::vx::TensorSpec bias_spec(tim::vx::DataType::INT32, bias_shape,
-                                tim::vx::TensorAttribute::CONSTANT, quantBias);
+                                tim::vx::TensorAttribute::CONSTANT, quant_bias);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT,
-                                  quantOutput);
+                                  quant_output);
 
   // Input data  nchw
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> input_data_float = {1, 1, 1, 1, 1, 1, 1, 1, 1};
   std::vector<uint8_t> input_data =
-      Quantize<uint8_t>(input_data_float, scalesInput[0], zeroPointsInput[0]);
+      Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   iohw
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> weight_data_float = {1, 2, 3, 4};
   std::vector<uint8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scalesWeight[0], zeroPointsInput[0]);
+      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
 
   // bias data
   // scale:1  Zp:0
   std::vector<float> bias_data_float = {0};
   std::vector<int32_t> bias_data =
-      Quantize<int32_t>(bias_data_float, scalesBias[0], zeroPointsBias[0]);
+      Quantize<int32_t>(bias_data_float, scales_bias[0], zero_point_bias[0]);
 
   // golden
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> golden_float = {4, 7, 3, 6, 10, 4, 2, 3, 1};
   std::vector<u_int8_t> golden =
-      Quantize<uint8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
+      Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
@@ -941,60 +941,60 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerTensorTest) {
   tim::vx::ShapeType output_shape(
       {2, 1, weight_shape[2], input_shape[3]});  //whcn
 
-  float InputMin = -63.5, InputMax = 64, OutputMin = -63.5, OutputMax = 64;
+  float input_min = -63.5, input_max = 64, output_min = -63.5, output_max = 64;
 
-  std::pair<float, int32_t> scalesAndZp;
+  std::pair<float, int32_t> scales_zp;
 
-  scalesAndZp = QuantizationParams<int8_t>(InputMin, InputMax);
-  std::vector<float> scalesInput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsInput = {scalesAndZp.second};
+  scales_zp = QuantizationParams<int8_t>(input_min, input_max);
+  std::vector<float> scales_input = {scales_zp.first};
+  std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  std::vector<float> scalesWeight = {1};
-  std::vector<int32_t> zeroPointsWeight = {0};
+  std::vector<float> scales_weight = {1};
+  std::vector<int32_t> zero_point_weight = {0};
 
-  int32_t sizeofweight = scalesWeight.size();
-  std::vector<float> scalesBias(sizeofweight);
-  std::vector<int32_t> zeroPointsBias(sizeofweight);
+  int32_t sizeofweight = scales_weight.size();
+  std::vector<float> scales_bias(sizeofweight);
+  std::vector<int32_t> zero_point_bias(sizeofweight);
   for (int i = 0; i < sizeofweight; i++) {
-    scalesBias[i] = scalesInput[0] * scalesWeight[i];
-    zeroPointsBias[i] = 0;
+    scales_bias[i] = scales_input[0] * scales_weight[i];
+    zero_point_bias[i] = 0;
   }
 
-  scalesAndZp = QuantizationParams<int8_t>(OutputMin, OutputMax);
-  std::vector<float> scalesOutput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
-  tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scalesInput, zeroPointsInput);
-  tim::vx::Quantization quantWeight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesWeight, zeroPointsWeight);
-  tim::vx::Quantization quantBias(tim::vx::QuantType::ASYMMETRIC, 2, scalesBias,
-                                  zeroPointsBias);
-  tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesOutput, zeroPointsOutput);
+  scales_zp = QuantizationParams<int8_t>(output_min, output_max);
+  std::vector<float> scales_output = {scales_zp.first};
+  std::vector<int32_t> zero_point_output = {scales_zp.second};
+  tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_input, zero_point_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
+                                  zero_point_bias);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
-                                 tim::vx::TensorAttribute::INPUT, quantInput);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::INT8, weight_shape,
                                   tim::vx::TensorAttribute::CONSTANT,
-                                  quantWeight);
+                                  quant_weight);
   tim::vx::TensorSpec bias_spec(tim::vx::DataType::INT32, bias_shape,
-                                tim::vx::TensorAttribute::CONSTANT, quantBias);
+                                tim::vx::TensorAttribute::CONSTANT, quant_bias);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::INT8, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT,
-                                  quantOutput);
+                                  quant_output);
 
   // Input data  nchw
   // min:-63.5  max:64  scale:0.5  Zp:-1
   std::vector<float> input_data_float = {3, 1,  -2, 4, 2,  -3,
                                          2, -1, -3, 3, -2, -4};
   std::vector<int8_t> input_data =
-      Quantize<int8_t>(input_data_float, scalesInput[0], zeroPointsInput[0]);
+      Quantize<int8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   iohw
   std::vector<float> weight_data_float = {1, 3, 7, 3, 2, 4, 8, 4,
                                           3, 5, 5, 1, 4, 6, 6, 2};
   std::vector<int8_t> weight_data =
-      Quantize<int8_t>(weight_data_float, scalesWeight[0], zeroPointsWeight[0]);
+      Quantize<int8_t>(weight_data_float, scales_weight[0], zero_point_weight[0]);
 
   // bias data
   std::vector<int32_t> bias_data = {6, -4, 8, 12};
@@ -1003,7 +1003,7 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerTensorTest) {
   // min:-63.5  max:64  scale:0.5  Zp:-1
   std::vector<float> golden_float = {43, 3, 48, -4, 18, -28, 22, -36};
   std::vector<int8_t> golden =
-      Quantize<int8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
+      Quantize<int8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
@@ -1049,47 +1049,47 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerAxisTest) {
   tim::vx::ShapeType output_shape(
       {2, 1, weight_shape[2], input_shape[3]});  //whcn
 
-  float InputMin = -63.5, InputMax = 64, OutputMin = -63.5, OutputMax = 64;
+  float input_min = -63.5, input_max = 64, output_min = -63.5, output_max = 64;
 
-  std::pair<float, int32_t> scalesAndZp;
+  std::pair<float, int32_t> scales_zp;
 
-  scalesAndZp = QuantizationParams<int8_t>(InputMin, InputMax);
-  std::vector<float> scalesInput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsInput = {scalesAndZp.second};
+  scales_zp = QuantizationParams<int8_t>(input_min, input_max);
+  std::vector<float> scales_input = {scales_zp.first};
+  std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  std::vector<float> scalesWeight = {1, 2, 3, 4};
-  std::vector<int32_t> zeroPointsWeight = {0, 0, 0, 0};
+  std::vector<float> scales_weight = {1, 2, 3, 4};
+  std::vector<int32_t> zero_point_weight = {0, 0, 0, 0};
 
-  int32_t sizeofweight = scalesWeight.size();
-  std::vector<float> scalesBias(sizeofweight);
-  std::vector<int32_t> zeroPointsBias(sizeofweight);
+  int32_t sizeofweight = scales_weight.size();
+  std::vector<float> scales_bias(sizeofweight);
+  std::vector<int32_t> zero_point_bias(sizeofweight);
   for (int i = 0; i < sizeofweight; i++) {
-    scalesBias[i] = scalesInput[0] * scalesWeight[i];
-    zeroPointsBias[i] = 0;
+    scales_bias[i] = scales_input[0] * scales_weight[i];
+    zero_point_bias[i] = 0;
   }
 
-  scalesAndZp = QuantizationParams<int8_t>(OutputMin, OutputMax);
-  std::vector<float> scalesOutput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
-  tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scalesInput, zeroPointsInput);
-  tim::vx::Quantization quantWeight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    2, scalesWeight, zeroPointsWeight);
-  tim::vx::Quantization quantBias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
-                                  scalesBias, zeroPointsBias);
-  tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesOutput, zeroPointsOutput);
+  scales_zp = QuantizationParams<int8_t>(output_min, output_max);
+  std::vector<float> scales_output = {scales_zp.first};
+  std::vector<int32_t> zero_point_output = {scales_zp.second};
+  tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_input, zero_point_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
+                                    2, scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
+                                  scales_bias, zero_point_bias);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
-                                 tim::vx::TensorAttribute::INPUT, quantInput);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::INT8, weight_shape,
                                   tim::vx::TensorAttribute::CONSTANT,
-                                  quantWeight);
+                                  quant_weight);
   tim::vx::TensorSpec bias_spec(tim::vx::DataType::INT32, bias_shape,
-                                tim::vx::TensorAttribute::CONSTANT, quantBias);
+                                tim::vx::TensorAttribute::CONSTANT, quant_bias);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::INT8, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT,
-                                  quantOutput);
+                                  quant_output);
 
   // Input data  nchw
   // min:-63.5  max:64  scale:0.5  Zp:-1
@@ -1097,7 +1097,7 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerAxisTest) {
                                          2, -1, -3, 3, -2, -4};
 
   std::vector<int8_t> input_data =
-      Quantize<int8_t>(input_data_float, scalesInput[0], zeroPointsInput[0]);
+      Quantize<int8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   iohw
   std::vector<int8_t> weight_data = {1, 3, 7, 3, 1, 2, 4, 2,
@@ -1110,7 +1110,7 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerAxisTest) {
   // min:-63.5  max:64  scale:0.5  Zp:-1
   std::vector<float> golden_float = {43, 3, 48, -4, 21, -30, 22, -54};
   std::vector<int8_t> golden =
-      Quantize<int8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
+      Quantize<int8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
@@ -1156,47 +1156,47 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelValidTest) {
   tim::vx::ShapeType output_shape(
       {1, 1, weight_shape[2], input_shape[3]});  //whcn
 
-  float InputMin = -63.5, InputMax = 64, OutputMin = -63.5, OutputMax = 64;
+  float input_min = -63.5, input_max = 64, output_min = -63.5, output_max = 64;
 
-  std::pair<float, int32_t> scalesAndZp;
+  std::pair<float, int32_t> scales_zp;
 
-  scalesAndZp = QuantizationParams<int8_t>(InputMin, InputMax);
-  std::vector<float> scalesInput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsInput = {scalesAndZp.second};
+  scales_zp = QuantizationParams<int8_t>(input_min, input_max);
+  std::vector<float> scales_input = {scales_zp.first};
+  std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  std::vector<float> scalesWeight = {0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1};
-  std::vector<int32_t> zeroPointsWeight = {0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<float> scales_weight = {0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1};
+  std::vector<int32_t> zero_point_weight = {0, 0, 0, 0, 0, 0, 0, 0};
 
-  int32_t sizeofweight = scalesWeight.size();
-  std::vector<float> scalesBias(sizeofweight);
-  std::vector<int32_t> zeroPointsBias(sizeofweight);
+  int32_t sizeofweight = scales_weight.size();
+  std::vector<float> scales_bias(sizeofweight);
+  std::vector<int32_t> zero_point_bias(sizeofweight);
   for (int i = 0; i < sizeofweight; i++) {
-    scalesBias[i] = scalesInput[0] * scalesWeight[i];
-    zeroPointsBias[i] = 0;
+    scales_bias[i] = scales_input[0] * scales_weight[i];
+    zero_point_bias[i] = 0;
   }
 
-  scalesAndZp = QuantizationParams<int8_t>(OutputMin, OutputMax);
-  std::vector<float> scalesOutput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
-  tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scalesInput, zeroPointsInput);
-  tim::vx::Quantization quantWeight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    2, scalesWeight, zeroPointsWeight);
-  tim::vx::Quantization quantBias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
-                                  scalesBias, zeroPointsBias);
-  tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesOutput, zeroPointsOutput);
+  scales_zp = QuantizationParams<int8_t>(output_min, output_max);
+  std::vector<float> scales_output = {scales_zp.first};
+  std::vector<int32_t> zero_point_output = {scales_zp.second};
+  tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_input, zero_point_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
+                                    2, scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
+                                  scales_bias, zero_point_bias);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
-                                 tim::vx::TensorAttribute::INPUT, quantInput);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::INT8, weight_shape,
                                   tim::vx::TensorAttribute::CONSTANT,
-                                  quantWeight);
+                                  quant_weight);
   tim::vx::TensorSpec bias_spec(tim::vx::DataType::INT32, bias_shape,
-                                tim::vx::TensorAttribute::CONSTANT, quantBias);
+                                tim::vx::TensorAttribute::CONSTANT, quant_bias);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::INT8, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT,
-                                  quantOutput);
+                                  quant_output);
 
   // Input data  nchw
   // min:-63.5  max:64  scale:0.5  Zp:-1
@@ -1206,7 +1206,7 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelValidTest) {
       1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   std::vector<int8_t> input_data =
-      Quantize<int8_t>(input_data_float, scalesInput[0], zeroPointsInput[0]);
+      Quantize<int8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   iohw
   std::vector<int8_t> weight_data = {
@@ -1222,7 +1222,7 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelValidTest) {
   // min:-63.5  max:64  scale:0.5  Zp:-1
   std::vector<float> golden_float = {9, 18, 0, 0, 47, 54, 0, 0};
   std::vector<int8_t> golden =
-      Quantize<int8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
+      Quantize<int8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
@@ -1268,47 +1268,47 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelSameTest) {
   tim::vx::ShapeType output_shape(
       {3, 3, weight_shape[2], input_shape[3]});  //whcn
 
-  float InputMin = -63.5, InputMax = 64, OutputMin = -63.5, OutputMax = 64;
+  float input_min = -63.5, input_max = 64, output_min = -63.5, output_max = 64;
 
-  std::pair<float, int32_t> scalesAndZp;
+  std::pair<float, int32_t> scales_zp;
 
-  scalesAndZp = QuantizationParams<int8_t>(InputMin, InputMax);
-  std::vector<float> scalesInput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsInput = {scalesAndZp.second};
+  scales_zp = QuantizationParams<int8_t>(input_min, input_max);
+  std::vector<float> scales_input = {scales_zp.first};
+  std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  std::vector<float> scalesWeight = {0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1};
-  std::vector<int32_t> zeroPointsWeight = {0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<float> scales_weight = {0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1};
+  std::vector<int32_t> zero_point_weight = {0, 0, 0, 0, 0, 0, 0, 0};
 
-  int32_t sizeofweight = scalesWeight.size();
-  std::vector<float> scalesBias(sizeofweight);
-  std::vector<int32_t> zeroPointsBias(sizeofweight);
+  int32_t sizeofweight = scales_weight.size();
+  std::vector<float> scales_bias(sizeofweight);
+  std::vector<int32_t> zero_point_bias(sizeofweight);
   for (int i = 0; i < sizeofweight; i++) {
-    scalesBias[i] = scalesInput[0] * scalesWeight[i];
-    zeroPointsBias[i] = 0;
+    scales_bias[i] = scales_input[0] * scales_weight[i];
+    zero_point_bias[i] = 0;
   }
 
-  scalesAndZp = QuantizationParams<int8_t>(OutputMin, OutputMax);
-  std::vector<float> scalesOutput = {scalesAndZp.first};
-  std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
-  tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scalesInput, zeroPointsInput);
-  tim::vx::Quantization quantWeight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    2, scalesWeight, zeroPointsWeight);
-  tim::vx::Quantization quantBias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
-                                  scalesBias, zeroPointsBias);
-  tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scalesOutput, zeroPointsOutput);
+  scales_zp = QuantizationParams<int8_t>(output_min, output_max);
+  std::vector<float> scales_output = {scales_zp.first};
+  std::vector<int32_t> zero_point_output = {scales_zp.second};
+  tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_input, zero_point_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
+                                    2, scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
+                                  scales_bias, zero_point_bias);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
+                                    scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
-                                 tim::vx::TensorAttribute::INPUT, quantInput);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::INT8, weight_shape,
                                   tim::vx::TensorAttribute::CONSTANT,
-                                  quantWeight);
+                                  quant_weight);
   tim::vx::TensorSpec bias_spec(tim::vx::DataType::INT32, bias_shape,
-                                tim::vx::TensorAttribute::CONSTANT, quantBias);
+                                tim::vx::TensorAttribute::CONSTANT, quant_bias);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::INT8, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT,
-                                  quantOutput);
+                                  quant_output);
 
   // Input data  nchw
   // min:-63.5  max:64  scale:0.5  Zp:-1
@@ -1318,7 +1318,7 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelSameTest) {
       1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   std::vector<int8_t> input_data =
-      Quantize<int8_t>(input_data_float, scalesInput[0], zeroPointsInput[0]);
+      Quantize<int8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   iohw
   std::vector<int8_t> weight_data = {
@@ -1338,7 +1338,7 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelSameTest) {
       21, 31, 21, 31, 47, 31, 21, 31, 21, 24, 36, 24, 36, 54, 36, 24, 36, 24,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0};
   std::vector<int8_t> golden =
-      Quantize<int8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
+      Quantize<int8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
