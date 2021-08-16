@@ -59,6 +59,16 @@ std::shared_ptr<Operation> HardSwish::Clone(
   return graph->CreateOperation<HardSwish>();
 }
 
+Swish::Swish(Graph* graph) : Operation(graph, VSI_NN_OP_SWISH) {
+  this->impl()->node()->nn_param.swish.type = VSI_NN_SWISH;
+  this->impl()->node()->nn_param.swish.beta = 1.0f;
+}
+
+std::shared_ptr<Operation> Swish::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Swish>();
+}
+
 Prelu::Prelu(Graph* graph, int axis)
     : Operation(graph, VSI_NN_OP_PRELU), axis_(axis) {
   this->impl()->node()->nn_param.prelu.axis = axis_;
