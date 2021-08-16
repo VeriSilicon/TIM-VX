@@ -47,6 +47,8 @@ namespace ops {
  *
  *   Sigmoid(x)             : 1/(1 + e^{-x})
  *
+ *   Swish(x)               : x * sigmoid(x)
+ * 
  *   HardSwish(x)           : 0 if x <= -3; x(x + 3)/6 if -3 < x < 3; x if x >= 3
  *
  *   Mish(x)                : x if x >= 0 else alpha * x
@@ -78,6 +80,7 @@ DECLARE_NO_PARAMETER_ACTIVATION(Relu6)
 DECLARE_NO_PARAMETER_ACTIVATION(Elu)
 DECLARE_NO_PARAMETER_ACTIVATION(Tanh)
 DECLARE_NO_PARAMETER_ACTIVATION(Sigmoid)
+DECLARE_NO_PARAMETER_ACTIVATION(Swish)
 DECLARE_NO_PARAMETER_ACTIVATION(HardSwish)
 DECLARE_NO_PARAMETER_ACTIVATION(Mish)
 DECLARE_NO_PARAMETER_ACTIVATION(HardSigmoid)
