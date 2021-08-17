@@ -63,6 +63,9 @@ namespace ops {
  *    - axis                : describes the axis of the inputs when coerced to 2D.
  *
  *   Linear(x, a, b)        : a*x + b.
+ *
+ *   Gelu(x)                : x * P(X <= x), where P(x) ~ N(0, 1). https://tensorflow.google.cn/api_docs/python/tf/nn/gelu
+
  * ```
  */
 
@@ -117,6 +120,13 @@ class Linear : public Operation {
  protected:
   float a_;
   float b_;
+};
+
+class Gelu : public Operation {
+  public:
+   explicit Gelu(Graph* graph, bool approximate = false);
+   std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 };
 
 }  // namespace ops

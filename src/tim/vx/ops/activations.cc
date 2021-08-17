@@ -107,6 +107,15 @@ std::shared_ptr<Operation> Linear::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Linear>(this->a_, this->b_);
 }
 
+Gelu::Gelu(Graph* graph, bool approximate)
+    : Operation(graph, VSI_NN_OP_GELU){
+      this->impl()->node()->nn_param.gelu.approximate = approximate;
+    }
+
+std::shared_ptr<Operation> Gelu::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Gelu>(this->impl()->node()->nn_param.gelu.approximate);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

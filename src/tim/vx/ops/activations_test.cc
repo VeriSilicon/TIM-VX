@@ -26,6 +26,20 @@
 #include "tim/vx/ops/activations.h"
 
 #include "gtest/gtest.h"
+#include "src/tim/vx/test_utils.h"
+
+namespace {
+template<typename T>
+::testing::AssertionResult ArraysMatch(const std::vector<T>& expected,
+                                       const std::vector<T>& actual,
+                                       T abs_error){
+    for (size_t i = 0; i < expected.size(); ++i){
+        EXPECT_NEAR(expected[i], actual[i], abs_error) << "at index:" << i;
+    }
+
+    return ::testing::AssertionSuccess();
+}
+}
 
 TEST(Linear, shape_5_1_fp32) {
     auto ctx = tim::vx::Context::Create();
@@ -83,5 +97,128 @@ TEST(Linear, shape_5_1_fp32_omit_b) {
     EXPECT_EQ(golden, output);
 }
 
+TEST(Gelu, shape_5_1_fp32) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType in_shape({5, 1});
+    tim::vx::ShapeType out_shape({5, 1});
+    tim::vx::TensorSpec in_spec(tim::vx::DataType::FLOAT32,
+                    in_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec out_spec(tim::vx::DataType::FLOAT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto in_tensor = graph->CreateTensor(in_spec);
+    auto out_tensor = graph->CreateTensor(out_spec);
+
+    std::vector<float> in_data = {
+        -3, -1, 0, 1, 3
+    };
+    std::vector<float> golden = {
+        -0.00404951, -0.15865529, 0, 0.8413447, 2.9959507
+    };
+
+    EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
+    auto op = graph->CreateOperation<tim::vx::ops::Gelu>(false);
+    (*op).BindInput(in_tensor).BindOutput(out_tensor);
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(golden.size());
+    EXPECT_TRUE(out_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}
+
+TEST(Gelu, shape_5_1_fp32_approximate) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType in_shape({5, 1});
+    tim::vx::ShapeType out_shape({5, 1});
+    tim::vx::TensorSpec in_spec(tim::vx::DataType::FLOAT32,
+                    in_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec out_spec(tim::vx::DataType::FLOAT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto in_tensor = graph->CreateTensor(in_spec);
+    auto out_tensor = graph->CreateTensor(out_spec);
+
+    std::vector<float> in_data = {
+        -3, -1, 0, 1, 3
+    };
+    std::vector<float> golden = {
+        -0.00363752, -0.15880796, 0, 0.841192, 2.9963627
+    };
+
+    EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
+    auto op = graph->CreateOperation<tim::vx::ops::Gelu>(true);
+    (*op).BindInput(in_tensor).BindOutput(out_tensor);
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(golden.size());
+    EXPECT_TRUE(out_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}
+
+TEST(Gelu, shape_5_1_uint8_Quantized) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType in_shape({5, 1});
+    tim::vx::ShapeType out_shape({5, 1});
+
+    const float InputMin = -127, InputMax = 128, OutputMin = -127, OutputMax = 128;
+
+    std::pair<float, int32_t> scalesAndZp;
+
+    scalesAndZp = QuantizationParams<uint8_t>(InputMin, InputMax);
+    std::vector<float> scalesInput = {scalesAndZp.first};   //scale
+    std::vector<int32_t> zeroPointsInput = {scalesAndZp.second}; //zero point
+
+    scalesAndZp = QuantizationParams<u_int8_t>(OutputMin, OutputMax);
+    std::vector<float> scalesOutput = {scalesAndZp.first};
+    std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
 
 
+    tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 1,
+                                   scalesInput, zeroPointsInput);
+    tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 1,
+                                    scalesOutput, zeroPointsOutput);
+
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, in_shape,
+                                 tim::vx::TensorAttribute::INPUT, quantInput);
+
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, out_shape,
+                                tim::vx::TensorAttribute::OUTPUT, quantOutput);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_float_data = {
+        -3, -1, 0, 1, 3
+    };
+    std::vector<float> golden_float = {
+        -0.00404951, -0.15865529, 0, 0.8413447, 2.9959507
+    };
+
+    std::vector<uint8_t> input_data =
+      Quantize<uint8_t>(in_float_data, scalesInput[0], zeroPointsInput[0]);   //Quantification process
+    std::vector<uint8_t> golden =
+      Quantize<uint8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
+    std::vector<uint8_t> tolerance =
+      Quantize<uint8_t>(scalesInput, scalesOutput[0], zeroPointsOutput[0]);
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(input_data.data(), input_data.size()*4));
+    auto op = graph->CreateOperation<tim::vx::ops::Gelu>(false);
+    (*op).BindInput(input_tensor).BindOutput(output_tensor);
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+    std::vector<uint8_t> output(golden.size());
+
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance[0]));
+}
