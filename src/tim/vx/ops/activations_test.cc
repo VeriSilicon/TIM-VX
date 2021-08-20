@@ -170,27 +170,23 @@ TEST(Gelu, shape_5_1_uint8_Quantized) {
     tim::vx::ShapeType in_shape({5, 1});
     tim::vx::ShapeType out_shape({5, 1});
 
-    const float InputMin = -127, InputMax = 128, OutputMin = -127, OutputMax = 128;
-
+    const float InputMin = -128, InputMax = 127, OutputMin = -128, OutputMax = 127;
     std::pair<float, int32_t> scalesAndZp;
 
     scalesAndZp = QuantizationParams<uint8_t>(InputMin, InputMax);
     std::vector<float> scalesInput = {scalesAndZp.first};   //scale
     std::vector<int32_t> zeroPointsInput = {scalesAndZp.second}; //zero point
 
-    scalesAndZp = QuantizationParams<u_int8_t>(OutputMin, OutputMax);
+    scalesAndZp = QuantizationParams<uint8_t>(OutputMin, OutputMax);
     std::vector<float> scalesOutput = {scalesAndZp.first};
     std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
-
 
     tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 1,
                                    scalesInput, zeroPointsInput);
     tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 1,
                                     scalesOutput, zeroPointsOutput);
-
     tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, in_shape,
                                  tim::vx::TensorAttribute::INPUT, quantInput);
-
     tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, out_shape,
                                 tim::vx::TensorAttribute::OUTPUT, quantOutput);
 
@@ -208,8 +204,6 @@ TEST(Gelu, shape_5_1_uint8_Quantized) {
       Quantize<uint8_t>(in_float_data, scalesInput[0], zeroPointsInput[0]);   //Quantification process
     std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
-    std::vector<uint8_t> tolerance =
-      Quantize<uint8_t>(scalesInput, scalesOutput[0], zeroPointsOutput[0]);
 
     EXPECT_TRUE(input_tensor->CopyDataToTensor(input_data.data(), input_data.size()*4));
     auto op = graph->CreateOperation<tim::vx::ops::Gelu>(false);
@@ -220,5 +214,5 @@ TEST(Gelu, shape_5_1_uint8_Quantized) {
     std::vector<uint8_t> output(golden.size());
 
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, tolerance[0]));
+    EXPECT_EQ(golden, output);
 }
