@@ -65,7 +65,6 @@ namespace ops {
  *   Linear(x, a, b)        : a*x + b.
  *
  *   Gelu(x)                : x * P(X <= x), where P(x) ~ N(0, 1). https://tensorflow.google.cn/api_docs/python/tf/nn/gelu
-
  * ```
  */
 
