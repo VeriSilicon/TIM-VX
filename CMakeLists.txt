@@ -8,7 +8,7 @@ option(TIM_VX_USE_EXTERNAL_OVXLIB   "Use external OVXLIB"                   OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
 set(CONFIG "" CACHE STRING "Target Platform")
 
 if(${TIM_VX_CODE_COVERAGE})
