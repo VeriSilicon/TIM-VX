@@ -208,8 +208,6 @@ TEST(Gelu, shape_5_1_uint8_Quantized) {
       Quantize<uint8_t>(in_float_data, scalesInput[0], zeroPointsInput[0]);   //Quantification process
     std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scalesOutput[0], zeroPointsOutput[0]);
-    std::vector<uint8_t> tolerance =
-      Quantize<uint8_t>(scalesInput, scalesOutput[0], zeroPointsOutput[0]);
 
     EXPECT_TRUE(input_tensor->CopyDataToTensor(input_data.data(), input_data.size()*4));
     auto op = graph->CreateOperation<tim::vx::ops::Gelu>(false);
@@ -220,5 +218,5 @@ TEST(Gelu, shape_5_1_uint8_Quantized) {
     std::vector<uint8_t> output(golden.size());
 
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, tolerance[0]));
+    EXPECT_EQ(golden, output);
 }
