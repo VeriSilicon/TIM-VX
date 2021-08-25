@@ -24,21 +24,8 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/groupedconv2d.h"
-
+#include "src/tim/vx/test_utils.h"
 #include "gtest/gtest.h"
-
-namespace {
-template<typename T>
-::testing::AssertionResult ArraysMatch(const std::vector<T>& expected,
-                                       const std::vector<T>& actual,
-                                       T abs_error){
-    for (size_t i = 0; i < expected.size(); ++i){
-        EXPECT_NEAR(expected[i], actual[i], abs_error) << "at index:" << i;
-    }
-
-    return ::testing::AssertionSuccess();
-}
-}
 
 TEST(GroupedConv2d, shape_3_3_6_1_float_group_1_no_bias_whcn) {
     auto ctx = tim::vx::Context::Create();

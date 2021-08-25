@@ -25,22 +25,8 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/moments.h"
-
+#include "src/tim/vx/test_utils.h"
 #include "gtest/gtest.h"
-
-namespace {
-template<typename T>
-::testing::AssertionResult ArraysMatch(const std::vector<T>& expected,
-                                       const std::vector<T>& actual,
-                                       T abs_error,
-                                       const std::string& msg){
-    for (size_t i = 0; i < expected.size(); ++i){
-        EXPECT_NEAR(expected[i], actual[i], abs_error) << msg << " at index:" << i;
-    }
-
-    return ::testing::AssertionSuccess();
-}
-}
 
 TEST(Moments, shape_6_3_1_float_axes_0_1) {
     auto ctx = tim::vx::Context::Create();
@@ -113,7 +99,7 @@ TEST(Moments, shape_3_6_1_float_axes_1_keepdims) {
         -4, 0, 4,
         -5, 0, 5,
         -6, 0, 6,
-        -7, 0, 7 
+        -7, 0, 7
     };
 
     std::vector<float> mean_golden = {
