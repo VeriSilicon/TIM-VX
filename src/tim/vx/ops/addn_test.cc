@@ -164,5 +164,5 @@ TEST(AddN, shape_2_2_uint8_Quantized) {
     std::vector<uint8_t> output(4);
 
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
+    EXPECT_TRUE(ArraysMatch(golden, output, (uint8_t)1));
 }

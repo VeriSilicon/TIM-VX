@@ -109,5 +109,30 @@ inline std::vector<float> Dequantize(const std::vector<T>& data, float scale,
   return f;
 }
 
+namespace {
+template<typename T>
+::testing::AssertionResult ArraysMatch(const std::vector<T>& expected,
+                                       const std::vector<T>& actual,
+                                       T abs_error){
+    for (size_t i = 0; i < expected.size(); ++i){
+        EXPECT_NEAR(expected[i], actual[i], abs_error) << "at index:" << i;
+    }
 
+    return ::testing::AssertionSuccess();
+}
+}
+
+namespace {
+template<typename T>
+::testing::AssertionResult ArraysMatch(const std::vector<T>& expected,
+                                       const std::vector<T>& actual,
+                                       T abs_error,
+                                       const std::string& msg){
+    for (size_t i = 0; i < expected.size(); ++i){
+        EXPECT_NEAR(expected[i], actual[i], abs_error) << msg << " at index:" << i;
+    }
+
+    return ::testing::AssertionSuccess();
+}
+}
 #endif /* TIM_VX_TEST_UTILS_H_ */

@@ -28,19 +28,6 @@
 #include "gtest/gtest.h"
 #include "src/tim/vx/test_utils.h"
 
-namespace {
-template<typename T>
-::testing::AssertionResult ArraysMatch(const std::vector<T>& expected,
-                                       const std::vector<T>& actual,
-                                       T abs_error){
-    for (size_t i = 0; i < expected.size(); ++i){
-        EXPECT_NEAR(expected[i], actual[i], abs_error) << "at index:" << i;
-    }
-
-    return ::testing::AssertionSuccess();
-}
-}
-
 TEST(AVG, shape_3_3_1_2_fp32_kernel_2_stride_1) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
@@ -183,7 +170,7 @@ TEST(AVG, shape_3_3_1_1_uint8_kernel_2_stride_1) {
 
     std::vector<uint8_t> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
+    EXPECT_TRUE(ArraysMatch(golden, output, (uint8_t)1));
 }
 
 TEST(AVG, shape_60_52_3_5_fp32_kernel_35_stride_5) {
@@ -398,5 +385,5 @@ TEST(AVG_ANDROID, shape_60_52_3_5_uint8_kernel_35_stride_5) {
 
     std::vector<uint8_t> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
+    EXPECT_TRUE(ArraysMatch(golden, output, (uint8_t)1));
 }
