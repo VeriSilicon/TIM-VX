@@ -1,13 +1,13 @@
 
 
-# TIM-VX - Tensor Interface Module for OpenVX
+# TIM-VX - Tensor Interface Module
 ![VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/x86_vsim_unit_test.yml/badge.svg)
 
-TIM-VX is a software integration module provided by VeriSilicon to facilitate deployment of Neural-Networks on OpenVX enabled ML accelerators. It serves as the backend binding for runtime frameworks such as Android NN, Tensorflow-Lite, MLIR, TVM and more.
+TIM-VX is a software integration module provided by VeriSilicon to facilitate deployment of Neural-Networks on Verisilicon ML accelerators. It serves as the backend binding for runtime frameworks such as Android NN, Tensorflow-Lite, MLIR, TVM and more.
 
 Main Features
- - Over [130 operators](https://github.com/VeriSilicon/TIM-VX/blob/main/src/tim/vx/ops/README.md) with rich format support for both quantized and floating point
- - Simplified C++ binding API calls to create Tensors and Operations
+ - Over [150 operators](https://github.com/VeriSilicon/TIM-VX/blob/main/src/tim/vx/ops/README.md) with rich format support for both quantized and floating point
+ - Simplified C++ binding API calls to create Tensors and Operations [Guide](https://github.com/VeriSilicon/TIM-VX/blob/main/docs/Programming_Guide.md)
  - Dynamic graph construction with support for shape inference and layout inference
  - Built-in custom layer extensions
  - A set of utility functions for debugging
@@ -43,4 +43,5 @@ bazel run //samples/lenet:lenet_asymu8_cc
 ```
 
 To build and run Tensorflow-Lite with TIM-VX, please see [README](https://github.com/VeriSilicon/tflite-vx-delegate#readme)
-To build and run TVM with TIM-VX, please see [TVM](https://github.com/VeriSilicon/tvm)
+
+To build and run TVM with TIM-VX, please see [TVM README](https://github.com/VeriSilicon/tvm/blob/vsi_npu/README.VSI.md)
