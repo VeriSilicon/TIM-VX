@@ -298,7 +298,7 @@ TEST(AVG_ANDROID, shape_60_52_3_5_fp32_kernel_35_stride_5) {
 
     std::vector<float> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
+    ArraysMatch(golden, output, 1e-5f);
 }
 
 TEST(AVG_ANDROID, shape_60_52_3_5_uint8_kernel_35_stride_5) {
