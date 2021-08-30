@@ -21,22 +21,31 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/ops/addn.h"
-
-#include "operation_private.h"
-#include "vsi_nn_pub.h"
+#ifndef TIM_VX_OPS_SHUFFLE_H_
+#define TIM_VX_OPS_SHUFFLE_H_
+#include "tim/vx/operation.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-AddN::AddN(Graph* graph, uint32_t num_inputs)
-    : Operation(graph, VSI_NN_OP_ADDN, num_inputs, 1) {}
+/**
+ * ## Channel_Shuffle
+ *
+ * ```
+ *   channel_shuffle(in_tensor, num_groups, index_axis)     : output_channel[k * num_groups + g] = input_channel[g * group_size + k]
+                                                              where group_size = num_channels(Corresponding index_axis) / num_groups. The number of channels must be divisible by num_groups
+ * ```
+ */
 
-std::shared_ptr<Operation> AddN::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<AddN>(this->impl_->input_cnt_);
-}
+class shuffle_channel : public Operation {
+  public:
+   explicit shuffle_channel(Graph* graph, int32_t num_groups, int32_t index_axis);
+   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+};
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+
+#endif /* TIM_VX_OPS_SHUFFLE_H_ */

@@ -22,14 +22,12 @@
 *
 *****************************************************************************/
 #include "tim/vx/graph.h"
-
 #include <algorithm>
 
 #include "context_private.h"
 #include "graph_private.h"
-#include "tensor_private.h"
 #include "operation_private.h"
-
+#include "tensor_private.h"
 #include "tim/vx/context.h"
 #include "tim/vx/ops/nbg.h"
 #include "vsi_nn_pub.h"
@@ -122,14 +120,16 @@ bool GraphImpl::Compile() {
   auto minor = vsi_nn_GetVersionMinor();
   auto patch = vsi_nn_GetVersionPatch();
 
-  vsi_nn_SetGraphVersion(graph_,major,minor,patch);
+  vsi_nn_SetGraphVersion(graph_, major, minor, patch);
 
   std::call_once(setio_once_, [&status, this]() {
-    status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(), this->inputs_.size()) &&
-              vsi_nn_SetGraphOutputs(this->graph_, this->outputs_.data(), this->outputs_.size()));
+    status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(),
+                                    this->inputs_.size()) &&
+              vsi_nn_SetGraphOutputs(this->graph_, this->outputs_.data(),
+                                     this->outputs_.size()));
   });
 
-  std::call_once(setup_once_, [&status, this](){
+  std::call_once(setup_once_, [&status, this]() {
     status = (VSI_SUCCESS == vsi_nn_SetupGraph(this->graph_, true));
   });
 
@@ -143,11 +143,13 @@ bool GraphImpl::Compile() {
 bool GraphImpl::CompileToBinary(void* buf, size_t* size) {
   bool status = true;
   std::call_once(setio_once_, [&status, this]() {
-    status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(), this->inputs_.size()) &&
-              vsi_nn_SetGraphOutputs(this->graph_,this->outputs_.data(), this->outputs_.size()));
+    status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(),
+                                    this->inputs_.size()) &&
+              vsi_nn_SetGraphOutputs(this->graph_, this->outputs_.data(),
+                                     this->outputs_.size()));
   });
 
-  std::call_once(setup_once_, [&status, this](){
+  std::call_once(setup_once_, [&status, this]() {
     status = (VSI_SUCCESS == vsi_nn_SetupGraph(this->graph_, true));
   });
 

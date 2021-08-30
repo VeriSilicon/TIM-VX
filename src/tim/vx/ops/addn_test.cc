@@ -70,11 +70,12 @@ TEST(AddN, shape_3_1_float32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
-    tim::vx::ShapeType io_shape({3, 1});
+    tim::vx::ShapeType in_shape({3, 1});
+    tim::vx::ShapeType out_shape({3, 1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
-                            io_shape, tim::vx::TensorAttribute::INPUT);
+                            in_shape, tim::vx::TensorAttribute::INPUT);
     tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
-                            io_shape, tim::vx::TensorAttribute::OUTPUT);
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
 
     auto input_tensor_x = graph->CreateTensor(input_spec);
     auto input_tensor_y = graph->CreateTensor(input_spec);
