@@ -92,7 +92,7 @@ inline std::vector<T> Quantize(const std::vector<float>& data, float scale,
   for (const auto& f : data) {
     q.push_back(static_cast<T>(std::max<float>(
         std::numeric_limits<T>::min(),
-        std::min<float>(std::numeric_limits<T>::max(),
+        std::min<float>(static_cast<float>(std::numeric_limits<T>::max()),
                         std::round(zero_point + (f / scale))))));
   }
   return q;
