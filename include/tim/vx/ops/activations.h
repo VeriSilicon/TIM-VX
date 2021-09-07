@@ -48,7 +48,7 @@ namespace ops {
  *   Sigmoid(x)             : 1/(1 + e^{-x})
  *
  *   Swish(x)               : x * sigmoid(x)
- * 
+ *
  *   HardSwish(x)           : 0 if x <= -3; x(x + 3)/6 if -3 < x < 3; x if x >= 3
  *
  *   Mish(x)                : x if x >= 0 else alpha * x
@@ -122,9 +122,13 @@ class Linear : public Operation {
 };
 
 class Gelu : public Operation {
-  public:
-   explicit Gelu(Graph* graph, bool approximate = false);
-   std::shared_ptr<Operation> Clone(
+ public:
+  /****************************************************************************
+  *Non-approximate calculations will also have errors when the data type is
+  *fp32, it is recommended to use the approximate option.
+  ****************************************************************************/
+  explicit Gelu(Graph* graph, bool approximate = true);
+  std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
 };
 
