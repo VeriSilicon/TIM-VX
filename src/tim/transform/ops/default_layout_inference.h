@@ -55,14 +55,19 @@ class DefaultLayoutInfer : public OpLayoutInfer {
     for (const auto& i_src : op_->impl()->InputsTensor()) {
       (*cloned_op).BindInput(context_->GetMapedTensor(i_src));
     }
-    auto required_pv =
-        MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    auto out_infer = CreateOutputsTensor(required_pv);
 
-    // TODO: bind all output
+    std::vector<std::shared_ptr<IPermuteVector>> required_pv_lst;
+    for (auto out_tensor: op_->impl()->OutputsTensor()) {
+      required_pv_lst.push_back(MakeShared(out_tensor->GetShape().size()));
+    }
+    auto out_infer = CreateOutputsTensor(required_pv_lst);
+
     (*cloned_op).BindOutputs(out_infer);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
-    next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
+    uint32_t i = 0;
+    for (auto out_tensor : op_->impl()->OutputsTensor()) {
+      context_->SetPermuteVector(out_tensor, required_pv_lst[i++]);
+      next_tensors.push_back(out_tensor);
+    }
   }
 };
 

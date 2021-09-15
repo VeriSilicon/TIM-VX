@@ -83,19 +83,48 @@ std::shared_ptr<vx::Tensor> OpLayoutInfer::InsertPermute(
 }
 
 std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
-    std::shared_ptr<IPermuteVector> required_pv) {
-  std::vector<std::shared_ptr<vx::Tensor>> ouptuts_tensor;
+      std::shared_ptr<IPermuteVector> required_pv) {
+  std::vector<std::shared_ptr<vx::Tensor>> outputs_tensor;
+
+  if (op_->impl()->OutputsTensor().size() > 1) {
+    // todo(sven): potential bug here if node have multi-output and require layout inference
+    std::cout <<"warning at "<< __FUNCTION__ << ", #" << __LINE__ << std::endl;
+  }
+
+  uint32_t i = 0;
   for (const auto& o : op_->impl()->OutputsTensor()) {
     auto in_shape = o->GetShape();
     auto out_spec = o->GetSpec();
-    if (!required_pv->IsAligned()) {
+    if (!(required_pv->IsAligned())) {
       out_spec = out_spec.AsTransientSpec();
     }
     auto t_infer = context_->infer_graph_->CreateTensor(out_spec);
     context_->UpdateTensorMap(o, t_infer);
-    ouptuts_tensor.push_back(t_infer);
+    outputs_tensor.push_back(t_infer);
+    i++;
   }
-  return ouptuts_tensor;
+  return outputs_tensor;
+}
+
+std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
+    const std::vector<std::shared_ptr<IPermuteVector>>& required_pv) {
+  std::vector<std::shared_ptr<vx::Tensor>> outputs_tensor;
+
+  assert(required_pv.size() == (op_->impl()->OutputsTensor().size()));
+
+  uint32_t i = 0;
+  for (const auto& o : op_->impl()->OutputsTensor()) {
+    auto in_shape = o->GetShape();
+    auto out_spec = o->GetSpec();
+    if (!(required_pv[i]->IsAligned())) {
+      out_spec = out_spec.AsTransientSpec();
+    }
+    auto t_infer = context_->infer_graph_->CreateTensor(out_spec);
+    context_->UpdateTensorMap(o, t_infer);
+    outputs_tensor.push_back(t_infer);
+    i++;
+  }
+  return outputs_tensor;
 }
 
 vx::PadType OpLayoutInfer::TranslatePadType(int32_t pad) {
