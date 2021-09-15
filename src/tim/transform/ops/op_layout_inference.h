@@ -61,6 +61,8 @@ class OpLayoutInfer {
   std::vector<std::shared_ptr<vx::Tensor>> CreateOutputsTensor(
       std::shared_ptr<IPermuteVector> required_pv);
 
+  std::vector<std::shared_ptr<vx::Tensor>> CreateOutputsTensor(
+      const std::vector<std::shared_ptr<IPermuteVector>>& required_pv);
   vx::PadType TranslatePadType(int32_t pad);
 
   vx::PoolType TranslatePoolType(int32_t pool);
