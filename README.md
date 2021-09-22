@@ -45,3 +45,6 @@ bazel run //samples/lenet:lenet_asymu8_cc
 To build and run Tensorflow-Lite with TIM-VX, please see [README](https://github.com/VeriSilicon/tflite-vx-delegate#readme)
 
 To build and run TVM with TIM-VX, please see [TVM README](https://github.com/VeriSilicon/tvm/blob/vsi_npu/README.VSI.md)
+
+# Support
+create issue on github or email to ML_Support@verisilicon.com
