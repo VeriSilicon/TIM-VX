@@ -1288,6 +1288,8 @@ enum vx_channel_e {
     VX_CHANNEL_U = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_CHANNEL) + 0x15,
     /*! \brief Use to extract the Cr/V/Value channel, no matter the byte or packing order. */
     VX_CHANNEL_V = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_CHANNEL) + 0x16,
+
+    VX_CHANNEL_UV = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_CHANNEL) + 0x0,
 };
 
 /*! \brief An enumeration of memory import types.

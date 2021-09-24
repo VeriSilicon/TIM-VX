@@ -112,4 +112,12 @@ VX_CREATE_TENSOR_SUPPORT_PHYSICAL is used to declare that openvx can support phy
 */
 #define VX_GRAPH_PREEMPTION_SUPPORT 1
 
+/*
+VX_BATCH_GEMM_API_SUPPORT is used to declare that vsi openvx driver can support vxBatchGemmNode API to transform gemm to convolution
+ [value]
+ 0: not support
+ 1: support
+*/
+#define VX_BATCH_GEMM_API_SUPPORT 1
+
 #endif /* __VX_KHR_COMPATIBLE_H__ */

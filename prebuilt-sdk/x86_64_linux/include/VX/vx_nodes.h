@@ -940,6 +940,29 @@ VX_API_ENTRY vx_node VX_API_CALL vxTensorMatrixMultiplyNode(vx_graph graph, vx_t
  */
 VX_API_ENTRY vx_node VX_API_CALL vxCopyNode(vx_graph graph, vx_reference input, vx_reference output);
 
+/*! \brief Create a batch gemm node, the calcution formula is output = matrix_a * matrix_b + matrix_c.
+ * \param [in] graph The reference to the graph.
+ * \param [in] matrix_a The first input tensor.
+ * \param [in] matrix_b The second input tensor. Must be in the same data type and batch count as first input tensor.
+ * \param [in] matrix_c The third input tensor. Must be in the same data type and batch count as first input tensor. [optional]
+ * \param [in] trans_a If true, the matrix_a has been transposed before calcution.
+ * \param [in] trans_b If true, the matrix_b has been transposed before calcution.
+ * \param [in] trans_c If true, the matrix_c has been transposed before calcution. [optional]
+ * \param [out] output The output tensor. Output dimension must agree the formula in the description.
+ * \return <tt>\ref vx_node</tt>.
+ * \retval vx_node A node reference. Any possible errors preventing a successful creation
+ * should be checked using <tt>\ref vxGetStatus</tt>
+ * \ingroup group_vision_function_gemm
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxBatchGemmNode(vx_graph graph,
+                                                 vx_tensor matrix_a,
+                                                 vx_tensor matrix_b,
+                                                 vx_tensor matrix_c,
+                                                 vx_scalar trans_a,
+                                                 vx_scalar trans_b,
+                                                 vx_scalar trans_c,
+                                                 vx_tensor output);
+
 #ifdef __cplusplus
 }
 #endif
