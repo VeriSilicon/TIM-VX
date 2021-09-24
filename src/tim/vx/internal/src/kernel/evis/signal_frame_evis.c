@@ -93,7 +93,7 @@ DEF_KERNEL_INITIALIZER(_signal_frame_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
-    vsi_int_array_t * out_shape          = NULL;
+    vsi_size_array_t * out_shape          = NULL;
 
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     out_shape = attr->shape;
@@ -187,14 +187,14 @@ static vsi_nn_kernel_node_t _setup
     int32_t axis = vsi_nn_kernel_param_get_int32( params, "axis" );
     int32_t pad_end  = vsi_nn_kernel_param_get_int32( params, "pad_end" );
     float pad_value  = vsi_nn_kernel_param_get_float32( params, "pad_val" );
-    int32_t num_frames = outputs[0]->attr.size[axis + 1];
+    vsi_size_t num_frames = outputs[0]->attr.size[axis + 1];
     int32_t rank = inputs[0]->attr.dim_num;
-    int32_t inner = 1;
-    int32_t outer = 1;
-    int32_t length_samples = inputs[0]->attr.size[axis];
+    vsi_size_t inner = 1;
+    vsi_size_t outer = 1;
+    vsi_size_t length_samples = inputs[0]->attr.size[axis];
     int32_t i = 0;
     vsi_nn_tensor_t* rs_tensors[2] = { NULL };
-    int32_t shape[2][VSI_NN_MAX_DIM_NUM] = {{ 0 }};
+    vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = {{ 0 }};
 
     for (i = 0; i < axis; i++)
     {
@@ -217,11 +217,11 @@ static vsi_nn_kernel_node_t _setup
     shape[1][3] = outer;
 
     rs_tensors[0] = vsi_nn_reshape_tensor( graph,
-        inputs[0], (uint32_t*)shape[0], 4 );
+        inputs[0], shape[0], 4 );
     rs_tensors[1] = vsi_nn_reshape_tensor( graph,
-        outputs[0], (uint32_t*)shape[1], 4 );
+        outputs[0], shape[1], 4 );
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)rs_tensors[1]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( rs_tensors[1]->attr.size,
                 rs_tensors[1]->attr.dim_num ) )
     {
         return NULL;

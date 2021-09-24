@@ -121,7 +121,7 @@ static vsi_status op_compute
     if (param.bias == NULL)
     {
         vsi_nn_tensor_attr_t attr;
-        int32_t count = inputs[2]->attr.size[1];
+        vsi_size_t count = inputs[2]->attr.size[1];
 
         memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
         attr.size[0] = count;

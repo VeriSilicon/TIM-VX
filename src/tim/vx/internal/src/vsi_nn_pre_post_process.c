@@ -37,8 +37,8 @@ static void _create_yuv_norm_tensors
     vsi_nn_tensor_id_t* yuv_tensors
     )
 {
-    int w = 0;
-    int h = 0;
+    vsi_size_t w = 0;
+    vsi_size_t h = 0;
     vsi_nn_tensor_attr_t y_input_attr;
     vsi_nn_tensor_attr_t uv_input_attr;
 
@@ -118,7 +118,7 @@ static void _set_preproc_node_rect_params
     (
     vsi_nn_node_t* node,
     vsi_nn_preprocess_crop_t* crop,
-    vsi_nn_tensor_attr_t attr,
+    vsi_nn_tensor_attr_t* attr,
     vsi_nn_preprocess_source_layout_e* source_layout
     )
 {
@@ -133,12 +133,12 @@ static void _set_preproc_node_rect_params
     {
         node->nn_param.pre_process.rect.left = 0;
         node->nn_param.pre_process.rect.top = 0;
-        node->nn_param.pre_process.rect.width = attr.size[0];
-        node->nn_param.pre_process.rect.height = attr.size[1];
+        node->nn_param.pre_process.rect.width = (uint32_t)attr->size[0];
+        node->nn_param.pre_process.rect.height = (uint32_t)attr->size[1];
         if(*source_layout == VSI_NN_SOURCE_LAYOUT_NHWC)
         {
-            node->nn_param.pre_process.rect.width = attr.size[1];
-            node->nn_param.pre_process.rect.height = attr.size[2];
+            node->nn_param.pre_process.rect.width = (uint32_t)attr->size[1];
+            node->nn_param.pre_process.rect.height = (uint32_t)attr->size[2];
         }
     }
 } /* _set_preproc_node_rect_params() */
@@ -147,7 +147,7 @@ static void _set_preproc_node_norm_params
     (
     vsi_nn_node_t* node,
     vsi_nn_preprocess_mean_and_scale_t* mean_and_scale,
-    vsi_nn_tensor_attr_t attr
+    vsi_nn_tensor_attr_t* attr
     )
 {
     int32_t i = 0;
@@ -161,7 +161,7 @@ static void _set_preproc_node_norm_params
     }
     else
     {
-        for(i = 0; i < (int32_t)attr.dim_num - 1; i++)
+        for(i = 0; i < (int32_t)attr->dim_num - 1; i++)
         {
             node->nn_param.pre_process.norm.mean[i] = 0;
         }
@@ -173,13 +173,13 @@ static void _set_preproc_node_out_attr
     (
     vsi_nn_node_t* node,
     vsi_nn_preprocess_image_resize_t* image_resize,
-    vsi_nn_tensor_t* org_norm_tensor,
+    vsi_nn_tensor_attr_t* attr,
     vsi_nn_preprocess_source_layout_e* source_layout
     )
 {
-    node->nn_param.pre_process.dim_num = org_norm_tensor->attr.dim_num;
-    node->nn_param.pre_process.output_attr.dim_num = org_norm_tensor->attr.dim_num;
-    node->nn_param.pre_process.output_attr.size = org_norm_tensor->attr.size;
+    node->nn_param.pre_process.dim_num = attr->dim_num;
+    node->nn_param.pre_process.output_attr.dim_num = attr->dim_num;
+    node->nn_param.pre_process.output_attr.size = attr->size;
     if(image_resize != NULL)
     {
         node->nn_param.pre_process.output_attr.size[0]  = image_resize->w;
@@ -197,14 +197,14 @@ static void _set_preproc_node_out_attr
 static void _set_preproc_node_input_attr
     (
     vsi_nn_tensor_attr_t* input_attr,
-    vsi_nn_tensor_t* org_norm_tensor,
+    vsi_nn_tensor_attr_t* attr,
     vsi_nn_preprocess_image_size_t* input_size,
     vsi_nn_preprocess_source_format_e* source_format,
     vsi_nn_preprocess_source_layout_e* source_layout
     )
 {
-    *input_attr = org_norm_tensor->attr;
-    input_attr->dim_num = org_norm_tensor->attr.dim_num;
+    *input_attr = *attr;
+    input_attr->dim_num = attr->dim_num;
     if(input_size != NULL)
     {
         input_attr->size[0] = input_size->w;
@@ -271,11 +271,11 @@ static void _set_preproc_node_input_attr
 static void _set_preproc_node_output_attr
     (
     vsi_nn_tensor_attr_t* output_attr,
-    vsi_nn_tensor_t* org_norm_tensor,
+    vsi_nn_tensor_attr_t* attr,
     vsi_nn_preprocess_dtype_convert_t* data_convert
     )
 {
-    *output_attr = org_norm_tensor->attr;
+    *output_attr = *attr;
     if(data_convert != NULL)
     {
         output_attr->dtype = data_convert->dtype;
@@ -289,13 +289,13 @@ static void _set_preproc_node_output_attr
 static void _set_postproc_node_output_attr
     (
     vsi_nn_tensor_attr_t* output_attr,
-    vsi_nn_tensor_t* org_norm_tensor,
+    vsi_nn_tensor_attr_t* attr,
     vsi_nn_postprocess_permute_t* permute,
     vsi_nn_postprocess_dtype_convert_t* dtype_convert
     )
 {
     int32_t i = 0;
-    output_attr->dim_num = org_norm_tensor->attr.dim_num;
+    output_attr->dim_num = attr->dim_num;
     output_attr->is_const = FALSE;
     output_attr->vtl = FALSE;
     if(dtype_convert != NULL)
@@ -304,28 +304,103 @@ static void _set_postproc_node_output_attr
     }
     else
     {
-        output_attr->dtype = org_norm_tensor->attr.dtype;
+        output_attr->dtype = attr->dtype;
     }
     if(permute != NULL)
     {
         for(i = 0; i < permute->dim; i++)
         {
-            output_attr->size[i] = org_norm_tensor->attr.size[permute->perm[i]];
+            output_attr->size[i] = attr->size[permute->perm[i]];
         }
     }
     else
     {
-        for(i = 0; i < (int32_t)org_norm_tensor->attr.dim_num; i++)
+        for(i = 0; i < (int32_t)attr->dim_num; i++)
         {
-            output_attr->size[i] = org_norm_tensor->attr.size[i];
+            output_attr->size[i] = attr->size[i];
         }
     }
 } /* _set_postproc_node_output_attr() */
+
+static void _reconnect_graph_inputs
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_id_t org_input,
+    uint32_t input_idx,
+    vsi_nn_tensor_id_t* inputs,
+    uint32_t inputs_num
+    )
+{
+    vsi_nn_tensor_id_t cur_input;
+    uint32_t i;
+    uint32_t final_idx;
+
+    final_idx = input_idx;
+    /* get the new input idx */
+    for(i = input_idx; i < graph->input.num; i++)
+    {
+        cur_input = graph->input.tensors[i];
+        if(cur_input == org_input)
+        {
+            final_idx = i;
+            break;
+        }
+    }
+    /* move next inputs to save space for new inputs*/
+    for(i = graph->input.num-1; i > final_idx + inputs_num - 1; i--)
+    {
+        graph->input.tensors[i] = graph->input.tensors[i - inputs_num + 1];
+    }
+
+    /* connect new inputs */
+    for(i = 0; i < inputs_num; i++)
+    {
+        graph->input.tensors[final_idx + i] = inputs[i];
+    }
+}/* _reconnect_graph_inputs() */
+
+static void _get_org_graph_inputs
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_id_t* graph_inputs
+    )
+{
+    uint32_t i;
+    uint32_t idx = 0;
+    vsi_nn_tensor_id_t cur_input;
+    uint32_t nodes_count = 0;
+    vsi_nn_node_t* nodes[1] = {NULL};
+    for(i = 0; i < graph->input.num; i++)
+    {
+        cur_input = graph->input.tensors[i];
+        vsi_nn_get_tensor_consumers(graph, cur_input, NULL, &nodes_count);
+        if(nodes_count == 1)
+        {
+            vsi_nn_get_tensor_consumers(graph, cur_input, nodes, NULL);
+            if(nodes[0]->op == VSI_NN_OP_PRE_PROCESS)
+            {
+                if(nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420 ||
+                   nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444 )
+                {
+                    i += 2 ;
+                }
+                else if(nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12)
+                {
+                    i += 1;
+                }
+            }
+        }
+
+        graph_inputs[idx] = cur_input;
+        idx += 1;
+    }
+}/* _get_org_graph_inputs() */
 
 vsi_status vsi_nn_add_single_preproc_node
     (
     vsi_nn_graph_t* graph,
     uint32_t input_idx,
+    vsi_nn_tensor_id_t org_input,
     vsi_nn_node_t** first_node,
     uint32_t nodes_count,
     vsi_nn_preprocess_base_t* preprocess,
@@ -344,10 +419,8 @@ vsi_status vsi_nn_add_single_preproc_node
     vsi_nn_preprocess_dtype_convert_t* data_convert = NULL;
     vsi_nn_tensor_attr_t  input_attr;
     vsi_nn_tensor_attr_t  output_attr;
-    vsi_nn_tensor_attr_t  attr;
-    vsi_nn_tensor_id_t preproc_input;
+    vsi_nn_tensor_id_t preproc_inputs[3] = {0};
     vsi_nn_tensor_id_t preproc_output;
-    vsi_nn_tensor_id_t yuv_inputs[3];
     vsi_nn_tensor_t* org_norm_tensor = NULL;
     uint32_t node_input_num = 1;
     int32_t reverse_channel = 0;
@@ -355,8 +428,7 @@ vsi_status vsi_nn_add_single_preproc_node
     uint32_t j = 0;
     uint32_t idx =0;
 
-    org_norm_tensor = vsi_nn_GetTensor(graph,graph->input.tensors[input_idx]);
-    attr = org_norm_tensor->attr;
+    org_norm_tensor = vsi_nn_GetTensor(graph, org_input);
 
     /* Get preprocess configurations*/
     for(idx = 0; idx < proc_count; idx++)
@@ -424,12 +496,12 @@ vsi_status vsi_nn_add_single_preproc_node
     status = _set_preproc_node_type(node, source_format);
     TEST_CHECK_STATUS(status, final);
 
-    _set_preproc_node_rect_params(node, crop, attr, source_layout);
-    _set_preproc_node_norm_params(node, mean_and_scale, attr);
+    _set_preproc_node_rect_params(node, crop, &org_norm_tensor->attr, source_layout);
+    _set_preproc_node_norm_params(node, mean_and_scale, &org_norm_tensor->attr);
 
     if(permute != NULL)
     {
-        if((uint32_t)permute->dim != attr.dim_num)
+        if((uint32_t)permute->dim != org_norm_tensor->attr.dim_num)
         {
             VSILOGE("Preprocess permute dim dosen't match input dim");
             status = VSI_FAILURE;
@@ -439,27 +511,33 @@ vsi_status vsi_nn_add_single_preproc_node
     }
 
     if(reverse_channel)
+    {
         node->nn_param.pre_process.reverse_channel = TRUE;
+    }
     else
+    {
         node->nn_param.pre_process.reverse_channel = FALSE;
+    }
 
-    _set_preproc_node_out_attr(node, image_resize, org_norm_tensor, source_layout);
+    _set_preproc_node_out_attr(node, image_resize, &org_norm_tensor->attr, source_layout);
 
     /* Set input tensor attr */
-    _set_preproc_node_input_attr(&input_attr, org_norm_tensor, input_size, source_format, source_layout);
+    _set_preproc_node_input_attr(&input_attr, &org_norm_tensor->attr, input_size, source_format, source_layout);
 
     /* Set output tensor attr */
-    _set_preproc_node_output_attr(&output_attr, org_norm_tensor, data_convert);
+    _set_preproc_node_output_attr(&output_attr, &org_norm_tensor->attr, data_convert);
 
     /* Create new norm and virtual tensors */
     if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420 ||
         *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
         *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444)
     {
-        _create_yuv_norm_tensors(graph, &input_attr, source_layout, source_format, yuv_inputs);
+        _create_yuv_norm_tensors(graph, &input_attr, source_layout, source_format, preproc_inputs);
     }
-
-    preproc_input = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &input_attr, NULL);
+    else
+    {
+        preproc_inputs[0] = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &input_attr, NULL);
+    }
     preproc_output = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &output_attr, NULL);
 
     /* Reconnect node tensors */
@@ -467,7 +545,7 @@ vsi_status vsi_nn_add_single_preproc_node
     {
         for(j = 0; j < first_node[i]->input.num; j++)
         {
-            if(first_node[i]->input.tensors[j] == graph->input.tensors[input_idx])
+            if(first_node[i]->input.tensors[j] == org_input)
             {
                 first_node[i]->input.tensors[j] = preproc_output;
                 break;
@@ -475,21 +553,12 @@ vsi_status vsi_nn_add_single_preproc_node
         }
     }
 
-    if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420 ||
-        *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
-        *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444)
+    for(i = 0; i < node_input_num; i++)
     {
-        for (i = 0; i < node_input_num; i++)
-        {
-            node->input.tensors[i] = yuv_inputs[i];
-            graph->input.tensors[input_idx*node_input_num+i] = yuv_inputs[i];
-        }
+        node->input.tensors[i] = preproc_inputs[i];
     }
-    else
-    {
-        node->input.tensors[0] = preproc_input;
-        graph->input.tensors[input_idx] = preproc_input;
-    }
+    _reconnect_graph_inputs(graph, org_input, input_idx, preproc_inputs, node_input_num);
+
     node->output.tensors[0] = preproc_output;
 
     status = VSI_SUCCESS;
@@ -558,7 +627,7 @@ vsi_status vsi_nn_add_single_postproc_node
     input_attr.vtl = TRUE;
 
     /* Set output tensor attr */
-    _set_postproc_node_output_attr(&output_attr, org_norm_tensor, permute, dtype_convert);
+    _set_postproc_node_output_attr(&output_attr, &org_norm_tensor->attr, permute, dtype_convert);
 
     /* Create new norm and virtual tensor */
     postproc_input = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &input_attr, NULL);
@@ -618,19 +687,28 @@ vsi_status vsi_nn_AddGraphPreProcess
     vsi_nn_tensor_id_t input;
     uint32_t nodes_count = 0;
     vsi_nn_node_t** nodes = NULL;
+    vsi_nn_tensor_id_t* graph_inputs=NULL;
 
-    input = graph->input.tensors[input_idx];
+    graph_inputs = (vsi_nn_tensor_id_t*)malloc(sizeof(vsi_nn_tensor_id_t)*graph->input.num);
+    _get_org_graph_inputs(graph, graph_inputs);
+    input = graph_inputs[input_idx];
     vsi_nn_get_tensor_consumers(graph, input, NULL, &nodes_count);
     if(nodes_count != 0)
     {
         nodes = (vsi_nn_node_t**)malloc(sizeof(vsi_nn_node_t*)*nodes_count);
         vsi_nn_get_tensor_consumers(graph, input, nodes, NULL);
-        status = vsi_nn_add_single_preproc_node(graph, input_idx, nodes, nodes_count, preprocess, count);
+        status = vsi_nn_add_single_preproc_node(graph, input_idx, input, nodes, nodes_count, preprocess, count);
     }
+
     if(nodes)
     {
         free(nodes);
         nodes = NULL;
+    }
+    if(graph_inputs)
+    {
+        free(graph_inputs);
+        graph_inputs = NULL;
     }
     return status;
 } /* vsi_nn_AddGraphPreProcess() */

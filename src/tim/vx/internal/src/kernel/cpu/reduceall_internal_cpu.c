@@ -77,16 +77,16 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t i;
     int32_t  axis        = 0;
-    int32_t  outerSize   = 1;
-    int32_t  axisSize    = 1;
-    int32_t  innerSize   = 1;
-    int32_t  inner       = 0;
-    int32_t  outer       = 0;
+    vsi_ssize_t  outerSize   = 1;
+    vsi_ssize_t  axisSize    = 1;
+    vsi_ssize_t  innerSize   = 1;
+    vsi_ssize_t  inner       = 0;
+    vsi_ssize_t  outer       = 0;
     int32_t  all_result  = 0;
 
     for(i = 0; i < _INPUT_NUM; i ++)

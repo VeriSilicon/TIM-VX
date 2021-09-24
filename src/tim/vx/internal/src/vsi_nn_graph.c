@@ -739,7 +739,8 @@ vsi_status vsi_nn_SetupGraph
         goto final;
     }
 
-    /* Set all of tensor attribute in graph to high precision */
+    /* set tensor's precision before compute_node
+    so that internal tensor can know the precision information*/
     status = set_graph_precision(graph, nodes_list);
     if(VSI_SUCCESS != status)
     {
@@ -748,6 +749,13 @@ vsi_status vsi_nn_SetupGraph
 
     /* Create vx node and vx virtual tensor */
     status = compute_node( graph, nodes_list );
+    if(VSI_SUCCESS != status)
+    {
+        goto final;
+    }
+
+    /* set precision again to make sure any tensor created by compute_node have correct precesion infor*/
+    status = set_graph_precision(graph, nodes_list);
     if(VSI_SUCCESS != status)
     {
         goto final;

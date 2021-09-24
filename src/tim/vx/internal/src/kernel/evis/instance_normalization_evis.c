@@ -219,7 +219,7 @@ DEF_KERNEL_INITIALIZER(_instancenorm_mean_vari_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[2] = {NULL, NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     float scaleIn = 1;
     int32_t input_zp = 0;
     vx_uint32 iter = 0;
@@ -262,9 +262,9 @@ DEF_KERNEL_INITIALIZER(_instancenorm_mean_vari_initializer)
         inFlScale_s2 = in_scale_fl * in_scale_fl;
     }
 
-    width = input_shape->data[0];
-    height = input_shape->data[1];
-    chn = attr[1]->shape->data[1];
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->data[1]);
+    chn = (int32_t)(attr[1]->shape->data[1]);
     if (rsFlg)
     {
         height = height / chn;
@@ -449,7 +449,7 @@ DEF_KERNEL_INITIALIZER(_instancenorm_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[4] = {NULL, NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     float scaleIn = 1.0f;
     float scaleOut = 1.0f;
     float scale_inOut = 1.0f;
@@ -513,9 +513,9 @@ DEF_KERNEL_INITIALIZER(_instancenorm_initializer)
 
     scale_inOut = scaleIn * scaleOut;
 
-    width = input_shape->data[0];
-    height = input_shape->data[1];
-    chn = attr[2]->shape->data[1];
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->data[1]);
+    chn = (int32_t)(attr[2]->shape->data[1]);
     if (rsFlg)
     {
         height = height / chn;
@@ -1000,7 +1000,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_t * ikernels[INTERNAL_KERNEL_SIZE] = { NULL };
     vsi_nn_tensor_t * tensors[INTERNAL_KERNEL_SIZE] = { NULL };
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_output = NULL, rs_gamma = NULL, rs_beta = NULL;
-    int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
     uint32_t hashkeys[INTERNAL_KERNEL_SIZE] = { 0 };
     uint32_t hashkey = 0;
     int32_t i = 0;
@@ -1009,7 +1009,7 @@ static vsi_nn_kernel_node_t _setup
 
     // Check if gpu can support the size
     if ( !vsi_nn_kernel_gpu_check_shape(
-        (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
+        outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }

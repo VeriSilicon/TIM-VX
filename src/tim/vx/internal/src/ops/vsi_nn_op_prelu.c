@@ -43,7 +43,7 @@
 static vsi_bool _is_one_rank_tensor
     (
     vsi_nn_tensor_t * input,
-    uint32_t *shape
+    vsi_size_t *shape
     )
 {
     uint32_t i = 0;
@@ -78,11 +78,11 @@ static vsi_status _prelu_op_compute
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_prelu_param *prelu = &self->nn_param.prelu;
-    int32_t shapes[VSI_NN_MAX_DIM_NUM] = { 1 };
+    vsi_ssize_t shapes[VSI_NN_MAX_DIM_NUM] = { 1 };
     vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
     vsi_bool   one_rank = FALSE;
     vsi_bool   is_per_channel_alpha = 0;
-    uint32_t alpha_shape = 1;
+    vsi_size_t alpha_shape = 1;
     uint32_t i = 0;
     vsi_nn_kernel_param_t * param = NULL;
     uint32_t dims = outputs[0]->attr.dim_num;
@@ -110,25 +110,25 @@ static vsi_status _prelu_op_compute
             }
             else
             {
-               memcpy(shapes, inputs[1]->attr.size, inputs[1]->attr.dim_num * sizeof(int32_t));
+               memcpy(shapes, inputs[1]->attr.size, inputs[1]->attr.dim_num * sizeof(vsi_size_t));
                dims = inputs[1]->attr.dim_num;
             }
 
             reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                inputs[1], (uint32_t*)shapes, dims );
+                inputs[1], (vsi_size_t*)shapes, dims );
         }
         else
         {
-            memcpy(shapes, inputs[1]->attr.size, inputs[1]->attr.dim_num * sizeof(int32_t));
+            memcpy(shapes, inputs[1]->attr.size, inputs[1]->attr.dim_num * sizeof(vsi_size_t));
             reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                inputs[1], (uint32_t*)shapes, inputs[1]->attr.dim_num );
+                inputs[1], (vsi_size_t*)shapes, inputs[1]->attr.dim_num );
         }
     }
     else
     {
         dims = inputs[1]->attr.dim_num;
 
-        memcpy(shapes, inputs[1]->attr.size, inputs[1]->attr.dim_num * sizeof(int32_t));
+        memcpy(shapes, inputs[1]->attr.size, inputs[1]->attr.dim_num * sizeof(vsi_size_t));
 
         if (one_rank)
         {
@@ -143,7 +143,7 @@ static vsi_status _prelu_op_compute
         }
 
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-            inputs[1], (uint32_t*)shapes, dims );
+            inputs[1], (vsi_size_t*)shapes, dims );
     }
 
     // Add params

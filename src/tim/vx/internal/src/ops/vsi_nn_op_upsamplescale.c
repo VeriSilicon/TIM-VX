@@ -190,8 +190,8 @@ static vsi_bool op_setup
         curr->node->nn_param.resize.type = VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR;
         curr->node->nn_param.resize.align_corners = FALSE;
         curr->node->nn_param.resize.half_pixel_centers = FALSE;
-        curr->node->nn_param.resize.size[0] = inputs[0]->attr.size[0] * stride;
-        curr->node->nn_param.resize.size[1] = inputs[0]->attr.size[1] * stride;
+        curr->node->nn_param.resize.size[0] = (int32_t)(inputs[0]->attr.size[0] * stride);
+        curr->node->nn_param.resize.size[1] = (int32_t)(inputs[0]->attr.size[1] * stride);
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
 

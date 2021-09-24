@@ -50,9 +50,9 @@ static vsi_bool setup_op_shapes
         &self->nn_param.bidirectional_sequence_lstm;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
-    uint32_t num_units =  0;
-    uint32_t output_size = 0;
-    uint32_t batch_size = 0;
+    vsi_size_t num_units =  0;
+    vsi_size_t output_size = 0;
+    vsi_size_t batch_size = 0;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     if( curr_param->time_major )
@@ -180,9 +180,9 @@ static vsi_bool op_setup
     vsi_nn_tensor_t** aux_reshape_output_tensors = NULL;
     vsi_bool has_aux_input = (inputs[BI_LSTM_AUX_INPUT] != NULL);
     vsi_bool use_virtual_tensor = TRUE;
-    uint32_t batch_size = 0;
+    vsi_size_t batch_size = 0;
     uint32_t time_step = 0;
-    uint32_t i = 0;
+    vsi_size_t i = 0;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
@@ -190,12 +190,12 @@ static vsi_bool op_setup
     if( curr_param->time_major )
     {
         batch_size = inputs[BI_LSTM_INPUT_INPUT]->attr.size[1];
-        time_step = inputs[BI_LSTM_INPUT_INPUT]->attr.size[2];
+        time_step = (uint32_t)(inputs[BI_LSTM_INPUT_INPUT]->attr.size[2]);
     }
     else
     {
         batch_size = inputs[BI_LSTM_INPUT_INPUT]->attr.size[2];
-        time_step = inputs[BI_LSTM_INPUT_INPUT]->attr.size[1];
+        time_step = (uint32_t)(inputs[BI_LSTM_INPUT_INPUT]->attr.size[1]);
     }
 
     setup_op_shapes( self, inputs, outputs);
@@ -260,14 +260,14 @@ static vsi_bool op_setup
     {
         /* reshape for split output */
         output_tensor = vsi_nn_rnn_reshape_split_output(self,
-            split_output_tensors[i], batch_size, use_virtual_tensor);
+            split_output_tensors[i], (uint32_t)batch_size, use_virtual_tensor);
         reshape_output_tensors[i] = output_tensor->t;
 
         if (has_aux_input)
         {
             /* reshape for aux split output */
             output_tensor = vsi_nn_rnn_reshape_split_output(self,
-                aux_split_output_tensors[i], batch_size, use_virtual_tensor);
+                aux_split_output_tensors[i], (uint32_t)batch_size, use_virtual_tensor);
             aux_reshape_output_tensors[i] = output_tensor->t;
         }
     }
@@ -366,7 +366,7 @@ static vsi_bool op_setup
 
         /* reshape output to 3-dims */
         output_tensor = vsi_nn_rnn_reshape_cell_output(self,
-            lstmcell_out0, batch_size, use_virtual_tensor);
+            lstmcell_out0, (uint32_t)batch_size, use_virtual_tensor);
         lstmcell_reshape_output_tensors_fw[i] = output_tensor->t;
     }
 
@@ -466,7 +466,7 @@ static vsi_bool op_setup
 
         /* reshape output to 3-dims */
         output_tensor = vsi_nn_rnn_reshape_cell_output(self,
-            lstmcell_out0, batch_size, use_virtual_tensor);
+            lstmcell_out0, (uint32_t)batch_size, use_virtual_tensor);
         lstmcell_reshape_output_tensors_bw[i] = output_tensor->t;
     }
 

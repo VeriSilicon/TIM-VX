@@ -87,7 +87,7 @@ static vsi_bool op_setup
             inputs[GRUCELL_ACTIVATION_SMA_INPUT_H_STATE]->attr.dim_num;
         memcpy( outputs[GRUCELL_ACTIVATION_SMA_OUTPUT_OUTPUT]->attr.size,
             inputs[GRUCELL_ACTIVATION_SMA_INPUT_H_STATE]->attr.size,
-            inputs[GRUCELL_ACTIVATION_SMA_INPUT_H_STATE]->attr.dim_num * sizeof( uint32_t ) );
+            inputs[GRUCELL_ACTIVATION_SMA_INPUT_H_STATE]->attr.dim_num * sizeof(vsi_size_t) );
     }
 
     if(VSI_NN_DIM_AUTO == outputs[GRUCELL_ACTIVATION_SMA_OUTPUT_H_STATE]->attr.dim_num)
@@ -96,7 +96,7 @@ static vsi_bool op_setup
             inputs[GRUCELL_ACTIVATION_SMA_OUTPUT_OUTPUT]->attr.dim_num;
         memcpy( outputs[GRUCELL_ACTIVATION_SMA_OUTPUT_H_STATE]->attr.size,
             inputs[GRUCELL_ACTIVATION_SMA_OUTPUT_OUTPUT]->attr.size,
-            inputs[GRUCELL_ACTIVATION_SMA_OUTPUT_OUTPUT]->attr.dim_num * sizeof( uint32_t ) );
+            inputs[GRUCELL_ACTIVATION_SMA_OUTPUT_OUTPUT]->attr.dim_num * sizeof(vsi_size_t) );
     }
     return TRUE;
 } /* op_setup() */

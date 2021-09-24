@@ -162,8 +162,8 @@ DEF_KERNEL_INITIALIZER(_argmax_initializer)
     int32_t     axis                        = 0;
     uint32_t    argLenSub1                  = 0;
     vsi_nn_kernel_tensor_attr_t * attr[2]   = { NULL, NULL };
-    vsi_int_array_t * input_shape           = NULL;
-    vsi_int_array_t * output_shape          = NULL;
+    vsi_size_array_t * input_shape           = NULL;
+    vsi_size_array_t * output_shape          = NULL;
     uint32_t    packedArgIdx[4]             = {0};
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
@@ -179,14 +179,14 @@ DEF_KERNEL_INITIALIZER(_argmax_initializer)
 
     if (axis == 2 && input_shape->data[2] == 1)
     {
-        argLenSub1 = input_shape->data[1] - 1;
+        argLenSub1 = (uint32_t)(input_shape->data[1] - 1);
     }
     else
     {
         if (axis == 2)
-            argLenSub1 = input_shape->data[2] - 1;
+            argLenSub1 = (uint32_t)(input_shape->data[2] - 1);
         else if (axis == 1)
-            argLenSub1 = input_shape->data[1] - 1;
+            argLenSub1 = (uint32_t)(input_shape->data[1] - 1);
     }
 
     if (axis == 0)
@@ -398,9 +398,9 @@ static vsi_nn_kernel_node_t _setup
 
     axis = vsi_nn_kernel_param_get_int32(params, "axis");
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
-     || !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+     || !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num )
      || axis > 2)
     {

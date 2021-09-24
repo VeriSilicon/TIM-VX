@@ -67,7 +67,7 @@ vsi_bool vsi_nn_op_common_setup
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         memcpy( outputs[0]->attr.size, inputs[0]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof( uint32_t ) );
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
     return TRUE;
 } /* op_common_setup() */

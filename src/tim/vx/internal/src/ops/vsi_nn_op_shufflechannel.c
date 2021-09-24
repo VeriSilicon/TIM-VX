@@ -130,7 +130,7 @@ static vsi_bool op_setup
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         memcpy( outputs[0]->attr.size, inputs[0]->attr.size,
-            sizeof(uint32_t) * inputs[0]->attr.dim_num );
+            sizeof(vsi_size_t) * inputs[0]->attr.dim_num );
     }
 
     return TRUE;
@@ -147,7 +147,7 @@ static vsi_bool op_check
     int32_t axis = 0;
     int32_t dims = (int32_t)inputs[0]->attr.dim_num;
     int32_t num_group = 0;
-    uint32_t *shape = inputs[0]->attr.size;
+    vsi_size_t *shape = inputs[0]->attr.size;
 
     p = &(self->nn_param.shufflechannel);
     axis = p->axis;

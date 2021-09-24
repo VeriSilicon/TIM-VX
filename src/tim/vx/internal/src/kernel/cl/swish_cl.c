@@ -36,7 +36,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_math.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
+#include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 
 __BEGIN_DECLS
 
@@ -168,7 +168,7 @@ DEF_KERNEL_INITIALIZER(_swish_initializer)
     vx_status    status             = VX_FAILURE;
     vx_tensor    output             = (vx_tensor)param[1];
     vsi_nn_kernel_tensor_attr_t * attr_out = NULL;
-    vsi_int_array_t * out_shape = NULL;
+    vsi_size_array_t * out_shape = NULL;
 
     attr_out = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output );
     CHECK_PTR_FAIL_GOTO( attr_out, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -273,8 +273,8 @@ static vsi_nn_kernel_node_t _setup
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_SWISH_PARAM_NUM] = {NULL};
-    int32_t  shapes[2][VSI_NN_MAX_DIM_NUM] = {{0}};
-    uint32_t new_rank = 0;
+    vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t new_rank = 0;
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
     int32_t swish_type  = vsi_nn_kernel_param_get_int32( params, "type" );
@@ -284,6 +284,7 @@ static vsi_nn_kernel_node_t _setup
     float   outputScale = outputs[0]->attr.dtype.scale == 0.0f ? 0.0f : 1.0f / outputs[0]->attr.dtype.scale;
     float   outputZP    = (float)outputs[0]->attr.dtype.zero_point + 0.5f;
     vx_float32  logE    = (vx_float32)(log10(exp(1.0f)) / log10(2.0f));
+    vsi_bool ret = FALSE;
 
 #if (VX_ACTIVATION_EXT_SUPPORT)
     if (VSI_NN_HW_EVIS_2 == graph->ctx->config.evis.ver)
@@ -292,10 +293,17 @@ static vsi_nn_kernel_node_t _setup
     }
 #endif
 
-    vsi_nn_OptimizedEltOPShape(inputs[0],  (uint32_t *)(shapes[0]), &new_rank);
-    vsi_nn_OptimizedEltOPShape(outputs[0], (uint32_t *)(shapes[1]), &new_rank);
+    ret = vsi_nn_kernel_optimize_element_shape(
+        inputs[0]->attr.size, inputs[0]->attr.dim_num,
+        shape, &new_rank );
 
-    if( !vsi_nn_kernel_gpu_check_shape( shapes[0], new_rank ) )
+    if( ret )
+    {
+        node_params[0] = vsi_nn_kernel_tensor_reshape( inputs[0]->t, shape, new_rank );
+        node_params[1] = vsi_nn_kernel_tensor_reshape( outputs[0]->t, shape, new_rank );
+    }
+
+    if( !vsi_nn_kernel_gpu_check_shape( shape, new_rank ) )
     {
         return NULL;
     }
@@ -318,8 +326,6 @@ static vsi_nn_kernel_node_t _setup
         if( node )
         {
             size_t node_params_num = _SWISH_PARAM_NUM;
-            node_params[0] = vsi_nn_kernel_tensor_reshape( inputs[0]->t,  shapes[0], new_rank );
-            node_params[1] = vsi_nn_kernel_tensor_reshape( outputs[0]->t, shapes[1], new_rank );
             node_params[SCALAR_INPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &inputScale );
             node_params[SCALAR_INPUT_TAIL] = vsi_nn_kernel_scalar_create(graph, F32, &inputTail );
             node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &outputScale );
@@ -338,8 +344,6 @@ static vsi_nn_kernel_node_t _setup
             status  = vsi_nn_kernel_node_pass_param( node, node_params, node_params_num );
             VSI_ASSERT( status == VSI_SUCCESS );
 
-            vsi_nn_kernel_tensor_release( &node_params[0] );
-            vsi_nn_kernel_tensor_release( &node_params[1] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_SCALE] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_TAIL] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_SCALE] );
@@ -351,6 +355,15 @@ static vsi_nn_kernel_node_t _setup
             }
 
         }
+    }
+
+    if(node_params[0])
+    {
+        vsi_nn_kernel_tensor_release( &node_params[0] );
+    }
+    if(node_params[1])
+    {
+        vsi_nn_kernel_tensor_release( &node_params[1] );
     }
 
     return node;

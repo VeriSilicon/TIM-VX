@@ -98,24 +98,19 @@ typedef struct
 static const _kernel_map_type moments_map[] =
 {
     // Register kernel here
-    TENSOR_MOMENTS_KERNELS(U8,  F16, 0,        KERNEL_SOURCE_1)
-    TENSOR_MOMENTS_KERNELS(F16, F16, 0,        KERNEL_SOURCE_1)
+    TENSOR_MOMENTS_KERNELS(U8,  F32, 0,        KERNEL_SOURCE_1)
     TENSOR_MOMENTS_KERNELS(F32, F32, 0,        KERNEL_SOURCE_1)
     TENSOR_MOMENTS_KERNELS(I32, F32, 0,        KERNEL_SOURCE_1)
-    TENSOR_MOMENTS_KERNELS(U8,  F16, 1,        KERNEL_SOURCE_2)
-    TENSOR_MOMENTS_KERNELS(F16, F16, 1,        KERNEL_SOURCE_2)
+    TENSOR_MOMENTS_KERNELS(U8,  F32, 1,        KERNEL_SOURCE_2)
     TENSOR_MOMENTS_KERNELS(F32, F32, 1,        KERNEL_SOURCE_2)
     TENSOR_MOMENTS_KERNELS(I32, F32, 1,        KERNEL_SOURCE_2)
-    TENSOR_MOMENTS_KERNELS(U8,  F16, 2,        KERNEL_SOURCE_3)
-    TENSOR_MOMENTS_KERNELS(F16, F16, 2,        KERNEL_SOURCE_3)
+    TENSOR_MOMENTS_KERNELS(U8,  F32, 2,        KERNEL_SOURCE_3)
     TENSOR_MOMENTS_KERNELS(F32, F32, 2,        KERNEL_SOURCE_3)
     TENSOR_MOMENTS_KERNELS(I32, F32, 2,        KERNEL_SOURCE_3)
-    TENSOR_MOMENTS_TWO_AXIS_KERNELS(U8,  F16, 0, 1,         KERNEL_SOURCE_4)
-    TENSOR_MOMENTS_TWO_AXIS_KERNELS(F16, F16, 0, 1,         KERNEL_SOURCE_4)
+    TENSOR_MOMENTS_TWO_AXIS_KERNELS(U8,  F32, 0, 1,         KERNEL_SOURCE_4)
     TENSOR_MOMENTS_TWO_AXIS_KERNELS(F32, F32, 0, 1,         KERNEL_SOURCE_4)
     TENSOR_MOMENTS_TWO_AXIS_KERNELS(I32, F32, 0, 1,         KERNEL_SOURCE_4)
-    TENSOR_MOMENTS_THREE_AXIS_KERNELS(U8,  F16, 0, 1, 2,    KERNEL_SOURCE_5)
-    TENSOR_MOMENTS_THREE_AXIS_KERNELS(F16, F16, 0, 1, 2,    KERNEL_SOURCE_5)
+    TENSOR_MOMENTS_THREE_AXIS_KERNELS(U8,  F32, 0, 1, 2,    KERNEL_SOURCE_5)
     TENSOR_MOMENTS_THREE_AXIS_KERNELS(F32, F32, 0, 1, 2,    KERNEL_SOURCE_5)
     TENSOR_MOMENTS_THREE_AXIS_KERNELS(I32, F32, 0, 1, 2,    KERNEL_SOURCE_5)
 };
@@ -160,13 +155,13 @@ static int32_t set_constant_border
 static int32_t get_moments_output_reshape_size
     (
     vsi_nn_tensor_t ** outputs,
-    int32_t sizes[VSI_NN_MAX_DIM_NUM],
+    vsi_size_t sizes[VSI_NN_MAX_DIM_NUM],
     int32_t* axis,
     int32_t axis_num
     )
 {
     uint32_t out_dims_num = outputs[0]->attr.dim_num;
-    uint32_t *output_size = outputs[0]->attr.size;
+    vsi_size_t *output_size = outputs[0]->attr.size;
     uint32_t i = 0;
     int32_t out_rs_flg = 0;
 
@@ -217,10 +212,10 @@ DEF_KERNEL_INITIALIZER(_moments_initializer)
         };
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    vsi_int_array_t * input_shape = NULL;
-    int32_t width = 0;
-    int32_t height = 0;
-    int32_t chn = 0;
+    vsi_size_array_t * input_shape = NULL;
+    vsi_ssize_t width = 0;
+    vsi_ssize_t height = 0;
+    vsi_ssize_t chn = 0;
     int32_t axis = 0;
     int32_t axis_num = 1;
 
@@ -311,6 +306,15 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
+    if (input0_dtype == I8 || input0_dtype == I16)
+    {
+        input0_dtype = I32;
+    }
+    else if (input0_dtype == F16)
+    {
+        input0_dtype = F32;
+    }
+    output_dtype = output_dtype == F16 ? F32 : output_dtype;
     key = HASH_MOMENTS_KEY( input0_dtype, output_dtype, axis_num, axis[0], axis[1], axis[2], rs_flg );
 
     for( i = 0; i < _cnt_of_array(moments_map); i ++ )
@@ -353,8 +357,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_MOMENTS_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
-    int32_t  out_shape[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t  out_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t  out_rs_flg = 0;
     int32_t axis_num  = 0;
     size_t axis_num_temp = 0;
@@ -365,9 +369,9 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_scalar_t scalar_list[INTERNAL_MOMENTS_SCALAR_NUM] = {NULL};
     vsi_nn_kernel_tensor_t reshape_tensors[3] = { NULL };
 
-    int32_t width = inputs[0]->attr.size[0];
-    int32_t height = inputs[0]->attr.size[1];
-    int32_t chn = inputs[0]->attr.size[2];
+    vsi_size_t width = inputs[0]->attr.size[0];
+    vsi_size_t height = inputs[0]->attr.size[1];
+    vsi_size_t chn = inputs[0]->attr.size[2];
     int32_t input_zp = inputs[0]->attr.dtype.zero_point;
     float input_scale = inputs[0]->attr.dtype.scale;
     float dim_ratio = (float)1.0 / (float)(width * height);
@@ -408,7 +412,7 @@ static vsi_nn_kernel_node_t _setup
         dim_ratio = (float)1.0 / (float)(width * height * chn);
     }
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -449,6 +453,7 @@ static vsi_nn_kernel_node_t _setup
         if ( node )
         {
             uint32_t index = 0;
+            int32_t constant_value = 0;
             /* Pass parameters to node. */
             if (reshape_tensors[0])
             {
@@ -488,7 +493,12 @@ static vsi_nn_kernel_node_t _setup
                 vsi_nn_kernel_tensor_release( &node_params[1] );
                 vsi_nn_kernel_tensor_release( &node_params[2] );
             }
-            status = set_constant_border(node, inputs[0]->attr.dtype.zero_point);
+
+            if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
+            {
+                constant_value = inputs[0]->attr.dtype.zero_point;
+            }
+            status = set_constant_border(node, constant_value);
             CHECK_STATUS(status);
         }
     }
@@ -521,4 +531,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( moments, _setup )
-

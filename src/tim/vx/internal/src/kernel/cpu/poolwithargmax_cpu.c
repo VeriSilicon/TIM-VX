@@ -88,20 +88,20 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
-    int32_t  i, j, b, p;
-    int32_t  batch, depth_v, height_o, width_o, height, width;
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t  i, j, b, p;
+    vsi_size_t  batch, depth_v, height_o, width_o, height, width;
     int32_t  ksize_x     = 0;
     int32_t  ksize_y     = 0;
     int32_t  stride_x    = 0;
     int32_t  stride_y    = 0;
     int32_t  pad_x       = 0;
     int32_t  pad_y       = 0;
-    int32_t  output_base = 0;
-    int32_t  input_base  = 0;
-    int32_t  max_index   = 0;
+    vsi_size_t  output_base = 0;
+    vsi_size_t  input_base  = 0;
+    vsi_ssize_t  max_index   = 0;
     vsi_nn_kernel_dtype_e out1_dtype;
     vsi_bool is_relative_coord = FALSE;
 
@@ -159,15 +159,15 @@ DEF_KERNEL_EXECUTOR(_compute)
             {
                 for (i = 0; i < width_o; i ++)
                 {
-                    int32_t hstart     = j * stride_y - pad_y;
-                    int32_t wstart     = i * stride_x - pad_x;
-                    int32_t hoffset    = 0;
-                    int32_t woffset    = 0;
-                    int32_t hend       = vsi_nn_min(hstart + ksize_y, height);
-                    int32_t wend       = vsi_nn_min(wstart + ksize_x, width);
-                    int32_t pool_index = 0;
-                    int32_t h, w       = 0;
-                    int32_t cur_index  = 0;
+                    vsi_ssize_t hstart     = j * stride_y - pad_y;
+                    vsi_ssize_t wstart     = i * stride_x - pad_x;
+                    vsi_size_t hoffset    = 0;
+                    vsi_size_t woffset    = 0;
+                    vsi_size_t hend       = vsi_nn_min(hstart + ksize_y, (vsi_ssize_t)height);
+                    vsi_size_t wend       = vsi_nn_min(wstart + ksize_x, (vsi_ssize_t)width);
+                    vsi_size_t pool_index = 0;
+                    vsi_size_t h, w       = 0;
+                    vsi_size_t cur_index  = 0;
                     float   d_f32      = 0.0f;
 
                     if (hstart < 0)
@@ -191,7 +191,7 @@ DEF_KERNEL_EXECUTOR(_compute)
                         cur_index = (h - hstart + hoffset) * ksize_x + woffset;
                         for (w = wstart; w < wend; ++ w)
                         {
-                            int32_t index = input_base + h * width + w;
+                            vsi_ssize_t index = input_base + h * width + w;
                             float   d;
 
                             d = f32_in_buffer[0][index];

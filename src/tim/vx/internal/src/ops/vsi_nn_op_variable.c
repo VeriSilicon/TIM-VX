@@ -101,7 +101,11 @@ static vsi_status op_optimize
         vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype))
     {
         VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
-        outputs[0]->t = vxReshapeTensor(inputs[0]->t, (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num);
+#ifdef VSI_40BIT_VA_SUPPORT
+        outputs[0]->t = vxReshapeTensor(inputs[0]->t, outputs[0]->attr.size, outputs[0]->attr.dim_num);
+#else
+        outputs[0]->t = vxReshapeTensor(inputs[0]->t, (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num);
+#endif
         if( NULL == outputs[0]->t )
         {
             VSILOGE("Call vxReshapeTensor fail");

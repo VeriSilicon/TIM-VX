@@ -98,20 +98,20 @@ static vx_param_description_t _scatter_nd_kernel_param_def[] =
 static vsi_status get_scatter_nd_tensor_reshape_size
     (
     vsi_nn_tensor_t ** inputs,
-    int32_t sizes[VSI_NN_MAX_DIM_NUM],
+    vsi_size_t sizes[VSI_NN_MAX_DIM_NUM],
     uint32_t block_size,
     uint32_t coordDim,
-    uint32_t* width,
-    uint32_t* area,
+    vsi_size_t* width,
+    vsi_size_t* area,
     int32_t* newDim,
     int32_t* isBig
     )
 {
     vsi_status status = VSI_FAILURE;
     uint32_t dims_num = inputs[0]->attr.dim_num;
-    uint32_t *input_size = inputs[0]->attr.size;
+    vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t i = 0;
-    uint32_t elementCnt = 1;
+    vsi_size_t elementCnt = 1;
 
     if(coordDim != 0 && (width == NULL || area == NULL))
     {
@@ -202,10 +202,10 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[5], &coord_dim);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    block_size = attr[2]->shape->data[0];
-    height     = attr[2]->shape->data[1];
-    index_num  = attr[0]->shape->data[1];
-    output_zp  = attr[2]->asymm.zero_point;
+    block_size = (int32_t)(attr[2]->shape->data[0]);
+    height     = (int32_t)(attr[2]->shape->data[1]);
+    index_num  = (int32_t)(attr[0]->shape->data[1]);
+    output_zp  = (int32_t)(attr[2]->asymm.zero_point);
 
     if(coord_dim == 3)
     {
@@ -318,10 +318,10 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_big_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[5], &coord_dim);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    block_size = attr[2]->shape->data[0];
-    height     = attr[2]->shape->data[1];
-    index_num  = attr[0]->shape->data[1];
-    output_zp  = attr[2]->asymm.zero_point;
+    block_size = (int32_t)(attr[2]->shape->data[0]);
+    height     = (int32_t)(attr[2]->shape->data[1]);
+    index_num  = (int32_t)(attr[0]->shape->data[1]);
+    output_zp  = (int32_t)(attr[2]->asymm.zero_point);
 
     if(coord_dim == 3)
     {
@@ -465,11 +465,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t tmp_params[_SCATTER_ND_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
-    int32_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_size_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
     int32_t block_size  = vsi_nn_kernel_param_get_int32( params, "block_size" );
     int32_t coord_dim   = vsi_nn_kernel_param_get_int32( params, "coord_dim" );
     int32_t rs_in_dim = 0, rs_idx_dim = 0, rs_out_dim = 0;
-    uint32_t width = 0, area = 0;
+    vsi_size_t width = 0, area = 0;
     int32_t big_flg = 0;
 
     status = get_scatter_nd_tensor_reshape_size(&inputs[0], shapes[0], coord_dim, 0,

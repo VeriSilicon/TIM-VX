@@ -161,7 +161,7 @@ DEF_KERNEL_INITIALIZER(_log_softmax_initializer)
     uint32_t   inputWidth                   = 0;
     uint32_t   inputWidthRemain4            = 0;
     vsi_nn_kernel_tensor_attr_t * attr[2]   = { NULL, NULL };
-    vsi_int_array_t * output_shape          = NULL;
+    vsi_size_array_t * output_shape          = NULL;
     float   logE                            = (float)(log10(exp(1.0f)) / log10(2.0f));
     float   rlogE                           = (float)(log10(2.0f) / log10(exp(1.0f)));
     float   scaleLogE                       = 0;
@@ -324,8 +324,8 @@ DEF_KERNEL_INITIALIZER(_log_softmax_initializer)
         {
             case 0:
             {
-                inputWidth        = output_shape->data[axis] / 4 * 4;
-                inputWidthRemain4 = output_shape->data[axis] % 4;
+                inputWidth        = (uint32_t)(output_shape->data[axis] / 4 * 4);
+                inputWidthRemain4 = (uint32_t)(output_shape->data[axis] % 4);
 
                 status = vsi_nn_kernel_gpu_add_param( node,
                         "inputWidth", &inputWidth );
@@ -532,7 +532,7 @@ static vsi_nn_kernel_node_t _setup
     axis = vsi_nn_kernel_param_get_int32(params, "axis");
     beta = vsi_nn_kernel_param_get_float32(params, "beta");
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
      || axis > 2)
     {

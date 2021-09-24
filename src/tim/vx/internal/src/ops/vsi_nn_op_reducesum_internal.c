@@ -45,7 +45,7 @@ static vsi_status op_compute
     )
 {
     vsi_status status = VSI_FAILURE;
-    int32_t shapes[2][VSI_NN_MAX_DIM_NUM] = { { 0 } };
+    vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = { { 0 } };
     uint32_t rank_in = 0;
     uint32_t rank_out = 0;
     int32_t new_axis[VSI_NN_MAX_DIM_NUM];
@@ -53,10 +53,10 @@ static vsi_status op_compute
     vsi_bool ret;
 
     ret = vsi_nn_kernel_optimize_reduce_shape(
-            (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
             (int32_t *)(self->nn_param.reducesum_internal.axis),
             self->nn_param.reducesum_internal.axis_num,
-            (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes[0], &rank_in, shapes[1], &rank_out,
             new_axis, &axis_size);
 
@@ -64,10 +64,10 @@ static vsi_status op_compute
     {
         self->nn_param.reducesum_internal.local->reshaped_input =
                 vsi_nn_reshape_tensor( self->graph,
-                inputs[0], (uint32_t*)shapes[0], rank_in );
+                inputs[0], shapes[0], rank_in );
         self->nn_param.reducesum_internal.local->reshaped_output =
                 vsi_nn_reshape_tensor( self->graph,
-                outputs[0], (uint32_t*)shapes[1], rank_out );
+                outputs[0], shapes[1], rank_out );
 
         self->n = vxTensorReduceSumNode( self->graph->g,
                    self->nn_param.reducesum_internal.local->reshaped_input->t,

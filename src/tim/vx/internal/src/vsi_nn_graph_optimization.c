@@ -540,9 +540,9 @@ static vx_tensor _create_const_raw_tensor
 #ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
         // This is a hack that driver doesn't support const scale
         scales = (float *)malloc(sizeof(float) * attr.dtype.scale_dim);
-        zeroPoints = (int32_t *)malloc(sizeof(int32_t) * attr.dtype.zero_points_dim);
+        zeroPoints = (int32_t *)malloc(sizeof(attr.dtype.zero_points[0]) * attr.dtype.zero_points_dim);
         memcpy(scales, attr.dtype.scales, attr.dtype.scale_dim * sizeof(float));
-        memcpy(zeroPoints, attr.dtype.zero_points, attr.dtype.zero_points_dim * sizeof(float));
+        memcpy(zeroPoints, attr.dtype.zero_points, attr.dtype.zero_points_dim * sizeof(attr.dtype.zero_points[0]));
         params.quant_data.affinePerChannel.channelDim = attr.dtype.channel_dim;
         params.quant_data.affinePerChannel.scaleCount = attr.dtype.scale_dim;
         params.quant_data.affinePerChannel.scales = scales;
@@ -559,14 +559,14 @@ static vx_tensor _create_const_raw_tensor
     if( TRUE == attr.is_created_from_handle )
     {
         vx_tensor_addressing addr;
-        uint32_t stride_size[VSI_NN_MAX_DIM_NUM];
-        uint32_t buf_sz;
+        vsi_size_t stride_size[VSI_NN_MAX_DIM_NUM];
+        vsi_size_t buf_sz;
 
         buf_sz = vsi_nn_GetStrideSize( &attr, stride_size );
         if( buf_sz > 0 )
         {
-            uint32_t align_start_size = graph->handle_manager.align_start_size;
-            uint32_t align_block_size = graph->handle_manager.align_block_size;
+            vsi_size_t align_start_size = graph->handle_manager.align_start_size;
+            vsi_size_t align_block_size = graph->handle_manager.align_block_size;
             if (data == NULL)
             {
                 data = vsi_nn_MallocAlignedBuffer(buf_sz, align_start_size,
@@ -592,8 +592,26 @@ static vx_tensor _create_const_raw_tensor
             }
             if( data )
             {
+#ifdef VSI_40BIT_VA_SUPPORT
                 addr = vxCreateTensorAddressing(graph->ctx->c,
-                    attr.size, stride_size, (vx_uint8)attr.dim_num);
+                    attr.size, stride_size, (vsi_size_t)attr.dim_num);
+#else
+                {
+                    vsi_size_t i;
+                    uint32_t size_32bit[_cnt_of_array(attr.size)] = {0};
+                    uint32_t stride_size_32bit[_cnt_of_array(stride_size)] = {0};
+                    for(i = 0; i < _cnt_of_array(attr.size); i++)
+                    {
+                        size_32bit[i] = (uint32_t)attr.size[i];
+                    }
+                    for(i = 0; i < _cnt_of_array(stride_size); i++)
+                    {
+                        stride_size_32bit[i] = (uint32_t)stride_size[i];
+                    }
+                    addr = vxCreateTensorAddressing(graph->ctx->c,
+                        size_32bit, stride_size_32bit, (vx_uint8)attr.dim_num);
+                }
+#endif
 #ifdef VX_13_NN_COMPATIBLITY
                 tensor = vxCreateTensorFromHandle2(graph->ctx->c,
                     &params, sizeof(vx_tensor_create_params_t),
@@ -678,8 +696,8 @@ static void _convert_const_I8toU8
     uint8_t    * data = NULL;
     vsi_nn_tensor_t * tensor = vsi_nn_GetTensor(graph, id);
     vsi_nn_tensor_attr_t *attr = &tensor->attr;
-    uint32_t sz = 0;
-    uint32_t i = 0;
+    vsi_size_t sz = 0;
+    vsi_size_t i = 0;
 
     sz = vsi_nn_GetElementNum( tensor );
 

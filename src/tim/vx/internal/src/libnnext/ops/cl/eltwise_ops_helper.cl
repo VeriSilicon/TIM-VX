@@ -15,20 +15,23 @@ inline uchar* get_image_ptr_from_coord(Image img, int2 coord)
 
 inline Image create_image_from_image2d(image2d_t input, int stride_x)
 {
+    int stride_y;
+#if (USE_40BITS_VA==0)
     int8 desc;
+#else
+    int8 desc;
+    _viv_asm(GET_IMAGE_STRIDE, stride_y, input);
+#endif
     _viv_asm(COPY, desc, input, sizeof(desc));
+    uint address = as_uint(desc.s0);
 
 #if (USE_40BITS_VA==0)
-    uint address = as_uint(desc.s0);
-    int stride_y = desc.s1;
-#else
-    ulong address = as_ulong(desc.s05);
-    int stride_y = desc.s6;
+    stride_y = desc.s1;
 #endif
 
     Image img =
     {
-        .ptr                           = (uchar*)address,
+        .ptr                           = (uchar*)(uintptr_t)address,
         .stride_x                      = stride_x,
         .stride_y                      = stride_y
     };
@@ -51,28 +54,23 @@ inline uchar* get_tensor_ptr_from_coord(Tensor t, int4 coord)
 
 inline Tensor create_tensor_from_image2d_array(image2d_array_t input, int stride_x)
 {
-#if (USE_40BITS_VA==0)
     int8 desc;
-    _viv_asm(COPY, desc, input, sizeof(desc));
-
-    uint address = as_uint(desc.s0);
-    int stride_y = desc.s1;
-    int stride_z = desc.s4;
+    int2 strides;
+#if (USE_40BITS_VA==0)
+    strides.x = desc.s1;
+    strides.y = desc.s4;
 #else
-    int16 desc;
-    _viv_asm(COPY, desc, input, sizeof(desc));
-
-    ulong address = as_ulong(desc.s05);
-    int stride_y = desc.s6;
-    int stride_z = desc.sa;
+    _viv_asm(GET_IMAGE_STRIDE, strides, input);
 #endif
+    _viv_asm(COPY, desc, input, sizeof(desc));
+    uint address = as_uint(desc.s0);
 
     Tensor t =
     {
-        .ptr                           = (uchar*)address,
+        .ptr                           = (uchar*)(uintptr_t)address,
         .stride_x                      = stride_x,
-        .stride_y                      = stride_y,
-        .stride_z                      = stride_z
+        .stride_y                      = strides.x,
+        .stride_z                      = strides.y
     };
 
     return t;

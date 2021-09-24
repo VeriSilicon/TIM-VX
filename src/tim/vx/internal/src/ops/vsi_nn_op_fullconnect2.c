@@ -53,14 +53,14 @@ static vsi_status op_compute
     uint32_t axis;
     vsi_nn_fcl_param * p;
     uint32_t i = 0;
-    uint32_t num_fc = 1, num_no_fc = 1;
+    vsi_size_t num_fc = 1, num_no_fc = 1;
     uint32_t num_of_dims[4] = {0};
-    int32_t input_size[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t output_size[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t weights_size[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t bias_size[VSI_NN_MAX_DIM_NUM] = {0};
-    uint32_t ofm = 0;
-    uint32_t dims = 0;
+    vsi_size_t input_size[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t output_size[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t weights_size[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t bias_size[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t ofm = 0;
+    vsi_size_t dims = 0;
     vx_tensor input = NULL;
     vx_tensor output = NULL;
     vx_tensor weight = NULL;
@@ -69,15 +69,15 @@ static vsi_status op_compute
     p = (vsi_nn_fcl_param *)&(self->nn_param.fcl);
     axis = p->axis;
 
-    memcpy(input_size, inputs[0]->attr.size, sizeof(uint32_t) * VSI_NN_MAX_DIM_NUM);
+    memcpy(input_size, inputs[0]->attr.size, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM);
     num_of_dims[0] = inputs[0]->attr.dim_num;
-    memcpy(output_size, outputs[0]->attr.size, sizeof(uint32_t) * VSI_NN_MAX_DIM_NUM);
+    memcpy(output_size, outputs[0]->attr.size, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM);
     num_of_dims[1] = outputs[0]->attr.dim_num;
-    memcpy(weights_size, inputs[1]->attr.size, sizeof(uint32_t) * VSI_NN_MAX_DIM_NUM);
+    memcpy(weights_size, inputs[1]->attr.size, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM);
     num_of_dims[2] = inputs[1]->attr.dim_num;
     if( inputs[2] != NULL )
     {
-        memcpy(bias_size, inputs[2]->attr.size, sizeof(uint32_t) * VSI_NN_MAX_DIM_NUM);
+        memcpy(bias_size, inputs[2]->attr.size, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM);
         num_of_dims[3] = inputs[2]->attr.dim_num;
     }
 
@@ -95,25 +95,62 @@ static vsi_status op_compute
     input_size[0] = num_fc;
     input_size[1] = num_no_fc;
     dims= 2;
+#ifdef VSI_40BIT_VA_SUPPORT
     input = vxReshapeTensor(inputs[0]->t, input_size, dims);
+#else
+    {
+        int32_t input_size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
+        for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+        {
+            input_size_32bit[i] =  (int32_t)input_size[i];
+        }
+        input = vxReshapeTensor(inputs[0]->t, input_size_32bit, (uint32_t)dims);
+    }
+#endif
 
     weights_size[0] = num_fc;
     weights_size[1] = ofm;
     dims= 2;
+#ifdef VSI_40BIT_VA_SUPPORT
     weight = vxReshapeTensor(inputs[1]->t, weights_size, dims);
+#else
+    {
+        int32_t weight_size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
+        for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+        {
+            weight_size_32bit[i] = (int32_t)weight_size_32bit[i];
+        }
+        weight = vxReshapeTensor(inputs[1]->t, weight_size_32bit, (uint32_t)dims);
+    }
+#endif
 
     if( inputs[2] != NULL )
     {
         bias_size[0] = ofm;
         bias_size[1] = 1;
         dims= 2;
+#ifdef VSI_40BIT_VA_SUPPORT
         bias = vxReshapeTensor(inputs[2]->t, bias_size, dims);
+#else
+        {
+            int32_t bias_size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
+            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+            {
+                bias_size_32bit[i] =  (int32_t)bias_size[i];
+            }
+            bias = vxReshapeTensor(inputs[2]->t, bias_size_32bit, (uint32_t)dims);
+        }
+#endif
     }
 
     output_size[0] = ofm;
     output_size[1] = num_no_fc;
     dims= 2;
+#ifdef VSI_40BIT_VA_SUPPORT
     output = vxReshapeTensor(outputs[0]->t, output_size, dims);
+#else
+    output = vxReshapeTensor(outputs[0]->t, (vx_int32*)output_size, (uint32_t)dims);
+#endif
 
     self->n = vxFullyConnectedLayer(
         self->graph->g,
@@ -160,7 +197,7 @@ static vsi_bool op_setup
 {
     vsi_nn_fcl_param * p;
     uint32_t i, j;
-    uint32_t num_in_fmp = 1;
+    vsi_size_t num_in_fmp = 1;
 
 #ifdef VX_CONVERT_POLICY_WRAP_ENABLE
     if ( vsi_nn_compareVersion(self->graph, 1, 1, 21) == -1 )

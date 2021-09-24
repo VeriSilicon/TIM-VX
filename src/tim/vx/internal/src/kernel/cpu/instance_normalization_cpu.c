@@ -97,17 +97,17 @@ DEF_KERNEL_EXECUTOR(_instance_norm_exec)
     memset( buffer[3], 0, out_elements * sizeof(float) );
 
     {
-        uint32_t b = 0, c = 0, h = 0, w = 0;
-        uint32_t height = attr[0]->shape->data[1];
-        uint32_t width = attr[0]->shape->data[0];
-        uint32_t ch = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
-        uint32_t bh = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
+        vsi_size_t b = 0, c = 0, h = 0, w = 0;
+        vsi_size_t height = attr[0]->shape->data[1];
+        vsi_size_t width = attr[0]->shape->data[0];
+        vsi_size_t ch = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
+        vsi_size_t bh = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
 
         for (b = 0; b < bh; b++)
         {
             for (c = 0; c < ch; c++)
             {
-                uint32_t page = c * (height * width) + b * (height * width * ch);
+                vsi_size_t page = c * (height * width) + b * (height * width * ch);
                 float sum = .0f;
                 float sumsq = .0f;
                 float mean = .0f;
@@ -118,21 +118,21 @@ DEF_KERNEL_EXECUTOR(_instance_norm_exec)
 
                 for (h = 0; h < height; h++)
                 {
-                    uint32_t len = page + h * width;
+                    vsi_size_t len = page + h * width;
 
                     for (w = 0; w < width; w++)
                     {
-                        uint32_t index = len + w;
+                        vsi_size_t index = len + w;
                         sum += buffer[0][index];
                     }
                 }
                 mean = sum / (width * height);
                 for (h = 0; h < height; h++)
                 {
-                    uint32_t len = page + h * width;
+                    vsi_size_t len = page + h * width;
                     for (w = 0; w < width; w++)
                     {
-                        uint32_t index = len + w;
+                        vsi_size_t index = len + w;
                         data = buffer[0][index] - mean;
                         sumsq += data * data;
                     }
@@ -141,11 +141,11 @@ DEF_KERNEL_EXECUTOR(_instance_norm_exec)
                 vari = (float)(1.0 / sqrtf(vari + eps));
                 for (h = 0; h < height; h++)
                 {
-                    uint32_t len = page + h * width;
+                    vsi_size_t len = page + h * width;
                     for (w = 0; w < width; w++)
                     {
                         float normVal = 0;
-                        uint32_t index = len + w;
+                        vsi_size_t index = len + w;
                         data = buffer[0][index] - mean;
 
                         normVal = data * vari * scaleVal + biasVal;

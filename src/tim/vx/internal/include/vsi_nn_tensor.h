@@ -132,7 +132,7 @@ typedef struct vsi_nn_dtype
 typedef struct vsi_nn_tensor_attr
 {
     /** Tensor shape */
-    uint32_t   size[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t   size[VSI_NN_MAX_DIM_NUM];
     /** Dimension number */
     uint32_t   dim_num;
     /** If it's virtual tensor*/

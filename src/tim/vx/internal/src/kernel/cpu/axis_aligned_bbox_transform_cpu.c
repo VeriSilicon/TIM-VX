@@ -110,16 +110,16 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t  i;
     const uint32_t roiLength = 4;
     const uint32_t imageLength = 2;
-    uint32_t numClasses = 0;
-    uint32_t numRois = 0;
-    uint32_t j;
-    uint32_t roiIndex;
+    vsi_size_t numClasses = 0;
+    vsi_size_t numRois = 0;
+    vsi_size_t j;
+    vsi_size_t roiIndex;
 
     /* prepare data */
     for (i = 0; i < _INPUT_NUM; i ++)
@@ -163,7 +163,7 @@ DEF_KERNEL_EXECUTOR(_compute)
             vsi_nn_box_encoding_center roi_ctr;
             vsi_nn_box_encoding_corner roiAfter;
             vsi_nn_box_encoding_corner cliped;
-            uint32_t index = (roiIndex * numClasses + j) * roiLength;
+            vsi_size_t index = (roiIndex * numClasses + j) * roiLength;
 
             roi_ctr.w = (float)(exp(f32_in_buffer[1][index + 2]) * roiBefore.w);
             roi_ctr.h = (float)(exp(f32_in_buffer[1][index + 3]) * roiBefore.h);

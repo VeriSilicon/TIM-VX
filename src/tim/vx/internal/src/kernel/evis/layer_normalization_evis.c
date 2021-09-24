@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -64,7 +63,6 @@ __BEGIN_DECLS
 #define KERNEL_SOURCE_9    "layer_normalization_scale_f32_2d"
 #define KERNEL_SOURCE_10   "layer_normalization_scale_f32_bf16"
 
-
 #define HASH_LAYERNORM_SH_KERNEL_NAME(SRC0_TYPE, DST_TYPE) \
     CVIVANTE_NAMESPACE("evis.layer_norm_"#SRC0_TYPE"to"#DST_TYPE)
 
@@ -81,13 +79,13 @@ __BEGIN_DECLS
 #define HASH_LAYERNORM_KEY(_input0_type, _input2_type, _output_type, _reshape_flag) \
     ((_input0_type << 24) | (_input2_type << 16) | (_output_type << 8) | _reshape_flag)
 
-#define TENSOR_LAYERNORM_KERNELS(IN0_TYPE, OUT_TYPE, SOURCE) \
-    { HASH_LAYERNORM_KEY(IN0_TYPE, F16, OUT_TYPE, LAYERNORM_KERNEL), \
+#define TENSOR_LAYERNORM_KERNELS(IN0_TYPE, SCALE_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_LAYERNORM_KEY(IN0_TYPE, SCALE_TYPE, OUT_TYPE, LAYERNORM_KERNEL), \
         HASH_LAYERNORM_SH_KERNEL_NAME(IN0_TYPE, OUT_TYPE), \
         SOURCE },
 
-#define TENSOR_LAYERNORM_KERNELS_2D(IN0_TYPE, OUT_TYPE, SOURCE) \
-    { HASH_LAYERNORM_KEY(IN0_TYPE, F16, OUT_TYPE, LAYERNORM_2D_KERNEL), \
+#define TENSOR_LAYERNORM_KERNELS_2D(IN0_TYPE, SCALE_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_LAYERNORM_KEY(IN0_TYPE, SCALE_TYPE, OUT_TYPE, LAYERNORM_2D_KERNEL), \
         HASH_LAYERNORM_SH_KERNEL_2D_NAME(IN0_TYPE, OUT_TYPE), \
         SOURCE },
 
@@ -144,17 +142,19 @@ typedef struct
 static const _kernel_map_type _layernorm_kernel_map[] =
 {
     // Register kernel here
-    TENSOR_LAYERNORM_KERNELS( U8, U8, KERNEL_SOURCE_1 )
-    TENSOR_LAYERNORM_KERNELS_2D( U8, U8, KERNEL_SOURCE_2 )
-    TENSOR_LAYERNORM_KERNELS( U8, F16, KERNEL_SOURCE_3 )
-    TENSOR_LAYERNORM_KERNELS_2D( U8, F16, KERNEL_SOURCE_3 )
+    TENSOR_LAYERNORM_KERNELS( U8, F16, U8, KERNEL_SOURCE_1 )
+    TENSOR_LAYERNORM_KERNELS_2D( U8, F16, U8, KERNEL_SOURCE_2 )
+    TENSOR_LAYERNORM_KERNELS( U8, F16, F16, KERNEL_SOURCE_3 )
+    TENSOR_LAYERNORM_KERNELS_2D( U8, F16, F16, KERNEL_SOURCE_3 )
+    TENSOR_LAYERNORM_KERNELS( U8, F32, F16, KERNEL_SOURCE_3 )
+    TENSOR_LAYERNORM_KERNELS_2D( U8, F32, F16, KERNEL_SOURCE_3 )
 
-    TENSOR_LAYERNORM_KERNELS( F16, F16, KERNEL_SOURCE_1 )
-    TENSOR_LAYERNORM_KERNELS_2D( F16, F16, KERNEL_SOURCE_2 )
-    TENSOR_LAYERNORM_KERNELS( F16, U8, KERNEL_SOURCE_1 )
-    TENSOR_LAYERNORM_KERNELS_2D( F16, U8, KERNEL_SOURCE_2 )
-    TENSOR_LAYERNORM_KERNELS( I16, I16, KERNEL_SOURCE_6 )
-    TENSOR_LAYERNORM_KERNELS_2D( I16, I16, KERNEL_SOURCE_6 )
+    TENSOR_LAYERNORM_KERNELS( F16, F16, F16, KERNEL_SOURCE_1 )
+    TENSOR_LAYERNORM_KERNELS_2D( F16, F16, F16, KERNEL_SOURCE_2 )
+    TENSOR_LAYERNORM_KERNELS( F16, F16, U8, KERNEL_SOURCE_1 )
+    TENSOR_LAYERNORM_KERNELS_2D( F16, F16, U8, KERNEL_SOURCE_2 )
+    TENSOR_LAYERNORM_KERNELS( I16, F16, I16, KERNEL_SOURCE_6 )
+    TENSOR_LAYERNORM_KERNELS_2D( I16, F16, I16, KERNEL_SOURCE_6 )
 
     TENSOR_LAYERNORM_SCALE_KERNELS( U8, U8, KERNEL_SOURCE_8 )
     TENSOR_LAYERNORM_SCALE_KERNELS_2D( U8, U8, KERNEL_SOURCE_9 )
@@ -244,7 +244,7 @@ DEF_KERNEL_INITIALIZER(_layernorm_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     float scaleIn = 1;
     float scaleOut = 1;
     float output_zp = 0;
@@ -311,9 +311,9 @@ DEF_KERNEL_INITIALIZER(_layernorm_initializer)
         output_zp = 0.0f;
     }
 
-    width = input_shape->data[0];
-    height = input_shape->data[1];
-    chn = (input_shape->size <= 2) ? 1 : input_shape->data[2];
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->data[1]);
+    chn = (int32_t)((input_shape->size <= 2) ? 1 : input_shape->data[2]);
 
     iter = ((width + 15) / 16) * 16;
     sumInZp = input_zp * iter * (-1);
@@ -497,6 +497,7 @@ DEF_KERNEL_INITIALIZER(_layernorm_initializer)
         switch( pack_key )
         {
             case _PACK_SELECT_KEY( U8, F16, F16 ):
+            case _PACK_SELECT_KEY( U8, F32, F16 ):
                 {
                     status = vsi_nn_kernel_gpu_add_param(node, "UniPackFP16even_2x8",
                         &UniPackFP16even_2x8);
@@ -510,10 +511,6 @@ DEF_KERNEL_INITIALIZER(_layernorm_initializer)
                         &uniConvert3rdUint8SubZpToFp32_4x4);
                     status |= vsi_nn_kernel_gpu_add_param(node, "uniConvert4thUint8SubZpToFp32_4x4",
                         &uniConvert4thUint8SubZpToFp32_4x4);
-                    status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertSecFp16Fp32_4x4",
-                        &uniConvertSecFp16Fp32_4x4);
-                    status |= vsi_nn_kernel_gpu_add_param(node, "UniFP16toFP32Lo4_dp4x4",
-                        &UniFP16toFP32Lo4_dp4x4);
                     status |= vsi_nn_kernel_gpu_add_param(node, "e2InScale", &e2InScale);
                     status |= vsi_nn_kernel_gpu_add_param(node, "inputZP", &input_zp);
                     status |= vsi_nn_kernel_gpu_add_param(node, "input_scale", &scaleIn);
@@ -688,7 +685,7 @@ DEF_KERNEL_INITIALIZER(_sumsqr_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[2] = {NULL, NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     float scaleIn = 1.0f;
     int32_t input_zp = 0;
     vx_uint32 iter = 0;
@@ -726,9 +723,9 @@ DEF_KERNEL_INITIALIZER(_sumsqr_initializer)
         input_zp = 0;
     }
 
-    width = input_shape->data[0];
-    height = input_shape->data[1];
-    chn = attr[1]->shape->data[1];
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->data[1]);
+    chn = (int32_t)(attr[1]->shape->data[1]);
     iter = height * 16;
 
     e2InScale = scaleIn * scaleIn;
@@ -856,7 +853,7 @@ DEF_KERNEL_INITIALIZER(_layernorm_wh_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     float scaleIn = 1.0f;
     float scaleOut = 1.0f;
     float output_zp = 0;
@@ -910,10 +907,10 @@ DEF_KERNEL_INITIALIZER(_layernorm_wh_initializer)
         output_zp = 0;
     }
 
-    width = input_shape->data[0];
-    height = input_shape->data[1];
-    chn = attr[1]->shape->data[1];
-    height_chn_org = (input_shape->size > 2 ? input_shape->data[2] : 1) / chn;
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->data[1]);
+    chn = (int32_t)(attr[1]->shape->data[1]);
+    height_chn_org = (int32_t)((input_shape->size > 2 ? input_shape->data[2] : 1) / chn);
 
     dimRatio = (float)(1.0 / (width * height));
 
@@ -1169,7 +1166,6 @@ static vsi_status _query_kernel_wh
                 _sumsqr_kernel_map[i].source_name );
     }
 
-
     key = HASH_LAYERNORM_KEY( input0_dtype, input2_dtype, output_dtype, is2D_wh );
 
     for( i = 0; i < _cnt_of_array(_sumsqr_kernel_map); i ++ )
@@ -1223,10 +1219,10 @@ static vsi_nn_kernel_node_t _setup_wh
     int32_t axis[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t axis_num  = 1;
     int32_t new_axis[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t new_shape[2][VSI_NN_MAX_DIM_NUM] = {{ 1, 1, 1, 1 }};
+    vsi_size_t new_shape[2][VSI_NN_MAX_DIM_NUM] = {{ 1, 1, 1, 1 }};
     uint32_t axis_size = 0;
     uint32_t rank_in = 0, rank_para = 0;
-    uint32_t outer_size = 1;
+    vsi_size_t outer_size = 1;
     uint32_t i = 0;
 
     for(i = 1; i < inputs[0]->attr.dim_num; i++)
@@ -1235,7 +1231,7 @@ static vsi_nn_kernel_node_t _setup_wh
     }
 
     status = vsi_nn_kernel_optimize_tensor_shape(
-        (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+        inputs[0]->attr.size, inputs[0]->attr.dim_num,
         axis, axis_num, new_shape[0], &rank_in, new_axis, &axis_size);
     if ( status == FALSE || axis_size > 2)
     {
@@ -1243,7 +1239,7 @@ static vsi_nn_kernel_node_t _setup_wh
     }
 
     status = vsi_nn_kernel_optimize_tensor_shape(
-        (int32_t *)inputs[1]->attr.size, inputs[1]->attr.dim_num,
+        inputs[1]->attr.size, inputs[1]->attr.dim_num,
         axis, axis_num, new_shape[1], &rank_para, new_axis, &axis_size);
     if ( status == FALSE || axis_size > 2)
     {
@@ -1379,7 +1375,6 @@ final:
     return node;
 }
 
-
 static vsi_nn_kernel_node_t _setup
     (
     vsi_nn_graph_t              * graph,
@@ -1396,7 +1391,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_output = NULL, rs_gamma = NULL, rs_beta = NULL;
     float eps  = vsi_nn_kernel_param_get_float32( params, "eps" );
-    uint32_t *input_size = inputs[0]->attr.size;
+    vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t dims_num = inputs[0]->attr.dim_num;
     int32_t rs_flg = 0;
     int32_t optFlg = 0;
@@ -1422,7 +1417,7 @@ static vsi_nn_kernel_node_t _setup
 
     if (rs_flg)
     {
-        int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+        vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[0]->attr.size[0];
         shape[1] = inputs[0]->attr.size[1] * inputs[0]->attr.size[2];
         shape[2] = 1;
@@ -1437,7 +1432,7 @@ static vsi_nn_kernel_node_t _setup
     }
     if (inputs[1]->attr.dim_num < 2)
     {
-        int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+        vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[1]->attr.size[0];
         shape[1] = 1;
         shape[2] = 1;
@@ -1446,7 +1441,7 @@ static vsi_nn_kernel_node_t _setup
     }
     if (inputs[2]->attr.dim_num < 2)
     {
-        int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+        vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[2]->attr.size[0];
         shape[1] = 1;
         shape[2] = 1;
@@ -1533,4 +1528,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( layer_norm, _setup )
-

@@ -88,20 +88,20 @@ DEF_KERNEL_EXECUTOR(_space2depth_internal_exec)
     memset( buffer[1], 0, out_elements * sizeof(float) );
 
     {
-        uint32_t output_depth = attr[1]->shape->data[2];
-        uint32_t output_height = attr[1]->shape->data[1];
-        uint32_t output_width = attr[1]->shape->data[0];
-        uint32_t input_batch = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
-        uint32_t input_depth = attr[0]->shape->data[2];
-        uint32_t input_height = attr[0]->shape->data[1];
-        uint32_t input_width = attr[0]->shape->data[0];
-        uint32_t batch = 0, in_h = 0, in_w = 0;
+        vsi_size_t output_depth = attr[1]->shape->data[2];
+        vsi_size_t output_height = attr[1]->shape->data[1];
+        vsi_size_t output_width = attr[1]->shape->data[0];
+        vsi_size_t input_batch = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
+        vsi_size_t input_depth = attr[0]->shape->data[2];
+        vsi_size_t input_height = attr[0]->shape->data[1];
+        vsi_size_t input_width = attr[0]->shape->data[0];
+        vsi_size_t batch = 0, in_h = 0, in_w = 0;
 
         for (batch = 0; batch < input_batch; ++ batch)
         {
-            uint32_t output_batch_index = batch * output_height * output_width * output_depth;
-            uint32_t input_batch_index = batch * input_height * input_width * input_depth;
-            uint32_t in_d = 0;
+            vsi_size_t output_batch_index = batch * output_height * output_width * output_depth;
+            vsi_size_t input_batch_index = batch * input_height * input_width * input_depth;
+            vsi_size_t in_d = 0;
 
             for (in_d = 0; in_d < input_depth; in_d ++)
             {
@@ -109,14 +109,14 @@ DEF_KERNEL_EXECUTOR(_space2depth_internal_exec)
                 {
                     for (in_w = 0; in_w < input_width; in_w ++)
                     {
-                        uint32_t out_w = in_w / block_size_x;
-                        uint32_t out_h = in_h / block_size_y;
-                        uint32_t out_d = (in_w  % block_size_x) * input_depth
+                        vsi_size_t out_w = in_w / block_size_x;
+                        vsi_size_t out_h = in_h / block_size_y;
+                        vsi_size_t out_d = (in_w  % block_size_x) * input_depth
                                             + (in_h % block_size_y) * block_size_x * input_depth + in_d;
 
-                        uint32_t in_index = in_w + in_h * input_width
+                        vsi_size_t in_index = in_w + in_h * input_width
                                             + in_d * input_height * input_width + input_batch_index;
-                        uint32_t out_index = out_w + out_h * output_width
+                        vsi_size_t out_index = out_w + out_h * output_width
                                             +  out_d * output_width * output_height + output_batch_index;
 
                         buffer[1][out_index] = buffer[0][in_index];

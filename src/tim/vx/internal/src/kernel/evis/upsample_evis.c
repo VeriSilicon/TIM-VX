@@ -147,7 +147,7 @@ DEF_KERNEL_INITIALIZER(_upsample_initializer)
     vsi_nn_kernel_tensor_attr_t *input_attr    = NULL;
     vsi_nn_kernel_tensor_attr_t *output_attr   = NULL;
     vsi_nn_kernel_tensor_attr_t *axis_attr     = NULL;
-    vsi_int_array_t * input_shape              = NULL;
+    vsi_size_array_t * input_shape              = NULL;
     vsi_nn_kernel_dtype_e src_dtype            = F16;
     vsi_nn_kernel_dtype_e dst_dtype            = F16;
     vsi_nn_kernel_dtype_e axis_dtype           = F16;
@@ -871,11 +871,11 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
-     || !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[1]->attr.size,
+     || !vsi_nn_kernel_gpu_check_shape( inputs[1]->attr.size,
                 inputs[1]->attr.dim_num )
-     || !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+     || !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ))
     {
         return NULL;

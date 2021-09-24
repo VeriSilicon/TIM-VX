@@ -61,12 +61,12 @@ DEF_KERNEL_EXECUTOR(_repeat_exec)
     float * buffer[_CPU_IO_NUM] = { NULL };
     size_t out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
-    int32_t i = 0, j = 0, b = 0, c = 0;
+    vsi_ssize_t i = 0, j = 0, b = 0, c = 0;
     int32_t axis = 0;
-    int32_t outerSize = 1;
-    int32_t outIdx = 0;
-    int32_t width = 0, height = 0, channel = 0, batch = 0;
-    int32_t spatial = 0, vol = 0;
+    vsi_ssize_t outerSize = 1;
+    vsi_ssize_t outIdx = 0;
+    vsi_ssize_t width = 0, height = 0, channel = 0, batch = 0;
+    vsi_ssize_t spatial = 0, vol = 0;
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
     tensors[1]  = (vsi_nn_kernel_tensor_t)param[1];
@@ -126,8 +126,8 @@ DEF_KERNEL_EXECUTOR(_repeat_exec)
             {
                 for(i = 0; i < height; i++)
                 {
-                    int32_t len = (int32_t)buffer[1][i];
-                    int32_t offset = i * width + c * spatial + b * vol;
+                    vsi_ssize_t len = (int32_t)buffer[1][i];
+                    vsi_ssize_t offset = i * width + c * spatial + b * vol;
                     for(j = 0; j < len; j++)
                     {
                         memcpy(buffer[2] + outIdx, buffer[0] + offset, sizeof(float) * width);
@@ -145,12 +145,12 @@ DEF_KERNEL_EXECUTOR(_repeat_exec)
             {
                 for(i = 0; i < height; i++)
                 {
-                    int32_t offset = i * width + c * spatial + b * vol;
+                    vsi_ssize_t offset = i * width + c * spatial + b * vol;
                     for(j = 0; j < width; j++)
                     {
-                        int32_t len = (int32_t)buffer[1][j];
+                        vsi_ssize_t len = (vsi_ssize_t)buffer[1][j];
                         float data = buffer[0][offset + j];
-                        int32_t k = 0;
+                        vsi_ssize_t k = 0;
                         for(k = 0; k < len; k++)
                         {
                             buffer[2][outIdx++] = data;
@@ -166,8 +166,8 @@ DEF_KERNEL_EXECUTOR(_repeat_exec)
         {
             for(c = 0; c < channel; c++)
             {
-                int32_t len = (int32_t)buffer[1][c];
-                int32_t offset = c * spatial + b * vol;
+                vsi_ssize_t len = (vsi_ssize_t)buffer[1][c];
+                vsi_ssize_t offset = c * spatial + b * vol;
 
                 for(j = 0; j < len; j++)
                 {

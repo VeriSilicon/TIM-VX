@@ -114,7 +114,7 @@ static vsi_bool op_setup
         outputs[0]->attr.size[0] = vsi_nn_ComputeFilterSize
             (
             inputs[0]->attr.size[0],
-            inputs[1]->attr.size[0],
+            (uint32_t)inputs[1]->attr.size[0],
             p->pad,
             p->stride,
             p->dilation,

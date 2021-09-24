@@ -83,16 +83,16 @@ DEF_KERNEL_EXECUTOR(_compute)
     float * buffer[_IO_NUM] = { NULL };
     size_t out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_IO_NUM] = { NULL };
-    int32_t i = 0;
-    int32_t j = 0;
-    int32_t k = 0;
+    vsi_size_t i = 0;
+    int32_t j = 0, m = 0;
+    vsi_size_t k = 0;
     int32_t index = 0;
     int32_t depth = 0;
     float on_value = 0;
     float off_value = 0;
     int32_t axis = 0;
-    int32_t prefix_dim_size = 1;
-    int32_t suffix_dim_size = 0;
+    vsi_size_t prefix_dim_size = 1;
+    vsi_size_t suffix_dim_size = 0;
     int32_t num_elements = 0;
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
@@ -120,9 +120,9 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     axis = axis == -1 ? (int32_t)attr[0]->shape->size : (int32_t)attr[0]->shape->size - axis;
 
-    for (i = 0; i < axis; i++)
+    for (m = 0; m < axis; m++)
     {
-        prefix_dim_size *= attr[0]->shape->data[i];
+        prefix_dim_size *= attr[0]->shape->data[m];
     }
 
     suffix_dim_size = num_elements / prefix_dim_size;

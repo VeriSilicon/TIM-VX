@@ -61,7 +61,7 @@ DEF_KERNEL_EXECUTOR(_layer_norm_exec)
     float * buffer[_CPU_IO_NUM] = { NULL };
     size_t out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
-    uint32_t i = 0;
+    vsi_size_t i = 0;
     float eps = .0f;
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
@@ -97,25 +97,25 @@ DEF_KERNEL_EXECUTOR(_layer_norm_exec)
     memset( buffer[3], 0, out_elements * sizeof(float) );
 
     {
-        uint32_t  axis_first = 0;
-        uint32_t  axis_num  = 1;
-        uint32_t  outerSize = 1;
-        uint32_t  axisSize  = 1;
-        uint32_t  innerSize = 1;
-        uint32_t  inner     = 0;
-        uint32_t  outer     = 0;
+        vsi_size_t  axis_first = 0;
+        vsi_size_t  axis_num  = 1;
+        vsi_size_t  outerSize = 1;
+        vsi_size_t  axisSize  = 1;
+        vsi_size_t  innerSize = 1;
+        vsi_size_t  inner     = 0;
+        vsi_size_t  outer     = 0;
 
-        for (i = 0; i < (uint32_t)axis_first; i++)
+        for (i = 0; i < axis_first; i++)
         {
             innerSize *= attr[0]->shape->data[i];
         }
 
-        for(i = 0; i < (uint32_t)axis_num; i++)
+        for(i = 0; i < axis_num; i++)
         {
             axisSize *= attr[0]->shape->data[axis_first + i];
         }
 
-        for (i = (uint32_t)axis_first + axis_num; i < attr[0]->shape->size; i++)
+        for (i = axis_first + axis_num; i < attr[0]->shape->size; i++)
         {
             outerSize *= attr[0]->shape->data[i];
         }
@@ -129,7 +129,7 @@ DEF_KERNEL_EXECUTOR(_layer_norm_exec)
                 float mean = .0f;
                 float vari = .0f;
 
-                for (i = 0; i < (uint32_t)axisSize; ++i)
+                for (i = 0; i < axisSize; ++i)
                 {
                     float value = buffer[0][(outer * axisSize + i) * innerSize + inner];
                     sum += value;
@@ -139,9 +139,9 @@ DEF_KERNEL_EXECUTOR(_layer_norm_exec)
                 vari = sumsq / (axisSize) - mean * mean;
                 vari = (float)(1.0 / sqrtf(vari + eps));
 
-                for (i = 0; i < (uint32_t)axisSize; ++i)
+                for (i = 0; i < axisSize; ++i)
                 {
-                    int idx = (outer * axisSize + i) * innerSize + inner;
+                    vsi_ssize_t idx = (outer * axisSize + i) * innerSize + inner;
                     float data = buffer[0][idx] - mean;
                     float scaleVal = buffer[2][i];
                     float biasVal = buffer[1][i];

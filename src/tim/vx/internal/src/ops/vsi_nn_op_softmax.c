@@ -40,7 +40,7 @@
 static vsi_bool _is_same_shape
     (
     vsi_nn_tensor_t * inputs,
-    uint32_t *sizes,
+    vsi_size_t *sizes,
     uint32_t dims
     )
 {
@@ -131,7 +131,7 @@ static vsi_status op_optimize
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_softmax_param * p;
     uint32_t dim_num;
-    uint32_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
+    vsi_size_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
     uint32_t i = 0;
     int32_t axis = -1;
     vsi_nn_tensor_t* new_input = NULL;
@@ -146,8 +146,8 @@ static vsi_status op_optimize
     axis = p->axis;
     if (axis != VSI_NN_SOFTMAX_DEFAULT_AXIS)
     {
-        uint32_t innerSize = 1;
-        uint32_t outerSize = 1;
+        vsi_size_t innerSize = 1;
+        vsi_size_t outerSize = 1;
         for (i = 0; i < (uint32_t)axis; i++)
         {
             sizes[i] = inputs[0]->attr.size[i];

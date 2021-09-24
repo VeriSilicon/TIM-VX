@@ -46,21 +46,21 @@ __BEGIN_DECLS
 #define _CPU_PARAM_NUM          (_CPU_ARG_NUM + _CPU_IO_NUM)
 #define _KERNEL_NAME            CVIVANTE_NAMESPACE("batch_norm_sw")
 
-static int32_t _expand_offset
+static vsi_ssize_t _expand_offset
     (
-    int32_t index,
-    int32_t * shape, size_t rank,
-    size_t * strides, int32_t * out_shape
+    vsi_ssize_t index,
+    vsi_size_t * shape, vsi_size_t rank,
+    vsi_size_t * strides, vsi_size_t * out_shape
     )
 {
-    uint32_t i;
-    int32_t offset = 0;
+    vsi_size_t i;
+    vsi_ssize_t offset = 0;
 
     for( i = 0; i < rank && index; i ++ )
     {
         if( shape[i] == out_shape[i] )
         {
-            offset += (int32_t)strides[i] * ( index % out_shape[i] );
+            offset += (vsi_ssize_t)strides[i] * ( index % out_shape[i] );
         }
         index /= out_shape[i];
     }
@@ -77,8 +77,8 @@ DEF_KERNEL_EXECUTOR(_batch_norm_exec)
     vsi_status status = VX_SUCCESS;
     vsi_nn_kernel_tensor_t tensors[_CPU_IO_NUM] = { NULL };
     float * buffer[_CPU_IO_NUM] = { NULL };
-    size_t out_elements = 0;
-    size_t stride_size[_CPU_INPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_size_t out_elements = 0;
+    vsi_size_t stride_size[_CPU_INPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{0}};
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
     uint32_t i = 0;
     float eps = 0.f;
@@ -107,7 +107,7 @@ DEF_KERNEL_EXECUTOR(_batch_norm_exec)
 
     for( i = 0; i < out_elements; i ++ )
     {
-        int32_t in_offset[5] = {0};
+        vsi_ssize_t in_offset[5] = {0};
         int32_t j = 0;
         float src = 0.f;
         float mean = 0.f;
@@ -117,7 +117,7 @@ DEF_KERNEL_EXECUTOR(_batch_norm_exec)
 
         for ( j = 0; j < 5; j++)
         {
-            in_offset[j] = _expand_offset( i, attr[j]->shape->data, attr[j]->shape->size,
+            in_offset[j] = _expand_offset( i, attr[j]->shape->data, (vsi_size_t)attr[j]->shape->size,
                     stride_size[j], attr[5]->shape->data );
         }
 

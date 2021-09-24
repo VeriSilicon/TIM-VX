@@ -115,7 +115,7 @@ DEF_KERNEL_INITIALIZER(_detect_post_box_initializer)
         };
     vsi_nn_kernel_tensor_attr_t * input_attr   = NULL;
     vsi_nn_kernel_tensor_attr_t * input1_attr  = NULL;
-    vsi_int_array_t * in_shape                 = NULL;
+    vsi_size_array_t * in_shape                 = NULL;
     float             logE                     = (float)(log10(exp(1.0f)) / log10(2.0f));
     float     scaleIn0        = 1.0f;
     float     scaleIn1        = 1.0f;

@@ -181,6 +181,7 @@ vsi_status vsi_nn_add_single_preproc_node
     (
     vsi_nn_graph_t* graph,
     uint32_t input_idx,
+    vsi_nn_tensor_id_t input,
     vsi_nn_node_t** first_node,
     uint32_t nodes_count,
     vsi_nn_preprocess_base_t* preprocess,
@@ -233,7 +234,6 @@ OVXLIB_API vsi_status vsi_nn_AddGraphPostProcess
     vsi_nn_postprocess_base_t* postprocess,
     uint32_t count
     );
-
 
 #ifdef __cplusplus
 }

@@ -80,7 +80,7 @@ DEF_KERNEL_INITIALIZER(_softmax_initializer)
         return status;
     }
 
-    sf_size  =  attr->shape->data[0];
+    sf_size  =  (int)attr->shape->data[0];
 
     gpu_param.global_offset[0] = 0;
     gpu_param.global_offset[1] = 0;

@@ -86,10 +86,10 @@ static vsi_bool op_setup
     vsi_nn_internal_tensor_t* input_tensor = NULL;
     vsi_nn_internal_tensor_t** output_tensors = NULL;
     vsi_nn_internal_node_t* curr = NULL;
-    uint32_t* reshape_input_size = NULL;
+    vsi_size_t* reshape_input_size = NULL;
     uint32_t *slices = NULL;
-    uint32_t block_size = 1;
-    uint32_t block_num = 1;
+    vsi_size_t block_size = 1;
+    vsi_size_t block_num = 1;
     uint32_t axis = 0;
     uint32_t i, j;
 
@@ -169,8 +169,8 @@ static vsi_bool op_setup
     input_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE, 0, 0 );
-    reshape_input_size = (uint32_t *)vsi_nn_internal_new_node_param(curr,
-        VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+    reshape_input_size = (vsi_size_t*)vsi_nn_internal_new_node_param(curr,
+        VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
     reshape_input_size[0] = block_size;
     reshape_input_size[1] = tensor_num;
     reshape_input_size[2] = block_num;
@@ -201,12 +201,12 @@ static vsi_bool op_setup
 
     for (i = 0; i < tensor_num; i++)
     {
-        uint32_t* output_size = NULL;
+        vsi_size_t* output_size = NULL;
 
-        output_size = (uint32_t *)vsi_nn_internal_new_node_param(curr,
-            VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        output_size = (vsi_size_t *)vsi_nn_internal_new_node_param(curr,
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
 
-        memcpy(output_size, outputs[i]->attr.size, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        memcpy(output_size, outputs[i]->attr.size, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE, 0, 0 );
         curr->node->nn_param.reshape.size = output_size;

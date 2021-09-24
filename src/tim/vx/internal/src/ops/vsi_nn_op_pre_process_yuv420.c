@@ -157,8 +157,8 @@ static vsi_bool op_setup
         }
     }
 
-    p->local.scale_x = (p->rect.width << 15) / outputs[0]->attr.size[0];
-    p->local.scale_y = (p->rect.height << 15) / outputs[0]->attr.size[1];
+    p->local.scale_x = (int32_t)((p->rect.width << 15) / outputs[0]->attr.size[0]);
+    p->local.scale_y = (int32_t)((p->rect.height << 15) / outputs[0]->attr.size[1]);
 
     p->local.enable_copy = ((p->local.scale_x == p->local.scale_y) && (p->local.scale_x == (1 << 15)));
 

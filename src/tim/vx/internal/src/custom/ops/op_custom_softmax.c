@@ -76,7 +76,7 @@ static vsi_bool op_setup
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         memmove(outputs[0]->attr.size, inputs[0]->attr.size,
-            inputs[0]->attr.dim_num * sizeof(uint32_t));
+            inputs[0]->attr.dim_num * sizeof(vsi_size_t));
     }
     return TRUE;
 } /* op_setup() */

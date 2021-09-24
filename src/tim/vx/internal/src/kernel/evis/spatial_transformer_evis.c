@@ -156,7 +156,7 @@ DEF_KERNEL_INITIALIZER(_get_matrix_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
-    vsi_int_array_t * in_shape          = NULL;
+    vsi_size_array_t * in_shape          = NULL;
     float    theta[8] = {0};
     float    input_scale = 1.0f;
     float    input_tail  = 0;
@@ -250,7 +250,7 @@ DEF_KERNEL_INITIALIZER(_warp_affine_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * attr[2]  = {NULL};
-    vsi_int_array_t * out_shape          = NULL;
+    vsi_size_array_t * out_shape          = NULL;
     float    input_scale = 1.0f;
     float    input_tail  = 0;
     float    output_scale = 1.0f;
@@ -512,7 +512,7 @@ static vsi_nn_kernel_node_t _setup
 
     // Check if gpu can support the size
     if( !vsi_nn_kernel_gpu_check_shape(
-        (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
+        outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
@@ -537,7 +537,7 @@ static vsi_nn_kernel_node_t _setup
     attr.size[2] = attr.size[1] = 1;
     attr.dim_num = inputs[0]->attr.dim_num;
     tensors[1] = vsi_nn_reshape_tensor( graph,
-                tensors[0], (uint32_t*)attr.size, attr.dim_num );
+                tensors[0], attr.size, attr.dim_num );
 
     warp_affine_tensors[0] = inputs[0];
     warp_affine_tensors[1] = tensors[1];

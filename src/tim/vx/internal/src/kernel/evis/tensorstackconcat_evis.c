@@ -120,7 +120,7 @@ DEF_KERNEL_INITIALIZER(_tensorstackconcat_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
-    vsi_int_array_t * in_shape             = NULL;
+    vsi_size_array_t * in_shape             = NULL;
     // Add initializer
 
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );

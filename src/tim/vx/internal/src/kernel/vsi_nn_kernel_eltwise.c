@@ -42,28 +42,20 @@ static size_t vsi_nn_compute_element_num
     ( const int32_t* shape, const size_t rank);
 #endif
 
-static size_t eltwise_fill_dim
+static vsi_size_t eltwise_fill_dim
     (
-    int32_t* shape_x, int32_t* shape_y,
-    int32_t* shape_output, size_t rank,
-    size_t max_rank, int32_t size_x, int32_t size_y,
-    int32_t size_output
+    vsi_size_t* shape_x, vsi_size_t* shape_y,
+    vsi_size_t* shape_output, vsi_size_t rank,
+    vsi_size_t max_rank, vsi_size_t size_x, vsi_size_t size_y,
+    vsi_size_t size_output
     );
 
 static vsi_bool compute_gpu_divisor
     (
-    const int32_t input_value,
-    const int32_t limit,
+    const vsi_size_t input_value,
+    const vsi_size_t limit,
     const int32_t gcd,
-    int32_t* divisor
-    );
-
-static size_t eltwise_fill_dim
-    (
-    int32_t* shape_x, int32_t* shape_y,
-    int32_t* shape_output, size_t rank,
-    size_t max_rank, int32_t size_x, int32_t size_y,
-    int32_t size_output
+    vsi_size_t* divisor
     );
 
 #if 0
@@ -82,13 +74,13 @@ static size_t vsi_nn_compute_element_num
 
 static vsi_bool compute_gpu_divisor
     (
-    const int32_t input_value,
-    const int32_t limit,
+    const vsi_size_t input_value,
+    const vsi_size_t limit,
     const int32_t gcd,
-    int32_t* divisor
+    vsi_size_t* divisor
     )
 {
-    int32_t i = 0;
+    vsi_size_t i = 0;
     for( i = vsi_nn_min( input_value, limit - 1 ); i > 0; i -- )
     {
         if( ( i % gcd == 0 ) && ( input_value % i == 0 ) )
@@ -100,17 +92,16 @@ static vsi_bool compute_gpu_divisor
     return FALSE;
 } /* compute_gpu_divisor */
 
-static size_t eltwise_fill_dim
+static vsi_size_t eltwise_fill_dim
     (
-    int32_t* shape_x, int32_t* shape_y,
-    int32_t* shape_output, size_t rank,
-    size_t max_rank, int32_t size_x, int32_t size_y,
-    int32_t size_output
+    vsi_size_t* shape_x, vsi_size_t* shape_y,
+    vsi_size_t* shape_output, vsi_size_t rank,
+    vsi_size_t max_rank, vsi_size_t size_x, vsi_size_t size_y,
+    vsi_size_t size_output
     )
 {
-    size_t cost_size = 1;
+    vsi_size_t cost_size = 1;
     VSI_ASSERT( rank <= max_rank );
-    VSI_ASSERT( size_output >= (int32_t)((int64_t)(0xFFFFFFFF) - 1) );
     if( size_output < GPU_TENSOR_MAX_WIDTH )
     {
         shape_x[rank] = size_x;
@@ -119,8 +110,8 @@ static size_t eltwise_fill_dim
     }
     else
     {
-        int32_t divisor = 0;
-        int32_t remainder = 0;
+        vsi_size_t divisor = 0;
+        vsi_size_t remainder = 0;
         compute_gpu_divisor( size_output, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
         remainder = size_output / divisor;
         if( remainder > GPU_TENSOR_MAX_WIDTH || rank >= max_rank )
@@ -166,22 +157,22 @@ static size_t eltwise_fill_dim
 
 vsi_bool vsi_nn_kernel_optimize_eltwise_shape
     (
-    const int32_t* shape_x, const size_t rank_x,
-    const int32_t* shape_y, const size_t rank_y,
-    const int32_t* shape_output, const size_t rank_output,
-    int32_t* out_shape_x, int32_t* out_shape_y,
-    int32_t* out_shape_output, uint32_t* out_rank_output
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    const vsi_size_t* shape_y, const vsi_size_t rank_y,
+    const vsi_size_t* shape_output, const vsi_size_t rank_output,
+    vsi_size_t* out_shape_x, vsi_size_t* out_shape_y,
+    vsi_size_t* out_shape_output, vsi_size_t* out_rank_output
     )
 {
     vsi_bool ret                        = TRUE;
     vsi_bool append_dim                 = FALSE;
-    size_t   i                          = 0;
-    size_t   dims                       = 0;
-    int32_t  effective_size_x           = 1;
-    int32_t  effective_size_y           = 1;
-    int32_t  tmp_sz                     = 0;
-    int32_t  sx                         = 0;
-    int32_t  sy                         = 0;
+    vsi_size_t   i                          = 0;
+    vsi_size_t   dims                       = 0;
+    vsi_size_t  effective_size_x           = 1;
+    vsi_size_t  effective_size_y           = 1;
+    vsi_size_t  tmp_sz                     = 0;
+    vsi_size_t  sx                         = 0;
+    vsi_size_t  sy                         = 0;
     eltwise_broadcast_state_e state     = ELTWISE_BROADCAST_STATE_EMPTY;
     eltwise_broadcast_state_e prv_state = ELTWISE_BROADCAST_STATE_EMPTY;
 
@@ -325,11 +316,11 @@ vsi_bool vsi_nn_kernel_optimize_eltwise_shape
         }
         /* For debug */
 #if DEBUG
-        vsi_nn_print_int_array( out_shape_x, dims );
-        vsi_nn_print_int_array( out_shape_y, dims );
-        vsi_nn_print_int_array( out_shape_output, dims );
+        vsi_nn_print_size_array( out_shape_x, dims );
+        vsi_nn_print_size_array( out_shape_y, dims );
+        vsi_nn_print_size_array( out_shape_output, dims );
 #endif
-        *out_rank_output = (uint32_t)dims;
+        *out_rank_output = (size_t)dims;
     }
 #undef _swap_size
     return ret;
@@ -337,18 +328,17 @@ vsi_bool vsi_nn_kernel_optimize_eltwise_shape
 
 
 
-static size_t broadcast_fill_dim
+static vsi_size_t broadcast_fill_dim
     (
-    int32_t** shape_in, int32_t input_num,
-    int32_t* shape_output, size_t rank,
-    size_t max_rank, int32_t* size_in,
-    int32_t size_output
+    vsi_size_t** shape_in, int32_t input_num,
+    vsi_size_t* shape_output, vsi_size_t rank,
+    vsi_size_t max_rank, vsi_size_t* size_in,
+    vsi_size_t size_output
     )
 {
     int32_t i         = 0;
-    size_t cost_size = 1;
+    vsi_size_t cost_size = 1;
     VSI_ASSERT( rank <= max_rank );
-    VSI_ASSERT( size_output >= (int32_t)((int64_t)(0xFFFFFFFF) - 1) );
     if( size_output < GPU_TENSOR_MAX_WIDTH )
     {
         for (i = 0; i < input_num; i++)
@@ -359,8 +349,8 @@ static size_t broadcast_fill_dim
     }
     else
     {
-        int32_t divisor = 0;
-        int32_t remainder = 0;
+        vsi_size_t divisor = 0;
+        vsi_size_t remainder = 0;
         compute_gpu_divisor( size_output, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
         remainder = size_output / divisor;
         if( remainder > GPU_TENSOR_MAX_WIDTH || rank >= max_rank )
@@ -401,23 +391,23 @@ static size_t broadcast_fill_dim
 
 vsi_bool vsi_nn_kernel_optimize_broadcast_shape
     (
-    const int32_t** shape_in, const size_t* rank_in,
+    const vsi_size_t** shape_in, const vsi_size_t* rank_in,
     const int32_t   input_num,
-    const int32_t*  shape_output, const size_t rank_output,
-    int32_t** out_shape_in,
-    int32_t* out_shape_output, uint32_t* out_rank_output
+    const vsi_size_t*  shape_output, const vsi_size_t rank_output,
+    vsi_size_t** out_shape_in,
+    vsi_size_t* out_shape_output, uint32_t* out_rank_output
     )
 {
 #define MAX_INPUT_NUM    30
     vsi_bool ret                              = TRUE;
     vsi_bool append_dim                       = FALSE;
-    size_t   i                                = 0;
-    size_t   j                                = 0;
-    size_t   k                                = 0;
-    size_t   dims                             = 0;
-    int32_t  effective_size[MAX_INPUT_NUM]    = {1};
-    int32_t  tmp_sz                           = 0;
-    int32_t  size_in[MAX_INPUT_NUM]           = {0};
+    vsi_size_t   i                                = 0;
+    vsi_size_t   j                                = 0;
+    vsi_size_t   k                                = 0;
+    vsi_size_t   dims                             = 0;
+    vsi_size_t  effective_size[MAX_INPUT_NUM]    = {1};
+    vsi_size_t  tmp_sz                           = 0;
+    vsi_size_t  size_in[MAX_INPUT_NUM]           = {0};
     int32_t  state_mask                       = 0;
     int32_t  prv_state_mask                   = -1;
 
@@ -436,14 +426,14 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
         goto final;
     }
 
-    for (i = 0; i < (size_t)input_num; i++)
+    for (i = 0; i < (vsi_size_t)input_num; i++)
     {
         effective_size[i] = 1;
     }
 
     for( i = 0; i < rank_output; i++ )
     {
-        for (j = 0; j < (size_t)input_num; j++)
+        for (j = 0; j < (vsi_size_t)input_num; j++)
         {
             size_in[j] = i < rank_in[j] ? shape_in[j][i] : 1;
         }
@@ -457,7 +447,7 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
 
         // Invalid shape for broadcasting
         k = 0;
-        for (j = 0; j < (size_t)input_num; j++)
+        for (j = 0; j < (vsi_size_t)input_num; j++)
         {
             if (size_in[j] > 1)
             {
@@ -466,7 +456,7 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
             }
         }
 
-        for (j = 0; j < (uint32_t)input_num; j++)
+        for (j = 0; j < (vsi_size_t)input_num; j++)
         {
             if ((size_in[k] != size_in[j])
              && (size_in[j] > 1))
@@ -477,7 +467,7 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
         }
 
         state_mask = 0;
-        for (j = 0; j < (size_t)input_num; j++)
+        for (j = 0; j < (vsi_size_t)input_num; j++)
         {
             if (1 == size_in[j])
             {
@@ -489,14 +479,14 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
 
         if ((-1 == prv_state_mask) || (state_mask == prv_state_mask))
         {
-            for (j = 0; j < (size_t)input_num; j++)
+            for (j = 0; j < (vsi_size_t)input_num; j++)
             {
                 effective_size[j] *= size_in[j];
             }
         }
         else
         {
-            for (j = 0; j < (size_t)input_num; j++)
+            for (j = 0; j < (vsi_size_t)input_num; j++)
             {
                 _swap_size(size_in[j], effective_size[j], tmp_sz);
             }
@@ -507,9 +497,9 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
 
         if( append_dim )
         {
-            int32_t size_output;
+            vsi_size_t size_output;
             size_output = size_in[0];
-            for (j = 1; j < (size_t)input_num; j++)
+            for (j = 1; j < (vsi_size_t)input_num; j++)
             {
                 size_output = vsi_nn_max(size_output, size_in[j]);
             }
@@ -523,7 +513,7 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
         /* Append the last dim */
         if( i == rank_output )
         {
-            int32_t size_output;
+            vsi_size_t size_output;
             size_output = effective_size[0];
             for (j = 1; j < (size_t)input_num; j++)
             {
@@ -535,7 +525,7 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
         /* Avoid 1D shape*/
         if( 1 == dims )
         {
-            for (j = 0; j < (size_t)input_num; j++)
+            for (j = 0; j < (vsi_size_t)input_num; j++)
             {
                 out_shape_in[j][1] = 1;
             }
@@ -544,7 +534,7 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
         }
         else
         {
-            for (j = 0; j < (size_t)input_num; j++)
+            for (j = 0; j < (vsi_size_t)input_num; j++)
             {
                 for ( i = 0; i < dims; i++)
                 {

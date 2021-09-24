@@ -37,13 +37,13 @@
 
 static void _compute_stride
     (
-    uint32_t * shape,
-    uint32_t   dim_num,
-    uint32_t * stride
+    vsi_size_t * shape,
+    vsi_size_t   dim_num,
+    vsi_size_t * stride
     )
 {
-    uint32_t i;
-    uint32_t s;
+    vsi_size_t i;
+    vsi_size_t s;
     s = 1;
     for( i = 0; i < dim_num; i ++ )
     {
@@ -64,11 +64,12 @@ vsi_nn_tensor_t* vsi_nn_Concat
     int32_t k;
     uint8_t* buffer = NULL;
     uint8_t* tmp = NULL;
-    size_t total_bytes = 0;
-    size_t tensor_size = 0;
-    size_t offset = 0, src = 0, dst = 0;
-    uint32_t* strides = NULL;
-    uint32_t* dst_strides = NULL;
+    vsi_size_t total_bytes = 0;
+    vsi_size_t tensor_size = 0;
+    vsi_size_t m;
+    vsi_size_t offset = 0, src = 0, dst = 0;
+    vsi_size_t* strides = NULL;
+    vsi_size_t* dst_strides = NULL;
     uint32_t type_bytes = 0;
     vsi_nn_tensor_attr_t output_attr;
     vsi_nn_tensor_t* tensor_out = NULL;
@@ -87,7 +88,7 @@ vsi_nn_tensor_t* vsi_nn_Concat
     }
     memset( &output_attr, 0, sizeof(vsi_nn_tensor_attr_t) );
     memcpy( &output_attr.dtype, &tensors[0]->attr.dtype, sizeof(vsi_nn_dtype_t) );
-    memcpy( output_attr.size, tensors[0]->attr.size, sizeof(uint32_t) * VSI_NN_MAX_DIM_NUM );
+    memcpy( output_attr.size, tensors[0]->attr.size, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
     output_attr.dim_num = tensors[0]->attr.dim_num;
 
     for( i = 1; i < tensor_num; i ++ )
@@ -116,8 +117,8 @@ vsi_nn_tensor_t* vsi_nn_Concat
     total_bytes = vsi_nn_GetTensorSize( output_attr.size, output_attr.dim_num,
             output_attr.dtype.vx_type );
     buffer = (uint8_t*)malloc( total_bytes );
-    strides = (uint32_t*)malloc( sizeof(uint32_t) * tensors[0]->attr.dim_num );
-    dst_strides = (uint32_t*)malloc( sizeof(uint32_t) * tensors[0]->attr.dim_num );
+    strides = (vsi_size_t*)malloc( sizeof(vsi_size_t) * tensors[0]->attr.dim_num );
+    dst_strides = (vsi_size_t*)malloc( sizeof(vsi_size_t) * tensors[0]->attr.dim_num );
     if (!buffer || !strides || !dst_strides)
     {
         VSILOGW("Out of memroy.");
@@ -136,9 +137,9 @@ vsi_nn_tensor_t* vsi_nn_Concat
             goto concat_error;
         }
         _compute_stride(tensors[i]->attr.size, tensors[i]->attr.dim_num, strides);
-        for( j = 0; j < tensor_size; j ++ )
+        for( m = 0; m < tensor_size; m ++ )
         {
-            src = j;
+            src = m;
             dst = 0;
             for( k = tensors[0]->attr.dim_num - 1; k >= 0; k -- )
             {
@@ -146,7 +147,7 @@ vsi_nn_tensor_t* vsi_nn_Concat
                 src %= strides[k];
             }
             dst += offset;
-            src = j;
+            src = m;
             memcpy( &buffer[dst * type_bytes], &tmp[src * type_bytes], type_bytes );
         }
         vsi_nn_safe_free( tmp );
@@ -178,10 +179,11 @@ vsi_nn_tensor_t* vsi_nn_ConvertTensorDtype
     )
 {
     vsi_status status = VSI_SUCCESS;
-    uint32_t i = 0, src_stride = 0, dst_stride = 0;
-    uint32_t sz = 0;
+    vsi_size_t i = 0;
+    uint32_t src_stride = 0, dst_stride = 0;
+    vsi_size_t sz = 0;
     uint8_t* src_buf = NULL;
-    uint32_t dst_buf_sz = 0;
+    vsi_size_t dst_buf_sz = 0;
     uint8_t* dst_buf = NULL;
     vsi_nn_tensor_attr_t dst_attr;
     vsi_nn_tensor_t* dst_tensor = NULL;

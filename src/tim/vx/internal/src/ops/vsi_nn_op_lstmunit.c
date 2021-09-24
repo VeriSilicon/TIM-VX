@@ -271,7 +271,7 @@ static vsi_bool op_setup
     {
         outputs[1]->attr.dim_num = outputs[0]->attr.dim_num;
         memcpy( outputs[1]->attr.size, outputs[0]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof( uint32_t ) );
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
 
     /* cell_state_out */

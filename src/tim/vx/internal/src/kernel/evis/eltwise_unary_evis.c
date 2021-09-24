@@ -362,7 +362,7 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
         };
     int32_t     type                        = 0;
     vsi_nn_kernel_tensor_attr_t * attr[2]   = { NULL, NULL };
-    vsi_int_array_t * out_shape             = NULL;
+    vsi_size_array_t * out_shape             = NULL;
     float    inputScale                     = 1.0f;
     float    inputTail                      = 0;
     float    outputScale                    = 1.0f;
@@ -634,23 +634,23 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_tensor_t* rs_tensors[2] = { NULL };
-    int32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
-    int32_t new_rank = 0;
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t new_rank = 0;
     vsi_bool ret = FALSE;
     float alpha = vsi_nn_kernel_param_get_float32( params, "alpha" );
 
     ret = vsi_nn_kernel_optimize_element_shape(
-            (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
             shape, &new_rank );
     if( ret )
     {
         rs_tensors[0] = vsi_nn_reshape_tensor( graph,
-                inputs[0], (uint32_t*)shape, new_rank );
+                inputs[0], shape, new_rank );
         rs_tensors[1] = vsi_nn_reshape_tensor( graph,
-                outputs[0], (uint32_t*)shape, new_rank );
+                outputs[0], shape, new_rank );
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)rs_tensors[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( rs_tensors[0]->attr.size,
                 rs_tensors[0]->attr.dim_num ) )
     {
         goto OnError;

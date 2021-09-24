@@ -119,7 +119,7 @@ DEF_KERNEL_INITIALIZER(_one_hot_initializer)
 
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
-    vsi_int_array_t * in_shape = NULL;
+    vsi_size_array_t * in_shape = NULL;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -228,11 +228,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_ONE_HOT_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_tensor_t* rs_tensors[2] = { NULL };
-    int32_t shape[2][VSI_NN_MAX_DIM_NUM] = {{ 0 }};
+    vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = {{ 0 }};
     int32_t i = 0;
-    int32_t num_elements = vsi_nn_vxGetTensorElementNum(&inputs[0]->attr);
-    int32_t prefix_dim_size = 1;
-    int32_t suffix_dim_size = 0;
+    vsi_size_t num_elements = vsi_nn_vxGetTensorElementNum(&inputs[0]->attr);
+    vsi_size_t prefix_dim_size = 1;
+    vsi_size_t suffix_dim_size = 0;
     int32_t depth = vsi_nn_kernel_param_get_int32( params, "depth" );
     vsi_nn_kernel_dtype_e out_dtype;
     uint32_t data[2] = {0};
@@ -270,11 +270,11 @@ static vsi_nn_kernel_node_t _setup
     shape[1][2] = prefix_dim_size;
 
     rs_tensors[0] = vsi_nn_reshape_tensor( graph,
-        inputs[0], (uint32_t*)shape[0], 2 );
+        inputs[0], shape[0], 2 );
     rs_tensors[1] = vsi_nn_reshape_tensor( graph,
-        outputs[0], (uint32_t*)shape[1], 3 );
+        outputs[0], shape[1], 3 );
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)rs_tensors[1]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( rs_tensors[1]->attr.size,
                 rs_tensors[1]->attr.dim_num ) )
     {
         return NULL;

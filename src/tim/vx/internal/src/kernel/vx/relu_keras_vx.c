@@ -157,7 +157,7 @@ static vsi_nn_kernel_node_t _setup
     node = vxTensorTableLookupLayer( graph->g, inputs[0]->t, lut1, lut2, outputs[0]->t);
     if( NULL == node )
     {
-        VSILOGE("Call vxTensorTableLookupLayer fail.");
+        VSILOGW("Call vxTensorTableLookupLayer fail.");
         goto OnError;
     }
 

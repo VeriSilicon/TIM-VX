@@ -61,11 +61,11 @@ DEF_KERNEL_EXECUTOR(_argmin_exec)
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
     int32_t i;
     int32_t axis = 0;
-    int32_t outerSize = 1;
-    int32_t axisSize = 1;
-    int32_t innerSize = 1;
-    int32_t inner = 0;
-    int32_t outer = 0;
+    vsi_ssize_t outerSize = 1;
+    vsi_ssize_t axisSize = 1;
+    vsi_ssize_t innerSize = 1;
+    vsi_ssize_t inner = 0;
+    vsi_ssize_t outer = 0;
 
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];

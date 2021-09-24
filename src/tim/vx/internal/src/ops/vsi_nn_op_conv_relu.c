@@ -190,9 +190,15 @@ static vsi_status op_optimize
         inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
             VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER,
             4,
+#ifdef VSI_40BIT_VA_SUPPORT
             inputs[0]->attr.size,
             outputs[0]->attr.size,
             outputs[0]->attr.size,
+#else
+            (vx_uint32*)inputs[0]->attr.size,
+            (vx_uint32*)outputs[0]->attr.size,
+            (vx_uint32*)outputs[0]->attr.size,
+#endif
             outputs[0]->attr.dtype.vx_type,
             (vx_nn_convolution_relu_pooling_params_t *)&p,
             sizeof(p),

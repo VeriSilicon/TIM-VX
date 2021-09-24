@@ -58,8 +58,8 @@ KERNEL_SELECTOR( depthwise_conv1d )
     )
 {
     int32_t dilation   = vsi_nn_kernel_param_get_int32( params, "dilation" );
-    int32_t kernel = inputs[1]->attr.size[0];
-    int32_t real_kernel = 0;
+    vsi_size_t kernel = inputs[1]->attr.size[0];
+    vsi_size_t real_kernel = 0;
     int32_t stride = vsi_nn_kernel_param_get_int32( params, "stride" );
     vsi_nn_kernel_pirority_t pirority[] = {
         { VSI_NN_KERNEL_TYPE_VX,    0 },
@@ -129,5 +129,6 @@ REGISTER_VX_FIRST_KERNEL_SELECTOR(relu_keras)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(erf)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(gelu)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(hard_gelu)
+REGISTER_VX_FIRST_KERNEL_SELECTOR(matrixmul)
 
 __END_DECLS

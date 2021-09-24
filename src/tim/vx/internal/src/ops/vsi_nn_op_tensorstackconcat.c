@@ -42,17 +42,17 @@
 
 static vsi_bool _get_stackconcat_shape
     (
-    const int32_t* shape_x, const int32_t rank_x,
-    const int32_t* shape_output, const int32_t rank_output,
+    const vsi_ssize_t* shape_x, const int32_t rank_x,
+    const vsi_ssize_t* shape_output, const int32_t rank_output,
     const int32_t axis,
-    int32_t* out_shape_0, uint32_t* out_rank_0,
-    int32_t* out_shape_1, uint32_t* out_rank_1,
-    int32_t* out_shape_output, uint32_t* out_rank_output
+    vsi_ssize_t* out_shape_0, uint32_t* out_rank_0,
+    vsi_ssize_t* out_shape_1, uint32_t* out_rank_1,
+    vsi_ssize_t* out_shape_output, uint32_t* out_rank_output
     )
 {
     int32_t i = 0;
-    uint32_t innerSize = 1;
-    uint32_t outerSize = 1;
+    vsi_size_t innerSize = 1;
+    vsi_size_t outerSize = 1;
 
     for ( i = 0; i < rank_x; i++)
     {
@@ -97,21 +97,21 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
-    int32_t shape[3][VSI_NN_MAX_DIM_NUM] = { { 0 } };
+    vsi_size_t shape[3][VSI_NN_MAX_DIM_NUM] = { { 0 } };
     uint32_t rank[3] = {0};
 
     _get_stackconcat_shape(
-        (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
-        (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+        (vsi_ssize_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+        (vsi_ssize_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num,
         self->nn_param.tensorstackconcat.axis,
-        shape[0], &rank[0], shape[1], &rank[1], shape[2], &rank[2] );
+        (vsi_ssize_t*)shape[0], &rank[0], (vsi_ssize_t*)shape[1], &rank[1], (vsi_ssize_t*)shape[2], &rank[2] );
 
     reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-        inputs[0], (uint32_t*)shape[0], rank[0] );
+        inputs[0], shape[0], rank[0] );
     reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-        inputs[1], (uint32_t*)shape[1], rank[1] );
+        inputs[1], shape[1], rank[1] );
     reshape_tensors[2] = vsi_nn_reshape_tensor( self->graph,
-        outputs[0], (uint32_t*)shape[2], rank[2] );
+        outputs[0], shape[2], rank[2] );
 
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
         "tensorstackconcat",

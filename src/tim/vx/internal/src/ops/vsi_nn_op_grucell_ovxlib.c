@@ -102,8 +102,8 @@ static vsi_bool setup_op_shapes
     vsi_nn_grucell_ovxlib_param* curr_param = &self->nn_param.grucell_ovxlib;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
-    uint32_t output_size = 0;
-    uint32_t batch_size = 0;
+    vsi_size_t output_size = 0;
+    vsi_size_t batch_size = 0;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     batch_size = inputs[GRUCELL_INPUT_INPUT]->attr.size[1];
@@ -152,7 +152,7 @@ static vsi_bool setup_op_shapes
     {
         outputs[GRUCELL_OUTPUT_H_STATE]->attr.dim_num = outputs[GRUCELL_OUTPUT_OUTPUT]->attr.dim_num;
         memcpy( outputs[GRUCELL_OUTPUT_H_STATE]->attr.size, outputs[GRUCELL_OUTPUT_OUTPUT]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof( uint32_t ) );
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
 
     return TRUE;
@@ -373,7 +373,7 @@ static vsi_bool op_setup_float_cudnn
     vsi_nn_internal_tensor_t** splited_recurrent_fc_output_tensors = NULL;
     uint32_t kernel_h = 1, kernel_w = 1;
     grucell_activation_input_layout_e grucell_activation_input_layout = GRUCELL_ACTIVATION_INPUT_LAYOUT_ALL_NC;
-    uint32_t reshaped_size[2] = { 0 };
+    vsi_size_t reshaped_size[2] = { 0 };
 
     p->local->multi_batch = inputs[GRUCELL_INPUT_INPUT]->attr.size[1] > 1;
 
@@ -682,8 +682,8 @@ static vsi_bool op_setup_float_cudnn_v2
         dtype.vx_type = VSI_NN_TYPE_FLOAT16;
     }
     {
-        uint32_t _slices[] = { inputs[GRUCELL_INPUT_INPUT]->attr.size[0],
-            inputs[GRUCELL_INPUT_H_STATE]->attr.size[0] };
+        uint32_t _slices[] = { (uint32_t)inputs[GRUCELL_INPUT_INPUT]->attr.size[0],
+            (uint32_t)inputs[GRUCELL_INPUT_H_STATE]->attr.size[0] };
         splited_input_fc_output_tensors = vsi_nn_create_split(self, concated_input->t,
             0, 2, _slices, use_virtual_tensor);
     }
@@ -859,7 +859,7 @@ static vsi_bool op_setup_default
     {
         /* reshape and transpose input */
         vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-            inputs[GRUCELL_INPUT_INPUT]->attr.size[0], &kernel_h, &kernel_w);
+            (uint32_t)inputs[GRUCELL_INPUT_INPUT]->attr.size[0], &kernel_h, &kernel_w);
         input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self, inputs[GRUCELL_INPUT_INPUT],
                                                 p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
 
@@ -895,7 +895,7 @@ static vsi_bool op_setup_default
     {
         /* reshape and transpose input */
         vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-            inputs[GRUCELL_INPUT_H_STATE]->attr.size[0], &kernel_h, &kernel_w);
+            (uint32_t)inputs[GRUCELL_INPUT_H_STATE]->attr.size[0], &kernel_h, &kernel_w);
         hstate_input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self,
             inputs[GRUCELL_INPUT_H_STATE], p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
 
@@ -1001,7 +1001,7 @@ static vsi_bool op_setup_default
         vsi_nn_internal_tensor_t* tmp = NULL;
         /* reshape and transpose input */
         vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-            inputs[GRUCELL_INPUT_INPUT]->attr.size[0], &kernel_h, &kernel_w);
+            (uint32_t)inputs[GRUCELL_INPUT_INPUT]->attr.size[0], &kernel_h, &kernel_w);
         input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self, inputs[GRUCELL_INPUT_INPUT],
                                                 p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
         tmp = vsi_nn_rnn_create_nn_fc(self,
@@ -1058,7 +1058,7 @@ static vsi_bool op_setup_default
         vsi_nn_internal_tensor_t* tmp = NULL;
         /* reshape and transpose input */
         vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-            rh_mul_outputs->t->attr.size[0], &kernel_h, &kernel_w);
+            (uint32_t)rh_mul_outputs->t->attr.size[0], &kernel_h, &kernel_w);
         hstate_input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self, rh_mul_outputs->t,
                                                 p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
         tmp = vsi_nn_rnn_create_nn_fc(self,
@@ -1108,7 +1108,7 @@ static vsi_bool op_setup_default
     input_tensor = vsi_nn_internal_new_tensor(self, &attr, 1.0f);
 
     memset( &attr, 0x00, sizeof(attr) );
-    //memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+    //memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
     attr.dim_num = VSI_NN_DIM_AUTO;
     attr.vtl = use_virtual_tensor;
     attr.is_const = FALSE;

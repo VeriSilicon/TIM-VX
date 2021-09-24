@@ -705,11 +705,15 @@ vsi_status vsi_nn_kernel_node_pass_param
 vsi_nn_kernel_tensor_t vsi_nn_kernel_tensor_reshape
     (
     vsi_nn_kernel_tensor_t tensor,
-    int32_t* shape,
-    uint32_t rank
+    vsi_size_t* shape,
+    vsi_size_t rank
     )
 {
+#ifdef VSI_40BIT_VA_SUPPORT
     return (vsi_nn_kernel_tensor_t)vxReshapeTensor((vx_tensor)tensor, shape, rank);
+#else
+    return (vsi_nn_kernel_tensor_t)vxReshapeTensor((vx_tensor)tensor, (vx_int32*)shape, (vx_uint32)rank);
+#endif
 } /* vsi_nn_kernel_tensor_reshape() */
 
 void vsi_nn_kernel_tensor_release
@@ -982,11 +986,11 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
 } /* vsi_nn_kernel_selector() */
 
 vsi_bool vsi_nn_kernel_gpu_check_shape
-    ( const int32_t * shape, size_t rank )
+    ( const vsi_size_t * shape, vsi_size_t rank )
 {
-    size_t i;
+    vsi_size_t i;
     vsi_bool ret = TRUE;
-    const size_t channel_dim = 2;
+    const vsi_size_t channel_dim = 2;
     for( i = 0; i < vsi_nn_min(rank, channel_dim); i++ )
     {
         if( shape[i] == 0
@@ -1090,7 +1094,7 @@ vsi_nn_kernel_tensor_attr_t * vsi_nn_kernel_tensor_attr_create
 {
     vsi_nn_kernel_tensor_attr_t * attr;
     vsi_status status;
-    uint32_t dim_num;
+    vsi_size_t dim_num;
     vsi_nn_type_e dtype = VSI_NN_TYPE_FLOAT16;
     vsi_nn_qnt_type_e quant_type = VSI_NN_QNT_TYPE_NONE;
     attr = (vsi_nn_kernel_tensor_attr_t *)malloc(
@@ -1103,15 +1107,15 @@ vsi_nn_kernel_tensor_attr_t * vsi_nn_kernel_tensor_attr_create
     memset( attr, 0, sizeof(vsi_nn_kernel_tensor_attr_t) );
 
     status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_NUM_OF_DIMS,
-        &dim_num, sizeof(uint32_t));
+        &dim_num, sizeof(dim_num));
     CHECK_STATUS( status );
     if( status == VSI_SUCCESS )
     {
-        vsi_int_array_t * shape = vsi_int_array_create( dim_num );
+        vsi_size_array_t * shape = vsi_size_array_create( dim_num );
         if( shape )
         {
             status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_DIMS,
-                shape->data, sizeof(int32_t) * dim_num);
+                shape->data, sizeof(shape->data[0]) * dim_num);
             attr->shape = shape;
             CHECK_STATUS( status );
         }
@@ -1165,7 +1169,7 @@ void vsi_nn_kernel_tensor_attr_release
     if( p_attr && *p_attr )
     {
         vsi_nn_kernel_tensor_attr_t * attr = *p_attr;
-        vsi_int_array_release( &attr->shape );
+        vsi_size_array_release( &attr->shape );
         if( attr->quant == VSI_NN_KERNEL_QUANT_ASYMM_PERCHANNEL )
         {
             vsi_float_array_release( &attr->asymm_v.scale );

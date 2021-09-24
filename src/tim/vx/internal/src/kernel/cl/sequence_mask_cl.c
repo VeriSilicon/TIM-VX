@@ -114,7 +114,7 @@ DEF_KERNEL_INITIALIZER(_sequence_mask_initializer)
 
     vsi_status    status             = VSI_FAILURE;
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    vsi_int_array_t * out_shape = NULL;
+    vsi_size_array_t * out_shape = NULL;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -194,14 +194,14 @@ static int32_t _optimize_mask_shape
     vsi_nn_tensor_t ** inputs,
     vsi_nn_tensor_t ** outputs,
     int32_t max_len,
-    int32_t* opt_shape_in,
-    int32_t* opt_shape_out,
+    vsi_size_t* opt_shape_in,
+    vsi_size_t* opt_shape_out,
     int32_t* is2Dflg
     )
 {
     vsi_status status = VSI_SUCCESS;
-    int32_t in_shape[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t new_rank = 0;
+    vsi_size_t in_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t new_rank = 0;
     uint32_t i = 0;
 
     for(i = 0; i < inputs[0]->attr.dim_num; i++)
@@ -242,7 +242,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_CL_PARAM_NUM] = {NULL};
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_output = NULL;
-    int32_t new_shape[2][VSI_NN_MAX_DIM_NUM] = {{ 1, 1, 1, 1 }, { 1, 1, 1, 1 }};
+    vsi_size_t new_shape[2][VSI_NN_MAX_DIM_NUM] = {{ 1, 1, 1, 1 }, { 1, 1, 1, 1 }};
     int32_t max_len  = vsi_nn_kernel_param_get_int32( params, "max_len" );
     vsi_nn_kernel_node_t node = NULL;
     int32_t is2Dflg = 0;
@@ -255,7 +255,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t input_fl = 0;
     int32_t output_fl = 0;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

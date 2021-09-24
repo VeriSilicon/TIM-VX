@@ -68,43 +68,11 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
-    /* check inputs outputs data type */
-    BEGIN_IO_TYPE_DECL(RELU, 1, 1)
-        /* IO_TYPE(INPUT, OUTPUT) */
-        IO_TYPE(D_F32, D_F32)
-        IO_TYPE(D_F32, D_F16)
-        IO_TYPE(D_F32, D_BF16)
+    vsi_bool ret = FALSE;
 
-        IO_TYPE(D_F16, D_F32)
-        IO_TYPE(D_F16, D_F16)
-        IO_TYPE(D_F16, D_U8|Q_ASYM)
-        IO_TYPE(D_F16, D_I8|Q_DFP)
-        IO_TYPE(D_F16, D_I16|Q_DFP)
+    ret = vsi_nn_OpCheck(VSI_NN_OP_RSQRT, self, inputs, outputs);
 
-        IO_TYPE(D_BF16, D_BF16)
-        IO_TYPE(D_BF16, D_F32)
-
-        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F16)
-
-        IO_TYPE(D_I8|Q_ASYM, D_I8|Q_ASYM)
-        IO_TYPE(D_I8|Q_ASYM, D_F16)
-
-        IO_TYPE(D_I8|Q_DFP, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP, D_F16)
-
-        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_F16)
-    END_IO_TYPE_DECL(RELU)
-    if(!VALIDATE_OP_IO_TYPES(RELU, self, inputs, self->input.num, outputs, self->output.num)) {
-        char* desc = generate_op_io_types_desc(inputs,
-                self->input.num, outputs, self->output.num);
-        VSILOGE("Inputs/Outputs data type not support: %s", desc);
-        destroy_op_io_types_desc(desc);
-        return FALSE;
-    }
-
-    return TRUE;
+    return ret;
 } /* op_check() */
 
 #ifdef __cplusplus
@@ -126,4 +94,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

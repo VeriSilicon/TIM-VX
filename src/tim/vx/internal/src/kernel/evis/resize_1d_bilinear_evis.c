@@ -190,8 +190,8 @@ DEF_KERNEL_INITIALIZER(_resize_1d_bilinear_initializer)
         };
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
     vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
-    vsi_int_array_t             * out_shape     = NULL;
-    vsi_int_array_t             * in_shape      = NULL;
+    vsi_size_array_t             * out_shape     = NULL;
+    vsi_size_array_t             * in_shape      = NULL;
     vsi_nn_kernel_dtype_e         input_dtype   = F16;
     vsi_nn_kernel_dtype_e         output_dtype  = F16;
     int32_t align_corners = 0;
@@ -237,10 +237,10 @@ DEF_KERNEL_INITIALIZER(_resize_1d_bilinear_initializer)
     input_dtype   = input_attr->dtype;
     output_dtype  = output_attr->dtype;
 
-    in_width          = in_shape->data[0];
-    depth             = in_shape->data[2];
-    out_width         = out_shape->data[0];
-    out_height        = out_shape->data[1];
+    in_width          = (uint32_t)(in_shape->data[0]);
+    depth             = (uint32_t)(in_shape->data[2]);
+    out_width         = (uint32_t)(out_shape->data[0]);
+    out_height        = (uint32_t)(out_shape->data[1]);
 
     if (align_corners && out_width > 1)
     {
@@ -1185,13 +1185,13 @@ static vsi_nn_tensor_t* _create_scale_tensor
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_t*  scale         = NULL;
     uint32_t   dims                 = output->attr.dim_num;
-    uint32_t   batch                = dims > 3 ? output->attr.size[3] : 1;
-    uint32_t   width                = output->attr.size[0];
-    uint32_t   sizes[4]             = {width * 2, 1, 1, batch};
-    uint32_t   item_count           = width * 2 * batch;
-    uint32_t   input_width          = input->attr.size[0];
-    uint32_t   x                    = 0;
-    uint32_t   b                    = 0;
+    vsi_size_t   batch                = dims > 3 ? output->attr.size[3] : 1;
+    vsi_size_t   width                = output->attr.size[0];
+    vsi_size_t   sizes[4]             = {width * 2, 1, 1, batch};
+    vsi_size_t   item_count           = width * 2 * batch;
+    vsi_size_t   input_width          = input->attr.size[0];
+    vsi_size_t   x                    = 0;
+    vsi_size_t   b                    = 0;
     float      width_scale          = 1.0f;
     uint16_t  *scale_data_ptr       = NULL;
 
@@ -1217,7 +1217,7 @@ static vsi_nn_tensor_t* _create_scale_tensor
         {
             float     input_w = 0.0f;
             int32_t   w0      = 0;
-            uint32_t  idx     = b * width * 2 + x * 2;
+            size_t  idx     = b * width * 2 + x * 2;
             float     tl      = 0.0f;
             float     tr      = 0.0f;
             if (half_pixel_centers)

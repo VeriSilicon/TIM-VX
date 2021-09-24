@@ -131,14 +131,14 @@ static vsi_bool _get_stride_slice_start_stop_stride
     {
         int32_value = params->begin_dims[i];
 
-        start[i] = get_slice_axis_value(int32_value, inputs[0]->attr.size[i]);
+        start[i] = get_slice_axis_value(int32_value, (uint32_t)inputs[0]->attr.size[i]);
     }
 
     for (i = 0; i < params->end_dims_num; ++i)
     {
         int32_value = params->end_dims[i];
 
-        stop[i] = get_slice_axis_value(int32_value, inputs[0]->attr.size[i]);
+        stop[i] = get_slice_axis_value(int32_value, (uint32_t)inputs[0]->attr.size[i]);
     }
 
     /*if the ith bit of mask is set, the start or stop will be the fullest possible range in that dimension.*/
@@ -146,7 +146,7 @@ static vsi_bool _get_stride_slice_start_stop_stride
     {
         if (params->begin_mask & (1 << i))
         {
-            start[i] = get_slice_mask_start_value(stride[i], inputs[0]->attr.size[i]);
+            start[i] = get_slice_mask_start_value(stride[i], (uint32_t)inputs[0]->attr.size[i]);
         }
 
         start[i] = vsi_nn_clamp(start[i], 0, (vx_int32)(inputs[0]->attr.size[i] - 1));
@@ -156,12 +156,12 @@ static vsi_bool _get_stride_slice_start_stop_stride
             stop[i] = start[i] + 1;
         }
 
-        if (p->end_mask & (1 << i))
+        if (params->end_mask & (1 << i))
         {
-            stop[i] = get_slice_mask_stop_value(stride[i], inputs[0]->attr.size[i]);
+            stop[i] = (int32_t)get_slice_mask_stop_value(stride[i], (uint32_t)inputs[0]->attr.size[i]);
         }
 
-        stop[i] = get_slice_clamp_stop(stride[i], stop[i], inputs[0]->attr.size[i]);
+        stop[i] = (int32_t)get_slice_clamp_stop(stride[i], stop[i], (uint32_t)inputs[0]->attr.size[i]);
     }
 
     /* reset start stop and stride when output size is 1*/
@@ -189,13 +189,13 @@ static vsi_bool _get_stride_slice_start_stop_stride
 
 static vsi_bool _check_is_same_shape(
     vsi_nn_tensor_t ** inputs,
-    int32_t *start,
-    int32_t *stop,
-    int32_t *stride
+    vsi_ssize_t *start,
+    vsi_ssize_t *stop,
+    vsi_ssize_t *stride
     )
 {
-    int32_t i = 0;
-    int32_t dims = (int32_t)inputs[0]->attr.dim_num;
+    vsi_ssize_t i = 0;
+    vsi_ssize_t dims = (vsi_ssize_t)inputs[0]->attr.dim_num;
 
     for (i = dims - 1; i >= 0; i --)
     {
@@ -210,7 +210,7 @@ static vsi_bool _check_is_same_shape(
 
     for (i = 0; i < dims - 1; i++)
     {
-        if (stride[i] != 1 || start[i] != 0 || stop[i] != (int32_t)inputs[0]->attr.size[i])
+        if (stride[i] != 1 || start[i] != 0 || stop[i] != (vsi_ssize_t)inputs[0]->attr.size[i])
             return FALSE;
     }
 
@@ -254,7 +254,14 @@ static vsi_status copy_tensor_to_view
     data = self->nn_param.strided_slice.lcl2_data;
     data->src_tensor = src_tensor;
     if (dst_in->t)
+    {
+#ifdef VSI_40BIT_VA_SUPPORT
+        data->dst_tensor = vxReshapeTensor(dst_in->t, dst_in->attr.size, dst_in->attr.dim_num);
+#else
         data->dst_tensor = vxReshapeTensor(dst_in->t, (int32_t*)dst_in->attr.size, dst_in->attr.dim_num);
+#endif
+    }
+
     data->is_dataconvert_op = TRUE;
 
     return ret;
@@ -302,7 +309,7 @@ static vsi_status op_compute
     }
     else
     {
-        uint32_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
+        vsi_size_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
         uint32_t dims = inputs[0]->attr.dim_num;
         int32_t  shrink_axis_mask = params->shrink_axis_mask;
 
@@ -427,40 +434,53 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(STRIDED_SLICE, 1, 1)
-        IO_TYPE(D_F16,  D_F16)
-        IO_TYPE(D_F16,  D_I8|Q_DFP)
-        IO_TYPE(D_F16,  D_I16|Q_DFP)
-        IO_TYPE(D_F16,  D_U8|Q_ASYM)
-        IO_TYPE(D_I8|Q_DFP,  D_F16)
-        IO_TYPE(D_I16|Q_DFP, D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
-        IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_I8)
-        IO_TYPE(D_F16,  D_I16)
-        IO_TYPE(D_F16,  D_U8)
-        IO_TYPE(D_I8,   D_F16)
-        IO_TYPE(D_I16,  D_F16)
-        IO_TYPE(D_U8,   D_F16)
-        IO_TYPE(D_I8,   D_I8)
-        IO_TYPE(D_I16,  D_I16)
-        IO_TYPE(D_U8,   D_U8)
-        IO_TYPE(D_F32,  D_F32)
-        IO_TYPE(D_F32,  D_BF16)
-        IO_TYPE(D_BF16, D_F32)
-        IO_TYPE(D_I32,  D_I32)
+        IO_TYPE(D_F16,          D_F16)
+        IO_TYPE(D_F16,          D_I8|Q_DFP)
+        IO_TYPE(D_F16,          D_I16|Q_DFP)
+        IO_TYPE(D_F16,          D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,     D_F16)
+        IO_TYPE(D_I16|Q_DFP,    D_F16)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_F32,          D_F32)
+        IO_TYPE(D_BF16,         D_BF16)
+        IO_TYPE(D_F32,          D_BF16)
+        IO_TYPE(D_BF16,         D_F32)
+        IO_TYPE(D_I32,          D_I32)
+        IO_TYPE(D_BOOL8,        D_BOOL8)
 
-        /* HW 9.0 */
-        IO_TYPE(D_BF16, D_BF16)
+        /* HW 9.0.1 */
+        IO_TYPE(D_U8|Q_ASYM,    D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM,    D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM,    D_BF16)
+        IO_TYPE(D_U8|Q_ASYM,    D_F32)
+        IO_TYPE(D_U8|Q_ASYM,    D_I8|Q_DFP)
+
+        IO_TYPE(D_I8|Q_DFP,     D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,     D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,     D_BF16)
+        IO_TYPE(D_I8|Q_DFP,     D_F32)
+
+        IO_TYPE(D_I16|Q_DFP,    D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP,    D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,    D_BF16)
+        IO_TYPE(D_I16|Q_DFP,    D_F32)
+
+        IO_TYPE(D_F16,          D_BF16)
+        IO_TYPE(D_F16,          D_F32)
+
     END_IO_TYPE_DECL(STRIDED_SLICE)
-    if(!VALIDATE_OP_IO_TYPES(STRIDED_SLICE, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(STRIDED_SLICE, self, inputs, self->input.num, outputs, self->output.num))
+    {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
         destroy_op_io_types_desc(desc);
         return FALSE;
     }
+
     return TRUE;
 } /* op_check() */
 
@@ -561,11 +581,12 @@ static vsi_bool op_setup
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         int32_t idx = 0;
+        uint32_t shape[VSI_NN_MAX_DIM_NUM] = {0};
 
         for (i = 0; i < inputs[0]->attr.dim_num; i++)
         {
             vx_int32 begin = 0, end = 1, stride = 1;
-            vx_int32 input_size = inputs[0]->attr.size[i];
+            vx_int32 input_size = (int32_t)inputs[0]->attr.size[i];
             vx_int32 output_size = 0;
             vx_int32 j;
 
@@ -591,7 +612,7 @@ static vsi_bool op_setup
             {
                 output_size++;
             }
-            outputs[0]->attr.size[i] = output_size;
+            shape[i] = output_size;
         }
         outputs[0]->attr.dim_num = 0;
         for (idx = 0, i = 0; i < inputs[0]->attr.dim_num + params->num_add_axis; i++)
@@ -611,7 +632,7 @@ static vsi_bool op_setup
             }
 
             outputs[0]->attr.size[outputs[0]->
-                attr.dim_num] = outputs[0]->attr.size[idx ++];
+                attr.dim_num] = shape[idx ++];
 
             outputs[0]->attr.dim_num++;
         }
@@ -634,17 +655,24 @@ static vsi_status op_optimize
     int32_t        i = 0;
     vx_tensor      in_view_tensor = NULL;
     vsi_nn_strided_slice_param *p = &(self->nn_param.strided_slice);
-    uint32_t       start[VSI_NN_MAX_DIM_NUM] = { 0 };
-    uint32_t       end[VSI_NN_MAX_DIM_NUM] = { 0 };
-    int32_t        *start_dims = p->lcl2_data->begin_dims;
-    int32_t        *stop_dims = p->lcl2_data->end_dims;
-    int32_t        *stride_dims = p->lcl2_data->stride_dims;
+    vsi_size_t       start[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t       end[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_ssize_t        start_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_ssize_t        stop_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_ssize_t        stride_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool       is_same_quant_type = FALSE;
 
     /* Only forward run stride_slice's optimize */
     if( direction == VSI_NN_OPTIMIZE_BACKWARD )
     {
         return status;
+    }
+
+    for(i = 0; i< VSI_NN_MAX_DIM_NUM; i++)
+    {
+        start_dims[i] = p->lcl2_data->begin_dims[i];
+        stop_dims[i] = p->lcl2_data->end_dims[i];
+        stride_dims[i] = p->lcl2_data->stride_dims[i];
     }
 
     if (_check_is_same_shape(inputs, start_dims, stop_dims, stride_dims) == FALSE)
@@ -658,8 +686,8 @@ static vsi_status op_optimize
     }
 
     /* Create tensor from view */
-    memcpy( start, (uint32_t*)start_dims, sizeof( uint32_t ) * VSI_NN_MAX_DIM_NUM );
-    memcpy( end, (uint32_t*)stop_dims, sizeof( uint32_t ) * VSI_NN_MAX_DIM_NUM );
+    memcpy( start, (vsi_size_t*)start_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
+    memcpy( end, (vsi_size_t*)stop_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
     in_view_tensor = vsi_nn_CreateViewTensor(self->graph, start, end, inputs[0]);
     if( NULL == in_view_tensor )
     {
@@ -673,7 +701,7 @@ static vsi_status op_optimize
     is_same_quant_type = _is_same_quant(inputs, outputs);
     if( NULL != outputs[0]->t || is_same_quant_type == FALSE)
     {
-        VSILOGW( "stride slice copy tensor.");
+        VSILOGI( "stride slice copy tensor.");
         // Copy old tensor values to the new address.
         status = copy_tensor_to_view( self, in_view_tensor, outputs[0]);
         if( VSI_FAILURE == status )
@@ -867,4 +895,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

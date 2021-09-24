@@ -91,8 +91,8 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_tensor_t tensors[_CPU_IO_NUM] = { NULL };
     float * buffer[_CPU_IO_NUM] = { NULL };
-    size_t out_elements = 0;
-    size_t stride_size[_CPU_INPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_size_t out_elements = 0;
+    vsi_size_t stride_size[_CPU_INPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{0}};
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
     uint32_t *random_integer = NULL;
     float *random_float = NULL;
@@ -114,9 +114,9 @@ DEF_KERNEL_EXECUTOR(_compute)
     attr[2] = vsi_nn_kernel_tensor_attr_create( tensors[2] );
     CHECK_PTR_FAIL_GOTO( attr[2], "Create tensor attr buffer fail.", final );
 
-    sample_num = attr[2]->shape->data[0];
-    batch = attr[0]->shape->data[1];
-    class_size = attr[0]->shape->data[0];
+    sample_num = (int32_t)attr[2]->shape->data[0];
+    batch = (int32_t)attr[0]->shape->data[1];
+    class_size = (int32_t)attr[0]->shape->data[0];
 
     vsi_nn_kernel_tensor_attr_get_stride( attr[0], stride_size[0] );
     vsi_nn_kernel_tensor_attr_get_stride( attr[1], stride_size[1] );

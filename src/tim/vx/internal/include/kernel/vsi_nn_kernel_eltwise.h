@@ -30,20 +30,20 @@
 
 vsi_bool vsi_nn_kernel_optimize_eltwise_shape
     (
-    const int32_t* shape_x, const size_t rank_x,
-    const int32_t* shape_y, const size_t rank_y,
-    const int32_t* shape_output, const size_t rank_output,
-    int32_t* out_shape_x, int32_t* out_shape_y,
-    int32_t* out_shape_output, uint32_t* out_rank_output
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    const vsi_size_t* shape_y, const vsi_size_t rank_y,
+    const vsi_size_t* shape_output, const vsi_size_t rank_output,
+    vsi_size_t* out_shape_x, vsi_size_t* out_shape_y,
+    vsi_size_t* out_shape_output, vsi_size_t* out_rank_output
     );
 
 vsi_bool vsi_nn_kernel_optimize_broadcast_shape
     (
-    const int32_t** shape_in, const size_t* rank_in,
+    const vsi_size_t** shape_in, const vsi_size_t* rank_in,
     const int32_t   input_num,
-    const int32_t*  shape_output, const size_t rank_output,
-    int32_t** out_shape_in,
-    int32_t* out_shape_output, uint32_t* out_rank_output
+    const vsi_size_t*  shape_output, const vsi_size_t rank_output,
+    vsi_size_t** out_shape_in,
+    vsi_size_t* out_shape_output, uint32_t* out_rank_output
     );
 
 #endif

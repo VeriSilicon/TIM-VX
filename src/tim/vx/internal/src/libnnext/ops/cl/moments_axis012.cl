@@ -1,4 +1,4 @@
-__kernel void moments_axis012_U8toF16(
+__kernel void moments_axis012_U8toF32(
     image2d_array_t   input, image2d_t  output_mean, image2d_t  output_vari,
     int axis, int axis_num, int input_zp, float input_scale,
     int width, int height, int chn, float dimRatio
@@ -116,7 +116,6 @@ __kernel void moments_axis012_##src0_type_name##to##src0_type_name( \
         write_imagef(output_vari, coord_out, vari); \
     } \
 }
-MOMENTS_AXIS012_F(F16)
 MOMENTS_AXIS012_F(F32)
 
 __kernel void moments_axis012_I32toF32(
@@ -145,8 +144,8 @@ __kernel void moments_axis012_I32toF32(
             {
                 data = read_imagei(input, coord);
                 coord.y++;
-                tmpSum += data.x;
-                tmpSqr += data.x * data.x;
+                tmpSum = tmpSum + data.x;
+                tmpSqr = tmpSqr + data.x * data.x;
             }
             sqr += (tmpSqr - 2 * input_zp * tmpSum + height * input_zp * input_zp) * e2InScale;
             sum += (tmpSum - height * input_zp) * input_scale;

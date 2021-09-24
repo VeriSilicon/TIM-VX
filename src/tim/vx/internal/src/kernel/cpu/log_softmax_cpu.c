@@ -60,12 +60,12 @@ DEF_KERNEL_EXECUTOR(_log_softmax_exec)
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
     int32_t axis = 0;
     float beta = 0;
-    int32_t outerSize = 1;
-    int32_t axisSize = 1;
-    int32_t innerSize = 1;
-    int32_t i = 0;
-    int32_t inner = 0;
-    int32_t outer = 0;
+    vsi_ssize_t outerSize = 1;
+    vsi_ssize_t axisSize = 1;
+    vsi_ssize_t innerSize = 1;
+    vsi_ssize_t i = 0;
+    vsi_ssize_t inner = 0;
+    vsi_ssize_t outer = 0;
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
     tensors[1]  = (vsi_nn_kernel_tensor_t)param[1];
@@ -93,7 +93,7 @@ DEF_KERNEL_EXECUTOR(_log_softmax_exec)
 
     axisSize = attr[0]->shape->data[axis];
 
-    for (i = axis + 1; i < (int32_t)attr[0]->shape->size; i++)
+    for (i = axis + 1; i < (vsi_ssize_t)attr[0]->shape->size; i++)
     {
         outerSize *= attr[0]->shape->data[i];
     }

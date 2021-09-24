@@ -152,7 +152,7 @@ static vsi_status _op_optimize
 {
     uint32_t dim = 0;
     vsi_nn_groupnorm_lcl_data* local = NULL;
-    uint32_t shape[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM];
     char tensor_name[128];
 
     if (_is_3d_group_norm(self, inputs) == FALSE)

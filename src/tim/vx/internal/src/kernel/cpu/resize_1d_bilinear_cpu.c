@@ -79,19 +79,19 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t i = 0;
     int32_t  align_corners = 0;
     int32_t  half_pixel_centers = 0;
     float    width_scale = 1.0f;
-    uint32_t input_width = 0, output_width = 0;
+    vsi_size_t input_width = 0, output_width = 0;
     uint32_t w = 0, out = 0;
-    uint32_t output_dims = 0;
+    vsi_size_t output_dims = 0;
     float    data00 = .0f, data01 = .0f, interpolation = .0f;
-    uint32_t index = 0;
-    uint32_t outer = 0;
+    vsi_size_t index = 0;
+    vsi_size_t outer = 0;
 
     /* prepare data */
     for (i = 0; i < _INPUT_NUM; i ++)
@@ -118,7 +118,7 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[SCALAR_HALF_PIXEL], &(half_pixel_centers));
     input_width       = in_attr[0]->shape->data[0];
     output_width      = out_attr[0]->shape->data[0];
-    output_dims       = (uint32_t)out_attr[0]->shape->size;
+    output_dims       = (vsi_size_t)out_attr[0]->shape->size;
 
     if (align_corners && output_width > 1)
     {
@@ -138,13 +138,13 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     for (out = 0; out < outer; out++)
     {
-        vx_int32 input_base = out * input_width;
-        vx_int32 output_base = out * output_width;
+        vsi_ssize_t input_base = out * input_width;
+        vsi_ssize_t output_base = out * output_width;
         for (w = 0; w < output_width; w ++)
         {
             vx_float32 input_w;
-            vx_int32 w0;
-            vx_int32 w1;
+            vsi_ssize_t w0;
+            vsi_ssize_t w1;
             if (half_pixel_centers)
             {
                 input_w = ((vx_float32)w + 0.5f) * width_scale - 0.5f;
@@ -153,8 +153,8 @@ DEF_KERNEL_EXECUTOR(_compute)
             {
                 input_w = w * width_scale;
             }
-            w0 = (vx_int32)input_w;
-            w1 = input_w < 0 ? 0 : vsi_nn_min(w0 + 1, (vx_int32)(input_width - 1));
+            w0 = (vsi_ssize_t)input_w;
+            w1 = input_w < 0 ? 0 : vsi_nn_min(w0 + 1, (vsi_ssize_t)(input_width - 1));
             index = input_base + w0;
             data00 = f32_in_buffer[0][index];
             index = input_base + w1;

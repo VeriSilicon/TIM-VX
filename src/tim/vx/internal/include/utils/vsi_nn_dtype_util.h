@@ -174,31 +174,31 @@ OVXLIB_API vsi_status vsi_nn_Float32ToDtype
     const vsi_nn_dtype_t * dst_dtype
     );
 
-OVXLIB_API int32_t vsi_nn_DtypeConvertRawData
+OVXLIB_API vsi_size_t vsi_nn_DtypeConvertRawData
     (
     uint8_t * src,
-    int32_t   src_bytes,
+    vsi_size_t   src_bytes,
     const vsi_nn_dtype_t * src_dtype,
     uint8_t * dst,
-    int32_t   dst_bytes,
+    vsi_size_t   dst_bytes,
     const vsi_nn_dtype_t * dst_dtype
     );
 
-OVXLIB_API int32_t vsi_nn_DtypeConvertRawDataToFloat32
+OVXLIB_API vsi_size_t vsi_nn_DtypeConvertRawDataToFloat32
     (
     uint8_t   * src,
-    int32_t     src_bytes,
+    vsi_size_t     src_bytes,
     const vsi_nn_dtype_t * src_dtype,
     float * dst,
-    int32_t     dst_size
+    vsi_size_t     dst_size
     );
 
-OVXLIB_API int32_t vsi_nn_DtypeConvertFloat32ToRawData
+OVXLIB_API vsi_size_t vsi_nn_DtypeConvertFloat32ToRawData
     (
     float * src,
-    int32_t     src_size,
+    vsi_size_t     src_size,
     uint8_t   * dst,
-    int32_t     dst_bytes,
+    vsi_size_t     dst_bytes,
     const vsi_nn_dtype_t * dst_dtype
     );
 
@@ -221,7 +221,7 @@ OVXLIB_API vsi_status vsi_nn_vxConvertTensorToFloat32Data
     vx_tensor tensor,
     vsi_nn_tensor_attr_t *attr,
     float *f32_data,
-    uint32_t f32_data_sz
+    vsi_size_t f32_data_sz
     );
 
 OVXLIB_API vsi_status vsi_nn_vxConvertFloat32DataToTensor
@@ -230,7 +230,7 @@ OVXLIB_API vsi_status vsi_nn_vxConvertFloat32DataToTensor
     vx_tensor tensor,
     vsi_nn_tensor_attr_t *attr,
     float *f32_data,
-    uint32_t f32_data_sz
+    vsi_size_t f32_data_sz
     );
 
 #ifdef __cplusplus

@@ -84,14 +84,14 @@ static vsi_bool op_setup
     )
 {
     vsi_nn_interp_param *p = NULL;
-    int32_t height_in_eff_, width_in_eff_;
-    int32_t height_out, width_out;
+    vsi_ssize_t height_in_eff_, width_in_eff_;
+    vsi_ssize_t height_out, width_out;
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_internal_tensor_t *crop_tensor = NULL;
     vsi_nn_tensor_t *crop_in_tensor = NULL;
     float factor = 1.0f;
-    int32_t pad_beg = 0;
-    int32_t pad_end = 0;
+    vsi_ssize_t pad_beg = 0;
+    vsi_ssize_t pad_end = 0;
 
     if ( NULL == self )
     {
@@ -108,7 +108,7 @@ static vsi_bool op_setup
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         memcpy( outputs[0]->attr.size, inputs[0]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof( uint32_t ) );
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
         if ((p->shrink_factor > 0) && (p->zoom_factor <= 0))
         {
             width_out  = (width_in_eff_ - 1) / p->shrink_factor + 1;
@@ -158,10 +158,10 @@ static vsi_bool op_setup
     if ((pad_beg > 0) || (pad_end > 0))
     {
         vsi_nn_tensor_attr_t attr;
-        int32_t use_virtual_tensor = 1;
-        int32_t *begin_dims;
-        int32_t *end_dims;
-        int32_t *stride_dims;
+        vsi_bool use_virtual_tensor = 1;
+        vsi_ssize_t *begin_dims;
+        vsi_ssize_t *end_dims;
+        vsi_ssize_t *stride_dims;
         uint32_t i;
         memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
         vsi_nn_internal_init_tensor_attr(&attr, &inputs[0]->attr.dtype, use_virtual_tensor);
@@ -175,12 +175,12 @@ static vsi_bool op_setup
         curr->node->nn_param.strided_slice.end_mask = 0;
         curr->node->nn_param.strided_slice.shrink_axis_mask = 0;
         curr->node->nn_param.strided_slice.new_axis_mask = 0;
-        begin_dims = (int32_t *)vsi_nn_internal_new_node_param(curr,
-            VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
-        end_dims   = (int32_t *)vsi_nn_internal_new_node_param(curr,
-            VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
-        stride_dims  = (int32_t *)vsi_nn_internal_new_node_param(curr,
-            VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        begin_dims = (vsi_ssize_t *)vsi_nn_internal_new_node_param(curr,
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_ssize_t));
+        end_dims   = (vsi_ssize_t *)vsi_nn_internal_new_node_param(curr,
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_ssize_t));
+        stride_dims  = (vsi_ssize_t *)vsi_nn_internal_new_node_param(curr,
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_ssize_t));
         for (i = 0; i < inputs[0]->attr.dim_num; i++)
         {
             stride_dims[i] = 1;
@@ -199,9 +199,9 @@ static vsi_bool op_setup
                 end_dims[i]   = inputs[0]->attr.size[i];
             }
         }
-        curr->node->nn_param.strided_slice.begin_dims = begin_dims;
-        curr->node->nn_param.strided_slice.end_dims = end_dims;
-        curr->node->nn_param.strided_slice.stride_dims = stride_dims;
+        curr->node->nn_param.strided_slice.begin_dims = (int32_t*)begin_dims;
+        curr->node->nn_param.strided_slice.end_dims = (int32_t*)end_dims;
+        curr->node->nn_param.strided_slice.stride_dims = (int32_t*)stride_dims;
         curr->inputs[0]  = inputs[0];
         curr->outputs[0] = crop_in_tensor;
         vsi_nn_internal_setup_node(self, curr);
@@ -211,7 +211,8 @@ static vsi_bool op_setup
         crop_in_tensor = inputs[0];
     }
 
-    if ((width_in_eff_ == (int32_t)outputs[0]->attr.size[0]) && (height_in_eff_ == (int32_t)outputs[0]->attr.size[1]))
+    if ((width_in_eff_ == (vsi_ssize_t)outputs[0]->attr.size[0])
+            && (height_in_eff_ == (vsi_ssize_t)outputs[0]->attr.size[1]))
     {
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 1, 1 );
         curr->inputs[0]  = crop_in_tensor;

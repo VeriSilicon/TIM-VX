@@ -137,7 +137,7 @@ static vsi_status op_optimize
 {
     uint32_t dim = 0;
     vsi_nn_pool_lcl_data *local = NULL;
-    uint32_t shape[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM];
     char tensor_name[128];
 
     dim = inputs[0]->attr.dim_num;
@@ -288,19 +288,37 @@ static vsi_bool op_setup
     )
 {
     vsi_bool ret;
+    vsi_size_t ksize[_cnt_of_array(self->nn_param.pool.ksize)], i;
+    vsi_size_t pad[_cnt_of_array(self->nn_param.pool.pad)] = {0};
 
     ret = TRUE;
 
+    for(i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
+    {
+        ksize[i] = self->nn_param.pool.ksize[i];
+    }
+    for(i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
+    {
+        pad[i] = self->nn_param.pool.pad[i];
+    }
     if(_is_pool1d(self, inputs))
     {
         vsi_nn_compute_padding_conv1d(
             inputs[0]->attr.size,
-            self->nn_param.pool.ksize,
+            ksize,
             self->nn_param.pool.stride,
             NULL,
             self->nn_param.pool.pad_type,
-            self->nn_param.pool.pad
+            pad
         );
+        for(i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
+        {
+            self->nn_param.pool.ksize[i] = (uint32_t)ksize[i];
+        }
+        for(i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
+        {
+            self->nn_param.pool.pad[i] = (uint32_t)pad[i];
+        }
 
         /* Pooling */
         outputs[0]->attr.size[0] = vsi_nn_ComputeFilterSize
@@ -320,12 +338,20 @@ static vsi_bool op_setup
     {
         vsi_nn_compute_padding(
             inputs[0]->attr.size,
-            self->nn_param.pool.ksize,
+            ksize,
             self->nn_param.pool.stride,
             NULL,
             self->nn_param.pool.pad_type,
-            self->nn_param.pool.pad
+            pad
         );
+        for(i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
+        {
+            self->nn_param.pool.ksize[i] = (uint32_t)ksize[i];
+        }
+        for(i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
+        {
+            self->nn_param.pool.pad[i] = (uint32_t)pad[i];
+        }
 
         /* Pooling */
         outputs[0]->attr.size[0] = vsi_nn_ComputeFilterSize
@@ -357,7 +383,7 @@ static vsi_bool op_setup
     {
         outputs[1]->attr.dim_num = outputs[0]->attr.dim_num;
         memcpy( outputs[1]->attr.size, outputs[0]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof( uint32_t ) );
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
 
     return ret;

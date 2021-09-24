@@ -38,8 +38,8 @@ static vsi_nn_tensor_t * _reshape_to_1d_tensor
 {
     vsi_nn_tensor_t *tensor = NULL;
     uint32_t i = 0;
-    uint32_t size = 0;
-    int32_t shapes[VSI_NN_MAX_DIM_NUM] = { 1 };
+    vsi_size_t size = 0;
+    vsi_size_t shapes[VSI_NN_MAX_DIM_NUM] = { 1 };
     uint32_t one_rank = 0;
 
     for (i = 0; i < input->attr.dim_num; i++)
@@ -61,7 +61,7 @@ static vsi_nn_tensor_t * _reshape_to_1d_tensor
         return NULL;
     }
 
-    tensor = vsi_nn_reshape_tensor( graph, input, (uint32_t*)shapes, 1 );
+    tensor = vsi_nn_reshape_tensor( graph, input, shapes, 1 );
 
     return tensor;
 }

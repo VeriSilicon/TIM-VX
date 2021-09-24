@@ -52,6 +52,7 @@ vsi_status _copy_tensor
     size_t start[VSI_NN_MAX_DIM_NUM]  = { 0 };
     size_t end[VSI_NN_MAX_DIM_NUM]    = { 0 };
     size_t stride[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t stride2[VSI_NN_MAX_DIM_NUM] = { 0 };
     size_t type_bytes;
     size_t total_bytes;
     uint32_t i;
@@ -69,13 +70,18 @@ vsi_status _copy_tensor
     }
 
     total_bytes = vsi_nn_kernel_tensor_attr_get_bytes( attr );
-    if( total_bytes != buffer_size )
+    if( total_bytes != (vsi_size_t)buffer_size )
     {
-        VSILOGE("Read buffer size mismatch %d vs %d", total_bytes, buffer_size);
+        VSILOGE("Read buffer size mismatch %"VSI_SIZE_T_SPECIFIER" vs %"VSI_SIZE_T_SPECIFIER"",
+            total_bytes, (vsi_size_t)buffer_size);
         goto final;
     }
 
-    vsi_nn_shape_get_stride( attr->shape->data, attr->shape->size, stride );
+    vsi_nn_shape_get_stride( attr->shape->data, (vsi_size_t)attr->shape->size, stride2 );
+    for( i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    {
+        stride[i] = stride2[i];
+    }
     type_bytes = vsi_nn_kernel_dtype_get_bytes( attr->dtype );
     rank = attr->shape->size;
     for( i = 0; i < rank; i++ )
@@ -166,13 +172,13 @@ void * vsi_nn_kernel_tensor_create_buffer
                 case VSI_NN_KERNEL_QUANT_DFP:
                     vsi_nn_dtype_convert_quantize_dfp_to_float(
                             buffer, tensor_size, attr->dtype,
-                            attr->dfp.fl, out_buffer );
+                            attr->dfp.fl, (float*)out_buffer );
                     break;
                 case VSI_NN_KERNEL_QUANT_ASYMM:
                     vsi_nn_dtype_convert_quantize_asymm_to_float(
                             buffer, tensor_size, attr->dtype,
                             attr->asymm.scale, attr->asymm.zero_point,
-                            out_buffer );
+                            (float*)out_buffer );
                     break;
                 case VSI_NN_KERNEL_QUANT_SYMM_PERCHANNEL:
                     vsi_nn_dtype_convert_quantize_symm_perchannel_to_float(
@@ -183,7 +189,7 @@ void * vsi_nn_kernel_tensor_create_buffer
                             attr->asymm_v.zero_point->data,
                             attr->asymm_v.zero_point->size,
                             attr->asymm_v.channel_dim,
-                            out_buffer );
+                            (float*)out_buffer );
                     break;
                 default:
                     VSILOGE("Donot support quantize type %d", attr->quant);
@@ -194,7 +200,7 @@ void * vsi_nn_kernel_tensor_create_buffer
         else
         {
             vsi_nn_dtype_convert_dtype_to_float( buffer, tensor_size,
-                    attr->dtype, out_buffer );
+                    attr->dtype, (float*)out_buffer );
         }
         free( buffer );
     }
@@ -407,7 +413,7 @@ static void _convert_tensor_attr_to_vx_tensor_param
     memset( p, 0, sizeof( vx_tensor_create_params_t ) );
 
     p->num_of_dims = (uint32_t)attr->shape->size;
-    p->sizes = (uint32_t*)attr->shape->data;
+    p->sizes = attr->shape->data;
 #define MAP_TYPE( var, src_type, dst_type ) \
     case src_type: \
         var = dst_type; \
@@ -494,28 +500,28 @@ vsi_nn_tensor_t* vsi_nn_pad_tensor
     (
     vsi_nn_graph_t  * graph,
     vsi_nn_tensor_t * input,
-    int32_t * pad_front,
-    int32_t * pad_end,
-    size_t pad_size,
+    vsi_size_t * pad_front,
+    vsi_size_t * pad_end,
+    vsi_size_t pad_size,
     vsi_nn_pad_mode_e mode,
     float pad_value
     )
 {
-    uint32_t sz = 0;
+    vsi_size_t sz = 0;
     vsi_nn_tensor_attr_t attr;
     float *input_data_ptr = NULL;
     float *output_data_ptr = NULL;
     float *src_ptr = NULL;
     float *dst_ptr = NULL;
-    int32_t i = 0;
-    int32_t out_w = 0;
-    int32_t out_h = 0;
-    int32_t out_d = 0;
-    int32_t out_b = 0;
-    int32_t output_width = 1;
-    int32_t output_height = 1;
-    int32_t output_depth = 1;
-    int32_t output_batch = 1;
+    vsi_size_t i = 0;
+    vsi_size_t out_w = 0;
+    vsi_size_t out_h = 0;
+    vsi_size_t out_d = 0;
+    vsi_size_t out_b = 0;
+    vsi_size_t output_width = 1;
+    vsi_size_t output_height = 1;
+    vsi_size_t output_depth = 1;
+    vsi_size_t output_batch = 1;
     vsi_nn_dtype_t  dst_type;
     vsi_nn_tensor_t *output = NULL;
 
@@ -524,10 +530,10 @@ vsi_nn_tensor_t* vsi_nn_pad_tensor
 
     memcpy(&attr, &input->attr, sizeof(vsi_nn_tensor_attr_t));
 
-    for(i = 0; i < (int32_t)pad_size; i ++)
+    for(i = 0; i < pad_size; i ++)
     {
-        int32_t front = pad_front[i];
-        int32_t back  = pad_end[i];
+        vsi_size_t front = pad_front[i];
+        vsi_size_t back  = pad_end[i];
 
         attr.size[i] = front + back + attr.size[i];
     }

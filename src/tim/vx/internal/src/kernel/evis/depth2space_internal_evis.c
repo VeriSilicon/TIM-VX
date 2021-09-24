@@ -206,9 +206,9 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
     }
 
     output_dims = (uint32_t)attr[1]->shape->size;
-    output_width = attr[1]->shape->data[0];
-    output_height = attr[1]->shape->data[1];
-    output_chn = output_dims > 2 ? attr[1]->shape->data[2] : 1;
+    output_width = (int32_t)(attr[1]->shape->data[0]);
+    output_height = (int32_t)(attr[1]->shape->data[1]);
+    output_chn = (int32_t)(output_dims > 2 ? attr[1]->shape->data[2] : 1);
 
     shaderParam.global_scale[0]  = 1;
     shaderParam.global_scale[1]  = 1;
@@ -411,7 +411,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t block_size  = vsi_nn_kernel_param_get_int32( params, "block_size" );
     int32_t blk_flg = block_size == 2 ? 1 : 0;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
