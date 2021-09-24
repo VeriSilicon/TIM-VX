@@ -149,7 +149,7 @@ DEF_KERNEL_INITIALIZER(_multinomial_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
-    vsi_int_array_t * in_shape          = NULL;
+    vsi_size_array_t * in_shape          = NULL;
 
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr buffer fail.", final );
@@ -191,7 +191,7 @@ DEF_KERNEL_INITIALIZER(_cdf_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
-    vsi_int_array_t * in_shape          = NULL;
+    vsi_size_array_t * in_shape          = NULL;
     uint32_t      class_max_iter        = 0;
     uint32_t      class_size            = 0;
     uint32_t      batch                 = 0;
@@ -201,8 +201,8 @@ DEF_KERNEL_INITIALIZER(_cdf_initializer)
 
     in_shape  = attr->shape;
 
-    class_size = in_shape->data[0];
-    batch = in_shape->data[1];
+    class_size = (uint32_t)(in_shape->data[0]);
+    batch = (uint32_t)(in_shape->data[1]);
     if (attr->dtype == F32)
     {
         class_max_iter = (class_size + 3) >> 2;
@@ -286,7 +286,7 @@ DEF_KERNEL_INITIALIZER(_seed_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
-    vsi_int_array_t * out_shape         = NULL;
+    vsi_size_array_t * out_shape         = NULL;
     uint32_t          stride            = 0;
     uint32_t          iter              = 8;
     float             rand_max          = (float)(pow(2.0,32));
@@ -296,7 +296,7 @@ DEF_KERNEL_INITIALIZER(_seed_initializer)
     CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr buffer fail.", final );
 
     out_shape  = attr->shape;
-    iter = (out_shape->data[0] + 3) / 4;
+    iter = (uint32_t)((out_shape->data[0] + 3) / 4);
 
     stride = iter * 4;
 
@@ -420,14 +420,14 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_t * ikernels[INTERNAL_KERNEL_SIZE] = { NULL };
     vsi_nn_tensor_t * tensors[INTERNAL_KERNEL_SIZE] = { NULL };
     int32_t class_max_stride = 0;
-    int32_t class_size = 0;
+    vsi_size_t class_size = 0;
     uint32_t hashkeys[INTERNAL_KERNEL_SIZE] = { 0 };
     uint32_t hashkey = 0;
     int32_t i;
 
     // Check if gpu can support the size
     if( !vsi_nn_kernel_gpu_check_shape(
-        (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
+        outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
@@ -463,7 +463,7 @@ static vsi_nn_kernel_node_t _setup
     attr.size[1] = 1;
     attr.dim_num = 2;
     tensors[SEEDS_INDEX] = vsi_nn_reshape_tensor( graph,
-                inputs[1], (uint32_t*)attr.size, attr.dim_num );
+                inputs[1], attr.size, attr.dim_num );
 
     in0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     in1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );

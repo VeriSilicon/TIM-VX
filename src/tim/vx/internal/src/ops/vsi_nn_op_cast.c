@@ -91,8 +91,8 @@ static vsi_status op_compute
     else
     {
         vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
-        int32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
-        int32_t new_rank = 0;
+        vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+        vsi_size_t new_rank = 0;
         vsi_bool ret;
 
         if ( NULL == self )
@@ -101,14 +101,14 @@ static vsi_status op_compute
         }
 
         ret = vsi_nn_kernel_optimize_element_shape(
-                (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+                inputs[0]->attr.size, inputs[0]->attr.dim_num,
                 shape, &new_rank );
         if ( ret )
         {
             reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                    inputs[0], (uint32_t*)shape, new_rank );
+                    inputs[0], shape, new_rank );
             reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                    outputs[0], (uint32_t*)shape, new_rank );
+                    outputs[0], shape, new_rank );
 
             self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
                     "cast",

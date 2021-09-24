@@ -120,7 +120,7 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
-    vsi_int_array_t * out_shape                 = NULL;
+    vsi_size_array_t * out_shape                 = NULL;
 
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
@@ -251,7 +251,7 @@ static vsi_nn_kernel_node_t _setup
     outputScale = 1.0f / outputScale;
     inputTail   = -(inputTail * inputScale);
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num ) )
     {
         return NULL;

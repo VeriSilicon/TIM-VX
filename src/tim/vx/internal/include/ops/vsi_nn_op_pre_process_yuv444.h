@@ -53,7 +53,7 @@ typedef struct _vsi_nn_pre_process_yuv444_param
 
     struct
     {
-        uint32_t   *size;
+        vsi_size_t   *size;
         uint32_t   dim_num;
     } output_attr;
 

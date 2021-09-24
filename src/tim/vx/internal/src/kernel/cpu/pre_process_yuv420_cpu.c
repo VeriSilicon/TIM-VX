@@ -126,12 +126,12 @@ DEF_KERNEL_EXECUTOR(_pre_process_yuv420_exec)
         uint8_t gline1[2], gline2[2];
         uint8_t bline1[2], bline2[2];
         int32_t dx, dy, dz;
-        int32_t src_width = attr[0]->shape->data[0];
-        int32_t src_height = attr[0]->shape->data[1];
+        int32_t src_width = (int32_t)attr[0]->shape->data[0];
+        int32_t src_height = (int32_t)attr[0]->shape->data[1];
         int32_t subWidth = src_width >> 1;
         int32_t subHeight = src_height >> 1;
-        int32_t dst_width = trans ? attr[3]->shape->data[1] : attr[3]->shape->data[0];
-        int32_t dst_height = trans ? attr[3]->shape->data[2] : attr[3]->shape->data[1];
+        int32_t dst_width = (int32_t)(trans ? attr[3]->shape->data[1] : attr[3]->shape->data[0]);
+        int32_t dst_height = (int32_t)(trans ? attr[3]->shape->data[2] : attr[3]->shape->data[1]);
         int32_t stride = dst_width * dst_height;
         int32_t rOffset = 0;
         int32_t gOffset = 1 * stride;
@@ -281,8 +281,8 @@ DEF_KERNEL_EXECUTOR(_pre_process_yuv420_exec)
 
     if(trans)
     {
-        uint32_t shape[] = {attr[3]->shape->data[0], attr[3]->shape->data[1], attr[3]->shape->data[2], 1};
-        uint32_t perm[] = {1, 2, 0, 3};
+        vsi_size_t shape[] = {attr[3]->shape->data[0], attr[3]->shape->data[1], attr[3]->shape->data[2], 1};
+        vsi_size_t perm[] = {1, 2, 0, 3};
         vsi_nn_Transpose((uint8_t*)outBuffer, (uint8_t*)buffer[3],
             shape, (uint32_t)attr[3]->shape->size, perm, VSI_NN_TYPE_FLOAT32);
 

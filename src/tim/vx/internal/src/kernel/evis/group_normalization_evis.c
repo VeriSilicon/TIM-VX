@@ -216,7 +216,7 @@ DEF_KERNEL_INITIALIZER(_groupnorm_sum_sqr_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[2] = {NULL, NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     float scaleIn = 1;
     int32_t input_zp = 0;
     vx_uint32 iter = 0;
@@ -259,9 +259,9 @@ DEF_KERNEL_INITIALIZER(_groupnorm_sum_sqr_initializer)
         inFlScale_s2 = in_scale_fl * in_scale_fl;
     }
 
-    width = input_shape->data[0];
-    height = input_shape->data[1];
-    chn = attr[1]->shape->data[1];
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->data[1]);
+    chn = (int32_t)(attr[1]->shape->data[1]);
     if (is2D)
     {
         height = 1;
@@ -426,8 +426,8 @@ DEF_KERNEL_INITIALIZER(_groupnorm_mean_vari_initializer)
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
 
-    chn = attr[0]->shape->data[1];
-    group_stride = attr[0]->shape->data[0];
+    chn = (int32_t)(attr[0]->shape->data[1]);
+    group_stride = (int32_t)(attr[0]->shape->data[0]);
 
     shaderParam.global_scale[0]  = 4;
     shaderParam.global_scale[1]  = 1;
@@ -484,7 +484,7 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     float scaleIn = 1.0f;
     float scaleOut = 1.0f;
     float reScaleOut_u8 = 1.0f;
@@ -550,9 +550,9 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
         inOut_fl_scale = in_scale_fl * out_scale_fl;
     }
 
-    width = input_shape->data[0];
-    height = input_shape->data[1];
-    chn = attr[1]->shape->data[1];
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->data[1]);
+    chn = (int32_t)(attr[1]->shape->data[1]);
     if (is2D)
     {
         height = 1;
@@ -945,15 +945,15 @@ static vsi_status _query_kernel
 static int32_t _optimize_gn_shape
     (
     vsi_nn_tensor_t ** inputs,
-    int32_t group_size,
+    vsi_size_t group_size,
     int32_t group_num,
-    int32_t* opt_shape,
+    vsi_size_t* opt_shape,
     int32_t* is2D_flg
     )
 {
     vsi_status status = VSI_SUCCESS;
-    int32_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t new_rank = 0;
+    vsi_size_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t new_rank = 0;
     group_shape[0] = inputs[0]->attr.size[0];
     group_shape[1] = inputs[0]->attr.size[1];
     group_shape[2] = group_size;
@@ -1006,7 +1006,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_t * ikernels[INTERNAL_KERNEL_SIZE] = { NULL };
     vsi_nn_tensor_t * tensors[INTERNAL_KERNEL_SIZE] = { NULL };
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_output = NULL;
-    int32_t new_shape[VSI_NN_MAX_DIM_NUM] = { 1, 1, 1, 1 };
+    vsi_size_t new_shape[VSI_NN_MAX_DIM_NUM] = { 1, 1, 1, 1 };
     int32_t is2D_flg = 0;
     uint32_t hashkeys[INTERNAL_KERNEL_SIZE] = { 0 };
     uint32_t hashkey = 0;
@@ -1014,12 +1014,12 @@ static vsi_nn_kernel_node_t _setup
     float rSpaceOrg = 1.0f / (inputs[0]->attr.size[0] * inputs[0]->attr.size[1]);
     float eps  = vsi_nn_kernel_param_get_float32( params, "eps" );
     int32_t group_num  = vsi_nn_kernel_param_get_int32( params, "group_num" );
-    int32_t group_size  = inputs[0]->attr.size[2] / group_num;
+    vsi_size_t group_size  = inputs[0]->attr.size[2] / group_num;
     float group_ratio = 1.0f / (inputs[0]->attr.size[0] * inputs[0]->attr.size[1] * group_size);
 
     // Check if gpu can support the size
     if ( !vsi_nn_kernel_gpu_check_shape(
-        (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
+        outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
@@ -1149,7 +1149,7 @@ static vsi_nn_kernel_node_t _setup
         int32_t  pStride = 0;
         if (!is2D_flg)
         {
-            pStride = inputs[1]->attr.size[0] / new_shape[1];
+            pStride = (int32_t)(inputs[1]->attr.size[0] / new_shape[1]);
             rSpaceOrg = 1.0f / (new_shape[0] / pStride);
         }
         node_params[index++] = rs_input;

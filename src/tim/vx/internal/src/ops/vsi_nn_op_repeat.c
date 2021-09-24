@@ -51,7 +51,7 @@ static vsi_status _create_local_tensor
     int32_t* repeat_host = self->nn_param.repeat.repeat_host;
     int32_t  axis = self->nn_param.repeat.axis;
     vsi_nn_repeat_lcl_data *local = self->nn_param.repeat.local;
-    uint32_t shape[VSI_NN_MAX_DIM_NUM] = {1, 1, 1, 1};
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {1, 1, 1, 1};
     uint32_t i = 0;
 
     if (axis == -1)
@@ -75,7 +75,7 @@ static vsi_status _create_local_tensor
     if (repeat_host)
     {
         vsi_nn_tensor_attr_t attr;
-        int32_t len = 0;
+        vsi_ssize_t len = 0;
 
         if (self->nn_param.repeat.axis < 0)
         {

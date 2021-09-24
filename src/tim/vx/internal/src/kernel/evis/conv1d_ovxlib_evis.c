@@ -119,9 +119,9 @@ DEF_KERNEL_INITIALIZER(_conv1d_ovxlib_initializer)
     vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
     vsi_nn_kernel_tensor_attr_t * weights_attr  = NULL;
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
-    vsi_int_array_t * in_shape                  = NULL;
-    vsi_int_array_t * out_shape                 = NULL;
-    vsi_int_array_t * weight_shape              = NULL;
+    vsi_size_array_t * in_shape                  = NULL;
+    vsi_size_array_t * out_shape                 = NULL;
+    vsi_size_array_t * weight_shape              = NULL;
     float             scaleIn         = 1.0f;
     float             scaleOut        = 1.0f;
     float             scaleWights     = 1.0f;
@@ -169,9 +169,9 @@ DEF_KERNEL_INITIALIZER(_conv1d_ovxlib_initializer)
     }
 
     scaleOut     = (scaleIn * scaleWights) / scaleOut;
-    input_height = in_shape->data[1];
-    input_width  = in_shape->data[0];
-    output_width = out_shape->data[0];
+    input_height = (int32_t)(in_shape->data[1]);
+    input_width  = (int32_t)(in_shape->data[0]);
+    output_width = (int32_t)(out_shape->data[0]);
 
     if ((U8 == input_attr->dtype) && (U8 == weights_attr->dtype) && (U8 == output_attr->dtype))
     {
@@ -389,7 +389,7 @@ DEF_KERNEL_INITIALIZER(_conv1d_ovxlib_initializer)
                 0x00000000, 0x00000000, 0x00000000, 0x00000000,
                 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
             }, GPU_DP_TYPE_16};
-            int32_t kernel_cnt_x16 = (weight_shape->data[0] + 15) / 16;
+            int32_t kernel_cnt_x16 = (int32_t)((weight_shape->data[0] + 15) / 16);
             status  = vsi_nn_kernel_gpu_add_param( node,
                     "kernel_cnt_x16", &kernel_cnt_x16 );
             status |= vsi_nn_kernel_gpu_add_param( node,

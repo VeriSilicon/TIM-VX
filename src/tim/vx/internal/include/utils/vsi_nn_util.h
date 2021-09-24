@@ -72,27 +72,27 @@ extern "C" {
 OVXLIB_API uint8_t * vsi_nn_LoadBinaryData
     (
     const char * filename,
-    uint32_t  * sz
+    vsi_size_t  * sz
     );
 
-OVXLIB_API uint32_t vsi_nn_GetStrideSize
+OVXLIB_API vsi_size_t vsi_nn_GetStrideSize
     (
     vsi_nn_tensor_attr_t * attr,
-    uint32_t            * stride
+    vsi_size_t            * stride
     );
 
-OVXLIB_API uint32_t vsi_nn_GetStrideSizeBySize
+OVXLIB_API vsi_size_t vsi_nn_GetStrideSizeBySize
     (
-    uint32_t   * size,
-    uint32_t     dim_num,
+    vsi_size_t   * size,
+    vsi_size_t     dim_num,
     vsi_nn_type_e type,
-    uint32_t   * stride
+    vsi_size_t   * stride
     );
 
-OVXLIB_API uint32_t vsi_nn_GetTotalBytesBySize
+OVXLIB_API vsi_size_t vsi_nn_GetTotalBytesBySize
     (
-    uint32_t   * size,
-    uint32_t     dim_num,
+    vsi_size_t   * size,
+    vsi_size_t     dim_num,
     vsi_nn_type_e type
     );
 
@@ -116,10 +116,10 @@ OVXLIB_API void vsi_nn_UpdateTensorDims
     vsi_nn_tensor_attr_t * attr
     );
 
-OVXLIB_API uint32_t vsi_nn_ComputeFilterSize
+OVXLIB_API vsi_size_t vsi_nn_ComputeFilterSize
     (
-    uint32_t   i_size,
-    uint32_t   ksize,
+    vsi_size_t   i_size,
+    vsi_size_t   ksize,
     uint32_t * pad,
     uint32_t   stride,
     uint32_t   dilation,
@@ -134,24 +134,24 @@ OVXLIB_API void vsi_nn_InitTensorsId
 
 OVXLIB_API void vsi_nn_ComputePadWithPadType
     (
-    uint32_t   * in_shape,
+    vsi_size_t   * in_shape,
     uint32_t     in_dim_num,
-    uint32_t   * ksize,
+    vsi_size_t   * ksize,
     uint32_t   * stride,
     vsi_nn_pad_e pad_type,
     vsi_nn_round_type_e rounding,
-    uint32_t   * out_pad
+    vsi_size_t   * out_pad
     );
 
 OVXLIB_API void vsi_nn_ComputePadWithPadTypeForConv1D
     (
-    uint32_t   * in_shape,
+    vsi_size_t   * in_shape,
     uint32_t     in_dim_num,
-    uint32_t   * ksize,
+    vsi_size_t   * ksize,
     uint32_t   * stride,
     vsi_nn_pad_e pad_type,
     vsi_nn_round_type_e rounding,
-    uint32_t   * out_pad
+    vsi_size_t   * out_pad
     );
 
 OVXLIB_API void vsi_nn_GetPadForOvx
@@ -171,8 +171,8 @@ OVXLIB_API vsi_bool vsi_nn_CreateTensorGroup
 
 OVXLIB_API uint32_t vsi_nn_ShapeToString
     (
-    uint32_t * shape,
-    uint32_t   dim_num,
+    vsi_size_t * shape,
+    vsi_size_t   dim_num,
     char      * buf,
     uint32_t   buf_sz,
     vsi_bool     for_print
@@ -207,9 +207,9 @@ OVXLIB_API vsi_bool vsi_nn_CheckFilePath
  */
 OVXLIB_API uint8_t * vsi_nn_MallocAlignedBuffer
     (
-    uint32_t mem_size,
-    uint32_t align_start_size,
-    uint32_t align_block_size
+    vsi_size_t mem_size,
+    vsi_size_t align_start_size,
+    vsi_size_t align_block_size
     );
 
 /**
@@ -227,14 +227,14 @@ OVXLIB_API void vsi_nn_FreeAlignedBuffer
 OVXLIB_API vsi_bool vsi_nn_IsBufferAligned
     (
     uint8_t * buf,
-    uint32_t align_start_size
+    vsi_size_t align_start_size
     );
 
 OVXLIB_API void vsi_nn_FormatToString
     (
     vsi_nn_tensor_t *tensor,
     char *buf,
-    uint32_t buf_sz
+    vsi_size_t buf_sz
     );
 
 OVXLIB_API const char* vsi_nn_DescribeStatus
@@ -242,51 +242,33 @@ OVXLIB_API const char* vsi_nn_DescribeStatus
     vsi_status status
     );
 
-uint32_t vsi_nn_compute_filter_shape
+vsi_size_t vsi_nn_compute_filter_shape
     (
     vsi_nn_pad_e padding_type,
-    uint32_t image_size,
-    uint32_t ksize,
+    vsi_size_t image_size,
+    vsi_size_t ksize,
     uint32_t stride,
     uint32_t dilation_rate
     );
 
 void vsi_nn_compute_padding
     (
-    uint32_t   * in_shape,
-    uint32_t   * ksize,
+    vsi_size_t   * in_shape,
+    vsi_size_t   * ksize,
     uint32_t   * stride,
     uint32_t   * dilation,
     vsi_nn_pad_e pad_type,
-    uint32_t   * out_pad
+    vsi_size_t   * out_pad
     );
 
 void vsi_nn_compute_padding_conv1d
     (
-    uint32_t   * in_shape,
-    uint32_t   * ksize,
+    vsi_size_t   * in_shape,
+    vsi_size_t   * ksize,
     uint32_t   * stride,
     uint32_t   * dilation,
     vsi_nn_pad_e pad_type,
-    uint32_t   * out_pad
-    );
-
-void vsi_nn_OptimizedEltOPShape
-    (
-       vsi_nn_tensor_t * input,
-       uint32_t          sizes[VSI_NN_MAX_DIM_NUM],
-       uint32_t        * num_of_dims
-    );
-
-vsi_bool vsi_nn_OptimizedEltWiseOPShape
-    (
-    vsi_nn_tensor_t * input0,
-    vsi_nn_tensor_t * input1,
-    vsi_nn_tensor_t * output,
-    uint32_t          sizes0[VSI_NN_MAX_DIM_NUM],
-    uint32_t          sizes1[VSI_NN_MAX_DIM_NUM],
-    uint32_t          sizes2[VSI_NN_MAX_DIM_NUM],
-    uint32_t        * dim_num
+    vsi_size_t   * out_pad
     );
 
 vsi_bool vsi_nn_IsEVISFeatureAvaiable
@@ -317,7 +299,7 @@ typedef uint32_t(*comp_func)(void* data, int32_t left, int32_t right);
  * @param[in] recursively execute vsi_nn_partition.
  * @param[out] the sorted index of data.
  */
-OVXLIB_API int32_t vsi_nn_partition
+int32_t vsi_nn_partition
     (
         void* data,
         int32_t left,
@@ -350,7 +332,7 @@ static inline void vsi_nn_reorder_tensor
     }
 }
 
-void vsi_nn_print_int_array( int32_t* array, size_t size );
+void vsi_nn_print_size_array( vsi_size_t* array, size_t size );
 
 float vsi_nn_activation
     (

@@ -49,8 +49,8 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
-    int32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
-    int32_t new_rank = 0;
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t new_rank = 0;
     vsi_bool ret;
 
     if( NULL == self )
@@ -61,14 +61,14 @@ static vsi_status op_compute
     // TODO: This optimzie is a hack for gpu path,
     // it should be moved to gpu kernel setup.
     ret = vsi_nn_kernel_optimize_element_shape(
-            (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
             shape, &new_rank );
     if( ret )
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                inputs[0], (uint32_t*)shape, new_rank );
+                inputs[0], shape, new_rank );
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                outputs[0], (uint32_t*)shape, new_rank );
+                outputs[0], shape, new_rank );
 
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
                 "logical_not",
@@ -116,7 +116,7 @@ static vsi_bool op_setup
     )
 {
     uint32_t i, out_rank;
-    uint32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool ret = TRUE;
 
     out_rank = inputs[0]->attr.dim_num;
@@ -128,18 +128,18 @@ static vsi_bool op_setup
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = out_rank;
-        memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(uint32_t) );
+        memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(vsi_size_t) );
     }
     else
     {
-        uint32_t total_size_got;
-        uint32_t total_size_expected;
+        vsi_size_t total_size_got;
+        vsi_size_t total_size_expected;
         total_size_expected = vsi_nn_ShapeProduct( shape, out_rank );
         total_size_got = vsi_nn_ShapeProduct( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num );
         if( total_size_expected != total_size_got )
         {
-            VSILOGW("Output size mismatch, expect %d, but got %d",
+            VSILOGW("Output size mismatch, expect %"VSI_SIZE_T_SPECIFIER", but got %"VSI_SIZE_T_SPECIFIER"",
                     total_size_expected, total_size_got);
             ret = FALSE;
         }

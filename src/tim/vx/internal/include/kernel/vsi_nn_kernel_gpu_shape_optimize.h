@@ -30,53 +30,53 @@
 
 vsi_bool vsi_nn_kernel_optimize_reduce_shape
     (
-    const int32_t* shape_x, const size_t rank_x,
-    const int32_t *axis, const size_t axis_size,
-    const int32_t* shape_output, const size_t rank_output,
-    int32_t* out_shape_x, uint32_t* out_rank_x,
-    int32_t* out_shape_output, uint32_t* out_rank_output,
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    const int32_t *axis, const vsi_size_t axis_size,
+    const vsi_size_t* shape_output, const vsi_size_t rank_output,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x,
+    vsi_size_t* out_shape_output, uint32_t* out_rank_output,
     int32_t* out_axis, uint32_t* out_axis_size
     );
 
 vsi_bool vsi_nn_kernel_optimize_tensor_shape
     (
-    const int32_t* shape_x, const size_t rank_x,
-    const int32_t *axis, const size_t axis_size,
-    int32_t* out_shape_x, uint32_t* out_rank_x,
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    const int32_t *axis, const vsi_size_t axis_size,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x,
     int32_t* out_axis, uint32_t* out_axis_size
     );
 
 vsi_bool vsi_nn_kernel_optimize_element_shape
     (
-    const int32_t* shape_x, const size_t rank_x,
-    int32_t* out_shape_x, int32_t* out_rank_x
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    vsi_size_t* out_shape_x, vsi_size_t* out_rank_x
     );
 
 vsi_bool vsi_nn_kernel_optimize_softmax_shape
     (
-    const int32_t* shape_x, const size_t rank_x, const int32_t axis,
-    int32_t* out_shape_x, uint32_t* out_rank_x,int32_t* out_axis
+    const vsi_size_t* shape_x, const vsi_size_t rank_x, const int32_t axis,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x,int32_t* out_axis
     );
 
 vsi_bool vsi_nn_kernel_optimize_tile_shape
     (
-    const int32_t* shape_x,   const size_t rank_x,
-    const int32_t* multiples, const size_t rank,
-    const int32_t* shape_output, const size_t rank_output,
-    int32_t* out_shape_x, int32_t* out_shape_y,
-    int32_t* out_shape_output, uint32_t* out_rank_output
+    const vsi_size_t* shape_x,   const vsi_size_t rank_x,
+    const vsi_size_t* multiples, const vsi_size_t rank,
+    const vsi_size_t* shape_output, const vsi_size_t rank_output,
+    vsi_size_t* out_shape_x, vsi_size_t* out_shape_y,
+    vsi_size_t* out_shape_output, vsi_size_t* out_rank_output
     );
 
 vsi_bool vsi_nn_kernel_optimize_1d_tensor_shape
     (
-    const int32_t* shape, const uint32_t rank,
-    int32_t* out_shape, uint32_t* out_rank
+    const vsi_size_t* shape, const uint32_t rank,
+    vsi_size_t* out_shape, uint32_t* out_rank
     );
 
 vsi_bool vsi_nn_kernel_optimize_nchw2xhw_shape
     (
-    const int32_t* shape, const uint32_t rank,
-    int32_t* out_shape, uint32_t* out_rank
+    const vsi_size_t* shape, const uint32_t rank,
+    vsi_size_t* out_shape, uint32_t* out_rank
     );
 
 #endif

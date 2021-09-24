@@ -223,7 +223,7 @@ static vsi_bool op_setup
 {
     /* TODO: Add code to comput outputs' shape. */
     vsi_nn_grouped_conv2d_param *nn_param;
-    uint32_t perm[] = { 3, 2, 0, 1 };
+    vsi_size_t perm[] = { 3, 2, 0, 1 };
 
     /* TODO: Driver should handle this,
     * Check transpose
@@ -243,14 +243,25 @@ static vsi_bool op_setup
     }
 
     nn_param = &self->nn_param.grouped_conv2d;
-    vsi_nn_compute_padding(
-        inputs[0]->attr.size,
-        inputs[1]->attr.size,
-        nn_param->stride,
-        nn_param->dilation,
-        nn_param->pad_type,
-        nn_param->pad
-    );
+    {
+        vsi_size_t i, pad[_cnt_of_array(nn_param->pad)] = {0};
+        for(i = 0; i < _cnt_of_array(nn_param->pad); i++)
+        {
+            pad[i] = self->nn_param.conv2d.pad[i];
+        }
+        vsi_nn_compute_padding(
+            inputs[0]->attr.size,
+            inputs[1]->attr.size,
+            nn_param->stride,
+            nn_param->dilation,
+            nn_param->pad_type,
+            pad
+        );
+        for(i = 0; i < _cnt_of_array(nn_param->pad); i++)
+        {
+            self->nn_param.conv2d.pad[i] = (uint32_t)pad[i];
+        }
+    }
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {

@@ -118,10 +118,10 @@ DEF_KERNEL_INITIALIZER(_layernorm_initializer)
         };
 
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     //int32_t width = 0;
-    int32_t height = 0;
-    int32_t chn = 0;
+    vsi_ssize_t height = 0;
+    vsi_ssize_t chn = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -231,8 +231,8 @@ static vsi_nn_kernel_node_t _setup
 
     float eps  = vsi_nn_kernel_param_get_float32( params, "eps" );
 
-    int32_t width = inputs[0]->attr.size[0];
-    int32_t height = inputs[0]->attr.size[1];
+    vsi_size_t width = inputs[0]->attr.size[0];
+    vsi_size_t height = inputs[0]->attr.size[1];
     int32_t input_fl = 0;
     float input_zp = 0.0f;
     float input_scale = 1.0f;
@@ -288,7 +288,7 @@ static vsi_nn_kernel_node_t _setup
     zp2ScaleE2 = input_zp * 2 * e2InScale;
     sumZpScaleE2 = width * input_zp * input_zp * e2InScale;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -302,7 +302,7 @@ static vsi_nn_kernel_node_t _setup
 
     if (inputs[1]->attr.dim_num < 2)
     {
-        int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+        vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[1]->attr.size[0];
         shape[1] = 1;
         shape[2] = 1;
@@ -311,7 +311,7 @@ static vsi_nn_kernel_node_t _setup
     }
     if (inputs[2]->attr.dim_num < 2)
     {
-        int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+        vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[2]->attr.size[0];
         shape[1] = 1;
         shape[2] = 1;

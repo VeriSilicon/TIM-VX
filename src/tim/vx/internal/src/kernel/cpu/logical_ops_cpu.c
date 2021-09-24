@@ -60,21 +60,21 @@ static vx_param_description_t _logical_ops_kernel_param_def[] =
 #define _LOGICAL_OPS_PARAM_NUM  _cnt_of_array( _logical_ops_kernel_param_def )
 
 
-static int32_t _expand_offset
+static vsi_ssize_t _expand_offset
     (
-    int32_t index,
-    int32_t * shape, size_t rank,
-    size_t * strides, int32_t * out_shape
+    vsi_ssize_t index,
+    vsi_size_t * shape, vsi_size_t rank,
+    vsi_size_t * strides, vsi_size_t * out_shape
     )
 {
-    uint32_t i;
-    int32_t offset = 0;
+    vsi_size_t i;
+    vsi_ssize_t offset = 0;
 
     for( i = 0; i < rank && index; i ++ )
     {
         if( shape[i] == out_shape[i] )
         {
-            offset += (int32_t)strides[i] * ( index % out_shape[i] );
+            offset += (vsi_ssize_t)strides[i] * ( index % out_shape[i] );
         }
         index /= out_shape[i];
     }
@@ -98,10 +98,10 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   in_stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM]   = {{1}};
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   in_stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM]   = {{1}};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t  i;
     uint32_t  ops_type_int = 0;
     vsi_nn_logical_ops_type_t  ops_type = VSI_NN_LOGICAL_OR;
@@ -136,15 +136,15 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     for (i = 0; i < out_elements[0]; i++)
     {
-        int32_t  in0_offset = 0;
-        int32_t  in1_offset = 0;
-        int32_t  in0 = 0;
-        int32_t  in1 = 0;
+        vsi_ssize_t  in0_offset = 0;
+        vsi_ssize_t  in1_offset = 0;
+        vsi_ssize_t  in0 = 0;
+        vsi_ssize_t  in1 = 0;
 
 
-        in0_offset = _expand_offset( i, in_attr[0]->shape->data, in_attr[0]->shape->size,
+        in0_offset = _expand_offset( i, in_attr[0]->shape->data, (vsi_size_t)in_attr[0]->shape->size,
                 in_stride_size[0], out_attr[0]->shape->data );
-        in1_offset = _expand_offset( i, in_attr[1]->shape->data, in_attr[1]->shape->size,
+        in1_offset = _expand_offset( i, in_attr[1]->shape->data, (vsi_size_t)in_attr[1]->shape->size,
                 in_stride_size[1], out_attr[0]->shape->data );
         in0 = (!!(f32_in_buffer[0][in0_offset]));
         in1 = (!!(f32_in_buffer[1][in1_offset]));

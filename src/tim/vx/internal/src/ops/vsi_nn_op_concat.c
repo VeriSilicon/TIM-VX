@@ -372,7 +372,7 @@ static vsi_bool op_setup
     }
     axis = self->nn_param.concat.axis;
     memcpy( outputs[0]->attr.size, inputs[0]->attr.size,
-        sizeof( uint32_t ) * VSI_NN_MAX_DIM_NUM );
+        sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
     outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
     for( i = 1; i < num; i ++ )
     {
@@ -393,8 +393,8 @@ static vsi_status op_optimize
     int32_t        num,i;
     uint32_t       axis;
     vx_tensor      in_view_tensor;
-    uint32_t       start[VSI_NN_MAX_DIM_NUM] = { 0 };
-    uint32_t       end[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t       start[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t       end[VSI_NN_MAX_DIM_NUM] = { 0 };
 
     status = VSI_SUCCESS;
     /* we don't create tensor view if the axis is not the highest dimension */
@@ -424,8 +424,8 @@ static vsi_status op_optimize
     }
 
     /* Create tensor from view */
-    memset( start, 0, sizeof( uint32_t ) * VSI_NN_MAX_DIM_NUM );
-    memset( end, 0, sizeof( uint32_t ) * VSI_NN_MAX_DIM_NUM );
+    memset( start, 0, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
+    memset( end, 0, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
     end[0] = inputs[0]->attr.size[0];
     end[1] = inputs[0]->attr.size[1];
     end[2] = inputs[0]->attr.size[2];

@@ -61,7 +61,7 @@ DEF_KERNEL_EXECUTOR(_moments_exec)
     float * buffer[_CPU_IO_NUM] = { NULL };
     size_t out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
-    uint32_t i = 0;
+    vsi_size_t i = 0;
     int32_t axis_first = 0;
     int32_t axis_num = 0;
     uint32_t mask = 0;
@@ -99,23 +99,23 @@ DEF_KERNEL_EXECUTOR(_moments_exec)
 
     if(mask == 0)
     {
-        int32_t  outerSize = 1;
-        int32_t  axisSize  = 1;
-        int32_t  innerSize = 1;
-        int32_t  inner     = 0;
-        int32_t  outer     = 0;
+        vsi_size_t  outerSize = 1;
+        vsi_size_t  axisSize  = 1;
+        vsi_size_t  innerSize = 1;
+        vsi_size_t  inner     = 0;
+        vsi_size_t  outer     = 0;
 
-        for (i = 0; i < (uint32_t)axis_first; i++)
+        for (i = 0; i < (vsi_size_t)axis_first; i++)
         {
             innerSize *= attr[0]->shape->data[i];
         }
 
-        for(i = 0; i < (uint32_t)axis_num; i++)
+        for(i = 0; i < (vsi_size_t)axis_num; i++)
         {
             axisSize *= attr[0]->shape->data[axis_first + i];
         }
 
-        for (i = (uint32_t)axis_first + axis_num; i < attr[0]->shape->size; i++)
+        for (i = (vsi_size_t)axis_first + axis_num; i < attr[0]->shape->size; i++)
         {
             outerSize *= attr[0]->shape->data[i];
         }
@@ -129,7 +129,7 @@ DEF_KERNEL_EXECUTOR(_moments_exec)
                 float mean = .0f;
                 float vari = .0f;
 
-                for (i = 0; i < (uint32_t)axisSize; ++i)
+                for (i = 0; i < axisSize; ++i)
                 {
                     float value = buffer[0][(outer * axisSize + i) * innerSize + inner];
                     sum += value;
@@ -144,17 +144,17 @@ DEF_KERNEL_EXECUTOR(_moments_exec)
     }
     else
     {
-        int32_t  width   = attr[0]->shape->data[0];
-        int32_t  height  = attr[0]->shape->size > 1 ? attr[0]->shape->data[1] : 1;
-        int32_t  channel = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
-        int32_t  batch   = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
-        int32_t  width_o = attr[1]->shape->data[0];
-        int32_t  height_o  = attr[1]->shape->size > 1 ? attr[1]->shape->data[1] : 1;
-        int32_t  channel_o = attr[1]->shape->size > 2 ? attr[1]->shape->data[2] : 1;
-        int32_t b = 0, c = 0, h = 0;
-        int32_t  wh_offset = width * height;
-        int32_t  axisSize  = width * channel;
-        int32_t  vol = width_o * height_o * channel_o;
+        vsi_size_t  width   = attr[0]->shape->data[0];
+        vsi_size_t  height  = attr[0]->shape->size > 1 ? attr[0]->shape->data[1] : 1;
+        vsi_size_t  channel = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
+        vsi_size_t  batch   = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
+        vsi_size_t  width_o = attr[1]->shape->data[0];
+        vsi_size_t  height_o  = attr[1]->shape->size > 1 ? attr[1]->shape->data[1] : 1;
+        vsi_size_t  channel_o = attr[1]->shape->size > 2 ? attr[1]->shape->data[2] : 1;
+        vsi_size_t b = 0, c = 0, h = 0;
+        vsi_size_t  wh_offset = width * height;
+        vsi_size_t  axisSize  = width * channel;
+        vsi_size_t  vol = width_o * height_o * channel_o;
 
         for(b = 0; b < batch; b++)
         {
@@ -164,11 +164,11 @@ DEF_KERNEL_EXECUTOR(_moments_exec)
                 float sumsq = .0f;
                 float mean = .0f;
                 float vari = .0f;
-                int h_offset = h * width;
+                vsi_size_t h_offset = h * width;
                 for(c = 0; c < channel; c++)
                 {
-                    int offset = h_offset + c * wh_offset;
-                    for(i = 0; i < (uint32_t)width; i++)
+                    vsi_size_t offset = h_offset + c * wh_offset;
+                    for(i = 0; i < width; i++)
                     {
                         float value = buffer[0][i + offset];
                         sum += value;

@@ -201,11 +201,11 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t  i, j;
-    uint32_t  n, a, c, b, numBatches, numAnchors, numClasses;
+    vsi_size_t  n, a, c, b, numBatches, numAnchors, numClasses;
     int32_t nms_type = 0;
     int32_t max_num_detections = 0;
     int32_t maximum_class_per_detection = 0;
@@ -213,7 +213,7 @@ DEF_KERNEL_EXECUTOR(_compute)
     float   score_threshold  = 0.0f;
     float   iou_threshold    = 0.0f;
     int32_t is_bg_in_label   = 0;
-    uint32_t numOutDetection = 0;
+    vsi_size_t numOutDetection = 0;
 
     /* prepare data */
     for ( i = 0; i < _INPUT_NUM; i++ )
@@ -250,11 +250,11 @@ DEF_KERNEL_EXECUTOR(_compute)
     numOutDetection = out_attr[0]->shape->data[0];
 
     {
-        uint32_t scores_index = 0;
-        uint32_t scores_out_index = 0;
+        vsi_size_t scores_index = 0;
+        vsi_size_t scores_out_index = 0;
         uint32_t kRoiDim = 4;
-        uint32_t roi_out_index = 0;
-        uint32_t class_out_index = 0;
+        vsi_size_t roi_out_index = 0;
+        vsi_size_t class_out_index = 0;
         uint32_t* select = (uint32_t*)malloc(numAnchors * numClasses * sizeof(uint32_t));
         float* maxScores = (float*)malloc(numAnchors * sizeof(float));
         uint32_t* scoreInds = (uint32_t*)malloc((numClasses - 1) * sizeof(uint32_t));
@@ -273,10 +273,10 @@ DEF_KERNEL_EXECUTOR(_compute)
                     select_start = select_size;
                     for ( b = 0; b < numAnchors; b++ )
                     {
-                        const uint32_t index = b * numClasses + c;
+                        const vsi_size_t index = b * numClasses + c;
                         float score = f32_in_buffer[0][scores_index + index];
                         if (score > score_threshold) {
-                            select[select_size] = index;
+                            select[select_size] = (uint32_t)index;
                             select_size++;
                         }
                     }
@@ -297,8 +297,8 @@ DEF_KERNEL_EXECUTOR(_compute)
                         // Calculate IoU of the rest, swap to the end (disgard) if needed.
                         for ( i = j + 1; i < select_len; i++ )
                         {
-                            int32_t roiBase0 = (select[select_start + i] / numClasses) * kRoiDim;
-                            int32_t roiBase1 = (select[select_start + j] / numClasses) * kRoiDim;
+                            vsi_ssize_t roiBase0 = (select[select_start + i] / numClasses) * kRoiDim;
+                            vsi_ssize_t roiBase1 = (select[select_start + j] / numClasses) * kRoiDim;
                             float iou = _getIoUAxisAligned(&(roiBuffer[roiBase0]),
                                 &(roiBuffer[roiBase1]));
 
@@ -335,7 +335,7 @@ DEF_KERNEL_EXECUTOR(_compute)
             }
             else
             {
-                uint32_t numOutClasses = vsi_nn_min(numClasses - 1, (uint32_t)maximum_class_per_detection);
+                vsi_size_t numOutClasses = vsi_nn_min(numClasses - 1, (uint32_t)maximum_class_per_detection);
                 uint32_t select_size = 0;
                 uint32_t select_start = 0;
                 uint32_t select_len = 0;
@@ -344,10 +344,10 @@ DEF_KERNEL_EXECUTOR(_compute)
                 {
                     // exclude background class: 0
                     maxScores[a] = _max_element_value(&(f32_in_buffer[0]
-                        [scores_index + a * numClasses + 1]), numClasses - 1);
+                        [scores_index + a * numClasses + 1]), (uint32_t)(numClasses - 1));
                     if (maxScores[a] > score_threshold)
                     {
-                            select[select_size] = a;
+                            select[select_size] = (uint32_t)a;
                             select_size++;
                     }
                 }
@@ -385,9 +385,9 @@ DEF_KERNEL_EXECUTOR(_compute)
 
                 for ( i = 0; i < select_len; i++ )
                 {
-                    _iota((int32_t*)scoreInds, numClasses - 1, 1);
+                    _iota((int32_t*)scoreInds, (uint32_t)(numClasses - 1), 1);
                     _sort_element_by_score(&(f32_in_buffer[0][scores_index + select[i] * numClasses]),
-                        scoreInds, numClasses - 1);
+                        scoreInds, (uint32_t)(numClasses - 1));
                     for (c = 0; c < numOutClasses; c++)
                     {
                         f32_out_buffer[0][scores_out_index + i * numOutClasses + c] =

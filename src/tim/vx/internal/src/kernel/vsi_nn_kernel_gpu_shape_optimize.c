@@ -31,27 +31,27 @@
 
 static vsi_bool compute_gpu_divisor
     (
-    const int32_t input_value,
-    const int32_t limit,
+    const vsi_size_t input_value,
+    const vsi_size_t limit,
     const int32_t gcd,
-    int32_t* divisor
+    vsi_size_t* divisor
     );
 
-static size_t element_fill_dim
+static vsi_size_t element_fill_dim
     (
-    int32_t* shape_x, size_t rank_x,
-    size_t max_rank, int32_t size_x
+    vsi_size_t* shape_x, vsi_size_t rank_x,
+    vsi_size_t max_rank, vsi_size_t size_x
     );
 
 static vsi_bool compute_gpu_divisor
     (
-    const int32_t input_value,
-    const int32_t limit,
+    const vsi_size_t input_value,
+    const vsi_size_t limit,
     const int32_t gcd,
-    int32_t* divisor
+    vsi_size_t* divisor
     )
 {
-    int32_t i = 0;
+    vsi_size_t i = 0;
     for( i = vsi_nn_min( input_value, limit - 1 ); i > 0; i -- )
     {
         if ( ( i % gcd == 0 ) && ( input_value % i == 0 ) )
@@ -63,15 +63,14 @@ static vsi_bool compute_gpu_divisor
     return FALSE;
 } /* compute_gpu_divisor */
 
-static size_t element_fill_dim
+static vsi_size_t element_fill_dim
     (
-    int32_t* shape_x, size_t rank_x,
-    size_t max_rank, int32_t size_x
+    vsi_size_t* shape_x, vsi_size_t rank_x,
+    vsi_size_t max_rank, vsi_size_t size_x
     )
 {
-    size_t cost_size = 1;
+    vsi_size_t cost_size = 1;
     VSI_ASSERT( rank_x <= max_rank );
-    VSI_ASSERT( size_x >= (int32_t)((int64_t)(0xFFFFFFFF) - 1) );
 
     if (size_x == 1)
         return 0;
@@ -82,8 +81,8 @@ static size_t element_fill_dim
     }
     else
     {
-        int32_t divisor = 0;
-        int32_t remainder = 0;
+        vsi_size_t divisor = 0;
+        vsi_size_t remainder = 0;
         compute_gpu_divisor( size_x, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
         remainder = size_x / divisor;
         if ( remainder > GPU_TENSOR_MAX_WIDTH || rank_x >= max_rank)
@@ -116,22 +115,22 @@ static size_t element_fill_dim
 /*only for continuous axises or one axis*/
 vsi_bool vsi_nn_kernel_optimize_reduce_shape
     (
-    const int32_t* shape_x, const size_t rank_x,
-    const int32_t *axis, const size_t axis_size,
-    const int32_t* shape_output, const size_t rank_output,
-    int32_t* out_shape_x, uint32_t* out_rank_x,
-    int32_t* out_shape_output, uint32_t* out_rank_output,
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    const int32_t *axis, const vsi_size_t axis_size,
+    const vsi_size_t* shape_output, const vsi_size_t rank_output,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x,
+    vsi_size_t* out_shape_output, uint32_t* out_rank_output,
     int32_t* out_axis, uint32_t* out_axis_size
     )
 {
     vsi_bool ret                        = TRUE;
-    size_t   i                          = 0;
-    size_t   rank_in                    = 0;
-    size_t   rank_out                   = 0;
-    size_t   dims                       = 0;
-    int32_t  innerSize                  = 1;
-    int32_t  outerSize                  = 1;
-    int32_t  axisSize                   = 1;
+    vsi_size_t   i                          = 0;
+    vsi_size_t   rank_in                    = 0;
+    vsi_size_t   rank_out                   = 0;
+    vsi_size_t   dims                       = 0;
+    vsi_size_t  innerSize                  = 1;
+    vsi_size_t  outerSize                  = 1;
+    vsi_size_t  axisSize                   = 1;
 
     for (i = 0; i < axis_size; i++)
     {
@@ -203,19 +202,19 @@ vsi_bool vsi_nn_kernel_optimize_reduce_shape
 
 vsi_bool vsi_nn_kernel_optimize_tensor_shape
     (
-    const int32_t* shape_x, const size_t rank_x,
-    const int32_t *axis, const size_t axis_size,
-    int32_t* out_shape_x, uint32_t* out_rank_x,
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    const int32_t *axis, const vsi_size_t axis_size,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x,
     int32_t* out_axis, uint32_t* out_axis_size
     )
 {
     vsi_bool ret                        = TRUE;
-    size_t   i                          = 0;
-    size_t   rank_in                    = 0;
-    size_t   dims                       = 0;
-    int32_t  innerSize                  = 1;
-    int32_t  outerSize                  = 1;
-    int32_t  axisSize                   = 1;
+    vsi_size_t   i                          = 0;
+    vsi_size_t   rank_in                    = 0;
+    vsi_size_t   dims                       = 0;
+    vsi_size_t  innerSize                  = 1;
+    vsi_size_t  outerSize                  = 1;
+    vsi_size_t  axisSize                   = 1;
 
     for (i = 0; i < axis_size; i++)
     {
@@ -272,14 +271,14 @@ vsi_bool vsi_nn_kernel_optimize_tensor_shape
 
 vsi_bool vsi_nn_kernel_optimize_element_shape
     (
-    const int32_t* shape_x, const size_t rank_x,
-    int32_t* out_shape_x, int32_t* out_rank_x
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    vsi_size_t* out_shape_x, vsi_size_t* out_rank_x
     )
 {
     vsi_bool ret                        = TRUE;
     uint32_t  i                         = 0;
-    size_t   rank_in                    = 0;
-    int32_t  element_num                = 1;
+    vsi_size_t   rank_in                    = 0;
+    vsi_size_t  element_num                = 1;
 
     for (i = 0; i < rank_x; i++)
     {
@@ -300,24 +299,24 @@ vsi_bool vsi_nn_kernel_optimize_element_shape
         rank_in = 2;
     }
 
-    *out_rank_x = (int32_t)rank_in;
+    *out_rank_x = (size_t)rank_in;
 
     return ret;
 } /* vsi_nn_kernel_optimize_element_shape() */
 
 vsi_bool vsi_nn_kernel_optimize_softmax_shape
     (
-    const int32_t* shape_x, const size_t rank_x, const int32_t axis,
-    int32_t* out_shape_x, uint32_t* out_rank_x,int32_t* out_axis
+    const vsi_size_t* shape_x, const vsi_size_t rank_x, const int32_t axis,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x,int32_t* out_axis
     )
 {
     vsi_bool ret                        = TRUE;
-    size_t   i                          = 0;
-    size_t   rank_in                    = 0;
-    size_t   dims                       = 0;
-    int32_t  innerSize                  = 1;
-    int32_t  outerSize                  = 1;
-    int32_t  axisSize                   = shape_x[axis];
+    vsi_size_t   i                          = 0;
+    vsi_size_t   rank_in                    = 0;
+    vsi_size_t   dims                       = 0;
+    vsi_size_t  innerSize                  = 1;
+    vsi_size_t  outerSize                  = 1;
+    vsi_size_t  axisSize                   = shape_x[axis];
 
     for (i = 0; i < (size_t)axis; i++)
     {
@@ -372,17 +371,16 @@ typedef enum
     TILE_STATE_EMPTY   = 8,
 } tile_axis_state_e;
 
-static size_t tile_fill_dim
+static vsi_size_t tile_fill_dim
     (
-    int32_t* shape_x, int32_t* shape_y,
-    int32_t* shape_output, size_t rank,
-    size_t max_rank, int32_t size_x, int32_t size_y,
-    int32_t size_output
+    vsi_size_t* shape_x, vsi_size_t* shape_y,
+    vsi_size_t* shape_output, vsi_size_t rank,
+    vsi_size_t max_rank, vsi_size_t size_x, vsi_size_t size_y,
+    vsi_size_t size_output
     )
 {
-    size_t cost_size = 1;
+    vsi_size_t cost_size = 1;
     VSI_ASSERT( rank <= max_rank );
-    VSI_ASSERT( size_output >= (int32_t)((int64_t)(0xFFFFFFFF) - 1) );
     if ( size_output < GPU_TENSOR_MAX_WIDTH )
     {
         shape_x[rank] = size_x;
@@ -391,8 +389,8 @@ static size_t tile_fill_dim
     }
     else
     {
-        int32_t divisor = 0;
-        int32_t remainder = 0;
+        vsi_size_t divisor = 0;
+        vsi_size_t remainder = 0;
         compute_gpu_divisor( size_output, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
         remainder = size_output / divisor;
         if ( remainder > GPU_TENSOR_MAX_WIDTH || rank >= max_rank )
@@ -438,23 +436,23 @@ static size_t tile_fill_dim
 
 vsi_bool vsi_nn_kernel_optimize_tile_shape
     (
-    const int32_t* shape_x,   const size_t rank_x,
-    const int32_t* multiples, const size_t rank,
-    const int32_t* shape_output, const size_t rank_output,
-    int32_t* out_shape_x, int32_t* out_shape_y,
-    int32_t* out_shape_output, uint32_t* out_rank_output
+    const vsi_size_t* shape_x,   const vsi_size_t rank_x,
+    const vsi_size_t* multiples, const vsi_size_t rank,
+    const vsi_size_t* shape_output, const vsi_size_t rank_output,
+    vsi_size_t* out_shape_x, vsi_size_t* out_shape_y,
+    vsi_size_t* out_shape_output, vsi_size_t* out_rank_output
     )
 {
     vsi_bool ret                        = TRUE;
     vsi_bool append_dim                 = FALSE;
-    size_t   i                          = 0;
-    size_t   dims                       = 0;
-    int32_t  effective_size_x           = 1;
-    int32_t  effective_size_y           = 1;
-    int32_t  effective_size_z           = 1;
-    int32_t  sx                         = 0;
-    int32_t  sy                         = 0;
-    int32_t  sz                         = 0;
+    vsi_size_t   i                          = 0;
+    vsi_size_t   dims                       = 0;
+    vsi_size_t  effective_size_x           = 1;
+    vsi_size_t  effective_size_y           = 1;
+    vsi_size_t  effective_size_z           = 1;
+    vsi_size_t  sx                         = 0;
+    vsi_size_t  sy                         = 0;
+    vsi_size_t  sz                         = 0;
     tile_axis_state_e state             = TILE_STATE_EMPTY;
     tile_axis_state_e next_state        = TILE_STATE_EMPTY;
 
@@ -569,9 +567,9 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
         }
         /* For debug */
 #if DEBUG
-        vsi_nn_print_int_array( out_shape_x, dims );
-        vsi_nn_print_int_array( out_shape_y, dims );
-        vsi_nn_print_int_array( out_shape_output, dims );
+        vsi_nn_print_size_array( out_shape_x, dims );
+        vsi_nn_print_size_array( out_shape_y, dims );
+        vsi_nn_print_size_array( out_shape_output, dims );
 #endif
         *out_rank_output = (uint32_t)dims;
     }
@@ -581,11 +579,11 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
 
 vsi_bool vsi_nn_kernel_optimize_1d_tensor_shape
     (
-    const int32_t* shape, const uint32_t rank,
-    int32_t* out_shape, uint32_t* out_rank
+    const vsi_size_t* shape, const uint32_t rank,
+    vsi_size_t* out_shape, uint32_t* out_rank
     )
 {
-    memcpy(out_shape, shape, sizeof(int32_t) * rank);
+    memcpy(out_shape, shape, sizeof(vsi_size_t) * rank);
     *out_rank = vsi_nn_max(rank, 2);
 
     out_shape[1] = rank == 1 ? 1 : out_shape[1];
@@ -595,8 +593,8 @@ vsi_bool vsi_nn_kernel_optimize_1d_tensor_shape
 
 vsi_bool vsi_nn_kernel_optimize_nchw2xhw_shape
     (
-    const int32_t* shape, const uint32_t rank,
-    int32_t* out_shape, uint32_t* out_rank
+    const vsi_size_t* shape, const uint32_t rank,
+    vsi_size_t* out_shape, uint32_t* out_rank
     )
 {
     uint32_t dim_num = 0;

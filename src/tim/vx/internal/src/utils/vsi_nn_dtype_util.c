@@ -138,7 +138,6 @@ uint16_t vsi_nn_Fp32ToBFp16
     return fp32_to_bfp16(in);
 } /* vsi_nn_Fp32ToFp16() */
 
-
 vsi_status vsi_nn_IntegerConvert
     (
     const void *    src,
@@ -237,24 +236,24 @@ vsi_status vsi_nn_Float32ToDtype
     return float32_to_dtype(src, dst, dst_dtype);
 } /* vsi_nn_Float32ToDtype() */
 
-int32_t vsi_nn_DtypeConvertRawData
+vsi_size_t vsi_nn_DtypeConvertRawData
     (
     uint8_t * src,
-    int32_t   src_bytes,
+    vsi_size_t   src_bytes,
     const vsi_nn_dtype_t * src_dtype,
     uint8_t * dst,
-    int32_t   dst_bytes,
+    vsi_size_t   dst_bytes,
     const vsi_nn_dtype_t * dst_dtype
     )
 {
     uint8_t * src_iter;
     uint8_t * dst_iter;
-    int32_t count;
-    int32_t elements;
-    int32_t src_type_bytes;
-    int32_t dst_type_bytes;
-    int32_t target_bytes;
-    int32_t i;
+    vsi_size_t count;
+    vsi_size_t elements;
+    vsi_size_t src_type_bytes;
+    vsi_size_t dst_type_bytes;
+    vsi_size_t target_bytes;
+    vsi_size_t i;
     vsi_status status;
     count = 0;
     if( NULL == src || NULL == dst || NULL == src_dtype )
@@ -264,11 +263,12 @@ int32_t vsi_nn_DtypeConvertRawData
 
     src_type_bytes = vsi_nn_TypeGetBytes( src_dtype->vx_type );
     dst_type_bytes = vsi_nn_TypeGetBytes( dst_dtype->vx_type );
-    elements = (int32_t)( src_bytes / src_type_bytes );
+    elements = src_bytes / src_type_bytes;
     target_bytes = dst_type_bytes * elements;
     if( dst_bytes < target_bytes )
     {
-        VSILOGW("Wrong dest buffer size: %d, require: %d", dst_bytes, target_bytes);
+        VSILOGW("Wrong dest buffer size: %"VSI_SIZE_T_SPECIFIER", require: %"VSI_SIZE_T_SPECIFIER"",
+            dst_bytes, target_bytes);
         return count;
     }
     src_iter = src;
@@ -287,13 +287,13 @@ int32_t vsi_nn_DtypeConvertRawData
     return count;
 } /* vsi_nn_DtypeConvertRawData() */
 
-int32_t vsi_nn_DtypeConvertRawDataToFloat32
+vsi_size_t vsi_nn_DtypeConvertRawDataToFloat32
     (
     uint8_t   * src,
-    int32_t     src_bytes,
+    vsi_size_t     src_bytes,
     const vsi_nn_dtype_t * src_dtype,
     float * dst,
-    int32_t     dst_size
+    vsi_size_t     dst_size
     )
 {
     vsi_nn_dtype_t dst_dtype;
@@ -304,12 +304,12 @@ int32_t vsi_nn_DtypeConvertRawDataToFloat32
         (uint8_t *)dst, dst_size * sizeof( float ), &dst_dtype );
 } /*vsi_nn_DtypeConvertRawDataToFloat32()*/
 
-int32_t vsi_nn_DtypeConvertFloat32ToRawData
+vsi_size_t vsi_nn_DtypeConvertFloat32ToRawData
     (
     float * src,
-    int32_t     src_size,
+    vsi_size_t     src_size,
     uint8_t   * dst,
-    int32_t     dst_bytes,
+    vsi_size_t     dst_bytes,
     const vsi_nn_dtype_t * dst_dtype
     )
 {
@@ -357,8 +357,9 @@ vsi_bool vsi_nn_QuantCheck
     weight_qnt_type = weight->attr.dtype.qnt_type;
     weight_dtype = weight->attr.dtype.vx_type;
 
-    //do not check quant parammeters if types of input/weight is hybrid combinaton
-    if(input_dtype != weight_dtype || input_qnt_type != weight_qnt_type)
+    //do not check quant parammeters if types of input/weight/bias is hybrid combinaton
+    if( input_dtype != weight_dtype || input_qnt_type != weight_qnt_type ||
+        (bias && bias->attr.dtype.qnt_type != input_qnt_type) )
     {
         return ret;
     }
@@ -458,12 +459,13 @@ vsi_status vsi_nn_vxConvertTensorToFloat32Data
     vx_tensor tensor,
     vsi_nn_tensor_attr_t *attr,
     float *f32_data,
-    uint32_t f32_data_sz
+    vsi_size_t f32_data_sz
     )
 {
     vsi_status status;
     uint8_t *data;
-    uint32_t elements,stride;
+    vsi_size_t elements;
+    uint32_t stride;
     vsi_nn_tensor_attr_t tensor_attr, *_attr;
 
     data = NULL;
@@ -488,7 +490,8 @@ vsi_status vsi_nn_vxConvertTensorToFloat32Data
     stride = vsi_nn_TypeGetBytes(_attr->dtype.vx_type);
     if(f32_data_sz != elements * sizeof(float))
     {
-        VSILOGE("buffer sz %u != required sz %u", f32_data_sz, elements * sizeof(float));
+        VSILOGE("buffer sz %"VSI_SIZE_T_SPECIFIER" != required sz %"VSI_SIZE_T_SPECIFIER"",
+            f32_data_sz, elements * sizeof(float));
         return status;
     }
     data = vsi_nn_vxCopyTensorToData(context, tensor, _attr);
@@ -516,12 +519,13 @@ vsi_status vsi_nn_vxConvertFloat32DataToTensor
     vx_tensor tensor,
     vsi_nn_tensor_attr_t *attr,
     float *f32_data,
-    uint32_t f32_data_sz
+    vsi_size_t f32_data_sz
     )
 {
     vsi_status status;
     uint8_t *data;
-    uint32_t elements,stride;
+    vsi_size_t elements;
+    uint32_t stride;
     vsi_nn_tensor_attr_t tensor_attr, *_attr;
 
     data = NULL;
@@ -546,7 +550,8 @@ vsi_status vsi_nn_vxConvertFloat32DataToTensor
     stride = vsi_nn_GetTypeBytes(_attr->dtype.vx_type);
     if(f32_data_sz != elements * sizeof(float))
     {
-        VSILOGE("buffer sz %u != required sz %u", f32_data_sz, elements * sizeof(float));
+        VSILOGE("buffer sz %"VSI_SIZE_T_SPECIFIER" != required sz %"VSI_SIZE_T_SPECIFIER"",
+            f32_data_sz, elements * sizeof(float));
         return status;
     }
 
@@ -568,4 +573,3 @@ final:
     }
     return status;
 } /* vsi_nn_vxConvertFloat32DataToTensor() */
-

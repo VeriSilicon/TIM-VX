@@ -43,10 +43,10 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
     int32_t axis = -1;
-    uint32_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
-    uint32_t innerSize = 1;
-    uint32_t outerSize = 1;
-    uint32_t axisSize  = 1;
+    vsi_size_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
+    vsi_size_t innerSize = 1;
+    vsi_size_t outerSize = 1;
+    vsi_size_t axisSize  = 1;
     vx_tensor vx_input = NULL;
     vx_tensor vx_output = NULL;
     vx_tensor input = inputs[0]->t;
@@ -86,8 +86,13 @@ static vsi_status op_compute
 
         if(outerSize < MAX_BATCH_COUNT)
         {
-            vx_input = vxReshapeTensor(inputs[0]->t, (int32_t *)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
-            vx_output = vxReshapeTensor(outputs[0]->t, (int32_t *)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
+#ifdef VSI_40BIT_VA_SUPPORT
+            vx_input = vxReshapeTensor(inputs[0]->t, sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
+            vx_output = vxReshapeTensor(outputs[0]->t, sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
+#else
+            vx_input = vxReshapeTensor(inputs[0]->t, (int32_t*)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
+            vx_output = vxReshapeTensor(outputs[0]->t, (int32_t*)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
+#endif
 
             input = vx_input;
             output = vx_output;

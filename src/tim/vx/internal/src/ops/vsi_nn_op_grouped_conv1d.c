@@ -42,17 +42,13 @@
 #define _OUTPUT_NUM         (1)
 
 static vsi_nn_tensor_t * _expand_tensor_dim
-    ( vsi_nn_graph_t * graph, vsi_nn_tensor_t *tensor, uint32_t * shape, size_t rank, int32_t expand_dim )
+    ( vsi_nn_graph_t * graph, vsi_nn_tensor_t *tensor, vsi_size_t * shape, vsi_size_t rank, vsi_size_t expand_dim )
 {
-    uint32_t new_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
-    uint32_t i, cnt;
-    if ( expand_dim < 0 )
+    vsi_size_t new_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t i, cnt;
+    if ( expand_dim > rank )
     {
-        expand_dim = (int32_t)rank + expand_dim;
-    }
-    if ( expand_dim < 0 || (uint32_t)expand_dim > rank )
-    {
-        VSILOGE("Run dim to expand %d, rank is %lu", expand_dim, rank);
+        VSILOGE("Run dim to expand %"VSI_SIZE_T_SPECIFIER", rank is %"VSI_SIZE_T_SPECIFIER"", expand_dim, rank);
         return NULL;
     }
     for ( i = 0, cnt = 0; i < rank; i ++ )
@@ -70,7 +66,7 @@ static vsi_nn_tensor_t * _expand_tensor_dim
         new_shape[cnt] = 1;
     }
 
-    return vsi_nn_reshape_tensor( graph, tensor, new_shape, (uint32_t)rank + 1 );
+    return vsi_nn_reshape_tensor( graph, tensor, new_shape, rank + 1 );
 } /* _expand_tensor_dim() */
 
 static vsi_status op_compute

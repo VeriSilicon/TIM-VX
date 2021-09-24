@@ -94,8 +94,8 @@ static float _read_pixel(float *base, vsi_nn_kernel_tensor_attr_t *attr,
                           float x, float y, int32_t z, int32_t b)
 {
     vsi_bool out_of_bounds = (x < 0 || y < 0 || x >= attr->shape->data[0] || y >= attr->shape->data[1]);
-    int32_t bx, by;
-    int32_t offset = (b * attr->shape->data[2] + z) * attr->shape->data[0] * attr->shape->data[1];
+    vsi_ssize_t bx, by;
+    vsi_ssize_t offset = (b * attr->shape->data[2] + z) * attr->shape->data[0] * attr->shape->data[1];
     float pixel = 0;
 
     if (out_of_bounds)
@@ -103,8 +103,8 @@ static float _read_pixel(float *base, vsi_nn_kernel_tensor_attr_t *attr,
         return 0;
     }
     // bounded x/y
-    bx = (int32_t)x;
-    by = (int32_t)y;
+    bx = (vsi_ssize_t)x;
+    by = (vsi_ssize_t)y;
 
     pixel = base[attr->shape->data[0] * by + bx + offset];
 
@@ -128,9 +128,9 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM] = {NULL};
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     int32_t  i = 0;
     int32_t  b = 0;
     int32_t  c = 0;
@@ -138,12 +138,12 @@ DEF_KERNEL_EXECUTOR(_compute)
     int32_t  x = 0;
     int32_t  y = 0;
     int32_t  has_theta[6] = {0};
-    int32_t  batch = 1;
-    int32_t  depth = 1;
-    int32_t  height = 1;
-    int32_t  width = 1;
-    int32_t  input_height = 1;
-    int32_t  input_width = 1;
+    vsi_ssize_t  batch = 1;
+    vsi_ssize_t  depth = 1;
+    vsi_ssize_t  height = 1;
+    vsi_ssize_t  width = 1;
+    vsi_ssize_t  input_height = 1;
+    vsi_ssize_t  input_width = 1;
     int32_t  rank = 0;
     int32_t  index = 0;
     int32_t  align_corners = 0;

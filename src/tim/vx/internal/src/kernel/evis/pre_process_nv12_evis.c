@@ -131,7 +131,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
     float       bMeanScaleVarZp = 0.0f,  gMeanScaleVarZp = 0.0f,  rMeanScaleVarZp = 0.0f;
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    vsi_int_array_t * out_shape = NULL;
+    vsi_size_array_t * out_shape = NULL;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
@@ -150,8 +150,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
     out_shape  = attr[0]->shape;
     dstZP      = attr[0]->asymm.zero_point;
     dstScale   = attr[0]->asymm.scale;
-    width      = out_shape->data[0];
-    height     = out_shape->data[1];
+    width      = (uint32_t)(out_shape->data[0]);
+    height     = (uint32_t)(out_shape->data[1]);
 
     if (reorder != 0)
     {
@@ -295,15 +295,19 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
     int32_t     order1     = 2;
     uint32_t    width      = 0;
     uint32_t    height     = 0;
+    uint32_t    roi_width  = 0;
+    uint32_t    roi_height = 0;
     uint32_t xrIntFloat_16 = 0;
     uint32_t yrIntFloat_16 = 0;
+    int32_t     xRatio     = 0;
+    int32_t     yRatio     = 0;
     float       bMean = 0.0f, gMean= 0.0f, rMean = 0.0f, var = 0.0f;
     float       outputScaleVar = 0.0f;
     float       bMeanScaleVarZp = 0.0f,  gMeanScaleVarZp = 0.0f,  rMeanScaleVarZp = 0.0f;
     float       resize     = 0.0f;
 
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
-    vsi_int_array_t * out_shape = NULL;
+    vsi_size_array_t * out_shape = NULL;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
@@ -311,6 +315,10 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", OnError );
 
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[3], &xRatio);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[4], &yRatio);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[7], &rMean);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[8], &gMean);
@@ -325,8 +333,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
     out_shape  = attr[1]->shape;
     dstZP      = attr[1]->asymm.zero_point;
     dstScale   = attr[1]->asymm.scale;
-    width      = out_shape->data[0];
-    height     = out_shape->data[1];
+    width      = (uint32_t)(out_shape->data[0]);
+    height     = (uint32_t)(out_shape->data[1]);
 
     if (reorder != 0)
     {
@@ -334,9 +342,11 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
         order1 = 0;
     }
 
-    resize = (float)width / attr[0]->shape->data[0];
-    xrIntFloat_16 = (attr[0]->shape->data[0] << 16) / width + 1;
-    yrIntFloat_16 = (attr[0]->shape->data[1] << 16) / height + 1;
+    roi_width = (xRatio * width) >> 15;
+    roi_height = (yRatio * height) >> 15;
+    resize = (float)width / roi_width;
+    xrIntFloat_16 = (uint32_t)((roi_width << 16) / width + 1);
+    yrIntFloat_16 = (uint32_t)((roi_height << 16) / height + 1);
 
     if (attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
@@ -524,7 +534,8 @@ static vsi_status _query_kernel
     vsi_nn_tensor_t* const* const inputs,
     vsi_nn_tensor_t* const* const outputs,
     vsi_nn_kernel_t* kernel,
-    const vsi_nn_kernel_param_t * params
+    const vsi_nn_kernel_param_t * params,
+    int32_t scale_x
     )
 {
     vsi_nn_kernel_dtype_e input0_dtype = U8;
@@ -534,9 +545,8 @@ static vsi_status _query_kernel
     uint32_t key = 0;
     int i = 0;
     vsi_bool enable_copy  = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
-    uint32_t srcWidth = inputs[0]->attr.size[0];
-    uint32_t dstWidth = outputs[0]->attr.size[0];
-    float scaleVal = (float)dstWidth / srcWidth;
+    vsi_size_t dstWidth = outputs[0]->attr.size[0];
+    float scaleVal = (float)dstWidth / ((scale_x * dstWidth) >> 15);
     uint32_t optFlg = 0;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
@@ -605,21 +615,21 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_tensor_t* reshape_tensors[1] = {NULL};
     int32_t trans = 0;
+    int32_t scale_x  = vsi_nn_kernel_param_get_int32( params, "scale_x" );
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
 
-    status = _query_kernel( inputs, outputs, kernel, params );
+    status = _query_kernel( inputs, outputs, kernel, params, scale_x );
     if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
         if ( node )
         {
             uint32_t index = 3;
-            int32_t scale_x  = vsi_nn_kernel_param_get_int32( params, "scale_x" );
             int32_t scale_y  = vsi_nn_kernel_param_get_int32( params, "scale_y" );
             int32_t left     = vsi_nn_kernel_param_get_int32( params, "left" );
             int32_t top      = vsi_nn_kernel_param_get_int32( params, "top" );

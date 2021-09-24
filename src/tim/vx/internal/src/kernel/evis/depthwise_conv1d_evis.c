@@ -121,7 +121,7 @@ static vx_param_description_t _depthwise_conv1d_kernel_param_def[] =
 
 #define _DEPTHWISE_CONV1D_PARAM_NUM  _cnt_of_array( _depthwise_conv1d_kernel_param_def )
 
-static _internal_kernel_size_e get_kernel_size(uint32_t k_size, uint32_t dilation,
+static _internal_kernel_size_e get_kernel_size(vsi_size_t k_size, uint32_t dilation,
                                                uint32_t stride, uint32_t evis_version)
 {
 #define _PACK_SELECT_KEY( kernel_size, dilation, stride, evis_version )    \
@@ -185,7 +185,7 @@ DEF_KERNEL_INITIALIZER(_depthwise_conv1d_initializer)
     vsi_nn_kernel_tensor_attr_t *input_attr     = NULL;
     vsi_nn_kernel_tensor_attr_t *output_attr    = NULL;
     vsi_nn_kernel_tensor_attr_t *weight_attr    = NULL;
-    vsi_int_array_t             *output_shape   = NULL;
+    vsi_size_array_t             *output_shape   = NULL;
     int32_t                     weightZP        = 0;
     float                       outputScale     = 1.0f;
     float                       outputZP        = 0;
@@ -213,7 +213,7 @@ DEF_KERNEL_INITIALIZER(_depthwise_conv1d_initializer)
     CHECK_STATUS_FAIL_GOTO(status, final );
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[6], &dilation);
     CHECK_STATUS_FAIL_GOTO(status, final );
-    kernel_size = weight_attr->shape->data[0];
+    kernel_size = (uint32_t)(weight_attr->shape->data[0]);
 
     if(hw_param.evis1 == TRUE && hw_param.evis2 == FALSE)
     {
@@ -704,20 +704,20 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_DEPTHWISE_CONV1D_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
-    int32_t weight_pad_front[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t weight_pad_end[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t weight_pad_front[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t weight_pad_end[VSI_NN_MAX_DIM_NUM] = {0};
     vsi_nn_tensor_t * weights = NULL;
     vsi_nn_tensor_t * biases = NULL;
     vsi_nn_tensor_t *temp_tensor[3] = {NULL};
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
-    int32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     int32_t new_rank = 2;
     uint32_t i = 0;
     int32_t stride     = vsi_nn_kernel_param_get_int32( params, "stride" );
     int32_t pad_front  = vsi_nn_kernel_param_get_int32( params, "pad_front" );
     int32_t pad_end  = vsi_nn_kernel_param_get_int32( params, "pad_end" );
     int32_t dilation   = vsi_nn_kernel_param_get_int32( params, "dilation" );
-    int32_t batch = inputs[0]->attr.size[2];
+    vsi_size_t batch = inputs[0]->attr.size[2];
     _internal_kernel_size_e ks   = KN;
 
     if ( (!((VSI_NN_TYPE_UINT8 == inputs[0]->attr.dtype.vx_type)
@@ -739,7 +739,7 @@ static vsi_nn_kernel_node_t _setup
             shape[1] *= inputs[1]->attr.size[i];
         }
         reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
-                inputs[1], (uint32_t*)shape, new_rank );
+                inputs[1], shape, new_rank );
     }
     else
     {
@@ -752,7 +752,7 @@ static vsi_nn_kernel_node_t _setup
         shape[1] = 1;
         new_rank = 2;
         reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
-                inputs[2], (uint32_t*)shape, new_rank );
+                inputs[2], shape, new_rank );
     }
 
     weight_pad_end[0] = gpu_align_np2_safe(reshape_tensors[1]->attr.size[0], 8) - reshape_tensors[1]->attr.size[0];

@@ -110,13 +110,17 @@ static vsi_bool op_check
     int32_t i = 0;
 
     BEGIN_IO_TYPE_DECL(MOMENTS, 1, 2)
-        IO_TYPE(D_U8|Q_ASYM,  D_F16,  D_F16)
-        IO_TYPE(D_I8|Q_DFP,   D_F16,  D_F16)
-        IO_TYPE(D_I16|Q_DFP,  D_F16,  D_F16)
+        IO_TYPE(D_U8|Q_ASYM,  D_F16,        D_F16)
+        IO_TYPE(D_U8|Q_ASYM,  D_F32,        D_F32)
+        IO_TYPE(D_I8|Q_DFP,   D_F16,        D_F16)
+        IO_TYPE(D_I8|Q_DFP,   D_F32,        D_F32)
+        IO_TYPE(D_I16|Q_DFP,  D_F16,        D_F16)
+        IO_TYPE(D_I16|Q_DFP,  D_F32,        D_F32)
         IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM,  D_U8|Q_ASYM)
-        IO_TYPE(D_F16,   D_F16,  D_F16)
-        IO_TYPE(D_F32,   D_F32,  D_F32)
-        IO_TYPE(D_I32,   D_F32,  D_F32)
+        IO_TYPE(D_F16,        D_F16,        D_F16)
+        IO_TYPE(D_F16,        D_F32,        D_F32)
+        IO_TYPE(D_F32,        D_F32,        D_F32)
+        IO_TYPE(D_I32,        D_F32,        D_F32)
     END_IO_TYPE_DECL(MOMENTS)
     if (!VALIDATE_OP_IO_TYPES(MOMENTS, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,

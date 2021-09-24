@@ -61,10 +61,10 @@ DEF_KERNEL_EXECUTOR(_matrixmul_exec)
     float * buffer[3] = { NULL };
     size_t out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
-    int32_t i = 0;
-    int32_t M = 0, K = 0, N = 0;
+    vsi_size_t i = 0;
+    vsi_size_t M = 0, K = 0, N = 0;
     int32_t transposeA = 0, transposeB = 0;
-    vx_size strides0[2] = {0, 0}, strides1[2] = {0, 0};
+    size_t strides0[2] = {0, 0}, strides1[2] = {0, 0};
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
     tensors[1]  = (vsi_nn_kernel_tensor_t)param[1];
@@ -110,14 +110,14 @@ DEF_KERNEL_EXECUTOR(_matrixmul_exec)
     strides1[1] = transposeB? K:1;
 
     {
-        int32_t batch   = attr[2]->shape->size > 3 ? attr[2]->shape->data[3] : 1;
-        int32_t depth   = attr[2]->shape->size > 2 ? attr[2]->shape->data[2] : 1;
-        int32_t a_depth = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
-        int32_t b_depth = attr[1]->shape->size > 2 ? attr[1]->shape->data[2] : 1;
-        int32_t b = 0, c = 0, j = 0, y = 0;
-        int32_t offsetA = 0, offsetB = 0, offsetD = 0;
-        int32_t ac2zero = 1;
-        int32_t bc2zero = 1;
+        vsi_size_t batch   = attr[2]->shape->size > 3 ? attr[2]->shape->data[3] : 1;
+        vsi_size_t depth   = attr[2]->shape->size > 2 ? attr[2]->shape->data[2] : 1;
+        vsi_size_t a_depth = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
+        vsi_size_t b_depth = attr[1]->shape->size > 2 ? attr[1]->shape->data[2] : 1;
+        vsi_size_t b = 0, c = 0, j = 0, y = 0;
+        vsi_size_t offsetA = 0, offsetB = 0, offsetD = 0;
+        vsi_size_t ac2zero = 1;
+        vsi_size_t bc2zero = 1;
 
         if((attr[0]->shape->size > attr[1]->shape->size) ||
             (attr[0]->shape->data[2] > attr[1]->shape->data[2]

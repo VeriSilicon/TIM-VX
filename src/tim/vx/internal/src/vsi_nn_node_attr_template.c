@@ -190,6 +190,11 @@ static _node_template s_template[] =
     /* SEQUENCE_MASK */         NULL,
     /* REPEAT */                NULL,
     /* SCATTER_ND_UPDATE */     NULL,
+    /* CONV2D_LSTM */           NULL,
+    /* CONV2D_LSTM_CELL */      NULL,
+    /* GRU */                   NULL,
+    /* GRUCELL */               NULL,
+    /* GRUCELL_ACTIVATION */    NULL,
 };
 //_compiler_assert( _cnt_of_array(s_template) == VSI_NN_OP_NUM, vsi_nn_node_attr_template_c );
 

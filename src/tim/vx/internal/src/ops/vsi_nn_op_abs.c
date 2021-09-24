@@ -43,7 +43,7 @@ static vsi_status op_compute
     )
 {
     vsi_status status;
-    int32_t input_size[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t input_size[VSI_NN_MAX_DIM_NUM] = {0};
     uint32_t dims = 0;
     vx_tensor input = NULL, input0 = NULL;
     vx_tensor output = NULL, output0 = NULL;
@@ -51,12 +51,17 @@ static vsi_status op_compute
 
     if (inputs[0]->attr.dim_num > 4)
     {
-        input_size[0] = vsi_nn_GetElementNum(inputs[0]) /
+        input_size[0] = (int32_t)vsi_nn_GetElementNum(inputs[0]) /
             inputs[0]->attr.size[inputs[0]->attr.dim_num - 1];
         input_size[1] = inputs[0]->attr.size[inputs[0]->attr.dim_num - 1];
         dims= 2;
+#ifdef VSI_40BIT_VA_SUPPORT
         input = vxReshapeTensor(inputs[0]->t, input_size, dims);
         output = vxReshapeTensor(outputs[0]->t, input_size, dims);
+#else
+        input = vxReshapeTensor(inputs[0]->t, (vx_int32*)input_size, (vx_uint32)dims);
+        output = vxReshapeTensor(outputs[0]->t, (vx_int32*)input_size, (vx_uint32)dims);
+#endif
         input0 = input;
         output0 = output;
     }

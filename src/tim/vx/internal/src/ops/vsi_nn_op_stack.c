@@ -76,11 +76,11 @@ static vsi_bool op_setup
 {
     vsi_nn_stack_param * p;
     uint32_t i, j;
-    uint32_t block_size = 1;
-    uint32_t block_num = 1;
+    vsi_size_t block_size = 1;
+    vsi_size_t block_num = 1;
     uint32_t axis;
-    uint32_t input_shape[2] = {1, 1};
-    uint32_t output_shape[2] = {1, 1};
+    vsi_size_t input_shape[2] = {1, 1};
+    vsi_size_t output_shape[2] = {1, 1};
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_tensor_t *output_rs = NULL;
     vsi_nn_stack_lcl_data * data;

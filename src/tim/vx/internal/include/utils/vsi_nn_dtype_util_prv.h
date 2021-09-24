@@ -507,7 +507,7 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_asymm8
 vsi_bool vsi_nn_dtype_convert_float_to_quantize_symm8_perchannel
     (
     const float * buffer, size_t size,
-    const int32_t * shape, size_t rank,
+    const vsi_size_t * shape, size_t rank,
     const float * scale, size_t scale_size,
     const int32_t * zero_point, size_t zero_point_size,
     int32_t channel_dim,
@@ -552,7 +552,7 @@ vsi_bool vsi_nn_dtype_convert_quantize_asymm8_to_float
 vsi_bool vsi_nn_dtype_convert_quantize_symm8_perchannel_to_float
     (
     const int8_t * buffer, size_t size,
-    const int32_t * shape, size_t rank,
+    const vsi_size_t * shape, size_t rank,
     const float * scale, size_t scale_size,
     const int32_t * zero_point, size_t zero_point_size,
     int32_t channel_dim,

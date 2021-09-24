@@ -49,10 +49,10 @@ static vsi_status op_compute
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
-    uint32_t i = 0;
-    uint32_t block_size = 1, coord_dim = 1;
-    uint32_t *input_size = inputs[0]->attr.size;
-    uint32_t dims_num = inputs[0]->attr.dim_num;
+    vsi_size_t i = 0;
+    vsi_size_t block_size = 1, coord_dim = 1;
+    vsi_size_t *input_size = inputs[0]->attr.size;
+    vsi_size_t dims_num = inputs[0]->attr.dim_num;
 
     if(inputs[1]->attr.dim_num > 1)
     {
@@ -71,8 +71,8 @@ static vsi_status op_compute
         block_size *= input_size[i];
     }
 
-    vsi_nn_kernel_param_add_int32( param, "block_size", block_size );
-    vsi_nn_kernel_param_add_int32( param, "coord_dim", coord_dim );
+    vsi_nn_kernel_param_add_int32( param, "block_size", (int32_t)block_size );
+    vsi_nn_kernel_param_add_int32( param, "coord_dim", (int32_t)coord_dim );
     n = vsi_nn_kernel_selector( self->graph, "gather_nd", inputs, 2, outputs, 1, param );
     if( n != NULL )
     {
@@ -129,11 +129,11 @@ static vsi_bool op_setup
     )
 {
     /* TODO: Add code to comput outputs' shape. */
-    uint32_t i = 0;
+    vsi_size_t i = 0;
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        uint32_t j = 0, coord_dim = 1;
+        vsi_size_t j = 0, coord_dim = 1;
         if(inputs[1]->attr.dim_num > 1)
         {
             coord_dim = inputs[1]->attr.size[0];
@@ -151,7 +151,7 @@ static vsi_bool op_setup
         {
             outputs[0]->attr.size[j++] = inputs[1]->attr.size[0];
         }
-        outputs[0]->attr.dim_num = j;
+        outputs[0]->attr.dim_num = (uint32_t)j;
     }
     return TRUE;
 } /* op_setup() */

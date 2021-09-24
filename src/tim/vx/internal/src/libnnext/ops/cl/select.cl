@@ -13,8 +13,8 @@ __kernel void select_I8_U8_U8toU8(
     uint4 src0, src1, src, dst;
     float inputScale, inputTail;
     READ_IMAGEI_2DARRAY(value, condition, coord);
-    READ_IMAGEF_2DARRAY(src0, input0, coord);
-    READ_IMAGEF_2DARRAY(src1, input1, coord);
+    READ_IMAGEUI_2DARRAY(src0, input0, coord);
+    READ_IMAGEUI_2DARRAY(src1, input1, coord);
     src   = (value != 0 ? src0 : src1);
     inputScale = (value.x != 0 ? input0Scale : input1Scale);
     inputTail  = (value.x != 0 ? input0Tail  : input1Tail);

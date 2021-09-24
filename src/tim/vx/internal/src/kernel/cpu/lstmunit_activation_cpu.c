@@ -131,19 +131,19 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM] = {NULL};
-    size_t   in_stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM]   = {{1}};
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM]    = {0};
-    uint32_t i, b;
+    vsi_size_t   in_stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM]   = {{1}};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM]    = {0};
+    vsi_size_t i, b;
     int32_t  _is_ln                = 0;
     int32_t  _is_cifg              = 0;
     int32_t  _is_proj              = 0;
     int32_t  _is_hybrid            = 0;
     int32_t  recurrent_activation;
     vsi_nn_activation_e activation_mode;
-    uint32_t n_batch               = 0;
-    uint32_t n_cell                = 0;
+    vsi_size_t n_batch               = 0;
+    vsi_size_t n_cell                = 0;
     float    forget_bias;
     /* prepare data */
     for( i = 0; i < _INPUT_NUM; i++ )
@@ -195,7 +195,7 @@ DEF_KERNEL_EXECUTOR(_compute)
     {
         for (i = 0; i < n_cell; i++)
         {
-            uint32_t index = i + n_cell * b;
+            vsi_size_t index = i + n_cell * b;
             float    data_i_t = 0;
             float    data_f_t = 0;
             float    data_g_t = 0;

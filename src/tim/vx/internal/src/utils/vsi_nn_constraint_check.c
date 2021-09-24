@@ -164,7 +164,6 @@ vsi_bool validate_op_io_types
         node_io_signature_t* sig = _get_op_signature(inputs, inputs_num,
                 outputs, outputs_num, op_constraint_reg);
 
-        VSILOGD("Validate [%s]", name);
         if(sig && op_constraint_reg && op_constraint_reg->types) {
             for(i = 0; i < op_constraint_reg->io_types_item_count; i++) {
                 const uint8_t* curr = ((const uint8_t*)op_constraint_reg->types) \

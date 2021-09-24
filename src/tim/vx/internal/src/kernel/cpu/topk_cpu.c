@@ -132,9 +132,9 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t  i = 0;
     int32_t  j = 0;
     int32_t  top_k = 0;
@@ -166,8 +166,8 @@ DEF_KERNEL_EXECUTOR(_compute)
     status = vsi_nn_kernel_scalar_read_int32( param[3], &top_k );
     CHECK_STATUS_FAIL_GOTO(status, final );
 
-    block_num = in_attr[0]->shape->data[1];
-    block_size = in_attr[0]->shape->data[0];
+    block_num = (uint32_t)in_attr[0]->shape->data[1];
+    block_size = (uint32_t)in_attr[0]->shape->data[0];
     indices_ptr = (uint32_t*)malloc(block_size * sizeof(uint32_t));
     CHECK_PTR_FAIL_GOTO( indices_ptr, "Create indices buffer fail.", final );
 

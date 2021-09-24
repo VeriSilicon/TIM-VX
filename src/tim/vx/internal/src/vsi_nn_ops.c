@@ -284,8 +284,8 @@ void vsi_nn_OpGetIoNum
     (
     vsi_nn_op_t op,
     vsi_nn_node_t * node,
-    uint32_t     * input_num,
-    uint32_t     * output_num
+    vsi_size_t     * input_num,
+    vsi_size_t     * output_num
     )
 {
     const vsi_nn_op_proc_t * proc;
@@ -294,11 +294,11 @@ void vsi_nn_OpGetIoNum
     {
         if( NULL != input_num )
         {
-            *input_num = proc->input_num;
+            *input_num = (uint32_t)proc->input_num;
         }
         if( NULL != output_num )
         {
-            *output_num = proc->output_num;
+            *output_num = (uint32_t)proc->output_num;
         }
     }
 } /* vsi_nn_OpGetIoNum() */

@@ -63,9 +63,9 @@ static vsi_status op_compute
     {
         vsi_nn_tensor_attr_t attr;
         float const_one = 1.0;
-        int32_t i;
-        int32_t count = inputs[1]->attr.size[1];
-        float* const_data = malloc(count * sizeof(float));
+        vsi_size_t i;
+        vsi_size_t count = inputs[1]->attr.size[1];
+        float* const_data = (float*)malloc(count * sizeof(float));
 
         for (i = 0; i < count; i++)
         {
@@ -122,7 +122,7 @@ static vsi_bool op_setup
         }
         else if( VSI_NN_LSH_PROJECTION_DENSE == node->nn_param.lsh_projection.type )
         {
-            outputs[0]->attr.size[0] = vsi_nn_GetElementNum( inputs[0] );
+            outputs[0]->attr.size[0] = (uint32_t)vsi_nn_GetElementNum( inputs[0] );
         }
         else
         {

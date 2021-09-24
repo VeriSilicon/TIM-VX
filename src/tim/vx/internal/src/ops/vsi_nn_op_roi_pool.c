@@ -151,7 +151,7 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
-    int32_t size[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t size[VSI_NN_MAX_DIM_NUM];
     uint32_t dim;
     vx_tensor rois_tmp;
 
@@ -170,7 +170,19 @@ static vsi_status op_optimize
         {
             size[2] = inputs[1]->attr.size[0];
             size[3] = inputs[1]->attr.size[1];
+#ifdef VSI_40BIT_VA_SUPPORT
             rois_tmp = vxReshapeTensor(inputs[1]->t, size, dim);
+#else
+            {
+                vsi_size_t i;
+                int32_t size_32bit[VSI_NN_MAX_DIM_NUM];
+                for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+                {
+                    size_32bit[i] = (int32_t)size[i];
+                }
+                rois_tmp = vxReshapeTensor(inputs[1]->t, size_32bit, dim);
+            }
+#endif
             if(NULL == rois_tmp)
             {
                 return VSI_FAILURE;

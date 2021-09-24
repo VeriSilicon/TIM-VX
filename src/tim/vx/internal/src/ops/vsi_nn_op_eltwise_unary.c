@@ -89,7 +89,7 @@ static vsi_bool op_setup
     )
 {
     uint32_t i, out_rank;
-    uint32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool ret = TRUE;
 
     out_rank = inputs[0]->attr.dim_num;
@@ -101,18 +101,18 @@ static vsi_bool op_setup
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = out_rank;
-        memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(uint32_t) );
+        memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(vsi_size_t) );
     }
     else
     {
-        uint32_t total_size_got;
-        uint32_t total_size_expected;
+        vsi_size_t total_size_got;
+        vsi_size_t total_size_expected;
         total_size_expected = vsi_nn_ShapeProduct( shape, out_rank );
         total_size_got = vsi_nn_ShapeProduct( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num );
         if( total_size_expected != total_size_got )
         {
-            VSILOGW("Output size mismatch, expect %d, but got %d",
+            VSILOGW("Output size mismatch, expect %"VSI_SIZE_T_SPECIFIER", but got %"VSI_SIZE_T_SPECIFIER"",
                     total_size_expected, total_size_got);
             ret = FALSE;
         }
@@ -196,7 +196,7 @@ extern "C" {
     { \
         return _eltwise_unary_op_compute( ""#kernel_name, self, inputs, outputs ); \
     } \
-DEF_OP_REG(name, op_init, op_compute_##kernel_name, vsi_nn_op_common_deinit, op_check, op_setup, NULL, 2, 1)
+DEF_OP_REG(name, op_init, op_compute_##kernel_name, vsi_nn_op_common_deinit, op_check, op_setup, NULL, 1, 1)
 
 DEF_ELEMENT_WISE_UNARY_OP( SIN, sin );
 DEF_ELEMENT_WISE_UNARY_OP( EXP, exp );

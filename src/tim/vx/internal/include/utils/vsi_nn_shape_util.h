@@ -26,18 +26,19 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include "vsi_nn_types.h"
 
 void vsi_nn_shape_get_stride
     (
-    const int32_t * shape,
-    size_t rank,
-    size_t * out_stride
+    const vsi_size_t * shape,
+    vsi_size_t rank,
+    vsi_size_t * out_stride
     );
 
-size_t vsi_nn_shape_get_size
+vsi_size_t vsi_nn_shape_get_size
     (
-    const int32_t * shape,
-    size_t rank
+    const vsi_size_t * shape,
+    vsi_size_t rank
     );
 
 #endif

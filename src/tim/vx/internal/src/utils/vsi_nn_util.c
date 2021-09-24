@@ -103,10 +103,10 @@ _compiler_assert(VX_STATUS_MIN == -25, VX_STATUS_VALUE_CHANGED);
 
 static const int16_t vx_status_desc_cnt = _cnt_of_array( vx_status_desc );
 
-static uint32_t _compute_stride_rounding
+static vsi_size_t _compute_stride_rounding
     (
-    uint32_t out,
-    uint32_t stride,
+    vsi_size_t out,
+    vsi_size_t stride,
     vsi_nn_round_type_e rounding
     )
 {
@@ -121,17 +121,17 @@ static uint32_t _compute_stride_rounding
     return out;
 }
 
-static uint32_t _compute_padding
+static vsi_size_t _compute_padding
     (
-    uint32_t in_size,
-    uint32_t ksize,
-    uint32_t stride,
-    uint32_t dilation_rate,
-    uint32_t out_size
+    vsi_size_t in_size,
+    vsi_size_t ksize,
+    vsi_size_t stride,
+    vsi_size_t dilation_rate,
+    vsi_size_t out_size
     )
 {
-    uint32_t effective_ksize;
-    int32_t padding;
+    vsi_size_t effective_ksize;
+    vsi_ssize_t padding;
     effective_ksize = (ksize - 1) * dilation_rate + 1;
     padding = (out_size - 1) * stride + effective_ksize - in_size;
     return vsi_nn_max(padding, 0);
@@ -140,12 +140,12 @@ static uint32_t _compute_padding
 uint8_t * vsi_nn_LoadBinaryData
     (
     const char * filename,
-    uint32_t  * sz
+    vsi_size_t  * sz
     )
 {
     uint8_t  * data;
-    uint32_t   fsize;
-    size_t      cnt;
+    vsi_size_t   fsize;
+    vsi_size_t      cnt;
     FILE      * fp;
 
     fp = fopen( filename, "rb" );
@@ -154,7 +154,7 @@ uint8_t * vsi_nn_LoadBinaryData
         return NULL;
     }
     fseek( fp, 0L, SEEK_END );
-    fsize = (uint32_t)ftell( fp );
+    fsize = (vsi_size_t)ftell( fp );
     fseek( fp, 0L, SEEK_SET );
     data = (uint8_t *)malloc( fsize );
     cnt = 0;
@@ -164,9 +164,9 @@ uint8_t * vsi_nn_LoadBinaryData
     }
     else
     {
-        while( (uint32_t)cnt < fsize )
+        while( cnt < fsize )
         {
-            cnt += fread( &data[cnt], 1, fsize, fp );
+            cnt += (vsi_size_t)fread( &data[cnt], 1, fsize, fp );
             if( cnt == 0 )
             {
                 break;
@@ -177,15 +177,15 @@ uint8_t * vsi_nn_LoadBinaryData
     fclose( fp );
     if( NULL != sz )
     {
-        *sz = (uint32_t)cnt;
+        *sz = cnt;
     }
     return data;
 } /* vsi_nn_LoadBinaryData() */
 
-uint32_t vsi_nn_GetStrideSize
+vsi_size_t vsi_nn_GetStrideSize
     (
     vsi_nn_tensor_attr_t * attr,
-    uint32_t            * stride
+    vsi_size_t            * stride
     )
 {
 
@@ -197,16 +197,16 @@ uint32_t vsi_nn_GetStrideSize
     return vsi_nn_GetStrideSizeBySize(attr->size, attr->dim_num, attr->dtype.vx_type, stride);
 } /* vsi_nn_GetStrideSize() */
 
-uint32_t vsi_nn_GetStrideSizeBySize
+vsi_size_t vsi_nn_GetStrideSizeBySize
     (
-    uint32_t   * size,
-    uint32_t     dim_num,
+    vsi_size_t   * size,
+    vsi_size_t     dim_num,
     vsi_nn_type_e type,
-    uint32_t   * stride
+    vsi_size_t   * stride
     )
 {
-    uint32_t total_bytes;
-    uint32_t i;
+    vsi_size_t total_bytes;
+    vsi_size_t i;
 
     if( NULL == size || NULL == stride )
     {
@@ -228,10 +228,10 @@ uint32_t vsi_nn_GetStrideSizeBySize
     return total_bytes;
 } /* vsi_nn_GetStrideSizeBySize() */
 
-uint32_t vsi_nn_GetTotalBytesBySize
+vsi_size_t vsi_nn_GetTotalBytesBySize
     (
-    uint32_t   * size,
-    uint32_t     dim_num,
+    vsi_size_t   * size,
+    vsi_size_t     dim_num,
     vsi_nn_type_e type
     )
 {
@@ -328,17 +328,17 @@ void vsi_nn_UpdateTensorDims
 } /* vsi_nn_UpdateTensorDims() */
 
 
-uint32_t vsi_nn_ComputeFilterSize
+vsi_size_t vsi_nn_ComputeFilterSize
     (
-    uint32_t   i_size,
-    uint32_t   ksize,
+    vsi_size_t   i_size,
+    vsi_size_t   ksize,
     uint32_t * pad,
     uint32_t   stride,
     uint32_t   dilation,
     vsi_nn_round_type_e rounding
     )
 {
-    uint32_t out;
+    vsi_size_t out;
     if( 0 == stride )
     {
         if (i_size == ksize) {
@@ -358,16 +358,16 @@ uint32_t vsi_nn_ComputeFilterSize
     return out;
 } /* vsi_nn_ComputeFilterSize() */
 
-uint32_t vsi_nn_compute_filter_shape
+vsi_size_t vsi_nn_compute_filter_shape
     (
     vsi_nn_pad_e padding_type,
-    uint32_t image_size,
-    uint32_t ksize,
+    vsi_size_t image_size,
+    vsi_size_t ksize,
     uint32_t stride,
     uint32_t dilation_rate
     )
 {
-    uint32_t effective_ksize;
+    vsi_size_t effective_ksize;
     effective_ksize = (ksize - 1) * dilation_rate + 1;
     switch (padding_type)
     {
@@ -382,16 +382,16 @@ uint32_t vsi_nn_compute_filter_shape
 
 void vsi_nn_compute_padding
     (
-    uint32_t   * in_shape,
-    uint32_t   * ksize,
+    vsi_size_t   * in_shape,
+    vsi_size_t   * ksize,
     uint32_t   * stride,
     uint32_t   * dilation,
     vsi_nn_pad_e pad_type,
-    uint32_t   * out_pad
+    vsi_size_t   * out_pad
     )
 {
-    uint32_t out_w, out_h;
-    uint32_t pad_w, pad_h;
+    vsi_size_t out_w, out_h;
+    vsi_size_t pad_w, pad_h;
     uint32_t dilation_w, dilation_h;
     if (NULL == in_shape || NULL == ksize
         || NULL == stride || NULL == out_pad)
@@ -425,13 +425,13 @@ void vsi_nn_compute_padding
 
 void vsi_nn_ComputePadWithPadType
     (
-    uint32_t   * in_shape,
+    vsi_size_t   * in_shape,
     uint32_t     in_dim_num,
-    uint32_t   * ksize,
+    vsi_size_t   * ksize,
     uint32_t   * stride,
     vsi_nn_pad_e pad_type,
     vsi_nn_round_type_e rounding,
-    uint32_t   * out_pad
+    vsi_size_t   * out_pad
     )
 {
     vsi_nn_compute_padding(in_shape, ksize, stride, NULL, pad_type, out_pad);
@@ -439,16 +439,16 @@ void vsi_nn_ComputePadWithPadType
 
 void vsi_nn_compute_padding_conv1d
 (
-    uint32_t   * in_shape,
-    uint32_t   * ksize,
+    vsi_size_t   * in_shape,
+    vsi_size_t   * ksize,
     uint32_t   * stride,
     uint32_t   * dilation,
     vsi_nn_pad_e pad_type,
-    uint32_t   * out_pad
+    vsi_size_t   * out_pad
 )
 {
-    uint32_t out_h;
-    uint32_t pad_h;
+    vsi_size_t out_h;
+    vsi_size_t pad_h;
     uint32_t dilation_h;
     if (NULL == in_shape || NULL == ksize
         || NULL == stride || NULL == out_pad)
@@ -476,13 +476,13 @@ void vsi_nn_compute_padding_conv1d
 
 void vsi_nn_ComputePadWithPadTypeForConv1D
     (
-    uint32_t   * in_shape,
+    vsi_size_t   * in_shape,
     uint32_t     in_dim_num,
-    uint32_t   * ksize,
+    vsi_size_t   * ksize,
     uint32_t   * stride,
     vsi_nn_pad_e pad_type,
     vsi_nn_round_type_e rounding,
-    uint32_t   * out_pad
+    vsi_size_t   * out_pad
     )
 {
     vsi_nn_compute_padding_conv1d(in_shape, ksize, stride, NULL, pad_type, out_pad);
@@ -536,10 +536,10 @@ vsi_bool vsi_nn_CreateTensorGroup
     )
 {
     vsi_bool   ret;
-    uint32_t sz;
+    vsi_size_t sz;
     uint32_t i;
-    uint32_t start[VSI_NN_MAX_DIM_NUM];
-    uint32_t end[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t start[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t end[VSI_NN_MAX_DIM_NUM];
     vsi_nn_tensor_attr_t attr;
 
     if( NULL == graph || NULL == in_tensor
@@ -561,7 +561,7 @@ vsi_bool vsi_nn_CreateTensorGroup
 
     memcpy( &attr, &in_tensor->attr, sizeof( attr ) );
     attr.size[axis] = sz;
-    memset( start, 0, sizeof( uint32_t ) * VSI_NN_MAX_DIM_NUM );
+    memset( start, 0, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
     end[0] = in_tensor->attr.size[0];
     end[1] = in_tensor->attr.size[1];
     end[2] = in_tensor->attr.size[2];
@@ -576,9 +576,9 @@ vsi_bool vsi_nn_CreateTensorGroup
         if ( attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC )
         {
             attr.dtype.scales = in_tensor->attr.dtype.scales + sz * i;
-            attr.dtype.scale_dim = sz;
+            attr.dtype.scale_dim = (int32_t)sz;
             attr.dtype.zero_points = in_tensor->attr.dtype.zero_points + sz * i;
-            attr.dtype.zero_points_dim = sz;
+            attr.dtype.zero_points_dim = (int32_t)sz;
         }
 #endif
         out_tensors[i] = vsi_nn_CreateTensor( graph, &attr );
@@ -605,8 +605,8 @@ vsi_bool vsi_nn_CreateTensorGroup
 
 uint32_t vsi_nn_ShapeToString
     (
-    uint32_t * shape,
-    uint32_t   dim_num,
+    vsi_size_t * shape,
+    vsi_size_t   dim_num,
     char      * buf,
     uint32_t   buf_sz,
     vsi_bool     for_print
@@ -614,7 +614,7 @@ uint32_t vsi_nn_ShapeToString
 {
 #define _PRINT_FMT     (0)
 #define _NOT_PRINT_FMT (1)
-    uint32_t s;
+    vsi_size_t s;
     uint32_t count;
     const char * all_fmt[] = {" %d,", "%d_" };
     const char * fmt;
@@ -710,26 +710,35 @@ vsi_bool vsi_nn_CheckFilePath
     return FALSE;
 } /* vsi_nn_CheckFilePath() */
 
+/*
+ * AlignedBuffer is figured as bellow:
+ * | margin start at raw_addr | aligned_header | begin_guard  |
+ *  data start at align_addr | end_guard |
+*/
+#define BEGIN_GUARD_SIZE 64
+#define END_GUARD_SIZE 64
 typedef struct
 {
     uint8_t* raw_addr;
+    uint8_t begin_guard[BEGIN_GUARD_SIZE];
 } aligned_header;
 
 uint8_t * vsi_nn_MallocAlignedBuffer
     (
-    uint32_t mem_size,
-    uint32_t align_start_size,
-    uint32_t align_block_size
+    vsi_size_t mem_size,
+    vsi_size_t align_start_size,
+    vsi_size_t align_block_size
     )
 {
-    uint32_t sz;
+    vsi_size_t sz;
     uintptr_t temp;
     uint8_t* raw_addr;
     uint8_t* p;
     uint8_t* align_addr;
     aligned_header* header;
 
-    sz = sizeof(aligned_header) + mem_size + align_start_size + align_block_size;
+    sz = sizeof(aligned_header) + mem_size +
+        align_start_size + align_block_size + END_GUARD_SIZE;
     raw_addr = (uint8_t *)malloc( sz * sizeof( uint8_t ) );
     memset(raw_addr, 0, sizeof( uint8_t ) * sz);
     p = raw_addr + sizeof(aligned_header);
@@ -761,7 +770,7 @@ void vsi_nn_FreeAlignedBuffer
 vsi_bool vsi_nn_IsBufferAligned
     (
     uint8_t * buf,
-    uint32_t align_start_size
+    vsi_size_t align_start_size
     )
 {
     uintptr_t temp;
@@ -778,7 +787,7 @@ void vsi_nn_FormatToString
     (
     vsi_nn_tensor_t *tensor,
     char *buf,
-    uint32_t buf_sz
+    vsi_size_t buf_sz
     )
 {
     switch(tensor->attr.dtype.vx_type)
@@ -858,250 +867,7 @@ int32_t vsi_nn_partition
     return low;
 }
 
-
-/* Greatest Common Divisor*/
-static vsi_bool vsi_nn_GetDataDivisors
-    (
-    vx_uint32 input_value,
-    vx_uint32 *divisors,
-    vx_uint32 gcd
-    )
-{
-    vx_uint32 i                 = 0;
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
-    for (i = vsi_nn_min(input_value, VSI_NN_MAX_IMAGE_WIDTH - 1); i > 0; i --)
-    {
-        if ((i % gcd == 0) && (input_value % i == 0))
-        {
-            *divisors = i;
-
-            return TRUE;
-        }
-    }
-#undef VSI_NN_MAX_IMAGE_WIDTH
-    return FALSE;
-}
-
-void vsi_nn_OptimizedEltOPShape
-    (
-       vsi_nn_tensor_t * input,
-       uint32_t          sizes[VSI_NN_MAX_DIM_NUM],
-       uint32_t        * num_of_dims
-    )
-{
-    uint32_t element_count     = 0;
-    uint32_t i                 = 0;
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
-    element_count = vsi_nn_GetElementNum(input);
-
-    for (i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
-    {
-        sizes[i] = 1;
-    }
-
-    if (element_count < VSI_NN_MAX_IMAGE_WIDTH)
-    {
-        sizes[0] = element_count;
-        *num_of_dims = 2;
-    }
-    else
-    {
-        vx_uint32 divisors = 1;
-        for (i = 0; i < 2; i++)
-        {
-            divisors = 1;
-            vsi_nn_GetDataDivisors(element_count, &divisors, 1);
-            if (1 == divisors)
-            {
-                divisors = element_count;
-            }
-            sizes[i] = divisors;
-            element_count = element_count / divisors;
-        }
-
-        sizes[2] = element_count;
-        if (1 == sizes[2])
-        {
-            *num_of_dims = 2;
-        }
-        else
-        {
-            *num_of_dims = 3;
-        }
-    }
-#undef VSI_NN_MAX_IMAGE_WIDTH
-}
-
-vsi_bool vsi_nn_OptimizedEltWiseOPShape
-    (
-    vsi_nn_tensor_t * input0,
-    vsi_nn_tensor_t * input1,
-    vsi_nn_tensor_t * output,
-    uint32_t          sizes0[VSI_NN_MAX_DIM_NUM],
-    uint32_t          sizes1[VSI_NN_MAX_DIM_NUM],
-    uint32_t          sizes2[VSI_NN_MAX_DIM_NUM],
-    uint32_t        * dim_num
-    )
-{
-    vsi_bool  status            = TRUE;
-    uint32_t  i                 = 0;
-    uint32_t  cnt               = 0;
-    uint32_t  dims              = 0;
-    uint32_t  element_count0    = 0;
-    uint32_t  element_count1    = 0;
-    vsi_bool  enable_broadcast  = FALSE;
-    vsi_bool  enable_broadcast1 = FALSE;
-    uint32_t  broadcast_Bits    = 0;
-
-    element_count0 = vsi_nn_GetElementNum(input0);
-    element_count1 = vsi_nn_GetElementNum(input1);
-
-    if (element_count0 == 1 || element_count1 == 1)
-    {
-        enable_broadcast1 = TRUE;
-    }
-
-    /*************step 1:init tensor shape*****************/
-    for (i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
-    {
-        sizes0[i] = 1;
-        sizes1[i] = 1;
-        sizes2[i] = 1;
-    }
-
-    /*************step 2:squeeze tensor shape*****************/
-    for (i = 0; i < output->attr.dim_num; i++)
-    {
-        uint32_t sz0 = input0->attr.dim_num > i ? input0->attr.size[i] : 1;
-        uint32_t sz1 = input1->attr.dim_num > i ? input1->attr.size[i] : 1;
-        uint32_t sz2 = output->attr.dim_num > i ? output->attr.size[i] : 1;
-
-        if (sz0 == sz1 && sz0 == 1)
-        {
-            continue;
-        }
-        else
-        {
-            sizes0[cnt] = sz0;
-            sizes1[cnt] = sz1;
-            sizes2[cnt] = sz2;
-
-            cnt ++;
-            dims ++;
-        }
-    }
-
-    for (i = 0; i < dims; i++)
-    {
-        uint32_t sz0 = sizes0[i];
-        uint32_t sz1 = sizes1[i];
-
-        if (sz0 != sz1)
-        {
-            enable_broadcast = TRUE;
-            broadcast_Bits |= (1 << i);
-        }
-    }
-
-    /*************step 3:reshape tensor shape*****************/
-    if (enable_broadcast == FALSE || enable_broadcast1)
-    {
-        vsi_nn_OptimizedEltOPShape(input0, sizes0, &dims);
-        vsi_nn_OptimizedEltOPShape(input1, sizes1, &dims);
-        vsi_nn_OptimizedEltOPShape(output, sizes2, &dims);
-    }
-    else
-    {
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
-        switch (broadcast_Bits)
-        {
-        case VSI_NN_BROAD_CAST_BITS_0:
-            {
-                vx_uint32 element_count = 1;
-                vx_uint32 divisors = 1;
-
-                for (i = 1; i < dims; i++)
-                {
-                    element_count *= sizes0[i];
-                }
-
-                divisors = 1;
-                vsi_nn_GetDataDivisors(element_count, &divisors, 1);
-
-                sizes0[1] = divisors;
-                sizes1[1] = divisors;
-                sizes2[1] = divisors;
-                sizes0[2] = element_count / divisors;
-                sizes1[2] = element_count / divisors;
-                sizes2[2] = element_count / divisors;
-                dims = 3;
-
-                break;
-            }
-        case VSI_NN_BROAD_CAST_BITS_0 | VSI_NN_BROAD_CAST_BITS_1:
-        case VSI_NN_BROAD_CAST_BITS_0 | VSI_NN_BROAD_CAST_BITS_1 | VSI_NN_BROAD_CAST_BITS_2:
-            {
-                vx_uint32 w0 = sizes0[0] * sizes0[1];
-                vx_uint32 w1 = sizes1[0] * sizes1[1];
-                vx_uint32 w  = sizes2[0] * sizes2[1];
-                vx_uint32 h = sizes0[2];
-
-                if (h < VSI_NN_MAX_IMAGE_WIDTH && (w0 == 1 || w1 == 1)
-                    && w < VSI_NN_MAX_IMAGE_WIDTH)
-                {
-                    sizes0[0] = w0;
-                    sizes1[0] = w1;
-                    sizes2[0] = w;
-                    sizes0[1] = sizes0[2];
-                    sizes1[1] = sizes1[2];
-                    sizes2[1] = sizes2[2];
-                    sizes0[2] = 1;
-                    sizes1[2] = 1;
-                    sizes2[2] = 1;
-                }
-
-                break;
-            }
-        case VSI_NN_BROAD_CAST_BITS_2:
-            {
-                vx_uint32 w = sizes0[0] * sizes0[1];
-
-                if (w < VSI_NN_MAX_IMAGE_WIDTH)
-                {
-                    sizes0[0] = w;
-                    sizes1[0] = w;
-                    sizes2[0] = w;
-                    sizes0[1] = sizes0[2];
-                    sizes1[1] = sizes1[2];
-                    sizes2[1] = sizes2[2];
-                    sizes0[2] = 1;
-                    sizes1[2] = 1;
-                    sizes2[2] = 1;
-                }
-
-                break;
-            }
-        default:
-            if (dims == output->attr.dim_num)
-                status = FALSE;
-            break;
-        }
-    }
-
-#undef VSI_NN_MAX_IMAGE_WIDTH
-
-    if (status == TRUE)
-        *dim_num = vsi_nn_max(dims, 2);
-
-    if (dims > 2 && sizes2[2] != 1)
-    {
-        status = FALSE;
-    }
-
-    return status;
-}
-
-void vsi_nn_print_int_array( int32_t* array, size_t size )
+void vsi_nn_print_size_array( vsi_size_t* array, size_t size )
 {
     size_t i;
     size_t n;
@@ -1110,7 +876,7 @@ void vsi_nn_print_int_array( int32_t* array, size_t size )
     n = 0;
     for( i = 0; i < size; i ++ )
     {
-        n += snprintf( &buf[n], _MSG_SIZE - n, "%d, ", array[i] );
+        n += snprintf( &buf[n], _MSG_SIZE - n, "%"VSI_SIZE_T_SPECIFIER", ", array[i] );
         if( n >= _MSG_SIZE )
         {
             break;
@@ -1118,7 +884,7 @@ void vsi_nn_print_int_array( int32_t* array, size_t size )
     }
     VSILOGD( "%s", buf );
 #undef _MSG_SIZE
-} /* vsi_nn_print_int_array() */
+} /* vsi_nn_print_size_array() */
 
 vsi_bool vsi_nn_IsEVISFeatureAvaiable
     (

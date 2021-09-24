@@ -131,7 +131,7 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
         };
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
     vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
-    vsi_int_array_t * out_shape                 = NULL;
+    vsi_size_array_t * out_shape                 = NULL;
     vsi_nn_kernel_dtype_e        input_dtype    = F16;
     vsi_nn_kernel_dtype_e        output_dtype   = F16;
     float     minVal          = 1.0f;
@@ -579,7 +579,7 @@ static vsi_nn_kernel_node_t _setup
     float   min_value  = vsi_nn_kernel_param_get_float32( params, "min_value" );
     float   max_value  = vsi_nn_kernel_param_get_float32( params, "max_value" );
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num ) )
     {
         return NULL;

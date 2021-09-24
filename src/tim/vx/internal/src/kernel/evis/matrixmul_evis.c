@@ -298,9 +298,9 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
         ac2zero = 1;
     }
 
-    width = attr[2]->shape->data[0];
-    height = attr[2]->shape->data[1];
-    chn = attr[2]->shape->size > 2 ? attr[2]->shape->data[2] : 1;
+    width = (int32_t)(attr[2]->shape->data[0]);
+    height = (int32_t)(attr[2]->shape->data[1]);
+    chn = (int32_t)(attr[2]->shape->size > 2 ? attr[2]->shape->data[2] : 1);
 
     gpu_param.global_scale[0]  = 4;
     gpu_param.global_scale[1]  = 4;
@@ -1048,10 +1048,10 @@ static vsi_nn_kernel_node_t _setup
     int32_t transposeB  = vsi_nn_kernel_param_get_int32( params, "transposeB" );
     int32_t adjointA  = vsi_nn_kernel_param_get_int32( params, "adjointA" );
     int32_t adjointB  = vsi_nn_kernel_param_get_int32( params, "adjointB" );
-    uint32_t M = inputs[0]->attr.size[1];
-    uint32_t K = inputs[0]->attr.size[0];
-    uint32_t N = inputs[1]->attr.size[0];
-    uint32_t depthA = 1, depthB = 1;
+    vsi_size_t M = inputs[0]->attr.size[1];
+    vsi_size_t K = inputs[0]->attr.size[0];
+    vsi_size_t N = inputs[1]->attr.size[0];
+    vsi_size_t depthA = 1, depthB = 1;
 
     if ((inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32
         && inputs[1]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32
@@ -1061,7 +1061,7 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -1081,7 +1081,7 @@ static vsi_nn_kernel_node_t _setup
     depthB = inputs[1]->attr.dim_num > 2 ? inputs[1]->attr.size[2] : 1;
     if (M == 1 && depthB == 1 && depthA > 1)
     {
-        int32_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
+        vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
         shape[0] = inputs[0]->attr.size[0];
         shape[1] = inputs[0]->attr.size[2];
         shape[2] = 1;
@@ -1125,11 +1125,11 @@ static vsi_nn_kernel_node_t _setup
             CHECK_STATUS(status);
             vsi_nn_kernel_scalar_release( &tmp_params[3] );
             vsi_nn_kernel_scalar_release( &tmp_params[4] );
-            vsi_nn_kernel_tensor_release( &tmp_params[5] );
-            vsi_nn_kernel_tensor_release( &tmp_params[6] );
-            vsi_nn_kernel_tensor_release( &tmp_params[7] );
-            vsi_nn_kernel_tensor_release( &tmp_params[8] );
-            vsi_nn_kernel_tensor_release( &tmp_params[9] );
+            vsi_nn_kernel_scalar_release( &tmp_params[5] );
+            vsi_nn_kernel_scalar_release( &tmp_params[6] );
+            vsi_nn_kernel_scalar_release( &tmp_params[7] );
+            vsi_nn_kernel_scalar_release( &tmp_params[8] );
+            vsi_nn_kernel_scalar_release( &tmp_params[9] );
             {
                 // Set default border mode.
                 vx_border_t border;
@@ -1166,4 +1166,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( matrixmul, _setup )
-

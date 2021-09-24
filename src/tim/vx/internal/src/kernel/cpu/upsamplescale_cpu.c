@@ -80,19 +80,19 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
-    int32_t  i = 0;
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_ssize_t  i = 0;
     int32_t  stride = 0;
     float    scale = 0.0f;
-    int32_t width = 0;
-    int32_t height = 0;
-    int32_t out_width = 0;
-    int32_t out_height = 0;
-    int32_t outerSize = 1;
-    int32_t x = 0;
-    int32_t y = 0;
+    vsi_ssize_t width = 0;
+    vsi_ssize_t height = 0;
+    vsi_ssize_t out_width = 0;
+    vsi_ssize_t out_height = 0;
+    vsi_ssize_t outerSize = 1;
+    vsi_ssize_t x = 0;
+    vsi_ssize_t y = 0;
 
     /* prepare data */
     for(i = 0; i < _INPUT_NUM; i ++)
@@ -120,7 +120,7 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     width = in_attr[0]->shape->data[0];
     height = in_attr[0]->shape->data[1];
-    for (i = 2; i < (int32_t)in_attr[0]->shape->size; i++)
+    for (i = 2; i < (vsi_ssize_t)in_attr[0]->shape->size; i++)
     {
         outerSize *= in_attr[0]->shape->data[i];
     }
@@ -134,18 +134,18 @@ DEF_KERNEL_EXECUTOR(_compute)
         {
             for (x = 0; x < width; x++)
             {
-                int32_t in_idx = i * width * height + y * width + x;
-                int32_t base_idx = i * out_width * out_height
+                vsi_ssize_t in_idx = i * width * height + y * width + x;
+                vsi_ssize_t base_idx = i * out_width * out_height
                     + y * stride * out_width + x * stride;
-                int32_t dx = 0;
-                int32_t dy = 0;
+                vsi_ssize_t dx = 0;
+                vsi_ssize_t dy = 0;
                 float data = f32_in_buffer[0][in_idx] * scale;
 
                 for (dy = 0; dy < stride; dy++)
                 {
                     for (dx = 0; dx < stride; dx++)
                     {
-                        int32_t idx = base_idx + dy * out_width + dx;
+                        vsi_ssize_t idx = base_idx + dy * out_width + dx;
 
                         f32_out_buffer[0][idx] = data;
                     }

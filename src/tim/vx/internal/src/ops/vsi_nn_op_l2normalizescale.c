@@ -50,14 +50,14 @@ static vsi_nn_tensor_t* _expand_scale_tensor
     (
     vsi_nn_graph_t  *graph,
     vsi_nn_tensor_t *scale,
-    int32_t          scale_size_in,
-    int32_t          scale_size_out
+    vsi_size_t          scale_size_in,
+    vsi_size_t          scale_size_out
     )
 {
     vsi_status status = VX_SUCCESS;
     float* f32_in_buffer   = NULL;
     float* f32_out_buffer  = NULL;
-    int32_t  i = 0;
+    vsi_size_t  i = 0;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_t*  scale_tensor  = NULL;
     vsi_nn_dtype_t   out_dtype;
@@ -124,8 +124,8 @@ static vsi_bool _check_value_is_equal_to_one
 {
     vsi_bool ret = TRUE;
     float* tensor_data = NULL;
-    uint32_t elements = 0;
-    uint32_t i = 0;
+    vsi_size_t elements = 0;
+    vsi_size_t i = 0;
 
     elements = vsi_nn_GetElementNum( tensor );
     tensor_data = vsi_nn_ConvertTensorToFloat32Data( graph, tensor );
@@ -168,10 +168,10 @@ static vsi_status op_compute
     uint32_t   axis_size   = 0;
     uint32_t   rank_in     = 0;
     uint32_t   rank_out    = 0;
-    uint32_t   size        = 1;
+    vsi_size_t   size        = 1;
     uint32_t   i           = 0;
-    uint32_t   scale_size  = 1;
-    int32_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
+    vsi_size_t   scale_size  = 1;
+    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
     vsi_nn_l2normalizescale_param * p = NULL;
     vsi_bool ret = FALSE;
@@ -192,9 +192,9 @@ static vsi_status op_compute
     param =vsi_nn_kernel_param_create();
 
     ret = vsi_nn_kernel_optimize_reduce_shape(
-            (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
             &axis, 1,
-            (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes[0], &rank_in, shapes[2], &rank_out,
             &new_axis, &axis_size);
     size = inputs[1]->attr.size[0];
@@ -202,7 +202,7 @@ static vsi_status op_compute
     {
         size *= inputs[1]->attr.size[i];
     }
-    shapes[1][0] = (int32_t)size;
+    shapes[1][0] = size;
     shapes[1][1] = 1;
     shapes[1][2] = 1;
     shapes[1][3] = 1;
@@ -213,7 +213,7 @@ static vsi_status op_compute
     if ( ret )
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                inputs[0], (uint32_t*)shapes[0], rank_in );
+                inputs[0], shapes[0], rank_in );
         if (is_expand_scale)
         {
             reshape_tensors[1] = _expand_scale_tensor(self->graph, inputs[1], size, scale_size);
@@ -221,10 +221,10 @@ static vsi_status op_compute
         else
         {
             reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                    inputs[1], (uint32_t*)shapes[1], 2 );
+                    inputs[1], shapes[1], 2 );
         }
         reshape_tensors[2] = vsi_nn_reshape_tensor( self->graph,
-                outputs[0], (uint32_t*)shapes[0], rank_in );
+                outputs[0], shapes[0], rank_in );
 
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
                 "l2normalizescale",

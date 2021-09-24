@@ -32,6 +32,7 @@
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
+#include "kernel/vsi_nn_kernel.h"
 
 
 static vsi_status op_compute
@@ -41,22 +42,16 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status;
-    status = VSI_FAILURE;
+    vsi_status status = VSI_FAILURE;
 
-    self->n = vxActivationLayer(
-        self->graph->g,
-        inputs[0]->t,
-        VX_NN_ACTIVATION_SQUARE,
-        0,
-        0,
-        outputs[0]->t
-        );
+    self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "square",
+        inputs, 1, outputs, 1, NULL );
 
-    if( NULL != self->n )
+    if( self->n )
     {
         status = VSI_SUCCESS;
     }
+
     return status;
 } /* op_compute() */
 
@@ -93,4 +88,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

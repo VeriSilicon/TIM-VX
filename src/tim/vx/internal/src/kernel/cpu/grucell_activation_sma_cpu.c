@@ -69,9 +69,9 @@ DEF_KERNEL_EXECUTOR(_compute)
     )
 {
     vsi_status status = VSI_FAILURE;
-    int32_t i = 0;
-    int32_t batch = 0;
-    int32_t hidden_units = 0;
+    vsi_size_t i = 0;
+    vsi_size_t batch = 0;
+    vsi_size_t hidden_units = 0;
     float * buffer[_IO_NUM] = { NULL };
     vsi_nn_kernel_tensor_t tensors[_IO_NUM] = { NULL };
     vsi_nn_kernel_tensor_attr_t* attr[_IO_NUM] = { NULL };

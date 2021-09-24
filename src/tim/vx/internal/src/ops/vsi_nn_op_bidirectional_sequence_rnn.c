@@ -50,9 +50,9 @@ static vsi_bool setup_op_shapes
         &self->nn_param.bidirectional_sequence_rnn;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
-    uint32_t num_units =  0;
-    uint32_t output_size = 0;
-    uint32_t batch_size = 0;
+    vsi_size_t num_units =  0;
+    vsi_size_t output_size = 0;
+    vsi_size_t batch_size = 0;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     if( curr_param->time_major )
@@ -179,9 +179,9 @@ static vsi_bool op_setup
     vsi_nn_tensor_t** aux_reshape_output_tensors = NULL;
     vsi_bool has_aux_input = (inputs[BI_RNN_AUX_INPUT] != NULL);
     vsi_bool use_virtual_tensor = TRUE;
-    uint32_t batch_size = 0;
-    uint32_t time_step = 0;
-    uint32_t i = 0;
+    vsi_size_t batch_size = 0;
+    vsi_size_t time_step = 0;
+    vsi_size_t i = 0;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
@@ -229,9 +229,9 @@ static vsi_bool op_setup
     memset( reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
     vsi_nn_rnn_split_input_tensor(self, input_tensor,
-        split_output_tensors, time_step, use_virtual_tensor);
+        split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
 
-    vsi_nn_rnn_data_check_aligned(self, split_output_tensors, time_step, use_virtual_tensor);
+    vsi_nn_rnn_data_check_aligned(self, split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
 
     /* split aux input tensor */
     if(has_aux_input)
@@ -242,9 +242,9 @@ static vsi_bool op_setup
         memset( aux_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
         vsi_nn_rnn_split_input_tensor(self, aux_input_tensor,
-            aux_split_output_tensors, time_step, use_virtual_tensor);
+            aux_split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
 
-        vsi_nn_rnn_data_check_aligned(self, aux_split_output_tensors, time_step, use_virtual_tensor);
+        vsi_nn_rnn_data_check_aligned(self, aux_split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
     }
 
     /* prepare output tensor */
@@ -259,14 +259,14 @@ static vsi_bool op_setup
     {
         /* reshape for split output */
         output_tensor = vsi_nn_rnn_reshape_split_output(self,
-            split_output_tensors[i], batch_size, use_virtual_tensor);
+            split_output_tensors[i], (uint32_t)batch_size, use_virtual_tensor);
         reshape_output_tensors[i] = output_tensor->t;
 
         if (has_aux_input)
         {
             /* reshape for aux split output */
             output_tensor = vsi_nn_rnn_reshape_split_output(self,
-                aux_split_output_tensors[i], batch_size, use_virtual_tensor);
+                aux_split_output_tensors[i], (uint32_t)batch_size, use_virtual_tensor);
             aux_reshape_output_tensors[i] = output_tensor->t;
         }
     }
@@ -323,7 +323,7 @@ static vsi_bool op_setup
 
         /* reshape output to 3-dims */
         output_tensor = vsi_nn_rnn_reshape_cell_output(self,
-            rnncell_out0, batch_size, use_virtual_tensor);
+            rnncell_out0, (uint32_t)batch_size, use_virtual_tensor);
         rnncell_reshape_output_tensors_fw[i] = output_tensor->t;
     }
 
@@ -379,7 +379,7 @@ static vsi_bool op_setup
 
         /* reshape output to 3-dims */
         output_tensor = vsi_nn_rnn_reshape_cell_output(self,
-            rnncell_out0, batch_size, use_virtual_tensor);
+            rnncell_out0, (uint32_t)batch_size, use_virtual_tensor);
         rnncell_reshape_output_tensors_bw[i] = output_tensor->t;
     }
 
@@ -417,7 +417,7 @@ static vsi_bool op_setup
 
 
         /* concat rnncell output, the rnn's output is 3-dims */
-        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, time_step, 1 );
+        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, (uint32_t)time_step, 1 );
         curr->node->nn_param.concat.axis = 2;
         for( i = 0; i < time_step; i++ )
         {
@@ -448,7 +448,7 @@ static vsi_bool op_setup
         }
 
         /* concat rnncell output, the rnn's output is 3-dims */
-        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, time_step, 1 );
+        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, (uint32_t)time_step, 1 );
         curr->node->nn_param.concat.axis = 2;
         for( i = 0; i < time_step; i++ )
         {
@@ -476,7 +476,7 @@ static vsi_bool op_setup
         }
 
         /* concat rnncell output, the rnn's output is 3-dims */
-        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, time_step, 1 );
+        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, (uint32_t)time_step, 1 );
         curr->node->nn_param.concat.axis = 2;
         for( i = 0; i < time_step; i++ )
         {

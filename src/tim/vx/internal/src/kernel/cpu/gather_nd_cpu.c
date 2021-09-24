@@ -63,7 +63,8 @@ DEF_KERNEL_EXECUTOR(_gather_nd_exec)
     size_t out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
     int32_t i = 0;
-    int32_t block_size = 1, indices_num = 1;
+    int32_t block_size = 1;
+    vsi_ssize_t indices_num = 1;
     int32_t coord_stride = 1;
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
@@ -101,7 +102,7 @@ DEF_KERNEL_EXECUTOR(_gather_nd_exec)
 
     if(coord_stride <= 3) // reshape 3D
     {
-        int32_t stride[3] = {block_size, 0, 0};
+        vsi_ssize_t stride[3] = {block_size, 0, 0};
         for(i = 1; i < coord_stride; ++i)
         {
             stride[i] = stride[i - 1] * attr[0]->shape->data[i];
@@ -109,9 +110,9 @@ DEF_KERNEL_EXECUTOR(_gather_nd_exec)
 
         for(i = 0; i < indices_num; i++)
         {
-            uint32_t out_index = i * block_size;
+            vsi_size_t out_index = i * block_size;
             uint32_t coord[3] = {0};
-            uint32_t in_index = 0;
+            vsi_size_t in_index = 0;
             int32_t j = 0;
 
             for(j = 0; j < coord_stride; j++)

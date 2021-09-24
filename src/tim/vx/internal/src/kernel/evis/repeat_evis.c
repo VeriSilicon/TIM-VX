@@ -151,7 +151,7 @@ DEF_KERNEL_INITIALIZER(_preprocess_initializer)
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
 
-    width = attr[0]->shape->data[0];
+    width = (int32_t)(attr[0]->shape->data[0]);
 
     shaderParam.global_scale[0]  = 16;
     shaderParam.global_scale[1]  = 1;
@@ -208,7 +208,7 @@ DEF_KERNEL_INITIALIZER(_repeat_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[1] = {NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     int32_t height = 0, width = 0, chn = 0;
     int32_t is1d = 0;
     int32_t axis = 0;
@@ -220,13 +220,13 @@ DEF_KERNEL_INITIALIZER(_repeat_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     input_shape  = attr[0]->shape;
-    width = input_shape->data[0];
-    height = input_shape->data[1];
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->data[1]);
     if (height == 1 && input_shape->size == 2)
     {
         is1d = 1;
     }
-    chn = input_shape->size > 2 ? input_shape->data[2] : 1;
+    chn = (int32_t)(input_shape->size > 2 ? input_shape->data[2] : 1);
 
     if ((axis == 0 && is1d == 0) || axis == 2)
     {
@@ -383,9 +383,9 @@ static int32_t _optimize_repeat_shape
     vsi_nn_tensor_t ** inputs,
     vsi_nn_tensor_t ** outputs,
     int32_t* axis,
-    int32_t* opt_shape_in,
-    int32_t* opt_shape_out,
-    int32_t* new_rank
+    vsi_size_t* opt_shape_in,
+    vsi_size_t* opt_shape_out,
+    vsi_size_t* new_rank
     )
 {
     vsi_status status = VSI_SUCCESS;
@@ -401,7 +401,7 @@ static int32_t _optimize_repeat_shape
     }
     else if (axis[0] == 3)
     {
-        vsi_nn_kernel_optimize_element_shape( (int32_t*)inputs[0]->attr.size, 3, opt_shape_in, new_rank );
+        vsi_nn_kernel_optimize_element_shape( inputs[0]->attr.size, 3, opt_shape_in, new_rank );
         if (opt_shape_in[1] == 1)
         {
             opt_shape_in[1] = inputs[0]->attr.size[3];
@@ -450,13 +450,13 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_t * kernel_preprocess = NULL;
     vsi_nn_tensor_t * tensor_preprocess = NULL;
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_input1 = NULL, rs_output = NULL;
-    int32_t new_shape[2][VSI_NN_MAX_DIM_NUM] = {{ 1, 1, 1, 1 }, { 1, 1, 1, 1 }};
-    int32_t new_rank[2] = {0, 0};
+    vsi_size_t new_shape[2][VSI_NN_MAX_DIM_NUM] = {{ 1, 1, 1, 1 }, { 1, 1, 1, 1 }};
+    vsi_size_t new_rank[2] = {0, 0};
     int32_t axis  = vsi_nn_kernel_param_get_int32( params, "axis" );
 
     // Check if gpu can support the size
     if ( !vsi_nn_kernel_gpu_check_shape(
-        (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
+        outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }

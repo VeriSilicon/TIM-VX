@@ -127,7 +127,7 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
     vsi_nn_kernel_tensor_attr_t *input0_attr  = NULL;
     vsi_nn_kernel_tensor_attr_t *input1_attr  = NULL;
     vsi_nn_kernel_tensor_attr_t *output_attr  = NULL;
-    vsi_int_array_t             *output_shape = NULL;
+    vsi_size_array_t             *output_shape = NULL;
     vsi_nn_kernel_dtype_e        input0_dtype = F16;
     int32_t                      input0_fl    = 0;
     int32_t                      input1_fl    = 0;
@@ -411,7 +411,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     vsi_bool image_2d = FALSE;
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

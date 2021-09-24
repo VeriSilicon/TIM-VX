@@ -121,22 +121,23 @@ static vsi_bool _build_vx_deconv2d_param
 } /* _build_vx_deconv2d_param() */
 
 static vx_tensor _expand_tensor_dim
-    ( vx_tensor tensor, int32_t * shape, size_t rank, int32_t expand_dim )
+    ( vx_tensor tensor, vsi_ssize_t * shape, size_t rank, vsi_ssize_t expand_dim )
 {
-    int32_t new_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
-    uint32_t i, cnt;
+    vsi_ssize_t new_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t i, cnt;
     if( expand_dim < 0 )
     {
-        expand_dim = (int32_t)rank + expand_dim;
+        expand_dim = (vsi_ssize_t)rank + expand_dim;
     }
-    if( expand_dim < 0 || (uint32_t)expand_dim > rank )
+    if( expand_dim < 0 || (vsi_size_t)expand_dim > rank )
     {
-        VSILOGE("Run dim to expand %d, rank is %lu", expand_dim, rank);
+        VSILOGE("Run dim to expand %"VSI_SSIZE_T_SPECIFIER", rank is %"SIZE_T_SPECIFIER,
+            expand_dim, rank);
         return NULL;
     }
     for( i = 0, cnt = 0; i < rank; i ++ )
     {
-        if( i == (uint32_t)expand_dim )
+        if( i == (vsi_size_t)expand_dim )
         {
             new_shape[cnt] = 1;
             cnt ++;
@@ -148,7 +149,12 @@ static vx_tensor _expand_tensor_dim
     {
         new_shape[cnt] = 1;
     }
-    return vxReshapeTensor( tensor, new_shape, (uint32_t)rank + 1 );
+#ifdef VSI_40BIT_VA_SUPPORT
+    return vxReshapeTensor( tensor, (vsi_size_t*)new_shape, rank + 1 );
+#else
+    return vxReshapeTensor( tensor, (int32_t*)new_shape, (uint32_t)(rank + 1) );
+#endif
+
 } /* _expand_tensor_dim() */
 
 
@@ -197,12 +203,12 @@ REGISTER_CONV_OPENVX_KERNEL( conv1d )
             );
 
     temp_tensors[0] = _expand_tensor_dim( inputs[0]->t,
-            (int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
+            (vsi_ssize_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
     CHECK_PTR_FAIL_GOTO( temp_tensors[0], "Expand input dim fail.", final );
     if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
     {
         temp_tensors[1] = _expand_tensor_dim( inputs[1]->t,
-                (int32_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
+                (vsi_ssize_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
         CHECK_PTR_FAIL_GOTO( temp_tensors[1], "Expand kernel dim fail.", final );
     }
     else
@@ -229,7 +235,7 @@ REGISTER_CONV_OPENVX_KERNEL( conv1d )
     }
 
     temp_tensors[2] = _expand_tensor_dim( outputs[0]->t,
-            (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num, 0 );
+            (vsi_ssize_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num, 0 );
     CHECK_PTR_FAIL_GOTO( temp_tensors[2], "Expand output dim fail.", final );
 
     node = vxConvolutionLayer( graph->g,
@@ -272,12 +278,12 @@ REGISTER_CONV_OPENVX_KERNEL( depthwise_conv1d )
             );
 
     temp_tensors[0] = _expand_tensor_dim( inputs[0]->t,
-            (int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
+            (vsi_ssize_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
     CHECK_PTR_FAIL_GOTO( temp_tensors[0], "Expand input dim fail.", final );
 
     if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
     {
-        int32_t new_w_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+        vsi_size_t new_w_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
         uint32_t new_w_rank = 4;
         new_w_shape[0] = 1;
         new_w_shape[1] = inputs[1]->attr.size[0];
@@ -287,7 +293,12 @@ REGISTER_CONV_OPENVX_KERNEL( depthwise_conv1d )
             new_w_shape[2] *= inputs[1]->attr.size[i];
         }
         new_w_shape[3] = 1;
+#ifdef VSI_40BIT_VA_SUPPORT
         temp_tensors[1] = vxReshapeTensor( inputs[1]->t, new_w_shape, new_w_rank );
+#else
+        temp_tensors[1] = vxReshapeTensor( inputs[1]->t, (vx_int32*)new_w_shape, (vx_uint32)new_w_rank );
+#endif
+
         CHECK_PTR_FAIL_GOTO( temp_tensors[1], "Expand kernel dim fail.", final );
     }
     else
@@ -318,7 +329,7 @@ REGISTER_CONV_OPENVX_KERNEL( depthwise_conv1d )
     }
 
     temp_tensors[2] = _expand_tensor_dim( outputs[0]->t,
-            (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num, 0 );
+            (vsi_ssize_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num, 0 );
     CHECK_PTR_FAIL_GOTO( temp_tensors[2], "Expand output dim fail.", final );
 
     if( need_explicit_padding )
@@ -450,11 +461,11 @@ REGISTER_CONV_OPENVX_KERNEL( deconvolution1d )
             );
 
     temp_tensors[0] = _expand_tensor_dim( inputs[0]->t,
-            (int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num, 1 );
+            (vsi_ssize_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num, 1 );
     CHECK_PTR_FAIL_GOTO( temp_tensors[0], "Expand input dim fail.", final );
 
     temp_tensors[1] = _expand_tensor_dim( outputs[0]->t,
-            (int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num, 1 );
+            (vsi_ssize_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num, 1 );
     CHECK_PTR_FAIL_GOTO( temp_tensors[1], "Expand output dim fail.", final );
 
     node = vxDeconvolutionLayer( graph->g,

@@ -49,9 +49,9 @@ static vsi_bool setup_op_shapes
     vsi_nn_lstm_ovxlib_param* curr_param = &self->nn_param.lstm_ovxlib;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
-    uint32_t num_units =  0;
-    uint32_t output_size = 0;
-    uint32_t batch_size = 0;
+    vsi_size_t num_units =  0;
+    vsi_size_t output_size = 0;
+    vsi_size_t batch_size = 0;
     vsi_bool use_virtual_tensor = TRUE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
@@ -101,20 +101,23 @@ static vsi_bool setup_op_shapes
 
     if( !outputs[LSTM_OUTPUT_H_STATE] )
     {
-        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
         attr.dim_num = VSI_NN_DIM_AUTO;
         memcpy( &attr.dtype, &outputs[LSTM_OUTPUT_OUTPUT]->attr.dtype, sizeof( attr.dtype ) );
         attr.vtl = use_virtual_tensor;
+        attr.is_const = FALSE;
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         outputs[LSTM_OUTPUT_H_STATE] = output_tensor->t;
     }
 
     if( !outputs[LSTM_OUTPUT_C_STATE] )
     {
-        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
         attr.dim_num = VSI_NN_DIM_AUTO;
-        memcpy( &attr.dtype, &inputs[LSTM_INPUT_C_STATE]->attr.dtype, sizeof( attr.dtype ) );
+        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
         attr.vtl = use_virtual_tensor;
+        attr.is_const = FALSE;
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         outputs[LSTM_OUTPUT_C_STATE] = output_tensor->t;
     }
@@ -214,13 +217,13 @@ static vsi_bool op_setup
 
     if( curr_param->time_major )
     {
-        batch_size = inputs[LSTM_INPUT_INPUT]->attr.size[1];
-        time_step = inputs[LSTM_INPUT_INPUT]->attr.size[2];
+        batch_size = (uint32_t)inputs[LSTM_INPUT_INPUT]->attr.size[1];
+        time_step = (uint32_t)inputs[LSTM_INPUT_INPUT]->attr.size[2];
     }
     else
     {
-        batch_size = inputs[LSTM_INPUT_INPUT]->attr.size[2];
-        time_step = inputs[LSTM_INPUT_INPUT]->attr.size[1];
+        batch_size = (uint32_t)inputs[LSTM_INPUT_INPUT]->attr.size[2];
+        time_step = (uint32_t)inputs[LSTM_INPUT_INPUT]->attr.size[1];
     }
 
     setup_op_shapes( self, inputs, outputs);
@@ -237,11 +240,11 @@ static vsi_bool op_setup
 
     /* split input tensor */
     split_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * \
-        sizeof(vsi_nn_tensor_t **));
-    memset( split_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
+        sizeof(vsi_nn_tensor_t *));
+    memset( split_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t *));
     lstmunit_reshape_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * \
-        sizeof(vsi_nn_tensor_t **));
-    memset( lstmunit_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
+        sizeof(vsi_nn_tensor_t *));
+    memset( lstmunit_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t *));
 
     vsi_nn_rnn_split_input_tensor(self, input_tensor,
         split_output_tensors, time_step, use_virtual_tensor);

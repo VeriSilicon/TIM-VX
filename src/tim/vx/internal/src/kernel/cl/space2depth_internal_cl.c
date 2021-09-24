@@ -109,10 +109,10 @@ DEF_KERNEL_INITIALIZER(_space2depth_internal_initializer)
 
     vsi_status    status             = VSI_FAILURE;
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    vsi_int_array_t * in_shape = NULL;
-    int32_t width = 0;
-    int32_t height = 0;
-    int32_t chn = 0;
+    vsi_size_array_t * in_shape = NULL;
+    vsi_ssize_t width = 0;
+    vsi_ssize_t height = 0;
+    vsi_ssize_t chn = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -255,7 +255,7 @@ static vsi_nn_kernel_node_t _setup
     scaleInOut = inputScale / outputScale;
     zpInOut = outputZp - inputZp * scaleInOut;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

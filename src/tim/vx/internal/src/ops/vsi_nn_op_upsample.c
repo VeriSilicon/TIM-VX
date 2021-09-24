@@ -46,14 +46,14 @@
 static vsi_bool vsi_nn_upsample_optimize_shape
     (
     vsi_nn_node_t * self,
-    const int32_t* shape_in0, const int32_t* shape_in1,
-    const int32_t* shape_out, const size_t rank_in,
-    int32_t* out_shape_input0, int32_t* out_shape_input1,
-    int32_t* out_shape_output, uint32_t* out_rank_output
+    const vsi_ssize_t* shape_in0, const vsi_ssize_t* shape_in1,
+    const vsi_ssize_t* shape_out, const size_t rank_in,
+    vsi_ssize_t* out_shape_input0, vsi_ssize_t* out_shape_input1,
+    vsi_ssize_t* out_shape_output, uint32_t* out_rank_output
     )
 {
     vsi_bool   enable_image_2d = FALSE;
-    int32_t    hwLitimLen      = 65536;
+    vsi_ssize_t    hwLitimLen      = 65536;
 
     if ((2 == self->nn_param.upsample.scale[0])
        && (2 == self->nn_param.upsample.scale[1]))
@@ -142,7 +142,7 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
-    int32_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
+    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
     uint32_t new_rank = 0;
     vsi_bool ret;
     vsi_nn_kernel_param_t * param = NULL;
@@ -157,9 +157,9 @@ static vsi_status op_compute
     param =vsi_nn_kernel_param_create();
 
     ret = vsi_nn_upsample_optimize_shape(self,
-            (int32_t *)inputs[0]->attr.size,  (int32_t *)inputs[1]->attr.size,
-            (int32_t *)outputs[0]->attr.size, inputs[0]->attr.dim_num,
-            shapes[0], shapes[1], shapes[2], &new_rank );
+            (vsi_ssize_t*)inputs[0]->attr.size,  (vsi_ssize_t*)inputs[1]->attr.size,
+            (vsi_ssize_t*)outputs[0]->attr.size, inputs[0]->attr.dim_num,
+            (vsi_ssize_t*)shapes[0], (vsi_ssize_t*)shapes[1], (vsi_ssize_t*)shapes[2], &new_rank );
 
     vsi_nn_kernel_param_add_int32( param, "scale_x",  scale_x );
     vsi_nn_kernel_param_add_int32( param, "scale_y",  scale_y );
@@ -168,11 +168,11 @@ static vsi_status op_compute
     {
 
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                inputs[0],  (uint32_t*)shapes[0], new_rank );
+                inputs[0],  shapes[0], new_rank );
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                inputs[1],  (uint32_t*)shapes[1], new_rank );
+                inputs[1],  shapes[1], new_rank );
         reshape_tensors[2] = vsi_nn_reshape_tensor( self->graph,
-                outputs[0], (uint32_t*)shapes[2], new_rank );
+                outputs[0], shapes[2], new_rank );
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "upsample",
                                                  &reshape_tensors[0], _INPUT_NUM,
                                                  &reshape_tensors[2], _OUTPUT_NUM, param );
@@ -238,8 +238,8 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    uint32_t h;
-    uint32_t w;
+    vsi_size_t h;
+    vsi_size_t w;
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
@@ -247,13 +247,13 @@ static vsi_bool op_setup
         h = self->nn_param.upsample.size[1];
         if (0 == self->nn_param.upsample.scale[0])
         {
-            self->nn_param.upsample.scale[0] = self->nn_param.upsample.size[0] /
-                inputs[0]->attr.size[0];
+            self->nn_param.upsample.scale[0] = (uint32_t)(self->nn_param.upsample.size[0] /
+                inputs[0]->attr.size[0]);
         }
         if (0 == self->nn_param.upsample.scale[1])
         {
-            self->nn_param.upsample.scale[1] = self->nn_param.upsample.size[1] /
-                inputs[0]->attr.size[1];
+            self->nn_param.upsample.scale[1] = (uint32_t)(self->nn_param.upsample.size[1] /
+                inputs[0]->attr.size[1]);
         }
         if ( 0 == self->nn_param.upsample.size[0] )
         {

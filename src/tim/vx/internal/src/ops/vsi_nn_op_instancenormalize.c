@@ -96,8 +96,8 @@ static vsi_status op_compute
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
     float eps = self->nn_param.instancenorm.eps;
-    uint32_t *input_size = inputs[0]->attr.size;
-    uint32_t dims_num = inputs[0]->attr.dim_num;
+    vsi_size_t *input_size = inputs[0]->attr.size;
+    vsi_size_t dims_num = inputs[0]->attr.dim_num;
     int32_t rs_flg = 0;
     vsi_nn_tensor_t * tmp_inputs[3]  = {NULL, NULL, NULL};
     vsi_nn_tensor_t * tmp_outputs[1] = {NULL};
@@ -159,7 +159,7 @@ static vsi_status op_optimize
 {
     uint32_t dim = 0;
     vsi_nn_instancenorm_lcl_data2 *local = NULL;
-    uint32_t shape[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM];
     char tensor_name[128];
 
     dim = inputs[0]->attr.dim_num;

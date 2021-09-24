@@ -64,7 +64,7 @@ static vsi_nn_internal_tensor_t* create_tp_fc
     if( !bias || p->local->use_layer_norm || p->local->use_hybrid )
     {
         /* create zero bias for NN/TP */
-        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr, FALSE);
+        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr, VSI_NN_OP_FCL, FALSE);
         tensor = tensor1->t;
     }
 
@@ -73,7 +73,7 @@ static vsi_nn_internal_tensor_t* create_tp_fc
 
     tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_FCL, 0, 0 );
     tmp_inode->node->nn_param.fcl.axis = 0;
-    tmp_inode->node->nn_param.fcl.weights = weight->attr.size[1];
+    tmp_inode->node->nn_param.fcl.weights = (uint32_t)weight->attr.size[1];
 
     tmp_inode->inputs[0] = input;
     tmp_inode->inputs[1] = weight;
@@ -102,7 +102,7 @@ static vsi_nn_internal_tensor_t* create_nn_fc
     vsi_nn_internal_tensor_t* tensor1 = NULL;
     vsi_nn_internal_tensor_t* tensor2 = NULL;
     vsi_nn_internal_tensor_t* reshaped_weight_tensor = NULL;
-    uint32_t reshaped_weight_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t reshaped_weight_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_nn_internal_node_t* tmp_inode = NULL;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
@@ -110,7 +110,8 @@ static vsi_nn_internal_tensor_t* create_nn_fc
     if( !bias || p->local->use_layer_norm || p->local->use_hybrid )
     {
         /* create zero bias for NN/TP */
-        tensor1 = vsi_nn_internal_create_zero_bias_tensor(self, &input->attr, &weight->attr, FALSE);
+        tensor1 = vsi_nn_internal_create_zero_bias_tensor(
+            self, &input->attr, &weight->attr, VSI_NN_OP_FCL, FALSE);
         tensor = tensor1->t;
     }
 
@@ -122,7 +123,7 @@ static vsi_nn_internal_tensor_t* create_nn_fc
     reshaped_weight_shape[1] = kernel_h;
     reshaped_weight_shape[0] = kernel_w;
 
-    memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+    memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
     attr.dim_num = VSI_NN_DIM_AUTO;
     attr.vtl = weight->attr.vtl;
     attr.is_const = FALSE; //weight->attr.is_const;
@@ -144,7 +145,7 @@ static vsi_nn_internal_tensor_t* create_nn_fc
     tmp_inode->node->nn_param.conv2d.group = 1;
     tmp_inode->node->nn_param.conv2d.dilation[0] = 1;
     tmp_inode->node->nn_param.conv2d.dilation[1] = 1;
-    tmp_inode->node->nn_param.conv2d.weights = weight->attr.size[1];
+    tmp_inode->node->nn_param.conv2d.weights = (uint32_t)weight->attr.size[1];
 
     tmp_inode->inputs[0] = input;
     tmp_inode->inputs[1] = reshaped_weight_tensor->t;
@@ -227,7 +228,7 @@ static vsi_bool setup_op_shapes
     {
         outputs[LSTMUNIT_OUTPUT_H_STATE]->attr.dim_num = outputs[LSTMUNIT_OUTPUT_OUTPUT]->attr.dim_num;
         memcpy( outputs[LSTMUNIT_OUTPUT_H_STATE]->attr.size, outputs[LSTMUNIT_OUTPUT_OUTPUT]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof( uint32_t ) );
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
 
     /* cell_state_out */
@@ -392,7 +393,7 @@ static vsi_bool op_setup
     {
         /* reshape and transpose input */
         vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-            inputs[LSTMUNIT_INPUT_INPUT]->attr.size[0], &kernel_h, &kernel_w);
+            (uint32_t)inputs[LSTMUNIT_INPUT_INPUT]->attr.size[0], &kernel_h, &kernel_w);
         input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self, inputs[LSTMUNIT_INPUT_INPUT],
                                                 p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
 
@@ -413,7 +414,7 @@ static vsi_bool op_setup
         {
             /* reshape and transpose input */
             vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-                inputs[LSTMUNIT_INPUT_AUX_INPUT]->attr.size[0], &kernel_h, &kernel_w);
+                (uint32_t)inputs[LSTMUNIT_INPUT_AUX_INPUT]->attr.size[0], &kernel_h, &kernel_w);
             input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self, inputs[LSTMUNIT_INPUT_AUX_INPUT],
                                                     p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
 
@@ -463,7 +464,7 @@ static vsi_bool op_setup
     {
         /* reshape and transpose input */
         vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-            inputs[LSTMUNIT_INPUT_H_STATE]->attr.size[0], &kernel_h, &kernel_w);
+            (uint32_t)inputs[LSTMUNIT_INPUT_H_STATE]->attr.size[0], &kernel_h, &kernel_w);
         recurrent_input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self,
             inputs[LSTMUNIT_INPUT_H_STATE], p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
 
@@ -508,7 +509,7 @@ static vsi_bool op_setup
     {
         for( i = ifco_start_index; i < LSTMUNIT_IFCO_GATE_COUNT; i++ )
         {
-            memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+            memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
             attr.dim_num = VSI_NN_DIM_AUTO;
             attr.vtl = use_virtual_tensor;
             attr.is_const = FALSE;
@@ -566,7 +567,7 @@ static vsi_bool op_setup
     if( p->local->use_projection )
     {
         /* create virtual tensor for activations' output0 */
-        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
 
         attr.dim_num = VSI_NN_DIM_AUTO;
         attr.vtl = use_virtual_tensor;
@@ -607,7 +608,7 @@ static vsi_bool op_setup
         {
             vsi_bool use_virtual_tensor = inputs[LSTMUNIT_INPUT_BIAS_PROJ]->attr.vtl;
             input_tensor = vsi_nn_internal_create_zero_bias_tensor(self, &output_tensor->t->attr,
-                &inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr, FALSE);
+                &inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr, VSI_NN_OP_FCL, FALSE);
             zero_bias_tensor = input_tensor->t;
 
             if (use_virtual_tensor)
@@ -626,7 +627,7 @@ static vsi_bool op_setup
         else if ( p->local->use_hybrid || !p->local->use_projection_bias )
         {
             input_tensor = vsi_nn_internal_create_zero_bias_tensor(self, &output_tensor->t->attr,
-                &inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr, FALSE);
+                &inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr, VSI_NN_OP_FCL, FALSE);
             zero_bias_tensor = input_tensor->t;
         }
         else
@@ -636,7 +637,7 @@ static vsi_bool op_setup
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_FCL, 0, 0 );
         curr->node->nn_param.fcl.axis = 0;
-        curr->node->nn_param.fcl.weights = inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr.size[1];
+        curr->node->nn_param.fcl.weights = (uint32_t)inputs[LSTMUNIT_INPUT_WEIGHT_PROJ]->attr.size[1];
 
         curr->inputs[0] = output_tensor->t;
         curr->inputs[1] = inputs[LSTMUNIT_INPUT_WEIGHT_PROJ];

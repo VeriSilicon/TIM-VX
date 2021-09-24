@@ -301,7 +301,7 @@ DEF_KERNEL_INITIALIZER(_comparisons_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * attr[3]   = { NULL, NULL, NULL };
-    vsi_int_array_t * out_shape             = NULL;
+    vsi_size_array_t * out_shape             = NULL;
     float    input0Scale                    = 1.0f;
     float    input0Tail                     = 0;
     float    input1Scale                    = 1.0f;
@@ -498,7 +498,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     int32_t operation = 0;
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

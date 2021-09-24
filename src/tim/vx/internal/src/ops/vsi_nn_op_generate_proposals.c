@@ -93,7 +93,7 @@ static vsi_bool op_setup
         vsi_nn_generate_proposals_param * p;
         int32_t num_output_rois;
         p = &(self->nn_param.generate_proposals);
-        num_output_rois = vsi_nn_GetElementNum(inputs[0]);
+        num_output_rois = (int32_t)vsi_nn_GetElementNum(inputs[0]);
         if(p->pre_nms_top_n > 0)
         {
             num_output_rois = p->pre_nms_top_n;

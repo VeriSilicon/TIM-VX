@@ -83,9 +83,9 @@ static vsi_bool op_setup
     vsi_bool ret = TRUE;
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        uint32_t shape[VSI_NN_MAX_DIM_NUM] = {0};
+        vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {0};
         memcpy(shape, self->nn_param.reshape.size,
-            sizeof(uint32_t) * self->nn_param.reshape.dim_num);
+            sizeof(vsi_size_t) * self->nn_param.reshape.dim_num);
         ret = vsi_nn_CalcReshapeTensor(inputs[0],
             outputs[0],
             shape,
@@ -115,8 +115,13 @@ static vsi_status op_optimize
         {
             if(NULL == inputs[0]->t && NULL != outputs[0]->t)
             {
+#ifdef VSI_40BIT_VA_SUPPORT
                 inputs[0]->t = vxReshapeTensor( outputs[0]->t,
-                    (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num );
+                    inputs[0]->attr.size, inputs[0]->attr.dim_num );
+#else
+                inputs[0]->t = vxReshapeTensor( outputs[0]->t,
+                    (int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num );
+#endif
                 if( inputs[0]->t == NULL )
                 {
                     status = VSI_FAILURE;

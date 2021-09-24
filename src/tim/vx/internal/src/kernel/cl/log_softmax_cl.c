@@ -145,7 +145,7 @@ DEF_KERNEL_INITIALIZER(_log_softmax_initializer)
 
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
-    vsi_int_array_t * out_shape = NULL;
+    vsi_size_array_t * out_shape = NULL;
     int32_t axis = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
@@ -251,7 +251,7 @@ static vsi_nn_kernel_node_t _setup
     scaleValue = scaleValue * beta * inputScale;
     beta = beta * inputScale;
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
      || axis > 2)
     {

@@ -120,16 +120,16 @@ DEF_KERNEL_EXECUTOR(_compute)
     CHECK_STATUS_FAIL_GOTO(status, final);
 
     {
-        int32_t batch = attr[0]->shape->data[2];
-        int32_t input_channel = attr[0]->shape->data[1];
-        int32_t input_height = attr[0]->shape->data[0];
-        int32_t kernel_size = attr[1]->shape->data[0];
-        int32_t output_channel = attr[1]->shape->data[2];
-        int32_t output_height = attr[3]->shape->data[0];
-        int32_t batch_index = 0;
-        int32_t input_channel_index = 0;
-        int32_t output_channel_index = 0;
-        int32_t output_h_index = 0;
+        vsi_ssize_t batch = attr[0]->shape->data[2];
+        vsi_ssize_t input_channel = attr[0]->shape->data[1];
+        vsi_ssize_t input_height = attr[0]->shape->data[0];
+        vsi_ssize_t kernel_size = attr[1]->shape->data[0];
+        vsi_ssize_t output_channel = attr[1]->shape->data[2];
+        vsi_ssize_t output_height = attr[3]->shape->data[0];
+        vsi_ssize_t batch_index = 0;
+        vsi_ssize_t input_channel_index = 0;
+        vsi_ssize_t output_channel_index = 0;
+        vsi_ssize_t output_h_index = 0;
 
         for(batch_index = 0; batch_index < batch; batch_index++)
         {

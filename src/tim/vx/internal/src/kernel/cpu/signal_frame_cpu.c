@@ -82,9 +82,9 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM] = {NULL};
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     int32_t i = 0;
     int32_t j = 0;
     int32_t k = 0;
@@ -92,11 +92,11 @@ DEF_KERNEL_EXECUTOR(_compute)
     int32_t frame_step = 0;
     int32_t axis = 0;
     int32_t pad_end = 0;
-    int32_t length_samples = 0;
-    int32_t num_frames = 0;
-    int32_t inner_dim = 1;
-    int32_t outer_dim = 1;
-    int32_t inner_size = 1;
+    vsi_ssize_t length_samples = 0;
+    vsi_ssize_t num_frames = 0;
+    vsi_ssize_t inner_dim = 1;
+    vsi_ssize_t outer_dim = 1;
+    vsi_ssize_t inner_size = 1;
     float pad_val = 0;
 
     /* prepare data */

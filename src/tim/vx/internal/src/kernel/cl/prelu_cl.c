@@ -134,7 +134,7 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
 
     vsi_status    status             = VSI_FAILURE;
     vsi_nn_kernel_tensor_attr_t * attr[3] = { NULL };
-    vsi_int_array_t * out_shape = NULL;
+    vsi_size_array_t * out_shape = NULL;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -236,8 +236,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
-    int32_t shapes[3][VSI_NN_MAX_DIM_NUM] = { { 0 } };
-    uint32_t new_rank = 0;
+    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = { { 0 } };
+    vsi_size_t new_rank = 0;
     vsi_bool ret;
 
     float input0Scale = inputs[0]->attr.dtype.scale;
@@ -258,26 +258,26 @@ static vsi_nn_kernel_node_t _setup
     outputScale = vsi_abs(outputScale) < 1e-5 ? 0.0f : 1.0f / outputScale;
 
     ret = vsi_nn_kernel_optimize_eltwise_shape(
-            (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
-            (int32_t *)inputs[1]->attr.size, inputs[1]->attr.dim_num,
-            (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[1]->attr.size, inputs[1]->attr.dim_num,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes[0], shapes[1], shapes[2], &new_rank );
 
     if (ret)
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
-                inputs[0], (uint32_t*)shapes[0], new_rank );
+                inputs[0], shapes[0], (uint32_t)new_rank );
         reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
-                inputs[1], (uint32_t*)shapes[1], new_rank );
+                inputs[1], shapes[1], (uint32_t)new_rank );
         reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
-                outputs[0], (uint32_t*)shapes[2], new_rank );
+                outputs[0], shapes[2], (uint32_t)new_rank );
     }
     else
     {
         return NULL;
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)reshape_tensors[2]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( reshape_tensors[2]->attr.size,
                 reshape_tensors[2]->attr.dim_num ) )
     {
         goto final;
