@@ -48,25 +48,29 @@ class Quantization {
         scales_(std::move(scales)),
         zero_points_(std::move(zero_points)) {}
 
-  QuantType Type() { return type_; }
+  QuantType& Type() { return type_; }
+  const QuantType& Type() const { return type_; }
   Quantization& SetType(QuantType type) {
     this->type_ = type;
     return *this;
   }
 
-  int32_t ChannelDim() { return this->channel_dim_; }
+  int32_t& ChannelDim() { return this->channel_dim_; }
+  const int32_t& ChannelDim() const { return this->channel_dim_; }
   Quantization& SetChannelDim(int32_t channel_dim) {
     this->channel_dim_ = channel_dim;
     return *this;
   }
 
   std::vector<float>& Scales() { return this->scales_; }
+  const std::vector<float>& Scales() const { return this->scales_; }
   Quantization& SetScales(std::vector<float> scales) {
     this->scales_ = scales;
     return *this;
   }
 
   std::vector<int32_t>& ZeroPoints() { return this->zero_points_; }
+  const std::vector<int32_t>& ZeroPoints() const { return this->zero_points_; }
   Quantization& SetZeroPoints(std::vector<int32_t> zero_points) {
     this->zero_points_ = zero_points;
     return *this;
