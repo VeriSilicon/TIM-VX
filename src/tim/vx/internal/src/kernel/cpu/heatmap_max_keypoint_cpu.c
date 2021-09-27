@@ -126,15 +126,15 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t  i = 0;
     uint32_t j = 0;
     uint32_t k = 0;
-    uint32_t numBoxes = 0;
-    uint32_t heatmapSize = 0;
-    uint32_t numKeypoints = 0;
+    vsi_size_t numBoxes = 0;
+    vsi_size_t heatmapSize = 0;
+    vsi_size_t numKeypoints = 0;
     uint32_t boxInfoLength = 4;
     uint32_t output_score_index = 0;
     uint32_t output_keypoint_index = 0;
@@ -171,8 +171,8 @@ DEF_KERNEL_EXECUTOR(_compute)
         {
             uint32_t maxIndex = 0;
             float maxScore = -FLT_MAX;
-            uint32_t maxIndexWidth;
-            uint32_t maxIndexHeight;
+            vsi_size_t maxIndexWidth;
+            vsi_size_t maxIndexHeight;
             float localGrid[3][3] = {{0}};
             int32_t dh, dw;
             float delta[2] = {0.0f, 0.0f}, deltaScore;
@@ -186,7 +186,7 @@ DEF_KERNEL_EXECUTOR(_compute)
             float hRelativePos;
             for (k = 0; k < heatmapSize * heatmapSize; k++)
             {
-                uint32_t index = i * heatmapSize * heatmapSize * numKeypoints
+                vsi_size_t index = i * heatmapSize * heatmapSize * numKeypoints
                     + k * numKeypoints + j;
                 float val = f32_in_buffer[0][index];
                 if (maxScore < val)
@@ -204,18 +204,18 @@ DEF_KERNEL_EXECUTOR(_compute)
                 for (dw = -1; dw <= 1; dw++)
                 {
                     // cast uint32_t to int32_t
-                    int32_t h = (int32_t)(maxIndexHeight) + dh;
-                    int32_t w = (int32_t)(maxIndexWidth) + dw;
-                    uint32_t heatmapIndex;
+                    vsi_ssize_t h = (vsi_ssize_t)(maxIndexHeight) + dh;
+                    vsi_ssize_t w = (vsi_ssize_t)(maxIndexWidth) + dw;
+                    vsi_size_t heatmapIndex;
 
                     // use mirroring for out of bound indexing
                     // need to ensure heatmapSize >= 2
-                    h = h < 0 ? 1 : (h >= (int32_t)heatmapSize ? heatmapSize - 2 : h);
-                    w = w < 0 ? 1 : (w >= (int32_t)heatmapSize ? heatmapSize - 2 : w);
+                    h = h < 0 ? 1 : (h >= (vsi_ssize_t)heatmapSize ? heatmapSize - 2 : h);
+                    w = w < 0 ? 1 : (w >= (vsi_ssize_t)heatmapSize ? heatmapSize - 2 : w);
 
                     heatmapIndex = i * heatmapSize * heatmapSize * numKeypoints +
-                        (uint32_t)(h) * heatmapSize * numKeypoints +
-                        (uint32_t)(w) * numKeypoints + j;
+                        (vsi_size_t)(h) * heatmapSize * numKeypoints +
+                        (vsi_size_t)(w) * numKeypoints + j;
                     localGrid[dh + 1][dw + 1] = f32_in_buffer[0][heatmapIndex];
                 }
             }

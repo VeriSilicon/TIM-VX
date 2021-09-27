@@ -114,7 +114,7 @@ DEF_KERNEL_INITIALIZER(_poolwithargmax_initializer)
     vx_status    status             = VX_FAILURE;
     vx_tensor    output             = (vx_tensor)param[1];
     vsi_nn_kernel_tensor_attr_t * attr_out = NULL;
-    vsi_int_array_t * out_shape   = NULL;
+    vsi_size_array_t * out_shape   = NULL;
     vsi_bool          image_2d    = FALSE;
 
     attr_out = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output );
@@ -262,11 +262,11 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
-     || !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+     || !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num )
-     || !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[1]->attr.size,
+     || !vsi_nn_kernel_gpu_check_shape( outputs[1]->attr.size,
                 outputs[1]->attr.dim_num ))
     {
         return NULL;

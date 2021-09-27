@@ -172,8 +172,8 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_nn_kernel_tensor_t output[_OUTPUT_NUM] = {NULL};
     float * buffer[_INPUT_NUM] = { NULL };
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
-    size_t stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{0}};
-    size_t out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_size_t out_elements[_OUTPUT_NUM] = {0};
     vsi_nn_kernel_tensor_attr_t * attr[_INPUT_NUM] = { NULL };
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM] = {NULL};
     int32_t i = 0;
@@ -225,7 +225,7 @@ DEF_KERNEL_EXECUTOR(_compute)
         memset( f32_out_buffer[i], 0, out_elements[i] * sizeof(float) );
     }
 
-    num_boxes = attr[0]->shape->data[1];
+    num_boxes = (int32_t)attr[0]->shape->data[1];
     boxes = buffer[0];
     scores = buffer[1];
     selected_indices = f32_out_buffer[0];

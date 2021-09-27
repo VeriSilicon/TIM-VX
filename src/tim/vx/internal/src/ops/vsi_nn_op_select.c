@@ -49,10 +49,10 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_tensor_t* reshape_tensors[_IO_NUM] = { NULL };
-    int32_t  shapes[_IO_NUM][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
-    int32_t* shapes_ptr[_IO_NUM];
-    int32_t* shapes_in[_INPUT_NUM];
-    size_t rank_in[_INPUT_NUM];
+    vsi_size_t  shapes[_IO_NUM][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
+    vsi_size_t* shapes_ptr[_IO_NUM];
+    vsi_size_t* shapes_in[_INPUT_NUM];
+    vsi_size_t rank_in[_INPUT_NUM];
     uint32_t new_rank = 0;
     int32_t  i        = 0;
     vsi_bool ret;
@@ -69,13 +69,13 @@ static vsi_status op_compute
 
     for (i = 0; i < _INPUT_NUM; i++)
     {
-        shapes_in[i] = (int32_t *)inputs[i]->attr.size;
-        rank_in[i]   = (size_t)inputs[i]->attr.dim_num;
+        shapes_in[i] = inputs[i]->attr.size;
+        rank_in[i]   = (vsi_size_t)inputs[i]->attr.dim_num;
     }
 
     ret = vsi_nn_kernel_optimize_broadcast_shape(
-            (const int32_t**)shapes_in, (const size_t*)rank_in, _INPUT_NUM,
-            (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            (const vsi_size_t**)shapes_in, rank_in, _INPUT_NUM,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes_ptr, shapes[_INPUT_NUM], &new_rank);
 
     if( ret )
@@ -83,13 +83,13 @@ static vsi_status op_compute
         for (i = 0; i < _INPUT_NUM; i++)
         {
             reshape_tensors[i] = vsi_nn_reshape_tensor( self->graph,
-                    inputs[i], (uint32_t*)shapes[i], new_rank );
+                    inputs[i], shapes[i], new_rank );
         }
 
         for (i = 0; i < _OUTPUT_NUM; i++)
         {
             reshape_tensors[i + _INPUT_NUM] = vsi_nn_reshape_tensor( self->graph,
-                    outputs[i], (uint32_t*)shapes[i + _INPUT_NUM], new_rank );
+                    outputs[i], shapes[i + _INPUT_NUM], new_rank );
         }
 
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "select",
@@ -152,8 +152,8 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    uint32_t i, out_rank, in0_rank, in1_rank, in2_rank;
-    uint32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t i, out_rank, in0_rank, in1_rank, in2_rank;
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool ret = TRUE;
 
     in0_rank = inputs[0]->attr.dim_num;
@@ -163,7 +163,7 @@ static vsi_bool op_setup
 
     for(i = 0; i < out_rank; i++)
     {
-        uint32_t sz0, sz1, sz2;
+        vsi_size_t sz0, sz1, sz2;
         sz0 = i < in0_rank ? inputs[0]->attr.size[i] : 1;
         sz1 = i < in1_rank ? inputs[1]->attr.size[i] : 1;
         sz2 = i < in2_rank ? inputs[2]->attr.size[i] : 1;
@@ -172,19 +172,19 @@ static vsi_bool op_setup
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        outputs[0]->attr.dim_num = out_rank;
-        memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(uint32_t) );
+        outputs[0]->attr.dim_num = (uint32_t)out_rank;
+        memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(vsi_size_t) );
     }
     else
     {
-        uint32_t total_size_got;
-        uint32_t total_size_expected;
+        vsi_size_t total_size_got;
+        vsi_size_t total_size_expected;
         total_size_expected = vsi_nn_ShapeProduct( shape, out_rank );
         total_size_got = vsi_nn_ShapeProduct( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num );
         if( total_size_expected != total_size_got )
         {
-            VSILOGW("Output size mismatch, expect %d, but got %d",
+            VSILOGW("Output size mismatch, expect %"VSI_SIZE_T_SPECIFIER", but got %"VSI_SIZE_T_SPECIFIER"",
                     total_size_expected, total_size_got);
             ret = FALSE;
         }

@@ -95,7 +95,7 @@ DEF_KERNEL_INITIALIZER(_extra_ending_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
-    vsi_int_array_t * out_shape          = NULL;
+    vsi_size_array_t * out_shape          = NULL;
 
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     out_shape = attr->shape;
@@ -182,26 +182,26 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_EXTRA_ENDING_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     uint32_t rank[3] = {0};
-    int32_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
+    vsi_size_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
     int32_t i = 0;
 
-    vsi_nn_kernel_optimize_1d_tensor_shape( (const int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+    vsi_nn_kernel_optimize_1d_tensor_shape( (const vsi_size_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num,
         shapes[0], &rank[0]);
-    vsi_nn_kernel_optimize_1d_tensor_shape( (const int32_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num,
+    vsi_nn_kernel_optimize_1d_tensor_shape( (const vsi_size_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num,
         shapes[1], &rank[1]);
-    vsi_nn_kernel_optimize_1d_tensor_shape( (const int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+    vsi_nn_kernel_optimize_1d_tensor_shape( (const vsi_size_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num,
         shapes[2], &rank[2]);
 
     for (i = 0; i < 2; i++)
     {
         reshape_tensors[i] = vsi_nn_reshape_tensor( graph,
-            inputs[i], (uint32_t*)shapes[i], rank[i] );
+            inputs[i], shapes[i], rank[i] );
     }
     reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
-        outputs[0], (uint32_t*)shapes[2], rank[2] );
+        outputs[0], shapes[2], rank[2] );
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)reshape_tensors[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( reshape_tensors[0]->attr.size,
         inputs[0]->attr.dim_num ) )
     {
         goto final;

@@ -175,7 +175,6 @@ static vsi_status op_optimize
     vx_nn_convolution_relu_pooling_params_ext2_t p;
     vx_weights_biases_parameter_optimizations_t opt;
     vx_weights_biases_parameter_optimizations_t * p_opt;
-
     ret = FALSE;
     status = VSI_FAILURE;
 
@@ -215,6 +214,7 @@ static vsi_status op_optimize
             p_opt = &opt;
         }
 
+#ifdef VSI_40BIT_VA_SUPPORT
         inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
             VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER,
             4,
@@ -227,6 +227,32 @@ static vsi_status op_optimize
             p_opt,
             inputs[1]->t, inputs[2]->t
             );
+#else
+        {
+            uint32_t size_u32_input0[VSI_NN_MAX_DIM_NUM];
+            uint32_t size_u32_pconv_out[VSI_NN_MAX_DIM_NUM];
+            uint32_t size_u32_output0[VSI_NN_MAX_DIM_NUM];
+            size_t i = 0;
+            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+            {
+                size_u32_input0[i] = (uint32_t)inputs[0]->attr.size[i];
+                size_u32_pconv_out[i] = (uint32_t)pconv_out->attr.size[i];
+                size_u32_output0[i] = (uint32_t)outputs[0]->attr.size[i];
+            }
+            inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
+                VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER,
+                4,
+                size_u32_input0,
+                size_u32_pconv_out,
+                size_u32_output0,
+                outputs[0]->attr.dtype.vx_type,
+                (vx_nn_convolution_relu_pooling_params_t *)&p,
+                sizeof(p),
+                p_opt,
+                inputs[1]->t, inputs[2]->t
+                );
+        }
+#endif
         vsi_nn_DeinitConvReluPoolParameter( &p );
     }
 

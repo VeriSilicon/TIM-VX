@@ -152,8 +152,8 @@ DEF_KERNEL_INITIALIZER(_reducemin_internal_initializer)
     int32_t     axis                           = 0;
     vsi_nn_kernel_tensor_attr_t *input_attr    = NULL;
     vsi_nn_kernel_tensor_attr_t *output_attr   = NULL;
-    vsi_int_array_t * input_shape              = NULL;
-    vsi_int_array_t * output_shape             = NULL;
+    vsi_size_array_t * input_shape              = NULL;
+    vsi_size_array_t * output_shape             = NULL;
     int32_t  input_fl = 0, output_fl = 0;
     int32_t  axisSize = 0;
     float    inputScale                        = 1.0f;
@@ -193,7 +193,7 @@ DEF_KERNEL_INITIALIZER(_reducemin_internal_initializer)
             (output_shape->data[1] + gpu_param.global_scale[1] - 1)
             / gpu_param.global_scale[1]);
     gpu_param.global_size[2] = 1;
-    axisSize = input_shape->data[axis];
+    axisSize = (uint32_t)(input_shape->data[axis]);
 
     {
         gpu_dp_inst_t uniPackMaxData_2x8 = {{
@@ -394,9 +394,9 @@ static vsi_nn_kernel_node_t _setup
 
     axis = vsi_nn_kernel_param_get_int32(params, "axis");
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
-     || !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+     || !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num )
      || axis > 2)
     {

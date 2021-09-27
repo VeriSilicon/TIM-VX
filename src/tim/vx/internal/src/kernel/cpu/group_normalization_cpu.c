@@ -102,19 +102,19 @@ DEF_KERNEL_EXECUTOR(_group_norm_exec)
     memset( buffer[3], 0, out_elements * sizeof(float) );
 
     {
-        uint32_t b = 0, c = 0;
-        uint32_t height = attr[0]->shape->data[1];
-        uint32_t width = attr[0]->shape->data[0];
-        uint32_t ch = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
-        uint32_t bh = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
-        uint32_t spatial = height * width;
+        vsi_size_t b = 0, c = 0;
+        vsi_size_t height = attr[0]->shape->data[1];
+        vsi_size_t width = attr[0]->shape->data[0];
+        vsi_size_t ch = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
+        vsi_size_t bh = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
+        vsi_size_t spatial = height * width;
 
         for (b = 0; b < bh; b++)
         {
             for (c = 0; c < ch; c++)
             {
-                uint32_t page = c * spatial + b * (spatial * ch);
-                uint32_t paraIdx = c * attr[1]->shape->data[0];
+                vsi_size_t page = c * spatial + b * (spatial * ch);
+                vsi_size_t paraIdx = c * attr[1]->shape->data[0];
                 float sum = .0f;
                 float sumsq = .0f;
                 float mean = .0f;
@@ -123,14 +123,14 @@ DEF_KERNEL_EXECUTOR(_group_norm_exec)
 
                 for (i = 0; i < spatial; i++)
                 {
-                    uint32_t index = page + i;
+                    vsi_size_t index = page + i;
                     sum += buffer[0][index];
                 }
 
                 mean = sum / spatial;
                 for (i = 0; i < spatial; i++)
                 {
-                    uint32_t index = page + i;
+                    vsi_size_t index = page + i;
                     data = buffer[0][index] - mean;
                     sumsq += data * data;
                 }
@@ -141,8 +141,8 @@ DEF_KERNEL_EXECUTOR(_group_norm_exec)
                 for (i = 0; i < spatial; i++)
                 {
                     float normVal = 0;
-                    uint32_t index = page + i;
-                    uint32_t tmpIdx = paraIdx + i / spaceOrg;
+                    vsi_size_t index = page + i;
+                    vsi_size_t tmpIdx = paraIdx + i / spaceOrg;
                     float scaleVal = buffer[2][tmpIdx];
                     float biasVal = buffer[1][tmpIdx];
 
@@ -215,14 +215,14 @@ static vsi_status _query_kernel
 static int32_t _optimize_gn_shape_cpu
     (
     vsi_nn_tensor_t ** inputs,
-    int32_t group_size,
+    vsi_size_t group_size,
     int32_t group_num,
-    int32_t* opt_shape
+    vsi_size_t* opt_shape
     )
 {
     vsi_status status = VSI_SUCCESS;
-    int32_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t new_rank = 0;
+    vsi_size_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t new_rank = 0;
     group_shape[0] = inputs[0]->attr.size[0];
     group_shape[1] = inputs[0]->attr.size[1];
     group_shape[2] = group_size;
@@ -257,10 +257,10 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t backend_params[_CPU_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_output = NULL;
-    int32_t new_shape[VSI_NN_MAX_DIM_NUM] = { 1, 1, 1, 1 };
+    vsi_size_t new_shape[VSI_NN_MAX_DIM_NUM] = { 1, 1, 1, 1 };
     int32_t group_num  = vsi_nn_kernel_param_get_int32( params, "group_num" );
-    int32_t group_size  = inputs[0]->attr.size[2] / group_num;
-    int32_t spaceOrg = inputs[0]->attr.size[0] * inputs[0]->attr.size[1];
+    vsi_size_t group_size  = inputs[0]->attr.size[2] / group_num;
+    int32_t spaceOrg = (int32_t)(inputs[0]->attr.size[0] * inputs[0]->attr.size[1]);
 
     status = _optimize_gn_shape_cpu(inputs, group_size, group_num, new_shape);
     if ( VSI_SUCCESS != status )

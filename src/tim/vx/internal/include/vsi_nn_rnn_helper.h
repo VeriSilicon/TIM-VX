@@ -223,8 +223,8 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_reshape
     vsi_nn_node_t* self,
     vsi_nn_tensor_t* input_tensor,
     vsi_nn_tensor_t* output_tensor,
-    uint32_t* size,
-    uint32_t dim_num,
+    vsi_size_t* size,
+    vsi_size_t dim_num,
     vsi_bool use_virtual_tensor
     );
 
@@ -233,8 +233,8 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_permute
     vsi_nn_node_t* self,
     vsi_nn_tensor_t* input_tensor,
     vsi_nn_tensor_t* output_tensor,
-    uint32_t* perm,
-    uint32_t dim_num,
+    vsi_size_t* perm,
+    vsi_size_t dim_num,
     vsi_bool use_virtual_tensor
     );
 

@@ -79,13 +79,13 @@ static void _try_pack_tensor_data
     (
     vsi_nn_graph_t *  graph,
     vsi_nn_tensor_t * tensor,
-    uint64_t *       p_ofst,
-    uint64_t *       p_sz
+    vsi_size_t *       p_ofst,
+    vsi_size_t *       p_sz
     )
 {
     long ofst;
     size_t cnt;
-    uint32_t  bytes;
+    vsi_size_t  bytes;
     uint8_t * data;
 
     if( NULL == s_dfile_hndl || NULL == tensor
@@ -102,7 +102,7 @@ static void _try_pack_tensor_data
     }
     else
     {
-        *p_ofst = (uint64_t)ofst;
+        *p_ofst = (vsi_size_t)ofst;
         data = vsi_nn_ConvertTensorToData( graph, tensor );
         bytes = vsi_nn_GetTensorSize( tensor->attr.size,
             tensor->attr.dim_num, tensor->attr.dtype.vx_type );
@@ -111,7 +111,7 @@ static void _try_pack_tensor_data
             cnt = fwrite( data, (size_t)bytes, 1, s_dfile_hndl );
             if( cnt != 1 )
             {
-                VSILOGW( "Write tensor bytes(%zu/%d)", cnt, 1 );
+                VSILOGW( "Write tensor bytes(%"VSI_SIZE_T_SPECIFIER"/%d)", (vsi_size_t)cnt, 1 );
             }
             if( cnt > 0 )
             {
@@ -430,6 +430,11 @@ static _op_param_gen_t s_op_gen[] =
     /* GROUPED_CONV1D */        NULL,
     /* SCATTER_ND_UPDATE */     NULL,
     /* GELU */                  NULL,
+    /* CONV2D_LSTM */           NULL,
+    /* CONV2D_LSTM_CELL */      NULL,
+    /* GRU */                   NULL,
+    /* GRUCELL */               NULL,
+    /* GRUCELL_ACTIVATION */    NULL,
 };
 _compiler_assert( _cnt_of_array(s_op_gen) == VSI_NN_OP_NUM, vsi_nn_code_generator_c );
 
@@ -442,8 +447,8 @@ void vsi_nn_GenGraphCCode
 {
     uint32_t             i;
     uint32_t             j;
-    uint64_t             sz;
-    uint64_t             ofst;
+    vsi_size_t             sz;
+    vsi_size_t             ofst;
     vsi_nn_node_t       * node;
     vsi_nn_node_id_t      node_id ;
     vsi_nn_node_id_t    * sorted_nodes;
@@ -495,7 +500,7 @@ void vsi_nn_GenGraphCCode
             tensor_id );
         if( sz > 0 )
         {
-            _write_code( "load_data_to_tensor( tensor[%u], %llu, %llu );",
+            _write_code( "load_data_to_tensor( tensor[%u], %"VSI_SIZE_T_SPECIFIER", %"VSI_SIZE_T_SPECIFIER" );",
                 tensor_id, ofst, sz );
         }
     }

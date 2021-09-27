@@ -113,7 +113,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
     int32_t     enable_copy= 0;
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    vsi_int_array_t * out_shape = NULL;
+    vsi_size_array_t * out_shape = NULL;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
@@ -128,8 +128,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
     out_shape  = attr[0]->shape;
     dstZP      = attr[0]->asymm.zero_point;
     outputScale   = attr[0]->asymm.scale;
-    width      = out_shape->data[0];
-    height     = out_shape->data[1];
+    width      = (uint32_t)(out_shape->data[0]);
+    height     = (uint32_t)(out_shape->data[1]);
 
     if (reorder != 0)
     {
@@ -446,11 +446,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t tmp_params[_EVIS_PRE_PROCESS_BGRA_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
-    int32_t shapes[VSI_NN_MAX_DIM_NUM]  = {1, 1, 1, 1};
+    vsi_size_t shapes[VSI_NN_MAX_DIM_NUM]  = {1, 1, 1, 1};
     vsi_nn_tensor_t* reshape_tensors[1] = {NULL};
     int32_t trans = 0;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -480,7 +480,7 @@ static vsi_nn_kernel_node_t _setup
                 shapes[1] = outputs[0]->attr.size[2];
 
                 reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
-                    outputs[0], (uint32_t*)shapes, outputs[0]->attr.dim_num);
+                    outputs[0], shapes, outputs[0]->attr.dim_num);
 
                 vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PRE_PROCESS_BGRA_PARAM_NUM,
                     inputs, 1, &reshape_tensors[0], 1 );

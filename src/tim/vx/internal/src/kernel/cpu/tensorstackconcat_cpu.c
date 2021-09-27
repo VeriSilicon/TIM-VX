@@ -78,10 +78,10 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
     size_t   out_elements[_OUTPUT_NUM] = {0};
     uint32_t  i = 0;
-    uint32_t  depth = 0;
-    uint32_t  height = 1;
-    uint32_t  width = 0;
-    uint32_t  index = 0;
+    vsi_size_t  depth = 0;
+    vsi_size_t  height = 1;
+    vsi_size_t  width = 0;
+    vsi_size_t  index = 0;
     uint32_t  c = 0, y = 0, x = 0;
 
     /* prepare data */
@@ -105,7 +105,7 @@ DEF_KERNEL_EXECUTOR(_compute)
     depth = in_attr[0]->shape->data[2];
     height = in_attr[0]->shape->data[1];
     width = in_attr[0]->shape->data[0];
-    index = (int32_t)f32_in_buffer[1][0];
+    index = (vsi_size_t)f32_in_buffer[1][0];
 
     for (c = 0; c < depth; c++)
     {
@@ -113,8 +113,8 @@ DEF_KERNEL_EXECUTOR(_compute)
         {
             for (x = 0; x < width; x++)
             {
-                int32_t i_idx = c * width * height + y * width + x;
-                int32_t o_idx = (c * out_attr[0]->shape->data[1] + index ) * out_attr[0]->shape->data[0] + x;
+                vsi_ssize_t i_idx = c * width * height + y * width + x;
+                vsi_ssize_t o_idx = (c * out_attr[0]->shape->data[1] + index ) * out_attr[0]->shape->data[0] + x;
                 float value = f32_in_buffer[0][i_idx];
 
                 f32_out_buffer[0][o_idx] = value;

@@ -169,6 +169,7 @@ static vsi_bool op_check
         IO_TYPE(D_F32,  D_F16)
         IO_TYPE(D_BF16, D_F32)
         IO_TYPE(D_BF16, D_BF16)
+        IO_TYPE(D_I32,  D_I32)
     END_IO_TYPE_DECL(PERMUTE)
     if (!VALIDATE_OP_IO_TYPES(PERMUTE, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -230,7 +231,7 @@ static vsi_status op_optimize
     )
 {
     vsi_status     status;
-    uint32_t shape[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM];
     uint32_t i = 0;
 
     status = VSI_SUCCESS;
@@ -253,8 +254,13 @@ static vsi_status op_optimize
     {
         if(NULL == inputs[0]->t && NULL != outputs[0]->t)
         {
+#ifdef VSI_40BIT_VA_SUPPORT
             inputs[0]->t = vxReshapeTensor( outputs[0]->t,
-                (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num );
+                inputs[0]->attr.size, inputs[0]->attr.dim_num );
+#else
+            inputs[0]->t = vxReshapeTensor( outputs[0]->t,
+                (int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num );
+#endif
             if( inputs[0]->t == NULL )
             {
                 status = VSI_FAILURE;
@@ -268,7 +274,7 @@ static vsi_status op_optimize
         {
             vsi_bool ret;
             ret = vsi_nn_ReshapeTensor( self->graph, inputs[0], outputs[0],
-                shape, self->nn_param.permute.dim_num );
+                shape, (vsi_size_t)self->nn_param.permute.dim_num );
             if( ret == FALSE )
             {
                 status = VSI_FAILURE;

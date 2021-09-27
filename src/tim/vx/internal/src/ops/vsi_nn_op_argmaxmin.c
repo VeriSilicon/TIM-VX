@@ -47,7 +47,7 @@ static vsi_status _argmaxmin_op_compute
 {
     vsi_status status;
     vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
-    int32_t shapes[2][VSI_NN_MAX_DIM_NUM] = { { 0 } };
+    vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = { { 0 } };
     uint32_t rank_in = 0;
     uint32_t rank_out = 0;
     int32_t axis = 0;
@@ -77,9 +77,9 @@ static vsi_status _argmaxmin_op_compute
     // TODO: This optimzie is a hack for gpu path,
     // it should be moved to gpu kernel setup.
     ret = vsi_nn_kernel_optimize_reduce_shape(
-            (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
             &axis, 1,
-            (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes[0], &rank_in, shapes[1], &rank_out,
             &new_axis, &axis_size);
 
@@ -89,9 +89,9 @@ static vsi_status _argmaxmin_op_compute
     if( ret )
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                inputs[0], (uint32_t*)shapes[0], rank_in );
+                inputs[0], shapes[0], rank_in );
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                outputs[0], (uint32_t*)shapes[1], rank_out );
+                outputs[0], shapes[1], rank_out );
 
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
                 kernel_name,

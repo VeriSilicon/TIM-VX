@@ -113,7 +113,7 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
-    vsi_int_array_t * out_shape                 = NULL;
+    vsi_size_array_t * out_shape                 = NULL;
 
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
@@ -233,10 +233,10 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     int32_t align_corners       = vsi_nn_kernel_param_get_int32( params, "align_corners" );
     int32_t half_pixel_centers  = vsi_nn_kernel_param_get_int32( params, "half_pixel_centers" );
-    int32_t in_width     = inputs[0]->attr.size[0];
-    int32_t in_height    = inputs[0]->attr.size[1];
-    int32_t out_width    = outputs[0]->attr.size[0];
-    int32_t out_height   = outputs[0]->attr.size[1];
+    vsi_size_t in_width     = inputs[0]->attr.size[0];
+    vsi_size_t in_height    = inputs[0]->attr.size[1];
+    vsi_size_t out_width    = outputs[0]->attr.size[0];
+    vsi_size_t out_height   = outputs[0]->attr.size[1];
     float   input_zp     = (float)inputs[0]->attr.dtype.zero_point;
     float   input_scale  = inputs[0]->attr.dtype.scale;
     float   input_tail   = -(input_zp * input_scale);

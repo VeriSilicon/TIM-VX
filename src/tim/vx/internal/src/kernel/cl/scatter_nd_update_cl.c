@@ -88,20 +88,20 @@ static vx_param_description_t _scatter_nd_update_kernel_param_def[] =
 static vsi_status cal_scatter_nd_update_tensor_reshape_size
     (
     vsi_nn_tensor_t ** inputs,
-    int32_t sizes[VSI_NN_MAX_DIM_NUM],
+    vsi_size_t sizes[VSI_NN_MAX_DIM_NUM],
     uint32_t block_size,
     uint32_t coordDim,
-    uint32_t* width,
-    uint32_t* area,
-    uint32_t* vol,
+    vsi_size_t* width,
+    vsi_size_t* area,
+    vsi_size_t* vol,
     int32_t* newDim
     )
 {
     vsi_status status = VSI_FAILURE;
     uint32_t dims_num = inputs[0]->attr.dim_num;
-    uint32_t *input_size = inputs[0]->attr.size;
+    vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t i = 0;
-    uint32_t elementCnt = 1;
+    vsi_size_t elementCnt = 1;
 
     if (coordDim != 0 && (width == NULL || area == NULL))
     {
@@ -185,8 +185,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_initializer)
         };
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    int32_t       block_size  = 0;
-    int32_t       height = 0;
+    vsi_ssize_t       block_size  = 0;
+    vsi_ssize_t       height = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -274,12 +274,12 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_SCATTER_ND_UPDATE_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
-    int32_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_size_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
     int32_t block_size  = vsi_nn_kernel_param_get_int32( params, "block_size" );
     int32_t coord_dim  = vsi_nn_kernel_param_get_int32( params, "coord_dim" );
     int32_t idx_num  = vsi_nn_kernel_param_get_int32( params, "idx_num" );
     int32_t rs_in_dim = 0, rs_idx_dim = 0, rs_out_dim = 0;
-    uint32_t width = 0, area = 0, vol = 0;
+    vsi_size_t width = 0, area = 0, vol = 0;
     int32_t offsetX = 0, offsetY = 0, offsetZ = 0, offsetW = 0, offset_idx = 0;
 
     status = cal_scatter_nd_update_tensor_reshape_size(&inputs[1], shapes[0],
@@ -293,7 +293,7 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -305,21 +305,21 @@ static vsi_nn_kernel_node_t _setup
     }
     if (coord_dim == 4 || coord_dim == 5)
     {
-        offsetX = vol;
-        offsetY = area;
-        offsetZ = width;
+        offsetX = (int32_t)vol;
+        offsetY = (int32_t)area;
+        offsetZ = (int32_t)width;
         offsetW = 1;
     }
     else if (coord_dim == 3)
     {
-        offsetX = area;
-        offsetY = width;
+        offsetX = (int32_t)area;
+        offsetY = (int32_t)width;
         offsetZ = 1;
         offsetW = 0;
     }
     else if (coord_dim == 2)
     {
-        offsetX = width;
+        offsetX = (int32_t)width;
         offsetY = 1;
         offsetZ = 0;
         offsetW = 0;

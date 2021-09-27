@@ -94,9 +94,9 @@ DEF_KERNEL_EXECUTOR(_compute)
     size_t                              param_size
     )
 {
-    int32_t i = 0;
-    int32_t batch = 0;
-    int32_t hidden_units = 0;
+    vsi_ssize_t i = 0;
+    vsi_ssize_t batch = 0;
+    vsi_ssize_t hidden_units = 0;
     float * buffer[_IO_COUNT_DEFAULT] = { NULL };
     vsi_status status = VSI_FAILURE;
     vsi_nn_activation_e gate_activation;
@@ -170,9 +170,9 @@ DEF_KERNEL_EXECUTOR(_compute_separated)
     size_t                              param_size
     )
 {
-    int32_t i = 0, j = 0;
-    int32_t batch = 0;
-    int32_t hidden_units = 0;
+    vsi_ssize_t i = 0, j = 0;
+    vsi_ssize_t batch = 0;
+    vsi_ssize_t hidden_units = 0;
     float * buffer[_IO_COUNT_SEPARATED] = { NULL };
     vsi_status status = VSI_FAILURE;
     vsi_nn_activation_e gate_activation;

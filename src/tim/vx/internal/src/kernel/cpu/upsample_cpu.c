@@ -81,13 +81,13 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM] = {NULL};
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
-    int32_t  i, j, b, p;
-    int32_t  batch, depth, height, width, height_o, width_o;
-    int32_t  input_base  = 0;
-    int32_t  output_base = 0;
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_ssize_t  i, j, b, p;
+    vsi_ssize_t  batch, depth, height, width, height_o, width_o;
+    vsi_ssize_t  input_base  = 0;
+    vsi_ssize_t  output_base = 0;
     int32_t  ksize_x     = 0;
     int32_t  ksize_y     = 0;
     vsi_bool is_relative_coord = FALSE;
@@ -144,14 +144,14 @@ DEF_KERNEL_EXECUTOR(_compute)
             {
                 for (i = 0; i < width; i ++)
                 {
-                    int32_t in_index  = input_base + j * width + i;
+                    vsi_ssize_t in_index  = input_base + j * width + i;
                     float   in_value  = f32_in_buffer[0][in_index];
-                    int32_t up_index  = (int32_t)f32_in_buffer[1][in_index];
-                    int32_t out_index = up_index;
+                    vsi_ssize_t up_index  = (vsi_ssize_t)f32_in_buffer[1][in_index];
+                    vsi_ssize_t out_index = up_index;
                     if (is_relative_coord)
                     {
-                        int32_t relative_y = up_index / ksize_x;
-                        int32_t relative_x = up_index % ksize_x;
+                        vsi_ssize_t relative_y = up_index / ksize_x;
+                        vsi_ssize_t relative_x = up_index % ksize_x;
                         out_index = output_base + ((j * ksize_y) + relative_y) * width_o + i * ksize_x + relative_x;
                     }
                     f32_out_buffer[0][out_index] = in_value;

@@ -53,10 +53,10 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
-    int32_t  shapes[4][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
-    int32_t* shapes_ptr[4] = {NULL};
-    int32_t  *shapes_in[3] = {NULL};
-    size_t rank_in[3] = {0};
+    vsi_size_t  shapes[4][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
+    vsi_size_t* shapes_ptr[4] = {NULL};
+    vsi_size_t  *shapes_in[3] = {NULL};
+    vsi_size_t rank_in[3] = {0};
     uint32_t new_rank = 0;
     vsi_nn_tensor_t* reshape_tensors[6] = { NULL };
     vsi_bool ret = TRUE;
@@ -65,37 +65,37 @@ static vsi_status op_compute
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_float32( param, "eps", self->nn_param.batch_norm.eps );
 
-    rank_in[0] = (size_t)inputs[0]->attr.dim_num;
-    rank_in[1] = (size_t)inputs[1]->attr.dim_num;
-    rank_in[2] = (size_t)inputs[3]->attr.dim_num;
-    shapes_in[0] = (int32_t *)inputs[0]->attr.size;
-    shapes_in[1] = (int32_t *)inputs[1]->attr.size;
-    shapes_in[2] = (int32_t *)inputs[3]->attr.size;
+    rank_in[0] = (vsi_size_t)inputs[0]->attr.dim_num;
+    rank_in[1] = (vsi_size_t)inputs[1]->attr.dim_num;
+    rank_in[2] = (vsi_size_t)inputs[3]->attr.dim_num;
+    shapes_in[0] = inputs[0]->attr.size;
+    shapes_in[1] = inputs[1]->attr.size;
+    shapes_in[2] = inputs[3]->attr.size;
     for (i = 0; i < 4; i++)
     {
         shapes_ptr[i] = shapes[i];
     }
 
     ret = vsi_nn_kernel_optimize_broadcast_shape(
-            (const int32_t**)shapes_in, (const size_t*)rank_in, 3,
-            (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            (const vsi_size_t**)shapes_in, rank_in, 3,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes_ptr, shapes[3], &new_rank);
 
     if( ret )
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-            inputs[0], (uint32_t*)shapes[0], new_rank );
+            inputs[0], shapes[0], new_rank );
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-            inputs[1], (uint32_t*)shapes[1], new_rank );
+            inputs[1], shapes[1], new_rank );
         reshape_tensors[2] = vsi_nn_reshape_tensor( self->graph,
-            inputs[2], (uint32_t*)shapes[1], new_rank );
+            inputs[2], shapes[1], new_rank );
         reshape_tensors[3] = vsi_nn_reshape_tensor( self->graph,
-            inputs[3], (uint32_t*)shapes[2], new_rank );
+            inputs[3], shapes[2], new_rank );
         reshape_tensors[4] = vsi_nn_reshape_tensor( self->graph,
-            inputs[4], (uint32_t*)shapes[2], new_rank );
+            inputs[4], shapes[2], new_rank );
 
         reshape_tensors[5] = vsi_nn_reshape_tensor( self->graph,
-            outputs[0], (uint32_t*)shapes[3], new_rank );
+            outputs[0], shapes[3], new_rank );
     }
     else
     {
@@ -165,12 +165,20 @@ static vsi_bool op_check
         IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16, D_F32, D_F32, D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16, D_F32, D_F32, D_F16)
         IO_TYPE(D_I8|Q_DFP,  D_F16, D_F16, D_F32, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_F32, D_F32, D_F32, D_F32, D_I8|Q_DFP)
         IO_TYPE(D_I8|Q_DFP,  D_F16, D_F16, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_DFP,  D_F32, D_F32, D_F32, D_F32, D_F16)
         IO_TYPE(D_I16|Q_DFP, D_F16, D_F16, D_F32, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_F16, D_F16, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I16|Q_DFP, D_F32, D_F32, D_F32, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP, D_F32, D_F32, D_F32, D_F32, D_F16)
         IO_TYPE(D_F32,       D_F32, D_F32, D_F32, D_F32, D_F32)
         IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_F16)
         IO_TYPE(D_U8|Q_ASYM, D_F32, D_F32, D_F32, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_I8|Q_DFP)
     END_IO_TYPE_DECL(BATCHNORM_SINGLE)
     if(!VALIDATE_OP_IO_TYPES(BATCHNORM_SINGLE, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
@@ -182,16 +190,16 @@ static vsi_bool op_check
 
     for(i = 0; i < rank; i++)
     {
-        vx_int32 shape0 = inputs[0]->attr.size[i];
+        vsi_size_t shape0 = inputs[0]->attr.size[i];
 
         for ( j = 1; j < self->input.num; j++)
         {
             uint32_t rank1 = inputs[j]->attr.dim_num;
-            vx_int32 shape1 = rank1 > i ? inputs[j]->attr.size[i] : 1;
+            vsi_size_t shape1 = rank1 > i ? inputs[j]->attr.size[i] : 1;
 
             if(shape0 != shape1 && shape1 != 1)
             {
-                VSILOGE("Invalid broadcast for inputs[%d] size[%u]", j, shape1);
+                VSILOGE("Invalid broadcast for inputs[%d] size[%"VSI_SIZE_T_SPECIFIER"]", j, shape1);
                 return FALSE;
             }
         }
@@ -211,7 +219,7 @@ static vsi_bool op_setup
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         memcpy( outputs[0]->attr.size, inputs[0]->attr.size,
-            inputs[0]->attr.dim_num * sizeof( uint32_t ) );
+            inputs[0]->attr.dim_num * sizeof(vsi_size_t) );
     }
 
     return TRUE;
@@ -234,4 +242,3 @@ DEF_OP_REG
     );
 
 __END_DECLS
-

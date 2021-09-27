@@ -140,9 +140,9 @@ DEF_KERNEL_INITIALIZER(_matrixmul_initializer)
         };
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    int32_t width = 0;
-    int32_t height = 0;
-    int32_t chn = 0;
+    vsi_ssize_t width = 0;
+    vsi_ssize_t height = 0;
+    vsi_ssize_t chn = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -178,7 +178,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t * kernel,
     vsi_nn_tensor_t * const * const inputs,
     vsi_nn_tensor_t * const * const outputs,
-    int32_t depth,
+    vsi_size_t depth,
     int32_t transa
     )
 {
@@ -247,10 +247,10 @@ static vsi_nn_kernel_node_t _setup
     int32_t transposeA  = vsi_nn_kernel_param_get_int32( params, "transposeA" );
     int32_t transposeB  = vsi_nn_kernel_param_get_int32( params, "transposeB" );
     int32_t transFlg    = 0;
-    uint32_t M = inputs[0]->attr.size[1];
-    uint32_t K = inputs[0]->attr.size[0];
-    uint32_t N = inputs[1]->attr.size[0];
-    uint32_t depth = outputs[0]->attr.dim_num > 2 ? outputs[0]->attr.size[2] : 1;
+    vsi_size_t M = inputs[0]->attr.size[1];
+    vsi_size_t K = inputs[0]->attr.size[0];
+    vsi_size_t N = inputs[1]->attr.size[0];
+    vsi_size_t depth = outputs[0]->attr.dim_num > 2 ? outputs[0]->attr.size[2] : 1;
     uint32_t ac2zero = 0;
     uint32_t bc2zero = 0;
     float    scale_a = 1.0f;
@@ -260,7 +260,7 @@ static vsi_nn_kernel_node_t _setup
     float    scale_out = 1.0f;
     float    zp_out = 0;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

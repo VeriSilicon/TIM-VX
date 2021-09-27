@@ -37,7 +37,7 @@ typedef struct _vsi_nn_reshape_lcl_data
 
 typedef struct _vsi_nn_reshape_param
 {
-    const uint32_t * size;
+    const vsi_size_t * size;
     uint32_t dim_num;
 
     /* reshape layer local data structure */

@@ -46,7 +46,7 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    uint32_t perm[] = { 0, 1, 3, 2 };
+    vsi_size_t perm[] = { 0, 1, 3, 2 };
     vsi_nn_tensor_attr_t weight_attr;
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
@@ -159,7 +159,7 @@ static vsi_bool op_setup
 #endif
 
     nn_param->group = ( 0 == nn_param->group ) ? 1 : nn_param->group;
-    nn_param->ksize = inputs[1]->attr.size[0];
+    nn_param->ksize = (uint32_t)inputs[1]->attr.size[0];
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {

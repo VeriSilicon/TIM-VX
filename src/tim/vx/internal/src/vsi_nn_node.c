@@ -38,8 +38,8 @@ vsi_nn_node_t * vsi_nn_NewNode
     (
     vsi_nn_graph_t * graph,
     vsi_nn_op_t      op,
-    uint32_t         input_num,
-    uint32_t         output_num
+    vsi_size_t         input_num,
+    vsi_size_t         output_num
     )
 {
     vsi_nn_node_t * node;
@@ -70,16 +70,16 @@ vsi_nn_node_t * vsi_nn_NewNode
             }
 
         /* init output struct */
-        node->output.num = output_num;
+        node->output.num = (uint32_t)output_num;
         node->output.tensors = (vsi_nn_tensor_id_t *) malloc(
             output_num * sizeof( vsi_nn_tensor_id_t ) );
-        vsi_nn_InitTensorsId( node->output.tensors, output_num );
+        vsi_nn_InitTensorsId( node->output.tensors, (uint32_t)output_num );
 
         /* init input struct */
-        node->input.num = input_num;
+        node->input.num = (uint32_t)input_num;
         node->input.tensors = (vsi_nn_tensor_id_t *) malloc(
             input_num * sizeof( vsi_nn_tensor_id_t ) );
-        vsi_nn_InitTensorsId( node->input.tensors, input_num );
+        vsi_nn_InitTensorsId( node->input.tensors, (uint32_t)input_num );
         node->attr.const_tensor_preload_type = VSI_NN_NODE_PRELOAD_NONE;
         node->attr.enable_op_constraint_check = TRUE;
     }

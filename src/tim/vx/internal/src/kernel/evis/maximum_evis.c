@@ -177,7 +177,7 @@ DEF_KERNEL_INITIALIZER(_maximum_initializer)
     int32_t shift1 = 0;
 
     vsi_nn_kernel_tensor_attr_t * attr[3] = { NULL };
-    vsi_int_array_t * out_shape = NULL;
+    vsi_size_array_t * out_shape = NULL;
     uint32_t pack_key;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
@@ -723,7 +723,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_type_e dtype1 = inputs[0]->attr.dtype.vx_type;
     vsi_nn_type_e dtype2 = inputs[1]->attr.dtype.vx_type;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

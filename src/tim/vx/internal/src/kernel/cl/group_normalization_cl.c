@@ -217,9 +217,9 @@ DEF_KERNEL_INITIALIZER(_groupnorm_sum_sqr_initializer)
         };
 
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
-    vsi_int_array_t * input_shape = NULL;
-    int32_t width = 0;
-    int32_t chn = 0;
+    vsi_size_array_t * input_shape = NULL;
+    vsi_ssize_t width = 0;
+    vsi_ssize_t chn = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -274,7 +274,7 @@ DEF_KERNEL_INITIALIZER(_groupnorm_mean_vari_initializer)
         };
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    int32_t chn = 0;
+    vsi_ssize_t chn = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -320,10 +320,10 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
         };
 
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
-    vsi_int_array_t * input_shape = NULL;
-    int32_t width = 0;
-    int32_t height = 0;
-    int32_t chn = 0;
+    vsi_size_array_t * input_shape = NULL;
+    vsi_ssize_t width = 0;
+    vsi_ssize_t height = 0;
+    vsi_ssize_t chn = 0;
     int32_t is2D = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
@@ -448,15 +448,15 @@ static vsi_status _query_kernel
 static int32_t _optimize_gn_shape_cl
     (
     vsi_nn_tensor_t ** inputs,
-    int32_t group_size,
+    vsi_size_t group_size,
     int32_t group_num,
-    int32_t* opt_shape,
+    vsi_size_t* opt_shape,
     int32_t* is2D_flg
     )
 {
     vsi_status status = VSI_SUCCESS;
-    int32_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t new_rank = 0;
+    vsi_size_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t new_rank = 0;
     group_shape[0] = inputs[0]->attr.size[0];
     group_shape[1] = inputs[0]->attr.size[1];
     group_shape[2] = group_size;
@@ -510,17 +510,17 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_t * ikernels[INTERNAL_KERNEL_SIZE] = { NULL };
     vsi_nn_tensor_t * tensors[INTERNAL_KERNEL_SIZE] = { NULL };
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_output = NULL;
-    int32_t new_shape[VSI_NN_MAX_DIM_NUM] = { 1, 1, 1, 1 };
+    vsi_size_t new_shape[VSI_NN_MAX_DIM_NUM] = { 1, 1, 1, 1 };
     int32_t is2D_flg = 0;
     uint32_t hashkeys[INTERNAL_KERNEL_SIZE] = { 0 };
     uint32_t hashkey = 0;
     int32_t i = 0;
     float eps  = vsi_nn_kernel_param_get_float32( params, "eps" );
     int32_t group_num  = vsi_nn_kernel_param_get_int32( params, "group_num" );
-    int32_t group_size  = inputs[0]->attr.size[2] / group_num;
+    vsi_size_t group_size  = inputs[0]->attr.size[2] / group_num;
 
-    int32_t width = inputs[0]->attr.size[0];
-    int32_t height = inputs[0]->attr.size[1];
+    vsi_size_t width = inputs[0]->attr.size[0];
+    vsi_size_t height = inputs[0]->attr.size[1];
     int32_t group_stride = 1;
     float input_zp = 0;
     float input_scale = 1.0f;
@@ -531,7 +531,7 @@ static vsi_nn_kernel_node_t _setup
     float rSpaceOrg = 1.0f / (width * height);
     float group_ratio = 1.0f / (inputs[0]->attr.size[0] * inputs[0]->attr.size[1] * group_size);
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -547,7 +547,7 @@ static vsi_nn_kernel_node_t _setup
 
     width = new_shape[0];
     height = is2D_flg > 0 ? 1 : new_shape[1];
-    group_stride = ((width + 15) / 16) * 4;
+    group_stride = (int32_t)(((width + 15) / 16) * 4);
 
     if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
     {
@@ -693,7 +693,7 @@ static vsi_nn_kernel_node_t _setup
         int32_t  pStride = 0;
         if (!is2D_flg)
         {
-            pStride = inputs[1]->attr.size[0] / new_shape[1];
+            pStride = (int32_t)(inputs[1]->attr.size[0] / new_shape[1]);
             rSpaceOrg = 1.0f / (new_shape[0] / pStride);
         }
         node_params[index++] = rs_input;

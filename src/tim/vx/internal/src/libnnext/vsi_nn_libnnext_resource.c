@@ -12987,7 +12987,6 @@ static const char layer_normalization_u8_f16_vx[] = "#include \"cl_viv_vx_ext.h\
 /*****************************layernorm uint8 to fp16****************************/\n\
 _viv_uniform int width;\n\
 _viv_uniform float dimRatio;\n\
-_viv_uniform VXC_512Bits UniFP16toFP32Lo4_dp4x4;\n\
 _viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;\n\
 _viv_uniform VXC_512Bits uniConvert2ndUint8SubZpToFp32_4x4;\n\
 _viv_uniform VXC_512Bits uniConvert3rdUint8SubZpToFp32_4x4;\n\
@@ -13000,7 +12999,6 @@ _viv_uniform int sumInZp;\n\
 _viv_uniform int tmpZp1;\n\
 _viv_uniform int tmpZp2;\n\
 _viv_uniform float e2InScale;\n\
-_viv_uniform VXC_512Bits uniConvertSecFp16Fp32_4x4;\n\
 _viv_uniform VXC_512Bits UniPackFP16even_2x8;\n\
 \n\
 __kernel void layer_norm_U8toF16(\n\
@@ -13057,22 +13055,15 @@ __kernel void layer_norm_U8toF16(\n\
     {\n\
         VXC_OP4(img_load_3d, src0, input, coord, VXC_5BITOFFSET_XY(0, 0), \\\n\
                     VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
-                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
         coord_bias.x = coord.x;\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
-        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        scale_f0 = read_imagef(scale, coord_bias);\n\
         bias_f0 = read_imagef(bias, coord_bias);\n\
         coord_bias.x += 4;\n\
+        scale_f1 = read_imagef(scale, coord_bias);\n\
         bias_f1 = read_imagef(bias, coord_bias);\n\
         coord_bias.x += 4;\n\
 \n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(8, 0),\\\n\
-                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
         VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
             uniConvert1stUint8SubZpToFp32_4x4);\n\
         VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
@@ -13089,17 +13080,18 @@ __kernel void layer_norm_U8toF16(\n\
         vxc_float4 norm;\n\
         tmpData0 -= mean;\n\
         norm = scale_f0 * vari * tmpData0 + bias_f0;\n\
+\n\
+        scale_f0 = read_imagef(scale, coord_bias);\n\
         bias_f0 = read_imagef(bias, coord_bias);\n\
-        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
         coord_bias.x += 4;\n\
         _viv_asm(CONV, tmpVal0, norm);\n\
 \n\
         tmpData1 -= mean;\n\
         norm = scale_f1 * vari * tmpData1 + bias_f1;\n\
+\n\
+        scale_f1 = read_imagef(scale, coord_bias);\n\
         bias_f1 = read_imagef(bias, coord_bias);\n\
-        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvertSecFp16Fp32_4x4);\n\
+\n\
         _viv_asm(CONV, tmpVal1, norm);\n\
         VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
             UniPackFP16even_2x8);\n\
@@ -13171,21 +13163,14 @@ __kernel void layer_norm_U8toF16_2D(\n\
         coord_bias.x = coord.x;\n\
         VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\\\n\
             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));\n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(0, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
-        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
-        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvertSecFp16Fp32_4x4);\n\
+\n\
+        scale_f0 = read_imagef(scale, coord_bias);\n\
         bias_f0 = read_imagef(bias, coord_bias);\n\
         coord_bias.x += 4;\n\
+        scale_f1 = read_imagef(scale, coord_bias);\n\
         bias_f1 = read_imagef(bias, coord_bias);\n\
         coord_bias.x += 4;\n\
 \n\
-        VXC_ReadImage(src1, scale, coord.xw, VXC_5BITOFFSET_XY(8, 0),\\\n\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
-        _viv_asm(COPY, scale_h, src1, 16);\n\
         VXC_DP4x4(tmpData0, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
             uniConvert1stUint8SubZpToFp32_4x4);\n\
         VXC_DP4x4(tmpData1, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
@@ -13202,17 +13187,19 @@ __kernel void layer_norm_U8toF16_2D(\n\
         vxc_float4 norm;\n\
         tmpData0 -= mean;\n\
         norm = scale_f0 * vari * tmpData0 + bias_f0;\n\
+\n\
+        scale_f0 = read_imagef(scale, coord_bias);\n\
         bias_f0 = read_imagef(bias, coord_bias);\n\
-        VXC_DP4x4(scale_f0, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            UniFP16toFP32Lo4_dp4x4);\n\
+\n\
         coord_bias.x += 4;\n\
         _viv_asm(CONV, tmpVal0, norm);\n\
 \n\
         tmpData1 -= mean;\n\
         norm = scale_f1 * vari * tmpData1 + bias_f1;\n\
+\n\
+        scale_f1 = read_imagef(scale, coord_bias);\n\
         bias_f1 = read_imagef(bias, coord_bias);\n\
-        VXC_DP4x4(scale_f1, scale_h, scale_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
-            uniConvertSecFp16Fp32_4x4);\n\
+\n\
         _viv_asm(CONV, tmpVal1, norm);\n\
         VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
             UniPackFP16even_2x8);\n\
@@ -41416,20 +41403,23 @@ inline uchar* get_image_ptr_from_coord(Image img, int2 coord)\n\
 \n\
 inline Image create_image_from_image2d(image2d_t input, int stride_x)\n\
 {\n\
+    int stride_y;\n\
+#if (USE_40BITS_VA==0)\n\
     int8 desc;\n\
+#else\n\
+    int8 desc;\n\
+    _viv_asm(GET_IMAGE_STRIDE, stride_y, input);\n\
+#endif\n\
     _viv_asm(COPY, desc, input, sizeof(desc));\n\
+    uint address = as_uint(desc.s0);\n\
 \n\
 #if (USE_40BITS_VA==0)\n\
-    uint address = as_uint(desc.s0);\n\
-    int stride_y = desc.s1;\n\
-#else\n\
-    ulong address = as_ulong(desc.s05);\n\
-    int stride_y = desc.s6;\n\
+    stride_y = desc.s1;\n\
 #endif\n\
 \n\
     Image img =\n\
     {\n\
-        .ptr                           = (uchar*)address,\n\
+        .ptr                           = (uchar*)(uintptr_t)address,\n\
         .stride_x                      = stride_x,\n\
         .stride_y                      = stride_y\n\
     };\n\
@@ -41452,28 +41442,23 @@ inline uchar* get_tensor_ptr_from_coord(Tensor t, int4 coord)\n\
 \n\
 inline Tensor create_tensor_from_image2d_array(image2d_array_t input, int stride_x)\n\
 {\n\
-#if (USE_40BITS_VA==0)\n\
     int8 desc;\n\
-    _viv_asm(COPY, desc, input, sizeof(desc));\n\
-\n\
-    uint address = as_uint(desc.s0);\n\
-    int stride_y = desc.s1;\n\
-    int stride_z = desc.s4;\n\
+    int2 strides;\n\
+#if (USE_40BITS_VA==0)\n\
+    strides.x = desc.s1;\n\
+    strides.y = desc.s4;\n\
 #else\n\
-    int16 desc;\n\
-    _viv_asm(COPY, desc, input, sizeof(desc));\n\
-\n\
-    ulong address = as_ulong(desc.s05);\n\
-    int stride_y = desc.s6;\n\
-    int stride_z = desc.sa;\n\
+    _viv_asm(GET_IMAGE_STRIDE, strides, input);\n\
 #endif\n\
+    _viv_asm(COPY, desc, input, sizeof(desc));\n\
+    uint address = as_uint(desc.s0);\n\
 \n\
     Tensor t =\n\
     {\n\
-        .ptr                           = (uchar*)address,\n\
+        .ptr                           = (uchar*)(uintptr_t)address,\n\
         .stride_x                      = stride_x,\n\
-        .stride_y                      = stride_y,\n\
-        .stride_z                      = stride_z\n\
+        .stride_y                      = strides.x,\n\
+        .stride_z                      = strides.y\n\
     };\n\
 \n\
     return t;\n\
@@ -42755,145 +42740,225 @@ __kernel void argmin_axis2_I32toI32_2D\n\
 \n\
 "; /* end of argmin_axis2_cl*/
 
-static const char batchnorm_single_cl[] = "\n\
-#define READ_IMAGEF_ARRAY2D(dest, tensor, coord) \\\n\
-    do { \\\n\
-        int depth = get_image_array_size(tensor); \\\n\
-        _viv_asm(CLAMP0MAX, coord_in0.z, coord_in0.z, in0_depth - 1); \\\n\
-        dest = read_imagef(tensor, coord); \\\n\
-       } while(0)\n\
-__kernel void batch_norm_F32toF32\n\
-    (\n\
-    __read_only  image2d_array_t input,\n\
-    __read_only  image2d_array_t Mean,\n\
-    __read_only  image2d_array_t Variance,\n\
-    __read_only  image2d_array_t Gamma,\n\
-    __read_only  image2d_array_t Beta,\n\
-    __write_only image2d_array_t output,\n\
-                 float           eps,\n\
-                 float           input_scale,\n\
-                 float           input_tail,\n\
-                 float           output_scale,\n\
-                 float           output_zp\n\
-    )\n\
-{\n\
-    int4 coord =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-\n\
-    float4 src, mean, var, gamma, beta;\n\
-    READ_IMAGEF_2DARRAY(src, input, coord);\n\
-    READ_IMAGEF_2DARRAY(mean, Mean, coord);\n\
-    READ_IMAGEF_2DARRAY(var, Variance, coord);\n\
-    READ_IMAGEF_2DARRAY(gamma, Gamma, coord);\n\
-    READ_IMAGEF_2DARRAY(beta, Beta, coord);\n\
-\n\
-    float4 dst;\n\
-    src.x = src.x - mean.x;\n\
-    float inv = rsqrt(var.x + eps);\n\
-    dst.x = src.x * inv *gamma.x + beta.x;\n\
-\n\
-    write_imagef(output, coord, dst);\n\
-}\n\
-\n\
-__kernel void batch_norm_F32toF32_2D\n\
-    (\n\
-    __read_only  image2d_t input,\n\
-    __read_only  image2d_t Mean,\n\
-    __read_only  image2d_t Variance,\n\
-    __read_only  image2d_t Gamma,\n\
-    __read_only  image2d_t Beta,\n\
-    __write_only image2d_t output,\n\
-                 float     eps,\n\
-                 float     input_scale,\n\
-                 float     input_tail,\n\
-                 float     output_scale,\n\
-                 float     output_zp\n\
-    )\n\
-{\n\
-    int2 coord =  (int2)(get_global_id(0), get_global_id(1));\n\
-\n\
-    float4 src = read_imagef(input, coord);\n\
-    float4 mean = read_imagef(Mean, coord);\n\
-    float4 var = read_imagef(Variance, coord);\n\
-    float4 gamma = read_imagef(Gamma, coord);\n\
-    float4 beta = read_imagef(Beta, coord);\n\
-\n\
-    float4 dst = 0;\n\
-    src.x = src.x - mean.x;\n\
-    float inv = rsqrt(var.x + eps);\n\
-    dst.x = src.x * inv *gamma.x + beta.x;\n\
-\n\
-    write_imagef(output, coord, dst);\n\
-}\n\
-\n\
-__kernel void batch_norm_U8toU8\n\
-    (\n\
-    __read_only  image2d_array_t input,\n\
-    __read_only  image2d_array_t Mean,\n\
-    __read_only  image2d_array_t Variance,\n\
-    __read_only  image2d_array_t Gamma,\n\
-    __read_only  image2d_array_t Beta,\n\
-    __write_only image2d_array_t output,\n\
-                 float           eps,\n\
-                 float           input_scale,\n\
-                 float           input_tail,\n\
-                 float           output_scale,\n\
-                 float           output_zp\n\
-    )\n\
-{\n\
-    int4 coord =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
-\n\
-    uint4 data;\n\
-    float4 src, mean, var, gamma, beta;\n\
-    READ_IMAGEF_2DARRAY(data, input, coord);\n\
-    READ_IMAGEF_2DARRAY(mean, Mean, coord);\n\
-    READ_IMAGEF_2DARRAY(var, Variance, coord);\n\
-    READ_IMAGEF_2DARRAY(gamma, Gamma, coord);\n\
-    READ_IMAGEF_2DARRAY(beta, Beta, coord);\n\
-\n\
-    src = convert_float4(data) * input_scale - input_tail;\n\
-    src.x = src.x - mean.x;\n\
-    float inv = rsqrt(var.x + eps);\n\
-    src.x = src.x * inv *gamma.x + beta.x;\n\
-\n\
-    uint4 dst = convert_uint4(src * output_scale + output_zp);\n\
-\n\
+static const char batchnorm_single_cl[] = "#define BN_U8_SAVE \\\n\
+    uint4 dst = convert_uint4(src * output_scale + output_zp); \\\n\
     write_imageui(output, coord, dst);\n\
+\n\
+#define BN_I32_SAVE \\\n\
+    int4 dst = convert_int4(src * output_scale + output_zp); \\\n\
+    write_imagei(output, coord, dst);\n\
+\n\
+#define BN_F32_SAVE \\\n\
+    write_imagef(output, coord, src);\n\
+\n\
+#define BATCH_NORM_F32_SH_IMPL(TYPE) \\\n\
+__kernel void batch_norm_F32to##TYPE \\\n\
+    ( \\\n\
+    __read_only  image2d_array_t input, \\\n\
+    __read_only  image2d_array_t Mean, \\\n\
+    __read_only  image2d_array_t Variance, \\\n\
+    __read_only  image2d_array_t Gamma, \\\n\
+    __read_only  image2d_array_t Beta, \\\n\
+    __write_only image2d_array_t output, \\\n\
+                 float           eps, \\\n\
+                 float           input_scale, \\\n\
+                 float           input_tail, \\\n\
+                 float           output_scale, \\\n\
+                 float           output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    float4 src, mean, var, gamma, beta; \\\n\
+    READ_IMAGEF_2DARRAY(src, input, coord); \\\n\
+    READ_IMAGEF_2DARRAY(mean, Mean, coord); \\\n\
+    READ_IMAGEF_2DARRAY(var, Variance, coord); \\\n\
+    READ_IMAGEF_2DARRAY(gamma, Gamma, coord); \\\n\
+    READ_IMAGEF_2DARRAY(beta, Beta, coord); \\\n\
+ \\\n\
+    src.x = src.x - mean.x; \\\n\
+    float inv = rsqrt(var.x + eps); \\\n\
+    src.x = src.x * inv *gamma.x + beta.x; \\\n\
+ \\\n\
+    BN_##TYPE##_SAVE \\\n\
 }\n\
+BATCH_NORM_F32_SH_IMPL(F32)\n\
+BATCH_NORM_F32_SH_IMPL(U8)\n\
+BATCH_NORM_F32_SH_IMPL(I32)\n\
 \n\
-__kernel void batch_norm_U8toU8_2D\n\
-    (\n\
-    __read_only  image2d_t input,\n\
-    __read_only  image2d_t Mean,\n\
-    __read_only  image2d_t Variance,\n\
-    __read_only  image2d_t Gamma,\n\
-    __read_only  image2d_t Beta,\n\
-    __write_only image2d_t output,\n\
-                 float     eps,\n\
-                 float     input_scale,\n\
-                 float     input_tail,\n\
-                 float     output_scale,\n\
-                 float     output_zp\n\
-    )\n\
-{\n\
-    int2 coord =  (int2)(get_global_id(0), get_global_id(1));\n\
-\n\
-    uint4  data = read_imageui(input, coord);\n\
-    float4 mean = read_imagef(Mean, coord);\n\
-    float4 var = read_imagef(Variance, coord);\n\
-    float4 gamma = read_imagef(Gamma, coord);\n\
-    float4 beta = read_imagef(Beta, coord);\n\
-\n\
-    float4 src = convert_float4(data) * input_scale - input_tail;\n\
-    src.x = src.x - mean.x;\n\
-    float inv = rsqrt(var.x + eps);\n\
-    src.x = src.x * inv *gamma.x + beta.x;\n\
-\n\
-    uint4 dst = convert_uint4(src * output_scale + output_zp);\n\
-\n\
-    write_imageui(output, coord, dst);\n\
+#define BATCH_NORM_F32_SH_IMPL_2D(TYPE) \\\n\
+__kernel void batch_norm_F32to##TYPE##_2D \\\n\
+    ( \\\n\
+    __read_only  image2d_t input, \\\n\
+    __read_only  image2d_t Mean, \\\n\
+    __read_only  image2d_t Variance, \\\n\
+    __read_only  image2d_t Gamma, \\\n\
+    __read_only  image2d_t Beta, \\\n\
+    __write_only image2d_t output, \\\n\
+                 float     eps, \\\n\
+                 float     input_scale, \\\n\
+                 float     input_tail, \\\n\
+                 float     output_scale, \\\n\
+                 float     output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord =  (int2)(get_global_id(0), get_global_id(1)); \\\n\
+ \\\n\
+    float4 src = read_imagef(input, coord); \\\n\
+    float4 mean = read_imagef(Mean, coord); \\\n\
+    float4 var = read_imagef(Variance, coord); \\\n\
+    float4 gamma = read_imagef(Gamma, coord); \\\n\
+    float4 beta = read_imagef(Beta, coord); \\\n\
+ \\\n\
+    src.x = src.x - mean.x; \\\n\
+    float inv = rsqrt(var.x + eps); \\\n\
+    src.x = src.x * inv *gamma.x + beta.x; \\\n\
+ \\\n\
+    BN_##TYPE##_SAVE \\\n\
 }\n\
+BATCH_NORM_F32_SH_IMPL_2D(F32)\n\
+BATCH_NORM_F32_SH_IMPL_2D(U8)\n\
+BATCH_NORM_F32_SH_IMPL_2D(I32)\n\
 \n\
-"; /* end of batchnorm_single_cl*/
+#define BATCH_NORM_U8_SH_IMPL(TYPE) \\\n\
+__kernel void batch_norm_U8to##TYPE \\\n\
+    ( \\\n\
+    __read_only  image2d_array_t input, \\\n\
+    __read_only  image2d_array_t Mean, \\\n\
+    __read_only  image2d_array_t Variance, \\\n\
+    __read_only  image2d_array_t Gamma, \\\n\
+    __read_only  image2d_array_t Beta, \\\n\
+    __write_only image2d_array_t output, \\\n\
+                 float           eps, \\\n\
+                 float           input_scale, \\\n\
+                 float           input_tail, \\\n\
+                 float           output_scale, \\\n\
+                 float           output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    uint4 data; \\\n\
+    float4 src, mean, var, gamma, beta; \\\n\
+    READ_IMAGEUI_2DARRAY(data, input, coord); \\\n\
+    READ_IMAGEF_2DARRAY(mean, Mean, coord); \\\n\
+    READ_IMAGEF_2DARRAY(var, Variance, coord); \\\n\
+    READ_IMAGEF_2DARRAY(gamma, Gamma, coord); \\\n\
+    READ_IMAGEF_2DARRAY(beta, Beta, coord); \\\n\
+ \\\n\
+    src = convert_float4(data) * input_scale - input_tail; \\\n\
+    src.x = src.x - mean.x; \\\n\
+    float inv = rsqrt(var.x + eps); \\\n\
+    src.x = src.x * inv *gamma.x + beta.x; \\\n\
+ \\\n\
+    BN_##TYPE##_SAVE \\\n\
+}\n\
+BATCH_NORM_U8_SH_IMPL(U8)\n\
+BATCH_NORM_U8_SH_IMPL(F32)\n\
+\n\
+#define BATCH_NORM_U8_SH_IMPL_2D(TYPE) \\\n\
+__kernel void batch_norm_U8to##TYPE##_2D \\\n\
+    ( \\\n\
+    __read_only  image2d_t input, \\\n\
+    __read_only  image2d_t Mean, \\\n\
+    __read_only  image2d_t Variance, \\\n\
+    __read_only  image2d_t Gamma, \\\n\
+    __read_only  image2d_t Beta, \\\n\
+    __write_only image2d_t output, \\\n\
+                 float     eps, \\\n\
+                 float     input_scale, \\\n\
+                 float     input_tail, \\\n\
+                 float     output_scale, \\\n\
+                 float     output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord =  (int2)(get_global_id(0), get_global_id(1)); \\\n\
+ \\\n\
+    uint4  data = read_imageui(input, coord); \\\n\
+    float4 mean = read_imagef(Mean, coord); \\\n\
+    float4 var = read_imagef(Variance, coord); \\\n\
+    float4 gamma = read_imagef(Gamma, coord); \\\n\
+    float4 beta = read_imagef(Beta, coord); \\\n\
+ \\\n\
+    float4 src = convert_float4(data) * input_scale - input_tail; \\\n\
+    src.x = src.x - mean.x; \\\n\
+    float inv = rsqrt(var.x + eps); \\\n\
+    src.x = src.x * inv *gamma.x + beta.x; \\\n\
+ \\\n\
+    BN_##TYPE##_SAVE \\\n\
+}\n\
+BATCH_NORM_U8_SH_IMPL_2D(U8)\n\
+BATCH_NORM_U8_SH_IMPL_2D(F32)\n\
+\n\
+#define BATCH_NORM_I32_SH_IMPL(TYPE) \\\n\
+__kernel void batch_norm_I32to##TYPE \\\n\
+    ( \\\n\
+    __read_only  image2d_array_t input, \\\n\
+    __read_only  image2d_array_t Mean, \\\n\
+    __read_only  image2d_array_t Variance, \\\n\
+    __read_only  image2d_array_t Gamma, \\\n\
+    __read_only  image2d_array_t Beta, \\\n\
+    __write_only image2d_array_t output, \\\n\
+                 float           eps, \\\n\
+                 float           input_scale, \\\n\
+                 float           input_tail, \\\n\
+                 float           output_scale, \\\n\
+                 float           output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    int4 data; \\\n\
+    float4 src, mean, var, gamma, beta; \\\n\
+    READ_IMAGEI_2DARRAY(data, input, coord); \\\n\
+    READ_IMAGEF_2DARRAY(mean, Mean, coord); \\\n\
+    READ_IMAGEF_2DARRAY(var, Variance, coord); \\\n\
+    READ_IMAGEF_2DARRAY(gamma, Gamma, coord); \\\n\
+    READ_IMAGEF_2DARRAY(beta, Beta, coord); \\\n\
+ \\\n\
+    src = convert_float4(data) * input_scale - input_tail; \\\n\
+    src.x = src.x - mean.x; \\\n\
+    float inv = rsqrt(var.x + eps); \\\n\
+    src.x = src.x * inv *gamma.x + beta.x; \\\n\
+ \\\n\
+    BN_##TYPE##_SAVE \\\n\
+}\n\
+BATCH_NORM_I32_SH_IMPL(I32)\n\
+BATCH_NORM_I32_SH_IMPL(F32)\n\
+\n\
+#define BATCH_NORM_I32_SH_IMPL_2D(TYPE) \\\n\
+__kernel void batch_norm_I32to##TYPE##_2D \\\n\
+    ( \\\n\
+    __read_only  image2d_t input, \\\n\
+    __read_only  image2d_t Mean, \\\n\
+    __read_only  image2d_t Variance, \\\n\
+    __read_only  image2d_t Gamma, \\\n\
+    __read_only  image2d_t Beta, \\\n\
+    __write_only image2d_t output, \\\n\
+                 float     eps, \\\n\
+                 float     input_scale, \\\n\
+                 float     input_tail, \\\n\
+                 float     output_scale, \\\n\
+                 float     output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord =  (int2)(get_global_id(0), get_global_id(1)); \\\n\
+ \\\n\
+    int4  data = read_imagei(input, coord); \\\n\
+    float4 mean = read_imagef(Mean, coord); \\\n\
+    float4 var = read_imagef(Variance, coord); \\\n\
+    float4 gamma = read_imagef(Gamma, coord); \\\n\
+    float4 beta = read_imagef(Beta, coord); \\\n\
+ \\\n\
+    float4 src = convert_float4(data) * input_scale - input_tail; \\\n\
+    src.x = src.x - mean.x; \\\n\
+    float inv = rsqrt(var.x + eps); \\\n\
+    src.x = src.x * inv *gamma.x + beta.x; \\\n\
+ \\\n\
+    BN_##TYPE##_SAVE \\\n\
+}\n\
+BATCH_NORM_I32_SH_IMPL_2D(I32)\n\
+BATCH_NORM_I32_SH_IMPL_2D(F32)"; /* end of batchnorm_single_cl*/
 
 static const char cast_cl[] = "\n\
 #define CAST_FUN(src_name, dst_name, src_type, dst_type, conv_fun, read_fun, write_fun) \\\n\
@@ -43235,20 +43300,23 @@ inline uchar* get_image_ptr_from_coord(Image img, int2 coord)\n\
 \n\
 inline Image create_image_from_image2d(image2d_t input, int stride_x)\n\
 {\n\
+    int stride_y;\n\
+#if (USE_40BITS_VA==0)\n\
     int8 desc;\n\
+#else\n\
+    int8 desc;\n\
+    _viv_asm(GET_IMAGE_STRIDE, stride_y, input);\n\
+#endif\n\
     _viv_asm(COPY, desc, input, sizeof(desc));\n\
+    uint address = as_uint(desc.s0);\n\
 \n\
 #if (USE_40BITS_VA==0)\n\
-    uint address = as_uint(desc.s0);\n\
-    int stride_y = desc.s1;\n\
-#else\n\
-    ulong address = as_ulong(desc.s05);\n\
-    int stride_y = desc.s6;\n\
+    stride_y = desc.s1;\n\
 #endif\n\
 \n\
     Image img =\n\
     {\n\
-        .ptr                           = (uchar*)address,\n\
+        .ptr                           = (uchar*)(uintptr_t)address,\n\
         .stride_x                      = stride_x,\n\
         .stride_y                      = stride_y\n\
     };\n\
@@ -43271,28 +43339,23 @@ inline uchar* get_tensor_ptr_from_coord(Tensor t, int4 coord)\n\
 \n\
 inline Tensor create_tensor_from_image2d_array(image2d_array_t input, int stride_x)\n\
 {\n\
-#if (USE_40BITS_VA==0)\n\
     int8 desc;\n\
-    _viv_asm(COPY, desc, input, sizeof(desc));\n\
-\n\
-    uint address = as_uint(desc.s0);\n\
-    int stride_y = desc.s1;\n\
-    int stride_z = desc.s4;\n\
+    int2 strides;\n\
+#if (USE_40BITS_VA==0)\n\
+    strides.x = desc.s1;\n\
+    strides.y = desc.s4;\n\
 #else\n\
-    int16 desc;\n\
-    _viv_asm(COPY, desc, input, sizeof(desc));\n\
-\n\
-    ulong address = as_ulong(desc.s05);\n\
-    int stride_y = desc.s6;\n\
-    int stride_z = desc.sa;\n\
+    _viv_asm(GET_IMAGE_STRIDE, strides, input);\n\
 #endif\n\
+    _viv_asm(COPY, desc, input, sizeof(desc));\n\
+    uint address = as_uint(desc.s0);\n\
 \n\
     Tensor t =\n\
     {\n\
-        .ptr                           = (uchar*)address,\n\
+        .ptr                           = (uchar*)(uintptr_t)address,\n\
         .stride_x                      = stride_x,\n\
-        .stride_y                      = stride_y,\n\
-        .stride_z                      = stride_z\n\
+        .stride_y                      = strides.x,\n\
+        .stride_z                      = strides.y\n\
     };\n\
 \n\
     return t;\n\
@@ -50832,7 +50895,7 @@ __kernel void minimum_I32I32toI32_2D\n\
 \n\
 "; /* end of minimum_cl*/
 
-static const char moments_axis0_cl[] = "__kernel void moments_axis0_U8toF16(\n\
+static const char moments_axis0_cl[] = "__kernel void moments_axis0_U8toF32(\n\
     __read_only image2d_array_t   input,\n\
     __write_only image2d_t  output_mean,\n\
     __write_only image2d_t  output_vari,\n\
@@ -50863,8 +50926,8 @@ static const char moments_axis0_cl[] = "__kernel void moments_axis0_U8toF16(\n\
             tmpSum += (data);\n\
             tmpSqr += (data * data);\n\
         }\n\
-        sqr = convert_float(tmpSqr - 2 * input_zp * tmpSum + width * input_zp * input_zp) * e2InScale;\n\
-        sum = convert_float(tmpSum - width * input_zp) * input_scale;\n\
+        sqr = convert_float(as_int(tmpSqr - 2 * input_zp * tmpSum + width * input_zp * input_zp)) * e2InScale;\n\
+        sum = convert_float(as_int(tmpSum - width * input_zp)) * input_scale;\n\
     }\n\
     float4 mean, vari;\n\
     mean.x = sum * dimRatio;\n\
@@ -50909,7 +50972,6 @@ __kernel void moments_axis0_##src0_type_name##to##src0_type_name( \\\n\
     write_imagef(output_mean, coord_out, mean); \\\n\
     write_imagef(output_vari, coord_out, vari); \\\n\
 }\n\
-MOMENTS_AXIS0_F(F16)\n\
 MOMENTS_AXIS0_F(F32)\n\
 \n\
 __kernel void moments_axis0_I32toF32(\n\
@@ -50930,20 +50992,21 @@ __kernel void moments_axis0_I32toF32(\n\
     int gidz = get_global_id(1);\n\
 \n\
     int4 coord0 = (int4)(0, gidy, gidz, 0);\n\
-    int data;\n\
-    int sum = 0, sqr = 0;\n\
+    float data;\n\
+    float sum = 0, sqr = 0;\n\
 \n\
     for(coord0.x = 0; coord0.x < width;)\n\
     {\n\
-        data = read_imagei(input, coord0).x;\n\
+        data = convert_float(read_imagei(input, coord0).x);\n\
         coord0.x++;\n\
-        sum += (data);\n\
-        sqr += (data * data);\n\
+\n\
+        sum = sum + data;\n\
+        sqr = sqr + data * data;\n\
     }\n\
 \n\
     float4 mean, vari;\n\
-    mean.x = sum * dimRatio;\n\
-    vari.x = sqr * dimRatio;\n\
+    mean.x = sum * dimRatio * input_scale;\n\
+    vari.x = sqr * dimRatio * input_scale * input_scale;\n\
     vari.x = vari.x - mean.x * mean.x;\n\
 \n\
     int2 coord_out = (int2)(gidy, gidz);\n\
@@ -50951,7 +51014,7 @@ __kernel void moments_axis0_I32toF32(\n\
     write_imagef(output_vari, coord_out, vari);\n\
 }"; /* end of moments_axis0_cl*/
 
-static const char moments_axis01_cl[] = "__kernel void moments_axis01_U8toF16(\n\
+static const char moments_axis01_cl[] = "__kernel void moments_axis01_U8toF32(\n\
     image2d_array_t   input, image2d_t  output_mean, image2d_t  output_vari,\n\
     int axis, int axis_num, int input_zp, float input_scale,\n\
     int width, int height, int chn, float dimRatio\n\
@@ -51065,7 +51128,6 @@ __kernel void moments_axis01_##src0_type_name##to##src0_type_name( \\\n\
         write_imagef(output_vari, coord_out, vari); \\\n\
     } \\\n\
 }\n\
-MOMENTS_AXIS01_F(F16)\n\
 MOMENTS_AXIS01_F(F32)\n\
 \n\
 __kernel void moments_axis01_I32toF32(\n\
@@ -51079,7 +51141,7 @@ __kernel void moments_axis01_I32toF32(\n\
     int lidx = get_local_id(0);\n\
 \n\
     int4 coord = (int4)(gidx, 0, gidz, 0);\n\
-    int4 data;\n\
+    float4 data;\n\
     float sum = 0, sqr = 0;\n\
     float e2InScale = input_scale * input_scale;\n\
 \n\
@@ -51088,13 +51150,14 @@ __kernel void moments_axis01_I32toF32(\n\
 \n\
     for(coord.x = gidx; coord.x < width; coord.x += 16)\n\
     {\n\
-        int tmpSum = 0, tmpSqr = 0;\n\
+        float tmpSum = 0, tmpSqr = 0;\n\
         for(coord.y = 0; coord.y < height;)\n\
         {\n\
-            data = read_imagei(input, coord);\n\
+            data = convert_float4(read_imagei(input, coord));\n\
             coord.y++;\n\
-            tmpSum += data.x;\n\
-            tmpSqr += data.x * data.x;\n\
+\n\
+            tmpSum = tmpSum + data.x;\n\
+            tmpSqr = tmpSqr + data.x * data.x;\n\
         }\n\
         sqr += (tmpSqr - 2 * input_zp * tmpSum + height * input_zp * input_zp) * e2InScale;\n\
         sum += (tmpSum - height * input_zp) * input_scale;\n\
@@ -51127,7 +51190,7 @@ __kernel void moments_axis01_I32toF32(\n\
 }\n\
 "; /* end of moments_axis01_cl*/
 
-static const char moments_axis012_cl[] = "__kernel void moments_axis012_U8toF16(\n\
+static const char moments_axis012_cl[] = "__kernel void moments_axis012_U8toF32(\n\
     image2d_array_t   input, image2d_t  output_mean, image2d_t  output_vari,\n\
     int axis, int axis_num, int input_zp, float input_scale,\n\
     int width, int height, int chn, float dimRatio\n\
@@ -51245,7 +51308,6 @@ __kernel void moments_axis012_##src0_type_name##to##src0_type_name( \\\n\
         write_imagef(output_vari, coord_out, vari); \\\n\
     } \\\n\
 }\n\
-MOMENTS_AXIS012_F(F16)\n\
 MOMENTS_AXIS012_F(F32)\n\
 \n\
 __kernel void moments_axis012_I32toF32(\n\
@@ -51274,8 +51336,8 @@ __kernel void moments_axis012_I32toF32(\n\
             {\n\
                 data = read_imagei(input, coord);\n\
                 coord.y++;\n\
-                tmpSum += data.x;\n\
-                tmpSqr += data.x * data.x;\n\
+                tmpSum = tmpSum + data.x;\n\
+                tmpSqr = tmpSqr + data.x * data.x;\n\
             }\n\
             sqr += (tmpSqr - 2 * input_zp * tmpSum + height * input_zp * input_zp) * e2InScale;\n\
             sum += (tmpSum - height * input_zp) * input_scale;\n\
@@ -51309,7 +51371,7 @@ __kernel void moments_axis012_I32toF32(\n\
 }\n\
 "; /* end of moments_axis012_cl*/
 
-static const char moments_axis1_cl[] = "__kernel void moments_axis1_U8toF16(\n\
+static const char moments_axis1_cl[] = "__kernel void moments_axis1_U8toF32(\n\
     __read_only image2d_array_t   input,\n\
     __write_only image2d_t  output_mean,\n\
     __write_only image2d_t  output_vari,\n\
@@ -51334,8 +51396,8 @@ static const char moments_axis1_cl[] = "__kernel void moments_axis1_U8toF16(\n\
             tmpSum += (data);\n\
             tmpSqr += (data * data);\n\
         }\n\
-        sqr = convert_float(tmpSqr - 2 * input_zp * tmpSum + height * input_zp * input_zp) * e2InScale;\n\
-        sum = convert_float(tmpSum - height * input_zp) * input_scale;\n\
+        sqr = convert_float(as_int(tmpSqr - 2 * input_zp * tmpSum + height * input_zp * input_zp)) * e2InScale;\n\
+        sum = convert_float(as_int(tmpSum - height * input_zp)) * input_scale;\n\
     }\n\
 \n\
     float4 mean, vari;\n\
@@ -51381,7 +51443,6 @@ __kernel void moments_axis1_##src0_type_name##to##src0_type_name( \\\n\
     write_imagef(output_mean, coord_out, mean); \\\n\
     write_imagef(output_vari, coord_out, vari); \\\n\
 }\n\
-MOMENTS_AXIS1_F(F16)\n\
 MOMENTS_AXIS1_F(F32)\n\
 \n\
 __kernel void moments_axis1_I32toF32(\n\
@@ -51402,20 +51463,20 @@ __kernel void moments_axis1_I32toF32(\n\
     int gidz = get_global_id(1);\n\
 \n\
     int4 coord0 = (int4)(gidx, 0, gidz, 0);\n\
-    int data;\n\
-    int sum = 0, sqr = 0;\n\
+    float data;\n\
+    float sum = 0, sqr = 0;\n\
 \n\
     for(coord0.y = 0; coord0.y < height;)\n\
     {\n\
-        data = read_imagei(input, coord0).x;\n\
+        data = convert_float(read_imagei(input, coord0).x);\n\
         coord0.y++;\n\
-        sum += (data);\n\
-        sqr += (data * data);\n\
+        sum = sum + data;\n\
+        sqr = sqr + data * data;\n\
     }\n\
 \n\
     float4 mean, vari;\n\
-    mean.x = sum * dimRatio;\n\
-    vari.x = sqr * dimRatio;\n\
+    mean.x = sum * dimRatio * input_scale;\n\
+    vari.x = sqr * dimRatio * input_scale * input_scale;\n\
     vari.x = vari.x - mean.x * mean.x;\n\
 \n\
     int2 coord_out = (int2)(gidx, gidz);\n\
@@ -51423,7 +51484,7 @@ __kernel void moments_axis1_I32toF32(\n\
     write_imagef(output_vari, coord_out, vari);\n\
 }"; /* end of moments_axis1_cl*/
 
-static const char moments_axis2_cl[] = "__kernel void moments_axis2_U8toF16(\n\
+static const char moments_axis2_cl[] = "__kernel void moments_axis2_U8toF32(\n\
     __read_only image2d_array_t   input,\n\
     __write_only image2d_t  output_mean,\n\
     __write_only image2d_t  output_vari,\n\
@@ -51454,12 +51515,12 @@ static const char moments_axis2_cl[] = "__kernel void moments_axis2_U8toF16(\n\
             tmpSum += (data);\n\
             tmpSqr += (data * data);\n\
         }\n\
-        sqr = (tmpSqr - 2 * input_zp * tmpSum + chn * input_zp * input_zp) * e2InScale;\n\
-        sum = (tmpSum - chn * input_zp) * input_scale;\n\
+        sqr = as_int(tmpSqr - 2 * input_zp * tmpSum + chn * input_zp * input_zp) * e2InScale;\n\
+        sum = tmpSum * input_scale;\n\
     }\n\
 \n\
     float4 mean, vari;\n\
-    mean.x = sum * dimRatio;\n\
+    mean.x = sum * dimRatio - input_zp * input_scale;\n\
     vari.x = sqr * dimRatio;\n\
     vari.x = vari.x - mean.x * mean.x;\n\
 \n\
@@ -51507,7 +51568,6 @@ __kernel void moments_axis2_##src0_type_name##to##src0_type_name( \\\n\
     write_imagef(output_mean, coord_out, mean); \\\n\
     write_imagef(output_vari, coord_out, vari); \\\n\
 }\n\
-MOMENTS_AXIS2_F(F16)\n\
 MOMENTS_AXIS2_F(F32)\n\
 \n\
 __kernel void moments_axis2_I32toF32(\n\
@@ -51528,20 +51588,22 @@ __kernel void moments_axis2_I32toF32(\n\
     int gidy = get_global_id(1);\n\
 \n\
     int4 coord0 = (int4)(gidx, gidy, 0, 0);\n\
-    int data;\n\
-    int sum = 0, sqr = 0;\n\
+    float data;\n\
+    float sum = 0, sqr = 0;\n\
 \n\
     for(coord0.z = 0; coord0.z < chn;)\n\
     {\n\
-        data = read_imagei(input, coord0).x;\n\
+        data = convert_float(read_imagei(input, coord0).x);\n\
         coord0.z++;\n\
-        sum += (data);\n\
-        sqr += (data * data);\n\
+\n\
+\n\
+        sum = sum + data;\n\
+        sqr = sqr + data * data;\n\
     }\n\
 \n\
     float4 mean, vari;\n\
-    mean.x = sum * dimRatio;\n\
-    vari.x = sqr * dimRatio;\n\
+    mean.x = sum * dimRatio * input_scale;\n\
+    vari.x = sqr * dimRatio * input_scale * input_scale;\n\
     vari.x = vari.x - mean.x * mean.x;\n\
 \n\
     int2 coord_out = (int2)(gidx, gidy);\n\
@@ -54857,8 +54919,8 @@ static const char select_cl[] = "__kernel void select_I8_U8_U8toU8(\n\
     uint4 src0, src1, src, dst;\n\
     float inputScale, inputTail;\n\
     READ_IMAGEI_2DARRAY(value, condition, coord);\n\
-    READ_IMAGEF_2DARRAY(src0, input0, coord);\n\
-    READ_IMAGEF_2DARRAY(src1, input1, coord);\n\
+    READ_IMAGEUI_2DARRAY(src0, input0, coord);\n\
+    READ_IMAGEUI_2DARRAY(src1, input1, coord);\n\
     src   = (value != 0 ? src0 : src1);\n\
     inputScale = (value.x != 0 ? input0Scale : input1Scale);\n\
     inputTail  = (value.x != 0 ? input0Tail  : input1Tail);\n\

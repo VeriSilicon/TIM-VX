@@ -77,19 +77,19 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     int32_t  rank = 0;
     int32_t  i = 0;
-    int32_t  in_w = 0;
-    int32_t  in_h = 0;
-    int32_t  in_c = 0;
-    int32_t  in_b = 0;
-    int32_t start[4] = {0};
-    int32_t stop[4] = {0};
-    int32_t in_size[4] = {1, 1, 1, 1};
-    int32_t out_size[4] = {1, 1, 1, 1};
+    vsi_ssize_t  in_w = 0;
+    vsi_ssize_t  in_h = 0;
+    vsi_ssize_t  in_c = 0;
+    vsi_ssize_t  in_b = 0;
+    vsi_ssize_t start[4] = {0};
+    vsi_ssize_t stop[4] = {0};
+    vsi_ssize_t in_size[4] = {1, 1, 1, 1};
+    vsi_ssize_t out_size[4] = {1, 1, 1, 1};
     float *input_ptr = NULL;
     float *output_ptr = NULL;
     int32_t dstIdx = 0;
@@ -123,13 +123,13 @@ DEF_KERNEL_EXECUTOR(_compute)
         out_size[i] = out_attr[0]->shape->data[i];
     }
 
-    start[0] = (int32_t)f32_in_buffer[1][0];
+    start[0] = (vsi_ssize_t)f32_in_buffer[1][0];
     stop[0] = start[0] + out_attr[0]->shape->data[0];
-    start[1] = rank < 2 ? 0 : (int32_t)f32_in_buffer[1][1];
+    start[1] = rank < 2 ? 0 : (vsi_ssize_t)f32_in_buffer[1][1];
     stop[1] = rank < 2 ? 1 : start[1] + out_size[1];
-    start[2] = rank < 3 ? 0 : (int32_t)f32_in_buffer[1][2];
+    start[2] = rank < 3 ? 0 : (vsi_ssize_t)f32_in_buffer[1][2];
     stop[2] = rank < 3 ? 1 : start[2] + out_size[2];
-    start[3] = rank < 4 ? 0 : (int32_t)f32_in_buffer[1][3];
+    start[3] = rank < 4 ? 0 : (vsi_ssize_t)f32_in_buffer[1][3];
     stop[3] = rank < 4 ? 1 : start[3] + out_size[3];
     input_ptr = f32_in_buffer[0];
     output_ptr = f32_out_buffer[0];
@@ -142,7 +142,7 @@ DEF_KERNEL_EXECUTOR(_compute)
             {
                 for (in_w = start[0]; in_w < stop[0]; ++in_w)
                 {
-                    int32_t srcIdx = ((in_b * in_size[2] + in_c) * in_size[1] + in_h) * in_size[0] + in_w;
+                    vsi_ssize_t srcIdx = ((in_b * in_size[2] + in_c) * in_size[1] + in_h) * in_size[0] + in_w;
                     output_ptr[dstIdx ++] = input_ptr[srcIdx];
                 }
             }

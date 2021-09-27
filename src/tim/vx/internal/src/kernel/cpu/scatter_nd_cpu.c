@@ -95,9 +95,9 @@ DEF_KERNEL_EXECUTOR(_scatter_nd_exec)
 
     if(coord_dim <= 3)
     {
-        int32_t stride[3] = {0, 0, 0};
-        int32_t new_shape[3] = {1, 1, 1};
-        int32_t merge_dim = (int32_t)attr[2]->shape->size - coord_dim + 1;
+        vsi_ssize_t stride[3] = {0, 0, 0};
+        vsi_ssize_t new_shape[3] = {1, 1, 1};
+        vsi_ssize_t merge_dim = (vsi_ssize_t)attr[2]->shape->size - coord_dim + 1;
 
         for(i = 0; i < merge_dim; ++i)
         {
@@ -115,7 +115,7 @@ DEF_KERNEL_EXECUTOR(_scatter_nd_exec)
         for(i = 0; i < indices_num; i++)
         {
             uint32_t in_index = i * block_size;
-            uint32_t out_index = 0;
+            vsi_size_t out_index = 0;
             uint32_t coord[3] = {0};
             int32_t byd_flg = 0;
 

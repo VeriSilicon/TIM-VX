@@ -116,8 +116,8 @@ static vsi_bool op_setup
     uint32_t i = 0;
     vsi_bool ret = 0;
     uint32_t axis = 0;
-    uint32_t num_frames = 0;
-    uint32_t frame_axis = 0;
+    vsi_size_t num_frames = 0;
+    vsi_size_t frame_axis = 0;
     uint32_t frame_step = 0;
     uint32_t frame_length = 0;
     vsi_nn_signalframe_param *p = &self->nn_param.signalframe;

@@ -79,17 +79,17 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t i = 0;
     int32_t  align_corners = 0;
     int32_t  half_pixel_centers = 0;
     float    width_scale = 1.0f;
-    uint32_t input_width = 0, output_width = 0;
-    uint32_t w = 0, out = 0;
-    uint32_t output_dims = 0;
-    uint32_t outer = 0;
+    vsi_size_t input_width = 0, output_width = 0;
+    vsi_size_t w = 0, out = 0;
+    vsi_size_t output_dims = 0;
+    vsi_size_t outer = 0;
     /* prepare data */
     for (i = 0; i < _INPUT_NUM; i ++)
     {
@@ -135,15 +135,15 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     for (out = 0; out < outer; out++)
     {
-        vx_int32 input_base  = out * input_width;
-        vx_int32 output_base = out * output_width;
+        vsi_ssize_t input_base  = out * input_width;
+        vsi_ssize_t output_base = out * output_width;
 
         for (w = 0; w < output_width; w ++)
         {
             float      input_w;
-            uint32_t   in_x;
-            int32_t    in_index;
-            int32_t    out_index;
+            vsi_size_t   in_x;
+            vsi_ssize_t    in_index;
+            vsi_ssize_t    out_index;
 
             if (half_pixel_centers)
             {
@@ -155,11 +155,11 @@ DEF_KERNEL_EXECUTOR(_compute)
             }
             if (align_corners)
             {
-                in_x = vsi_nn_min((uint32_t)simple_round(input_w), input_width - 1);
+                in_x = vsi_nn_min((vsi_size_t)simple_round(input_w), input_width - 1);
             }
             else
             {
-                in_x = vsi_nn_min((uint32_t)floorf(input_w), input_width - 1);
+                in_x = vsi_nn_min((vsi_size_t)floorf(input_w), input_width - 1);
             }
             in_index    = in_x + input_base;
             out_index   = w + output_base;

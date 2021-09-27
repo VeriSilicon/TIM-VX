@@ -88,6 +88,7 @@ vsi_nn_internal_tensor_t* vsi_nn_internal_create_zero_bias_tensor
     vsi_nn_node_t* node,
     vsi_nn_tensor_attr_t* input_attr,
     vsi_nn_tensor_attr_t* weight_attr,
+    vsi_nn_op_t op,
     vsi_bool use_virtual_tensor
     );
 
@@ -132,8 +133,8 @@ vsi_nn_internal_node_t* vsi_nn_internal_new_node
     (
     vsi_nn_node_t* node,
     vsi_nn_op_t op,
-    uint32_t input_num,
-    uint32_t output_num
+    vsi_size_t input_num,
+    vsi_size_t output_num
     );
 
 void* vsi_nn_internal_new_node_param

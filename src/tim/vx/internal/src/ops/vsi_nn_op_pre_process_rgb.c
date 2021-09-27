@@ -166,13 +166,13 @@ static vsi_bool op_setup
 
     if (self->nn_param.pre_process_rgb.local.enable_perm == FALSE)
     {
-        p->local.scale_x = (p->rect.width << 15) / outputs[PRE_PROCESS_RGB_OUTPUT]->attr.size[0];
-        p->local.scale_y = (p->rect.height << 15) / outputs[PRE_PROCESS_RGB_OUTPUT]->attr.size[1];
+        p->local.scale_x = (int32_t)((p->rect.width << 15) / outputs[PRE_PROCESS_RGB_OUTPUT]->attr.size[0]);
+        p->local.scale_y = (int32_t)((p->rect.height << 15) / outputs[PRE_PROCESS_RGB_OUTPUT]->attr.size[1]);
     }
     else
     {
-        p->local.scale_x = (p->rect.width << 15) / outputs[PRE_PROCESS_RGB_OUTPUT]->attr.size[1];
-        p->local.scale_y = (p->rect.height << 15) / outputs[PRE_PROCESS_RGB_OUTPUT]->attr.size[2];
+        p->local.scale_x = (int32_t)((p->rect.width << 15) / outputs[PRE_PROCESS_RGB_OUTPUT]->attr.size[1]);
+        p->local.scale_y = (int32_t)((p->rect.height << 15) / outputs[PRE_PROCESS_RGB_OUTPUT]->attr.size[2]);
     }
 
     p->local.enable_copy = ((p->local.scale_x == p->local.scale_y) && (p->local.scale_x == (1 << 15)));

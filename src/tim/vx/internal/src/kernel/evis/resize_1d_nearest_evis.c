@@ -124,8 +124,8 @@ DEF_KERNEL_INITIALIZER(_resize_1d_nearest_initializer)
         };
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
     vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
-    vsi_int_array_t             * out_shape     = NULL;
-    vsi_int_array_t             * in_shape      = NULL;
+    vsi_size_array_t             * out_shape     = NULL;
+    vsi_size_array_t             * in_shape      = NULL;
     vsi_nn_kernel_dtype_e         input_dtype   = F16;
     vsi_nn_kernel_dtype_e         output_dtype  = F16;
     int32_t     align_corners      = 0;
@@ -158,10 +158,10 @@ DEF_KERNEL_INITIALIZER(_resize_1d_nearest_initializer)
     input_dtype   = input_attr->dtype;
     output_dtype  = output_attr->dtype;
 
-    in_width          = in_shape->data[0];
-    depth             = in_shape->data[2];
-    out_width         = out_shape->data[0];
-    out_height        = out_shape->data[1];
+    in_width          = (uint32_t)(in_shape->data[0]);
+    depth             = (uint32_t)(in_shape->data[2]);
+    out_width         = (uint32_t)(out_shape->data[0]);
+    out_height        = (uint32_t)(out_shape->data[1]);
 
     if (BF16 == input_dtype && output_dtype == BF16)
     {
@@ -427,8 +427,8 @@ static vsi_status _query_kernel
 
     uint32_t key = 0;
     uint32_t i   = 0;
-    uint32_t inputWidth  = inputs[0]->attr.size[0];
-    uint32_t outputWidth = outputs[0]->attr.size[0];
+    vsi_size_t inputWidth  = inputs[0]->attr.size[0];
+    vsi_size_t outputWidth = outputs[0]->attr.size[0];
     float    scale_factor;
     _internal_nearest_e resize_mode = LARGE;
 

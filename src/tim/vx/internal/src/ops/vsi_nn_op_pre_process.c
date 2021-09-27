@@ -122,9 +122,9 @@ static vsi_bool op_setup
             attr.size[0] = p->output_attr.size[1];
             attr.size[1] = p->output_attr.size[2];
             attr.size[2] = p->output_attr.size[0];
-            p->output_attr.size[0] = attr.size[0];
-            p->output_attr.size[1] = attr.size[1];
-            p->output_attr.size[2] = attr.size[2];
+            p->output_attr.size[0] = (uint32_t)attr.size[0];
+            p->output_attr.size[1] = (uint32_t)attr.size[1];
+            p->output_attr.size[2] = (uint32_t)attr.size[2];
             attr.vtl = use_virtual_tensor;
             attr.is_const = FALSE;
 
@@ -301,6 +301,7 @@ static vsi_bool op_setup
             vsi_nn_internal_tensor_t* tmp_outputs[3] = { NULL };
             vsi_nn_tensor_attr_t attr;
             float mean[3] = {0};
+            vsi_size_t size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
 
             memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
 
@@ -312,13 +313,20 @@ static vsi_bool op_setup
             }
 
             memcpy(&attr, &outputs[0]->attr, sizeof(vsi_nn_tensor_attr_t));
-            memcpy(&attr.size, p->output_attr.size, p->output_attr.dim_num * sizeof(uint32_t));
+            for(i = 0; i < p->output_attr.dim_num; i++)
+            {
+                attr.size[i] = (vsi_size_t)p->output_attr.size[i];
+            }
             attr.size[axis] = 1;
             attr.vtl = TRUE;
             attr.is_const = FALSE;
             output_tensor_group[0] = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
             output_tensor_group[1] = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
             output_tensor_group[2] = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+            {
+                size_32bit[i] = attr.size[i];
+            }
 
             if (p->reverse_channel)
             {
@@ -350,7 +358,7 @@ static vsi_bool op_setup
                 curr->node->nn_param.pre_process_gray.rect.top = p->rect.top;
                 curr->node->nn_param.pre_process_gray.rect.width = p->rect.width;
                 curr->node->nn_param.pre_process_gray.rect.height = p->rect.height;
-                curr->node->nn_param.pre_process_gray.output_attr.size = attr.size;
+                curr->node->nn_param.pre_process_gray.output_attr.size = size_32bit;
                 curr->node->nn_param.pre_process_gray.output_attr.dim_num = p->output_attr.dim_num;
 
                 curr->inputs[0] = input_tensor_group[i];

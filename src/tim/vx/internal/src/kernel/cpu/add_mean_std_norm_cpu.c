@@ -78,13 +78,13 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   in_stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM]   = {{1}};
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   in_stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM]   = {{1}};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     int32_t  i;
     float mean = .0f, stddev_inv = .0f, variance = .0f, input_d = .0f, data = .0f, eps = .0f;
-    int32_t v_size, n_batch, batch;
+    vsi_ssize_t v_size, n_batch, batch;
     /* prepare data */
     for(i = 0; i < _INPUT_NUM; i ++)
     {
@@ -114,10 +114,10 @@ DEF_KERNEL_EXECUTOR(_compute)
     {
         float   sum         = 0.0f;
         float   sum_sq      = 0.0f;
-        int32_t index_base  = batch * v_size;
+        vsi_ssize_t index_base  = batch * v_size;
         for (i = 0; i < v_size; ++i)
         {
-            int32_t index = i + index_base;
+            vsi_ssize_t index = i + index_base;
             input_d = f32_in_buffer[0][index] + f32_in_buffer[1][index];
             sum    += input_d;
             sum_sq += input_d * input_d;
@@ -138,7 +138,7 @@ DEF_KERNEL_EXECUTOR(_compute)
 
         for (i = 0; i < v_size; ++i)
         {
-            int32_t index = i + index_base;
+            vsi_ssize_t index = i + index_base;
             input_d   = f32_in_buffer[0][index] + f32_in_buffer[1][index];
             data      = (input_d - mean) * stddev_inv;
             f32_out_buffer[0][index] = data;

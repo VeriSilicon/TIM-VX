@@ -138,7 +138,7 @@ DEF_KERNEL_INITIALIZER(_upsamplescale_initializer)
         };
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
     vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
-    vsi_int_array_t * in_shape                  = NULL;
+    vsi_size_array_t * in_shape                  = NULL;
     vsi_nn_kernel_dtype_e        input_dtype    = F16;
     vsi_nn_kernel_dtype_e        output_dtype   = F16;
     int32_t   stride          = 0;

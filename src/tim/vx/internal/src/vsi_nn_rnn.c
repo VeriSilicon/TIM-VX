@@ -48,10 +48,10 @@ static vsi_status internal_buffer_init
     )
 {
     vsi_status  status      = VSI_FAILURE;
-    uint32_t    element_num = 0;
-    uint32_t    i           = 0;
+    vsi_size_t    element_num = 0;
+    vsi_size_t    i           = 0;
     uint32_t    stride      = 0;
-    uint32_t    data_size   = 0;
+    vsi_size_t    data_size   = 0;
     uint8_t*    data        = NULL;
 
     if( TRUE == tensor->attr.vtl )
@@ -126,7 +126,7 @@ static vsi_status internal_buffer_copy_to_tensor
     )
 {
     vsi_status status = VSI_FAILURE;
-    uint32_t request_data_size = 0;
+    vsi_size_t request_data_size = 0;
     vsi_nn_tensor_t* tensor = NULL;
 
     if( NULL == buffer )
@@ -156,7 +156,7 @@ static vsi_status internal_buffer_copy_from_tensor
     )
 {
     vsi_status status = VSI_FAILURE;
-    uint32_t request_data_size = 0;
+    vsi_size_t request_data_size = 0;
     uint8_t* data = NULL;
     vsi_nn_tensor_t* tensor = NULL;
 

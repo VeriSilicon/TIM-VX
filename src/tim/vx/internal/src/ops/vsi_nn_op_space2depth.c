@@ -120,6 +120,8 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    vsi_bool ret = FALSE;
+
     if (self->nn_param.space2depth.block_size[0] < 0
         || self->nn_param.space2depth.block_size[1] < 0)
     {
@@ -127,29 +129,9 @@ static vsi_bool op_check
         return FALSE;
     }
 
-    {
-        BEGIN_IO_TYPE_DECL(SPACE2DEPTH, 1, 1)
-            IO_TYPE(D_F16,  D_F16)
-            IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP)
-            IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
-            IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
-            IO_TYPE(D_F32,  D_F32)
-            IO_TYPE(D_F32,  D_BF16)
-            IO_TYPE(D_BF16, D_F32)
+    ret = vsi_nn_OpCheck(VSI_NN_OP_STRIDED_SLICE, self, inputs, outputs);
 
-            /* HW 9.0 */
-            IO_TYPE(D_BF16, D_BF16)
-        END_IO_TYPE_DECL(SPACE2DEPTH)
-        if (!VALIDATE_OP_IO_TYPES(SPACE2DEPTH, self, inputs, self->input.num, outputs, self->output.num)) {
-            char* desc = generate_op_io_types_desc(inputs,
-                    self->input.num, outputs, self->output.num);
-            VSILOGE("Inputs/Outputs data type not support: %s", desc);
-            destroy_op_io_types_desc(desc);
-            return FALSE;
-        }
-    }
-
-    return TRUE;
+    return ret;
 } /* op_check() */
 
 static vsi_bool op_set_space2depth_internal

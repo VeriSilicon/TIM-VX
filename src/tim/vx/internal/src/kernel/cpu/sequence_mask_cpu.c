@@ -78,14 +78,14 @@ DEF_KERNEL_EXECUTOR(_sequence_mask_exec)
     memset( buffer, 0, out_elements * sizeof(float) );
 
     {
-        uint32_t j = 0;
-        uint32_t height = attr[1]->shape->data[1];
-        uint32_t width = attr[1]->shape->data[0];
+        vsi_size_t j = 0;
+        vsi_size_t height = attr[1]->shape->data[1];
+        vsi_size_t width = attr[1]->shape->data[0];
 
         for(j = 0; j < height; j++)
         {
-            uint32_t idx_in = (uint32_t)buffer_in[j];
-            uint32_t out_offset = j * width;
+            vsi_size_t idx_in = (vsi_size_t)buffer_in[j];
+            vsi_size_t out_offset = j * width;
             idx_in = idx_in > width ? width : idx_in;
             for(i = 0; i < idx_in; i++)
             {
@@ -152,12 +152,12 @@ static int32_t _optimize_mask_shape
     vsi_nn_tensor_t ** inputs,
     vsi_nn_tensor_t ** outputs,
     int32_t max_len,
-    int32_t* opt_shape_in,
-    int32_t* opt_shape_out
+    vsi_size_t* opt_shape_in,
+    vsi_size_t* opt_shape_out
     )
 {
     vsi_status status = VSI_SUCCESS;
-    int32_t out_size = 1;
+    vsi_size_t out_size = 1;
     uint32_t i = 0;
     opt_shape_in[0] = 1;
     opt_shape_in[1] = 1;
@@ -197,7 +197,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t backend_params[_CPU_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_output = NULL;
-    int32_t new_shape[2][VSI_NN_MAX_DIM_NUM] = {{ 1, 1, 1, 1 }};
+    vsi_size_t new_shape[2][VSI_NN_MAX_DIM_NUM] = {{ 1, 1, 1, 1 }};
     int32_t max_len  = vsi_nn_kernel_param_get_int32( params, "max_len" );
 
     status = _optimize_mask_shape(inputs, outputs, max_len, new_shape[0], new_shape[1]);

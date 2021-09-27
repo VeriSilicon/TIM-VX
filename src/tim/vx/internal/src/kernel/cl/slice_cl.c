@@ -126,7 +126,7 @@ DEF_KERNEL_INITIALIZER(_slice_initializer)
         {0, 0, 0}
     };
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
-    vsi_int_array_t * out_shape                 = NULL;
+    vsi_size_array_t * out_shape                 = NULL;
 
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
@@ -235,11 +235,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     vsi_bool image_2d = FALSE;
     uint32_t rank[_IO_NUM] = {0};
-    int32_t  shapes[_IO_NUM][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
+    vsi_size_t  shapes[_IO_NUM][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
     vsi_nn_tensor_t* reshape_tensors[_IO_NUM] = { NULL };
     int32_t i = 0;
-    int32_t input_batch = inputs[0]->attr.dim_num > 3 ? inputs[0]->attr.size[3] : 1;
-    int32_t output_batch = outputs[0]->attr.dim_num > 3 ? outputs[0]->attr.size[3] : 1;
+    vsi_size_t input_batch = inputs[0]->attr.dim_num > 3 ? inputs[0]->attr.size[3] : 1;
+    vsi_size_t output_batch = outputs[0]->attr.dim_num > 3 ? outputs[0]->attr.size[3] : 1;
     float inputScale = inputs[0]->attr.dtype.scale;
     float inputTail = (float)inputs[0]->attr.dtype.zero_point * inputScale;
     float outputScale = outputs[0]->attr.dtype.scale;
@@ -247,22 +247,22 @@ static vsi_nn_kernel_node_t _setup
 
     outputScale = vsi_abs(outputScale) < 1e-5 ? 0.0f : 1.0f / outputScale;
 
-    vsi_nn_kernel_optimize_1d_tensor_shape( (const int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+    vsi_nn_kernel_optimize_1d_tensor_shape( (const vsi_size_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num,
         shapes[0], &rank[0]);
-    vsi_nn_kernel_optimize_1d_tensor_shape( (const int32_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num,
+    vsi_nn_kernel_optimize_1d_tensor_shape( (const vsi_size_t*)inputs[1]->attr.size, inputs[1]->attr.dim_num,
         shapes[1], &rank[1]);
-    vsi_nn_kernel_optimize_1d_tensor_shape( (const int32_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+    vsi_nn_kernel_optimize_1d_tensor_shape( (const vsi_size_t*)outputs[0]->attr.size, outputs[0]->attr.dim_num,
         shapes[2], &rank[2]);
 
     for (i = 0; i < _INPUT_NUM; i++)
     {
         reshape_tensors[i] = vsi_nn_reshape_tensor( graph,
-            inputs[i], (uint32_t*)shapes[i], rank[i] );
+            inputs[i], shapes[i], rank[i] );
     }
     reshape_tensors[_INPUT_NUM] = vsi_nn_reshape_tensor( graph,
-        outputs[0], (uint32_t*)shapes[_INPUT_NUM], rank[_INPUT_NUM] );
+        outputs[0], shapes[_INPUT_NUM], rank[_INPUT_NUM] );
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)reshape_tensors[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( reshape_tensors[0]->attr.size,
         inputs[0]->attr.dim_num ) || input_batch != output_batch )
     {
         goto final;

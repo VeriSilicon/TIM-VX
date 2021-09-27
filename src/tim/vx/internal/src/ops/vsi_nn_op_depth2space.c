@@ -98,7 +98,6 @@ static vsi_status op_compute
         return status;
     }
 
-
     return status;
 } /* op_compute() */
 
@@ -127,13 +126,17 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    vsi_bool ret = FALSE;
+
     if(self->nn_param.depth2space.block_size < 0)
     {
         VSILOGE("Block size can't be less than zero in depth to space");
         return FALSE;
     }
 
-    return TRUE;
+    ret = vsi_nn_OpCheck(VSI_NN_OP_STRIDED_SLICE, self, inputs, outputs);
+
+    return ret;
 } /* op_check() */
 
 static void op_set_depth2space_param_value(vsi_nn_nn_param_t *nn_param,

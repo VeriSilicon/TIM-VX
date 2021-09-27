@@ -201,7 +201,7 @@ DEF_KERNEL_INITIALIZER(_batch_norm_initializer)
     vx_tensor     output                        = (vx_tensor)param[BATCHNORM_INPUT_CNT];
     vsi_nn_kernel_tensor_attr_t *input_attr     = NULL;
     vsi_nn_kernel_tensor_attr_t *output_attr    = NULL;
-    vsi_int_array_t             *output_shape   = NULL;
+    vsi_size_array_t             *output_shape   = NULL;
     float    input_scale                        = 1.0f;
     float    input_tail                         = 0;
     float    output_scale                       = 1.0f;

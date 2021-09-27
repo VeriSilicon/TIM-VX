@@ -84,11 +84,11 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t  i;
-    uint32_t  n, a, numBatches, numAnchors, lengthBoxEncoding;
+    vsi_size_t  n, a, numBatches, numAnchors, lengthBoxEncoding;
     uint32_t  kRoiDim = 4;
     float     inv_scale_y = 0.0f;
     float     inv_scale_x = 0.0f;
@@ -127,8 +127,8 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     for ( n = 0; n < numBatches; n++ )
     {
-        int32_t batch_in_offset  = n * numAnchors * lengthBoxEncoding;
-        int32_t batch_out_offset = n * numAnchors * kRoiDim;
+        vsi_ssize_t batch_in_offset  = n * numAnchors * lengthBoxEncoding;
+        vsi_ssize_t batch_out_offset = n * numAnchors * kRoiDim;
         for ( a = 0; a < numAnchors; a++ )
         {
             float yCtr = f32_in_buffer[1][a * kRoiDim] + f32_in_buffer[1][a * kRoiDim + 2]

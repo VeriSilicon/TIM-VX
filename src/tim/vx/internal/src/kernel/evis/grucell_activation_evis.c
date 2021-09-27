@@ -224,7 +224,7 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_initializer)
     float    tensorZP[4]                    = {0.0f, 0.0f, 0.0f, 0.0f};
     uint32_t  i                             = 0;
     uint32_t  pack_key                      = 0;
-    vsi_int_array_t * output_shape          = NULL;
+    vsi_size_array_t * output_shape          = NULL;
     vsi_nn_kernel_tensor_attr_t * attr[4]   = { NULL, NULL, NULL, NULL };
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
@@ -375,7 +375,7 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_cdnn_initializer)
     float     input_c_tail                  = 0;
     float     recur_c_scale                 = 1.0f;
     float     recur_c_tail                  = 0;
-    vsi_int_array_t * output_shape          = NULL;
+    vsi_size_array_t * output_shape          = NULL;
     vsi_nn_kernel_tensor_attr_t * attr[8]   = { NULL };
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
@@ -473,13 +473,13 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_cdnn_initializer)
 
     if (layer_out == 1 || layer_out == 2)
     {
-        input_size = attr[1]->shape->data[0];
-        batch      = attr[1]->shape->data[1];
+        input_size = (int32_t)(attr[1]->shape->data[0]);
+        batch      = (int32_t)(attr[1]->shape->data[1]);
     }
     else
     {
-        input_size = output_shape->data[0];
-        batch      = output_shape->data[1];
+        input_size = (int32_t)(output_shape->data[0]);
+        batch      = (int32_t)(output_shape->data[1]);
     }
 
     gpu_param.global_scale[0] = 4;
@@ -754,8 +754,8 @@ static vsi_nn_kernel_node_t _setup
     int32_t i = 0;
     int32_t j = 0;
     int32_t k = 0;
-    int32_t input_size = inputs[0]->attr.size[0];
-    int32_t batch = inputs[0]->attr.size[1];
+    vsi_size_t input_size = inputs[0]->attr.size[0];
+    vsi_size_t batch = inputs[0]->attr.size[1];
     int32_t param_count = 0;
     int32_t input_count = 0;
     int32_t output_count = 0;

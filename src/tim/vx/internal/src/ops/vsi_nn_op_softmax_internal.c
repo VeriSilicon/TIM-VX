@@ -173,8 +173,9 @@ static vsi_status op_optimize
 {
     vsi_status status;
     vx_tensor in_view_tensor,out_view_tensor;
-    uint32_t start[VSI_NN_MAX_DIM_NUM],end[VSI_NN_MAX_DIM_NUM];
-    uint32_t axis, batch_size;
+    vsi_size_t start[VSI_NN_MAX_DIM_NUM],end[VSI_NN_MAX_DIM_NUM];
+    uint32_t axis;
+    vsi_size_t batch_size;
 
     in_view_tensor = NULL;
     out_view_tensor = NULL;
@@ -200,8 +201,8 @@ static vsi_status op_optimize
 
     axis = 1; /* we only split 2D softmax, so the axis = batch dim */
     batch_size = inputs[0]->attr.size[1];
-    memset( start, 0, sizeof( uint32_t ) * VSI_NN_MAX_DIM_NUM );
-    memset( end, 0, sizeof( uint32_t ) * VSI_NN_MAX_DIM_NUM );
+    memset( start, 0, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
+    memset( end, 0, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
     end[0] = inputs[0]->attr.size[0];
     end[1] = inputs[0]->attr.size[1];
     end[2] = inputs[0]->attr.size[2];

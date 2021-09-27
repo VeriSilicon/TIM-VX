@@ -185,21 +185,21 @@ static vx_param_description_t _scatter_nd_update_post_kernel_param_def[] =
 static vsi_status get_scatter_nd_update_tensor_reshape_size
     (
     vsi_nn_tensor_t ** inputs,
-    int32_t sizes[VSI_NN_MAX_DIM_NUM],
+    vsi_size_t sizes[VSI_NN_MAX_DIM_NUM],
     uint32_t block_size,
     uint32_t coordDim,
-    uint32_t* width,
-    uint32_t* area,
-    uint32_t* vol,
+    vsi_size_t* width,
+    vsi_size_t* area,
+    vsi_size_t* vol,
     int32_t* newDim,
     int32_t* isBig
     )
 {
     vsi_status status = VSI_FAILURE;
     uint32_t dims_num = inputs[0]->attr.dim_num;
-    uint32_t *input_size = inputs[0]->attr.size;
+    vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t i = 0;
-    uint32_t elementCnt = 1;
+    vsi_size_t elementCnt = 1;
 
     if (coordDim != 0 && (width == NULL || area == NULL))
     {
@@ -311,9 +311,9 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[7], &coord_dim);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    block_size = attr[3]->shape->data[0];
-    height     = attr[3]->shape->data[1];
-    index_num  = attr[1]->shape->data[1];
+    block_size = (int32_t)(attr[3]->shape->data[0]);
+    height     = (int32_t)(attr[3]->shape->data[1]);
+    index_num  = (int32_t)(attr[1]->shape->data[1]);
 
     if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
@@ -602,9 +602,9 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_big_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[7], &coord_dim);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    block_size = attr[3]->shape->data[0];
-    height     = attr[3]->shape->data[1];
-    index_num  = attr[1]->shape->data[1];
+    block_size = (int32_t)(attr[3]->shape->data[0]);
+    height     = (int32_t)(attr[3]->shape->data[1]);
+    index_num  = (int32_t)(attr[1]->shape->data[1]);
 
     if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
@@ -852,9 +852,9 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_pre_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[8], &coord_dim);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    block_size   = attr[2]->shape->data[0];
-    update_width = attr[1]->shape->data[0];
-    index_num    = attr[0]->shape->data[1];
+    block_size   = (int32_t)(attr[2]->shape->data[0]);
+    update_width = (int32_t)(attr[1]->shape->data[0]);
+    index_num    = (int32_t)(attr[0]->shape->data[1]);
 
     if (attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
@@ -1009,8 +1009,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_post_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[9], &coord_dim);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    block_size = attr[2]->shape->data[0];
-    height     = attr[2]->shape->data[1];
+    block_size = (int32_t)(attr[2]->shape->data[0]);
+    height     = (int32_t)(attr[2]->shape->data[1]);
 
     if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
@@ -1213,10 +1213,10 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_reset_initializer)
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
 
-    block_size   = attr[0]->shape->data[0];
-    height = attr[0]->shape->data[1];
-    width = block_size * height;
-    count_width = (height + 3) / 4;
+    block_size   = (int32_t)(attr[0]->shape->data[0]);
+    height = (int32_t)(attr[0]->shape->data[1]);
+    width = (int32_t)(block_size * height);
+    count_width = (int32_t)((height + 3) / 4);
 
     gpu_param.global_scale[0]  = 1;
     gpu_param.global_scale[1]  = 1;
@@ -1416,11 +1416,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t tmp_params[_SCATTER_ND_UPDATE_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
-    int32_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_size_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
     int32_t block_size  = vsi_nn_kernel_param_get_int32( params, "block_size" );
     int32_t coord_dim   = vsi_nn_kernel_param_get_int32( params, "coord_dim" );
     int32_t rs_in_dim = 0, rs_idx_dim = 0, rs_out_dim = 0;
-    uint32_t width = 0, area = 0, vol = 0;
+    vsi_size_t width = 0, area = 0, vol = 0;
     int32_t big_flg = 0;
     vsi_nn_kernel_dtype_e update_dtype = vsi_nn_kernel_map_dtype(inputs[2]->attr.dtype.vx_type);
     int32_t i = 0;

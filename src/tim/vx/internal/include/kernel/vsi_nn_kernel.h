@@ -145,7 +145,7 @@ typedef struct
 typedef struct
 {
     vsi_nn_kernel_dtype_e       dtype;
-    vsi_int_array_t           * shape;
+    vsi_size_array_t           * shape;
     vsi_nn_kernel_quant_type_e  quant;
     union
     {
@@ -395,8 +395,8 @@ void vsi_nn_kernel_tensor_release
 vsi_nn_kernel_tensor_t vsi_nn_kernel_tensor_reshape
     (
     vsi_nn_kernel_tensor_t tensor,
-    int32_t * shape,
-    uint32_t rank
+    vsi_size_t * shape,
+    vsi_size_t rank
     );
 
 vsi_status vsi_nn_kernel_node_pass_param
@@ -670,7 +670,7 @@ vsi_status vsi_nn_kernel_register
     );
 
 vsi_bool vsi_nn_kernel_gpu_check_shape
-    ( const int32_t * shape, size_t rank );
+    ( const vsi_size_t * shape, vsi_size_t rank );
 
 vsi_status vsi_nn_kernel_gpu_add_param
     (
@@ -738,38 +738,38 @@ vsi_status vsi_nn_kernel_tensor_write
     size_t size
     );
 
-static inline size_t vsi_nn_kernel_tensor_attr_get_size
+static inline vsi_size_t vsi_nn_kernel_tensor_attr_get_size
     ( const vsi_nn_kernel_tensor_attr_t * attr )
 {
     if( !attr )
     {
         return 0;
     }
-    return vsi_nn_shape_get_size( attr->shape->data, attr->shape->size );
+    return vsi_nn_shape_get_size( attr->shape->data, (vsi_size_t)attr->shape->size );
 } /* vsi_nn_kernel_tensor_attr_get_size() */
 
-static inline size_t vsi_nn_kernel_tensor_attr_get_bytes
+static inline vsi_size_t vsi_nn_kernel_tensor_attr_get_bytes
     ( const vsi_nn_kernel_tensor_attr_t * attr )
 {
-    size_t size;
-    size_t type_bytes;
+    vsi_size_t size;
+    vsi_size_t type_bytes;
     if( !attr )
     {
         return 0;
     }
     size = vsi_nn_kernel_tensor_attr_get_size( attr );
-    type_bytes = vsi_nn_kernel_dtype_get_bytes( attr->dtype );
+    type_bytes = (vsi_size_t)vsi_nn_kernel_dtype_get_bytes( attr->dtype );
     return size * type_bytes;
 } /* vsi_nn_kernel_tensor_attr_get_bytes() */
 
 static inline void vsi_nn_kernel_tensor_attr_get_stride
-    ( const vsi_nn_kernel_tensor_attr_t * attr, size_t * out_stride)
+    ( const vsi_nn_kernel_tensor_attr_t * attr, vsi_size_t * out_stride)
 {
     if( !attr || !out_stride )
     {
         return;
     }
-    vsi_nn_shape_get_stride( attr->shape->data, attr->shape->size, out_stride );
+    vsi_nn_shape_get_stride( attr->shape->data, (vsi_size_t)attr->shape->size, out_stride );
 } /* vsi_nn_kernel_tensor_attr_get_size() */
 
 static inline vsi_bool vsi_nn_kernel_tensor_attr_is_quantized
@@ -819,7 +819,7 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_symm_perchannel
     (
     const float * buffer, size_t size,
     vsi_nn_kernel_dtype_e dtype,
-    const int32_t * shape, size_t rank,
+    const vsi_size_t * shape, size_t rank,
     const float * scale, size_t scale_size,
     const int32_t * zero_point, size_t zero_point_size,
     int32_t channel_dim,
@@ -862,7 +862,7 @@ vsi_bool vsi_nn_dtype_convert_quantize_symm_perchannel_to_float
     (
     const void * buffer, size_t size,
     vsi_nn_kernel_dtype_e dtype,
-    const int32_t * shape, size_t rank,
+    const vsi_size_t * shape, size_t rank,
     const float * scale, size_t scale_size,
     const int32_t * zero_point, size_t zero_point_size,
     int32_t channel_dim,
@@ -873,9 +873,9 @@ vsi_nn_tensor_t* vsi_nn_pad_tensor
     (
     vsi_nn_graph_t  * graph,
     vsi_nn_tensor_t * input,
-    int32_t * pad_front,
-    int32_t * pad_end,
-    size_t pad_size,
+    vsi_size_t * pad_front,
+    vsi_size_t * pad_end,
+    vsi_size_t pad_size,
     vsi_nn_pad_mode_e mode,
     float pad_value
     );

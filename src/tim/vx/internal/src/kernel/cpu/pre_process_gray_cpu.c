@@ -95,10 +95,10 @@ DEF_KERNEL_EXECUTOR(_pre_process_gray_exec)
     {
         int32_t line1[2], line2[2];
         int32_t dx = 0, dy = 0, dz = 0;
-        int32_t src_width = attr[0]->shape->data[0];
-        int32_t src_height = attr[0]->shape->data[1];
-        int32_t dst_width = attr[1]->shape->data[0];
-        int32_t dst_height = attr[1]->shape->data[1];
+        int32_t src_width = (int32_t)attr[0]->shape->data[0];
+        int32_t src_height = (int32_t)attr[0]->shape->data[1];
+        int32_t dst_width = (int32_t)attr[1]->shape->data[0];
+        int32_t dst_height = (int32_t)attr[1]->shape->data[1];
         uint8_t result = 0;
 
         for ( dz = 0; dz < 1; dz ++)

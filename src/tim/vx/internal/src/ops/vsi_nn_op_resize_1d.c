@@ -44,7 +44,7 @@
 static vsi_bool _is_same_shape
     (
     vsi_nn_tensor_t * inputs,
-    uint32_t *sizes,
+    vsi_size_t *sizes,
     uint32_t dims
     )
 {

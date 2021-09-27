@@ -152,9 +152,9 @@ DEF_KERNEL_EXECUTOR(_compute)
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
     vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
     vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
-    size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
-    size_t   out_elements[_OUTPUT_NUM] = {0};
-    size_t   out_bytes[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
+    vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
     uint32_t  i                 = 0;
     float     width_scale       = 0.0f;
     float     height_scale      = 0.0f;
@@ -163,12 +163,12 @@ DEF_KERNEL_EXECUTOR(_compute)
     int32_t   width_sample_num  = 0;
     int32_t   height_sample_num = 0;
     uint32_t  n                 = 0;
-    uint32_t  num_rois          = 0;
-    int32_t   inHeight          = 0;
-    int32_t   inWidth           = 0;
-    int32_t   inDepth           = 0;
-    int32_t   outHeight         = 0;
-    int32_t   outWidth          = 0;
+    vsi_size_t  num_rois          = 0;
+    vsi_ssize_t   inHeight          = 0;
+    vsi_ssize_t   inWidth           = 0;
+    vsi_ssize_t   inDepth           = 0;
+    vsi_ssize_t   outHeight         = 0;
+    vsi_ssize_t   outWidth          = 0;
     uint32_t  kRoiDim           = 4;
     uint32_t  out_index         = 0;
 
@@ -228,7 +228,7 @@ DEF_KERNEL_EXECUTOR(_compute)
         float bin_size_x   = roi_dims_x / outWidth;
         float bin_size_y   = roi_dims_y / outHeight;
 
-        int32_t batch_base_index = batchId * inHeight * inWidth * inDepth;
+        vsi_ssize_t batch_base_index = batchId * inHeight * inWidth * inDepth;
         int32_t ch = 0;
         int32_t py = 0;
         int32_t px = 0;
@@ -255,7 +255,7 @@ DEF_KERNEL_EXECUTOR(_compute)
                     float out_val = 0;
 
                     out_val = _roi_align_1x1(
-                        input_ptr, inWidth, inHeight, region_start_x, bin_size_x,
+                        input_ptr, (int32_t)inWidth, (int32_t)inHeight, region_start_x, bin_size_x,
                         roi_bin_grid_x, region_end_x, region_start_y, bin_size_y,
                         roi_bin_grid_y, region_end_y);
 

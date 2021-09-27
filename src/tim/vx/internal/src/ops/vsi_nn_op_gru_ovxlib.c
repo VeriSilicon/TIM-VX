@@ -59,9 +59,9 @@ static vsi_bool setup_op_shapes
     vsi_nn_gru_ovxlib_param* curr_param = &self->nn_param.gru_ovxlib;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
-    uint32_t num_units =  0;
-    uint32_t output_size = 0;
-    uint32_t batch_size = 0;
+    vsi_size_t num_units =  0;
+    vsi_size_t output_size = 0;
+    vsi_size_t batch_size = 0;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     if( curr_param->time_major )
@@ -97,7 +97,7 @@ static vsi_bool setup_op_shapes
 
     if( !outputs[GRU_OUTPUT_H_STATE] )
     {
-        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
         attr.dim_num = VSI_NN_DIM_AUTO;
         memcpy( &attr.dtype, &outputs[GRU_OUTPUT_OUTPUT]->attr.dtype, sizeof( attr.dtype ) );
         attr.vtl = TRUE;
@@ -182,9 +182,9 @@ static vsi_bool op_setup_default
     vsi_nn_tensor_t* tensor = NULL;
     vsi_nn_tensor_t* input_tensor = NULL;
     vsi_bool use_virtual_tensor = TRUE;
-    uint32_t batch_size = 0;
-    uint32_t time_step = 0;
-    uint32_t i = 0;
+    vsi_size_t batch_size = 0;
+    vsi_size_t time_step = 0;
+    vsi_size_t i = 0;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
@@ -218,9 +218,9 @@ static vsi_bool op_setup_default
     grucell_reshape_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
     memset( grucell_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
-    vsi_nn_rnn_split_input_tensor(self, input_tensor, split_output_tensors, time_step, use_virtual_tensor);
+    vsi_nn_rnn_split_input_tensor(self, input_tensor, split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
 
-    vsi_nn_rnn_data_check_aligned(self, split_output_tensors, time_step, use_virtual_tensor);
+    vsi_nn_rnn_data_check_aligned(self, split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
 
     last_step_h_state = inputs[GRU_INPUT_H_STATE];
     for( i = 0; i < time_step; i++ )
@@ -231,7 +231,7 @@ static vsi_bool op_setup_default
 
         /* reshape for split output */
         output_tensor = vsi_nn_rnn_reshape_split_output(self,
-            split_output_tensors[i], batch_size, use_virtual_tensor);
+            split_output_tensors[i], (uint32_t)batch_size, use_virtual_tensor);
         reshape_output = output_tensor->t;
 
         /* grucell output */
@@ -268,7 +268,7 @@ static vsi_bool op_setup_default
         if ( reshape_output->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 )
         {
             int32_t k = 0;
-            for (k = 0; k < sizeof( curr_param->internal_dtype ) / sizeof(curr_param->internal_dtype[0]); k++)
+            for (k = 0; k < _cnt_of_array( curr_param->internal_dtype ); k++)
             {
                 if (curr_param->internal_dtype[k].vx_type == VSI_NN_TYPE_NONE)
                 {
@@ -311,7 +311,7 @@ static vsi_bool op_setup_default
         {
             /* reshape output to 3-dims */
             output_tensor = vsi_nn_rnn_reshape_cell_output(self,
-                grucell_out0, batch_size, use_virtual_tensor);
+                grucell_out0, (uint32_t)batch_size, use_virtual_tensor);
             grucell_reshape_output_tensors[i] = output_tensor->t;
         }
     }
@@ -329,7 +329,7 @@ static vsi_bool op_setup_default
         }
 
         /* concat grucell output, the gru's output is 3-dims */
-        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, time_step, 1 );
+        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, (uint32_t)time_step, 1 );
         curr->node->nn_param.concat.axis = 2;
         for( i = 0; i < time_step; i++ )
         {
@@ -369,15 +369,15 @@ static vsi_bool op_setup_optimized
     vsi_nn_tensor_t* last_step_h_state = NULL;
     vsi_nn_tensor_t* input_tensor = NULL;
     vsi_bool use_virtual_tensor = TRUE;
-    uint32_t batch_size = 0;
-    uint32_t time_step = 0;
-    uint32_t unit_nums = 0;
-    uint32_t i = 0;
+    vsi_size_t batch_size = 0;
+    vsi_size_t time_step = 0;
+    vsi_size_t unit_nums = 0;
+    vsi_size_t i = 0;
     grucell_activation_input_layout_e grucell_activation_input_layout = GRUCELL_ACTIVATION_INPUT_LAYOUT_ALL_CN;
     vsi_nn_internal_tensor_t* recurrent_weight_for_nn = NULL;
     vsi_nn_internal_tensor_t* input_weight_for_nn = NULL;
-    uint32_t permute_in_perm[VSI_NN_MAX_DIM_NUM] = { 0 };
-    uint32_t reshape_size[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t permute_in_perm[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t reshape_size[VSI_NN_MAX_DIM_NUM] = { 0 };
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
@@ -466,7 +466,7 @@ static vsi_bool op_setup_optimized
     curr->node->nn_param.conv2d.group = 1;
     curr->node->nn_param.conv2d.dilation[0] = 1;
     curr->node->nn_param.conv2d.dilation[1] = 1;
-    curr->node->nn_param.conv2d.weights = input_weight_for_nn->t->attr.size[3];
+    curr->node->nn_param.conv2d.weights = (uint32_t)(input_weight_for_nn->t->attr.size[3]);
 
     curr->inputs[0] = tmp_tensor->t;
     curr->inputs[1] = input_weight_for_nn->t;
@@ -490,9 +490,9 @@ static vsi_bool op_setup_optimized
     grucell_reshape_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
     memset( grucell_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
-    vsi_nn_rnn_split_input_tensor(self, tmp_tensor->t, split_output_tensors, time_step, use_virtual_tensor);
+    vsi_nn_rnn_split_input_tensor(self, tmp_tensor->t, split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
 
-    vsi_nn_rnn_data_check_aligned(self, split_output_tensors, time_step, use_virtual_tensor);
+    vsi_nn_rnn_data_check_aligned(self, split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
 
     memcpy(&attr, &p->local->bias_r->attr, sizeof(vsi_nn_tensor_attr_t));
     attr.size[1] = 1;
@@ -517,7 +517,7 @@ static vsi_bool op_setup_optimized
 
         /* reshape for split output */
         output_tensor = vsi_nn_rnn_reshape_split_output(self,
-            split_output_tensors[i], unit_nums * 3, use_virtual_tensor);
+            split_output_tensors[i], (uint32_t)(unit_nums * 3), use_virtual_tensor);
         input_fc_output = output_tensor->t;
 
         /* last_step_h_state is not batch first, no need to permute */
@@ -544,7 +544,7 @@ static vsi_bool op_setup_optimized
         curr->node->nn_param.conv2d.group = 1;
         curr->node->nn_param.conv2d.dilation[0] = 1;
         curr->node->nn_param.conv2d.dilation[1] = 1;
-        curr->node->nn_param.conv2d.weights = recurrent_weight_for_nn->t->attr.size[3];
+        curr->node->nn_param.conv2d.weights = (uint32_t)recurrent_weight_for_nn->t->attr.size[3];
 
         curr->inputs[0] = tmp->t;
         curr->inputs[1] = recurrent_weight_for_nn->t;
@@ -617,7 +617,7 @@ static vsi_bool op_setup_optimized
         &outputs[GRU_OUTPUT_OUTPUT]->attr.dtype, use_virtual_tensor);
     tmp_tensor = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
 
-    curr = vsi_nn_internal_new_node(self, VSI_NN_OP_CONCAT, time_step, 1);
+    curr = vsi_nn_internal_new_node(self, VSI_NN_OP_CONCAT, (uint32_t)time_step, 1);
     curr->node->nn_param.concat.axis = 1;
     for( i = 0; i < time_step; i++ )
     {

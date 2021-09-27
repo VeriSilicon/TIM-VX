@@ -43,7 +43,7 @@ __BEGIN_DECLS
 #define _CPU_PARAM_NUM          (_CPU_ARG_NUM + _CPU_IO_NUM)
 #define _KERNEL_NAME            CVIVANTE_NAMESPACE("tile_sw")
 
-void copyMultipleTimes(const float* in_data, int32_t in_size, int32_t multiplier, float* out_data)
+void copyMultipleTimes(const float* in_data, vsi_size_t in_size, int32_t multiplier, float* out_data)
 {
     int i = 0;
 
@@ -54,13 +54,13 @@ void copyMultipleTimes(const float* in_data, int32_t in_size, int32_t multiplier
     }
 }
 
-void tileOneDimension(const vsi_int_array_t* input_shape, const float* in_data,
+void tileOneDimension(const vsi_size_array_t* input_shape, const float* in_data,
                       const uint32_t* multipliers, float* out_data, int dimension,
-                      int *stride_size, int *tiled_stride_size)
+                      vsi_size_t *stride_size, vsi_size_t *tiled_stride_size)
 {
-    int i = 0;
-    const int dimension_size = input_shape->data[dimension];
-    int total_stride_size = 0, total_tiled_stride_size = 0;
+    vsi_size_t i = 0;
+    const vsi_size_t dimension_size = input_shape->data[dimension];
+    vsi_ssize_t total_stride_size = 0, total_tiled_stride_size = 0;
     const float* copy_from_data = in_data;
     float* copy_to_data = out_data;
 
@@ -103,9 +103,9 @@ DEF_KERNEL_EXECUTOR(_tile_exec)
     float * buffer[_CPU_IO_NUM] = { NULL };
     size_t out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
-    uint32_t i = 0;
+    vsi_size_t i = 0;
     uint32_t multiples[VSI_NN_MAX_DIM_NUM] = {0};
-    int stride_size = 0, tiled_stride_size = 0;
+    vsi_size_t stride_size = 0, tiled_stride_size = 0;
 
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
@@ -125,7 +125,7 @@ DEF_KERNEL_EXECUTOR(_tile_exec)
 
     for (i = 0; i < attr[0]->shape->size; i++)
     {
-        multiples[i] = attr[1]->shape->data[i] / attr[0]->shape->data[i];
+        multiples[i] = (uint32_t)(attr[1]->shape->data[i] / attr[0]->shape->data[i]);
     }
 
     tileOneDimension(attr[0]->shape, buffer[0], multiples, buffer[1],

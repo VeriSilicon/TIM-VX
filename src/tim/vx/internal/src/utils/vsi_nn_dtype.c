@@ -168,7 +168,7 @@ DEF_DTYPE_CONVERT_QUANTIZE( asymm8,  uint8_t,  vsi_rtne, 0,         UCHAR_MAX )
 vsi_bool vsi_nn_dtype_convert_float_to_quantize_symm8_perchannel
     (
     const float * buffer, size_t size,
-    const int32_t * shape, size_t rank,
+    const vsi_size_t * shape, size_t rank,
     const float * scale, size_t scale_size,
     const int32_t * zero_point, size_t zero_point_size,
     int32_t channel_dim,
@@ -186,7 +186,7 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_symm8_perchannel
 vsi_bool vsi_nn_dtype_convert_quantize_symm8_perchannel_to_float
     (
     const int8_t * buffer, size_t size,
-    const int32_t * shape, size_t rank,
+    const vsi_size_t * shape, size_t rank,
     const float * scale, size_t scale_size,
     const int32_t * zero_point, size_t zero_point_size,
     int32_t channel_dim,
@@ -317,7 +317,7 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_symm_perchannel
     (
     const float * buffer, size_t size,
     vsi_nn_kernel_dtype_e dtype,
-    const int32_t * shape, size_t rank,
+    const vsi_size_t * shape, size_t rank,
     const float * scale, size_t scale_size,
     const int32_t * zero_point, size_t zero_point_size,
     int32_t channel_dim,
@@ -460,7 +460,7 @@ vsi_bool vsi_nn_dtype_convert_quantize_symm_perchannel_to_float
     (
     const void * buffer, size_t size,
     vsi_nn_kernel_dtype_e dtype,
-    const int32_t * shape, size_t rank,
+    const vsi_size_t * shape, size_t rank,
     const float * scale, size_t scale_size,
     const int32_t * zero_point, size_t zero_point_size,
     int32_t channel_dim,

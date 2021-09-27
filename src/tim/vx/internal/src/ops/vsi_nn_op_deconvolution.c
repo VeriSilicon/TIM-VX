@@ -172,7 +172,6 @@ final:
     }
 #endif
     return status;
-
 } /* op_compute() */
 
 static vsi_bool op_check
@@ -220,6 +219,142 @@ static vsi_bool op_check
         /* HW 9.0 */
         IO_TYPE(D_F32,  D_BF16,  D_F32, D_BF16)
         IO_TYPE(D_F32,  D_BF16,  D_NONE, D_BF16)
+
+        /* HW 9.0.1 */
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM,    D_NONE,          D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM,    D_NONE,          D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM,    D_NONE,          D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM,    D_NONE,          D_F32)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_F32)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_NONE,          D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_NONE,          D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_NONE,          D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_NONE,          D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_NONE,          D_F32)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_F32)
+
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_NONE,          D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_NONE,          D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_NONE,          D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_NONE,          D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_NONE,          D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_NONE,          D_F32)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I32|Q_DFP,     D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I32|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I32|Q_DFP,     D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I32|Q_DFP,     D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I32|Q_DFP,     D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I32|Q_DFP,     D_F32)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I64|Q_DFP,     D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I64|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I64|Q_DFP,     D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I64|Q_DFP,     D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I64|Q_DFP,     D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_DFP,     D_I64|Q_DFP,     D_F32)
+
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_NONE,          D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_NONE,          D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_NONE,          D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_NONE,          D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_NONE,          D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_NONE,          D_F32)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_I8|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_BF16)
+        IO_TYPE(D_U8|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_F32)
+
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_NONE,          D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_NONE,          D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_NONE,          D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_NONE,          D_F16)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_NONE,          D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_NONE,          D_F32)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_NONE,          D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_NONE,          D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_NONE,          D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_NONE,          D_F32)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_F32)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_I32|Q_DFP,     D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_I32|Q_DFP,     D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_I32|Q_DFP,     D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_I32|Q_DFP,     D_F32)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_I64|Q_DFP,     D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_I64|Q_DFP,     D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_I64|Q_DFP,     D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP,     D_I64|Q_DFP,     D_F32)
+
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_NONE,          D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_NONE,          D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_NONE,          D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_NONE,          D_F16)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_NONE,          D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_NONE,          D_F32)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_SYM_PC,  D_NONE,          D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_SYM_PC,  D_NONE,          D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_SYM_PC,  D_NONE,          D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_SYM_PC,  D_NONE,          D_F32)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_F16)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_U8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_F32)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_BF16)
+        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_F32)
+
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_NONE,          D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_NONE,          D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_NONE,          D_BF16)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_NONE,          D_F32)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_I32|Q_DFP,     D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_I32|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_I32|Q_DFP,     D_BF16)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_I32|Q_DFP,     D_F32)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_I64|Q_DFP,     D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_I64|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_I64|Q_DFP,     D_BF16)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP,    D_I64|Q_DFP,     D_F32)
+
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_SYM_PC, D_NONE,          D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_SYM_PC, D_NONE,          D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_SYM_PC, D_NONE,          D_BF16)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_SYM_PC, D_NONE,          D_F32)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_SYM_PC, D_I32|Q_SYM_PC,  D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_SYM_PC, D_I32|Q_SYM_PC,  D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_SYM_PC, D_I32|Q_SYM_PC,  D_BF16)
+        IO_TYPE(D_I16|Q_DFP, D_I16|Q_SYM_PC, D_I32|Q_SYM_PC,  D_F32)
+
+        IO_TYPE(D_F16,       D_F16,          D_NONE,          D_BF16)
+        IO_TYPE(D_F16,       D_F16,          D_NONE,          D_F32)
+        IO_TYPE(D_F16,       D_F16,          D_F32,           D_BF16)
+        IO_TYPE(D_F16,       D_F16,          D_F32,           D_F32)
+
+        IO_TYPE(D_BF16,      D_BF16,         D_NONE,          D_F16)
+        IO_TYPE(D_BF16,      D_BF16,         D_F32,           D_F16)
+
+        IO_TYPE(D_F32,       D_BF16,         D_NONE,          D_F16)
+        IO_TYPE(D_F32,       D_BF16,         D_NONE,          D_BF16)
+        IO_TYPE(D_F32,       D_BF16,         D_NONE,          D_F32)
+        IO_TYPE(D_F32,       D_BF16,         D_F32,           D_F16)
+        IO_TYPE(D_F32,       D_BF16,         D_F32,           D_BF16)
+        IO_TYPE(D_F32,       D_BF16,         D_F32,           D_F32)
+
     END_IO_TYPE_DECL(DECONVOLUTION)
     if (!VALIDATE_OP_IO_TYPES(DECONVOLUTION, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -244,8 +379,8 @@ static vsi_bool op_setup
     )
 {
     vsi_nn_deconv_param *nn_param;
-    uint32_t perm[] = { 3, 2, 0, 1 };
-    uint32_t perm1[] = { 0, 1, 3, 2 };
+    vsi_size_t perm[] = { 3, 2, 0, 1 };
+    vsi_size_t perm1[] = { 0, 1, 3, 2 };
 
     /* TODO: Driver should handle this,
     * Check transpose
@@ -287,9 +422,8 @@ static vsi_bool op_setup
 
     nn_param->group = ( 0 == nn_param->group ) ? 1 : nn_param->group;
 
-    nn_param->ksize[0] = inputs[1]->attr.size[0];
-    nn_param->ksize[1] = inputs[1]->attr.size[1];
-
+    nn_param->ksize[0] = (uint32_t)inputs[1]->attr.size[0];
+    nn_param->ksize[1] = (uint32_t)inputs[1]->attr.size[1];
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
@@ -344,4 +478,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

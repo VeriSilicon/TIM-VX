@@ -43,21 +43,21 @@ __BEGIN_DECLS
 #define _CPU_PARAM_NUM          (_CPU_ARG_NUM + _CPU_IO_NUM)
 #define _KERNEL_NAME            CVIVANTE_NAMESPACE("prelu_sw")
 
-static int32_t _expand_offset
+static vsi_ssize_t _expand_offset
     (
-    int32_t index,
-    int32_t * shape, size_t rank,
-    size_t * strides, int32_t * out_shape
+    vsi_ssize_t index,
+    vsi_size_t * shape, vsi_size_t rank,
+    vsi_size_t * strides, vsi_size_t * out_shape
     )
 {
-    uint32_t i;
-    int32_t offset = 0;
+    vsi_size_t i;
+    vsi_ssize_t offset = 0;
 
     for( i = 0; i < rank && index; i ++ )
     {
         if( shape[i] == out_shape[i] )
         {
-            offset += (int32_t)strides[i] * ( index % out_shape[i] );
+            offset += (vsi_ssize_t)strides[i] * ( index % out_shape[i] );
         }
         index /= out_shape[i];
     }
@@ -74,8 +74,8 @@ DEF_KERNEL_EXECUTOR(_prelu_exec)
     vsi_status status = VX_SUCCESS;
     vsi_nn_kernel_tensor_t tensors[_CPU_IO_NUM] = { NULL };
     float * buffer[_CPU_IO_NUM] = { NULL };
-    size_t out_elements = 0;
-    size_t stride_size[_CPU_INPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_size_t out_elements = 0;
+    vsi_size_t stride_size[_CPU_INPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{0}};
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
     uint32_t i;
 
@@ -104,14 +104,14 @@ DEF_KERNEL_EXECUTOR(_prelu_exec)
 
     for( i = 0; i < out_elements; i ++ )
     {
-        int32_t in0_offset = 0;
-        int32_t in1_offset = 0;
+        vsi_ssize_t in0_offset = 0;
+        vsi_ssize_t in1_offset = 0;
         float val1 = 0.f;
         float val2 = 0.f;
 
-        in0_offset = _expand_offset( i, attr[0]->shape->data, attr[0]->shape->size,
+        in0_offset = _expand_offset( i, attr[0]->shape->data, (vsi_size_t)attr[0]->shape->size,
                 stride_size[0], attr[2]->shape->data );
-        in1_offset = _expand_offset( i, attr[1]->shape->data, attr[1]->shape->size,
+        in1_offset = _expand_offset( i, attr[1]->shape->data, (vsi_size_t)attr[1]->shape->size,
                 stride_size[1], attr[2]->shape->data );
 
         val1 = buffer[0][in0_offset];

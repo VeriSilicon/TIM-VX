@@ -49,9 +49,9 @@ static vsi_status op_compute
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
     uint32_t i = 0;
-    uint32_t block_size = 1, block_num = 1, axis_num = 0, indices_num = 1;
+    vsi_size_t block_size = 1, block_num = 1, axis_num = 0, indices_num = 1;
     int32_t axis = self->nn_param.gather.axis;
-    uint32_t *input_size = inputs[0]->attr.size;
+    vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t dims_num = inputs[0]->attr.dim_num;
 
     param =vsi_nn_kernel_param_create();
@@ -71,11 +71,11 @@ static vsi_status op_compute
         indices_num *= inputs[1]->attr.size[i];
     }
 
-    vsi_nn_kernel_param_add_int32( param, "block_size", block_size );
-    vsi_nn_kernel_param_add_int32( param, "block_num", block_num );
-    vsi_nn_kernel_param_add_int32( param, "axis_num", axis_num );
-    vsi_nn_kernel_param_add_int32( param, "axis", axis );
-    vsi_nn_kernel_param_add_int32( param, "indices_num", indices_num );
+    vsi_nn_kernel_param_add_int32( param, "block_size", (int32_t)block_size );
+    vsi_nn_kernel_param_add_int32( param, "block_num", (int32_t)block_num );
+    vsi_nn_kernel_param_add_int32( param, "axis_num", (int32_t)axis_num );
+    vsi_nn_kernel_param_add_int32( param, "axis", (int32_t)axis );
+    vsi_nn_kernel_param_add_int32( param, "indices_num", (int32_t)indices_num );
     n = vsi_nn_kernel_selector( self->graph, "gather", inputs, 2, outputs, 1, param );
     if( n != NULL )
     {

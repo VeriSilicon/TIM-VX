@@ -80,8 +80,8 @@ static vsi_bool setup_op_shapes
 {
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
-    uint32_t output_size = 0;
-    uint32_t batch_size = 0;
+    vsi_size_t output_size = 0;
+    vsi_size_t batch_size = 0;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     batch_size = inputs[RNNCELL_INPUT_INPUT]->attr.size[1];
@@ -103,7 +103,7 @@ static vsi_bool setup_op_shapes
 
     if( !outputs[RNNCELL_OUTPUT_H_STATE] )
     {
-        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
         attr.dim_num = VSI_NN_DIM_AUTO;
         memcpy( &attr.dtype, &outputs[RNNCELL_OUTPUT_OUTPUT]->attr.dtype, sizeof( attr.dtype ) );
         attr.vtl = TRUE;
@@ -129,7 +129,7 @@ static vsi_bool setup_op_shapes
             outputs[RNNCELL_OUTPUT_OUTPUT]->attr.dim_num;
         memcpy( outputs[RNNCELL_OUTPUT_H_STATE]->attr.size,
             outputs[RNNCELL_OUTPUT_OUTPUT]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof( uint32_t ) );
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
     return TRUE;
 }
@@ -165,7 +165,7 @@ static vsi_bool op_setup
 
     memset(p->local, 0x00, sizeof(vsi_nn_rnncell_ovxlib_lcl_data_t));
     memset(&attr, 0x00, sizeof(attr));
-    p->local->multi_batch = (inputs[RNNCELL_INPUT_INPUT]->attr.size[1]);
+    p->local->multi_batch = (vsi_bool)(inputs[RNNCELL_INPUT_INPUT]->attr.size[1]);
 
     if( inputs[RNNCELL_INPUT_INPUT]->attr.dtype.qnt_type
         != inputs[RNNCELL_INPUT_WEIGHT_I]->attr.dtype.qnt_type)
@@ -226,7 +226,7 @@ static vsi_bool op_setup
     {
         /* reshape and transpose input */
         vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-            inputs[RNNCELL_INPUT_INPUT]->attr.size[0],
+            (uint32_t)inputs[RNNCELL_INPUT_INPUT]->attr.size[0],
             &kernel_h, &kernel_w);
         input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self, inputs[RNNCELL_INPUT_INPUT],
             p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
@@ -245,7 +245,7 @@ static vsi_bool op_setup
         {
             /* reshape and transpose input */
             vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-                inputs[RNNCELL_INPUT_AUX_INPUT]->attr.size[0],
+                (uint32_t)inputs[RNNCELL_INPUT_AUX_INPUT]->attr.size[0],
                 &kernel_h, &kernel_w);
             input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self,
                             inputs[RNNCELL_INPUT_AUX_INPUT],
@@ -278,7 +278,7 @@ static vsi_bool op_setup
     {
         /* reshape and transpose input */
         vsi_nn_rnn_find_best_kernel_size(p->local->multi_batch,
-            inputs[RNNCELL_INPUT_H_STATE]->attr.size[0], &kernel_h, &kernel_w);
+            (uint32_t)inputs[RNNCELL_INPUT_H_STATE]->attr.size[0], &kernel_h, &kernel_w);
         hstate_input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self,
                                 inputs[RNNCELL_INPUT_H_STATE],
                                 p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);

@@ -126,7 +126,7 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
     vx_status     status             = VX_FAILURE;
     vx_tensor     output              = (vx_tensor)param[2];
     vsi_nn_kernel_tensor_attr_t *output_attr  = NULL;
-    vsi_int_array_t             *output_shape = NULL;
+    vsi_size_array_t             *output_shape = NULL;
 
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output );
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -266,7 +266,7 @@ static vsi_nn_kernel_node_t _setup
     input0Tail   = -(input0Tail * input0Scale);
     input1Tail   = -(input1Tail * input1Scale);
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

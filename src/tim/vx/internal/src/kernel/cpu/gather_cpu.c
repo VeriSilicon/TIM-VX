@@ -62,8 +62,9 @@ DEF_KERNEL_EXECUTOR(_gather_exec)
     uint32_t* buffer_idx = NULL;
     size_t in_elements = 0, out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
-    uint32_t i = 0, j = 0;
-    int32_t block_size = 1, block_num = 1, indices_num = 1, axis_num = 0;
+    vsi_size_t i = 0, j = 0;
+    int32_t block_size = 1, block_num = 1, axis_num = 0;
+    vsi_size_t indices_num = 1;
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
     tensors[1]  = (vsi_nn_kernel_tensor_t)param[1];
@@ -102,15 +103,15 @@ DEF_KERNEL_EXECUTOR(_gather_exec)
             indices_num *= attr[1]->shape->data[i];
         }
 
-        for(i = 0; i < (uint32_t)block_num; i++)
+        for(i = 0; i < (vsi_size_t)block_num; i++)
         {
-            for(j = 0; j < (uint32_t)indices_num; j++)
+            for(j = 0; j < indices_num; j++)
             {
                 uint32_t indice = buffer_idx[j];
-                uint32_t in_index = (i * axis_num + indice) * block_size;
+                vsi_size_t in_index = (i * axis_num + indice) * block_size;
                 if(in_index < in_elements)
                 {
-                    uint32_t out_index = (i * indices_num + j) * block_size;
+                    vsi_size_t out_index = (i * indices_num + j) * block_size;
                     memcpy(&(buffer[1][out_index]), &(buffer[0][in_index]), block_size * sizeof(float));
                 }
                 else

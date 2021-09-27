@@ -190,7 +190,7 @@ DEF_KERNEL_INITIALIZER(_moments_initializer)
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL, NULL};
-    vsi_int_array_t * input_shape = NULL;
+    vsi_size_array_t * input_shape = NULL;
     float     scaleIn  = 0;
     int32_t   input_zp = 0;
     vx_uint32 iter     = 0;
@@ -313,9 +313,9 @@ DEF_KERNEL_INITIALIZER(_moments_initializer)
         iterSize = 8;
     }
 
-    width = input_shape->data[0];
-    height = input_shape->size > 1 ? input_shape->data[1] : 1;
-    chn = input_shape->size > 2 ? input_shape->data[2] : 1;
+    width = (int32_t)(input_shape->data[0]);
+    height = (int32_t)(input_shape->size > 1 ? input_shape->data[1] : 1);
+    chn = (int32_t)(input_shape->size > 2 ? input_shape->data[2] : 1);
 
     shaderParam.global_scale[0]  = 1;
     shaderParam.global_scale[1]  = 1;
@@ -753,7 +753,7 @@ static vsi_nn_kernel_node_t _setup
     size_t axis_num_temp = 0;
     int32_t* axis = (int32_t *) vsi_nn_kernel_param_get_buffer( params, "axis", &axis_num_temp);
     int32_t axis_first  = axis[0];
-    int32_t shapes[2][VSI_NN_MAX_DIM_NUM] = { { 1, 1, 1, 1 } };
+    vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = { { 1, 1, 1, 1 } };
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
 
     int32_t new_axis[VSI_NN_MAX_DIM_NUM] = {0};
@@ -782,9 +782,9 @@ static vsi_nn_kernel_node_t _setup
     }
 
     ret = vsi_nn_kernel_optimize_reduce_shape(
-            (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
             axis, axis_num,
-            (int32_t *)outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes[0], &rank_in, shapes[1], &rank_out,
             new_axis, &axis_size);
 
@@ -794,13 +794,13 @@ static vsi_nn_kernel_node_t _setup
     }
 
     reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
-        inputs[0], (uint32_t*)shapes[0], rank_in );
+        inputs[0], shapes[0], rank_in );
     reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
-        outputs[0], (uint32_t*)shapes[1], rank_out );
+        outputs[0], shapes[1], rank_out );
     reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
-        outputs[1], (uint32_t*)shapes[1], rank_out );
+        outputs[1], shapes[1], rank_out );
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)reshape_tensors[1]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( reshape_tensors[1]->attr.size,
         reshape_tensors[1]->attr.dim_num ) )
     {
         return NULL;

@@ -105,7 +105,7 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
     vsi_nn_kernel_dtype_e  input_dtype   = F16;
     vsi_nn_kernel_dtype_e  output_dtype  = F16;
     vsi_nn_kernel_tensor_attr_t *input0_attr = NULL, *input1_attr = NULL, *output_attr = NULL;
-    vsi_int_array_t             *input_shape  = NULL;
+    vsi_size_array_t             *input_shape  = NULL;
     float   scaleIn     = 1.0f;
     int32_t input_ZP    = 0;
     float   scaleIn1    = 1.0f;
@@ -351,7 +351,7 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "inScale1_i16", &inScale_dfp1);
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
-    width   = input_shape->data[0];
+    width   = (int32_t)input_shape->data[0];
     status  = vsi_nn_kernel_gpu_add_param(node, "width", &width);
     status |= vsi_nn_kernel_gpu_add_param(node, "dimRatio", &dimRatio);
     status |= vsi_nn_kernel_gpu_add_param(node, "rsEps", &rsEps);

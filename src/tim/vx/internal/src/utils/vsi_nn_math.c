@@ -33,20 +33,20 @@
 
 static void _compute_stride
     (
-    uint32_t * shape,
-    uint32_t   dim_num,
-    uint32_t * stride
+    vsi_size_t * shape,
+    vsi_size_t   dim_num,
+    vsi_size_t * stride
     );
 
 static void _compute_stride
     (
-    uint32_t * shape,
-    uint32_t   dim_num,
-    uint32_t * stride
+    vsi_size_t * shape,
+    vsi_size_t   dim_num,
+    vsi_size_t * stride
     )
 {
-    int i;
-    uint32_t s;
+    vsi_ssize_t i;
+    vsi_size_t s;
     s = 1;
     for( i = dim_num - 1; i >= 0; i -- )
     {
@@ -59,21 +59,21 @@ void vsi_nn_Transpose
     (
     uint8_t  * dst,
     uint8_t  * data,
-    uint32_t * shape,
-    uint32_t   dim_num,
-    uint32_t * perm,
+    vsi_size_t * shape,
+    vsi_size_t   dim_num,
+    vsi_size_t * perm,
     vsi_nn_type_e type
     )
 {
-    uint32_t i;
-    uint32_t i_dst;
-    uint32_t i_org;
-    uint32_t i_t;
-    uint32_t size;
+    vsi_size_t i;
+    vsi_size_t i_dst;
+    vsi_size_t i_org;
+    vsi_size_t i_t;
+    vsi_size_t size;
     uint32_t unit_bytes;
-    uint32_t org_stride[VSI_NN_MAX_DIM_NUM];
-    uint32_t dst_stride[VSI_NN_MAX_DIM_NUM];
-    uint32_t dst_shape[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t org_stride[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t dst_stride[VSI_NN_MAX_DIM_NUM];
+    vsi_size_t dst_shape[VSI_NN_MAX_DIM_NUM];
 
     if( NULL == data || NULL == dst || NULL == shape || NULL == perm
         || 0 == dim_num || dim_num > VSI_NN_MAX_DIM_NUM )
@@ -116,24 +116,24 @@ void vsi_nn_Permute
     (
     uint8_t  * dst,
     uint8_t  * data,
-    uint32_t * shape,
-    uint32_t   dim_num,
-    uint32_t * perm,
+    vsi_size_t * shape,
+    vsi_size_t   dim_num,
+    vsi_size_t * perm,
     vsi_nn_type_e type
     )
 {
     uint32_t unit_bytes, i;
-    uint32_t org_stride[VSI_NN_MAX_DIM_NUM] = {0};
-    uint32_t dst_stride[VSI_NN_MAX_DIM_NUM] = {0};
-    uint32_t dst_shape[VSI_NN_MAX_DIM_NUM] = {0};
-    uint32_t dim_stack[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t org_stride[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t dst_stride[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t dst_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t dim_stack[VSI_NN_MAX_DIM_NUM] = {0};
     uint8_t * in_addr_stack[VSI_NN_MAX_DIM_NUM] = {NULL};
     uint8_t * out_addr_stack[VSI_NN_MAX_DIM_NUM] = {NULL};
     uint8_t * in_addr_tmp = NULL;
     uint8_t * out_addr_tmp = NULL;
     uint32_t current = 0;
     vsi_bool back = FALSE;
-    uint32_t layer = dim_num - 1;
+    vsi_size_t layer = dim_num - 1;
 
     if( NULL == data || NULL == dst || NULL == shape || NULL == perm
         || 0 == dim_num || dim_num > VSI_NN_MAX_DIM_NUM )
@@ -215,14 +215,14 @@ void vsi_nn_Permute
 
 void vsi_nn_SqueezeShape
     (
-    uint32_t * shape,
-    uint32_t * dim_num
+    vsi_size_t * shape,
+    vsi_size_t * dim_num
     )
 {
-    int i;
-    int origin_count;
-    int count;
-    int start;
+    vsi_size_t i;
+    vsi_size_t origin_count;
+    vsi_size_t count;
+    vsi_size_t start;
     count = *dim_num;
     origin_count = count;
     if( 1 == count )
@@ -238,7 +238,7 @@ void vsi_nn_SqueezeShape
         }
         else if( i > start )
         {
-            memmove( &shape[start], &shape[i], (count - i) * sizeof( uint32_t ) );
+            memmove( &shape[start], &shape[i], (count - i) * sizeof(vsi_size_t) );
             count -= i - start;
             start += i - start;
         }
@@ -248,17 +248,17 @@ void vsi_nn_SqueezeShape
         }
     }
     *dim_num = count;
-    memset( &shape[count], 0, sizeof( uint32_t ) * ( origin_count - count ) );
+    memset( &shape[count], 0, sizeof(vsi_size_t) * ( origin_count - count ) );
 } /* vsi_nn_SqueezeShape() */
 
-uint32_t vsi_nn_ShapeProduct
+vsi_size_t vsi_nn_ShapeProduct
     (
-    uint32_t * shape,
-    uint32_t   dim_num
+    vsi_size_t * shape,
+    vsi_size_t   dim_num
     )
 {
     uint32_t i;
-    uint32_t res;
+    vsi_size_t res;
     res = 1;
     for ( i = 0; i < dim_num; i++ )
     {
@@ -269,12 +269,12 @@ uint32_t vsi_nn_ShapeProduct
 
 void vsi_nn_InvertShape
     (
-    uint32_t * in,
-    uint32_t   dim_num,
-    uint32_t * out
+    vsi_size_t * in,
+    vsi_size_t   dim_num,
+    vsi_size_t * out
     )
 {
-    uint32_t i;
+    vsi_size_t i;
     for ( i = 0; i < dim_num; i++ )
     {
         out[i] = in[dim_num - 1 - i];
@@ -283,12 +283,12 @@ void vsi_nn_InvertShape
 
 void vsi_nn_InvertPermuteShape
     (
-    uint32_t * in,
-    uint32_t   dim_num,
-    uint32_t * out
+    vsi_size_t * in,
+    vsi_size_t   dim_num,
+    vsi_size_t * out
     )
 {
-    uint32_t i;
+    vsi_size_t i;
     for ( i = 0; i < dim_num; i++ )
     {
         out[in[i]] = i;

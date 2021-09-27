@@ -136,9 +136,9 @@ DEF_KERNEL_INITIALIZER(_space2depth_internal_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     input_dims = (uint32_t)attr[0]->shape->size;
-    input_width = attr[0]->shape->data[0];
-    input_height = attr[0]->shape->data[1];
-    input_depth = input_dims > 2 ? attr[0]->shape->data[2] : 1;
+    input_width = (int32_t)(attr[0]->shape->data[0]);
+    input_height = (int32_t)(attr[0]->shape->data[1]);
+    input_depth = (int32_t)(input_dims > 2 ? attr[0]->shape->data[2] : 1);
 
     shaderParam.global_scale[0]  = 1;
     shaderParam.global_scale[1]  = 1;
@@ -323,7 +323,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t block_size_y  = vsi_nn_kernel_param_get_int32( params, "block_size_y" );
     int32_t opt_flg = (block_size_x == 2 && block_size_y == 1) ? 1 : 0;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

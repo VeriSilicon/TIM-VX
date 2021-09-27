@@ -55,11 +55,6 @@ __BEGIN_DECLS
         HASH_BATCH_NORM_SH_KERNEL_NAME( SRC_TYPE, OUT_TYPE), \
         VSI_NN_GEN_BATCH_NORM_KERNEL_SOURCE_NAME },
 
-#define TENSOR_BATCH_NORM_FLOAT( SRC_TYPE, OUT_TYPE) \
-    {   HASH_BATCH_NORM_KEY( SRC_TYPE, OUT_TYPE, 0), \
-        HASH_BATCH_NORM_SH_KERNEL_NAME( F32, F32), \
-        VSI_NN_GEN_BATCH_NORM_KERNEL_SOURCE_NAME },
-
 #define HASH_BATCH_NORM_SH_KERNEL_2D_NAME( SRC_TYPE, DST_TYPE) \
     CVIVANTE_NAMESPACE("batch_norm_"#SRC_TYPE"to"#DST_TYPE"_2D")
 
@@ -68,40 +63,29 @@ __BEGIN_DECLS
         HASH_BATCH_NORM_SH_KERNEL_2D_NAME( SRC_TYPE, OUT_TYPE), \
         VSI_NN_GEN_BATCH_NORM_KERNEL_SOURCE_NAME },
 
-#define TENSOR_BATCH_NORM_FLOAT_2D( SRC_TYPE, OUT_TYPE) \
-    {   HASH_BATCH_NORM_KEY( SRC_TYPE, OUT_TYPE, 1), \
-        HASH_BATCH_NORM_SH_KERNEL_2D_NAME( F32, F32), \
-        VSI_NN_GEN_BATCH_NORM_KERNEL_SOURCE_NAME },
-
 static const struct {
         uint32_t key;
         char* function_name;
         const char* source_name;
     } kernel_map[] =
 {
-    TENSOR_BATCH_NORM_FLOAT(F32, F32)
-    TENSOR_BATCH_NORM_FLOAT(F32, F32)
-    TENSOR_BATCH_NORM_FLOAT(F32, F32)
-    TENSOR_BATCH_NORM_FLOAT(F16, F16)
-    TENSOR_BATCH_NORM_FLOAT(F16, F16)
-    TENSOR_BATCH_NORM_FLOAT(F16, F16)
+    TENSOR_BATCH_NORM_KERNELS(F32, F32)
+    TENSOR_BATCH_NORM_KERNELS(F32, U8)
+    TENSOR_BATCH_NORM_KERNELS(F32, I32)
 
-    TENSOR_BATCH_NORM_FLOAT_2D(F32, F32)
-    TENSOR_BATCH_NORM_FLOAT_2D(F32, F32)
-    TENSOR_BATCH_NORM_FLOAT_2D(F16, F16)
-    TENSOR_BATCH_NORM_FLOAT_2D(F16, F16)
+    TENSOR_BATCH_NORM_KERNELS_2D(F32, F32)
+    TENSOR_BATCH_NORM_KERNELS_2D(F32, U8)
+    TENSOR_BATCH_NORM_KERNELS_2D(F32, I32)
 
-    TENSOR_BATCH_NORM_KERNELS(U8, U8)
-    TENSOR_BATCH_NORM_KERNELS(U8, U8)
-    TENSOR_BATCH_NORM_KERNELS(U8, U8)
-    TENSOR_BATCH_NORM_KERNELS(U8, U8)
-    TENSOR_BATCH_NORM_KERNELS(U8, U8)
-    TENSOR_BATCH_NORM_KERNELS(U8, U8)
+    TENSOR_BATCH_NORM_KERNELS(U8,  U8)
+    TENSOR_BATCH_NORM_KERNELS(U8,  F32)
+    TENSOR_BATCH_NORM_KERNELS(I32, I32)
+    TENSOR_BATCH_NORM_KERNELS(I32, F32)
 
-    TENSOR_BATCH_NORM_KERNELS_2D(U8, U8)
-    TENSOR_BATCH_NORM_KERNELS_2D(U8, U8)
-    TENSOR_BATCH_NORM_KERNELS_2D(U8, U8)
-    TENSOR_BATCH_NORM_KERNELS_2D(U8, U8)
+    TENSOR_BATCH_NORM_KERNELS_2D(U8,  U8)
+    TENSOR_BATCH_NORM_KERNELS_2D(U8,  F32)
+    TENSOR_BATCH_NORM_KERNELS_2D(I32, I32)
+    TENSOR_BATCH_NORM_KERNELS_2D(I32, F32)
 };
 
 /*
@@ -149,7 +133,7 @@ DEF_KERNEL_INITIALIZER(_log_softmax_initializer)
 
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
-    vsi_int_array_t * in_shape = NULL;
+    vsi_size_array_t * in_shape = NULL;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -190,6 +174,24 @@ static vsi_status _query_kernel
 
     input_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+    if (input_dtype == I8 || input_dtype == I16)
+    {
+        input_dtype = I32;
+    }
+    else if (input_dtype == F16)
+    {
+        input_dtype = F32;
+    }
+
+    if (output_dtype == I8 || output_dtype == I16)
+    {
+        output_dtype = I32;
+    }
+    else if (output_dtype == F16)
+    {
+        output_dtype = F32;
+    }
+
     key = HASH_BATCH_NORM_KEY( input_dtype, output_dtype, image_2d );
 
     for( i = 0; i < _cnt_of_array(kernel_map); i ++ )
@@ -239,13 +241,35 @@ static vsi_nn_kernel_node_t _setup
     if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC )
     {
         input_scale = inputs[0]->attr.dtype.scale;
-        input_tail = 0 - (float)inputs[0]->attr.dtype.zero_point * inputs[0]->attr.dtype.scale;
+        input_tail = (float)inputs[0]->attr.dtype.zero_point * inputs[0]->attr.dtype.scale;
+    }
+    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP )
+    {
+        if (inputs[0]->attr.dtype.fl > 0)
+        {
+            input_scale = (1.0f / ((float) ((int64_t)1 << inputs[0]->attr.dtype.fl)));
+        }
+        else
+        {
+            input_scale = ((float) ((int64_t)1 << -inputs[0]->attr.dtype.fl));
+        }
     }
 
     if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC )
     {
-        input_scale = 1.0f / outputs[0]->attr.dtype.scale;
+        output_scale = 1.0f / outputs[0]->attr.dtype.scale;
         output_zp = (float)outputs[0]->attr.dtype.zero_point + 0.5f;
+    }
+    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP )
+    {
+        if (outputs[0]->attr.dtype.fl > 0)
+        {
+            output_scale = (float) ((int64_t)1 << outputs[0]->attr.dtype.fl);
+        }
+        else
+        {
+            output_scale = ((float) 1.0f / ((int64_t)1 << -outputs[0]->attr.dtype.fl));
+        }
     }
 
     if ( (inputs[1]->attr.is_const && inputs[2]->attr.is_const)
@@ -262,7 +286,7 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)inputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
      )
     {

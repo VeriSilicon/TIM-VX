@@ -111,6 +111,8 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    vsi_bool ret = FALSE;
+
     if (inputs[0]->attr.dim_num != 4)
     {
         VSILOGE("The input tensor shape must be 4-D!(space2batch)");
@@ -128,25 +130,9 @@ static vsi_bool op_check
         return FALSE;
     }
 
-    {
-        BEGIN_IO_TYPE_DECL(SPACE2DEPTH, 1, 1)
-            IO_TYPE(D_F16,  D_F16)
-            IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP)
-            IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
-            IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
-            IO_TYPE(D_F32,  D_F32)
-            IO_TYPE(D_F32,  D_BF16)
-            IO_TYPE(D_BF16, D_F32)
-        END_IO_TYPE_DECL(SPACE2DEPTH)
-        if (!VALIDATE_OP_IO_TYPES(SPACE2DEPTH, self, inputs, self->input.num, outputs, self->output.num)) {
-            char* desc = generate_op_io_types_desc(inputs,
-                    self->input.num, outputs, self->output.num);
-            VSILOGE("Inputs/Outputs data type not support: %s", desc);
-            destroy_op_io_types_desc(desc);
-            return FALSE;
-        }
-    }
-    return TRUE;
+    ret = vsi_nn_OpCheck(VSI_NN_OP_STRIDED_SLICE, self, inputs, outputs);
+
+    return ret;
 } /* op_add_check() */
 
 static vsi_bool op_setup
@@ -211,4 +197,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

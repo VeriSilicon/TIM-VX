@@ -151,8 +151,8 @@ static vsi_status op_optimize
     vsi_status      status = VSI_SUCCESS;
     uint32_t        axis;
     vx_tensor       out_view_tensor;
-    uint32_t        start[VSI_NN_MAX_DIM_NUM] = { 0 };
-    uint32_t        end[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t        start[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t        end[VSI_NN_MAX_DIM_NUM] = { 0 };
     uint32_t        i = 0;
     uint32_t        keep_size = 0;
 

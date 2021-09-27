@@ -269,9 +269,15 @@ static vsi_bool op_setup
 
         inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors3(
             VX_CONVOLUTIONAL_NETWORK_FULLYCONNECTED_LAYER,
+#ifdef VSI_40BIT_VA_SUPPORT
             inputs[0]->attr.size,
             outputs[0]->attr.size,
             outputs[0]->attr.size,
+#else
+            (vx_uint32*)inputs[0]->attr.size,
+            (vx_uint32*)outputs[0]->attr.size,
+            (vx_uint32*)outputs[0]->attr.size,
+#endif
             &p,
             sizeof(p),
             (vx_weights_biases_parameter_optimizations_t *)p_opt,

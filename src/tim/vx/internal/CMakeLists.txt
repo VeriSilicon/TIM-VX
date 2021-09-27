@@ -13,7 +13,6 @@ aux_source_directory(src/kernel/evis INTERNAL_KERNEL_EVIS)
 aux_source_directory(src/kernel/vx INTERNAL_KERNEL_VX)
 aux_source_directory(src/ops INTERNAL_OPS)
 aux_source_directory(src/libnnext INTERNAL_LIBNNEXT)
-aux_source_directory(src/libnnext/ops/kernel INTERNAL_LIBNNEXT_OPS_KERNEL)
 aux_source_directory(src/quantization INTERNAL_QUANTIZATION)
 aux_source_directory(src/custom/ops INTERNAL_CUSTOM_OPS)
 aux_source_directory(src/custom/ops/kernel INTERNAL_CUSTOM_OPS_KERNEL)
@@ -29,7 +28,6 @@ list(APPEND SRC
     ${INTERNAL_KERNEL_VX}
     ${INTERNAL_OPS}
     ${INTERNAL_LIBNNEXT}
-    ${INTERNAL_LIBNNEXT_OPS_KERNEL}
     ${INTERNAL_QUANTIZATION}
     ${INTERNAL_CUSTOM_OPS}
     ${INTERNAL_CUSTOM_OPS_KERNEL}

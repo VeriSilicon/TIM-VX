@@ -99,7 +99,7 @@ static vx_param_description_t _gather_nd_kernel_param_def[] =
 static vsi_status cal_gather_nd_tensor_reshape_size
     (
     vsi_nn_tensor_t ** inputs,
-    int32_t sizes[VSI_NN_MAX_DIM_NUM],
+    vsi_size_t sizes[VSI_NN_MAX_DIM_NUM],
     uint32_t block_size,
     uint32_t coordDim,
     int32_t* newDim
@@ -107,9 +107,9 @@ static vsi_status cal_gather_nd_tensor_reshape_size
 {
     vsi_status status = VSI_FAILURE;
     uint32_t dims_num = inputs[0]->attr.dim_num;
-    uint32_t *input_size = inputs[0]->attr.size;
+    vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t i = 0;
-    uint32_t elementCnt = 1;
+    vsi_size_t elementCnt = 1;
 #define VSI_NN_MAX_IMAGE_WIDTH  (65536)
 
     newDim[0] = 0;
@@ -181,7 +181,7 @@ DEF_KERNEL_INITIALIZER(_gather_nd_initializer)
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     int32_t       block_size  = 0;
-    int32_t       indices_num = 1;
+    vsi_ssize_t       indices_num = 1;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -283,7 +283,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_GATHER_ND_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
-    int32_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_size_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
     int32_t block_size  = vsi_nn_kernel_param_get_int32( params, "block_size" );
     int32_t coord_dim  = vsi_nn_kernel_param_get_int32( params, "coord_dim" );
     int32_t rs_in_dim = 0, rs_idx_dim = 0, rs_out_dim = 0;
@@ -296,7 +296,7 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( (int32_t*)outputs[0]->attr.size,
+    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;

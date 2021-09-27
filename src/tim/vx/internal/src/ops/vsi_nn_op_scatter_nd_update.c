@@ -51,12 +51,12 @@ static vsi_status op_compute
     uint32_t i = 0;
     uint32_t block_size = 1, coord_dim = 1;
     uint32_t idx_num = 1;
-    uint32_t *input_size = inputs[2]->attr.size;
+    vsi_size_t *input_size = inputs[2]->attr.size;
     uint32_t dims_num = inputs[2]->attr.dim_num;
 
     if (inputs[1]->attr.dim_num > 1)
     {
-        coord_dim = inputs[1]->attr.size[0];
+        coord_dim = (uint32_t)inputs[1]->attr.size[0];
     }
     if ( coord_dim > 4 && input_size[dims_num - 1] > 1)
     {
@@ -65,7 +65,7 @@ static vsi_status op_compute
     }
     for(i = 0; i < inputs[1]->attr.dim_num; i++)
     {
-        idx_num *= inputs[1]->attr.size[i];
+        idx_num *= (uint32_t)inputs[1]->attr.size[i];
     }
     idx_num /= coord_dim;
 
@@ -73,7 +73,7 @@ static vsi_status op_compute
 
     for(i = 0; i < dims_num; ++i)
     {
-        block_size *= input_size[i];
+        block_size *= (uint32_t)input_size[i];
     }
     block_size /= idx_num;
 

@@ -183,10 +183,10 @@ OVXLIB_API uint8_t * vsi_nn_ConvertRawTensorToData
     (
     vx_context context,
     vx_tensor tensor,
-    uint32_t * dim,
+    vsi_size_t * dim,
     vx_enum  * data_format,
-    uint32_t * size,
-    uint32_t * stride_size,
+    vsi_size_t * size,
+    vsi_size_t * stride_size,
     vx_tensor_addressing * addr,
     vx_enum accessor
     );
@@ -211,7 +211,7 @@ OVXLIB_API uint8_t * vsi_nn_ConvertRawTensorToData2
     vx_context context,
     vx_tensor tensor,
     vsi_nn_tensor_attr_t * attr,
-    uint32_t * stride_size,
+    vsi_size_t * stride_size,
     vx_tensor_addressing * addr,
     vx_enum accessor
     );
@@ -266,7 +266,7 @@ OVXLIB_API void vsi_nn_SaveDataToText
     (
     const char  * filename,
     uint8_t    * data,
-    uint32_t     data_size,
+    vsi_size_t     data_size,
     vsi_nn_type_e data_format,
     char        * seperator
     );
@@ -356,7 +356,7 @@ OVXLIB_API vsi_status vsi_nn_CopyRawDataToTensor
     vsi_nn_tensor_t*        tensor
     );
 
-OVXLIB_API uint32_t vsi_nn_CopyTensorToBuffer
+OVXLIB_API vsi_size_t vsi_nn_CopyTensorToBuffer
     (
     vsi_nn_graph_t  * graph,
     vsi_nn_tensor_t * tensor,
@@ -394,25 +394,25 @@ OVXLIB_API void vsi_nn_TransposeTensor
     (
     vsi_nn_graph_t  * graph,
     vsi_nn_tensor_t * tensor,
-    uint32_t       * perm,
-    uint32_t         dim_num,
-    uint32_t       * as_shape
+    vsi_size_t       * perm,
+    vsi_size_t         dim_num,
+    vsi_size_t       * as_shape
     );
 
 OVXLIB_API void vsi_nn_PermuteTensor
     (
     vsi_nn_graph_t  * graph,
     vsi_nn_tensor_t * tensor,
-    uint32_t       * perm,
-    uint32_t         dim_num
+    vsi_size_t       * perm,
+    vsi_size_t         dim_num
     );
 
 OVXLIB_API vsi_bool vsi_nn_CalcReshapeTensor
     (
     vsi_nn_tensor_t * input,
     vsi_nn_tensor_t * output,
-    uint32_t       * shape,
-    uint32_t         dim_num
+    vsi_size_t       * shape,
+    vsi_size_t         dim_num
     );
 
 OVXLIB_API vsi_bool vsi_nn_ReshapeTensor
@@ -420,8 +420,8 @@ OVXLIB_API vsi_bool vsi_nn_ReshapeTensor
     vsi_nn_graph_t  * graph,
     vsi_nn_tensor_t * input,
     vsi_nn_tensor_t * output,
-    const uint32_t  * shape,
-    uint32_t         dim_num
+    const vsi_size_t  * shape,
+    vsi_size_t         dim_num
     );
 
 /**
@@ -430,7 +430,7 @@ OVXLIB_API vsi_bool vsi_nn_ReshapeTensor
  * @param[in] tensor Tensor handle.
  * @return Element number of the tensor.
  */
-OVXLIB_API uint32_t vsi_nn_GetElementNum
+OVXLIB_API vsi_size_t vsi_nn_GetElementNum
     (
     const vsi_nn_tensor_t * tensor
     );
@@ -446,10 +446,10 @@ OVXLIB_API uint32_t vsi_nn_GetElementNum
  *
  * @return Size of the tensor.
  */
-OVXLIB_API uint32_t vsi_nn_GetTensorSize
+OVXLIB_API vsi_size_t vsi_nn_GetTensorSize
     (
-    const uint32_t * shape,
-    uint32_t dim_num,
+    const vsi_size_t * shape,
+    vsi_size_t dim_num,
     vsi_nn_type_e dtype
     );
 
@@ -507,8 +507,8 @@ OVXLIB_API void vsi_nn_Free
 OVXLIB_API vx_tensor vsi_nn_CreateViewTensor
     (
     vsi_nn_graph_t *graph,
-    uint32_t *start,
-    uint32_t *end,
+    vsi_size_t *start,
+    vsi_size_t *end,
     vsi_nn_tensor_t *tensor
     );
 
@@ -536,7 +536,7 @@ OVXLIB_API vsi_status vsi_nn_SwapTensorHandle
     vsi_nn_tensor_t * tensor1
     );
 
-OVXLIB_API uint32_t vsi_nn_vxGetTensorElementNum
+OVXLIB_API vsi_size_t vsi_nn_vxGetTensorElementNum
     (
     vsi_nn_tensor_attr_t *attr
     );
@@ -571,7 +571,7 @@ OVXLIB_API vsi_status vsi_nn_vxCopyDataToTensor
 *
 * @return the offset from the beginning of the tensor(offset unit: element)
 */
-OVXLIB_API uint32_t vsi_nn_GetOffsetByCoords
+OVXLIB_API vsi_size_t vsi_nn_GetOffsetByCoords
     (
     vsi_nn_tensor_attr_t *attr,
     uint32_t *coords
@@ -621,8 +621,8 @@ vsi_nn_tensor_t *vsi_nn_reshape_tensor
     (
     vsi_nn_graph_t  * graph,
     vsi_nn_tensor_t * input,
-    uint32_t        * shape,
-    uint32_t          dim_num
+    vsi_size_t        * shape,
+    vsi_size_t          dim_num
     );
 
 /**
@@ -646,9 +646,9 @@ vsi_status vsi_nn_copy_tensor_veiw_patch
     vx_tensor tensor,
     vsi_nn_tensor_attr_t *attr,
     void *user_ptr,
-    uint32_t *start,
-    uint32_t *end,
-    uint32_t *stride,
+    vsi_size_t *start,
+    vsi_size_t *end,
+    vsi_size_t *stride,
     vsi_enum usage,
     vsi_enum user_memory_type
     );

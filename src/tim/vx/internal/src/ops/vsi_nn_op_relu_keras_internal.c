@@ -52,8 +52,8 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
-    int32_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
-    int32_t new_rank = 0;
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t new_rank = 0;
     vsi_bool ret;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_relu_keras_internal_param * p = NULL;
@@ -73,7 +73,7 @@ static vsi_status op_compute
     param      = vsi_nn_kernel_param_create();
 
     ret = vsi_nn_kernel_optimize_element_shape(
-            (int32_t *)inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
             shape, &new_rank );
 
     vsi_nn_kernel_param_add_float32( param, "alpha",  alpha );
@@ -83,9 +83,9 @@ static vsi_status op_compute
     if( ret )
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                inputs[0], (uint32_t*)shape, new_rank );
+                inputs[0], shape, new_rank );
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                outputs[0], (uint32_t*)shape, new_rank );
+                outputs[0], shape, new_rank );
 
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
                 "relu_keras",

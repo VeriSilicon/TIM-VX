@@ -115,12 +115,12 @@ DEF_KERNEL_EXECUTOR(_pre_process_bgra_exec)
         int32_t gline1[2], gline2[2];
         int32_t bline1[2], bline2[2];
         int32_t dx = 0, dy = 0, dz = 0;
-        int32_t src_stride = attr[0]->shape->data[0];
-        int32_t src_width = src_stride / elementSize;
-        int32_t src_height = attr[0]->shape->data[1];
-        int32_t dst_width = trans ? attr[1]->shape->data[1] : attr[1]->shape->data[0];
-        int32_t dst_height = trans ? attr[1]->shape->data[2] : attr[1]->shape->data[1];
-        int32_t stride = dst_width * dst_height;
+        int32_t src_stride = (int32_t)attr[0]->shape->data[0];
+        int32_t src_width = (int32_t)(src_stride / elementSize);
+        int32_t src_height = (int32_t)attr[0]->shape->data[1];
+        int32_t dst_width = (int32_t)(trans ? attr[1]->shape->data[1] : attr[1]->shape->data[0]);
+        int32_t dst_height = (int32_t)(trans ? attr[1]->shape->data[2] : attr[1]->shape->data[1]);
+        int32_t stride = (int32_t)(dst_width * dst_height);
         int32_t bOffset = 0;
         int32_t gOffset = 1 * stride;
         int32_t rOffset = 2 * stride;
@@ -235,8 +235,8 @@ DEF_KERNEL_EXECUTOR(_pre_process_bgra_exec)
 
     if(trans)
     {
-        uint32_t shape[] = {attr[1]->shape->data[0], attr[1]->shape->data[1], attr[1]->shape->data[2], 1};
-        uint32_t perm[] = {1, 2, 0, 3};
+        vsi_size_t shape[] = {attr[1]->shape->data[0], attr[1]->shape->data[1], attr[1]->shape->data[2], 1};
+        vsi_size_t perm[] = {1, 2, 0, 3};
         vsi_nn_Transpose((uint8_t*)outBuffer, (uint8_t*)buffer[1],
                         shape, (uint32_t)attr[1]->shape->size, perm, VSI_NN_TYPE_FLOAT32);
 

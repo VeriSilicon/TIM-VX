@@ -73,7 +73,7 @@ static vsi_bool op_check
     vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(attr));
-    memcpy(attr.size, outputs[0]->attr.size,  VSI_NN_MAX_DIM_NUM * sizeof( uint32_t ));
+    memcpy(attr.size, outputs[0]->attr.size,  VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
     attr.dim_num = outputs[0]->attr.dim_num;
     attr.vtl = TRUE;
     attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
