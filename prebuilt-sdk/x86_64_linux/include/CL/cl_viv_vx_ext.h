@@ -300,9 +300,13 @@ enum VXC_OP {
     VXC_OP_dp4x8_b,
     VXC_OP_dp2x16_b,
     VXC_OP_img_load,
+    VXC_OP_img_read,
     VXC_OP_img_load_3d,
+    VXC_OP_img_read_3d,
     VXC_OP_img_store,
+    VXC_OP_img_write,
     VXC_OP_img_store_3d,
+    VXC_OP_img_write_3d,
     VXC_OP_vload2,
     VXC_OP_vload3,
     VXC_OP_vload4,
@@ -534,8 +538,8 @@ enum eVXC_ERROR
  * offset should be composed by using VXC_5BITOFFSET_XY(x, y)
  * Coord must be type of int4 or float4 
  */
-#define VXC_ReadImage3D(Dest, Image, Coord, Offset, Info)       VXC_OP4(img_load_3d, Dest, Image, Coord, Offset, Info)
-#define VXC_WriteImage3D(Image, Coord, Color, Info)             VXC_OP4_NoDest(img_store_3d, Image, Coord, Color, Info)
+#define VXC_ReadImage3D(Dest, Image, Coord, Offset, Info)       VXC_OP4(img_read_3d, Dest, Image, Coord, Offset, Info)
+#define VXC_WriteImage3D(Image, Coord, Color, Info)             VXC_OP4_NoDest(img_write_3d, Image, Coord, Color, Info)
 
 #define VXC_Vload2(Dest, Pointer, Offset)    do { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload2, Dest, Pointer, byteOffset); } while(0)
 #define VXC_Vload4(Dest, Pointer, Offset)    do { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload4, Dest, Pointer,  byteOffset); } while(0)

@@ -216,6 +216,7 @@ typedef struct _vx_nn_convolution_relu_pooling_params_ext4_t
     vx_uint32       poolingPadRight;
     vx_uint32       poolingPadTop;
     vx_uint32       poolingPadBottom;
+    vx_bool         enable_nn_tensor_add_relu;  /*!< \brief  Enable Relu function after tensor add. */
 } vx_nn_convolution_relu_pooling_params_ext4_t, * vx_nn_convolution_relu_pooling_params_ext4;
 
 /*! \brief [Graph] Creates a Convolutional Network Convolution and Activation(Relu) and Pooling Layer Node, this fucntion match kronos NN Extension 1.2 verion.
@@ -816,7 +817,8 @@ VX_API_ENTRY vx_node VX_API_CALL vxL2NormalizeLayer(vx_graph graph, vx_tensor in
  * \param [in] weights_biases [static] Point to WeightBiasesParameter data, vx_weights_biases_parameter is an opaque reference. 
  * \param [in] convolution_relu_pooling_params [static] Pointer to parameters of type <tt>\ref vx_nn_convolution_relu_pooling_params_t</tt>
  * \param [in] size_of_convolution_relu_pooling_params [static] Size in bytes of convolution_relu_pooling_params.
- * \param [out] outputs_conv The convolution output tensor data. Output will have the same number and structure of dimensions as inputs_conv. 
+ * \param [in] outputs_conv The convolution output tensor data. Output will have the same number and structure of dimensions as inputs_conv.
+ * We uses this tensor to provide format information of convolution output data to hardware, don't really return convolution output data.
  * \param [out] outputs_add The final add output tensor data. Output will have the same number and structure of dimensions as input. 
  * \return <tt> vx_node</tt>.
  * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
@@ -863,7 +865,8 @@ VX_API_ENTRY vx_node VX_API_CALL vxConvolutionReluPoolingAddLayer2(
  * \param [in] weights_biases [static] Point to WeightBiasesParameter data, vx_weights_biases_parameter is an opaque reference. 
  * \param [in] convolution_relu_pooling_params [static] Pointer to parameters of type <tt>\ref vx_nn_convolution_relu_pooling_params_t</tt>
  * \param [in] size_of_convolution_relu_pooling_params [static] Size in bytes of convolution_relu_pooling_params.
- * \param [out] outputs_conv The convolution output tensor data. Output will have the same number and structure of dimensions as inputs_conv. 
+ * \param [in] outputs_conv The convolution output tensor data. Output will have the same number and structure of dimensions as inputs_conv.
+ * We uses this tensor to provide format information of convolution output data to hardware, don't really return convolution output data.
  * \param [out] outputs_mul The final mul output tensor data. Output will have the same number and structure of dimensions as input. 
  * \return <tt> vx_node</tt>.
  * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
