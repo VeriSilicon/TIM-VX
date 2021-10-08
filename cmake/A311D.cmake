@@ -15,7 +15,7 @@ set(CMAKE_AS ${TOOLCHAIN_DIR}/bin/aarch64-linux-gnu-gcc-as)
 set(CMAKE_LD ${TOOLCHAIN_DIR}/bin/aarch64-linux-gnu-gcc-ld)
 
 message("Downloading A311D SDK ...")
-file(DOWNLOAD "https://github.com/VeriSilicon/TIM-VX/releases/download/v1.1.32/aarch64_A311D_6.4.8.tgz"
+file(DOWNLOAD "https://github.com/VeriSilicon/TIM-VX/releases/download/v1.1.34/aarch64_A311D_6.4.8.tgz"
     ${PROJECT_BINARY_DIR}/aarch64_A311D_6.4.8.tgz
     EXPECTED_MD5 "da530e28f73fd8b143330b6d1b97a1d8"
     SHOW_PROGRESS)
