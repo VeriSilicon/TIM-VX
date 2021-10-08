@@ -8,20 +8,20 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
     name = "aarch64_A311D",
     build_file = "@//prebuilt-sdk/x86_64_linux:BUILD",
-    sha256 = "9c3fe033f6d012010c92ed1f173b5410019ec144ddf68cbc49eaada2b4737e7f",
-    strip_prefix = "aarch64_A311D_D312513_A294074_R311680_T312233_O312045",
+    sha256 = "a93eb14a410123f30124ba661f40bb7556fca8d8c6508025301b78044a2e14ab",
+    strip_prefix = "aarch64_A311D_6.4.8",
     urls = [
-        "https://github.com/VeriSilicon/TIM-VX/releases/download/v1.1.28/aarch64_A311D_D312513_A294074_R311680_T312233_O312045.tgz",
+        "https://github.com/VeriSilicon/TIM-VX/releases/download/v1.1.34/aarch64_A311D_6.4.8.tgz",
     ],
 )
 
 http_archive(
     name = "aarch64_S905D3",
     build_file = "@//prebuilt-sdk/x86_64_linux:BUILD",
-    sha256 = "22e1ddb62216d286a1c0e62b673a8210291d0c045c4b8a18197e704da1007f7a",
-    strip_prefix = "aarch64_S905D3_D312513_A294074_R311680_T312233_O312045",
+    sha256 = "b26e95e39a96f331b46b08339770ed719f1507a35c9a5e339e90a0f1212319b6",
+    strip_prefix = "aarch64_S905D3_6.4.8",
     urls = [
-        "https://github.com/VeriSilicon/TIM-VX/releases/download/v1.1.28/aarch64_S905D3_D312513_A294074_R311680_T312233_O312045.tgz",
+        "https://github.com/VeriSilicon/TIM-VX/releases/download/v1.1.34/aarch64_S905D3_6.4.8.tgz",
     ],
 )
 
