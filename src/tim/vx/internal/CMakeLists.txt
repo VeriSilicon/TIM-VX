@@ -1,6 +1,6 @@
 message("src/tim/vx/internal")
 
-set(lib_name "tim_internal")
+set(TARGET_NAME "tim_internal")
 set(OVXLIB_API_ATTR "__attribute__\(\(visibility\(\"default\"\)\)\)")
 add_definitions(-DOVXLIB_API=${OVXLIB_API_ATTR})
 
@@ -17,8 +17,8 @@ aux_source_directory(src/custom/ops INTERNAL_CUSTOM_OPS)
 aux_source_directory(src/custom/ops/kernel INTERNAL_CUSTOM_OPS_KERNEL)
 aux_source_directory(src/utils INTERNAL_UTILS)
 
-set(SRC)
-list(APPEND SRC
+set(${TARGET_NAME}_SRCS)
+list(APPEND ${TARGET_NAME}_SRCS
     ${INTERNAL_SRC}
     ${INTERNAL_KERNEL}
     ${INTERNAL_KERNEL_CL}
@@ -33,8 +33,9 @@ list(APPEND SRC
     ${INTERNAL_UTILS}
 )
 
-include_directories(include)
-include_directories(${OVXDRV_INCLUDE_DIRS})
-
-add_library(${lib_name} STATIC ${SRC})
-target_link_libraries(${lib_name} PRIVATE ${OVXDRV_LIBRARIES})
+add_library(${TARGET_NAME} STATIC ${${TARGET_NAME}_SRCS})
+target_link_libraries(${TARGET_NAME} PRIVATE ${OVXDRV_LIBRARIES})
+target_include_directories(${TARGET_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${OVXDRV_INCLUDE_DIRS}
+)
