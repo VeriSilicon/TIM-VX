@@ -36,5 +36,5 @@ list(APPEND SRC
 include_directories(include)
 include_directories(${OVXDRV_INCLUDE_DIRS})
 
-add_library(${lib_name} ${SRC})
+add_library(${lib_name} STATIC ${SRC})
 target_link_libraries(${lib_name} PRIVATE ${OVXDRV_LIBRARIES})

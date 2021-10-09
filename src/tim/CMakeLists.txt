@@ -55,28 +55,26 @@ foreach(src_file ${SRC})
     endif()
 endforeach()
 
-add_library(${TARGET_NAME} SHARED ${SRC})
+add_library(${TARGET_NAME} ${SRC})
 target_link_libraries(${TARGET_NAME} PRIVATE
     -Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
 
-add_library(${TARGET_NAME}-static STATIC ${SRC})
-target_link_libraries(${TARGET_NAME}-static PRIVATE
-	-Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
-
-install(TARGETS ${TARGET_NAME} ${TARGET_NAME}-static
+install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim/)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx 
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
 
 if(TIM_VX_ENABLE_LAYOUT_INFER)
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim/)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform 
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
 endif()
 
 if (TIM_VX_ENABLE_TEST)
     include(GoogleTest)
 
     add_executable(unit_test ${UT_SRC})
-    target_link_libraries(unit_test gtest gtest_main gmock gmock_main ${TARGET_NAME}-static)
+    target_link_libraries(unit_test gtest gtest_main gmock gmock_main ${TARGET_NAME})
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 endif()
