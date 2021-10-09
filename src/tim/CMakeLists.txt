@@ -15,11 +15,11 @@ endif()
 aux_source_directory(./vx VX_SRC)
 aux_source_directory(./vx/ops OPS_SRC)
 
-set(SRC)
-list(APPEND SRC
+set(${TARGET_NAME}_SRCS)
+list(APPEND ${TARGET_NAME}_SRCS
     ${VX_SRC}
     ${OPS_SRC}
-    )
+)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/include/tim/vx)
@@ -42,20 +42,20 @@ if(TIM_VX_ENABLE_LAYOUT_INFER)
     aux_source_directory(./transform LAYOUT_INFER_FRAMEWORK_SRCS)
     aux_source_directory(./transform/ops LAYOUT_INFER_OP_SRCS)
 
-    list(APPEND SRC
+    list(APPEND ${TARGET_NAME}_SRCS
         ${LAYOUT_INFER_FRAMEWORK_SRCS}
         ${LAYOUT_INFER_OP_SRCS}
     )
 endif()
 
-foreach(src_file ${SRC})
+foreach(src_file ${${TARGET_NAME}_SRCS})
     if(${src_file} MATCHES ".*_test\.cc")
-        list(REMOVE_ITEM SRC ${src_file})
-        list(APPEND UT_SRC ${src_file})
+        list(REMOVE_ITEM ${TARGET_NAME}_SRCS ${src_file})
+        list(APPEND ${TARGET_NAME}_TEST_SRCS ${src_file})
     endif()
 endforeach()
 
-add_library(${TARGET_NAME} ${SRC})
+add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
 target_link_libraries(${TARGET_NAME} PRIVATE
     -Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
 
@@ -70,10 +70,10 @@ if(TIM_VX_ENABLE_LAYOUT_INFER)
             DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
 endif()
 
-if (TIM_VX_ENABLE_TEST)
+if(TIM_VX_ENABLE_TEST)
     include(GoogleTest)
 
-    add_executable(unit_test ${UT_SRC})
+    add_executable(unit_test ${${TARGET_NAME}_TEST_SRCS})
     target_link_libraries(unit_test gtest gtest_main gmock gmock_main ${TARGET_NAME})
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
