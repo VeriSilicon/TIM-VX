@@ -24,7 +24,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/groupedconv2d.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 #include "gtest/gtest.h"
 
 TEST(GroupedConv2d, shape_3_3_6_1_float_group_1_no_bias_whcn) {

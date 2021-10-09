@@ -26,8 +26,8 @@
 
 #include "tim/vx/ops/localresponsenormalization.h"
 
-#include "src/tim/transform/ops/op_layout_inference.h"
-#include "src/tim/vx/operation_private.h"
+#include "ops/op_layout_inference.h"
+#include "operation_private.h"
 
 namespace tim {
 namespace transform {

@@ -26,7 +26,7 @@
 #include "tim/vx/ops/activations.h"
 
 #include "gtest/gtest.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 
 TEST(Linear, shape_5_1_fp32) {
   auto ctx = tim::vx::Context::Create();

@@ -25,7 +25,7 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/shuffle_channel.h"
 #include "tim/vx/types.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 
 #include "gtest/gtest.h"
 

@@ -61,8 +61,6 @@ if(TIM_VX_ENABLE_TEST)
     endif()
 endif()
 
-include_directories(${OVXDRV_INCLUDE_DIRS})
-
 add_subdirectory("src/tim")
 
 if(TIM_VX_BUILD_EXAMPLES)
