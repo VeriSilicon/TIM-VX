@@ -153,9 +153,7 @@ rank as the input. This is the reverse transformation of Space2Batch.
 Carries out batch normalization as described in the paper
 https://arxiv.org/abs/1502.03167.
 
-$$\hat x_i\leftarrow \frac{x_i-\mu_\mathcal{B}}{\sqrt{\sigma_\mathcal{B}^2+\epsilon}}$$
-
-$$y_i=\gamma\hat x_i+\beta\equiv BN_{\gamma,\beta}(x_i)$$
+Y = (X - Mean) / Sqrt( Var + Eps) * Gama + Beta
 
 <a class="mk-toclify" id="clip"></a>
 ## Clip
