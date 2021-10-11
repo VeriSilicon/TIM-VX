@@ -29,7 +29,6 @@ if(EXTERNAL_VIV_SDK AND EXISTS ${EXTERNAL_VIV_SDK})
     # this is for internal development purpose
     include(cmake/local_sdk.cmake)
 else()
-    set(TIM_VX_ENABLE_TEST OFF)
     if("${CONFIG}" STREQUAL "A311D")
         include(cmake/A311D.cmake)
     elseif("${CONFIG}" STREQUAL "S905D3")
