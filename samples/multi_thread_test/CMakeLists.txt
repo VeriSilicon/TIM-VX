@@ -2,10 +2,13 @@ message("samples/multi_thread_test")
 
 set(TARGET_NAME "multi_thread_test")
 
-aux_source_directory(. SRC)
+find_package(Threads REQUIRED)
 
-include_directories(${PROJECT_SOURCE_DIR}/include)
-include_directories(./)
+aux_source_directory(. ${TARGET_NAME}_SRCS)
+add_executable(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
 
-add_executable(${TARGET_NAME} ${SRC})
-target_link_libraries(${TARGET_NAME} ${OVXDRV_LIBRARIES}  tim-vx-static pthread)
+target_link_libraries(${TARGET_NAME} PRIVATE tim-vx Threads::Threads)
+target_include_directories(${TARGET_NAME} PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+)

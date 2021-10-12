@@ -25,7 +25,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/moments.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 #include "gtest/gtest.h"
 
 TEST(Moments, shape_6_3_1_float_axes_0_1) {

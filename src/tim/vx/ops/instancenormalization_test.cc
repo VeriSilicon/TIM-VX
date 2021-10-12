@@ -24,7 +24,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/instancenormalization.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 #include "gtest/gtest.h"
 
 TEST(InstanceNorm, shape_3_6_1_float) {

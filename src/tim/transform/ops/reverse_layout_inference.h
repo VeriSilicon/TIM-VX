@@ -24,8 +24,8 @@
 #ifndef TIM_LAYOUT_INFER_REVERSE_LAYOUT_INFERENCE_H_
 #define TIM_LAYOUT_INFER_REVERSE_LAYOUT_INFERENCE_H_
 
-#include "src/tim/transform/ops/op_layout_inference.h"
-#include "src/tim/vx/operation_private.h"
+#include "ops/op_layout_inference.h"
+#include "operation_private.h"
 #include "tim/vx/ops/reverse.h"
 
 namespace tim {
