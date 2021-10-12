@@ -64,9 +64,11 @@ Cmake option:
 
 `CONFIG`: Set Target Platform. Such as: `A311D`, `S905D3`, `vim3_android`, `YOCTO`. Default is `X86_64_linux`.
 
-`TIM_VX_ENABLE_TEST`: Build the unit test. Default is ON.
+`TIM_VX_ENABLE_TEST`: Build the unit test. Default is OFF.
 
 `TIM_VX_USE_EXTERNAL_OVXLIB`: Use external OVXLIB. Default is OFF.
+
+`EXTERNAL_VIV_SDK`: use external VX driver libs. By default is OFF.
 
 run unit test:
 
