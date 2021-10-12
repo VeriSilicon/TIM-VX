@@ -20,7 +20,7 @@ cc_library(
 
 cc_library(
     name = "tim-vx_interface",
-    copts = ["-std=c++14", "-Werror", "-fvisibility=default"],
+    copts = ["-std=c++14", "-Werror", "-fvisibility=default", "-pthread"],
     includes = [
         "include",
         "src/tim/vx",
