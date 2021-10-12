@@ -74,7 +74,7 @@ if(TIM_VX_ENABLE_TEST)
     include(GoogleTest)
 
     add_executable(unit_test ${${TARGET_NAME}_TEST_SRCS})
-    target_link_libraries(unit_test PRIVATE gtest gtest_main gmock gmock_main ${TARGET_NAME})
+    target_link_libraries(unit_test PRIVATE gtest gtest_main gmock gmock_main ${TARGET_NAME} ${OVXDRV_LIBRARIES})
     target_include_directories(unit_test PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
