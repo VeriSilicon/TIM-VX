@@ -24,9 +24,9 @@
 #ifndef TIM_LAYOUT_INFER_POOL2D_LAYOUT_INFERENCE_H_
 #define TIM_LAYOUT_INFER_POOL2D_LAYOUT_INFERENCE_H_
 
-#include "src/tim/transform/ops/op_layout_inference.h"
-#include "src/tim/transform/permute_vector.h"
-#include "src/tim/vx/operation_private.h"
+#include "ops/op_layout_inference.h"
+#include "permute_vector.h"
+#include "operation_private.h"
 #include "tim/vx/ops/pool2d.h"
 
 namespace tim {

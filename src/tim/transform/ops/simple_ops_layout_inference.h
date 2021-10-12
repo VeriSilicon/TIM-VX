@@ -26,9 +26,9 @@
 
 #include "tim/vx/ops/simple_operations.h"
 
-#include "src/tim/transform/ops/op_layout_inference.h"
-#include "src/tim/transform/permute_vector.h"
-#include "src/tim/vx/operation_private.h"
+#include "ops/op_layout_inference.h"
+#include "permute_vector.h"
+#include "operation_private.h"
 
 namespace tim {
 namespace transform {

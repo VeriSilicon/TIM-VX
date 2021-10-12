@@ -24,7 +24,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/matmul.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 #include "gtest/gtest.h"
 
 TEST(Matmul, shape_2_6_shape_6_2_float) {

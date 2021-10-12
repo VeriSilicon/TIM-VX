@@ -24,7 +24,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/resize1d.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 #include "gtest/gtest.h"
 
 TEST(Resize1d, shape_4_2_1_float_nearest_whcn) {

@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/conv2d.h"

@@ -1,8 +1,9 @@
-if(TIM_VX_ENABLE_NB_PARSER_EXAMPLE)
+message("samples/nbg_runner")
 
-include_directories(${PROJECT_SOURCE_DIR}/include)
-aux_source_directory(. nbg_runner_src)
-add_executable(nbg_runner ${nbg_runner_src})
-target_link_libraries(nbg_runner tim-vx-static nbg_parser)
+set(TARGET_NAME "nbg_runner")
 
-endif()
+aux_source_directory(. ${TARGET_NAME}_SRCS)
+add_executable(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
+
+target_link_libraries(${TARGET_NAME} PRIVATE tim-vx nbg_parser)
+target_include_directories(${TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)

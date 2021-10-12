@@ -26,7 +26,7 @@
 #include "tim/vx/ops/pool2d.h"
 #include <iostream>
 #include "gtest/gtest.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 
 TEST(AVG, shape_3_3_1_2_fp32_kernel_2_stride_1) {
     auto ctx = tim::vx::Context::Create();

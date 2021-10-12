@@ -24,7 +24,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/conv1d.h"
-#include "src/tim/vx/test_utils.h"
+#include "test_utils.h"
 #include "gtest/gtest.h"
 
 TEST(Conv1d, shape_3_6_1_float_ksize_1_stride_1_weights_3_no_bias_whcn) {
