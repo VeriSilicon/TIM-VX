@@ -24,7 +24,7 @@ cc_library(
     includes = [
         "include",
         "src/tim/vx",
-        "src/tim/transform",
+        "src/tim/transform"
     ],
     hdrs = [
         "include/tim/vx/context.h",
@@ -52,7 +52,7 @@ cc_library(
         "src/tim/transform/layout_infer_context.h",
     ] + glob([
         "src/tim/vx/ops/*.cc",
-        "src/tim/vx/ops/*.h"
+        "src/tim/vx/ops/*.h",
         ], exclude = ["src/tim/vx/ops/*_test.cc"]
     ) + glob(["src/tim/transform/ops/*.*"]),
     deps = [
