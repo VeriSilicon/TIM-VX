@@ -8,10 +8,10 @@ cc_library(
     includes = [
         "include"
     ],
-    hdrs = 
+    hdrs =
         glob(["include/tim/utils/nbg_parser/*.h"])
     ,
-    srcs = 
+    srcs =
         glob(["src/tim/utils/nbg_parser/*.c"])
     ,
     linkstatic = True,
@@ -24,6 +24,7 @@ cc_library(
     includes = [
         "include",
         "src/tim/vx",
+        "src/tim/transform",
     ],
     hdrs = [
         "include/tim/vx/context.h",
@@ -31,7 +32,7 @@ cc_library(
         "include/tim/vx/operation.h",
         "include/tim/vx/tensor.h",
         "include/tim/vx/types.h",
-        "include/tim/transform/layout_inference.h"
+        "include/tim/transform/layout_inference.h",
     ] + glob([
         "include/tim/vx/ops/*.h"
     ]),
