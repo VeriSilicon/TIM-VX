@@ -22,33 +22,15 @@ Main Features
 
 Feel free to raise a github issue if you wish to add TIM-VX for other frameworks.
 
+## Architecture Overview
+
+![TIM-VX Architecture](docs/image/timvx_overview.svg)
+
 # Get started
 
 ## Build and Run
 
 TIM-VX supports both [bazel](https://bazel.build) and cmake.
-
-### Bazel
-
-[Install bazel](https://docs.bazel.build/versions/master/install.html) to get started.
-
-TIM-VX needs to be compiled and linked against VeriSilicon OpenVX SDK which provides related header files and pre-compiled libraries. A default linux-x86_64 SDK is provided which contains the simulation environment on PC. Platform specific SDKs can be obtained from respective SoC vendors.
-
-To build TIM-VX:
-
-```shell
-bazel build libtim-vx.so
-```
-
-To run sample LeNet:
-
-```shell
-# set VIVANTE_SDK_DIR for runtime compilation environment
-export VIVANTE_SDK_DIR=`pwd`/prebuilt-sdk/x86_64_linux
-
-bazel build //samples/lenet:lenet_asymu8_cc
-bazel run //samples/lenet:lenet_asymu8_cc
-```
 
 ### Cmake
 
@@ -80,6 +62,28 @@ run unit test:
 cd host_build/src/tim
 export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:$LD_LIBRARY_PATH
 ./unit_test
+```
+
+### Bazel
+
+[Install bazel](https://docs.bazel.build/versions/master/install.html) to get started.
+
+TIM-VX needs to be compiled and linked against VeriSilicon OpenVX SDK which provides related header files and pre-compiled libraries. A default linux-x86_64 SDK is provided which contains the simulation environment on PC. Platform specific SDKs can be obtained from respective SoC vendors.
+
+To build TIM-VX:
+
+```shell
+bazel build libtim-vx.so
+```
+
+To run sample LeNet:
+
+```shell
+# set VIVANTE_SDK_DIR for runtime compilation environment
+export VIVANTE_SDK_DIR=`pwd`/prebuilt-sdk/x86_64_linux
+
+bazel build //samples/lenet:lenet_asymu8_cc
+bazel run //samples/lenet:lenet_asymu8_cc
 ```
 
 ## Other
