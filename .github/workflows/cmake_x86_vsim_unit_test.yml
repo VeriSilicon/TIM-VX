@@ -1,4 +1,4 @@
-name: x86_vsim_unit_test
+name: cmake_x86_vsim_unit_test
 
 on:
   # push:

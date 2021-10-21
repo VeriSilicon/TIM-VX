@@ -1,0 +1,34 @@
+name: bazel_x86_vsim_unit_test
+
+on:
+  #push:
+  #  branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Bazel
+      uses: abhinavsingh/setup-bazel@v3
+      with:
+        version: 3.1.0
+
+    - name: Build
+      # Build your program with the given configuration
+      run: bazel build unit_test
+
+    - name: execute-unit-test.x86.vsim
+      run: |
+        export LD_LIBRARY_PATH=`pwd`/prebuilt-sdk/x86_64_linux/lib
+        export VIVANTE_SDK_DIR=`pwd`/prebuilt-sdk/x86_64_linux/
+        cd ${{github.workspace}}/bazel-bin/
+        ./unit_test
