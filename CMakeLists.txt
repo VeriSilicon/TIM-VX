@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.14)
 project(tim-vx LANGUAGES C CXX)
 
-option(BUILD_SHARED_LIBS                "Build using shared libraries"          OFF)
+option(BUILD_SHARED_LIBS                "Build using shared libraries"          ON)
 option(TIM_VX_ENABLE_TEST               "Build the unit test"                   OFF)
 option(TIM_VX_ENABLE_LAYOUT_INFER       "Enable layout inference support"       ON)
 option(TIM_VX_ENABLE_NBG_PARSER         "Enable NBG parser"                     OFF)
