@@ -59,7 +59,10 @@ mkdir host_build
 cd host_build
 cmake ..
 make -j8
+make install
 ```
+
+All install files (both headers and *.so) is located in : `host_build/install`
 
 Cmake option:
 
