@@ -1,8 +1,8 @@
 
 
 # TIM-VX - Tensor Interface Module
-![Bazel.VSim.X86.UnitTest](https://github.com/thezha/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml/badge.svg)
-![CMake.VSim.X86.UnitTest](https://github.com/thezha/TIM-VX/actions/workflows/cmake_x86_vsim_unit_test.yml/badge.svg)
+![Bazel.VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml/badge.svg)
+![CMake.VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/cmake_x86_vsim_unit_test.yml/badge.svg)
 
 TIM-VX is a software integration module provided by VeriSilicon to facilitate deployment of Neural-Networks on Verisilicon ML accelerators. It serves as the backend binding for runtime frameworks such as Android NN, Tensorflow-Lite, MLIR, TVM and more.
 
