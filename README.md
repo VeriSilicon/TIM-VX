@@ -22,11 +22,47 @@ Main Features
 
 Feel free to raise a github issue if you wish to add TIM-VX for other frameworks.
 
+## Architecture Overview
+
+![TIM-VX Architecture](docs/image/timvx_overview.svg)
+
 # Get started
 
 ## Build and Run
 
 TIM-VX supports both [bazel](https://bazel.build) and cmake.
+
+### Cmake
+
+To build TIM-VX:
+
+```shell
+mkdir host_build
+cd host_build
+cmake ..
+make -j8
+make install
+```
+
+All install files (both headers and *.so) is located in : `host_build/install`
+
+Cmake option:
+
+`CONFIG`: Set Target Platform. Such as: `A311D`, `S905D3`, `vim3_android`, `YOCTO`. Default is `X86_64_linux`.
+
+`TIM_VX_ENABLE_TEST`: Build the unit test. Default is OFF.
+
+`TIM_VX_USE_EXTERNAL_OVXLIB`: Use external OVXLIB. Default is OFF.
+
+`EXTERNAL_VIV_SDK`: use external VX driver libs. By default is OFF.
+
+run unit test:
+
+```shell
+cd host_build/src/tim
+export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:$LD_LIBRARY_PATH
+./unit_test
+```
 
 ### Bazel
 
@@ -48,35 +84,6 @@ export VIVANTE_SDK_DIR=`pwd`/prebuilt-sdk/x86_64_linux
 
 bazel build //samples/lenet:lenet_asymu8_cc
 bazel run //samples/lenet:lenet_asymu8_cc
-```
-
-### Cmake
-
-To build TIM-VX:
-
-```shell
-mkdir host_build
-cd host_build
-cmake ..
-make -j8
-```
-
-Cmake option:
-
-`CONFIG`: Set Target Platform. Such as: `A311D`, `S905D3`, `vim3_android`, `YOCTO`. Default is `X86_64_linux`.
-
-`TIM_VX_ENABLE_TEST`: Build the unit test. Default is OFF.
-
-`TIM_VX_USE_EXTERNAL_OVXLIB`: Use external OVXLIB. Default is OFF.
-
-`EXTERNAL_VIV_SDK`: use external VX driver libs. By default is OFF.
-
-run unit test:
-
-```shell
-cd host_build/src/tim
-export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:$LD_LIBRARY_PATH
-./unit_test
 ```
 
 ## Other
