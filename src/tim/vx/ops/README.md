@@ -99,6 +99,7 @@ GroupedConv2d|GROUPED_CONV2D|Mapped|[ANEURALNETWORKS_GROUPED_CONV_2D](https://de
 SpatialTransformer|SPATIAL_TRANSFORMER|Mapped|[SpatialTransformer](https://github.com/daerduoCarey/SpatialTransformerLayer)
 shuffle_channel|SHUFFLECHANNEL|Mapped|[ANEURALNETWORKS_CHANNEL_SHUFFLE](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a5b993c1211c4b1bc52fb595a3025251d)
 Gelu|GELU|Mapped|[tf.nn.gelu](https://tensorflow.google.cn/api_docs/python/tf/nn/gelu)
+Svdf|SVDF|Mapped|[ANEURALNETWORKS_SVDF](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a7096de21038c1ce49d354a00cba7b552)
 ||PROPOSAL|Planned 21Q3|[Faster-RCNN Proposal Layer](https://github.com/intel/caffe/blob/master/examples/faster-rcnn/lib/rpn/proposal_layer.py)
 ||ROI_POOL|Planned 21Q3|[ANEURALNETWORKS_ROI_POOLING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6736198af337b2efbdb0b6b64dee7fe4)
 ||ROI_ALIGN|Planned 21Q3|[ANEURALNETWORKS_ROI_ALIGN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a2848b39dd4bfba78f2438fda0d9397a4)
