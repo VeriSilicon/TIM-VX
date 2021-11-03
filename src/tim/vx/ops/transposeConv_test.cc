@@ -512,15 +512,15 @@ TEST(TransposeConv2d, shape_4_4_1_1_uint8_QuantizedTest) {
 
   std::pair<float, int32_t> scales_zp;
 
-  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  scales_zp = QuantizationParams<uint8_t>(input_min, input_max);
   std::vector<float> scales_input = {scales_zp.first};
   std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  scales_zp = QuantizationParams<uint8_t>(weight_min, weight_max);
   std::vector<float> scales_weight = {scales_zp.first};
   std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  scales_zp = QuantizationParams<uint8_t>(output_min, output_max);
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
@@ -543,17 +543,17 @@ TEST(TransposeConv2d, shape_4_4_1_1_uint8_QuantizedTest) {
   // Input data  nchw
   std::vector<float> input_data_float = {1, 2,  3,  4,  5,  6,  7,  8,
                                          9, 10, 11, 12, 13, 14, 15, 16};
-  std::vector<u_int8_t> input_data =
+  std::vector<uint8_t> input_data =
       Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   oihw
-  std::vector<u_int8_t> weight_data = {129, 131, 133, 135, 137,
+  std::vector<uint8_t> weight_data = {129, 131, 133, 135, 137,
                                        139, 141, 143, 145};
 
   // nchw
   std::vector<float> golden_float = {28,  64,  84,  76,  100, 192, 236, 200,
                                      208, 372, 416, 332, 264, 448, 484, 364};
-  std::vector<u_int8_t> golden =
+  std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
@@ -614,15 +614,15 @@ TEST(TransposeConv2d, shape_4_4_2_1_uint8_QuantizedTwoFiltersTest) {
 
   std::pair<float, int32_t> scales_zp;
 
-  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  scales_zp = QuantizationParams<uint8_t>(input_min, input_max);
   std::vector<float> scales_input = {scales_zp.first};
   std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  scales_zp = QuantizationParams<uint8_t>(weight_min, weight_max);
   std::vector<float> scales_weight = {scales_zp.first};
   std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  scales_zp = QuantizationParams<uint8_t>(output_min, output_max);
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
@@ -646,11 +646,11 @@ TEST(TransposeConv2d, shape_4_4_2_1_uint8_QuantizedTwoFiltersTest) {
   std::vector<float> input_data_float = {
       1, 3, 5, 7, 9,  11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31,
       2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32};
-  std::vector<u_int8_t> input_data =
+  std::vector<uint8_t> input_data =
       Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   oihw
-  std::vector<u_int8_t> weight_data = {129, 133, 137, 141, 145, 149,
+  std::vector<uint8_t> weight_data = {129, 133, 137, 141, 145, 149,
                                        153, 157, 161, 131, 135, 139,
                                        143, 147, 151, 155, 159, 163};
 
@@ -658,7 +658,7 @@ TEST(TransposeConv2d, shape_4_4_2_1_uint8_QuantizedTwoFiltersTest) {
   std::vector<float> golden_float = {192,  416,  576,  544,  672,  1344,
                                      1696, 1440, 1504, 2720, 3072, 2432,
                                      1984, 3360, 3648, 2752};
-  std::vector<u_int8_t> golden =
+  std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
@@ -719,15 +719,15 @@ TEST(TransposeConv2d, shape_4_4_2_1_uint8_QuantizedValidTest) {
 
   std::pair<float, int32_t> scales_zp;
 
-  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  scales_zp = QuantizationParams<uint8_t>(input_min, input_max);
   std::vector<float> scales_input = {scales_zp.first};
   std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  scales_zp = QuantizationParams<uint8_t>(weight_min, weight_max);
   std::vector<float> scales_weight = {scales_zp.first};
   std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  scales_zp = QuantizationParams<uint8_t>(output_min, output_max);
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
@@ -751,11 +751,11 @@ TEST(TransposeConv2d, shape_4_4_2_1_uint8_QuantizedValidTest) {
   std::vector<float> input_data_float = {
       1, 3, 5, 7, 9,  11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31,
       2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32};
-  std::vector<u_int8_t> input_data =
+  std::vector<uint8_t> input_data =
       Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   oihw
-  std::vector<u_int8_t> weight_data = {129, 133, 137, 141, 145, 149,
+  std::vector<uint8_t> weight_data = {129, 133, 137, 141, 145, 149,
                                        153, 157, 161, 131, 135, 139,
                                        143, 147, 151, 155, 159, 163};
 
@@ -764,7 +764,7 @@ TEST(TransposeConv2d, shape_4_4_2_1_uint8_QuantizedValidTest) {
       0,   32,   64,   96,   128,  96,   64,  192,  416,  576,  544,  352,
       224, 672,  1344, 1696, 1440, 864,  608, 1504, 2720, 3072, 2432, 1440,
       864, 1984, 3360, 3648, 2752, 1536, 704, 1536, 2528, 2720, 2016, 1088};
-  std::vector<u_int8_t> golden =
+  std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
@@ -826,18 +826,18 @@ TEST(TransposeConv2d, shape_4_4_1_1_uint8_QuantizedBiasTest) {
 
   std::pair<float, int32_t> scales_zp;
 
-  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  scales_zp = QuantizationParams<uint8_t>(input_min, input_max);
   std::vector<float> scales_input = {scales_zp.first};
   std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  scales_zp = QuantizationParams<uint8_t>(weight_min, weight_max);
   std::vector<float> scales_weight = {scales_zp.first};
   std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
   std::vector<float> scales_bias = {scales_input[0] * scales_weight[0]};
   std::vector<int32_t> zero_point_bias = {0};
 
-  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  scales_zp = QuantizationParams<uint8_t>(output_min, output_max);
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
@@ -864,11 +864,11 @@ TEST(TransposeConv2d, shape_4_4_1_1_uint8_QuantizedBiasTest) {
   // Input data  nchw
   std::vector<float> input_data_float = {1, 2,  3,  4,  5,  6,  7,  8,
                                          9, 10, 11, 12, 13, 14, 15, 16};
-  std::vector<u_int8_t> input_data =
+  std::vector<uint8_t> input_data =
       Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
 
   // weight data   oihw
-  std::vector<u_int8_t> weight_data = {129, 131, 133, 135, 137,
+  std::vector<uint8_t> weight_data = {129, 131, 133, 135, 137,
                                        139, 141, 143, 145};
   // bias data
   std::vector<float> bias_data_float = {1};
@@ -878,7 +878,7 @@ TEST(TransposeConv2d, shape_4_4_1_1_uint8_QuantizedBiasTest) {
   // nchw
   std::vector<float> golden_float = {32,  64,  84,  76,  100, 192, 240, 200,
                                      208, 372, 420, 332, 264, 448, 488, 368};
-  std::vector<u_int8_t> golden =
+  std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);

@@ -574,7 +574,7 @@ TEST(DepthwiseConv, shape_2_2_1_4_float32_BatchSameTest) {
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
   auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
-
+ 
   auto output_tensor = graph->CreateTensor(output_spec);
 
   auto padding = tim::vx::PadType::SAME;
@@ -620,18 +620,18 @@ TEST(DepthwiseConv, shape_2_3_2_1_uint8_QuantizedTest) {
 
   std::pair<float, int32_t> scales_zp;
 
-  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  scales_zp = QuantizationParams<uint8_t>(input_min, input_max);
   std::vector<float> scales_input = {scales_zp.first};
   std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  scales_zp = QuantizationParams<uint8_t>(weight_min, weight_max);
   std::vector<float> scales_weight = {scales_zp.first};
   std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
   std::vector<float> scales_bias = {scales_input[0] * scales_weight[0]};
   std::vector<int32_t> zero_point_bias = {0};
 
-  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  scales_zp = QuantizationParams<uint8_t>(output_min, output_max);
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
@@ -676,7 +676,7 @@ TEST(DepthwiseConv, shape_2_3_2_1_uint8_QuantizedTest) {
   // golden
   // min:-127  max:128  scale:1  Zp:-1
   std::vector<float> golden_float = {71, 91, -34, -26, 99, 127, -20, -4};
-  std::vector<u_int8_t> golden =
+  std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
@@ -728,18 +728,18 @@ TEST(DepthwiseConv, shape_9_9_1_1_uint8_QuantizedDilationdValidTest) {
 
   std::pair<float, int32_t> scales_zp;
 
-  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  scales_zp = QuantizationParams<uint8_t>(input_min, input_max);
   std::vector<float> scales_input = {scales_zp.first};
   std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  scales_zp = QuantizationParams<uint8_t>(weight_min, weight_max);
   std::vector<float> scales_weight = {scales_zp.first};
   std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
   std::vector<float> scales_bias = {scales_input[0] * scales_weight[0]};
   std::vector<int32_t> zero_point_bias = {0};
 
-  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  scales_zp = QuantizationParams<uint8_t>(output_min, output_max);
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
@@ -787,7 +787,7 @@ TEST(DepthwiseConv, shape_9_9_1_1_uint8_QuantizedDilationdValidTest) {
   // golden
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> golden_float = {5, 5, 5, 5, 5, 5, 5, 5, 5};
-  std::vector<u_int8_t> golden =
+  std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
@@ -839,18 +839,18 @@ TEST(DepthwiseConv, shape_3_3_1_1_uint8_QuantizedDilationdSameTest) {
 
   std::pair<float, int32_t> scales_zp;
 
-  scales_zp = QuantizationParams<u_int8_t>(input_min, input_max);
+  scales_zp = QuantizationParams<uint8_t>(input_min, input_max);
   std::vector<float> scales_input = {scales_zp.first};
   std::vector<int32_t> zero_point_input = {scales_zp.second};
 
-  scales_zp = QuantizationParams<u_int8_t>(weight_min, weight_max);
+  scales_zp = QuantizationParams<uint8_t>(weight_min, weight_max);
   std::vector<float> scales_weight = {scales_zp.first};
   std::vector<int32_t> zero_point_weight = {scales_zp.second};
 
   std::vector<float> scales_bias = {scales_input[0] * scales_weight[0]};
   std::vector<int32_t> zero_point_bias = {0};
 
-  scales_zp = QuantizationParams<u_int8_t>(output_min, output_max);
+  scales_zp = QuantizationParams<uint8_t>(output_min, output_max);
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
@@ -894,7 +894,7 @@ TEST(DepthwiseConv, shape_3_3_1_1_uint8_QuantizedDilationdSameTest) {
   // golden
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> golden_float = {4, 7, 3, 6, 10, 4, 2, 3, 1};
-  std::vector<u_int8_t> golden =
+  std::vector<uint8_t> golden =
       Quantize<uint8_t>(golden_float, scales_output[0], zero_point_output[0]);
 
   auto input_tensor = graph->CreateTensor(input_spec);
