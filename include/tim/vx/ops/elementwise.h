@@ -78,13 +78,19 @@ DECLARE_ELEMENTWISE_OP(Minimum)
 DECLARE_ELEMENTWISE_OP(Maximum)
 DECLARE_ELEMENTWISE_OP(Add)
 DECLARE_ELEMENTWISE_OP(Sub)
-DECLARE_ELEMENTWISE_OP(Div)
 DECLARE_ELEMENTWISE_OP(Pow)
 DECLARE_ELEMENTWISE_OP(FloorDiv)
 
 class Multiply : public Operation {
  public:
   Multiply(Graph* graph, float scale = 1.0f);
+
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+};
+
+class Div : public Operation {
+ public:
+  Div(Graph* graph, float scale = 1.0f);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 };

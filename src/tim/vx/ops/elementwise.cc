@@ -41,7 +41,6 @@ DEFINE_ELEMENTWISE_OP(Minimum, VSI_NN_OP_MINIMUM)
 DEFINE_ELEMENTWISE_OP(Maximum, VSI_NN_OP_MAXIMUM)
 DEFINE_ELEMENTWISE_OP(Add, VSI_NN_OP_ADD)
 DEFINE_ELEMENTWISE_OP(Sub, VSI_NN_OP_SUBTRACT)
-DEFINE_ELEMENTWISE_OP(Div, VSI_NN_OP_DIVIDE)
 DEFINE_ELEMENTWISE_OP(Pow, VSI_NN_OP_POW)
 DEFINE_ELEMENTWISE_OP(FloorDiv, VSI_NN_OP_FLOORDIV)
 
@@ -56,6 +55,17 @@ std::shared_ptr<Operation> Multiply::Clone(
     std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Multiply>(
       this->impl_->node_->nn_param.multiply.scale);
+}
+
+Div::Div(Graph* graph, float scale)
+  : Operation(graph, VSI_NN_OP_DIVIDE, 2, 1) {
+    this->impl()->node()->nn_param.divide.scale = scale;
+}
+
+std::shared_ptr<Operation> Div::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Div>(
+      this->impl_->node_->nn_param.divide.scale);
 }
 
 }  // namespace ops
