@@ -1,8 +1,13 @@
 message("src/tim/vx/internal")
 
 set(TARGET_NAME "tim_internal")
-set(OVXLIB_API_ATTR "__attribute__\(\(visibility\(\"default\"\)\)\)")
-add_definitions(-DOVXLIB_API=${OVXLIB_API_ATTR})
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+    add_definitions(-DOVXLIB_API=)
+else()
+    set(OVXLIB_API_ATTR "__attribute__\(\(visibility\(\"default\"\)\)\)")
+    add_definitions(-DOVXLIB_API=${OVXLIB_API_ATTR})
+endif()
+
 
 aux_source_directory(src INTERNAL_SRC)
 aux_source_directory(src/kernel INTERNAL_KERNEL)

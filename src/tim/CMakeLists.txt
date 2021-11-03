@@ -48,7 +48,12 @@ foreach(src_file ${${TARGET_NAME}_SRCS})
     endif()
 endforeach()
 
-add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+    add_library(${TARGET_NAME} STATIC ${${TARGET_NAME}_SRCS})
+    target_compile_options(${TARGET_NAME} PRIVATE -DOVXLIB_API=)
+else()
+    add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
+endif()
 target_link_libraries(${TARGET_NAME} PRIVATE
     -Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
 target_include_directories(${TARGET_NAME} PRIVATE
@@ -72,9 +77,8 @@ endif()
 
 if(TIM_VX_ENABLE_TEST)
     include(GoogleTest)
-
     add_executable(unit_test ${${TARGET_NAME}_TEST_SRCS})
-    target_link_libraries(unit_test PRIVATE gtest gtest_main gmock gmock_main ${TARGET_NAME} ${OVXDRV_LIBRARIES})
+    target_link_libraries(unit_test PRIVATE gmock_main ${TARGET_NAME} ${OVXDRV_LIBRARIES})
     target_include_directories(unit_test PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx

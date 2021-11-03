@@ -137,7 +137,7 @@ TEST(Gelu, shape_5_1_uint8_Quantized) {
   std::vector<float> scalesInput = {scalesAndZp.first};         //scale
   std::vector<int32_t> zeroPointsInput = {scalesAndZp.second};  //zero point
 
-  scalesAndZp = QuantizationParams<u_int8_t>(OutputMin, OutputMax);
+  scalesAndZp = QuantizationParams<uint8_t>(OutputMin, OutputMax);
   std::vector<float> scalesOutput = {scalesAndZp.first};
   std::vector<int32_t> zeroPointsOutput = {scalesAndZp.second};
 
