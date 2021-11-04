@@ -51,7 +51,7 @@ class ResizeLayoutInfer : public OpLayoutInfer {
     auto final_pv = input_pv->Reverse()->Add(required_pv);
 
     if (!final_pv->IsAligned()) {
-      auto perm_out = InsertPermute(i_src, final_pv);
+      auto perm_out = InsertPermute(context_->GetMapedTensor(i_src), final_pv);
       context_->UpdateTensorMap(i_src, perm_out);
       context_->SetPermuteVector(i_src, final_pv);
     }
