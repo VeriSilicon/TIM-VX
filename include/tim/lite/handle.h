@@ -35,6 +35,8 @@ class HandleImpl;
 class Handle {
     public:
         std::unique_ptr<HandleImpl>& impl() { return impl_; }
+        bool Flush();
+        bool Invalidate();
     protected:
         std::unique_ptr<HandleImpl> impl_;
 };

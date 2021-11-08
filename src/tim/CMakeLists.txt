@@ -48,10 +48,9 @@ foreach(src_file ${${TARGET_NAME}_SRCS})
     endif()
 endforeach()
 
-add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
-target_link_libraries(${TARGET_NAME} PRIVATE
-    -Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
-target_include_directories(${TARGET_NAME} PRIVATE
+set(EXTERNAL_LIBS)
+set(INC_DIRS)
+list(APPEND INC_DIRS
     ${PROJECT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/vx
     ${CMAKE_CURRENT_SOURCE_DIR}/transform
@@ -59,10 +58,29 @@ target_include_directories(${TARGET_NAME} PRIVATE
     ${OVXDRV_INCLUDE_DIRS}
 )
 
+if(${TIM_VX_ENABLE_VIPLITE})
+    aux_source_directory(./lite LITE_SRC)
+    list(APPEND ${TARGET_NAME}_SRCS
+        ${LITE_SRC})
+    list(APPEND EXTERNAL_LIBS ${VIPLITE_DRV_LIBRARIES})
+    list(APPEND INC_DIRS
+        ${CMAKE_CURRENT_SOURCE_DIR}/lite
+        ${VIPLITE_DRV_INCLUDE_DIR}
+    )
+endif()
+
+add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
+target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
+target_link_libraries(${TARGET_NAME} PUBLIC
+   -Wl,--whole-archive tim_internal -Wl,--no-whole-archive ${EXTERNAL_LIBS})
+
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx 
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/lite
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
 
 if(TIM_VX_ENABLE_LAYOUT_INFER)
