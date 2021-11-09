@@ -33,6 +33,7 @@ namespace vx {
 class TensorImpl : public Tensor {
  public:
   TensorImpl(Graph* graph, const TensorSpec& spec, const void* data = nullptr);
+  TensorImpl(Graph* graph, const TensorSpec& spec, const DmaBufferDesc& dmafd);
   ~TensorImpl();
 
   bool Init();
@@ -56,6 +57,7 @@ class TensorImpl : public Tensor {
   vsi_nn_tensor_id_t id_;
   TensorSpec spec_;
   const void* data_;
+  int64_t fd_{-1};
 };
 
 class TensorPlaceholder : public Tensor {

@@ -85,6 +85,14 @@ TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, const void* data)
   Init();
 }
 
+TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, const DmaBufferDesc& dmafd)
+    : graph_(reinterpret_cast<GraphImpl*>(graph)),
+      id_(VSI_NN_TENSOR_ID_NA),
+      spec_(spec),
+      fd_(dmafd.fd) {
+  Init();
+}
+
 TensorImpl::~TensorImpl() {}
 
 bool TensorImpl::CopyDataToTensor(const void* data, uint32_t size_in_bytes) {
@@ -183,8 +191,11 @@ bool TensorImpl::Init() {
 
   if ((spec_.attr_ & TensorAttribute::INPUT) ||
       (spec_.attr_ & TensorAttribute::OUTPUT)) {
-    id_ = vsi_nn_AddTensorFromHandle(graph_->graph(), VSI_NN_TENSOR_ID_AUTO,
-                                     &attr, nullptr);
+    id_ = vsi_nn_AddTensorFromHandle(graph_->graph(), VSI_NN_TENSOR_ID_AUTO,     // DMABUF's fd is created by TensorFromHandle as input or output,
+                                     &attr, fd_ != -1 ? (uint8_t*)fd_ : nullptr);// and cannot be set to const
+    if (fd_ != -1) {
+      attr.vsi_memory_type = VSI_MEMORY_TYPE_DMABUF;
+    }
   } else {
     id_ = vsi_nn_AddTensor(graph_->graph(), VSI_NN_TENSOR_ID_AUTO, &attr,
                            nullptr);
