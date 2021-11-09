@@ -31,6 +31,7 @@ namespace tim {
 namespace vx {
 namespace ops {
 
+// for Classic Pool2d
 Pool2d::Pool2d(Graph* graph, PoolType type, PadType padding,
                const std::array<uint32_t, 2>& ksize,
                const std::array<uint32_t, 2>& stride, RoundType round_type,
@@ -61,6 +62,37 @@ Pool2d::Pool2d(Graph* graph, PoolType type,
     : Operation(graph, VSI_NN_OP_POOL, 1, 1, layout),
       type_(type), padding_(PadType::AUTO), ksize_(ksize), stride_(stride),
       round_type_(round_type), pad_(pad) {
+  Init();
+}
+
+// for Global Pool2d
+Pool2d::Pool2d(Graph* graph, PoolType type,
+               const std::array<uint32_t, 2>& input_size,
+               RoundType round_type,
+               DataLayout layout)
+    : Operation(graph, VSI_NN_OP_POOL, 1, 1, layout),
+      type_(type), padding_(PadType::AUTO), ksize_(input_size), stride_(input_size),
+      round_type_(round_type), pad_({0, 0, 0, 0}) {
+  Init();
+}
+
+// for Adaptive Pool2d
+Pool2d::Pool2d(Graph* graph, PoolType type,
+               const std::array<uint32_t, 2>& input_size,
+               const std::array<uint32_t, 2>& output_size,
+               RoundType round_type,
+               DataLayout layout)
+    : Operation(graph, VSI_NN_OP_POOL, 1, 1, layout),
+      type_(type), padding_(PadType::AUTO),
+      round_type_(round_type), pad_({0, 0, 0, 0}) {
+  stride_[0] = floor(input_size[0] / (float)(output_size[0]));
+  stride_[1] = floor(input_size[1] / (float)(output_size[1]));
+  ksize_[0] = input_size[0] - (output_size[0] - 1) * stride_[0];
+  ksize_[1] = input_size[1] - (output_size[1] - 1) * stride_[1];
+  Init();
+}
+
+void Pool2d::Init() {
   this->impl()->node()->nn_param.pool.type = TranslatePoolType(type_);
   this->impl()->node()->nn_param.pool.round_type =
       TranslateRoundType(round_type_);
