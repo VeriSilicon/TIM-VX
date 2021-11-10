@@ -92,5 +92,11 @@ To build and run Tensorflow-Lite with TIM-VX, please see [README](https://github
 
 To build and run TVM with TIM-VX, please see [TVM README](https://github.com/VeriSilicon/tvm/blob/vsi_npu/README.VSI.md)
 
+# Reference board
+
+Chip | Vendor | References 
+:------    |:----- |:------
+i.MX 8M Plus | NXP | [download BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab)
+
 # Support
 create issue on github or email to ML_Support@verisilicon.com
