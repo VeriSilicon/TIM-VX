@@ -140,7 +140,7 @@ Execution& ExecutionImpl::BindInputs(const std::vector<std::shared_ptr<Handle>>&
         return *this;
     }
     vip_status_e status = VIP_SUCCESS;
-    vip_buffer_create_params_t param = { 0 };
+    vip_buffer_create_params_t param;
     for (uint32_t i = 0; i < handles.size(); i ++) {
         auto handle = handles[i];
         if (!handle) {
@@ -175,7 +175,7 @@ Execution& ExecutionImpl::BindOutputs(const std::vector<std::shared_ptr<Handle>>
         return *this;
     }
     vip_status_e status = VIP_SUCCESS;
-    vip_buffer_create_params_t param = { 0 };
+    vip_buffer_create_params_t param;
     for (uint32_t i = 0; i < handles.size(); i ++) {
         auto handle = handles[i];
         if (!handle) {

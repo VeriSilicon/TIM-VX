@@ -32,12 +32,18 @@
 namespace tim {
 namespace lite {
 
+enum class HandleFlushType {
+    HandleFlush = 0,
+    HandleInvalidate = 1
+};
+
 class InternalHandle;
 
 class HandleImpl {
     public:
         virtual std::shared_ptr<InternalHandle> Register(
             vip_buffer_create_params_t& params) = 0;
+        virtual std::shared_ptr<InternalHandle>& internal_handle() = 0;
 };
 
 class UserHandleImpl : public HandleImpl {
@@ -46,16 +52,21 @@ class UserHandleImpl : public HandleImpl {
             : user_buffer_(buffer), user_buffer_size_(size) {}
         std::shared_ptr<InternalHandle> Register(
             vip_buffer_create_params_t& params) override;
+        std::shared_ptr<InternalHandle>& internal_handle() override {
+          return internal_handle_;
+        }
         size_t user_buffer_size() const { return user_buffer_size_; }
         void* user_buffer() { return user_buffer_; }
     private:
         void* user_buffer_;
         size_t user_buffer_size_;
+        std::shared_ptr<InternalHandle> internal_handle_ = nullptr;
 };
 
 class InternalHandle {
     public:
         ~InternalHandle();
+        virtual bool Flush(HandleFlushType type) = 0;
         vip_buffer handle() { return handle_; };
     protected:
         vip_buffer handle_;
@@ -65,6 +76,7 @@ class InternalUserHandle : public InternalHandle {
     public:
         InternalUserHandle(void* user_buffer, size_t user_buffer_size,
             vip_buffer_create_params_t& params);
+        bool Flush(HandleFlushType type) override;
 };
 
 }
