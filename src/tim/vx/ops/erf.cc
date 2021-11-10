@@ -21,32 +21,22 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+#include "tim/vx/ops/erf.h"
 
-#ifndef TIM_LITE_HANDLE_H_
-#define TIM_LITE_HANDLE_H_
-
-#include <memory>
+#include "operation_private.h"
+#include "type_utils.h"
+#include "vsi_nn_pub.h"
 
 namespace tim {
-namespace lite {
+namespace vx {
+namespace ops {
 
-class HandleImpl;
+Erf::Erf(Graph* graph) : Operation(graph, VSI_NN_OP_ERF) {}
 
-class Handle {
-    public:
-        std::unique_ptr<HandleImpl>& impl() { return impl_; }
-        bool Flush();
-        bool Invalidate();
-    protected:
-        std::unique_ptr<HandleImpl> impl_;
-};
-
-class UserHandle : public Handle {
-    public:
-        UserHandle(void* buffer, size_t size);
-        ~UserHandle();
-};
-
+std::shared_ptr<Operation> Erf::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Erf>();
 }
-}
-#endif
+
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim

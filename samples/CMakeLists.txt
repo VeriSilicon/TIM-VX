@@ -1,5 +1,8 @@
 add_subdirectory("benchmark_test")
 add_subdirectory("lenet")
+if(${TIM_VX_ENABLE_VIPLITE})
+    add_subdirectory("lenet_lite")
+endif()
 
 if(NOT ANDROID_TOOLCHAIN)
     add_subdirectory("multi_thread_test")

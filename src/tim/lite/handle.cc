@@ -27,6 +27,7 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <iostream>
 #include "execution_private.h"
 #include "vip_lite.h"
 
@@ -34,6 +35,16 @@
 
 namespace tim {
 namespace lite {
+
+bool Handle::Flush() {
+    auto internal_handle = impl_->internal_handle();
+    return internal_handle->Flush(HandleFlushType::HandleFlush);
+}
+
+bool Handle::Invalidate() {
+    auto internal_handle = impl_->internal_handle();
+    return internal_handle->Flush(HandleFlushType::HandleInvalidate);
+}
 
 UserHandle::UserHandle(void* buffer, size_t size) {
     assert((reinterpret_cast<uintptr_t>(buffer) % _64_BYTES_ALIGN) == 0);
@@ -44,12 +55,12 @@ UserHandle::~UserHandle() {}
 
 std::shared_ptr<InternalHandle> UserHandleImpl::Register(
     vip_buffer_create_params_t& params) {
-    auto internal_handle = std::make_shared<InternalUserHandle>(
+    internal_handle_ = std::make_shared<InternalUserHandle>(
         user_buffer_, user_buffer_size_, params);
-    if (!internal_handle->handle()) {
-        internal_handle.reset();
+    if (!internal_handle_->handle()) {
+        internal_handle_.reset();
     }
-    return internal_handle;
+    return internal_handle_;
 }
 
 InternalHandle::~InternalHandle() {
@@ -70,6 +81,25 @@ InternalUserHandle::InternalUserHandle(void* user_buffer, size_t user_buffer_siz
     } else {
         handle_ = nullptr;
     }
+}
+
+bool InternalUserHandle::Flush(HandleFlushType type) {
+  vip_status_e status = VIP_SUCCESS;
+  switch (type) {
+    case HandleFlushType::HandleFlush: {
+      status = vip_flush_buffer(handle_, VIP_BUFFER_OPER_TYPE_FLUSH);
+      break;
+    }
+    case HandleFlushType::HandleInvalidate: {
+      status = vip_flush_buffer(handle_, VIP_BUFFER_OPER_TYPE_INVALIDATE);
+      break;
+    }
+    default:
+      std::cout << __FUNCTION__ << ":" << __LINE__ << " Unkown HandleFlushType."
+                << std::endl;
+      assert(false);
+  }
+  return status == VIP_SUCCESS ? true : false;
 }
 
 }

@@ -8,6 +8,7 @@ option(TIM_VX_ENABLE_NBG_PARSER         "Enable NBG parser"                     
 option(TIM_VX_CODE_COVERAGE             "Run code coverage with gconv(gcc only" OFF)
 option(TIM_VX_USE_EXTERNAL_OVXLIB       "Use external OVXLIB"                   OFF)
 option(TIM_VX_BUILD_EXAMPLES            "Build demos show general usage"        OFF)
+option(TIM_VX_ENABLE_VIPLITE            "Enable lite driver api support"        OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)

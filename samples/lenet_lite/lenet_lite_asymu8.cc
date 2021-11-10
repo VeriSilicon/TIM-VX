@@ -110,7 +110,7 @@ static void printTopN(const T* prob, size_t outputCount, size_t topNum) {
 
 #define MEM_ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
 
-int main(int argc, char** argv) {
+int main() {
     auto exec = tim::lite::Execution::Create(lenet_executable.data(), lenet_executable.size());
     if (exec)  {
         const size_t lenet_output_size = 10;

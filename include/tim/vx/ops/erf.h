@@ -21,32 +21,33 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+#ifndef TIM_VX_OPS_ERF_H_
+#define TIM_VX_OPS_ERF_H_
 
-#ifndef TIM_LITE_HANDLE_H_
-#define TIM_LITE_HANDLE_H_
-
-#include <memory>
+#include "tim/vx/operation.h"
+#include "tim/vx/types.h"
 
 namespace tim {
-namespace lite {
+namespace vx {
+namespace ops {
 
-class HandleImpl;
+/**
+ * ## Erf
+ *
+ * Computes the Gauss error function of x element-wise.
+ *
+ * - no parameters
+ */
 
-class Handle {
-    public:
-        std::unique_ptr<HandleImpl>& impl() { return impl_; }
-        bool Flush();
-        bool Invalidate();
-    protected:
-        std::unique_ptr<HandleImpl> impl_;
-};
+class Erf : public Operation {
+   public:
+    Erf(Graph* graph);
+    std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  };
 
-class UserHandle : public Handle {
-    public:
-        UserHandle(void* buffer, size_t size);
-        ~UserHandle();
-};
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim
 
-}
-}
-#endif
+#endif /* TIM_VX_OPS_ERF_H_ */
+
