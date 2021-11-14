@@ -60,7 +60,12 @@ run unit test:
 
 ```shell
 cd host_build/src/tim
-export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:$LD_LIBRARY_PATH
+
+export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:<path to libgtest_main.so>:$LD_LIBRARY_PATH
+export VIVANTE_SDKD_DIR=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib
+export VSIMULATOR_CONFIG=<hardware name should get from chip vendor>
+# if you want to debug wit gdb, please set
+export DISABLE_IDE_DEBUG=1
 ./unit_test
 ```
 
@@ -96,7 +101,7 @@ To build and run TVM with TIM-VX, please see [TVM README](https://github.com/Ver
 
 Chip | Vendor | References 
 :------    |:----- |:------
-i.MX 8M Plus | NXP | [download BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab)
+i.MX 8M Plus | NXP | [ML Guide](https://www.nxp.com.cn/docs/en/user-guide/IMX-MACHINE-LEARNING-UG.pdf) [BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab)
 
 # Support
 create issue on github or email to ML_Support@verisilicon.com
