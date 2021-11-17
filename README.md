@@ -34,7 +34,7 @@ TIM-VX supports both [bazel](https://bazel.build) and cmake.
 
 ### Cmake
 
-To build TIM-VX:
+To build TIM-VX for x86 with prebuilt:
 
 ```shell
 mkdir host_build
@@ -68,6 +68,22 @@ export VSIMULATOR_CONFIG=<hardware name should get from chip vendor>
 export DISABLE_IDE_DEBUG=1
 ./unit_test
 ```
+
+#### Build with local google test source
+```shell
+    cd <wksp_root>
+    git clone --depth 1 -b release-1.10.0 git@github.com:google/googletest.git
+
+    cd <root_tim_vx>/build/
+    cmake ../ -DTIM_VX_ENABLE_TEST=ON -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=<wksp_root/googletest> <add other cmake define here>
+```
+
+#### Build for your evk-board
+
+1. prepare toolchain file follow cmake standard
+2. make sure cross build low-level driver with toolchain separately, we need the sdk from the low-level driver
+3. add -DEXTERNAL_VIV_SDK=<low-level-driver/out/sdk> to cmake definitions, also remember -DCMAKE_TOOLCHAIN_FILE=<Your_Toolchain_Config>
+4. then make
 
 ### Bazel
 
