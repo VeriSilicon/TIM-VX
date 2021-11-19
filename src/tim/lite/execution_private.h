@@ -36,21 +36,30 @@ namespace tim {
 namespace lite {
 
 class ExecutionImpl : public Execution {
-    public :
-        ExecutionImpl(const void* executable, size_t executable_size);
-        ~ExecutionImpl();
-        Execution& BindInputs(const std::vector<std::shared_ptr<Handle>>& handles) override;
-        Execution& BindOutputs(const std::vector<std::shared_ptr<Handle>>& handles) override;
-        bool Trigger() override;
-        bool IsValid() const { return valid_; };
-        vip_network network() { return network_; };
-    private:
-        std::map<std::shared_ptr<Handle>, std::shared_ptr<InternalHandle>> input_maps_;
-        std::map<std::shared_ptr<Handle>, std::shared_ptr<InternalHandle>> output_maps_;
-        bool valid_;
-        vip_network network_;
+ public:
+  ExecutionImpl(const void* executable, size_t executable_size);
+  ~ExecutionImpl();
+  std::shared_ptr<Handle> CreateInputHandle(uint32_t in_idx, uint8_t* buffer,
+                                            size_t size) override;
+  std::shared_ptr<Handle> CreateOutputHandle(uint32_t out_idx, uint8_t* buffer,
+                                             size_t size) override;
+  Execution& BindInputs(
+      const std::vector<std::shared_ptr<Handle>>& handles) override;
+  Execution& BindOutputs(
+      const std::vector<std::shared_ptr<Handle>>& handles) override;
+  Execution& UnBindInput(const std::shared_ptr<Handle>& Handle) override;
+  Execution& UnBindOutput(const std::shared_ptr<Handle>& handle) override;
+  bool Trigger() override;
+  bool IsValid() const { return valid_; };
+  vip_network network() { return network_; };
+
+ private:
+  std::vector<std::shared_ptr<Handle>> input_handles_;
+  std::vector<std::shared_ptr<Handle>> output_handles_;
+  bool valid_;
+  vip_network network_;
 };
 
-}
-}
+}  // namespace lite
+}  // namespace tim
 #endif
