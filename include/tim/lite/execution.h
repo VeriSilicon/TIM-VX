@@ -34,14 +34,24 @@ namespace tim {
 namespace lite {
 
 class Execution {
-    public:
-        static std::shared_ptr<Execution> Create(
-            const void* executable, size_t executable_size);
-        virtual Execution& BindInputs(const std::vector<std::shared_ptr<Handle>>& handles) = 0;
-        virtual Execution& BindOutputs(const std::vector<std::shared_ptr<Handle>>& handles) = 0;
-        virtual bool Trigger() = 0;
+ public:
+  static std::shared_ptr<Execution> Create(const void* executable,
+                                           size_t executable_size);
+  virtual std::shared_ptr<Handle> CreateInputHandle(uint32_t in_idx,
+                                                    uint8_t* buffer,
+                                                    size_t size) = 0;
+  virtual std::shared_ptr<Handle> CreateOutputHandle(uint32_t out_idx,
+                                                     uint8_t* buffer,
+                                                     size_t size) = 0;
+  virtual Execution& BindInputs(
+      const std::vector<std::shared_ptr<Handle>>& handles) = 0;
+  virtual Execution& BindOutputs(
+      const std::vector<std::shared_ptr<Handle>>& handles) = 0;
+  virtual Execution& UnBindInput(const std::shared_ptr<Handle>& Handle) = 0;
+  virtual Execution& UnBindOutput(const std::shared_ptr<Handle>& handle) = 0;
+  virtual bool Trigger() = 0;
 };
 
-}
-}
+}  // namespace lite
+}  // namespace tim
 #endif
