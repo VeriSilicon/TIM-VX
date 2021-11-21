@@ -105,6 +105,11 @@ std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
   return std::make_shared<TensorImpl>(this, spec, data);
 }
 
+std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
+                                                const DmaBufferDesc& dmafd) {
+  return std::make_shared<TensorImpl>(this, spec, dmafd);
+}
+
 std::shared_ptr<Tensor> GraphImpl::CreateTensorPlaceHolder() {
   if (!tensor_placeholder_) {
     tensor_placeholder_ = std::make_shared<TensorPlaceholder>(this);

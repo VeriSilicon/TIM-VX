@@ -62,6 +62,8 @@ class GraphImpl : public Graph {
   /// Implement parents' virtual functions
    std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
                                        const void* data = nullptr) override;
+   std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
+                                               const DmaBufferDesc& dmafd) override;
    std::shared_ptr<Tensor> CreateTensorPlaceHolder() override;
     bool Compile() override;
 

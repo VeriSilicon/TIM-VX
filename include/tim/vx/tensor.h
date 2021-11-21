@@ -140,6 +140,10 @@ struct TensorSpec {
   Quantization quantization_;
 };
 
+struct DmaBufferDesc {
+  int64_t fd;
+};
+
 class Tensor {
  public:
   virtual ~Tensor() {}
