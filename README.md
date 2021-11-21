@@ -62,7 +62,7 @@ run unit test:
 cd host_build/src/tim
 
 export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:<path to libgtest_main.so>:$LD_LIBRARY_PATH
-export VIVANTE_SDKD_DIR=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib
+export VIVANTE_SDK_DIR=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib
 export VSIMULATOR_CONFIG=<hardware name should get from chip vendor>
 # if you want to debug wit gdb, please set
 export DISABLE_IDE_DEBUG=1
