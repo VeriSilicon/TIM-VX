@@ -117,7 +117,9 @@ To build and run TVM with TIM-VX, please see [TVM README](https://github.com/Ver
 
 Chip | Vendor | References 
 :------    |:----- |:------
-i.MX 8M Plus | NXP | [ML Guide](https://www.nxp.com.cn/docs/en/user-guide/IMX-MACHINE-LEARNING-UG.pdf) [BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab)
+i.MX 8M Plus | NXP | [ML Guide](https://www.nxp.com.cn/docs/en/user-guide/IMX-MACHINE-LEARNING-UG.pdf), [BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab)
+A311D | Khadas - VIM3 | [A311D datasheet](https://dl.khadas.com/Hardware/VIM3/Datasheet/A311D_Quick_Reference_Manual_01_Wesion.pdf), [BSP](https://dl.khadas.com/Firmware/VIM3/Ubuntu/EMMC/VIM3_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z)
+S905D3 | Khadas - VIM3L | [S905D3](https://dl.khadas.com/Hardware/VIM3/Datasheet/S905D3_datasheet_0.2_Wesion.pdf) , [BSP](https://dl.khadas.com/Firmware/VIM3L/Ubuntu/EMMC/VIM3L_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z)
 
 # Support
 create issue on github or email to ML_Support@verisilicon.com
