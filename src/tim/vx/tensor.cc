@@ -23,8 +23,6 @@
 *****************************************************************************/
 #include "tim/vx/tensor.h"
 
-#include <VX/vx_khr_cnn.h>
-
 #include <algorithm>
 
 #include "graph_private.h"
