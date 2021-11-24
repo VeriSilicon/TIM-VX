@@ -200,7 +200,7 @@ bool TensorImpl::Init() {
         &attr,
         fd_ != -1 ? (uint8_t*)fd_ : nullptr);  // and cannot be set to const
 #else
-    if (-1 == fd) {
+    if (-1 == fd_) {
       id_ = vsi_nn_AddTensorFromHandle(graph_->graph(), VSI_NN_TENSOR_ID_AUTO,
                                        &attr, nullptr);
     } else {
