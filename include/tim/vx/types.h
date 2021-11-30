@@ -63,11 +63,12 @@ enum class RoundingPolicy { TO_ZERO, RTNE };
 enum class ResizeType { NEAREST_NEIGHBOR, BILINEAR, AREA };
 
 enum class DataLayout {
+  ANY,
   WHCN,
   CWHN,
-  ANY,
-  IcWHOc /*TF*/,
-  OcIcWH /*TVM*/,
+  IcWHOc, /*TF*/
+  OcIcWH, /*TVM for classic conv2d in tflite model*/
+  IcOcWH, /*TVM for depthwise conv2d in tflite model*/
   WHIcOc /*TIM-VX default*/
 };
 
