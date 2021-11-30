@@ -66,6 +66,10 @@ class Conv2dLayoutInfer : public OpLayoutInfer {
                   trans_pv = std::make_shared<PermuteVector<4>>(kOcIcWH2WHIcOc);
                   infer_tensor = PermuteConstTensor(
                       in, trans_pv);
+                } else if (src_conv2d->KernelDataLayout() == vx::DataLayout::IcOcWH) {
+                  trans_pv = std::make_shared<PermuteVector<4>>(kIcOcWH2WHIcOc);
+                  infer_tensor = PermuteConstTensor(
+                      in, trans_pv);
                 } else {
                   infer_tensor = PermuteConstTensor(in, required_pv);
                   trans_pv = required_pv;

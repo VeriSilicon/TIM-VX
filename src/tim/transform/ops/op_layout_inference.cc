@@ -318,9 +318,12 @@ bool OpLayoutInfer::TransposeConstTensorData(
     reverse_shape.push_back(input->GetShape()[i]);
   }
   std::vector<uint32_t> perm = KOcHWIc2OcIcHW;
-  std::vector<uint32_t>tmp_vec = kOcIcWH2WHIcOc;
-  if (pv->AsStdVec() == tmp_vec) {
+  std::vector<uint32_t>tmp_vec0 = kOcIcWH2WHIcOc;
+  std::vector<uint32_t>tmp_vec1 = kIcOcWH2WHIcOc;
+  if (pv->AsStdVec() == tmp_vec0) {
     perm = kHWIcOc2OcIcHW;
+  } else if (pv->AsStdVec() == tmp_vec1) {
+    perm = kHWOcIc2OcIcHW;
   }
   vsi_nn_Transpose(out_data.data(), (uint8_t*)(input->GetDataRef()),
                    (uint32_t*)(reverse_shape.data()),
