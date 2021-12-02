@@ -26,6 +26,7 @@
 #include "tim/vx/ops/simple_operations.h"
 
 #include "gtest/gtest.h"
+#include <cstdlib>
 
 TEST(Floor, shape_5_1_fp32) {
     auto ctx = tim::vx::Context::Create();
@@ -83,3 +84,92 @@ TEST(Cast, shape_5_1_fp32_to_int32) {
     EXPECT_EQ(golden, output);
 }
 
+TEST(DataConvert, quantize_shape_2_3_fp32_to_asym_u8) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType io_shape({2, 3});
+    tim::vx::Quantization quant(tim::vx::QuantType::ASYMMETRIC, 0.0036, 0);
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, io_shape,
+                                   tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, io_shape,
+                                    tim::vx::TensorAttribute::OUTPUT, quant);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = {0.8458, 0.6214, 0.4666, 0.6065, 0.8895, 0.1535};
+    std::vector<uint8_t> golden = {235, 173, 130, 168, 247,  43};
+
+    auto quantize = graph->CreateOperation<tim::vx::ops::DataConvert>();
+    (*quantize).BindInput(input_tensor).BindOutput(output_tensor);
+    EXPECT_TRUE(graph->Compile());
+    
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<uint8_t> output(6, 0);
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(golden, output);
+}
+
+TEST(DataConvert, dequantize_shape_2_3_asym_u8_to_fp32) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType io_shape({2, 3});
+    tim::vx::Quantization quant(tim::vx::QuantType::ASYMMETRIC, 0.0036, 0);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, io_shape,
+                                   tim::vx::TensorAttribute::OUTPUT);
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, io_shape,
+                                    tim::vx::TensorAttribute::INPUT, quant);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<uint8_t> in_data = {235, 173, 130, 168, 247,  43};
+    std::vector<float> golden = {0.8458, 0.6214, 0.4666, 0.6065, 0.8895, 0.1535};
+
+    auto dequantize = graph->CreateOperation<tim::vx::ops::DataConvert>();
+    (*dequantize).BindInput(input_tensor).BindOutput(output_tensor);
+    EXPECT_TRUE(graph->Compile());
+    
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(6, 0);
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    for (uint32_t idx = 0; idx < output.size(); idx++)
+      EXPECT_TRUE(std::abs(golden[idx] - output[idx]) < 0.01);
+}
+
+TEST(DataConvert, requantize_shape_2_3_asym_u8) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType io_shape({2, 3});
+    tim::vx::Quantization in_quant(tim::vx::QuantType::ASYMMETRIC, 0.0036, 0);
+    tim::vx::Quantization out_quant(tim::vx::QuantType::ASYMMETRIC, 0.0036, 10);
+
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, io_shape,
+                                    tim::vx::TensorAttribute::INPUT, in_quant);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, io_shape,
+                                   tim::vx::TensorAttribute::OUTPUT, out_quant);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<uint8_t> in_data = {235, 173, 130, 168, 247,  43};
+    std::vector<uint8_t> golden = {245, 183, 140, 178, 255,  53};
+
+    auto requantize = graph->CreateOperation<tim::vx::ops::DataConvert>();
+    (*requantize).BindInput(input_tensor).BindOutput(output_tensor);
+    EXPECT_TRUE(graph->Compile());
+    
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<uint8_t> output(6, 0);
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(golden, output);
+}
