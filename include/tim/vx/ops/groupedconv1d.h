@@ -21,8 +21,8 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_CONV1D_H_
-#define TIM_VX_OPS_CONV1D_H_
+#ifndef TIM_VX_OPS_GROUPEDCONV1D_H_
+#define TIM_VX_OPS_GROUPEDCONV1D_H_
 
 #include <array>
 
@@ -32,24 +32,33 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-class Conv1d : public Operation {
+/**
+ * ## GroupedConv1d
+ *
+ * Performs a grouped 1-D convolution operation.
+ *
+ * Input:
+ * - input [WCN].
+ * - kernel [ WIcOc ] (Ic: Input Channels. Oc: Output Channels).Ic*group=C.
+ * - bias [ O ]. Optional.
+ *
+ * Attribute:
+ * - weights : the output channel number for weight tensor.
+ * - ksize : the height and width for weight tensor.
+ * - padding : AUTO, VALID or SAME.
+ * - pad : pad value for each spatial axis.
+ * - stride : stride along each spatial axis.
+ * - dilation : dilation value along each spatial axis of the filter.
+ * - group: Split conv to n group.
+ * - layout : WCN or CWN.
+ */
+
+class GroupedConv1d : public Operation {
  public:
-  Conv1d(Graph* graph, PadType padding, uint32_t stride,
-         uint32_t dilation, int32_t multiplier = 0,
-         DataLayout input_layout = DataLayout::WCN,
-         DataLayout kernel_layout = DataLayout::WIcOc);
-  Conv1d(Graph* graph, const std::array<uint32_t, 2>& pad,
-         uint32_t stride, uint32_t dilation, int32_t multiplier = 0,
-         DataLayout input_layout = DataLayout::WCN,
-         DataLayout kernel_layout = DataLayout::WIcOc);
-  Conv1d(Graph* graph, int32_t weights, PadType padding,
-         uint32_t ksize, uint32_t stride,
-         uint32_t dilation, int32_t multiplier = 0,
-         DataLayout input_layout = DataLayout::WCN,
-         DataLayout kernel_layout = DataLayout::WIcOc);
-  Conv1d(Graph* graph, int32_t weights, PadType padding,
-         uint32_t ksize, uint32_t stride, uint32_t dilation,
-         const std::array<uint32_t, 2>& pad, int32_t multiplier = 0,
+  GroupedConv1d(Graph* graph, PadType padding,
+         uint32_t stride,
+         uint32_t dilation,
+         uint32_t group,
          DataLayout input_layout = DataLayout::WCN,
          DataLayout kernel_layout = DataLayout::WIcOc);
 
@@ -58,13 +67,11 @@ class Conv1d : public Operation {
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
  protected:
-  const uint32_t weights_;
   const PadType padding_;
-  const uint32_t ksize_;
   const uint32_t stride_;
   const uint32_t dilation_;
   const std::array<uint32_t, 2> pad_;
-  const int32_t multiplier_;
+  const uint32_t group_;
   const DataLayout kernel_layout_;
 };
 
@@ -72,4 +79,4 @@ class Conv1d : public Operation {
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPS_CONV2D_H_ */
+#endif /* TIM_VX_OPS_GROUPED_CONV1D_H_ */

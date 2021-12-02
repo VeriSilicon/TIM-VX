@@ -101,6 +101,7 @@ shuffle_channel|SHUFFLECHANNEL|Mapped|[ANEURALNETWORKS_CHANNEL_SHUFFLE](https://
 Gelu|GELU|Mapped|[tf.nn.gelu](https://tensorflow.google.cn/api_docs/python/tf/nn/gelu)
 Svdf|SVDF|Mapped|[ANEURALNETWORKS_SVDF](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a7096de21038c1ce49d354a00cba7b552)
 Erf|ERF|Mapped|[tf.math.erf](https://tensorflow.google.cn/api_docs/python/tf/math/erf)
+GROUPED_CONV1D|Mapped|[tf.keras.layers.Conv1D](https://www.tensorflow.org/api_docs/python/tf/keras/layers/Conv1D)
 ||PROPOSAL| TBD |[Faster-RCNN Proposal Layer](https://github.com/intel/caffe/blob/master/examples/faster-rcnn/lib/rpn/proposal_layer.py)
 ||ROI_POOL|Planned 22Q1 |[ANEURALNETWORKS_ROI_POOLING](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a6736198af337b2efbdb0b6b64dee7fe4)
 ||ROI_ALIGN| TBD |[ANEURALNETWORKS_ROI_ALIGN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a2848b39dd4bfba78f2438fda0d9397a4)

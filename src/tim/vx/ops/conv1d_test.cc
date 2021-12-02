@@ -27,18 +27,19 @@
 #include "test_utils.h"
 #include "gtest/gtest.h"
 
-TEST(Conv1d, shape_3_6_1_float_ksize_1_stride_1_weights_3_no_bias_whcn) {
+TEST(Conv1d, shape_3_6_1_float_ksize_1_stride_1_weights_3_no_bias_wcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
-    tim::vx::ShapeType io_shape({3, 6, 1});
+    tim::vx::ShapeType in_shape({3, 6, 1});
     tim::vx::ShapeType param_shape({1,6,3});
+    tim::vx::ShapeType out_shape({3, 3, 1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
-                            io_shape, tim::vx::TensorAttribute::INPUT);
+                            in_shape, tim::vx::TensorAttribute::INPUT);
     tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
                             param_shape, tim::vx::TensorAttribute::INPUT);
     tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
-                            io_shape, tim::vx::TensorAttribute::OUTPUT);
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
 
     auto input_tensor = graph->CreateTensor(input_spec);
     auto weight_tensor = graph->CreateTensor(param_spec);
@@ -78,7 +79,7 @@ TEST(Conv1d, shape_3_6_1_float_ksize_1_stride_1_weights_3_no_bias_whcn) {
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
-TEST(Conv1d, shape_6_2_1_uint8_ksize_6_stride_1_weights_2_whcn) {
+TEST(Conv1d, shape_6_2_1_uint8_ksize_6_stride_1_weights_2_wcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -144,7 +145,7 @@ TEST(Conv1d, shape_6_2_1_uint8_ksize_6_stride_1_weights_2_whcn) {
     EXPECT_TRUE(ArraysMatch(golden, output, static_cast<uint8_t>(0)));
 }
 
-TEST(Conv1d, shape_6_2_1_uint8_ksize_3_stride_1_pad_1_weights_2_no_bias_whcn) {
+TEST(Conv1d, shape_6_2_1_uint8_ksize_3_stride_1_pad_1_weights_2_no_bias_wcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -199,7 +200,7 @@ TEST(Conv1d, shape_6_2_1_uint8_ksize_3_stride_1_pad_1_weights_2_no_bias_whcn) {
 #if 0
 // Fail case
 // Internal impl conv1d don't support multiplier, need wait for the fix.
-TEST(Conv1d, shape_7_2_1_uint8_ksize_3_stride_2_multiplier_1_whcn) {
+TEST(Conv1d, shape_7_2_1_uint8_ksize_3_stride_2_multiplier_1_wcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
