@@ -38,9 +38,9 @@ namespace ops {
  * ```
  */
 
-class shuffle_channel : public Operation {
+class ShuffleChannel : public Operation {
   public:
-   explicit shuffle_channel(Graph* graph, int32_t num_groups, int32_t index_axis);
+   explicit ShuffleChannel(Graph* graph, int32_t num_groups, int32_t index_axis);
    std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 };
 

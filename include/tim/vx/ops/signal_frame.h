@@ -21,27 +21,40 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "operation_private.h"
-#include "tim/vx/ops/shuffle_channel.h"
-#include "vsi_nn_pub.h"
+#ifndef TIM_VX_OPS_SIGNALFRAME_H_
+#define TIM_VX_OPS_SIGNALFRAME_H_
+#include "tim/vx/operation.h"
+
 namespace tim {
 namespace vx {
 namespace ops {
 
-ShuffleChannel::ShuffleChannel(Graph* graph, int32_t num_groups,
-                                 int32_t index_axis)
-    : Operation(graph, VSI_NN_OP_SHUFFLECHANNEL, 1, 1) {
-  this->impl()->node()->nn_param.shufflechannel.group_number = num_groups;
-  this->impl()->node()->nn_param.shufflechannel.axis = index_axis;
-}
+/**
+ * ## Signalframe
+ *
+ * ```
+ *  tf.signal.frame(
+        signal, frame_length, frame_step, pad_end=False, pad_value=0, axis=0, name=None
+    )     : Expands signal's axis dimension into frames of frame_length.
+ * ```
+ */
 
-std::shared_ptr<Operation> ShuffleChannel::Clone(
-    std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<ShuffleChannel>(
-      this->impl()->node()->nn_param.shufflechannel.group_number,
-      this->impl()->node()->nn_param.shufflechannel.axis);
-}
+class SignalFrame : public Operation {
+  public:
+   SignalFrame(Graph* graph, uint32_t window_length, uint32_t step, uint32_t pad_end=0,
+      uint32_t axis=0);
+
+   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+
+  protected:
+   const uint32_t window_length_;
+   const uint32_t step_;
+   const uint32_t pad_end_;
+   const uint32_t axis_;
+};
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+
+#endif /* TIM_VX_OPS_SIGNALFRAME_H_ */
