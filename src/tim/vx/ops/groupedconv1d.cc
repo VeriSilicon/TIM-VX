@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2021 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,60 +21,39 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_TYPES_H_
-#define TIM_VX_TYPES_H_
+#include "tim/vx/ops/groupedconv1d.h"
+
+#include "operation_private.h"
+#include "type_utils.h"
+#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
+namespace ops {
 
-enum class DataType {
-  UNKNOWN,
-  INT8,
-  UINT8,
-  INT16,
-  UINT16,
-  INT32,
-  UINT32,
-  FLOAT16,
-  FLOAT32,
-  BOOL8
-};
+GroupedConv1d::GroupedConv1d(Graph* graph,
+               PadType padding,
+               const uint32_t stride,
+               const uint32_t dilation,
+               uint32_t group,
+               DataLayout input_layout, DataLayout kernel_layout)
+    : Operation(graph, VSI_NN_OP_GROUPED_CONV1D, 3, 1, input_layout),
+      padding_(padding), stride_(stride), dilation_(dilation),
+      pad_({0,0}), group_(group),
+      kernel_layout_(kernel_layout) {
+  this->impl()->node()->nn_param.grouped_conv1d.pad_type = TranslatePadType(padding_);
+  this->impl()->node()->nn_param.grouped_conv1d.stride = stride_;
+  this->impl()->node()->nn_param.grouped_conv1d.group = group_;
+  this->impl()->node()->nn_param.grouped_conv1d.dilation = dilation_;
+  }
 
-enum class QuantType { NONE, ASYMMETRIC, SYMMETRIC_PER_CHANNEL };
+std::shared_ptr<Operation> GroupedConv1d::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<GroupedConv1d>(
+      this->padding_, this->stride_, this->dilation_, this->group_, this->impl_->layout_,
+      this->kernel_layout_);
+}
 
-enum TensorAttribute {
-  CONSTANT = 1 << 0,
-  TRANSIENT = 1 << 1,
-  VARIABLE = 1 << 2,
-  INPUT = 1 << 3,
-  OUTPUT = 1 << 4
-};
-
-enum class PadType { NONE = -1, AUTO, VALID, SAME };
-
-enum class PoolType { MAX, AVG, L2, AVG_ANDROID };
-
-enum class RoundType { CEILING, FLOOR };
-
-enum class OverflowPolicy { WRAP, SATURATE };
-
-enum class RoundingPolicy { TO_ZERO, RTNE };
-
-enum class ResizeType { NEAREST_NEIGHBOR, BILINEAR, AREA };
-
-enum class DataLayout {
-  ANY,
-  WHCN,
-  CWHN,
-  IcWHOc, /*TF*/
-  OcIcWH, /*TVM for classic conv2d in tflite model*/
-  IcOcWH, /*TVM for depthwise conv2d in tflite model*/
-  WHIcOc, /*TIM-VX default*/
-  WCN,   /*for conv1d*/
-  WIcOc, /*for conv1d*/
-};
-
+}  // namespace ops
 }  // namespace vx
 }  // namespace tim
-
-#endif /* TIM_VX_TYPES_H_ */
