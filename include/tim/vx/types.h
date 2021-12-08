@@ -72,6 +72,10 @@ enum class DataLayout {
   WHIcOc, /*TIM-VX default*/
   WCN,   /*for conv1d*/
   WIcOc, /*for conv1d*/
+  WHDCN, /* pytorch conv3d input */
+  WHDIcOc, /* pytorch conv3d kernel */
+  CWHDN, /* tensorflow conv3d input */
+  OcIcWHD, /* tensorflow conv3d kernel */
 };
 
 }  // namespace vx

@@ -322,10 +322,13 @@ bool OpLayoutInfer::TransposeConstTensorData(
   std::vector<uint32_t> perm = KOcHWIc2OcIcHW;
   std::vector<uint32_t> tmp_vec0 = kOcIcWH2WHIcOc;
   std::vector<uint32_t> tmp_vec1 = kIcOcWH2WHIcOc;
+  std::vector<uint32_t> tmp_vec2 = kOcIcWHD2WHDIcOc;
   if (pv->AsStdVec() == tmp_vec0) {
     perm = kHWIcOc2OcIcHW;
   } else if (pv->AsStdVec() == tmp_vec1) {
     perm = kHWOcIc2OcIcHW;
+  } else if (pv->AsStdVec() == tmp_vec2) {
+    perm = kDHWIcOc2OcIcDHW;
   }
 
   std::vector<vsi_size_t> native_shape_array;
