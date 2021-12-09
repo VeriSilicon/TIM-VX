@@ -2,16 +2,6 @@ message("src/tim/vx")
 
 set(TARGET_NAME "tim-vx")
 
-if(${TIM_VX_USE_EXTERNAL_OVXLIB})
-    find_library(OVXLIB_LIB NAMES "ovxlib")
-    message(STATUS "Using external OVXLIB from ${OVXLIB_LIB}")
-    add_library(tim_internal SHARED IMPORTED)
-    set_target_properties(tim_internal PROPERTIES IMPORTED_LOCATION ${OVXLIB_LIB})
-    target_link_libraries(tim_internal INTERFACE ${OVXDRV_LIBRARIES})
-else()
-    add_subdirectory("vx/internal")
-endif()
-
 aux_source_directory(./vx VX_SRC)
 aux_source_directory(./vx/ops OPS_SRC)
 
@@ -20,6 +10,16 @@ list(APPEND ${TARGET_NAME}_SRCS
     ${VX_SRC}
     ${OPS_SRC}
 )
+
+if(${TIM_VX_USE_EXTERNAL_OVXLIB})
+    find_library(OVXLIB_LIB NAMES "ovxlib")
+    message(STATUS "Using external OVXLIB from ${OVXLIB_LIB}")
+    add_library(tim_internal SHARED IMPORTED)
+    set_target_properties(tim_internal PROPERTIES IMPORTED_LOCATION ${OVXLIB_LIB})
+    target_link_libraries(tim_internal INTERFACE ${OVXDRV_LIBRARIES})
+else()
+    include(vx/internal/tim_internal.cmake)
+endif()
 
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
     if(NOT OVXLIB_INC)
@@ -72,10 +72,14 @@ endif()
 add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
 target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
 target_link_libraries(${TARGET_NAME} PUBLIC
-   -Wl,--whole-archive tim_internal -Wl,--no-whole-archive ${EXTERNAL_LIBS})
+    -Wl,--no-whole-archive ${EXTERNAL_LIBS} ${OVXDRV_LIBRARIES})
+if(${TIM_VX_USE_EXTERNAL_OVXLIB})
+    target_link_libraries(${TARGET_NAME} PUBLIC
+        -Wl,--whole-archive tim_internal)
+endif()
 
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL aarch64)
     install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
