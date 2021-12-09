@@ -22,24 +22,29 @@
 *
 *****************************************************************************/
 #include "operation_private.h"
-#include "tim/vx/ops/shuffle_channel.h"
+#include "tim/vx/ops/signal_frame.h"
 #include "vsi_nn_pub.h"
 namespace tim {
 namespace vx {
 namespace ops {
 
-ShuffleChannel::ShuffleChannel(Graph* graph, int32_t num_groups,
-                                 int32_t index_axis)
-    : Operation(graph, VSI_NN_OP_SHUFFLECHANNEL, 1, 1) {
-  this->impl()->node()->nn_param.shufflechannel.group_number = num_groups;
-  this->impl()->node()->nn_param.shufflechannel.axis = index_axis;
+SignalFrame::SignalFrame(Graph* graph, uint32_t window_length, uint32_t step, uint32_t pad_end,
+    uint32_t axis)
+    : Operation(graph, VSI_NN_OP_SIGNAL_FRAME),
+      window_length_(window_length),
+      step_(step),
+      pad_end_(pad_end),
+      axis_(axis) {
+  this->impl()->node()->nn_param.signalframe.window_length = window_length_;
+  this->impl()->node()->nn_param.signalframe.step = step_;
+  this->impl()->node()->nn_param.signalframe.pad_end = pad_end_;
+  this->impl()->node()->nn_param.signalframe.axis = axis_;
 }
 
-std::shared_ptr<Operation> ShuffleChannel::Clone(
+std::shared_ptr<Operation> SignalFrame::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<ShuffleChannel>(
-      this->impl()->node()->nn_param.shufflechannel.group_number,
-      this->impl()->node()->nn_param.shufflechannel.axis);
+  return graph->CreateOperation<SignalFrame>(
+      this->window_length_, this->step_, this->pad_end_, this->axis_);
 }
 
 }  // namespace ops
