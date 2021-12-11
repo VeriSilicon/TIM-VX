@@ -73,18 +73,19 @@ add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
 target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
 target_link_libraries(${TARGET_NAME} PUBLIC
     -Wl,--no-whole-archive ${EXTERNAL_LIBS} ${OVXDRV_LIBRARIES})
+
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
-    target_link_libraries(${TARGET_NAME} PUBLIC
-        -Wl,--whole-archive tim_internal)
+  #-Wl,--whole-archive should not applied to external library, but only for shared library
+  target_link_libraries(${TARGET_NAME} PUBLIC tim_internal)
 endif()
+
+if (NOT CMAKE_INSTALL_LIBDIR)
+	set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
+
 
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL aarch64)
-    install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib64)
-endif()
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx 
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
@@ -107,7 +108,7 @@ if(TIM_VX_ENABLE_TEST)
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
     )
 
-    install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+    install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()
 
 add_subdirectory("utils")
