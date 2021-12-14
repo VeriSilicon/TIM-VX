@@ -149,6 +149,11 @@ void LayoutInferContext::UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& 
   graph_input_map_[i_src] = i_layout;
 }
 
+void LayoutInferContext::UpdateGraphOutputMap(const std::shared_ptr<vx::Tensor>& o_src,
+                           const std::shared_ptr<vx::Tensor>& o_layout) {
+  graph_output_map_[o_src] = o_layout;
+}
+
 #define REGIST_LAYOUT_INFERENCE(op_idx, name)                     \
   case op_idx: {                                                  \
     auto op_infer = std::make_shared<name##LayoutInfer>(op, ctx); \
@@ -305,8 +310,8 @@ std::pair<std::shared_ptr<vx::Graph>,
   for (const auto& graph_input : layout_infer_ctx->GetGraphInputMap()) {
     graph_io_map[graph_input.first] = graph_input.second;
   }
-  for (const auto& out_src : src_graph->OutputsTensor()) {
-    graph_io_map[out_src] = layout_infer_ctx->GetMapedTensor(out_src);
+  for (const auto& graph_output : layout_infer_ctx->GetGraphOutputMap()) {
+    graph_io_map[graph_output.first] = graph_output.second;
   }
   return std::make_pair(infer_graph, graph_io_map);
 }

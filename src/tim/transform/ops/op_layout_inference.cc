@@ -40,12 +40,14 @@ void OpLayoutInfer::OnOutputs(
   for (const auto& out : op_outputs) {
     if (graph_outputs.end() !=
         std::find(graph_outputs.begin(), graph_outputs.end(), out)) {
+      context_->UpdateGraphOutputMap(out, context_->GetMapedTensor(out));
       auto pv = context_->GetPermuteVector(out);
       if (!pv->IsAligned()) {
         auto perm_out = InsertPermute(context_->GetMapedTensor(out),
                                       pv->Reverse(), true, out);
         // Update graph out tensor
         context_->UpdateTensorMap(out, perm_out);
+        context_->UpdateGraphOutputMap(out, perm_out);
       }
       if (!context_->src_graph_->GetConsumersOp(out).empty()) {
         // The tensor is output of graph, but it also is the input of other operations
