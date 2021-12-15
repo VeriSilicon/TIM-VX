@@ -85,6 +85,12 @@ export DISABLE_IDE_DEBUG=1
 3. add -DEXTERNAL_VIV_SDK=<low-level-driver/out/sdk> to cmake definitions, also remember -DCMAKE_TOOLCHAIN_FILE=<Your_Toolchain_Config>
 4. then make
 
+
+#### Notes for integration
+If you want to build tim-vx as a static library, and link it to your shared library or application, please be carefull with the linker, "-Wl,--whole-archive" is required.
+
+@see samples/lenet/CMakeLists.txt for reference
+
 ### Bazel
 
 [Install bazel](https://docs.bazel.build/versions/master/install.html) to get started.
