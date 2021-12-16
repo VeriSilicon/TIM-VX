@@ -320,17 +320,26 @@ bool OpLayoutInfer::TransposeConstTensorData(
     reverse_shape.push_back(input->GetShape()[i]);
   }
   std::vector<uint32_t> perm = KOcHWIc2OcIcHW;
-  std::vector<uint32_t>tmp_vec0 = kOcIcWH2WHIcOc;
-  std::vector<uint32_t>tmp_vec1 = kIcOcWH2WHIcOc;
+  std::vector<uint32_t> tmp_vec0 = kOcIcWH2WHIcOc;
+  std::vector<uint32_t> tmp_vec1 = kIcOcWH2WHIcOc;
   if (pv->AsStdVec() == tmp_vec0) {
     perm = kHWIcOc2OcIcHW;
   } else if (pv->AsStdVec() == tmp_vec1) {
     perm = kHWOcIc2OcIcHW;
   }
+
+  std::vector<vsi_size_t> native_shape_array;
+  std::vector<vsi_size_t> native_perm;
+  std::transform(reverse_shape.begin(), reverse_shape.end(),
+                 std::back_inserter(native_shape_array),
+                 [](const uint32_t& i) { return i; });
+  std::transform(perm.begin(), perm.end(), std::back_inserter(native_perm),
+                 [](const uint32_t& i) { return i; });
   vsi_nn_Transpose(out_data.data(), (uint8_t*)(input->GetDataRef()),
-                   (uint32_t*)(reverse_shape.data()),
+                   native_shape_array.data(),
                    static_cast<uint32_t>(input->GetShape().size()),
-                   perm.data(), vx_type);
+                   native_perm.data(), vx_type);
+
   return true;
 }
 
