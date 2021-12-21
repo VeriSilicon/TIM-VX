@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_REORG_H_
 #define TIM_VX_OPS_REORG_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -35,7 +35,7 @@ namespace ops {
  * The layer used in YOLOv2. See also https://github.com/pjreddie/darknet/blob/master/src/reorg_layer.c
  */
 
-class Reorg : public Operation {
+class Reorg : public DirectMapOp {
  public:
   Reorg(Graph* graph, const uint32_t stride);
 

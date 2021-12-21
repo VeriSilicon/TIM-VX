@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/softmax.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Softmax::Softmax(Graph* graph, float beta, int32_t axis)
-    : Operation(graph, VSI_NN_OP_SOFTMAX), beta_(beta), axis_(axis) {
+    : DirectMapOp(graph, VSI_NN_OP_SOFTMAX), beta_(beta), axis_(axis) {
   this->impl()->node()->nn_param.softmax.beta = beta_;
   this->impl()->node()->nn_param.softmax.axis = axis_;
 }

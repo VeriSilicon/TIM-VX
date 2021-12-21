@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_LSTM_H_
 #define TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_LSTM_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -32,7 +32,7 @@ namespace ops {
      * ## Unidirectional sequence lstm
      *  how to bind input/output: take unidirectional_sequence_lstm_test.cc
      */
-    class UnidirectionalSequenceLstm: public Operation {
+    class UnidirectionalSequenceLstm: public DirectMapOp {
      public:
       enum ActivationType {
         kNONE = 0,

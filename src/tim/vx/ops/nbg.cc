@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/nbg.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,13 +31,13 @@ namespace vx {
 namespace ops {
 NBG::NBG(Graph* graph, const char* binary, size_t input_count,
          size_t output_count)
-    : Operation(graph, VSI_NN_OP_NBG, input_count, output_count) {
+    : DirectMapOp(graph, VSI_NN_OP_NBG, input_count, output_count) {
   this->impl()->node()->nn_param.nbg.url = binary;
   this->impl()->node()->nn_param.nbg.type = VSI_NN_NBG_POINTER;
 }
 
 std::shared_ptr<Operation> NBG::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<NBG>(this->impl_->node_->nn_param.nbg.url,
+  return graph->CreateOperation<NBG>(this->impl_->node()->nn_param.nbg.url,
                                      this->impl_->input_cnt_,
                                      this->impl_->output_cnt_);
 }

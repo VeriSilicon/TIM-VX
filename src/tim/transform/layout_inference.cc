@@ -198,7 +198,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     std::shared_ptr<layout_inference_impl::LayoutInferContext>& ctx,
     const std::shared_ptr<vx::Operation>& op) {
   ctx->MarkVisited(op);
-  auto op_id = op->impl()->operation_id_;
+  auto op_id = op->impl()->kind_;
   std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
   switch (op_id) {
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONV2D, Conv2d);

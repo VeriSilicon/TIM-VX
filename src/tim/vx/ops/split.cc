@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/split.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Split::Split(Graph* graph, uint32_t axis, std::vector<uint32_t> slices)
-    : Operation(graph, VSI_NN_OP_SPLIT, 1, slices.size()),
+    : DirectMapOp(graph, VSI_NN_OP_SPLIT, 1, slices.size()),
       axis_(axis),
       slices_(std::move(slices)) {
   this->impl()->node()->nn_param.split.axis = axis_;

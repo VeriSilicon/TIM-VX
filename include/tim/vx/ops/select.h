@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SELECT_H_
 #define TIM_VX_OPS_SELECT_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -36,7 +36,7 @@ namespace ops {
  * from both input tensors: O[i] = C[i] ? x[i] : y[i].
  */
 
-class Select : public Operation {
+class Select : public DirectMapOp {
  public:
   Select(Graph* graph);
 

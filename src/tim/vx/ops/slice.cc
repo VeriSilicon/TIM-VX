@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/slice.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 Slice::Slice(Graph* graph, uint32_t dims, const std::vector<int32_t>& start,
              const std::vector<int32_t>& length)
-    : Operation(graph, VSI_NN_OP_SLICE),
+    : DirectMapOp(graph, VSI_NN_OP_SLICE),
       dims_(dims),
       start_(start),
       length_(length) {

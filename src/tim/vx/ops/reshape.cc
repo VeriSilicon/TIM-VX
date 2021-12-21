@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/reshape.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Reshape::Reshape(Graph* graph, const std::vector<uint32_t>& size)
-    : Operation(graph, VSI_NN_OP_RESHAPE), size_(std::move(size)) {
+    : DirectMapOp(graph, VSI_NN_OP_RESHAPE), size_(std::move(size)) {
   this->impl()->node()->nn_param.reshape.size = size_.data();
   this->impl()->node()->nn_param.reshape.dim_num = size_.size();
 }

@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_TRANSPOSE_H_
 #define TIM_VX_OPS_TRANSPOSE_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -41,7 +41,7 @@ namespace ops {
  * 2-D input Tensors.
  */
 
-class Transpose : public Operation {
+class Transpose : public DirectMapOp {
  public:
   Transpose(Graph* graph, const std::vector<uint32_t>& perm);
 
