@@ -42,7 +42,7 @@ namespace ops {
 
 class BatchNorm : public Operation {
   public:
-    BatchNorm(Graph* graph, float eps);
+    BatchNorm(Graph* graph, float eps, DataLayout input_layout = DataLayout::WHCN);
 
     std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
