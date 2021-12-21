@@ -30,12 +30,11 @@
 namespace tim {
 namespace vx {
 
-class OperationImpl;
+class OpImpl;
 
 class Operation {
  public:
-  Operation(Graph* graph, uint32_t operation_id,
-            int input_cnt = 0, int ouput_cnt = 0, DataLayout layout = DataLayout::ANY);
+  Operation();
   virtual ~Operation();
   virtual std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const = 0;
   Operation& BindInput(const std::shared_ptr<Tensor>& tensor);
@@ -47,11 +46,11 @@ class Operation {
       RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
       RoundType down_scale_size_rounding = RoundType::FLOOR,
       uint32_t accumulator_bits = 0);
-  std::unique_ptr<OperationImpl>& impl();
-  const std::unique_ptr<OperationImpl>& impl() const;
+  std::unique_ptr<OpImpl>& impl();
+  const std::unique_ptr<OpImpl>& impl() const;
 
  protected:
-  std::unique_ptr<OperationImpl> impl_;
+  std::unique_ptr<OpImpl> impl_;
 };
 
 }  // namespace vx

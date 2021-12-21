@@ -104,7 +104,7 @@ TEST(DataConvert, quantize_shape_2_3_fp32_to_asym_u8) {
     auto quantize = graph->CreateOperation<tim::vx::ops::DataConvert>();
     (*quantize).BindInput(input_tensor).BindOutput(output_tensor);
     EXPECT_TRUE(graph->Compile());
-    
+
     EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
     EXPECT_TRUE(graph->Run());
 
@@ -133,7 +133,7 @@ TEST(DataConvert, dequantize_shape_2_3_asym_u8_to_fp32) {
     auto dequantize = graph->CreateOperation<tim::vx::ops::DataConvert>();
     (*dequantize).BindInput(input_tensor).BindOutput(output_tensor);
     EXPECT_TRUE(graph->Compile());
-    
+
     EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
     EXPECT_TRUE(graph->Run());
 
@@ -165,7 +165,7 @@ TEST(DataConvert, requantize_shape_2_3_asym_u8) {
     auto requantize = graph->CreateOperation<tim::vx::ops::DataConvert>();
     (*requantize).BindInput(input_tensor).BindOutput(output_tensor);
     EXPECT_TRUE(graph->Compile());
-    
+
     EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
     EXPECT_TRUE(graph->Run());
 

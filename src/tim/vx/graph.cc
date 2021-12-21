@@ -26,7 +26,7 @@
 
 #include "context_private.h"
 #include "graph_private.h"
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "tensor_private.h"
 #include "tim/vx/context.h"
 #include "tim/vx/ops/nbg.h"

@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPERATION_PAD_H_
 #define TIM_VX_OPERATION_PAD_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,7 +37,7 @@ namespace ops {
  * - const_val : the value to pad.
  */
 
-class Pad : public Operation {
+class Pad : public DirectMapOp {
  public:
   Pad(Graph* graph, const std::vector<uint32_t>& front_size,
       const std::vector<uint32_t>& back_size, int32_t const_val);

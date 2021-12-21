@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_CONCAT_H_
 #define TIM_VX_OPS_CONCAT_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,7 +37,7 @@ namespace ops {
  * - axis : Which axis to concat on.
  */
 
-class Concat : public Operation {
+class Concat : public DirectMapOp {
  public:
   Concat(Graph* graph, uint32_t axis, int input_cnt);
 

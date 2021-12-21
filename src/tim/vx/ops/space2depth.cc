@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/space2depth.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 SpaceToDepth::SpaceToDepth(Graph* graph, std::vector<int> block_size,
                            DataLayout layout)
-    : Operation(graph, VSI_NN_OP_SPACE2DEPTH, 0, 0, layout),
+    : DirectMapOp(graph, VSI_NN_OP_SPACE2DEPTH, 0, 0, layout),
       block_size_(block_size) {
   this->impl()->node()->nn_param.space2depth.block_size[0] = block_size_[0];
   this->impl()->node()->nn_param.space2depth.block_size[1] = block_size_[1];

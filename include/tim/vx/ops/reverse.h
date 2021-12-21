@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_REVERSE_H_
 #define TIM_VX_OPS_REVERSE_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,7 +37,7 @@ namespace ops {
  * - axis : The indices of the dimensions to reverse. 
  */
 
-class Reverse : public Operation {
+class Reverse : public DirectMapOp {
  public:
   Reverse(Graph* graph, const std::vector<int32_t>& axis);
 

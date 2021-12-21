@@ -23,14 +23,14 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SIMPLE_OPERATIONS_H_
 #define TIM_VX_OPS_SIMPLE_OPERATIONS_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
 #define DECLARE_SIMPLE_OP(NAME)                        \
-  class NAME : public Operation {                      \
+  class NAME : public DirectMapOp {                      \
    public:                                             \
     NAME(Graph* graph);                                \
     std::shared_ptr<Operation> Clone(                  \

@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/reorg.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Reorg::Reorg(Graph* graph, const uint32_t stride)
-    : Operation(graph, VSI_NN_OP_REORG), stride_(stride) {
+    : DirectMapOp(graph, VSI_NN_OP_REORG), stride_(stride) {
   this->impl()->node()->nn_param.reorg.stride = stride_;
 }
 
