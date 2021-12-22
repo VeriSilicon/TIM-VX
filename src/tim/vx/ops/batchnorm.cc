@@ -30,8 +30,8 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-BatchNorm::BatchNorm(Graph* graph, float eps)
-    : Operation(graph, VSI_NN_OP_BATCH_NORM), eps_(eps) {
+BatchNorm::BatchNorm(Graph* graph, float eps, DataLayout input_layout)
+    : Operation(graph, VSI_NN_OP_BATCH_NORM, 0, 0, input_layout), eps_(eps) {
   this->impl()->node()->nn_param.batch_norm.eps = eps_;
 }
 
