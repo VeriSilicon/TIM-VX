@@ -26,11 +26,18 @@ class LayoutInferContext {
   void UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& i_src,
                            const std::shared_ptr<vx::Tensor>& i_layout);
 
+  void UpdateGraphOutputMap(const std::shared_ptr<vx::Tensor>& o_src,
+                           const std::shared_ptr<vx::Tensor>& o_layout);
+
   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
   GetGraphInputMap() const {
     return graph_input_map_;
   }
 
+  std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
+  GetGraphOutputMap() const {
+    return graph_output_map_;
+  }
   const std::shared_ptr<vx::Graph>& src_graph_;
   std::shared_ptr<vx::Graph>& infer_graph_;
 
@@ -43,6 +50,8 @@ class LayoutInferContext {
       tensor_map_;
   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
       graph_input_map_;
+  std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
+      graph_output_map_;
 };
 
 }  // namespace layout_inference_impl

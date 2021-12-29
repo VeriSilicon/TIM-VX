@@ -29,7 +29,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(shuffle_channel, shape_3_6_groupnum2_dim1_float32) {
+TEST(ShuffleChannel, shape_3_6_groupnum2_dim1_float32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -61,7 +61,7 @@ TEST(shuffle_channel, shape_3_6_groupnum2_dim1_float32) {
     };
 
     EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::shuffle_channel>(2, 1);
+    auto op = graph->CreateOperation<tim::vx::ops::ShuffleChannel>(2, 1);
     (*op).BindInput(in_tensor).BindOutput(out_tensor);
 
     EXPECT_TRUE(graph->Compile());
@@ -72,7 +72,7 @@ TEST(shuffle_channel, shape_3_6_groupnum2_dim1_float32) {
     EXPECT_EQ(golden, output);
 }
 
-TEST(shuffle_channel, shape_4_2_2_groupnum2_dim0_float32) {
+TEST(ShuffleChannel, shape_4_2_2_groupnum2_dim0_float32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -94,7 +94,7 @@ TEST(shuffle_channel, shape_4_2_2_groupnum2_dim0_float32) {
     };
 
     EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::shuffle_channel>(2, 0);
+    auto op = graph->CreateOperation<tim::vx::ops::ShuffleChannel>(2, 0);
     (*op).BindInput(in_tensor).BindOutput(out_tensor);
 
     EXPECT_TRUE(graph->Compile());
@@ -105,7 +105,7 @@ TEST(shuffle_channel, shape_4_2_2_groupnum2_dim0_float32) {
     EXPECT_EQ(golden, output);
 }
 
-TEST(shuffle_channel, shape_1_4_2_2_groupnum2_dim1_float32) {
+TEST(ShuffleChannel, shape_1_4_2_2_groupnum2_dim1_float32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -127,7 +127,7 @@ TEST(shuffle_channel, shape_1_4_2_2_groupnum2_dim1_float32) {
     };
 
     EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::shuffle_channel>(2, 1);
+    auto op = graph->CreateOperation<tim::vx::ops::ShuffleChannel>(2, 1);
     (*op).BindInput(in_tensor).BindOutput(out_tensor);
 
     EXPECT_TRUE(graph->Compile());
@@ -138,7 +138,7 @@ TEST(shuffle_channel, shape_1_4_2_2_groupnum2_dim1_float32) {
     EXPECT_EQ(golden, output);
 }
 
-TEST(shuffle_channel, shape_4_1_2_2_groupnum4_dim0_float32) {
+TEST(ShuffleChannel, shape_4_1_2_2_groupnum4_dim0_float32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -160,7 +160,7 @@ TEST(shuffle_channel, shape_4_1_2_2_groupnum4_dim0_float32) {
     };
 
     EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::shuffle_channel>(4, 0);
+    auto op = graph->CreateOperation<tim::vx::ops::ShuffleChannel>(4, 0);
     (*op).BindInput(in_tensor).BindOutput(out_tensor);
 
     EXPECT_TRUE(graph->Compile());
@@ -171,7 +171,7 @@ TEST(shuffle_channel, shape_4_1_2_2_groupnum4_dim0_float32) {
     EXPECT_EQ(golden, output);
 }
 
-TEST(shuffle_channel, shape_4_1_2_2_groupnum1_dim3_float32) {
+TEST(ShuffleChannel, shape_4_1_2_2_groupnum1_dim3_float32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -193,7 +193,7 @@ TEST(shuffle_channel, shape_4_1_2_2_groupnum1_dim3_float32) {
     };
 
     EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::shuffle_channel>(1, 3);
+    auto op = graph->CreateOperation<tim::vx::ops::ShuffleChannel>(1, 3);
     (*op).BindInput(in_tensor).BindOutput(out_tensor);
 
     EXPECT_TRUE(graph->Compile());

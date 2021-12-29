@@ -23,8 +23,6 @@
 *****************************************************************************/
 #include "tim/vx/tensor.h"
 
-#include <VX/vx_khr_cnn.h>
-
 #include <algorithm>
 
 #include "graph_private.h"
@@ -82,6 +80,14 @@ TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, const void* data)
       id_(VSI_NN_TENSOR_ID_NA),
       spec_(spec),
       data_(data) {
+  Init();
+}
+
+TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, const DmaBufferDesc& dmafd)
+    : graph_(reinterpret_cast<GraphImpl*>(graph)),
+      id_(VSI_NN_TENSOR_ID_NA),
+      spec_(spec),
+      fd_(dmafd.fd) {
   Init();
 }
 
@@ -183,8 +189,26 @@ bool TensorImpl::Init() {
 
   if ((spec_.attr_ & TensorAttribute::INPUT) ||
       (spec_.attr_ & TensorAttribute::OUTPUT)) {
-    id_ = vsi_nn_AddTensorFromHandle(graph_->graph(), VSI_NN_TENSOR_ID_AUTO,
-                                     &attr, nullptr);
+#ifdef VX_CREATE_TENSOR_SUPPORT_PHYSICAL
+    if (fd_ != -1) {
+      attr.vsi_memory_type = VSI_MEMORY_TYPE_DMABUF;
+    }
+
+    id_ = vsi_nn_AddTensorFromHandle(
+        graph_->graph(),
+        VSI_NN_TENSOR_ID_AUTO,  // DMABUF's fd is created by TensorFromHandle as input or output,
+        &attr,
+        fd_ != -1 ? (uint8_t*)fd_ : nullptr);  // and cannot be set to const
+#else
+    if (-1 == fd_) {
+      id_ = vsi_nn_AddTensorFromHandle(graph_->graph(), VSI_NN_TENSOR_ID_AUTO,
+                                       &attr, nullptr);
+    } else {
+      id_ = 0xFFFFFFFF;
+      VSILOGE("Create tensor fail: low-level driver doesn't support dmabuffer");
+    }
+#endif
+
   } else {
     id_ = vsi_nn_AddTensor(graph_->graph(), VSI_NN_TENSOR_ID_AUTO, &attr,
                            nullptr);

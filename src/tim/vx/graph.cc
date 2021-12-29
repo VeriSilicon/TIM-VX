@@ -26,7 +26,7 @@
 
 #include "context_private.h"
 #include "graph_private.h"
-#include "operation_private.h"
+#include "op_impl.h"
 #include "tensor_private.h"
 #include "tim/vx/context.h"
 #include "tim/vx/ops/nbg.h"
@@ -87,6 +87,15 @@ void GraphImpl::UpdateTensorConsumersMap(const std::shared_ptr<Tensor>& tensor,
   }
 }
 
+void GraphImpl::UpdateTensorProducerMap(const std::shared_ptr<Tensor>& tensor,
+                                         const Operation* op) {
+  for (const auto& added_op : op_vector_) {
+    if (added_op.get() == op) {
+      tensor_producer_[tensor].push_back(added_op);
+    }
+  }
+}
+
 const std::vector<std::shared_ptr<Operation>> GraphImpl::GetConsumersOp(
     std::shared_ptr<Tensor> tensor) const {
   auto consumers = tensor_consumers_.find(tensor);
@@ -98,11 +107,27 @@ const std::vector<std::shared_ptr<Operation>> GraphImpl::GetConsumersOp(
   }
 }
 
+std::vector<std::shared_ptr<Operation>> GraphImpl::GetProducerOp(
+    std::shared_ptr<Tensor> tensor)  {
+  auto producer = tensor_producer_.find(tensor);
+  if (tensor_producer_.end() != producer) {
+    return producer->second;
+  } else {
+    VSILOGD("Tensor has no producer, may be graph input.");
+    return {};
+  }
+}
+
 void GraphImpl::PrintGraph() const { vsi_nn_PrintGraph(this->graph_); }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
                                                 const void* data) {
   return std::make_shared<TensorImpl>(this, spec, data);
+}
+
+std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
+                                                const DmaBufferDesc& dmafd) {
+  return std::make_shared<TensorImpl>(this, spec, dmafd);
 }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensorPlaceHolder() {

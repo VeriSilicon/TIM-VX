@@ -34,7 +34,7 @@ TIM-VX supports both [bazel](https://bazel.build) and cmake.
 
 ### Cmake
 
-To build TIM-VX:
+To build TIM-VX for x86 with prebuilt:
 
 ```shell
 mkdir host_build
@@ -60,9 +60,36 @@ run unit test:
 
 ```shell
 cd host_build/src/tim
-export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:$LD_LIBRARY_PATH
+
+export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:<path to libgtest_main.so>:$LD_LIBRARY_PATH
+export VIVANTE_SDK_DIR=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib
+export VSIMULATOR_CONFIG=<hardware name should get from chip vendor>
+# if you want to debug wit gdb, please set
+export DISABLE_IDE_DEBUG=1
 ./unit_test
 ```
+
+#### Build with local google test source
+```shell
+    cd <wksp_root>
+    git clone --depth 1 -b release-1.10.0 git@github.com:google/googletest.git
+
+    cd <root_tim_vx>/build/
+    cmake ../ -DTIM_VX_ENABLE_TEST=ON -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=<wksp_root/googletest> <add other cmake define here>
+```
+
+#### Build for your evk-board
+
+1. prepare toolchain file follow cmake standard
+2. make sure cross build low-level driver with toolchain separately, we need the sdk from the low-level driver
+3. add -DEXTERNAL_VIV_SDK=<low-level-driver/out/sdk> to cmake definitions, also remember -DCMAKE_TOOLCHAIN_FILE=<Your_Toolchain_Config>
+4. then make
+
+
+#### Notes for integration
+If you want to build tim-vx as a static library, and link it to your shared library or application, please be carefull with the linker, "-Wl,--whole-archive" is required.
+
+@see samples/lenet/CMakeLists.txt for reference
 
 ### Bazel
 
@@ -96,7 +123,9 @@ To build and run TVM with TIM-VX, please see [TVM README](https://github.com/Ver
 
 Chip | Vendor | References 
 :------    |:----- |:------
-i.MX 8M Plus | NXP | [download BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab)
+i.MX 8M Plus | NXP | [ML Guide](https://www.nxp.com.cn/docs/en/user-guide/IMX-MACHINE-LEARNING-UG.pdf), [BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab)
+A311D | Khadas - VIM3 | [A311D datasheet](https://dl.khadas.com/Hardware/VIM3/Datasheet/A311D_Quick_Reference_Manual_01_Wesion.pdf), [BSP](https://dl.khadas.com/Firmware/VIM3/Ubuntu/EMMC/VIM3_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z)
+S905D3 | Khadas - VIM3L | [S905D3](https://dl.khadas.com/Hardware/VIM3/Datasheet/S905D3_datasheet_0.2_Wesion.pdf) , [BSP](https://dl.khadas.com/Firmware/VIM3L/Ubuntu/EMMC/VIM3L_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z)
 
 # Support
 create issue on github or email to ML_Support@verisilicon.com

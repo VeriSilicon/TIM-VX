@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_LOG_SOFTMAX_H_
 #define TIM_VX_OPS_LOG_SOFTMAX_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -39,7 +39,7 @@ namespace ops {
  * ```
  */
 
-class LogSoftmax : public Operation {
+class LogSoftmax : public DirectMapOp {
  public:
   LogSoftmax(Graph* graph, int32_t axis, float beta = 1.f);
 

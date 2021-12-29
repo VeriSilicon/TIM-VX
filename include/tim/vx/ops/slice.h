@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SLICE_H_
 #define TIM_VX_OPS_SLICE_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -38,7 +38,7 @@ namespace ops {
  * - length : the size of the slice in each dimension.
  */
 
-class Slice : public Operation {
+class Slice : public DirectMapOp {
  public:
   Slice(Graph* graph,
         uint32_t dims,

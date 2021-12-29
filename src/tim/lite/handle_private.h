@@ -37,46 +37,26 @@ enum class HandleFlushType {
     HandleInvalidate = 1
 };
 
-class InternalHandle;
+class HandleImpl : public Handle {
+ public:
+  HandleImpl(uint8_t* buffer, size_t size)
+      : buffer_(buffer), buffer_size_(size) {}
 
-class HandleImpl {
-    public:
-        virtual std::shared_ptr<InternalHandle> Register(
-            vip_buffer_create_params_t& params) = 0;
-        virtual std::shared_ptr<InternalHandle>& internal_handle() = 0;
-};
+  bool CreateVipInputBuffer(vip_network network, uint32_t in_idx);
+  bool CreateVipPOutputBuffer(vip_network network, uint32_t out_idx);
+  uint32_t Index() { return index_; }
+  vip_buffer VipHandle() { return handle_; }
+  bool Flush() override;
+  bool Invalidate() override;
 
-class UserHandleImpl : public HandleImpl {
-    public:
-        UserHandleImpl(void* buffer, size_t size)
-            : user_buffer_(buffer), user_buffer_size_(size) {}
-        std::shared_ptr<InternalHandle> Register(
-            vip_buffer_create_params_t& params) override;
-        std::shared_ptr<InternalHandle>& internal_handle() override {
-          return internal_handle_;
-        }
-        size_t user_buffer_size() const { return user_buffer_size_; }
-        void* user_buffer() { return user_buffer_; }
-    private:
-        void* user_buffer_;
-        size_t user_buffer_size_;
-        std::shared_ptr<InternalHandle> internal_handle_ = nullptr;
-};
+  ~HandleImpl();
 
-class InternalHandle {
-    public:
-        ~InternalHandle();
-        virtual bool Flush(HandleFlushType type) = 0;
-        vip_buffer handle() { return handle_; };
-    protected:
-        vip_buffer handle_;
-};
-
-class InternalUserHandle : public InternalHandle {
-    public:
-        InternalUserHandle(void* user_buffer, size_t user_buffer_size,
-            vip_buffer_create_params_t& params);
-        bool Flush(HandleFlushType type) override;
+ private:
+  void SetIndex(uint32_t idx) { index_ = idx; }
+  uint8_t* buffer_ = nullptr;
+  size_t buffer_size_ = 0;
+  vip_buffer handle_;
+  uint32_t index_;
 };
 
 }

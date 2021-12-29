@@ -25,7 +25,7 @@
 #define TIM_VX_OPS_SPLIT_H_
 #include <vector>
 
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -40,7 +40,7 @@ namespace ops {
  * - slices : indicating the number of splits along given axis.
  */
 
-class Split : public Operation {
+class Split : public DirectMapOp {
  public:
   Split(Graph* graph, uint32_t axis, std::vector<uint32_t> slices);
 

@@ -2,16 +2,6 @@ message("src/tim/vx")
 
 set(TARGET_NAME "tim-vx")
 
-if(${TIM_VX_USE_EXTERNAL_OVXLIB})
-    find_library(OVXLIB_LIB NAMES "ovxlib")
-    message(STATUS "Using external OVXLIB from ${OVXLIB_LIB}")
-    add_library(tim_internal SHARED IMPORTED)
-    set_target_properties(tim_internal PROPERTIES IMPORTED_LOCATION ${OVXLIB_LIB})
-    target_link_libraries(tim_internal INTERFACE ${OVXDRV_LIBRARIES})
-else()
-    add_subdirectory("vx/internal")
-endif()
-
 aux_source_directory(./vx VX_SRC)
 aux_source_directory(./vx/ops OPS_SRC)
 
@@ -20,6 +10,16 @@ list(APPEND ${TARGET_NAME}_SRCS
     ${VX_SRC}
     ${OPS_SRC}
 )
+
+if(${TIM_VX_USE_EXTERNAL_OVXLIB})
+    find_library(OVXLIB_LIB NAMES "ovxlib")
+    message(STATUS "Using external OVXLIB from ${OVXLIB_LIB}")
+    add_library(tim_internal SHARED IMPORTED)
+    set_target_properties(tim_internal PROPERTIES IMPORTED_LOCATION ${OVXLIB_LIB})
+    target_link_libraries(tim_internal INTERFACE ${OVXDRV_LIBRARIES})
+else()
+    include(vx/internal/tim_internal.cmake)
+endif()
 
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
     if(NOT OVXLIB_INC)
@@ -72,10 +72,20 @@ endif()
 add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
 target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
 target_link_libraries(${TARGET_NAME} PUBLIC
-   -Wl,--whole-archive tim_internal -Wl,--no-whole-archive ${EXTERNAL_LIBS})
+    -Wl,--no-whole-archive ${EXTERNAL_LIBS} ${OVXDRV_LIBRARIES})
+
+if(${TIM_VX_USE_EXTERNAL_OVXLIB})
+  #-Wl,--whole-archive should not applied to external library, but only for shared library
+  target_link_libraries(${TARGET_NAME} PUBLIC tim_internal)
+endif()
+
+if (NOT CMAKE_INSTALL_LIBDIR)
+	set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
+
 
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx 
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
@@ -98,7 +108,7 @@ if(TIM_VX_ENABLE_TEST)
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
     )
 
-    install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+    install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()
 
 add_subdirectory("utils")

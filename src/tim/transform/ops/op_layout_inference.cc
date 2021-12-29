@@ -24,7 +24,7 @@
 
 #include "op_layout_inference.h"
 #include "permute_vector.h"
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "tim/vx/ops/transpose.h"
 #include "type_utils.h"
 
@@ -40,12 +40,14 @@ void OpLayoutInfer::OnOutputs(
   for (const auto& out : op_outputs) {
     if (graph_outputs.end() !=
         std::find(graph_outputs.begin(), graph_outputs.end(), out)) {
+      context_->UpdateGraphOutputMap(out, context_->GetMapedTensor(out));
       auto pv = context_->GetPermuteVector(out);
       if (!pv->IsAligned()) {
         auto perm_out = InsertPermute(context_->GetMapedTensor(out),
                                       pv->Reverse(), true, out);
         // Update graph out tensor
         context_->UpdateTensorMap(out, perm_out);
+        context_->UpdateGraphOutputMap(out, perm_out);
       }
       if (!context_->src_graph_->GetConsumersOp(out).empty()) {
         // The tensor is output of graph, but it also is the input of other operations
@@ -318,14 +320,26 @@ bool OpLayoutInfer::TransposeConstTensorData(
     reverse_shape.push_back(input->GetShape()[i]);
   }
   std::vector<uint32_t> perm = KOcHWIc2OcIcHW;
-  std::vector<uint32_t>tmp_vec = kOcIcWH2WHIcOc;
-  if (pv->AsStdVec() == tmp_vec) {
+  std::vector<uint32_t> tmp_vec0 = kOcIcWH2WHIcOc;
+  std::vector<uint32_t> tmp_vec1 = kIcOcWH2WHIcOc;
+  if (pv->AsStdVec() == tmp_vec0) {
     perm = kHWIcOc2OcIcHW;
+  } else if (pv->AsStdVec() == tmp_vec1) {
+    perm = kHWOcIc2OcIcHW;
   }
+
+  std::vector<vsi_size_t> native_shape_array;
+  std::vector<vsi_size_t> native_perm;
+  std::transform(reverse_shape.begin(), reverse_shape.end(),
+                 std::back_inserter(native_shape_array),
+                 [](const uint32_t& i) { return i; });
+  std::transform(perm.begin(), perm.end(), std::back_inserter(native_perm),
+                 [](const uint32_t& i) { return i; });
   vsi_nn_Transpose(out_data.data(), (uint8_t*)(input->GetDataRef()),
-                   (uint32_t*)(reverse_shape.data()),
+                   native_shape_array.data(),
                    static_cast<uint32_t>(input->GetShape().size()),
-                   perm.data(), vx_type);
+                   native_perm.data(), vx_type);
+
   return true;
 }
 

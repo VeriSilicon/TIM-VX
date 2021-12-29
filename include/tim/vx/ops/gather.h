@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_GATHER_H_
 #define TIM_VX_OPS_GATHER_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -35,7 +35,7 @@ namespace ops {
  * Gather slices from input, **axis** according to **indices**.
  */
 
-class Gather : public Operation {
+class Gather : public DirectMapOp {
  public:
   Gather(Graph* Graph, int axis);
 

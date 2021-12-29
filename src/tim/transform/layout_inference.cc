@@ -57,7 +57,9 @@
 #include "ops/logical_layout_inference.h"
 #include "ops/arg_layout_inference.h"
 #include "ops/deconv2d_layout_inference.h"
+#include "ops/batchnorm_layout_inference.h"
 #include "ops/default_layout_inference.h"
+#include "ops/transpose_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -149,6 +151,11 @@ void LayoutInferContext::UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& 
   graph_input_map_[i_src] = i_layout;
 }
 
+void LayoutInferContext::UpdateGraphOutputMap(const std::shared_ptr<vx::Tensor>& o_src,
+                           const std::shared_ptr<vx::Tensor>& o_layout) {
+  graph_output_map_[o_src] = o_layout;
+}
+
 #define REGIST_LAYOUT_INFERENCE(op_idx, name)                     \
   case op_idx: {                                                  \
     auto op_infer = std::make_shared<name##LayoutInfer>(op, ctx); \
@@ -192,7 +199,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     std::shared_ptr<layout_inference_impl::LayoutInferContext>& ctx,
     const std::shared_ptr<vx::Operation>& op) {
   ctx->MarkVisited(op);
-  auto op_id = op->impl()->operation_id_;
+  auto op_id = op->impl()->kind_;
   std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
   switch (op_id) {
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONV2D, Conv2d);
@@ -250,6 +257,8 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMAX, Arg);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMIN, Arg);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DECONVOLUTION, DeConv2d);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH_NORM, BatchNorm);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PERMUTE, Transpose);
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     // use default layout inference
@@ -305,8 +314,8 @@ std::pair<std::shared_ptr<vx::Graph>,
   for (const auto& graph_input : layout_infer_ctx->GetGraphInputMap()) {
     graph_io_map[graph_input.first] = graph_input.second;
   }
-  for (const auto& out_src : src_graph->OutputsTensor()) {
-    graph_io_map[out_src] = layout_infer_ctx->GetMapedTensor(out_src);
+  for (const auto& graph_output : layout_infer_ctx->GetGraphOutputMap()) {
+    graph_io_map[graph_output.first] = graph_output.second;
   }
   return std::make_pair(infer_graph, graph_io_map);
 }

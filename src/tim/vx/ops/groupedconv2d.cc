@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/groupedconv2d.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -37,7 +37,7 @@ GroupedConv2d::GroupedConv2d(Graph* graph,
                const std::array<uint32_t, 2>& dilation,
                int32_t group_number,
                DataLayout input_layout, DataLayout kernel_layout)
-    : Operation(graph, VSI_NN_OP_GROUPED_CONV2D, 3, 1, input_layout),
+    : DirectMapOp(graph, VSI_NN_OP_GROUPED_CONV2D, 3, 1, input_layout),
       padding_(padding), strides_(strides), dilation_(dilation),
       pad_({0,0,0,0}), group_number_(group_number),
       kernel_layout_(kernel_layout) {
@@ -55,18 +55,18 @@ GroupedConv2d::GroupedConv2d(Graph* graph,
                const std::array<uint32_t, 2>& dilation,
                int32_t group_number,
                DataLayout input_layout, DataLayout kernel_layout)
-    : Operation(graph, VSI_NN_OP_GROUPED_CONV2D, 3, 1, input_layout),
+    : DirectMapOp(graph, VSI_NN_OP_GROUPED_CONV2D, 3, 1, input_layout),
       padding_(PadType::AUTO), strides_(strides), dilation_(dilation), pad_(pad),
       group_number_(group_number), kernel_layout_(kernel_layout) {
-  this->impl()->node()->nn_param.conv2d.stride[0] = strides_[0];
-  this->impl()->node()->nn_param.conv2d.stride[1] = strides_[1];
-  this->impl()->node()->nn_param.conv2d.group = group_number_;
-  this->impl()->node()->nn_param.conv2d.dilation[0] = dilation_[0];
-  this->impl()->node()->nn_param.conv2d.dilation[1] = dilation_[1];
-  this->impl()->node()->nn_param.conv2d.pad[0] = pad_[0];
-  this->impl()->node()->nn_param.conv2d.pad[1] = pad_[1];
-  this->impl()->node()->nn_param.conv2d.pad[2] = pad_[2];
-  this->impl()->node()->nn_param.conv2d.pad[3] = pad_[3];
+  this->impl()->node()->nn_param.grouped_conv2d.stride[0] = strides_[0];
+  this->impl()->node()->nn_param.grouped_conv2d.stride[1] = strides_[1];
+  this->impl()->node()->nn_param.grouped_conv2d.group = group_number_;
+  this->impl()->node()->nn_param.grouped_conv2d.dilation[0] = dilation_[0];
+  this->impl()->node()->nn_param.grouped_conv2d.dilation[1] = dilation_[1];
+  this->impl()->node()->nn_param.grouped_conv2d.pad[0] = pad_[0];
+  this->impl()->node()->nn_param.grouped_conv2d.pad[1] = pad_[1];
+  this->impl()->node()->nn_param.grouped_conv2d.pad[2] = pad_[2];
+  this->impl()->node()->nn_param.grouped_conv2d.pad[3] = pad_[3];
 }
 
 std::shared_ptr<Operation> GroupedConv2d::Clone(

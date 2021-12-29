@@ -26,32 +26,32 @@
 
 #include <array>
 
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-class Conv1d : public Operation {
+class Conv1d : public DirectMapOp {
  public:
   Conv1d(Graph* graph, PadType padding, uint32_t stride,
          uint32_t dilation, int32_t multiplier = 0,
-         DataLayout input_layout = DataLayout::WHCN,
-         DataLayout kernel_layout = DataLayout::WHIcOc);
+         DataLayout input_layout = DataLayout::WCN,
+         DataLayout kernel_layout = DataLayout::WIcOc);
   Conv1d(Graph* graph, const std::array<uint32_t, 2>& pad,
          uint32_t stride, uint32_t dilation, int32_t multiplier = 0,
-         DataLayout input_layout = DataLayout::WHCN,
-         DataLayout kernel_layout = DataLayout::WHIcOc);
+         DataLayout input_layout = DataLayout::WCN,
+         DataLayout kernel_layout = DataLayout::WIcOc);
   Conv1d(Graph* graph, int32_t weights, PadType padding,
          uint32_t ksize, uint32_t stride,
          uint32_t dilation, int32_t multiplier = 0,
-         DataLayout input_layout = DataLayout::WHCN,
-         DataLayout kernel_layout = DataLayout::WHIcOc);
+         DataLayout input_layout = DataLayout::WCN,
+         DataLayout kernel_layout = DataLayout::WIcOc);
   Conv1d(Graph* graph, int32_t weights, PadType padding,
          uint32_t ksize, uint32_t stride, uint32_t dilation,
          const std::array<uint32_t, 2>& pad, int32_t multiplier = 0,
-         DataLayout input_layout = DataLayout::WHCN,
-         DataLayout kernel_layout = DataLayout::WHIcOc);
+         DataLayout input_layout = DataLayout::WCN,
+         DataLayout kernel_layout = DataLayout::WIcOc);
 
   DataLayout KernelDataLayout() { return kernel_layout_; }
 

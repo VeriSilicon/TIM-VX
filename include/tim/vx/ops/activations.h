@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_ACTIVATIONS_H_
 #define TIM_VX_OPS_ACTIVATIONS_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -69,7 +69,7 @@ namespace ops {
  */
 
 #define DECLARE_NO_PARAMETER_ACTIVATION(NAME)          \
-  class NAME : public Operation {                      \
+  class NAME : public DirectMapOp {                      \
    public:                                             \
     NAME(Graph* graph);                                \
     std::shared_ptr<Operation> Clone(                  \
@@ -90,7 +90,7 @@ DECLARE_NO_PARAMETER_ACTIVATION(SoftRelu)
 
 #undef DEFINE_NO_PARAMETER_ACTIVATION
 
-class Prelu : public Operation {
+class Prelu : public DirectMapOp {
  public:
   Prelu(Graph* graph, int axis);
   std::shared_ptr<Operation> Clone(
@@ -100,7 +100,7 @@ class Prelu : public Operation {
   int axis_;
 };
 
-class LeakyRelu : public Operation {
+class LeakyRelu : public DirectMapOp {
  public:
   LeakyRelu(Graph* graph, float alpha);
   std::shared_ptr<Operation> Clone(
@@ -110,7 +110,7 @@ class LeakyRelu : public Operation {
   float alpha_;
 };
 
-class Linear : public Operation {
+class Linear : public DirectMapOp {
  public:
   Linear(Graph* graph, float a, float b = 0.0);
   std::shared_ptr<Operation> Clone(
@@ -121,7 +121,7 @@ class Linear : public Operation {
   float b_;
 };
 
-class Gelu : public Operation {
+class Gelu : public DirectMapOp {
  public:
   /****************************************************************************
   *Non-approximate calculations will also have errors when the data type is

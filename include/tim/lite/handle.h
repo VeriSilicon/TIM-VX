@@ -30,21 +30,10 @@
 namespace tim {
 namespace lite {
 
-class HandleImpl;
-
 class Handle {
     public:
-        std::unique_ptr<HandleImpl>& impl() { return impl_; }
-        bool Flush();
-        bool Invalidate();
-    protected:
-        std::unique_ptr<HandleImpl> impl_;
-};
-
-class UserHandle : public Handle {
-    public:
-        UserHandle(void* buffer, size_t size);
-        ~UserHandle();
+        virtual bool Flush() = 0;
+        virtual bool Invalidate() = 0;
 };
 
 }

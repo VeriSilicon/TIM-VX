@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -49,7 +49,7 @@ namespace ops {
  * the output tensor.
  */
 
-class DeConv1d : public Operation {
+class DeConv1d : public DirectMapOp {
   public:
     DeConv1d(Graph* graph, PadType pad_type,
         uint32_t stride, uint32_t output_padding, uint32_t group = 1,

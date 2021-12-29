@@ -26,7 +26,7 @@
 
 #include "tim/vx/ops/conv2d.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "permute_vector.h"
 #include "ops/op_layout_inference.h"
 
@@ -64,6 +64,10 @@ class Conv2dLayoutInfer : public OpLayoutInfer {
                 // Support TVM Kernel Layout
                 if (src_conv2d->KernelDataLayout() == vx::DataLayout::OcIcWH) {
                   trans_pv = std::make_shared<PermuteVector<4>>(kOcIcWH2WHIcOc);
+                  infer_tensor = PermuteConstTensor(
+                      in, trans_pv);
+                } else if (src_conv2d->KernelDataLayout() == vx::DataLayout::IcOcWH) {
+                  trans_pv = std::make_shared<PermuteVector<4>>(kIcOcWH2WHIcOc);
                   infer_tensor = PermuteConstTensor(
                       in, trans_pv);
                 } else {

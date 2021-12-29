@@ -21,23 +21,23 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "tim/vx/ops/shuffle_channel.h"
 #include "vsi_nn_pub.h"
 namespace tim {
 namespace vx {
 namespace ops {
 
-shuffle_channel::shuffle_channel(Graph* graph, int32_t num_groups,
+ShuffleChannel::ShuffleChannel(Graph* graph, int32_t num_groups,
                                  int32_t index_axis)
-    : Operation(graph, VSI_NN_OP_SHUFFLECHANNEL, 1, 1) {
+    : DirectMapOp(graph, VSI_NN_OP_SHUFFLECHANNEL, 1, 1) {
   this->impl()->node()->nn_param.shufflechannel.group_number = num_groups;
   this->impl()->node()->nn_param.shufflechannel.axis = index_axis;
 }
 
-std::shared_ptr<Operation> shuffle_channel::Clone(
+std::shared_ptr<Operation> ShuffleChannel::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<shuffle_channel>(
+  return graph->CreateOperation<ShuffleChannel>(
       this->impl()->node()->nn_param.shufflechannel.group_number,
       this->impl()->node()->nn_param.shufflechannel.axis);
 }

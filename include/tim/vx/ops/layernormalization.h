@@ -25,12 +25,12 @@
 #define TIM_VX_OPS_LAYERNOMALIZATION_H_
 
 #include <cstdint>
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
-class LayerNormalization : public Operation {
+class LayerNormalization : public DirectMapOp {
  public:
   LayerNormalization(Graph* graph, int32_t axis = 0, float eps = 1e-5f);
 

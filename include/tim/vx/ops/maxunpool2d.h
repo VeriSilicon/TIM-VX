@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 #include "tim/vx/types.h"
 
 namespace tim {
@@ -42,7 +42,7 @@ namespace ops {
  * - ksize : filter size.
  */
 
-class MaxUnpool2d : public Operation {
+class MaxUnpool2d : public DirectMapOp {
  public:
   MaxUnpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
          const std::array<uint32_t, 2>& stride, DataLayout layout = DataLayout::WHCN);

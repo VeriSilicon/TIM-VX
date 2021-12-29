@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef OVXLIBXX_OPERATIONS_BATCHNORM_H_
 #define OVXLIBXX_OPERATIONS_BATCHNORM_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -40,9 +40,9 @@ namespace ops {
  * $$y_i=\gamma\hat x_i+\beta\equiv BN_{\gamma,\beta}(x_i)$$
  */
 
-class BatchNorm : public Operation {
+class BatchNorm : public DirectMapOp {
   public:
-    BatchNorm(Graph* graph, float eps);
+    BatchNorm(Graph* graph, float eps, DataLayout input_layout = DataLayout::WHCN);
 
     std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 

@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/select.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Select::Select(Graph* graph)
-    : Operation(graph, VSI_NN_OP_SELECT) {}
+    : DirectMapOp(graph, VSI_NN_OP_SELECT) {}
 
 std::shared_ptr<Operation> Select::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Select>();

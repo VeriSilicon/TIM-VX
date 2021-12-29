@@ -28,73 +28,15 @@
 #include <cstring>
 #include <vector>
 #include <memory>
+#include <algorithm>
+#include <iostream>
+#include <cassert>
 #include "handle_private.h"
 
 #include "vip_lite.h"
 
 namespace tim {
 namespace lite {
-
-namespace {
-bool QueryInputBufferParameters(
-    vip_buffer_create_params_t& param, uint32_t index, vip_network network) {
-    uint32_t count = 0;
-    vip_query_network(network, VIP_NETWORK_PROP_INPUT_COUNT, &count);
-    if (index >= count) {
-        return false;
-    }
-    memset(&param, 0, sizeof(param));
-    param.memory_type = VIP_BUFFER_MEMORY_TYPE_DEFAULT;
-    vip_query_input(network, index, VIP_BUFFER_PROP_DATA_FORMAT, &param.data_format);
-    vip_query_input(network, index, VIP_BUFFER_PROP_NUM_OF_DIMENSION, &param.num_of_dims);
-    vip_query_input(network, index, VIP_BUFFER_PROP_SIZES_OF_DIMENSION, param.sizes);
-    vip_query_input(network, index, VIP_BUFFER_PROP_QUANT_FORMAT, &param.quant_format);
-    switch(param.quant_format) {
-        case VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT:
-            vip_query_input(network, index, VIP_BUFFER_PROP_FIXED_POINT_POS,
-                            &param.quant_data.dfp.fixed_point_pos);
-            break;
-        case VIP_BUFFER_QUANTIZE_TF_ASYMM:
-            vip_query_input(network, index, VIP_BUFFER_PROP_TF_SCALE,
-                            &param.quant_data.affine.scale);
-            vip_query_input(network, index, VIP_BUFFER_PROP_TF_ZERO_POINT,
-                            &param.quant_data.affine.zeroPoint);
-        default:
-            break;
-    }
-    return true;
-}
-
-bool QueryOutputBufferParameters(
-    vip_buffer_create_params_t& param, uint32_t index, vip_network network) {
-    uint32_t count = 0;
-    vip_query_network(network, VIP_NETWORK_PROP_OUTPUT_COUNT, &count);
-    if (index >= count) {
-        return false;
-    }
-    memset(&param, 0, sizeof(param));
-    param.memory_type = VIP_BUFFER_MEMORY_TYPE_DEFAULT;
-    vip_query_output(network, index, VIP_BUFFER_PROP_DATA_FORMAT, &param.data_format);
-    vip_query_output(network, index, VIP_BUFFER_PROP_NUM_OF_DIMENSION, &param.num_of_dims);
-    vip_query_output(network, index, VIP_BUFFER_PROP_SIZES_OF_DIMENSION, param.sizes);
-    vip_query_output(network, index, VIP_BUFFER_PROP_QUANT_FORMAT, &param.quant_format);
-    switch(param.quant_format) {
-        case VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT:
-            vip_query_output(network, index, VIP_BUFFER_PROP_FIXED_POINT_POS,
-                             &param.quant_data.dfp.fixed_point_pos);
-            break;
-        case VIP_BUFFER_QUANTIZE_TF_ASYMM:
-            vip_query_output(network, index, VIP_BUFFER_PROP_TF_SCALE,
-                             &param.quant_data.affine.scale);
-            vip_query_output(network, index, VIP_BUFFER_PROP_TF_ZERO_POINT,
-                             &param.quant_data.affine.zeroPoint);
-            break;
-        default:
-        break;
-    }
-    return true;
-}
-}
 
 ExecutionImpl::ExecutionImpl(const void* executable, size_t executable_size) {
     vip_status_e status = VIP_SUCCESS;
@@ -130,41 +72,44 @@ ExecutionImpl::~ExecutionImpl() {
         vip_finish_network(network_);
         vip_destroy_network(network_);
     }
-    input_maps_.clear();
-    output_maps_.clear();
+    input_handles_.clear();
+    output_handles_.clear();
     vip_destroy();
+}
+
+std::shared_ptr<Handle> ExecutionImpl::CreateInputHandle(uint32_t in_idx, uint8_t* buffer, size_t size) {
+    auto handle = std::make_shared<HandleImpl>(buffer, size);
+    if (handle->CreateVipInputBuffer(network_, in_idx)) {
+        return handle;
+    } else {
+        return nullptr;
+    }
+}
+
+std::shared_ptr<Handle> ExecutionImpl::CreateOutputHandle(uint32_t out_idx, uint8_t* buffer, size_t size) {
+    auto handle = std::make_shared<HandleImpl>(buffer, size);
+    if (handle->CreateVipPOutputBuffer(network_, out_idx)) {
+        return handle;
+    } else {
+        return nullptr;
+    }
 }
 
 Execution& ExecutionImpl::BindInputs(const std::vector<std::shared_ptr<Handle>>& handles) {
     if (!IsValid()) {
         return *this;
     }
-    vip_status_e status = VIP_SUCCESS;
-    vip_buffer_create_params_t param;
-    for (uint32_t i = 0; i < handles.size(); i ++) {
-        auto handle = handles[i];
-        if (!handle) {
-            status = VIP_ERROR_FAILURE;
-            break;
-        }
-        std::shared_ptr<InternalHandle> internal_handle = nullptr;
-        if (input_maps_.find(handle) == input_maps_.end()) {
-            if (!QueryInputBufferParameters(param, i, network_)) {
-                status = VIP_ERROR_FAILURE;
-                break;
+    for (auto handle : handles) {
+        if (input_handles_.end() == std::find(input_handles_.begin(), input_handles_.end(), handle)) {
+            input_handles_.push_back(handle);
+            auto handle_impl = std::dynamic_pointer_cast<HandleImpl>(handle);
+            vip_status_e status = vip_set_input(network_, handle_impl->Index(), handle_impl->VipHandle());
+            if (status != VIP_SUCCESS) {
+                std::cout << "Set input for network failed." << std::endl;
+                assert(false);
             }
-            internal_handle = handle->impl()->Register(param);
-            if (!internal_handle) {
-                status = VIP_ERROR_FAILURE;
-                break;
-            }
-            input_maps_[handle] = internal_handle;
         } else {
-            internal_handle = input_maps_.at(handle);
-        }
-        status = vip_set_input(network_, i, internal_handle->handle());
-        if (status != VIP_SUCCESS) {
-            break;
+            std::cout << "The input handle has been binded, need not bind it again." << std::endl;
         }
     }
     return *this;
@@ -174,36 +119,37 @@ Execution& ExecutionImpl::BindOutputs(const std::vector<std::shared_ptr<Handle>>
     if (!IsValid()) {
         return *this;
     }
-    vip_status_e status = VIP_SUCCESS;
-    vip_buffer_create_params_t param;
-    for (uint32_t i = 0; i < handles.size(); i ++) {
-        auto handle = handles[i];
-        if (!handle) {
-            status = VIP_ERROR_FAILURE;
-            break;
-        }
-        std::shared_ptr<InternalHandle> internal_handle = nullptr;
-        if (output_maps_.find(handle) == output_maps_.end()) {
-            if (!QueryOutputBufferParameters(param, i, network_)) {
-                status = VIP_ERROR_FAILURE;
-                break;
+    for (auto handle : handles) {
+        if (output_handles_.end() == std::find(output_handles_.begin(), output_handles_.end(), handle)) {
+            output_handles_.push_back(handle);
+            auto handle_impl = std::dynamic_pointer_cast<HandleImpl>(handle);
+            vip_status_e status = vip_set_output(network_, handle_impl->Index(), handle_impl->VipHandle());
+            if (status != VIP_SUCCESS) {
+                std::cout << "Set output for network failed." << std::endl;
+                assert(false);
             }
-            internal_handle = handle->impl()->Register(param);
-            if (!internal_handle) {
-                status = VIP_ERROR_FAILURE;
-                break;
-            }
-            output_maps_[handle] = internal_handle;
         } else {
-            internal_handle = output_maps_.at(handle);
-        }
-        status = vip_set_output(network_, i, internal_handle->handle());
-        if (status != VIP_SUCCESS) {
-            break;
+            std::cout << "The output handle has been binded, need not bind it again." << std::endl;
         }
     }
     return *this;
 };
+
+Execution& ExecutionImpl::UnBindInput(const std::shared_ptr<Handle>& handle) {
+    auto it = std::find(input_handles_.begin(), input_handles_.end(), handle);
+    if (input_handles_.end() != it) {
+        input_handles_.erase(it);
+    }
+    return *this;
+}
+
+Execution& ExecutionImpl::UnBindOutput(const std::shared_ptr<Handle>& handle) {
+    auto it = std::find(output_handles_.begin(), output_handles_.end(), handle);
+    if (output_handles_.end() != it) {
+        output_handles_.erase(it);
+    }
+    return *this;
+}
 
 bool ExecutionImpl::Trigger() {
     if (!IsValid()) {

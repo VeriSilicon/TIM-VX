@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_STACK_H_
 #define TIM_VX_OPS_STACK_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -36,7 +36,7 @@ namespace ops {
  * each tensor in values, by packing them along the **axis** dimension. 
  */
 
-class Stack : public Operation {
+class Stack : public DirectMapOp {
  public:
   Stack(Graph* graph, uint32_t axis, int input_cnt);
 
