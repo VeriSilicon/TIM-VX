@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_L2NOMALIZATION_H_
 #define TIM_VX_OPS_L2NOMALIZATION_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 /**
  * ## L2Normalization
@@ -40,7 +40,7 @@
 namespace tim {
 namespace vx {
 namespace ops {
-class L2Normalization : public Operation {
+class L2Normalization : public DirectMapOp {
  public:
   L2Normalization(Graph* graph, int32_t axis);
 

@@ -25,7 +25,7 @@
 
 #include "vsi_nn_pub.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 
 namespace tim {
 namespace vx {
@@ -33,7 +33,7 @@ namespace ops {
 
 
 Clip::Clip(Graph* graph, float min, float max)
-  : Operation(graph, VSI_NN_OP_CLIP),
+  : DirectMapOp(graph, VSI_NN_OP_CLIP),
     min_(min),
     max_(max) {
   this->impl()->node()->nn_param.clip.min = min_;
@@ -42,7 +42,7 @@ Clip::Clip(Graph* graph, float min, float max)
 
 std::shared_ptr<Operation> Clip::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Clip>(this->impl_->node()->nn_param.clip.min,
-                                      this->impl_->node_->nn_param.clip.max);
+                                      this->impl_->node()->nn_param.clip.max);
 }
 
 }  // namespace ops

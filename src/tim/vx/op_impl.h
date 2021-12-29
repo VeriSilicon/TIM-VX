@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2021 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,50 +21,38 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPERATION_PRIVATE_H_
-#define TIM_VX_OPERATION_PRIVATE_H_
+
+#ifndef TIM_VX_OP_IMPL_H_
+#define TIM_VX_OP_IMPL_H_
 #include "graph_private.h"
-#include "vsi_nn_pub.h"
+#include "tim/vx/graph.h"
+#include "tim/vx/types.h"
 
 namespace tim {
 namespace vx {
-class OperationImpl {
+
+class OpImpl {
  public:
-  // OperationImpl(Graph* graph, uint32_t operation_id, int input_cnt = 0,
-  //               int output_cnt = 0);
-  OperationImpl(Graph* graph, uint32_t operation_id, int input_cnt = 0,
-                int output_cnt = 0, DataLayout layout = DataLayout::ANY);
-  ~OperationImpl() {}
-
-  OperationImpl& BindInput(const std::shared_ptr<Tensor>& tensor);
-  OperationImpl& BindOutput(const std::shared_ptr<Tensor>& tensor);
-  OperationImpl& SetRoundingPolicy(
-      OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
-      RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
-      RoundType down_scale_size_rounding = RoundType::FLOOR,
-      uint32_t accumulator_bits = 0);
-
-  vsi_nn_node_t* node() { return this->node_; }
-
-  std::vector<std::shared_ptr<Tensor>> InputsTensor() { return inputs_tensor_; }
-  std::vector<std::shared_ptr<Tensor>> OutputsTensor() {
-    return outputs_tensor_;
-  }
+  OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
+                DataLayout layout);
+  virtual OpImpl& BindInput(const std::shared_ptr<Tensor>& tensor) = 0;
+  virtual OpImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) = 0;
+  virtual std::vector<std::shared_ptr<Tensor>> InputsTensor() = 0;
+  virtual std::vector<std::shared_ptr<Tensor>> OutputsTensor() = 0;
+  virtual vsi_nn_node_t* node() = 0;
 
   GraphImpl* graph_;
-  uint32_t operation_id_{0};
+  uint32_t kind_{0};
   int32_t input_cnt_{0};
   int32_t output_cnt_{0};
   DataLayout layout_{DataLayout::ANY};
-  vsi_nn_node_t* node_{nullptr};
   int32_t input_tensor_index{0};
   int32_t output_tensor_index{0};
   std::vector<std::shared_ptr<Tensor>> inputs_tensor_;
   std::vector<std::shared_ptr<Tensor>> outputs_tensor_;
-
 };
 
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPERATION_PRIVATE_H_ */
+#endif

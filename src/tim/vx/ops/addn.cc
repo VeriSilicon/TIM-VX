@@ -23,7 +23,8 @@
 *****************************************************************************/
 #include "tim/vx/ops/addn.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
+
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +32,7 @@ namespace vx {
 namespace ops {
 
 AddN::AddN(Graph* graph, uint32_t num_inputs)
-    : Operation(graph, VSI_NN_OP_ADDN, num_inputs, 1) {}
+    : DirectMapOp(graph, VSI_NN_OP_ADDN, num_inputs, 1) {}
 
 std::shared_ptr<Operation> AddN::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<AddN>(this->impl_->input_cnt_);

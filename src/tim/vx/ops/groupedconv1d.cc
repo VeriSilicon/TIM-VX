@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/groupedconv1d.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -37,7 +37,7 @@ GroupedConv1d::GroupedConv1d(Graph* graph,
                const uint32_t dilation,
                uint32_t group,
                DataLayout input_layout, DataLayout kernel_layout)
-    : Operation(graph, VSI_NN_OP_GROUPED_CONV1D, 3, 1, input_layout),
+    : DirectMapOp(graph, VSI_NN_OP_GROUPED_CONV1D, 3, 1, input_layout),
       padding_(padding), stride_(stride), dilation_(dilation),
       pad_({0,0}), group_(group),
       kernel_layout_(kernel_layout) {

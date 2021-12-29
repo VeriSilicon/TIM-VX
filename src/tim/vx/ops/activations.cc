@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/activations.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 #define DEFINE_NO_PARAMETER_ACTIVATION(NAME, VSI_OP_CODE)               \
-  NAME::NAME(Graph* graph) : Operation(graph, VSI_OP_CODE) {}           \
+  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE) {}           \
   std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
       const {                                                           \
     return graph->CreateOperation<NAME>();                              \
@@ -49,7 +49,7 @@ DEFINE_NO_PARAMETER_ACTIVATION(SoftRelu, VSI_NN_OP_SOFTRELU)
 
 #undef DEFINE_NO_PARAMETER_ACTIVATION
 
-HardSwish::HardSwish(Graph* graph) : Operation(graph, VSI_NN_OP_SWISH) {
+HardSwish::HardSwish(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_SWISH) {
   this->impl()->node()->nn_param.swish.type = VSI_NN_HSWISH;
   this->impl()->node()->nn_param.swish.beta = 1.0f;
 }
@@ -59,7 +59,7 @@ std::shared_ptr<Operation> HardSwish::Clone(
   return graph->CreateOperation<HardSwish>();
 }
 
-Swish::Swish(Graph* graph) : Operation(graph, VSI_NN_OP_SWISH) {
+Swish::Swish(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_SWISH) {
   this->impl()->node()->nn_param.swish.type = VSI_NN_SWISH;
   this->impl()->node()->nn_param.swish.beta = 1.0f;
 }
@@ -70,7 +70,7 @@ std::shared_ptr<Operation> Swish::Clone(
 }
 
 Prelu::Prelu(Graph* graph, int axis)
-    : Operation(graph, VSI_NN_OP_PRELU), axis_(axis) {
+    : DirectMapOp(graph, VSI_NN_OP_PRELU), axis_(axis) {
   this->impl()->node()->nn_param.prelu.axis = axis_;
 }
 
@@ -78,7 +78,7 @@ std::shared_ptr<Operation> Prelu::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Prelu>(this->axis_);
 }
 
-Tanh::Tanh(Graph* graph) : Operation(graph, VSI_NN_OP_TANH) {
+Tanh::Tanh(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_TANH) {
   this->impl()->node()->nn_param.tanh.scale_a = 1.0;
   this->impl()->node()->nn_param.tanh.scale_b = 1.0;
 }
@@ -88,7 +88,7 @@ std::shared_ptr<Operation> Tanh::Clone(std::shared_ptr<Graph>& graph) const {
 }
 
 LeakyRelu::LeakyRelu(Graph* graph, float alpha)
-    : Operation(graph, VSI_NN_OP_LEAKY_RELU), alpha_(alpha) {
+    : DirectMapOp(graph, VSI_NN_OP_LEAKY_RELU), alpha_(alpha) {
   this->impl()->node()->nn_param.activation.leaky_ratio = alpha_;
 }
 
@@ -98,7 +98,7 @@ std::shared_ptr<Operation> LeakyRelu::Clone(
 }
 
 Linear::Linear(Graph* graph, float a, float b)
-    : Operation(graph, VSI_NN_OP_LINEAR), a_(a), b_(b) {
+    : DirectMapOp(graph, VSI_NN_OP_LINEAR), a_(a), b_(b) {
   this->impl()->node()->nn_param.linear.a = a_;
   this->impl()->node()->nn_param.linear.b = b_;
 }
@@ -108,7 +108,7 @@ std::shared_ptr<Operation> Linear::Clone(std::shared_ptr<Graph>& graph) const {
 }
 
 Gelu::Gelu(Graph* graph, bool approximate)
-    : Operation(graph, VSI_NN_OP_GELU){
+    : DirectMapOp(graph, VSI_NN_OP_GELU){
       this->impl()->node()->nn_param.gelu.approximate = approximate;
     }
 

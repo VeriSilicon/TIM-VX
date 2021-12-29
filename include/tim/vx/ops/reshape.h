@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_RESHAPE_H_
 #define TIM_VX_OPS_RESHAPE_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,7 +37,7 @@ namespace ops {
  * - size : defining the shape of the output tensor.
  */
 
-class Reshape : public Operation {
+class Reshape : public DirectMapOp {
  public:
   Reshape(Graph* graph, const std::vector<uint32_t>& size);
 

@@ -28,7 +28,7 @@
 
 #include "ops/op_layout_inference.h"
 #include "permute_vector.h"
-#include "operation_private.h"
+#include "op_impl.h"
 namespace tim {
 namespace transform {
 class BatchNormLayoutInfer : public OpLayoutInfer {

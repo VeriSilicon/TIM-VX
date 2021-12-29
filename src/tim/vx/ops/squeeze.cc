@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/squeeze.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Squeeze::Squeeze(Graph* graph, std::vector<uint32_t> axis)
-    : Operation(graph, VSI_NN_OP_SQUEEZE), axis_(axis) {
+    : DirectMapOp(graph, VSI_NN_OP_SQUEEZE), axis_(axis) {
   this->impl()->node()->nn_param.squeeze.axis = axis_.data();
   this->impl()->node()->nn_param.squeeze.axis_num = axis_.size();
 }

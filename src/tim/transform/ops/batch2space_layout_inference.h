@@ -28,7 +28,7 @@
 
 #include "ops/op_layout_inference.h"
 #include "permute_vector.h"
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 namespace tim {
 namespace transform {
 class Batch2SpaceLayoutInfer : public OpLayoutInfer {

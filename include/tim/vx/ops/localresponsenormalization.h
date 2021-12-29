@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_LOCALRESPONSENORMALIZATION_H_
 #define TIM_VX_OPS_LOCALRESPONSENORMALIZATION_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 /**
  * ## LocalResponseNormalization
@@ -40,7 +40,7 @@
 namespace tim {
 namespace vx {
 namespace ops {
-class LocalResponseNormalization : public Operation {
+class LocalResponseNormalization : public DirectMapOp {
  public:
   LocalResponseNormalization(Graph* graph, uint32_t size, float alpha,
                              float beta, float bias, int32_t axis);

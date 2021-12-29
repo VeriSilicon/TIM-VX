@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 #include "tim/vx/types.h"
 
 namespace tim {
@@ -63,7 +63,7 @@ namespace ops {
  * 
  */
 
-class Pool2d : public Operation {
+class Pool2d : public DirectMapOp {
  public:
   // for Classic Pool2d
   Pool2d(Graph* graph, PoolType type, PadType padding,

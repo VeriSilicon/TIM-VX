@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/gather.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Gather::Gather(Graph* graph, int axis)
-    : Operation(graph, VSI_NN_OP_GATHER), axis_(axis) {
+    : DirectMapOp(graph, VSI_NN_OP_GATHER), axis_(axis) {
   this->impl()->node()->nn_param.gather.axis = axis_;
 }
 

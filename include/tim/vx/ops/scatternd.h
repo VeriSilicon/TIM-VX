@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SCATTERND_H_
 #define TIM_VX_OPS_SCATTERND_H_
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,7 +37,7 @@ namespace ops {
  * - shape : The shape of the resulting tensor. 
  */
 
-class ScatterND : public Operation {
+class ScatterND : public DirectMapOp {
  public:
   ScatterND(Graph* graph, const std::vector<uint32_t>& shape);
 

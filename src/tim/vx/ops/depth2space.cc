@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/depth2space.h"
 
-#include "operation_private.h"
+#include "direct_map_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 DepthToSpace::DepthToSpace(Graph* graph, int block_size, DataLayout layout)
-    : Operation(graph, VSI_NN_OP_DEPTH2SPACE, 0, 0, layout),
+    : DirectMapOp(graph, VSI_NN_OP_DEPTH2SPACE, 0, 0, layout),
       block_size_(block_size) {
   this->impl()->node()->nn_param.depth2space.block_size = block_size_;
 }

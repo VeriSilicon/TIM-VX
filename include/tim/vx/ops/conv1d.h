@@ -26,13 +26,13 @@
 
 #include <array>
 
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-class Conv1d : public Operation {
+class Conv1d : public DirectMapOp {
  public:
   Conv1d(Graph* graph, PadType padding, uint32_t stride,
          uint32_t dilation, int32_t multiplier = 0,

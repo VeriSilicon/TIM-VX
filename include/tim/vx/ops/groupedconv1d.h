@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/operation.h"
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
@@ -53,7 +53,7 @@ namespace ops {
  * - layout : WCN or CWN.
  */
 
-class GroupedConv1d : public Operation {
+class GroupedConv1d : public DirectMapOp {
  public:
   GroupedConv1d(Graph* graph, PadType padding,
          uint32_t stride,
