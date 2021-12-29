@@ -59,6 +59,7 @@
 #include "ops/deconv2d_layout_inference.h"
 #include "ops/batchnorm_layout_inference.h"
 #include "ops/default_layout_inference.h"
+#include "ops/transpose_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -257,6 +258,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMIN, Arg);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DECONVOLUTION, DeConv2d);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH_NORM, BatchNorm);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PERMUTE, Transpose);
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     // use default layout inference

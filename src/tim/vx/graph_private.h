@@ -56,19 +56,24 @@ class GraphImpl : public Graph {
 
   void UpdateTensorConsumersMap(const std::shared_ptr<Tensor>& tensor,
                                 const Operation* op) override;
+  void UpdateTensorProducerMap(const std::shared_ptr<Tensor>& tensor,
+                                const Operation* op) override;
   const std::vector<std::shared_ptr<Operation>> GetConsumersOp(
       std::shared_ptr<Tensor> tensor) const override;
-  void PrintGraph() const override;
-  /// Implement parents' virtual functions
-   std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
-                                       const void* data = nullptr) override;
-   std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
-                                               const DmaBufferDesc& dmafd) override;
-   std::shared_ptr<Tensor> CreateTensorPlaceHolder() override;
-    bool Compile() override;
+  std::vector<std::shared_ptr<Operation>> GetProducerOp(
+      std::shared_ptr<Tensor> tensor) override;
 
-   bool CompileToBinary(void* buf, size_t* size) override;
-   bool Run() override;
+  void PrintGraph() const override;
+
+  std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
+                                       const void* data = nullptr) override;
+  std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
+                                       const DmaBufferDesc& dmafd) override;
+  std::shared_ptr<Tensor> CreateTensorPlaceHolder() override;
+
+  bool Compile() override;
+  bool CompileToBinary(void* buf, size_t* size) override;
+  bool Run() override;
 
  protected:
   ContextImpl* context_;
@@ -82,6 +87,7 @@ class GraphImpl : public Graph {
   std::vector<std::shared_ptr<Tensor>> inputs_tensor_;
   std::vector<std::shared_ptr<Tensor>> outputs_tensor_;
   std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>> tensor_consumers_;
+  std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>> tensor_producer_;
 };
 
 }  // namespace vx

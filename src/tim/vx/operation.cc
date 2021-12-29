@@ -100,6 +100,7 @@ Operation& Operation::BindInput(const std::shared_ptr<Tensor>& tensor) {
 
 Operation& Operation::BindOutput(const std::shared_ptr<Tensor>& tensor) {
   impl_->BindOutput(tensor);
+  impl_->graph_->UpdateTensorProducerMap(tensor, this);
   return *this;
 }
 
