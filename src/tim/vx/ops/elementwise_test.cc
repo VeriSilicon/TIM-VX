@@ -235,3 +235,49 @@ TEST(Div, shape_5_1_broadcast_scale_uint8) {
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     EXPECT_EQ(golden, output);
 }
+
+TEST(Div, Div_uint8) {
+  auto context = tim::vx::Context::Create();
+  auto graph = context->CreateGraph();
+
+  tim::vx::ShapeType input_shape({2, 3, 1, 1});
+  tim::vx::Quantization input_quant(tim::vx::QuantType::ASYMMETRIC, 1.0, 0);
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
+                                 tim::vx::TensorAttribute::INPUT, input_quant);
+  uint8_t data1[] = {1, 2, 3, 4, 5, 6};
+  uint8_t data2[] = {2, 2, 2, 2, 2, 2};
+  auto input1 = graph->CreateTensor(input_spec, data1);
+  auto input2 = graph->CreateTensor(input_spec, data2);
+
+  tim::vx::ShapeType output_shape({2, 3, 1, 1});
+  tim::vx::Quantization output_quant(tim::vx::QuantType::ASYMMETRIC, 1.0, 0);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT,
+                                  output_quant);
+  auto output = graph->CreateTensor(output_spec);
+
+  auto op = graph->CreateOperation<tim::vx::ops::Div>();
+  (*op).BindInputs({input1, input2}).BindOutputs({output});
+
+  if (!graph->Compile()) {
+    std::cout << "Compile graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  graph->PrintGraph();
+
+  if (!graph->Run()) {
+    std::cout << "Run graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  std::vector<uint8_t> output_data;
+  std::vector<uint8_t> golden={0,1,2,2,2,3,0,0,0,0};
+  output_data.resize(1 * 10);
+  if (!output->CopyDataFromTensor(output_data.data())) {
+    std::cout << "Copy output data fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  EXPECT_EQ(golden, output_data);
+}
