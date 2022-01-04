@@ -30,9 +30,8 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-class RNNCellImpl : public OpImpl{
+class RNNCellImpl : public OpImpl {
  public:
-
   enum {
     // signature
     FULLY_CONNECTED_0_IN = 0,
@@ -49,20 +48,19 @@ class RNNCellImpl : public OpImpl{
     // signature end
   };
 
-  RNNCellImpl(Graph* graph, int input_cnt,
-                int output_cnt, DataLayout layout = DataLayout::ANY)
-                : OpImpl(graph, -1, input_cnt, output_cnt, layout){
-      fc0_ = graph->CreateOperation<tim::vx::ops::FullyConnected>(0, 4);
-      fc1_ = graph->CreateOperation<tim::vx::ops::FullyConnected>(0, 4);
-      add_ = graph->CreateOperation<tim::vx::ops::Add>();
-      tanh_ = graph->CreateOperation<tim::vx::ops::Tanh>();
-      data_convert_ = graph->CreateOperation<tim::vx::ops::DataConvert>();
+  RNNCellImpl(Graph* graph, int input_cnt, int output_cnt,
+              DataLayout layout = DataLayout::ANY)
+      : OpImpl(graph, -1, input_cnt, output_cnt, layout) {
+    fc0_ = graph->CreateOperation<tim::vx::ops::FullyConnected>(0, 4);
+    fc1_ = graph->CreateOperation<tim::vx::ops::FullyConnected>(0, 4);
+    add_ = graph->CreateOperation<tim::vx::ops::Add>();
+    tanh_ = graph->CreateOperation<tim::vx::ops::Tanh>();
+    data_convert_ = graph->CreateOperation<tim::vx::ops::DataConvert>();
   }
 
   ~RNNCellImpl() {}
 
-  RNNCellImpl& BindInput(const std::shared_ptr<Tensor>& tensor) override
-  {
+  RNNCellImpl& BindInput(const std::shared_ptr<Tensor>& tensor) override {
     in_tensors_[input_tensor_index] = tensor;
 
     if (this->input_tensor_index == INPUT_CNT - 1) {
@@ -74,7 +72,6 @@ class RNNCellImpl : public OpImpl{
                                    tim::vx::TensorAttribute::TRANSIENT);
       tim::vx::TensorSpec add_spec(tim::vx::DataType::FLOAT32, shape,
                                    tim::vx::TensorAttribute::TRANSIENT);
-
 
       auto FC0_tensor = graph_->CreateTensor(FC0_spec);
       auto FC1_tensor = graph_->CreateTensor(FC1_spec);
@@ -99,22 +96,24 @@ class RNNCellImpl : public OpImpl{
     return *this;
   }
 
-  RNNCellImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) override{
+  RNNCellImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) override {
     out_tensors_[output_tensor_index] = tensor;
 
     tanh_->BindOutput(out_tensors_[OUT]);
     data_convert_->BindInput(out_tensors_[OUT]);
-    if (this->output_tensor_index == OUT_CNT - 1){
+    if (this->output_tensor_index == OUT_CNT - 1) {
       data_convert_->BindOutput(out_tensors_[STATE_OUT]);
     }
     this->output_tensor_index++;
     return *this;
   }
 
-  vsi_nn_node_t* node() override{ return nullptr; }
+  vsi_nn_node_t* node() override { return nullptr; }
 
-  std::vector<std::shared_ptr<Tensor>> InputsTensor() { return inputs_tensor_; }
-  std::vector<std::shared_ptr<Tensor>> OutputsTensor() {
+  std::vector<std::shared_ptr<Tensor>> InputsTensor() override {
+    return inputs_tensor_;
+  }
+  std::vector<std::shared_ptr<Tensor>> OutputsTensor() override {
     return outputs_tensor_;
   }
 
@@ -129,8 +128,9 @@ class RNNCellImpl : public OpImpl{
   std::array<std::shared_ptr<tim::vx::Tensor>, OUT_CNT> out_tensors_;
 };
 
-RNNCell::RNNCell(Graph* graph,  ActivationType activation) : activation_(activation){
-    impl_ = std::make_unique<RNNCellImpl>(graph, 0, 0, DataLayout::ANY);
+RNNCell::RNNCell(Graph* graph, ActivationType activation)
+    : activation_(activation) {
+  impl_ = std::make_unique<RNNCellImpl>(graph, 0, 0, DataLayout::ANY);
 }
 
 std::shared_ptr<Operation> RNNCell::Clone(std::shared_ptr<Graph>& graph) const {

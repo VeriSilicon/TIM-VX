@@ -24,11 +24,11 @@
 #include "direct_map_op_impl.h"
 #include "type_utils.h"
 
-namespace tim{
-namespace vx{
+namespace tim {
+namespace vx {
 
 DirectMapOpImpl::DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt,
-                             int output_cnt, DataLayout layout)
+                                 int output_cnt, DataLayout layout)
     : OpImpl(graph, kind, input_cnt, output_cnt, layout),
       node_(vsi_nn_AddNode(graph_->graph(), kind_, input_cnt_, output_cnt_,
                            NULL)) {
@@ -36,7 +36,8 @@ DirectMapOpImpl::DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt,
   node_->uid = graph_->graph()->cur_nid;
 }
 
-DirectMapOpImpl& DirectMapOpImpl::BindInput(const std::shared_ptr<Tensor>& tensor) {
+DirectMapOpImpl& DirectMapOpImpl::BindInput(
+    const std::shared_ptr<Tensor>& tensor) {
   inputs_tensor_.push_back(tensor);
   uint32_t tensor_id = tensor->GetId();
   node_->input.tensors[input_tensor_index++] = tensor_id;
@@ -59,17 +60,16 @@ DirectMapOpImpl& DirectMapOpImpl::BindOutput(
   return *this;
 }
 
-void DirectMapOpImpl::SetRoundingPolicy(
-      OverflowPolicy overflow_policy,
-      RoundingPolicy rounding_policy,
-      RoundType down_scale_size_rounding,
-      uint32_t accumulator_bits) {
-    node_->vx_param.overflow_policy = TranslateOverflowPolicy(overflow_policy);
-    node_->vx_param.rounding_policy = TranslateRoundingPolicy(rounding_policy);
-    node_->vx_param.down_scale_size_rounding =
-        TranslateDownScaleSizeRounding(down_scale_size_rounding);
-    node_->vx_param.accumulator_bits = accumulator_bits;
+void DirectMapOpImpl::SetRoundingPolicy(OverflowPolicy overflow_policy,
+                                        RoundingPolicy rounding_policy,
+                                        RoundType down_scale_size_rounding,
+                                        uint32_t accumulator_bits) {
+  node_->vx_param.overflow_policy = TranslateOverflowPolicy(overflow_policy);
+  node_->vx_param.rounding_policy = TranslateRoundingPolicy(rounding_policy);
+  node_->vx_param.down_scale_size_rounding =
+      TranslateDownScaleSizeRounding(down_scale_size_rounding);
+  node_->vx_param.accumulator_bits = accumulator_bits;
 }
 
-}
-}
+}  // namespace vx
+}  // namespace tim

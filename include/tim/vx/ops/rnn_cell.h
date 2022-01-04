@@ -29,19 +29,20 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-class RNNCell : public Operation{
+class RNNCell : public Operation {
  public:
   enum ActivationType {
-        kNONE = 0,
-        kRELU = 1,
-        kRELU1 = 2,
-        kRELU6 = 3,
-        kTANH = 4,
-        kSIGMOID = 6,
-        kHARDSIGMOID = 31,  /* temporary use 31*/
-      };
+    kNONE = 0,
+    kRELU = 1,
+    kRELU1 = 2,
+    kRELU6 = 3,
+    kTANH = 4,
+    kSIGMOID = 6,
+    kHARDSIGMOID = 31, /* temporary use 31 */
+  };
   RNNCell(Graph* graph, ActivationType activation);
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 
  protected:
   const ActivationType activation_;
