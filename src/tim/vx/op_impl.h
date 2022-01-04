@@ -34,14 +34,15 @@ namespace vx {
 class OpImpl {
  public:
   OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
-                DataLayout layout);
+         DataLayout layout);
+  virtual ~OpImpl() = default;
   virtual OpImpl& BindInput(const std::shared_ptr<Tensor>& tensor) = 0;
   virtual OpImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) = 0;
   virtual std::vector<std::shared_ptr<Tensor>> InputsTensor() = 0;
   virtual std::vector<std::shared_ptr<Tensor>> OutputsTensor() = 0;
   virtual vsi_nn_node_t* node() = 0;
 
-  GraphImpl* graph_;
+  GraphImpl* graph_{nullptr};
   uint32_t kind_{0};
   int32_t input_cnt_{0};
   int32_t output_cnt_{0};

@@ -23,15 +23,15 @@
 *****************************************************************************/
 #include "op_impl.h"
 
-namespace tim{
-namespace vx{
+namespace tim {
+namespace vx {
 
 OpImpl::OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
-                DataLayout layout)
+               DataLayout layout)
     : graph_(reinterpret_cast<GraphImpl*>(graph)),
       kind_(kind),
       input_cnt_(input_cnt),
       output_cnt_(output_cnt),
       layout_(layout) {}
-}
-}
+}  // namespace vx
+}  // namespace tim

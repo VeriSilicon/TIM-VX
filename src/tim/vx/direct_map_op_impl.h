@@ -24,7 +24,6 @@
 #ifndef TIM_VX_DIRECT_MAP_OP_IMPL_H_
 #define TIM_VX_DIRECT_MAP_OP_IMPL_H_
 
-
 #include "vsi_nn_pub.h"
 #include "graph_private.h"
 
@@ -38,7 +37,7 @@ class DirectMapOpImpl : public OpImpl {
   // DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt = 0,
   //               int output_cnt = 0);
   DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt = 0,
-                int output_cnt = 0, DataLayout layout = DataLayout::ANY);
+                  int output_cnt = 0, DataLayout layout = DataLayout::ANY);
   ~DirectMapOpImpl() {}
 
   DirectMapOpImpl& BindInput(const std::shared_ptr<Tensor>& tensor) override;
@@ -50,12 +49,12 @@ class DirectMapOpImpl : public OpImpl {
       OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
       RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
       RoundType down_scale_size_rounding = RoundType::FLOOR,
-      uint32_t accumulator_bits =0);
+      uint32_t accumulator_bits = 0);
 
-  std::vector<std::shared_ptr<Tensor>> InputsTensor() {
+  std::vector<std::shared_ptr<Tensor>> InputsTensor() override {
     return inputs_tensor_;
   }
-  std::vector<std::shared_ptr<Tensor>> OutputsTensor() {
+  std::vector<std::shared_ptr<Tensor>> OutputsTensor() override {
     return outputs_tensor_;
   }
 
