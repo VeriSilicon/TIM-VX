@@ -131,7 +131,7 @@ GroupedConv1d|GROUPED_CONV1D|Mapped|[tf.keras.layers.Conv1D](https://tensorflow.
 ||CEIL|Planned 21Q4|[tf.math.ceil](https://tensorflow.google.cn/api_docs/python/tf/math/ceil)
 ||SEQUENCE_MASK|Planned 21Q4|[tf.math.ceil](https://tensorflow.google.cn/api_docs/python/tf/sequence_mask)
 ||REPEAT|Planned 21Q4|[tf.repeat](https://tensorflow.google.cn/api_docs/python/tf/repeat)
-||ONE_HOT|Planned 21Q4|[tf.one_hot](https://tensorflow.google.cn/api_docs/python/tf/one_hot)
+OneHot|ONE_HOT|Mapped|[tf.one_hot](https://tensorflow.google.cn/api_docs/python/tf/one_hot)
 ||NMS|Planned 21Q4|[tf.image.non_max_suppression](https://tensorflow.google.cn/api_docs/python/tf/image/non_max_suppression)
 ||SCATTER_ND_UPDATE|Planned 21Q4|[tf.compat.v1.scatter_nd_update](https://tensorflow.google.cn/api_docs/python/tf/compat/v1/scatter_nd_update)
 ||GELU|Planned 21Q4|[tf.nn.gelu](https://tensorflow.google.cn/api_docs/python/tf/nn/gelu)
