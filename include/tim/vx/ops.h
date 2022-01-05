@@ -54,6 +54,7 @@
 #include "tim/vx/ops/maxunpool2d.h"
 #include "tim/vx/ops/moments.h"
 #include "tim/vx/ops/nbg.h"
+#include "tim/vx/ops/onehot.h"
 #include "tim/vx/ops/pad.h"
 #include "tim/vx/ops/pool2d.h"
 #include "tim/vx/ops/reduce.h"
