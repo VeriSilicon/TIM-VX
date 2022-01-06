@@ -496,6 +496,8 @@ enum vx_kernel_e {
 
     VX_KERNEL_NN_BATCH_GEMM = VX_KERNEL_BASE(VX_ID_VIVANTE, VX_LIBRARY_KHR_BASE) + 0x2F,
 
+    VX_KERNEL_NN_CONV_3D_LAYER = VX_KERNEL_BASE(VX_ID_VIVANTE, VX_LIBRARY_KHR_BASE) + 0x30,
+
     VX_KERNEL_MAX_1_2, /*!< \internal Used for VX1.2 bounds checking in the conformance test. */
 };
 

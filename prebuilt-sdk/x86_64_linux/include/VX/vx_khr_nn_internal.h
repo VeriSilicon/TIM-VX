@@ -289,6 +289,169 @@ typedef struct _vx_weights_biases_parameter_optimizations_ext2_t {
     vx_int8  output_fpp_dw;       /*depthwise conv output fix-point*/
 } vx_weights_biases_parameter_optimizations_ext2_t;
 
+#if VX_VA40_EXT_SUPPORT
+/*!
+ * \brief Creates a reference to a vx_weights_biases_parameter opaque object.
+ *
+ * \param [in] layer_type                The network type of objects to hold. Types allowed are: 
+ *                                           \arg VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER for convolution layer.
+ *                                           \arg VX_CONVOLUTIONAL_NETWORK_FULLYCONNECTED_LAYER for fullyconnected layer.
+ * \param [in] num_of_dims               The dimention number of input & output image tensor.
+ * \param [in] inputs_dims               The input tensor's dimension size.
+ * \param [in] pad_x                     The number of elements subtracted at each side in the x dimension of the input.
+ * \param [in] pad_y                     The number of elements subtracted at each side in the y dimension of the input.
+ * \param [in] pooling_size_x            The size of the pooling region in the x dimension, 0 means no pooling operation.
+ * \param [in] pooling_size_y            The size of the pooling region in the y dimension, 0 means no pooling operation.
+ * \param [in] down_scale_size_rounding  A <tt> VX_TYPE_ENUM</tt> of the <tt> vx_round_policy_e</tt> enumeration.
+ * \param [in] convolution_outputs_dims  The output's dimension size after covolution operation.
+ * \param [in] pool_outputs_dims         The output's dimension size after pooling operation.
+ * \param [in] optimizations             A optional param for <tt>\ref vx_weights_biases_parameter_optimizations_t</tt>.
+ * \param [in] weights                   The weights tensor which need be compressed.
+ * \param [in] biases                    The biases tensor which need be compressed.
+ *
+ * \returns An opaque vx_weights_biases_parameter reference with compressed kernel data. Any possible errors preventing a 
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ *
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_weights_biases_parameter VX_API_CALL 
+vxCreateWeightsBiasesParameterFromTensors(
+    vx_enum layer_type,
+    vx_size num_of_dims,
+    vx_size * inputs_dims,
+    vx_uint32 pad_x,
+    vx_uint32 pad_y,
+    vx_uint32 pooling_size_x,
+    vx_uint32 pooling_size_y,
+    vx_enum down_scale_size_rounding,
+    vx_size   * convolution_outputs_dims,
+    vx_size   * pool_outputs_dims,
+    vx_weights_biases_parameter_optimizations_t *optimizations,
+    vx_tensor weights, 
+    vx_tensor biases);
+
+/*!
+ * \brief Creates a reference to an opaque vx_weights_biases_parameter object.
+ *
+ * \param [in] layer_type                              The network type of objects to hold. Types allowed are: 
+ *                                                         \arg VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER for convolution layer.
+ *                                                         \arg VX_CONVOLUTIONAL_NETWORK_FULLYCONNECTED_LAYER for fullyconnected layer.
+ * \param [in] num_of_dims                             The dimention number of input & output image tensor.
+ * \param [in] inputs_dims                             The input tensor's dimension size.
+ * \param [in] convolution_outputs_dims                The output's dimension size after covolution operation.
+ * \param [in] pool_outputs_dims                       The output's dimension size after pooling operation.
+ * \param [in] output_format                           The output tensor element type.
+ * \param [in] convolution_relu_pooling_params         The convolution_relu_pooling_params Pointer to parameters of type <tt>\ref vx_nn_convolution_relu_pooling_params_t</tt>
+ * \param [in] size_of_convolution_relu_pooling_params The size in bytes of convolution_relu_pooling_params.
+ * \param [in] optimizations                           A optional param for <tt>\ref vx_weights_biases_parameter_optimizations_t</tt>.
+ * \param [in] weights                                 The weights tensor which need be compressed.
+ * \param [in] biases                                  The biases tensor which need be compressed.
+ *
+ * \returns An opaque vx_weights_biases_parameter reference with compressed kernel data. Any possible errors preventing a 
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ *
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_weights_biases_parameter VX_API_CALL vxCreateWeightsBiasesParameterFromTensors2(
+    vx_enum     layer_type,
+    vx_size     num_of_dims,
+    vx_size   * inputs_dims,
+    vx_size   * convolution_outputs_dims,
+    vx_size   * pool_outputs_dims,
+    vx_enum     output_format,
+    const vx_nn_convolution_relu_pooling_params convolution_relu_pooling_params,
+    vx_size size_of_convolution_relu_pooling_params,
+    vx_weights_biases_parameter_optimizations_t *optimizations,
+    vx_tensor   weights,
+    vx_tensor   biases);
+
+/*!
+ * \brief Creates a reference to an opaque vx_weights_biases_parameter object.
+ *
+ * \param [in] layer_type                              The network type of objects to hold. Types allowed are: 
+ *                                                         \arg VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER for convolution layer.
+ *                                                         \arg VX_CONVOLUTIONAL_NETWORK_FULLYCONNECTED_LAYER for fullyconnected layer.
+ * \param [in] inputs_dims                             The input tensor's dimension size.
+ * \param [in] convolution_outputs_dims                The output's dimension size after covolution operation.
+ * \param [in] pool_outputs_dims                       The output's dimension size after pooling operation.
+ * \param [in] convolution_relu_pooling_params         The convolution_relu_pooling_params Pointer to parameters of type <tt>\ref vx_nn_convolution_relu_pooling_params_t</tt>
+ * \param [in] size_of_convolution_relu_pooling_params The size in bytes of convolution_relu_pooling_params.
+ * \param [in] optimizations                           A optional param for <tt>\ref vx_weights_biases_parameter_optimizations_t</tt>.
+ * \param [in] size_of_optimizations                   The size in bytes of optimizations.
+ * \param [in] weights                                 The weights tensor which need be compressed.
+ * \param [in] biases                                  The biases tensor which need be compressed.
+ *
+ * \returns An opaque vx_weights_biases_parameter reference with compressed kernel data. Any possible errors preventing a 
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ *
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_weights_biases_parameter VX_API_CALL vxCreateWeightsBiasesParameterFromTensors3(
+    vx_enum     layer_type,
+    vx_size   * inputs_dims,
+    vx_size   * convolution_outputs_dims,
+    vx_size   * pool_outputs_dims,
+    const vx_nn_convolution_relu_pooling_params convolution_relu_pooling_params,
+    vx_size size_of_convolution_relu_pooling_params,
+    vx_weights_biases_parameter_optimizations_t *optimizations,
+    vx_size size_of_optimizations,
+    vx_tensor   weights,
+    vx_tensor   biases);
+
+/*!
+ * \brief Creates a reference to an vx_weights_biases_parameter object.
+ * \param [in] context                   The OpenVX context object.
+ * \param [in] layer_type                The network type of objects to hold. Types allowed are: 
+ *                                           \arg VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER for convolution layer.
+ *                                           \arg VX_CONVOLUTIONAL_NETWORK_FULLYCONNECTED_LAYER for fullyconnected layer.
+ * \param [in] num_of_dims               The dimention number of input & output image tensor.
+ * \param [in] inputs_dims               The input tensor's dimension size.
+ * \param [in] pad_x                     The number of elements subtracted at each side in the x dimension of the input.
+ * \param [in] pad_y                     The number of elements subtracted at each side in the y dimension of the input.
+ * \param [in] pooling_size_x            The size of the pooling region in the x dimension, 0 means no pooling operation.
+ * \param [in] pooling_size_y            The size of the pooling region in the y dimension, 0 means no pooling operation.
+ * \param [in] down_scale_size_rounding  A <tt> VX_TYPE_ENUM</tt> of the <tt> vx_round_policy_e</tt> enumeration.
+ * \param [in] convolution_outputs_dims  The output's dimension size after covolution operation.
+ * \param [in] pool_outputs_dims         The output's dimension size after pooling operation.
+ * \param [in] weights_num_of_dims       The dimention number of weights tensor.
+ * \param [in] weights_dims              The dimention size of weights tensor.
+ * \param [in] weights_data_format       The format of weights tensor.
+ * \param [in] weights_fixed_point_pos   The fixed point position when the weights element type is int16/int8, if 0 calculations are performed in integer math.
+ * \param [in] biases_num_of_dims        The dimention number of biases tensor.
+ * \param [in] biases_dims               The dimention size of biases tensor.
+ * \param [in] biases_data_format        The format of biases tensor.
+ * \param [in] biases_fixed_point_pos    The fixed point position when the biases element type is int16/int8, if 0 calculations are performed in integer math.
+ * \param [in] raw_data_size             The data size of compressed data.
+ *
+ * \returns A weightsbiases reference without compressed kernel data <tt>vx_weights_biases_parameter</tt>. Any possible errors preventing a 
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ *
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_weights_biases_parameter VX_API_CALL
+vxCreateWeightsBiasesParameter(
+    vx_context context,
+    vx_enum layer_type,
+    vx_size num_of_dims,
+    vx_size * inputs_dims,
+    vx_uint32 pad_x,
+    vx_uint32 pad_y,
+    vx_uint32 pooling_size_x,
+    vx_uint32 pooling_size_y,
+    vx_enum   down_scale_size_rounding,
+    vx_size   * convolution_outputs_dims,
+    vx_size   * pool_outputs_dims,
+    vx_size   weights_num_of_dims,
+    vx_size   * weights_dims,
+    vx_enum weights_data_format,
+    vx_int8 weights_fixed_point_pos,
+    vx_size biases_num_of_dims,
+    vx_size * biases_dims,
+    vx_enum biases_data_format,
+    vx_int8 biases_fixed_point_pos,
+    vx_uint32 raw_data_size
+    );
+#else
 /*!
  * \brief Creates a reference to a vx_weights_biases_parameter opaque object.
  *
@@ -397,17 +560,6 @@ VX_API_ENTRY vx_weights_biases_parameter VX_API_CALL vxCreateWeightsBiasesParame
     vx_tensor   weights,
     vx_tensor   biases);
 
-/*! \brief Releases the OpenVX object vx_weights_biases_parameter.
- * \param [in] weights_bias The pointer to the reference to the vx_weights_biases_parameter.
- * \post After returning from this function the reference is zeroed.
- * \return A <tt>\ref vx_status_e</tt> enumeration.
- * \retval VX_SUCCESS No errors.
- * \retval VX_ERROR_INVALID_REFERENCE If weights_bias is not a <tt> vx_weights_biases_parameter</tt>.
- * \pre <tt>\ref vxCreateWeightsBiasesParameterFromTensors / vxCreateWeightsBiasesParameterFromTensors2/ vxCreateWeightsBiasesParameter / vxCreateWeightsBiasesParameterFromStream</tt>
- * \ingroup group_cnn
- */
-VX_API_ENTRY vx_status VX_API_CALL vxReleaseWeightsBiasesParameter(vx_weights_biases_parameter *weights_bias);
-
 /*!
  * \brief Creates a reference to an vx_weights_biases_parameter object.
  * \param [in] context                   The OpenVX context object.
@@ -461,7 +613,18 @@ vxCreateWeightsBiasesParameter(
     vx_int8 biases_fixed_point_pos,
     vx_uint32 raw_data_size
     );
+#endif
 
+/*! \brief Releases the OpenVX object vx_weights_biases_parameter.
+ * \param [in] weights_bias The pointer to the reference to the vx_weights_biases_parameter.
+ * \post After returning from this function the reference is zeroed.
+ * \return A <tt>\ref vx_status_e</tt> enumeration.
+ * \retval VX_SUCCESS No errors.
+ * \retval VX_ERROR_INVALID_REFERENCE If weights_bias is not a <tt> vx_weights_biases_parameter</tt>.
+ * \pre <tt>\ref vxCreateWeightsBiasesParameterFromTensors / vxCreateWeightsBiasesParameterFromTensors2/ vxCreateWeightsBiasesParameter / vxCreateWeightsBiasesParameterFromStream</tt>
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_status VX_API_CALL vxReleaseWeightsBiasesParameter(vx_weights_biases_parameter *weights_bias);
 /*! \brief Input parameters for a gru operation.
  * \ingroup group_cnn
  * \version 0.5
@@ -900,6 +1063,7 @@ VX_API_ENTRY vx_node VX_API_CALL vxTensorTableLookupLayer(
     vx_lut InLut,
     vx_lut OutLut,
     vx_tensor output);
+
 #ifdef  __cplusplus
 }
 #endif

@@ -444,6 +444,11 @@ enum vx_type_e {
  * \ingroup group_basic_features
  */
 enum vx_status_e {
+    VX_ERROR_VENDOR_VSI_END             = -2000, /*!< \brief A vendor defined error status end base. */
+    /* add new error here*/
+    VX_ERROR_CANCEL_JOB                 = -1001, /*!< \brief Indicates that a VIP job was cancelled. */
+    VX_ERROR_VENDOR_VSI_START           = -1000, /*!< \brief A vendor defined error status start base. */
+
     VX_STATUS_MIN                       = -25,/*!< \brief Indicates the lower bound of status codes in VX. Used for bounds checks only. */
     /* add new codes here */
     VX_ERROR_REFERENCE_NONZERO          = -24,/*!< \brief Indicates that an operation did not complete due to a reference count being non-zero. */
@@ -718,6 +723,8 @@ enum vx_graph_state_e {
    VX_GRAPH_STATE_ABANDONED = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_GRAPH_STATE) + 0x3,
    /*! \brief The graph execution is completed and the graph is not scheduled for execution */
    VX_GRAPH_STATE_COMPLETED = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_GRAPH_STATE) + 0x4,
+   /*! \brief The graph execution was cancelled */
+   VX_GRAPH_STATE_CANCELLED = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_GRAPH_STATE) + 0x5,
 };
 
 /*! \brief The graph attributes list.
