@@ -35,6 +35,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_math.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "utils/vsi_nn_dtype_util.h"
 
 vsi_status vsi_nn_InitPadParameter
     (
@@ -127,6 +128,7 @@ static vsi_status op_compute
 {
     vsi_status status;
     vx_nn_pad_params_t p;
+    vsi_nn_tensor_t *convert_tensor = NULL;
 
     status = VSI_FAILURE;
     if(VSI_SUCCESS != vsi_nn_InitPadParameter(self, &p))
@@ -135,20 +137,43 @@ static vsi_status op_compute
         return VSI_FAILURE;
     }
 
+    if ( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
+    {
+        vsi_nn_tensor_attr_t attr;
+        memcpy( &attr, &outputs[0]->attr, sizeof( attr ) );
+        memcpy( &attr.size, &inputs[0]->attr.size, sizeof( attr.size ) );
+        attr.vtl = FALSE;
+        attr.is_const = FALSE;
+
+        convert_tensor = vsi_nn_CreateTensor(self->graph, &attr);
+
+        self->n = vxTensorCopyNode(
+            self->graph->g,
+            inputs[0]->t,
+            convert_tensor->t
+            );
+    }
+    else
+    {
+        convert_tensor = vsi_nn_reshape_tensor( self->graph,
+            inputs[0], inputs[0]->attr.size, inputs[0]->attr.dim_num );
+    }
     self->n = vxTensorPadNode(
         self->graph->g,
-        inputs[0]->t,
+        convert_tensor->t,
         outputs[0]->t,
         &p,
         sizeof(p)
         );
 
     vsi_nn_DeinitPadParameter(&p);
+    vsi_safe_release_tensor(convert_tensor);
 
     if( NULL != self->n )
     {
         status = VSI_SUCCESS;
     }
+
     return status;
 } /* op_compute() */
 

@@ -100,9 +100,9 @@ DEF_KERNEL_EXECUTOR(_gather_nd_exec)
     }
     indices_num /= coord_stride;
 
-    if(coord_stride <= 3) // reshape 3D
+    if(coord_stride <= 4) // reshape 3D
     {
-        vsi_ssize_t stride[3] = {block_size, 0, 0};
+        vsi_ssize_t stride[4] = {block_size, 0, 0, 0};
         for(i = 1; i < coord_stride; ++i)
         {
             stride[i] = stride[i - 1] * attr[0]->shape->data[i];
@@ -111,7 +111,7 @@ DEF_KERNEL_EXECUTOR(_gather_nd_exec)
         for(i = 0; i < indices_num; i++)
         {
             vsi_size_t out_index = i * block_size;
-            uint32_t coord[3] = {0};
+            uint32_t coord[4] = {0};
             vsi_size_t in_index = 0;
             int32_t j = 0;
 
@@ -119,7 +119,7 @@ DEF_KERNEL_EXECUTOR(_gather_nd_exec)
             {
                 coord[j] = buffer_idx[i * coord_stride + j];
             }
-            in_index = coord[2] * stride[2] + coord[1] * stride[1] + coord[0] * stride[0];
+            in_index = coord[3] * stride[3] + coord[2] * stride[2] + coord[1] * stride[1] + coord[0] * stride[0];
             memcpy(&(buffer[1][out_index]), &(buffer[0][in_index]), block_size * sizeof(float));
         }
     }

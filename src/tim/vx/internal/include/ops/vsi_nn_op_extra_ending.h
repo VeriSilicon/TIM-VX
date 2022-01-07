@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define _VSI_NN_EXTRA_ENDING_LOCAL_TENSOR_NUM 3
 
 typedef struct _vsi_nn_extra_ending_lcl_data
@@ -44,5 +48,8 @@ typedef struct _vsi_nn_extra_ending_param
     int length;
 } vsi_nn_extra_ending_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

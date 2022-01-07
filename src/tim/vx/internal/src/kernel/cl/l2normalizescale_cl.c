@@ -259,10 +259,10 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool image_2d = FALSE;
     int32_t  axis = 0;
     vsi_size_t  axis_size = 0;
-    float    outputScale  = outputs[0]->attr.dtype.scale == 0.0f ? 1.0f : outputs[0]->attr.dtype.scale;
-    float    outputTail   = (float)outputs[0]->attr.dtype.zero_point;
-    float    inputScale   = inputs[0]->attr.dtype.scale == 0.0f ? 1.0f : inputs[0]->attr.dtype.scale;
-    float    inputTail    = (float)inputs[0]->attr.dtype.zero_point;
+    float    outputScale  = vsi_nn_get_tensor_scale(outputs[0]);
+    float    outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float    inputScale   = vsi_nn_get_tensor_scale(inputs[0]);
+    float    inputTail    = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
     float    epsilon      = (float)10e-12;
     float    rsEps        = 1.0f / sqrtf(epsilon);
     vsi_bool is_use_u8_kernel = FALSE;

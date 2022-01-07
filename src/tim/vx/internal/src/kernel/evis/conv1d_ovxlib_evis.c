@@ -699,4 +699,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( conv1d_ovxlib, _setup )
-

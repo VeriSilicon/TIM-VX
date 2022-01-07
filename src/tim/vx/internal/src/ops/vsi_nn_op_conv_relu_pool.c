@@ -215,18 +215,30 @@ static vsi_status op_optimize
         }
 
 #ifdef VSI_40BIT_VA_SUPPORT
-        inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
-            VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER,
-            4,
-            inputs[0]->attr.size,
-            pconv_out->attr.size,
-            outputs[0]->attr.size,
-            outputs[0]->attr.dtype.vx_type,
-            (vx_nn_convolution_relu_pooling_params_t *)&p,
-            sizeof(p),
-            p_opt,
-            inputs[1]->t, inputs[2]->t
-            );
+        {
+            vx_size size_input0[VSI_NN_MAX_DIM_NUM];
+            vx_size size_pconv_out[VSI_NN_MAX_DIM_NUM];
+            vx_size size_output0[VSI_NN_MAX_DIM_NUM];
+            size_t i = 0;
+            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+            {
+                size_input0[i] = (vx_size)inputs[0]->attr.size[i];
+                size_pconv_out[i] = (vx_size)pconv_out->attr.size[i];
+                size_output0[i] = (vx_size)outputs[0]->attr.size[i];
+            }
+            inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
+                VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER,
+                4,
+                size_input0,
+                size_pconv_out,
+                size_output0,
+                outputs[0]->attr.dtype.vx_type,
+                (vx_nn_convolution_relu_pooling_params_t *)&p,
+                sizeof(p),
+                p_opt,
+                inputs[1]->t, inputs[2]->t
+                );
+        }
 #else
         {
             uint32_t size_u32_input0[VSI_NN_MAX_DIM_NUM];

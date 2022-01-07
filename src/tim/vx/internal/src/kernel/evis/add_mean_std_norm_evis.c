@@ -375,7 +375,6 @@ final:
         vsi_nn_kernel_tensor_attr_release(&output_attr);
     }
     return status;
-
 } /* _add_mean_std_norm_initializer() */
 
 
@@ -433,7 +432,6 @@ static vsi_status _query_kernel
     }
 
     return status;
-
 } /* _query_kernel() */
 
 
@@ -467,7 +465,7 @@ static vsi_nn_kernel_node_t _setup
             border.constant_value.U8 = 0;
             if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8)
             {
-                border.constant_value.U8 = (vx_uint8)inputs[0]->attr.dtype.zero_point;
+                border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
             }
             status  = vsi_nn_kernel_node_set_border( node, &border );
             VSI_ASSERT( status == VSI_SUCCESS );
@@ -484,10 +482,8 @@ static vsi_nn_kernel_node_t _setup
     }
 
     return node;
-
 } /* _setup() */
 
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( add_mean_std_norm, _setup )
-

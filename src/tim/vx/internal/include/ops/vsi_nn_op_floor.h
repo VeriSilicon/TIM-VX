@@ -26,10 +26,17 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_floor_param
 {
     vsi_enum     type;
 } vsi_nn_floor_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

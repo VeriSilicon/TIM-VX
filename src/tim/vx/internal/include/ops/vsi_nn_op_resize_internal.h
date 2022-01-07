@@ -26,6 +26,9 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct _vsi_nn_resize_in_lcl_data
 {
@@ -38,8 +41,12 @@ typedef struct _vsi_nn_resize_internal_param
     vsi_nn_resize_in_lcl_data *lcl_data_ptr;
     vsi_bool    align_corners;
     vsi_bool    half_pixel_centers;
-    float        factor;
+    float       factor;
+    vsi_enum    layout;
 } vsi_nn_resize_internal_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

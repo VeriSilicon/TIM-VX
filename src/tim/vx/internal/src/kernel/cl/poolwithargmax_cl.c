@@ -242,10 +242,10 @@ static vsi_nn_kernel_node_t _setup
     int32_t  pad_x    = 0;
     int32_t  pad_y    = 0;
     vsi_bool image_2d = FALSE;
-    float    outputScale  = outputs[0]->attr.dtype.scale == 0.0f ? 1.0f : outputs[0]->attr.dtype.scale;
-    float    outputTail   = (float)outputs[0]->attr.dtype.zero_point;
-    float    inputScale   = inputs[0]->attr.dtype.scale == 0.0f ? 1.0f : inputs[0]->attr.dtype.scale;
-    float    inputTail    = (float)inputs[0]->attr.dtype.zero_point;
+    float    outputScale  = vsi_nn_get_tensor_scale(outputs[0]);
+    float    outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float    inputScale   = vsi_nn_get_tensor_scale(inputs[0]);
+    float    inputTail    = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
     float    scale_value  = 1.0f;
     float    tail_value   = 0.0f;
     vsi_bool is_use_u8_kernel = FALSE;
@@ -303,7 +303,6 @@ static vsi_nn_kernel_node_t _setup
                 vsi_nn_kernel_scalar_release( &node_params[SCALAR_SCALE] );
                 vsi_nn_kernel_scalar_release( &node_params[SCALAR_TAIL] );
             }
-
         }
     }
     return node;
@@ -312,4 +311,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( poolwithargmax, _setup )
-

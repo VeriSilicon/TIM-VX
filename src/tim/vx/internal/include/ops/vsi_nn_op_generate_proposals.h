@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_generate_proposals_param
 {
     float height_stride;
@@ -37,5 +41,8 @@ typedef struct _vsi_nn_generate_proposals_param
     int32_t type;
 } vsi_nn_generate_proposals_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

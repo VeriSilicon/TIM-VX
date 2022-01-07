@@ -86,13 +86,10 @@ static vsi_status op_compute
 
         if(outerSize < MAX_BATCH_COUNT)
         {
-#ifdef VSI_40BIT_VA_SUPPORT
-            vx_input = vxReshapeTensor(inputs[0]->t, sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
-            vx_output = vxReshapeTensor(outputs[0]->t, sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
-#else
-            vx_input = vxReshapeTensor(inputs[0]->t, (int32_t*)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
-            vx_output = vxReshapeTensor(outputs[0]->t, (int32_t*)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
-#endif
+            vx_input = vsi_nn_safe_reshape_tensor(inputs[0]->t,
+                (void*)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4), sizeof(sizes[0]));
+            vx_output = vsi_nn_safe_reshape_tensor(outputs[0]->t,
+                (void*)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4), sizeof(sizes[0]));
 
             input = vx_input;
             output = vx_output;

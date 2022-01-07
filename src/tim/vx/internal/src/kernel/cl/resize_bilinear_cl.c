@@ -213,7 +213,6 @@ static vsi_status _query_kernel
     }
 
     return status;
-
 } /* _query_kernel() */
 
 
@@ -237,11 +236,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t in_height    = inputs[0]->attr.size[1];
     vsi_size_t out_width    = outputs[0]->attr.size[0];
     vsi_size_t out_height   = outputs[0]->attr.size[1];
-    float   input_zp     = (float)inputs[0]->attr.dtype.zero_point;
-    float   input_scale  = inputs[0]->attr.dtype.scale;
+    float   input_zp     = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float   input_scale  = vsi_nn_get_tensor_scale(inputs[0]);
     float   input_tail   = -(input_zp * input_scale);
-    float   output_zp    = (float)outputs[0]->attr.dtype.zero_point;
-    float   output_scale = (0 == outputs[0]->attr.dtype.scale) ? 1.0f : 1.0f / outputs[0]->attr.dtype.scale;
+    float   output_zp    = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float   output_scale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
     float   half_pixel_value = 0.0f;
     float   scale_factor_x = 0.0f;
     float   scale_factor_y = 0.0f;
@@ -313,10 +312,8 @@ static vsi_nn_kernel_node_t _setup
     }
 
     return node;
-
 } /* _setup() */
 
 __END_DECLS
 
 REGISTER_BACKEND_CL( resize_bilinear, _setup )
-

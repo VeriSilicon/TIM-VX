@@ -27,6 +27,10 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_op_lstmunit.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* c -> cifg, l -> layer norm, p -> projection, h -> peephole, b -> hybrid bias fp32, s -> standard*/
 
 enum {
@@ -96,5 +100,8 @@ typedef struct _vsi_nn_lstmunit_activation_param
     vsi_nn_activation_e recurrent_activation;
 } vsi_nn_lstmunit_activation_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

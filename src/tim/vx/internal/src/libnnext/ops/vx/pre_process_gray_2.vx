@@ -1,0 +1,69 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniBilinear_4over3_l00_2x8;
+_viv_uniform VXC_512Bits uniBilinear_4over3_l10_2x8;
+_viv_uniform VXC_512Bits uniBilinear_4over3_l01_4x4;
+_viv_uniform VXC_512Bits uniBilinear_4over3_l11_4x4;
+_viv_uniform VXC_512Bits uniBilinear_4over3_l21_4x4;
+
+__kernel void pre_process_gray_4over3_U8toU8
+    (
+    __read_only image2d_array_t  input,
+    __write_only image2d_array_t output,
+        global int               *xRatio,
+        global int               *yRatio,
+        global int               *xOffset,
+        global int               *yOffset,
+               float             mean,
+               float             f32Var
+    )
+{
+    int4 coord_in = (int4)(get_global_id(0), get_global_id(1), get_global_id(1), get_global_id(1));
+
+    vxc_uchar16 src0, src1, src2, src3;
+
+    VXC_ReadImage(src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src1, input, coord_in, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src2, input, coord_in, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src3, input, coord_in, VXC_5BITOFFSET_XY(0, 3), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord_in.xy = (coord_in.xy >> 2) * 3;
+    coord_in.zw = coord_in.yy + (int2)(1, 2);
+
+    vxc_uchar16 dst0, dst1, dst2;
+    VXC_DP2x8(dst0, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),   uniBilinear_4over3_l00_2x8);
+    VXC_DP2x8(dst0, src0, src0, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1),  uniBilinear_4over3_l10_2x8);
+    VXC_DP4x4(dst1, src1, src2, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1),   uniBilinear_4over3_l01_4x4);
+    VXC_DP4x4(dst1, src1, src2, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1),   uniBilinear_4over3_l11_4x4);
+    VXC_DP4x4(dst1, src1, src2, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1),  uniBilinear_4over3_l21_4x4);
+    VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1),   uniBilinear_4over3_l01_4x4);
+    VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1),   uniBilinear_4over3_l11_4x4);
+    VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1),  uniBilinear_4over3_l21_4x4);
+
+    VXC_WriteImage(output, coord_in.xy, dst0, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_in.xz, dst1, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_in.xw, dst2, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void pre_process_gray_half_U8toU8
+    (
+    __read_only image2d_array_t  input,
+    __write_only image2d_array_t output,
+        global int               *xRatio,
+        global int               *yRatio,
+        global int               *xOffset,
+        global int               *yOffset,
+               float             mean,
+               float             f32Var
+    )
+{
+    int4 coord_in = (int4)(get_global_id(0), get_global_id(1), get_global_id(1), get_global_id(1));
+
+    vxc_uchar16 src0;
+
+    VXC_ReadImage(src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord_in.xy = coord_in.xy >> 1;
+
+    VXC_WriteImage(output, coord_in.xy, src0.s02468ace, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+}

@@ -27,6 +27,10 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_op_rnn.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_rnncell_ovxlib_lcl_data_t
 {
     vsi_bool multi_batch;
@@ -40,5 +44,8 @@ typedef struct _vsi_nn_rnncell_ovxlib_param
     vsi_nn_dtype_t* internal_dtype;
 } vsi_nn_rnncell_ovxlib_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

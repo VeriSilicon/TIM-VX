@@ -27,6 +27,10 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_op_rnn.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* enum for inputs/outputs */
 enum
 {
@@ -62,5 +66,8 @@ typedef struct _vsi_nn_bidirectional_sequence_rnn_param
     vsi_nn_dtype_t* internal_dtype;
 } vsi_nn_bidirectional_sequence_rnn_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

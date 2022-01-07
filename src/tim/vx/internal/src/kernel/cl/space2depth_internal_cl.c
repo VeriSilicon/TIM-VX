@@ -208,50 +208,13 @@ static vsi_nn_kernel_node_t _setup
     int32_t block_size_y  = vsi_nn_kernel_param_get_int32( params, "block_size_y" );
     int32_t opt_flg = (block_size_x == 2 && block_size_y == 1) ? 1 : 0;
 
-    float inputScale = inputs[0]->attr.dtype.scale;
-    int32_t inputZp = inputs[0]->attr.dtype.zero_point;
-    float outputScale = outputs[0]->attr.dtype.scale;
-    int32_t outputZp = outputs[0]->attr.dtype.zero_point;
+    float inputScale = vsi_nn_get_tensor_scale(inputs[0]);
+    int32_t inputZp = vsi_nn_get_tensor_zero_point(inputs[0]);
+    float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
+    int32_t outputZp = vsi_nn_get_tensor_zero_point(outputs[0]);
     float scaleInOut = 1.0f;
     float zpInOut = 0.0f;
 
-    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        int32_t input_fl = inputs[0]->attr.dtype.fl;
-        if (input_fl > 0)
-        {
-            inputScale = (1.0f / ((float) ((int64_t)1 << input_fl)));
-        }
-        else
-        {
-            inputScale = ((float) ((int64_t)1 << -input_fl));
-        }
-        inputZp = 0;
-    }
-    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE)
-    {
-        inputScale = 1.0f;
-        inputZp = 0;
-    }
-
-    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        int32_t output_fl = outputs[0]->attr.dtype.fl;
-        if (output_fl > 0)
-        {
-            outputScale = (1.0f / ((float) ((int64_t)1 << output_fl)));
-        }
-        else
-        {
-            outputScale = ((float) ((int64_t)1 << -output_fl));
-        }
-        outputZp = 0;
-    }
-    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE)
-    {
-        outputScale = 1.0f;
-        outputZp = 0;
-    }
     scaleInOut = inputScale / outputScale;
     zpInOut = outputZp - inputZp * scaleInOut;
 
@@ -295,4 +258,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( space2depth_internal, _setup )
-

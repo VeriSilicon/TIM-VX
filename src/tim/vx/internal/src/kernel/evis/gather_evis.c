@@ -289,7 +289,8 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
     }
 
     shaderParam.global_scale[0]  = 16;
-    if (attr[0]->dtype == I16 || attr[0]->dtype == F16)
+    if (attr[0]->dtype == I16 || attr[0]->dtype == F16 ||
+        attr[0]->dtype == BF16 || attr[0]->dtype == U16)
     {
         shaderParam.global_scale[0]  = 8;
     }

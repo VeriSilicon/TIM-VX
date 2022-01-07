@@ -372,24 +372,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t width = inputs[0]->attr.size[0];
     vsi_size_t height = inputs[0]->attr.size[1];
     vsi_size_t chn = inputs[0]->attr.size[2];
-    int32_t input_zp = inputs[0]->attr.dtype.zero_point;
-    float input_scale = inputs[0]->attr.dtype.scale;
+    int32_t input_zp = vsi_nn_get_tensor_zero_point(inputs[0]);
+    float input_scale = vsi_nn_get_tensor_scale(inputs[0]);
     float dim_ratio = (float)1.0 / (float)(width * height);
 
     axis_num = (int32_t)axis_num_temp;
-
-    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        if (inputs[0]->attr.dtype.fl > 0)
-        {
-            input_scale = (1.0f / ((float) ((int64_t)1 << inputs[0]->attr.dtype.fl)));
-        }
-        else
-        {
-            input_scale = ((float) ((int64_t)1 << -inputs[0]->attr.dtype.fl));
-        }
-        input_zp = 0;
-    }
 
     if (axis_num == 1 && axis[0] == 0)
     {
@@ -453,7 +440,7 @@ static vsi_nn_kernel_node_t _setup
         if ( node )
         {
             uint32_t index = 0;
-            int32_t constant_value = 0;
+            int32_t constant_value = vsi_nn_get_tensor_zero_point(inputs[0]);
             /* Pass parameters to node. */
             if (reshape_tensors[0])
             {
@@ -494,10 +481,6 @@ static vsi_nn_kernel_node_t _setup
                 vsi_nn_kernel_tensor_release( &node_params[2] );
             }
 
-            if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-            {
-                constant_value = inputs[0]->attr.dtype.zero_point;
-            }
             status = set_constant_border(node, constant_value);
             CHECK_STATUS(status);
         }

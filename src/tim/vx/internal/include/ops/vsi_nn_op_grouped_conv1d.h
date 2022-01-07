@@ -27,11 +27,14 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _grouped_conv1d_local_data_t {
     vsi_nn_tensor_t* input;
     vsi_nn_tensor_t* weight;
     vsi_nn_tensor_t* output;
-
 } grouped_conv1d_local_data_t;
 
 typedef struct _vsi_nn_grouped_conv1d_param
@@ -50,6 +53,8 @@ typedef struct _vsi_nn_grouped_conv1d_param
     int32_t      multiplier;
 } vsi_nn_grouped_conv1d_param;
 
-
+#ifdef __cplusplus
+}
 #endif
 
+#endif

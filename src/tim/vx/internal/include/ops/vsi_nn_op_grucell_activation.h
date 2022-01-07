@@ -26,11 +26,18 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
-    GRUCELL_ACT_IN_H_STATE    = 0,
-    GRUCELL_ACT_IN_INPUT_FC_H = 1,
-    GRUCELL_ACT_IN_H_T        = 2,
-    GRUCELL_ACT_IN_Z_T        = 3,
+    GRUCELL_ACT_H_STATE = 0,
+    GRUCELL_ACT_I_FC_Z  = 1,
+    GRUCELL_ACT_I_FC_R  = 2,
+    GRUCELL_ACT_I_FC_H  = 3,
+    GRUCELL_ACT_H_FC_Z  = 4,
+    GRUCELL_ACT_H_FC_R  = 5,
+    GRUCELL_ACT_H_FC_H  = 6,
 
     GRUCELL_ACT_IN_CNT,
 
@@ -45,8 +52,13 @@ typedef struct _vsi_nn_grucell_activation_param
     struct _vsi_nn_grucell_activation_local * local;
 
     vsi_nn_activation_e activation;
+    vsi_nn_activation_e recurrent_activation;
 } vsi_nn_grucell_activation_param;
 _compiler_assert(offsetof(vsi_nn_grucell_activation_param, local) == 0, \
                  vsi_nn_grucell_activation_h );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -87,8 +87,8 @@ DEF_KERNEL_EXECUTOR(_prelu_exec)
     attr[1] = vsi_nn_kernel_tensor_attr_create( tensors[1] );
     attr[2] = vsi_nn_kernel_tensor_attr_create( tensors[2] );
 
-    vsi_nn_kernel_tensor_attr_get_stride( attr[0], stride_size[0] );
-    vsi_nn_kernel_tensor_attr_get_stride( attr[1], stride_size[1] );
+    vsi_nn_shape_get_stride( attr[0]->shape->data, (vsi_size_t)attr[0]->shape->size, stride_size[0] );
+    vsi_nn_shape_get_stride( attr[1]->shape->data, (vsi_size_t)attr[1]->shape->size, stride_size[1] );
 
     out_elements = vsi_nn_kernel_tensor_attr_get_size( attr[2] );
 

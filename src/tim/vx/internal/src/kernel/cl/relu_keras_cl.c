@@ -225,7 +225,6 @@ static vsi_status _query_kernel
     }
 
     return status;
-
 } /* _query_kernel() */
 
 
@@ -244,10 +243,10 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_RELU_KERAS_QUANT_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     vsi_bool image_2d = FALSE;
-    float    outputScale  = 1.0f;
-    float    outputTail   = 0.0f;
-    float    inputScale   = 1.0f;
-    float    inputTail    = 0.0f;
+    float    outputScale  = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
+    float    outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float    inputScale   = vsi_nn_get_tensor_scale(inputs[0]);
+    float    inputTail    =  -1 * (float)vsi_nn_get_tensor_zero_point(inputs[0]) * inputScale;
     vsi_bool is_use_u8_kernel = FALSE;
     float    alpha        = vsi_nn_kernel_param_get_float32( params, "alpha" );
     float    max_value    = vsi_nn_kernel_param_get_float32( params, "max_value" );
@@ -258,19 +257,6 @@ static vsi_nn_kernel_node_t _setup
                 inputs[0]->attr.dim_num ) )
     {
         return NULL;
-    }
-
-    if (VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC == inputs[0]->attr.dtype.qnt_type)
-    {
-        inputScale   = inputs[0]->attr.dtype.scale == 0.0f ? 1.0f : inputs[0]->attr.dtype.scale;
-        inputTail    = -((float)inputs[0]->attr.dtype.zero_point * inputScale);
-    }
-
-    if (VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC == outputs[0]->attr.dtype.qnt_type)
-    {
-        outputScale  = outputs[0]->attr.dtype.scale == 0.0f ? 1.0f : outputs[0]->attr.dtype.scale;
-        outputScale = 1.0f / outputScale;
-        outputTail   = (float)outputs[0]->attr.dtype.zero_point;
     }
 
     image_2d = (inputs[0]->attr.dim_num == 2 || inputs[0]->attr.size[2] == 1);
@@ -316,10 +302,8 @@ static vsi_nn_kernel_node_t _setup
     }
 
     return node;
-
 } /* _setup() */
 
 __END_DECLS
 
 REGISTER_BACKEND_CL( relu_keras, _setup )
-

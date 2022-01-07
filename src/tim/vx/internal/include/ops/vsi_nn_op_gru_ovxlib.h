@@ -27,6 +27,10 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_op_grucell_ovxlib.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* enum for inputs/outputs */
 enum
 {
@@ -74,5 +78,8 @@ typedef struct _vsi_nn_gru_ovxlib_param
     uint32_t cudnn_implementation_version;
 } vsi_nn_gru_ovxlib_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

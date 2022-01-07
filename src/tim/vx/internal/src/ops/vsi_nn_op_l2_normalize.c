@@ -32,6 +32,7 @@
 #include "utils/vsi_nn_math.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "kernel/vsi_nn_kernel.h"
 
 static vsi_status op_compute
     (
@@ -41,81 +42,24 @@ static vsi_status op_compute
     )
 {
     vsi_status status = VX_FAILURE;
-#ifdef VX_L2NORM_AXIS_PARAMETER_SUPPORT
-    vx_nn_l2norm_params_t param;
+    int32_t axis = self->nn_param.l2_normalize.axis;
+    vsi_nn_kernel_param_t * param = NULL;
 
-    param.axis = self->nn_param.l2_normalize.axis;
+    param = vsi_nn_kernel_param_create();
+    vsi_nn_kernel_param_add_int32( param, "axis", axis );
 
-    self->n = vxL2NormalizeLayer2(
-        self->graph->g,
-        inputs[0]->t,
-        &param,
-        sizeof(vx_nn_l2norm_params_t),
-        outputs[0]->t
-        );
-
-    if( NULL != self->n )
-    {
-        status = VSI_SUCCESS;
-    }
-#else
-    vsi_nn_l2_normalize_param * p;
-    int32_t axis = -1;
-    uint32_t i = 0;
-    uint32_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
-    uint32_t innerSize = 1;
-    uint32_t outerSize = 1;
-    uint32_t axisSize  = 1;
-    vx_tensor vx_input = NULL;
-    vx_tensor vx_output = NULL;
-    vx_tensor input = inputs[0]->t;
-    vx_tensor output = outputs[0]->t;
-
-    status = VSI_FAILURE;
-
-    p = &(self->nn_param.l2_normalize);
-    axis = p->axis;
-
-    if (axis != 2)
-    {
-        axisSize  = inputs[0]->attr.size[axis];
-
-        for (i = 0; i < (uint32_t)axis; i++)
-        {
-            innerSize *= inputs[0]->attr.size[i];
-        }
-
-        for (i = (uint32_t)(axis + 1); i < inputs[0]->attr.dim_num; i++)
-        {
-            outerSize *= inputs[0]->attr.size[i];
-        }
-
-        sizes[0] = innerSize;
-        sizes[1] = 1;
-        sizes[2] = axisSize;
-        sizes[3] = outerSize;
-
-        vx_input = vxReshapeTensor(inputs[0]->t, (int32_t *)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
-        vx_output = vxReshapeTensor(outputs[0]->t, (int32_t *)sizes, vsi_nn_max(inputs[0]->attr.dim_num, 4));
-
-        input = vx_input;
-        output = vx_output;
-    }
-
-    self->n = vxL2NormalizeLayer(
-        self->graph->g,
-        input,
-        output
-        );
+    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+        "l2_norm",
+        inputs, 1,
+        outputs, 1, param );;
 
     if( NULL != self->n )
     {
         status = VSI_SUCCESS;
     }
 
-    if (vx_input) vxReleaseTensor(&vx_input);
-    if (vx_output) vxReleaseTensor(&vx_output);
-#endif
+    vsi_nn_kernel_param_release( &param );
+
     return status;
 } /* op_compute() */
 
@@ -189,4 +133,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

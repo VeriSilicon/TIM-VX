@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* enum for inputs/outputs */
 enum
 {
@@ -50,5 +54,8 @@ typedef struct _vsi_nn_batchnorm_single_param
     float eps;
 } vsi_nn_batchnorm_single_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

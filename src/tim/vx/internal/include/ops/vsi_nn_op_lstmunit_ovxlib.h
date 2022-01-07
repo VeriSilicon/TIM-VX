@@ -28,6 +28,10 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_op_lstmunit.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define LSTMUNIT_IFCO_GATE_COUNT 4
 
 /* enum for inputs/outputs */
@@ -273,5 +277,9 @@ typedef struct _vsi_nn_lstmunit_ovxlib_param
     vsi_nn_activation_e recurrent_activation;
     vsi_nn_dtype_t *internal_dtype_aux;
 } vsi_nn_lstmunit_ovxlib_param;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

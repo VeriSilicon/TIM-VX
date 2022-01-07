@@ -111,7 +111,7 @@ static void _try_pack_tensor_data
             cnt = fwrite( data, (size_t)bytes, 1, s_dfile_hndl );
             if( cnt != 1 )
             {
-                VSILOGW( "Write tensor bytes(%"VSI_SIZE_T_SPECIFIER"/%d)", (vsi_size_t)cnt, 1 );
+                VSILOGW( "Write tensor bytes(%"SIZE_T_SPECIFIER"/%d)", cnt, 1 );
             }
             if( cnt > 0 )
             {
@@ -435,6 +435,8 @@ static _op_param_gen_t s_op_gen[] =
     /* GRU */                   NULL,
     /* GRUCELL */               NULL,
     /* GRUCELL_ACTIVATION */    NULL,
+    /* RESHAPE2 */              NULL,
+    /* CONV3D */                NULL,
 };
 _compiler_assert( _cnt_of_array(s_op_gen) == VSI_NN_OP_NUM, vsi_nn_code_generator_c );
 

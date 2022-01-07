@@ -118,8 +118,7 @@ static void _set_preproc_node_rect_params
     (
     vsi_nn_node_t* node,
     vsi_nn_preprocess_crop_t* crop,
-    vsi_nn_tensor_attr_t* attr,
-    vsi_nn_preprocess_source_layout_e* source_layout
+    vsi_nn_preprocess_image_size_t* input_size
     )
 {
     if(crop != NULL)
@@ -133,13 +132,8 @@ static void _set_preproc_node_rect_params
     {
         node->nn_param.pre_process.rect.left = 0;
         node->nn_param.pre_process.rect.top = 0;
-        node->nn_param.pre_process.rect.width = (uint32_t)attr->size[0];
-        node->nn_param.pre_process.rect.height = (uint32_t)attr->size[1];
-        if(*source_layout == VSI_NN_SOURCE_LAYOUT_NHWC)
-        {
-            node->nn_param.pre_process.rect.width = (uint32_t)attr->size[1];
-            node->nn_param.pre_process.rect.height = (uint32_t)attr->size[2];
-        }
+        node->nn_param.pre_process.rect.width = input_size->w;
+        node->nn_param.pre_process.rect.height = input_size->h;
     }
 } /* _set_preproc_node_rect_params() */
 
@@ -496,7 +490,7 @@ vsi_status vsi_nn_add_single_preproc_node
     status = _set_preproc_node_type(node, source_format);
     TEST_CHECK_STATUS(status, final);
 
-    _set_preproc_node_rect_params(node, crop, &org_norm_tensor->attr, source_layout);
+    _set_preproc_node_rect_params(node, crop, input_size);
     _set_preproc_node_norm_params(node, mean_and_scale, &org_norm_tensor->attr);
 
     if(permute != NULL)

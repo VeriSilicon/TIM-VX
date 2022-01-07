@@ -95,62 +95,25 @@ static vsi_status op_compute
     input_size[0] = num_fc;
     input_size[1] = num_no_fc;
     dims= 2;
-#ifdef VSI_40BIT_VA_SUPPORT
-    input = vxReshapeTensor(inputs[0]->t, input_size, dims);
-#else
-    {
-        int32_t input_size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
-        for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
-        {
-            input_size_32bit[i] =  (int32_t)input_size[i];
-        }
-        input = vxReshapeTensor(inputs[0]->t, input_size_32bit, (uint32_t)dims);
-    }
-#endif
+    input = vsi_nn_safe_reshape_tensor(inputs[0]->t, (void*)input_size, (vsi_size_t)dims, sizeof(input_size[0]));
 
     weights_size[0] = num_fc;
     weights_size[1] = ofm;
     dims= 2;
-#ifdef VSI_40BIT_VA_SUPPORT
-    weight = vxReshapeTensor(inputs[1]->t, weights_size, dims);
-#else
-    {
-        int32_t weight_size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
-        for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
-        {
-            weight_size_32bit[i] = (int32_t)weight_size_32bit[i];
-        }
-        weight = vxReshapeTensor(inputs[1]->t, weight_size_32bit, (uint32_t)dims);
-    }
-#endif
+    weight = vsi_nn_safe_reshape_tensor(inputs[1]->t, (void*)weights_size, (vsi_size_t)dims, sizeof(weights_size[0]));
 
     if( inputs[2] != NULL )
     {
         bias_size[0] = ofm;
         bias_size[1] = 1;
         dims= 2;
-#ifdef VSI_40BIT_VA_SUPPORT
-        bias = vxReshapeTensor(inputs[2]->t, bias_size, dims);
-#else
-        {
-            int32_t bias_size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
-            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
-            {
-                bias_size_32bit[i] =  (int32_t)bias_size[i];
-            }
-            bias = vxReshapeTensor(inputs[2]->t, bias_size_32bit, (uint32_t)dims);
-        }
-#endif
+        bias = vsi_nn_safe_reshape_tensor(inputs[2]->t, (void*)bias_size, (vsi_size_t)dims, sizeof(bias_size[0]));
     }
 
     output_size[0] = ofm;
     output_size[1] = num_no_fc;
     dims= 2;
-#ifdef VSI_40BIT_VA_SUPPORT
-    output = vxReshapeTensor(outputs[0]->t, output_size, dims);
-#else
-    output = vxReshapeTensor(outputs[0]->t, (vx_int32*)output_size, (uint32_t)dims);
-#endif
+    output = vsi_nn_safe_reshape_tensor(outputs[0]->t, (void*)output_size, (vsi_size_t)dims, sizeof(output_size[0]));
 
     self->n = vxFullyConnectedLayer(
         self->graph->g,

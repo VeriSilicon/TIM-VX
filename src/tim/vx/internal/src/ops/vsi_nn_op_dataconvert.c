@@ -104,16 +104,11 @@ static vsi_status op_optimize
     {
         if(NULL == inputs[0]->t && NULL != outputs[0]->t)
         {
-#ifdef VSI_40BIT_VA_SUPPORT
-            inputs[0]->t = vxReshapeTensor(outputs[0]->t,
-                inputs[0]->attr.size, inputs[0]->attr.dim_num);
-#else
-            inputs[0]->t = vxReshapeTensor(outputs[0]->t,
-                (vx_int32*)inputs[0]->attr.size, inputs[0]->attr.dim_num);
-#endif
+            inputs[0]->t = vsi_nn_safe_reshape_tensor(outputs[0]->t,
+                (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num, sizeof(inputs[0]->attr.size[0]));
             if( inputs[0]->t == NULL )
             {
-                VSILOGE("Call vxReshapeTensor fail");
+                VSILOGE("Call vsi_nn_safe_reshape_tensor fail");
                 return VSI_FAILURE;
             }
             self->nn_param.dataconvert.lcl_data->use_reshape = TRUE;
@@ -123,16 +118,11 @@ static vsi_status op_optimize
     {
         if(NULL == outputs[0]->t && NULL != inputs[0]->t)
         {
-#ifdef VSI_40BIT_VA_SUPPORT
-            outputs[0]->t = vxReshapeTensor(inputs[0]->t,
-                outputs[0]->attr.size, outputs[0]->attr.dim_num);
-#else
-            outputs[0]->t = vxReshapeTensor(inputs[0]->t,
-                (vx_int32*)outputs[0]->attr.size, outputs[0]->attr.dim_num);
-#endif
+            outputs[0]->t = vsi_nn_safe_reshape_tensor(inputs[0]->t,
+                (void*)outputs[0]->attr.size, (vsi_size_t)outputs[0]->attr.dim_num, sizeof(outputs[0]->attr.size[0]));
             if( outputs[0]->t == NULL )
             {
-                VSILOGE("Call vxReshapeTensor fail");
+                VSILOGE("Call vsi_nn_safe_reshape_tensor fail");
                 return VSI_FAILURE;
             }
             self->nn_param.dataconvert.lcl_data->use_reshape = TRUE;

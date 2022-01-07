@@ -151,9 +151,9 @@ static vsi_bool op_setup
     if (self->nn_param.post_process.local.enable_data_conv == FALSE &&
         self->nn_param.post_process.local.enable_perm == FALSE)
     {
-        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE, 0, 0 );
-        curr->node->nn_param.reshape.size = outputs[0]->attr.size;
-        curr->node->nn_param.reshape.dim_num = outputs[0]->attr.dim_num;
+        curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+        curr->node->nn_param.reshape2.size = outputs[0]->attr.size;
+        curr->node->nn_param.reshape2.dim_num = outputs[0]->attr.dim_num;
         curr->inputs[0] = inputs[POST_PROCESS_INPUT];
         curr->outputs[0] = outputs[POST_PROCESS_OUTPUT];
 

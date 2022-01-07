@@ -337,6 +337,8 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
+    vsi_nn_internal_deinit_node_wksp( self );
+
     return VSI_SUCCESS;
 }
 

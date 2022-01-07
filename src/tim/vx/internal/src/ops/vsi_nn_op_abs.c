@@ -33,6 +33,7 @@
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
+#include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 static vsi_status op_compute
@@ -42,48 +43,15 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status;
-    vsi_size_t input_size[VSI_NN_MAX_DIM_NUM] = {0};
-    uint32_t dims = 0;
-    vx_tensor input = NULL, input0 = NULL;
-    vx_tensor output = NULL, output0 = NULL;
-    status = VSI_FAILURE;
+    vsi_status status = VSI_SUCCESS;
+    vsi_nn_kernel_node_t    n;
 
-    if (inputs[0]->attr.dim_num > 4)
+    n = vsi_nn_kernel_selector( self->graph, "abs", inputs, 1, outputs, 1, NULL );
+    if( n == NULL )
     {
-        input_size[0] = (int32_t)vsi_nn_GetElementNum(inputs[0]) /
-            inputs[0]->attr.size[inputs[0]->attr.dim_num - 1];
-        input_size[1] = inputs[0]->attr.size[inputs[0]->attr.dim_num - 1];
-        dims= 2;
-#ifdef VSI_40BIT_VA_SUPPORT
-        input = vxReshapeTensor(inputs[0]->t, input_size, dims);
-        output = vxReshapeTensor(outputs[0]->t, input_size, dims);
-#else
-        input = vxReshapeTensor(inputs[0]->t, (vx_int32*)input_size, (vx_uint32)dims);
-        output = vxReshapeTensor(outputs[0]->t, (vx_int32*)input_size, (vx_uint32)dims);
-#endif
-        input0 = input;
-        output0 = output;
-    }
-    else
-    {
-        input0 = inputs[0]->t;
-        output0 = outputs[0]->t;
+        status = VSI_FAILURE;
     }
 
-    self->n = vxLeakyReluLayer(
-        self->graph->g,
-        input0,
-        -1,
-        output0
-        );
-
-    if( NULL != self->n )
-    {
-        status = VSI_SUCCESS;
-    }
-    if (input)  vxReleaseTensor(&input);
-    if (output) vxReleaseTensor(&output);
     return status;
 } /* op_compute() */
 
@@ -152,4 +120,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

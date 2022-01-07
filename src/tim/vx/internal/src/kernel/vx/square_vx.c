@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2021 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -30,85 +30,9 @@
 #include <float.h>
 #include "utils/vsi_nn_dtype_util_prv.h"
 #include "vsi_nn_tensor_util.h"
+#include "vsi_nn_error.h"
 #include "kernel/vsi_nn_kernel.h"
-
-typedef struct _sort_lut_s
-{
-    float index;
-    float val;
-} sort_lut;
-
-static float square_eval(float x)
-{
-    return x * x;
-}
-
-#ifdef VX_USER_LOOKUP_TABLE_SUPPORT
-static int32_t _lut_comparator(const void *pa, const void *pb)
-{
-    sort_lut a = *(sort_lut *)pa;
-    sort_lut b = *(sort_lut *)pb;
-    float diff = a.index - b.index;
-    if ( diff > 0 )
-    {
-        return 1;
-    }
-    else if ( diff < 0 )
-    {
-        return -1;
-    }
-
-    return 0;
-}
-
-static void _set_table_lookup(float func(float), float *index, float *value)
-{
-#define VSI_NN_MAX_LUT_SIZE     (1024)
-#define FLT16_MAX               (57344)
-#define FLT16_MIN               (-57344)
-    uint32_t i = 0;
-    sort_lut *lut = (sort_lut *)calloc(VSI_NN_MAX_LUT_SIZE, sizeof(sort_lut));
-
-    for ( i = 0; i < VSI_NN_MAX_LUT_SIZE; i++)
-    {
-        int16_t val = (int16_t)(i << 6);
-        lut[i].index = fp16_to_fp32(val);
-        lut[i].val = func(lut[i].index);
-    }
-
-    for (i = 0x0; i < 0x10; i++)
-    {
-        lut[i].index = 0;
-        lut[i].val = func(lut[i].index);
-    }
-
-    for (i = 0x1F0; i < 0x200; i++)
-    {
-        lut[i].index = FLT16_MAX;
-        lut[i].val = func(lut[i].index);
-    }
-
-    for (i = 0x3F0; i < 0x400; i++)
-    {
-        lut[i].index = FLT16_MIN;
-        lut[i].val = func(lut[i].index);
-    }
-
-    qsort(lut, VSI_NN_MAX_LUT_SIZE, sizeof(sort_lut), _lut_comparator);
-
-    for ( i = 0; i < VSI_NN_MAX_LUT_SIZE; i++)
-    {
-        index[i] = lut[i].index;
-        value[i] = lut[i].val;
-    }
-
-    vsi_nn_safe_free(lut);
-
-#undef VSI_NN_MAX_LUT_SIZE
-#undef FLT16_MIN
-#undef FLT16_MAX
-}
-#endif
+#include "kernel/vsi_nn_kernel_lut.h"
 
 static vsi_nn_kernel_node_t _setup
     (
@@ -118,16 +42,15 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_tensor_t            ** outputs,
     size_t                        output_num,
     const vsi_nn_kernel_param_t * params,
-    vsi_nn_kernel_t             * kernel,
-    float                      func(float)
+    vsi_nn_kernel_t             * kernel
     )
 {
     vx_node node = NULL;
 #ifdef VX_USER_LOOKUP_TABLE_SUPPORT
     vx_lut lut1 = NULL;
     vx_lut lut2 = NULL;
-    float index[1024] = {0};
-    float value[1024] = {0};
+    vsi_status status = VSI_FAILURE;
+    vsi_nn_kernel_lut_params lut_param;
 
     if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32   ||
          outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32 )
@@ -135,21 +58,21 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    _set_table_lookup(func, index, value);
+    lut_param.act_type = VSI_NN_KERNEL_LUT_SQUARE;
 
-    lut1 = vxCreateLUT( graph->ctx->c, VX_TYPE_FLOAT32, 1024);
-    lut2 = vxCreateLUT( graph->ctx->c, VX_TYPE_FLOAT32, 1024);
+    lut1 = vxCreateLUT( graph->ctx->c, VX_TYPE_FLOAT32, VSI_NN_KERNEL_LUT_MAX_SIZE);
+    lut2 = vxCreateLUT( graph->ctx->c, VX_TYPE_FLOAT32, VSI_NN_KERNEL_LUT_MAX_SIZE);
     if( NULL == lut1 || NULL == lut2 )
     {
         VSILOGE("create lut object fail.");
-        goto OnError;
+        goto final;
     }
 
-    vxCopyLUT(lut1, (void*)&index, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
-    vxCopyLUT(lut2, (void*)&value, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
+    status = vsi_nn_kernel_lut(lut1, lut2, &lut_param);
+    CHECK_STATUS_FAIL_GOTO(status, final);
 
     node = vxTensorTableLookupLayer( graph->g, inputs[0]->t, lut1, lut2, outputs[0]->t);
-    if( NULL == node )
+    if ( NULL == node )
     {
         node = vxActivationLayer(
             graph->g,
@@ -161,7 +84,7 @@ static vsi_nn_kernel_node_t _setup
             );
     }
 
-OnError:
+final:
     if (lut1)
     {
         vxReleaseLUT(&lut1);
@@ -187,7 +110,7 @@ OnError:
 #endif
 } /* _setup() */
 
-#define REGISTER_SQUARE_OPENVX_KERNEL(KERNEL_NAME, ACT_FUNC) \
+#define REGISTER_SQUARE_OPENVX_KERNEL(KERNEL_NAME) \
     static vsi_nn_kernel_node_t _##KERNEL_NAME##_setup \
         ( \
         vsi_nn_graph_t              * graph, \
@@ -200,10 +123,10 @@ OnError:
         ) \
     { \
         return _setup(graph, inputs, input_num, outputs, output_num, \
-                params, kernel, ACT_FUNC); \
+                params, kernel); \
     } \
     REGISTER_BACKEND_OPENVX( KERNEL_NAME, _##KERNEL_NAME##_setup )
 
-REGISTER_SQUARE_OPENVX_KERNEL( square, square_eval )
+REGISTER_SQUARE_OPENVX_KERNEL( square )
 
 #undef REGISTER_SQUARE_OPENVX_KERNEL

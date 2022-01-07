@@ -187,12 +187,20 @@ static vsi_status _query_kernel
 
     if (F16 == in0_dtype)
     {
-        in0_dtype  = F32;
+        in0_dtype = F32;
+    }
+    else if (I16 == in0_dtype)
+    {
+        in0_dtype = I32;
     }
 
     if (F16 == in1_dtype)
     {
-        in1_dtype  = F32;
+        in1_dtype = F32;
+    }
+    else if (I16 == in1_dtype)
+    {
+        in1_dtype = I32;
     }
 
     if (F16 == out_dtype)
@@ -254,12 +262,12 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_FLOORDIV_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     vsi_bool image_2d = FALSE;
-    float    outputScale  = outputs[0]->attr.dtype.scale == 0.0f ? 1.0f : outputs[0]->attr.dtype.scale;
-    float    outputTail   = (float)outputs[0]->attr.dtype.zero_point;
-    float    input0Scale  = inputs[0]->attr.dtype.scale == 0.0f ? 1.0f : inputs[0]->attr.dtype.scale;
-    float    input0Tail   = (float)inputs[0]->attr.dtype.zero_point;
-    float    input1Scale  = inputs[1]->attr.dtype.scale == 0.0f ? 1.0f : inputs[1]->attr.dtype.scale;
-    float    input1Tail   = (float)inputs[1]->attr.dtype.zero_point;
+    float    outputScale  = vsi_nn_get_tensor_scale(outputs[0]);
+    float    outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float    input0Scale  = vsi_nn_get_tensor_scale(inputs[0]);
+    float    input0Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float    input1Scale  = vsi_nn_get_tensor_scale(inputs[1]);
+    float    input1Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[1]);
     vsi_bool is_use_u8_kernel = FALSE;
 
     outputScale = 1.0f / outputScale;

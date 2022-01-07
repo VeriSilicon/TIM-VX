@@ -73,11 +73,7 @@ static vsi_status op_compute
     input_size[0] = num_fc;
     input_size[1] = num_no_fc;
     dims= 2;
-#ifdef VSI_40BIT_VA_SUPPORT
-    input = vxReshapeTensor(inputs[0]->t, input_size, dims);
-#else
-    input = vxReshapeTensor(inputs[0]->t, (vx_int32*)input_size, dims);
-#endif
+    input = vsi_nn_safe_reshape_tensor(inputs[0]->t, (void*)input_size, (vsi_size_t)dims, sizeof(input_size[0]));
 
     weight = inputs[1]->t;
 

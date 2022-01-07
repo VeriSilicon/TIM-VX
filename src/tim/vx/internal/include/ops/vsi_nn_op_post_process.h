@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     POST_PROCESS_INPUT = 0,
@@ -53,5 +57,8 @@ typedef struct _vsi_nn_post_process_param
     vsi_nn_post_process_lcl_data local;
 } vsi_nn_post_process_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

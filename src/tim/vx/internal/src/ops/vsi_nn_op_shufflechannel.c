@@ -55,7 +55,7 @@ static vsi_status op_compute
     vx_nn_reorg_params_ext2_t param;
     vsi_nn_tensor_t *block_size_tensor = NULL;
     vsi_nn_tensor_attr_t attr;
-    uint8_t data = 1;
+    int32_t data[2] = {1, 1};
 
     memset(&param, 0, sizeof(vx_nn_reorg_params_ext2_t));
     memset(&attr, 0, sizeof(attr));
@@ -66,9 +66,9 @@ static vsi_status op_compute
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
     block_size_tensor = vsi_nn_CreateTensorFromData(
         self->graph,
-        &data,
+        (uint8_t *)data,
         &attr);
-    if( NULL == block_size_tensor )
+    if ( NULL == block_size_tensor )
     {
         VSILOGE("Create block_size_tensor fail.(shufflechannel)");
         return VSI_FAILURE;
@@ -87,7 +87,7 @@ static vsi_status op_compute
         sizeof(vx_nn_reorg_params_ext2_t),
         outputs[0]->t);
 
-    if( NULL != self->n )
+    if ( NULL != self->n )
     {
         status = VSI_SUCCESS;
     }
@@ -257,4 +257,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

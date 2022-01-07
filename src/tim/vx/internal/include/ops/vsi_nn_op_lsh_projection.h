@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum
     {
         VSI_NN_LSH_PROJECTION_SPARSE = 1,
@@ -37,5 +41,8 @@ typedef struct _vsi_nn_lsh_projection_param
         vsi_nn_lsh_projection_type_e type;
     } vsi_nn_lsh_projection_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

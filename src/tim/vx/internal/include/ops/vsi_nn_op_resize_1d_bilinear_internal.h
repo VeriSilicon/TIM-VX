@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_resize_1d_bilinear_internal_param
 {
     struct _resize_1d_bilinear_internal_local_data_t* local;
@@ -38,5 +42,8 @@ typedef struct _vsi_nn_resize_1d_bilinear_internal_param
 _compiler_assert(offsetof(vsi_nn_resize_1d_bilinear_internal_param, local) == 0, \
     vsi_nn_resize_1d_bilinear_internal_h );
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

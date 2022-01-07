@@ -27,6 +27,10 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_op_lstmunit.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     LSTM_INPUT_INPUT        = 0,
@@ -100,5 +104,8 @@ typedef struct _vsi_nn_lstm_ovxlib_param
     uint32_t weights; /* compatible with LSTM, NOT used */
 } vsi_nn_lstm_ovxlib_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

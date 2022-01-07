@@ -240,12 +240,12 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_SELECT_PARAM_NUM] = {NULL};
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
-    float   outputScale  = outputs[0]->attr.dtype.scale == 0.0f ? 1.0f : outputs[0]->attr.dtype.scale;
-    float   outputZP     = (float)outputs[0]->attr.dtype.zero_point;
-    float   input0Scale  = inputs[1]->attr.dtype.scale == 0.0f ? 1.0f : inputs[1]->attr.dtype.scale;
-    float   input0Tail   = (float)inputs[1]->attr.dtype.zero_point;
-    float   input1Scale  = inputs[2]->attr.dtype.scale == 0.0f ? 1.0f : inputs[2]->attr.dtype.scale;
-    float   input1Tail   = (float)inputs[2]->attr.dtype.zero_point;
+    float   outputScale  = vsi_nn_get_tensor_scale(outputs[0]);
+    float   outputZP     = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float   input0Scale  = vsi_nn_get_tensor_scale(inputs[1]);
+    float   input0Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[1]);
+    float   input1Scale  = vsi_nn_get_tensor_scale(inputs[2]);
+    float   input1Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[2]);
 
     input0Scale = input0Scale / outputScale;
     input1Scale = input1Scale / outputScale;
@@ -289,4 +289,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( select, _setup )
-

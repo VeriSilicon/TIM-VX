@@ -15,12 +15,12 @@ aux_source_directory(./vx/internal/src/quantization INTERNAL_QUANTIZATION)
 aux_source_directory(./vx/internal/src/custom/ops INTERNAL_CUSTOM_OPS)
 aux_source_directory(./vx/internal/src/custom/ops/kernel INTERNAL_CUSTOM_OPS_KERNEL)
 aux_source_directory(./vx/internal/src/utils INTERNAL_UTILS)
+aux_source_directory(./vx/internal/src/POST POST)
 
 list(APPEND ${TARGET_NAME}_SRCS
     ${INTERNAL_SRC}
     ${INTERNAL_KERNEL}
     ${INTERNAL_KERNEL_CL}
-    ${INTERNAL_KERNEL_CPU}
     ${INTERNAL_KERNEL_EVIS}
     ${INTERNAL_KERNEL_VX}
     ${INTERNAL_OPS}
@@ -29,4 +29,5 @@ list(APPEND ${TARGET_NAME}_SRCS
     ${INTERNAL_CUSTOM_OPS}
     ${INTERNAL_CUSTOM_OPS_KERNEL}
     ${INTERNAL_UTILS}
+    ${POST}
 )

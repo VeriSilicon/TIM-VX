@@ -32,6 +32,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
+#include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -52,11 +53,7 @@ static void _reshape_tensor
         attr.size[2] = input->attr.size[1];
         attr.dim_num = 3;
     }
-#ifdef VSI_40BIT_VA_SUPPORT
-    *output = vxReshapeTensor( input->t, attr.size, attr.dim_num );
-#else
-    *output = vxReshapeTensor( input->t, (vx_int32*)attr.size, attr.dim_num );
-#endif
+    *output = vsi_nn_safe_reshape_tensor( input->t, (void*)attr.size, (vsi_size_t)attr.dim_num , sizeof(attr.size[0]));
 }
 
 static vsi_status op_compute

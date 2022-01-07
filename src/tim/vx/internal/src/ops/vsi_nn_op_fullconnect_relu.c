@@ -267,23 +267,51 @@ static vsi_bool op_setup
         opt.num_of_output_dims = outputs[0]->attr.dim_num;
         p_opt = &opt;
 
-        inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors3(
-            VX_CONVOLUTIONAL_NETWORK_FULLYCONNECTED_LAYER,
 #ifdef VSI_40BIT_VA_SUPPORT
-            inputs[0]->attr.size,
-            outputs[0]->attr.size,
-            outputs[0]->attr.size,
+        {
+            vx_size size_input0[VSI_NN_MAX_DIM_NUM];
+            vx_size size_output0[VSI_NN_MAX_DIM_NUM];
+            size_t i = 0;
+            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+            {
+                size_input0[i] = (vx_size)inputs[0]->attr.size[i];
+                size_output0[i] = (vx_size)outputs[0]->attr.size[i];
+            }
+            inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors3(
+                VX_CONVOLUTIONAL_NETWORK_FULLYCONNECTED_LAYER,
+                size_input0,
+                size_output0,
+                size_output0,
+                &p,
+                sizeof(p),
+                (vx_weights_biases_parameter_optimizations_t *)p_opt,
+                sizeof(opt),
+                inputs[1]->t, inputs[2]->t
+                );
+        }
 #else
-            (vx_uint32*)inputs[0]->attr.size,
-            (vx_uint32*)outputs[0]->attr.size,
-            (vx_uint32*)outputs[0]->attr.size,
+        {
+            uint32_t size_u32_input0[VSI_NN_MAX_DIM_NUM];
+            uint32_t size_u32_output0[VSI_NN_MAX_DIM_NUM];
+            size_t i = 0;
+            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+            {
+                size_u32_input0[i] = (uint32_t)inputs[0]->attr.size[i];
+                size_u32_output0[i] = (uint32_t)outputs[0]->attr.size[i];
+            }
+            inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors3(
+                VX_CONVOLUTIONAL_NETWORK_FULLYCONNECTED_LAYER,
+                size_u32_input0,
+                size_u32_output0,
+                size_u32_output0,
+                &p,
+                sizeof(p),
+                (vx_weights_biases_parameter_optimizations_t *)p_opt,
+                sizeof(opt),
+                inputs[1]->t, inputs[2]->t
+                );
+        }
 #endif
-            &p,
-            sizeof(p),
-            (vx_weights_biases_parameter_optimizations_t *)p_opt,
-            sizeof(opt),
-            inputs[1]->t, inputs[2]->t
-            );
         if( p.pad_const )
         {
             vxReleaseScalar( &p.pad_const );

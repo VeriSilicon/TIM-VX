@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_roi_align_param
 {
     int32_t output_height;
@@ -36,5 +40,8 @@ typedef struct _vsi_nn_roi_align_param
     int32_t width_sample_num;
 } vsi_nn_roi_align_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     CONV2D_LSTM_IN_INPUT        = 0,
@@ -72,5 +76,9 @@ typedef struct _vsi_nn_conv2d_lstm_param
     uint32_t filters;
     vsi_nn_conv2d_param conv2d;
 } vsi_nn_conv2d_lstm_param;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

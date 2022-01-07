@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_interp_param
 {
     struct _interp_local_data_t* local;
@@ -38,7 +42,8 @@ typedef struct _vsi_nn_interp_param
     int32_t   pad_end; //padding at end of intput
 } vsi_nn_interp_param;
 
-
-
+#ifdef __cplusplus
+}
 #endif
 
+#endif

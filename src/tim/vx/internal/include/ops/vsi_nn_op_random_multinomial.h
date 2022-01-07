@@ -26,10 +26,17 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_random_multinomial_param
 {
     int32_t     sample_num;
 } vsi_nn_random_multinomial_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

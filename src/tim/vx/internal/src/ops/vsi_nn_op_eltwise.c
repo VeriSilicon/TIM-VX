@@ -53,6 +53,7 @@ static vsi_status _eltwise_op_compute
     vsi_bool ret = TRUE;
     vx_bool doShapeOptimized = TRUE;
     vsi_nn_kernel_param_t * param = NULL;
+    vsi_nn_context_t   ctx = NULL;
 
     if( NULL == self )
     {
@@ -60,9 +61,13 @@ static vsi_status _eltwise_op_compute
     }
     status = VSI_FAILURE;
 
+    ctx = self->graph->ctx;
+
     if ( strcmp(kernel_name, "sub") == 0
       || strcmp(kernel_name, "add") == 0
-      || strcmp(kernel_name, "mul") == 0 )
+      || strcmp(kernel_name, "mul") == 0
+      || (strcmp(kernel_name, "maximum") == 0 && ctx->config.support_stream_processor)
+      || (strcmp(kernel_name, "minimum") == 0 && ctx->config.support_stream_processor))
     {
         doShapeOptimized = FALSE;
 
@@ -183,7 +188,6 @@ vsi_bool vsi_nn_op_eltwise_setup
 
     return ret;
 } /* vsi_nn_op_eltwise_setup() */
-
 
 static vsi_bool op_check_minimum
     (
@@ -322,7 +326,6 @@ static vsi_bool op_check_pow
     return TRUE;
 } /* op_check() */
 
-
 static vsi_bool op_check_add
     (
     vsi_nn_node_t * self,
@@ -457,9 +460,6 @@ static vsi_bool op_check_sub
     return ret;
 } /* op_check() */
 
-
-
-
 static vsi_bool op_check_div
     (
     vsi_nn_node_t * self,
@@ -517,7 +517,6 @@ static vsi_bool op_check_div
 
     return TRUE;
 } /* op_check() */
-
 
 static vsi_bool op_check_mul
     (
@@ -656,7 +655,6 @@ DEF_ELEMENT_WISE_OP( SUBTRACT, sub );
 DEF_ELEMENT_WISE_OP( DIVIDE, div );
 DEF_ELEMENT_WISE_OP( MULTIPLY, mul );
 DEF_ELEMENT_WISE_OP( POW, pow );
-
 
 #undef DEF_ELEMENT_WISE_OP
 

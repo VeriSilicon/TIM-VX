@@ -239,10 +239,9 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     int32_t axis = 0;
     float beta = 0;
-    float inputScale =
-        inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC ? inputs[0]->attr.dtype.scale : 1.0f;
-    float outputScale = 1.0f / outputs[0]->attr.dtype.scale;
-    float outputZP = (float)outputs[0]->attr.dtype.zero_point + 0.5f;
+    float inputScale = vsi_nn_get_tensor_scale(inputs[0]);
+    float outputScale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
+    float outputZP = (float)vsi_nn_get_tensor_zero_point(outputs[0]) + 0.5f;
     float scaleValue = (vx_float32)(log10(exp(1.0f)) / log10(2.0f));
 
     axis = vsi_nn_kernel_param_get_int32(params, "axis");

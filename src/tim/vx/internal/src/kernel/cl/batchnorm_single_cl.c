@@ -232,45 +232,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_CL_PARAM_NUM] = {NULL};
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
-    float input_scale = 1.0f;
-    float input_tail = 0;
-    float output_scale = 1.0f;
-    float output_zp = (float)outputs[0]->attr.dtype.zero_point + 0.5f;
+    float input_scale = vsi_nn_get_tensor_scale(inputs[0]);
+    float input_tail = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * input_scale;
+    float output_scale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
+    float output_zp = (float)vsi_nn_get_tensor_zero_point(outputs[0]) + 0.5f;
     float eps = vsi_nn_kernel_param_get_float32(params, "eps");
-
-    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC )
-    {
-        input_scale = inputs[0]->attr.dtype.scale;
-        input_tail = (float)inputs[0]->attr.dtype.zero_point * inputs[0]->attr.dtype.scale;
-    }
-    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP )
-    {
-        if (inputs[0]->attr.dtype.fl > 0)
-        {
-            input_scale = (1.0f / ((float) ((int64_t)1 << inputs[0]->attr.dtype.fl)));
-        }
-        else
-        {
-            input_scale = ((float) ((int64_t)1 << -inputs[0]->attr.dtype.fl));
-        }
-    }
-
-    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC )
-    {
-        output_scale = 1.0f / outputs[0]->attr.dtype.scale;
-        output_zp = (float)outputs[0]->attr.dtype.zero_point + 0.5f;
-    }
-    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP )
-    {
-        if (outputs[0]->attr.dtype.fl > 0)
-        {
-            output_scale = (float) ((int64_t)1 << outputs[0]->attr.dtype.fl);
-        }
-        else
-        {
-            output_scale = ((float) 1.0f / ((int64_t)1 << -outputs[0]->attr.dtype.fl));
-        }
-    }
 
     if ( (inputs[1]->attr.is_const && inputs[2]->attr.is_const)
         || ( inputs[1]->attr.dtype.vx_type != VSI_NN_TYPE_FLOAT16

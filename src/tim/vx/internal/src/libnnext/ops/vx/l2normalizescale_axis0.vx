@@ -254,9 +254,9 @@ L2NORMSCALE_AXIS0_2D(I8,  F16, I8,  char,   vxc_char8,  vxc_char8, r_inputScale,
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) \
      void l2normalizescale_axis0_U8_##in1_name##to##out_name##_2D \
     (\
-    __read_only  image2d_array_t input,\
-    __read_only  image2d_array_t scale,\
-    __write_only image2d_array_t output,\
+    __read_only  image2d_t input,\
+    __read_only  image2d_t scale,\
+    __write_only image2d_t output,\
     int axis\
     )\
 { \

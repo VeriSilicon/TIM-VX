@@ -25,6 +25,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include "vsi_nn_platform.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
 #include "vsi_nn_graph.h"
@@ -74,11 +75,11 @@ static vsi_size_t get_tensor_elements_num
 {
     vsi_size_t num;
     vsi_size_t sz;
-    uint32_t dsize;
+    vsi_size_t dsize;
 
     sz = vsi_nn_GetTensorSize( shape,
         dim_num, type );
-    dsize = vsi_nn_GetTypeBytes( type );
+    dsize = vsi_nn_TypeGetBytesExt( type );
     num = sz / dsize;
     return num;
 } /* get_tensor_elements_num() */
@@ -126,6 +127,14 @@ static void print_tensor
         count = snprintf( &ext_attr[0], _EXT_ATTR_BUF_SZ,
             "SYM PERCHANNEL axis=%d, count=%d",
             tensor->attr.dtype.channel_dim, tensor->attr.dtype.scale_dim );
+        ext_attr[count] = 0;
+        break;
+    case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC:
+        count = snprintf(&ext_attr[0],
+                         _EXT_ATTR_BUF_SZ,
+                         "ASYM PERCHANNEL axis=%d, count=%d",
+                         tensor->attr.dtype.channel_dim,
+                         tensor->attr.dtype.scale_dim);
         ext_attr[count] = 0;
         break;
 #endif
@@ -308,25 +317,50 @@ static vsi_bool _init_tensor
     vsi_bool ret;
     vx_tensor_create_params_t params;
     float * scales = NULL;
+    int32_t * zeroPoints = NULL;
     int32_t * null_zp = NULL;
+    vx_size size_vxsize[VSI_NN_MAX_DIM_NUM] = {0};
+    vx_uint32 size_u32[VSI_NN_MAX_DIM_NUM] = {0};
+    size_t i = 0;
     ret = TRUE;
 
     memset( &params, 0, sizeof( vx_tensor_create_params_t ) );
     params.num_of_dims = tensor->attr.dim_num;
-    params.sizes = tensor->attr.size;
+    for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    {
+        size_vxsize[i] = -1 == tensor->attr.size[i] ? -1 : (vx_size)tensor->attr.size[i];
+    }
+    for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    {
+        size_u32[i] = -1 == tensor->attr.size[i] ? -1 : (vx_uint32)tensor->attr.size[i];
+    }
+#ifdef VSI_40BIT_VA_SUPPORT
+    params.sizes = size_vxsize;
+    (void)size_u32;
+#else
+    params.sizes = size_u32;
+    (void)size_vxsize;
+#endif
     params.data_format = (vsi_enum)tensor->attr.dtype.vx_type;
-    params.quant_format = (vsi_enum)tensor->attr.dtype.qnt_type;
     switch( tensor->attr.dtype.qnt_type )
     {
     case VSI_NN_QNT_TYPE_DFP:
+        params.quant_format = (vsi_enum)VX_QUANT_DYNAMIC_FIXED_POINT;
         params.quant_data.dfp.fixed_point_pos = (uint8_t)tensor->attr.dtype.fl;
         break;
+    case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
     case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+        params.quant_format = (vsi_enum)VX_QUANT_AFFINE_SCALE;
         params.quant_data.affine.scale = tensor->attr.dtype.scale;
         params.quant_data.affine.zeroPoint = (int32_t)tensor->attr.dtype.zero_point;
         break;
     case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC:
 #ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
+        #ifdef VX_QUANT_AFFINE_SCALE_PER_CHANNEL
+            params.quant_format = (vsi_enum)VX_QUANT_AFFINE_SCALE_PER_CHANNEL;
+        #else
+            params.quant_format = (vsi_enum)VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC;
+        #endif
         // This is a hack that driver doesn't support const scales
         scales = (float*)malloc(sizeof(float) * tensor->attr.dtype.scale_dim);
         memcpy(scales, tensor->attr.dtype.scales, tensor->attr.dtype.scale_dim * sizeof(float));
@@ -346,6 +380,35 @@ static vsi_bool _init_tensor
 #else
     VSILOGE( "can't support qnt_type VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC." );
 #endif
+    case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC:
+#ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
+        #ifdef VX_QUANT_AFFINE_SCALE_PER_CHANNEL
+            params.quant_format = (vsi_enum)VX_QUANT_AFFINE_SCALE_PER_CHANNEL;
+        #else
+            params.quant_format = (vsi_enum)VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC;
+        #endif
+        // This is a hack that driver doesn't support const scales
+        scales = (float*)malloc(sizeof(float) * tensor->attr.dtype.scale_dim);
+        memcpy(scales,
+               tensor->attr.dtype.scales,
+               tensor->attr.dtype.scale_dim * sizeof(float));
+        zeroPoints = (int32_t*)malloc(sizeof(int32_t) * tensor->attr.dtype.zero_points_dim);
+        memcpy(zeroPoints,
+               tensor->attr.dtype.zero_points,
+               tensor->attr.dtype.zero_points_dim * sizeof(int32_t));
+        params.quant_data.affinePerChannel.channelDim =
+            tensor->attr.dtype.channel_dim;
+        params.quant_data.affinePerChannel.scaleCount =
+            tensor->attr.dtype.scale_dim;
+        params.quant_data.affinePerChannel.scales = scales;
+        params.quant_data.affinePerChannel.zeroPoint = zeroPoints;
+        params.quant_data.affinePerChannel.zeroPointCount = tensor->attr.dtype.zero_points_dim;
+        break;
+#else
+        VSILOGE(
+            "can't support qnt_type "
+            "VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC.");
+#endif
     default:
         break;
     }
@@ -359,6 +422,13 @@ static vsi_bool _init_tensor
         vxReleaseWeightsBiasesParameter( &tensor->wb );
     }
 
+#if VX_STREAM_PROCESSOR_SUPPORT
+    if ( TRUE == tensor->attr.is_dummy )
+    {
+        tensor->t = vxCreateDummyTensor( graph->ctx->c,
+            (vsi_size_t)tensor->attr.dim_num, tensor->attr.size, (vsi_enum)tensor->attr.dtype.vx_type );
+    } else
+#endif
     if( TRUE == tensor->attr.is_created_from_handle )
     {
         vx_tensor_addressing addr;
@@ -389,6 +459,10 @@ static vsi_bool _init_tensor
                     {
                         free(scales);
                     }
+                    if( zeroPoints )
+                    {
+                        free(zeroPoints);
+                    }
                     if(null_zp)
                     {
                         free(null_zp);
@@ -400,19 +474,31 @@ static vsi_bool _init_tensor
             if( data )
             {
 #ifdef VSI_40BIT_VA_SUPPORT
-                addr = vxCreateTensorAddressing(graph->ctx->c,
-                    tensor->attr.size, stride_size, (vsi_size_t)tensor->attr.dim_num);
-#else
                 {
-                    uint32_t i, size_32bit[_cnt_of_array(tensor->attr.size)] = {0};
-                    uint32_t stride_size_32bit[_cnt_of_array(stride_size)] = {0};
+                    vx_size size_vxsize[_cnt_of_array(tensor->attr.size)] = {0};
+                    vx_size stride_size_vxsize[_cnt_of_array(stride_size)] = {0};
                     for(i = 0; i < _cnt_of_array(tensor->attr.size); i++)
                     {
-                        size_32bit[i] = (uint32_t)tensor->attr.size[i];
+                        size_vxsize[i] = -1 == tensor->attr.size[i] ? -1 : (vx_size)tensor->attr.size[i];
                     }
                     for(i = 0; i < _cnt_of_array(stride_size); i++)
                     {
-                        stride_size_32bit[i] = (uint32_t)stride_size[i];
+                        stride_size_vxsize[i] = -1 == stride_size[i] ? -1 : (vx_size)stride_size[i];
+                    }
+                    addr = vxCreateTensorAddressing(graph->ctx->c,
+                        size_vxsize, stride_size_vxsize, (vx_size)tensor->attr.dim_num);
+                }
+#else
+                {
+                    uint32_t size_32bit[_cnt_of_array(tensor->attr.size)] = {0};
+                    uint32_t stride_size_32bit[_cnt_of_array(stride_size)] = {0};
+                    for(i = 0; i < _cnt_of_array(tensor->attr.size); i++)
+                    {
+                        size_32bit[i] = -1 == tensor->attr.size[i] ? -1 : (uint32_t)tensor->attr.size[i];
+                    }
+                    for(i = 0; i < _cnt_of_array(stride_size); i++)
+                    {
+                        stride_size_32bit[i] = -1 == stride_size[i] ? -1 : (uint32_t)stride_size[i];
                     }
                     addr = vxCreateTensorAddressing(graph->ctx->c,
                         size_32bit, stride_size_32bit, (uint8_t)tensor->attr.dim_num);
@@ -480,6 +566,10 @@ static vsi_bool _init_tensor
     if( scales )
     {
         free(scales);
+    }
+    if (zeroPoints)
+    {
+        free(zeroPoints);
     }
     if(null_zp)
     {
@@ -588,15 +678,23 @@ vsi_nn_tensor_t * vsi_nn_CreateTensorWithDefault
         uint8_t* data = NULL;
 
         size = vsi_nn_GetStrideSize( &t->attr, stride );
+        if( stride[0] == 0 )
+        {
+            size = vsi_nn_GetElementNum(t);
+        }
         data = (uint8_t *)malloc( size );
         if( data )
         {
             vsi_size_t i = 0, j = 0;
-            vsi_size_t elements = size / stride[0];
+            vsi_size_t elements = 0;
             vsi_status status = VSI_FAILURE;
 
+            if(stride[0] != 0)
+            {
+                elements = size / stride[0];
+            }
             status = vsi_nn_Float32ToDtype( defualt_value, &data[0], &t->attr.dtype );
-            if(stride[0] == 1)
+            if(stride[0] == 1 || stride[0] == 0)
             {
                  memset(data, data[0], size);
             }
@@ -639,14 +737,22 @@ vsi_status vsi_nn_FillTensorWithValue
         uint8_t* data = NULL;
 
         size = vsi_nn_GetStrideSize( &tensor->attr, stride );
+        if( stride[0] == 0)
+        {
+            size = vsi_nn_GetElementNum(tensor);
+        }
         data = (uint8_t *)malloc( size );
         if( data )
         {
             vsi_size_t i = 0, j = 0;
-            vsi_size_t elements = size / stride[0];
+            vsi_size_t elements = 0;
+            if(stride[0] != 0)
+            {
+                elements = size / stride[0];
+            }
             status = vsi_nn_Float32ToDtype( value, &data[0], &tensor->attr.dtype );
 
-            if(stride[0] == 1)
+            if(stride[0] == 1 || stride[0] == 0)
             {
                  memset(data, data[0], size);
             }
@@ -826,7 +932,7 @@ float * vsi_nn_ConvertTensorToFloat32Data
     uint8_t *tensor_data = NULL;
     vsi_size_t elements;
     vsi_size_t i;
-    uint32_t stride;
+    vsi_size_t stride;
     float *data;
 
     if(NULL == graph || NULL == tensor)
@@ -835,7 +941,7 @@ float * vsi_nn_ConvertTensorToFloat32Data
     }
 
     elements = vsi_nn_GetElementNum(tensor);
-    stride = vsi_nn_TypeGetBytes(tensor->attr.dtype.vx_type);
+    stride = vsi_nn_TypeGetBytesExt(tensor->attr.dtype.vx_type);
 
     data = NULL;
     data = (float *)malloc(elements * sizeof(float));
@@ -883,6 +989,7 @@ uint8_t * vsi_nn_ConvertTensorToData
     )
 {
     uint8_t    * data;
+    uint8_t    * new_data;
     vsi_size_t     buf_sz;
     vsi_size_t     stride_size[VSI_NN_MAX_DIM_NUM];
     vsi_status     status;
@@ -929,8 +1036,23 @@ uint8_t * vsi_nn_ConvertTensorToData
             data = NULL;
         }
     }
-    return data;
-
+    if(tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT4 ||
+        tensor->attr.dtype.vx_type == VSI_NN_TYPE_UINT4)
+    {
+        vsi_size_t dest_size = vsi_nn_GetElementNum(tensor);
+        new_data = (uint8_t*)malloc(dest_size);
+        status = vsi_nn_Unpack4bitData(tensor, data, new_data, tensor->attr.dtype.vx_type);
+        if(data)
+        {
+            free(data);
+            data = NULL;
+        }
+        return new_data;
+    }
+    else
+    {
+        return data;
+    }
 } /* vsi_nn_ConvertTensorToData() */
 
 /*
@@ -1032,6 +1154,7 @@ uint8_t * vsi_nn_ConvertRawTensorToData2
         status = vxQueryTensor(tensor, VX_TENSOR_FIXED_POINT_POS,
             &(attr->dtype.fl), sizeof(int8_t));
         break;
+    case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
     case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
         status = vxQueryTensor(tensor, VX_TENSOR_ZERO_POINT,
             &(attr->dtype.zero_point), sizeof(int32_t));
@@ -1077,7 +1200,7 @@ void vsi_nn_SaveTensorToTextByFp32
     const float   c_flush_th = 0.7f;
     uint8_t    * data;
     uint8_t    * ptr;
-    uint32_t     type_bytes;
+    vsi_size_t     stride;
     uint8_t      buf[_TENSOR_TMPBUF_SZ];
     FILE        * fp;
     float    write_data;
@@ -1108,14 +1231,13 @@ void vsi_nn_SaveTensorToTextByFp32
         return;
     }
     sz = vsi_nn_GetElementNum( tensor );
-
     ptr = data;
-    type_bytes = vsi_nn_TypeGetBytes( tensor->attr.dtype.vx_type );
+    stride = vsi_nn_TypeGetBytesExt( tensor->attr.dtype.vx_type );
     count = 0;
     for( i = 0; i < sz; i ++ )
     {
         vsi_nn_DtypeToFloat32( ptr, &write_data, &tensor->attr.dtype );
-        ptr += type_bytes;
+        ptr += stride;
 
         count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
             "%f%s", write_data, seperator );
@@ -1173,7 +1295,7 @@ void vsi_nn_SaveDataToText
     uint8_t      buf[_TENSOR_TMPBUF_SZ];
     FILE        * fp;
     float    write_data;
-    uint32_t     type_bytes;
+    vsi_size_t     stride;
     vsi_size_t     i;
     uint32_t     count;
 
@@ -1197,14 +1319,15 @@ void vsi_nn_SaveDataToText
         VSILOGW( "Write file %s fail. Please check...", filename );
         return;
     }
-    type_bytes = vsi_nn_GetTypeBytes( type );
+    stride = vsi_nn_TypeGetBytesExt( type );
 
     count = 0;
     for( i = 0; i < data_size; i ++ )
     {
-        write_data = vsi_nn_DataAsFloat32( &data[type_bytes * i],
+        write_data = vsi_nn_DataAsFloat32( &data[stride * i],
             type );
-        if( type == VSI_NN_TYPE_UINT8 || type == VSI_NN_TYPE_INT8 )
+        if( type == VSI_NN_TYPE_UINT8 || type == VSI_NN_TYPE_INT8 ||
+            type == VSI_NN_TYPE_UINT4 || type == VSI_NN_TYPE_INT4 )
         {
             count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
                 "%d%s", (int32_t)write_data, seperator );
@@ -1285,7 +1408,6 @@ vsi_nn_tensor_t * vsi_nn_CreateTensorFromData
     tensor = vsi_nn_CreateTensor( graph, attr );
 
     status = vsi_nn_CopyDataToTensor( graph, tensor, data );
-
     if( VSI_SUCCESS != status )
     {
         VSILOGE("Create tensor from data fail.");
@@ -1326,10 +1448,30 @@ vsi_status vsi_nn_CopyDataToTensor
     }
     else
     {
-        status = vsi_nn_copy_tensor_patch(tensor->t, &tensor->attr, data, VX_WRITE_ONLY);
+        if( tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT4 ||
+            tensor->attr.dtype.vx_type == VSI_NN_TYPE_UINT4 )
+        {
+            uint8_t* new_data = NULL;
+            vsi_size_t dest_size = vsi_nn_GetTensorSize( tensor->attr.size, tensor->attr.dim_num,
+                                                         tensor->attr.dtype.vx_type);
+            new_data = (uint8_t*)malloc( dest_size );
+            status = vsi_nn_Pack4bitData(tensor, (uint8_t*)data, new_data);
+            status = vsi_nn_copy_tensor_patch( tensor->t, &tensor->attr, new_data, VX_WRITE_ONLY );
+            if( new_data )
+            {
+                free( new_data );
+                new_data = NULL;
+            }
+        }
+        else
+        {
+            status = vsi_nn_copy_tensor_patch( tensor->t, &tensor->attr, data, VX_WRITE_ONLY );
+        }
     }
+
     return status;
 } /* vsi_nn_CopyDataToTensor() */
+
 
 vsi_status vsi_nn_FlushHandle
     (
@@ -1515,18 +1657,7 @@ vsi_bool vsi_nn_ReshapeTensor
     }
 
     /* Create reshape tensor */
-#ifdef VSI_40BIT_VA_SUPPORT
-    output->t = vxReshapeTensor( input->t, new_shape, dim_num );
-#else
-    {
-        uint32_t i, new_shape_32bit[VSI_NN_MAX_DIM_NUM] = {0};
-        for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
-        {
-            new_shape_32bit[i] = (uint32_t)new_shape[i];
-        }
-        output->t = vxReshapeTensor( input->t, (int32_t *)new_shape_32bit, (uint32_t)dim_num );
-    }
-#endif
+    output->t = vsi_nn_safe_reshape_tensor( input->t, (void*)new_shape, (vsi_size_t)dim_num, sizeof(new_shape[0]) );
     if( NULL == output->t )
     {
         ret = FALSE;
@@ -1596,6 +1727,55 @@ void vsi_nn_TransposeTensor
     free( dst );
 } /* vsi_nn_TransposeTensor() */
 
+vx_tensor vsi_nn_safe_reshape_tensor
+    (
+    vx_tensor         tensor,
+    void            * num_of_dims,
+    vsi_size_t        sizes,
+    vsi_size_t        size_of_shape_element
+    )
+{
+    if(sizeof(vx_size) == size_of_shape_element)
+    {
+        vx_size* num_of_dims_vxsize = (vx_size*)num_of_dims;
+        #ifdef VSI_40BIT_VA_SUPPORT
+            return vxReshapeTensor( tensor, num_of_dims_vxsize, (vx_size)sizes );
+        #else
+            {
+                int32_t new_shape_int32[VSI_NN_MAX_DIM_NUM] = { 0 };
+                vsi_size_t i = 0;
+                for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+                {
+                    new_shape_int32[i] = -1 == num_of_dims_vxsize[i] ? -1 : (int32_t)num_of_dims_vxsize[i];
+                }
+                return vxReshapeTensor( tensor, new_shape_int32, (uint32_t)sizes );
+            }
+        #endif
+    }
+    else if(sizeof(int32_t) == size_of_shape_element)
+    {
+        int32_t* num_of_dims_int32 = (int32_t*)num_of_dims;
+        #ifdef VSI_40BIT_VA_SUPPORT
+            {
+                vx_size new_shape_vxsize[VSI_NN_MAX_DIM_NUM] = { 0 };
+                vsi_size_t i = 0;
+                for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+                {
+                    new_shape_vxsize[i] = -1 == num_of_dims_int32[i] ? -1 : (vx_size)num_of_dims_int32[i];
+                }
+                return vxReshapeTensor( tensor, new_shape_vxsize, (vx_size)sizes );
+            }
+        #else
+            return vxReshapeTensor( tensor, num_of_dims_int32, (uint32_t)sizes );
+        #endif
+    }
+    else
+    {
+        VSILOGE("couldn't handle tensor shape element with length of %"VSI_SIZE_T_SPECIFIER"", size_of_shape_element);
+        return NULL;
+    }
+} /* vsi_nn_safe_reshape_tensor() */
+
 void vsi_nn_PermuteTensor
     (
     vsi_nn_graph_t  * graph,
@@ -1649,11 +1829,8 @@ void vsi_nn_PermuteTensor
     }
     vsi_nn_Permute( dst, buf, shape_ptr, dim_num, perm, tensor->attr.dtype.vx_type );
     memcpy(tensor->attr.size, dst_shape, sizeof(dst_shape));
-#ifdef VSI_40BIT_VA_SUPPORT
-    tensor->t = vxReshapeTensor(tensor->t, tensor->attr.size, tensor->attr.dim_num);
-#else
-    tensor->t = vxReshapeTensor(tensor->t, (int32_t*)tensor->attr.size, tensor->attr.dim_num);
-#endif
+    tensor->t = vsi_nn_safe_reshape_tensor(tensor->t, (void*)tensor->attr.size,
+        (vsi_size_t)tensor->attr.dim_num, sizeof(tensor->attr.size[0]));
     status = vsi_nn_CopyDataToTensor( graph, tensor, dst );
     if( VSI_SUCCESS != status )
     {
@@ -1674,8 +1851,7 @@ vsi_size_t vsi_nn_GetElementNum
         return 0;
     }
 
-    return get_tensor_elements_num(tensor->attr.size,
-        tensor->attr.dim_num, tensor->attr.dtype.vx_type);
+    return vsi_nn_ShapeProduct((vsi_size_t*)tensor->attr.size, tensor->attr.dim_num);
 } /* vsi_nn_GetElementNum() */
 
 vsi_size_t vsi_nn_GetTensorSize
@@ -1687,17 +1863,32 @@ vsi_size_t vsi_nn_GetTensorSize
 {
     vsi_size_t sz;
     vsi_size_t i;
+    vsi_size_t bits_num;
     sz = 0;
     if( NULL == shape || 0 == dim_num )
     {
         return sz;
     }
-    sz = 1;
-    for( i = 0; i < dim_num; i ++ )
+    bits_num = vsi_nn_TypeGetBits( type );
+    if( bits_num < BITS_PER_BYTE )
+    {
+        if(shape[0] % 2 == 0)
+        {
+            sz = shape[0] / 2;
+        }
+        else
+        {
+            sz = shape[0] / 2 + shape[0] % 2;
+        }
+    }
+    else
+    {
+        sz = shape[0] * bits_num / BITS_PER_BYTE;
+    }
+    for( i = 1; i < dim_num; i ++ )
     {
         sz *= shape[i];
     }
-    sz *= vsi_nn_GetTypeBytes( type );
     return sz;
 } /* vsi_nn_GetTensorSize() */
 
@@ -2040,6 +2231,7 @@ vsi_status vsi_nn_vxGetTensorAttr
             &(attr->dtype.fl), sizeof(int8_t));
         TEST_CHECK_STATUS( status, final );
         break;
+    case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
     case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
         status = vxQueryTensor(tensor, VX_TENSOR_ZERO_POINT,
             &(attr->dtype.zero_point), sizeof(int32_t));
@@ -2154,7 +2346,36 @@ vsi_status vsi_nn_copy_tensor_veiw_patch
     }
 
 #ifdef USE_OPENVX_1_2
+
+#ifdef VX_TENSOR_STRIDE_X_BITS_SUPPORT
+    {
+        vx_trensor_addressing addr = NULL;
+        vx_size dim_sizes[VSI_NN_MAX_DIM_NUM], strides[VSI_NN_MAX_DIM_NUM];
+        addr = (vx_trensor_addressing)malloc(sizeof(vx_tensorpatch_addressing_t));
+        addr->num_of_dims = (vx_uint32)attr->dim_num;
+        for(i = 0; i < dim; i++)
+        {
+            strides[i] = (vx_size)vstride[i];
+            dim_sizes[i] = (vx_size)attr->size[i];
+        }
+        addr->strides = strides;
+        addr->dim_sizes = dim_sizes;
+        if(attr->dtype.vx_type == VSI_NN_TYPE_INT4 || attr->dtype.vx_type == VSI_NN_TYPE_UINT4)
+        {
+           addr->strides[0] = 0;
+           addr->stride_x_bits = 4;
+        }
+        status = vxCopyTensorPatch2(tensor, dim, vstart, vend, addr,sizeof(vx_tensorpatch_addressing_t),
+                                    user_ptr, usage, user_memory_type);
+        if(addr)
+        {
+            free(addr);
+            addr = NULL;
+        }
+    }
+#else
     status = vxCopyTensorPatch(tensor, dim, vstart, vend, vstride, user_ptr, usage, user_memory_type);
+#endif
 #else
     {
         vx_context context = NULL;
@@ -2454,4 +2675,49 @@ vsi_bool vsi_nn_ConvertTensor
     vsi_nn_safe_free( dst_buf );
 
     return ret;
+}
+
+vsi_nn_tensor_t * vsi_nn_dropout_tensor
+    (
+    vsi_nn_graph_t  * graph,
+    vsi_nn_tensor_t * input,
+    float             rate
+    )
+{
+    vsi_nn_tensor_t *output = NULL;
+    vsi_size_t size = 0;
+    vsi_size_t i = 0;
+    float* data   = NULL;
+
+    if (NULL == input || NULL == graph)
+    {
+        return NULL;
+    }
+
+    output = vsi_nn_CreateTensor(graph, &input->attr);
+    if ( !output )
+    {
+        VSILOGE("create tensor failed.");
+        goto final;
+    }
+
+    data = vsi_nn_ConvertTensorToFloat32Data(graph, input);
+    if (NULL == data)
+    {
+        goto final;
+    }
+
+    size = vsi_nn_vxGetTensorElementNum(&input->attr);
+
+    for (i = 0; i < size; i++)
+    {
+        data[i] = data[i] * rate;
+    }
+
+    vsi_nn_CopyRawDataToTensor( graph, (uint8_t *)data, &input->attr.dtype, output );
+
+final:
+    vsi_nn_safe_free(data);
+
+    return output;
 }
