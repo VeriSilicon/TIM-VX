@@ -140,7 +140,7 @@ TEST(DataConvert, dequantize_shape_2_3_asym_u8_to_fp32) {
     std::vector<float> output(6, 0);
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     for (uint32_t idx = 0; idx < output.size(); idx++)
-      EXPECT_TRUE(std::abs(golden[idx] - output[idx]) < 0.01);
+      EXPECT_NEAR(golden[idx], output[idx], 0.01f);
 }
 
 TEST(DataConvert, requantize_shape_2_3_asym_u8) {
