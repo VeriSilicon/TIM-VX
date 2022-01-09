@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_resize_nearest_in_lcl_data
 {
     uint32_t    hash_idx;
@@ -40,6 +44,8 @@ typedef struct _vsi_nn_resize_nearest_internal_param
     float        factor;
 } vsi_nn_resize_nearest_internal_param;
 
-
+#ifdef __cplusplus
+}
 #endif
 
+#endif

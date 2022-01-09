@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_box_with_nms_limit_param
 {
     float score_threshold;
@@ -36,5 +40,8 @@ typedef struct _vsi_nn_box_with_nms_limit_param
     float nms_score_threshold;
 } vsi_nn_box_with_nms_limit_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

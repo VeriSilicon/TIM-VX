@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <string.h>
 #include <stdlib.h>
 
@@ -36,7 +35,6 @@
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
-
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (1)
 
@@ -47,22 +45,22 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status;
-    status = VSI_FAILURE;
+    vsi_status status = VSI_SUCCESS;
+    vsi_nn_kernel_param_t * param;
+    vsi_nn_kernel_node_t    n;
 
-    self->n = vxActivationLayer(
-        self->graph->g,
-        inputs[0]->t,
-        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_LINEAR,
-        self->nn_param.linear.a,
-        self->nn_param.linear.b,
-        outputs[0]->t
-        );
+    param = vsi_nn_kernel_param_create();
 
-    if( NULL != self->n )
+    vsi_nn_kernel_param_add_float32( param, "a_v", self->nn_param.linear.a );
+    vsi_nn_kernel_param_add_float32( param, "b_v", self->nn_param.linear.b );
+
+    n = vsi_nn_kernel_selector( self->graph, "linear", inputs, 1, outputs, 1, param );
+    if( n == NULL )
     {
-        status = VSI_SUCCESS;
+        status = VSI_FAILURE;
     }
+
+    vsi_nn_kernel_param_release( &param );
 
     return status;
 } /* op_compute() */
@@ -103,7 +101,6 @@ static vsi_bool op_check
     return TRUE;
 } /* op_check() */
 
-
 __BEGIN_DECLS
 
 /* Registrar */
@@ -121,4 +118,3 @@ DEF_OP_REG
     );
 
 __END_DECLS
-

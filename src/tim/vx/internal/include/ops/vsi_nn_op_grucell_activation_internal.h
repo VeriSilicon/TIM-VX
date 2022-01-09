@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
     GRUCELL_ACTIVATION_INPUT_ZT_    = 0,
     GRUCELL_ACTIVATION_INPUT_HT__   = 1,
@@ -83,5 +87,8 @@ typedef struct _vsi_nn_grucell_activation_internal_param
     grucell_activation_input_layout_e input_layout;
 } vsi_nn_grucell_activation_internal_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

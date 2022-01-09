@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CONV2D_LSTM_CELL_GATE_NUM 4  // i,f,c,o
 
 enum
@@ -72,5 +76,9 @@ typedef struct _vsi_nn_conv2d_lstm_cell_param
     uint32_t filters;
     vsi_nn_conv2d_param conv2d;
 } vsi_nn_conv2d_lstm_cell_param;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

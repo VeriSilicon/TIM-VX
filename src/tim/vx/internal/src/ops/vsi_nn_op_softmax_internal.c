@@ -180,21 +180,23 @@ static vsi_status op_optimize
     in_view_tensor = NULL;
     out_view_tensor = NULL;
     status = VSI_SUCCESS;
-    if(direction == VSI_NN_OPTIMIZE_BACKWARD)
+    if (direction == VSI_NN_OPTIMIZE_BACKWARD)
     {
         return status;
     }
-    if(_need_split_softmax(self, inputs) == FALSE)
+    if ( _need_split_softmax(self, inputs) == FALSE ||
+         self->nn_param.softmax_internal.axis != 0 ||
+         self->graph->ctx->config.support_stream_processor )
     {
         return status;
     }
 
     VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
-    if( NULL == inputs[0]->t )
+    if ( NULL == inputs[0]->t )
     {
         vsi_nn_TensorReinit( self->graph, inputs[0] );
     }
-    if( NULL == outputs[0]->t )
+    if ( NULL == outputs[0]->t )
     {
         vsi_nn_TensorReinit( self->graph, outputs[0] );
     }
@@ -208,11 +210,11 @@ static vsi_status op_optimize
     end[2] = inputs[0]->attr.size[2];
     end[3] = inputs[0]->attr.size[3];
     end[axis] = 0;
-    while(end[axis] < batch_size)
+    while (end[axis] < batch_size)
     {
         start[axis] = end[axis];
         end[axis] += MAX_SOFTMAX_BATCH;
-        if(end[axis] > inputs[0]->attr.size[axis])
+        if (end[axis] > inputs[0]->attr.size[axis])
         {
             end[axis] = inputs[0]->attr.size[axis];
         }
@@ -224,14 +226,14 @@ static vsi_status op_optimize
             break;
         }
         out_view_tensor = vsi_nn_CreateViewTensor(self->graph, start, end, outputs[0]);
-        if(NULL == out_view_tensor)
+        if (NULL == out_view_tensor)
         {
             VSILOGE( "Create outputs view tensor fail.");
             break;
         }
 
         status = _create_split_softmax(self, in_view_tensor, out_view_tensor);
-        if(VSI_SUCCESS != status)
+        if (VSI_SUCCESS != status)
         {
             VSILOGE( "Create split softmax data struct fail.");
             break;

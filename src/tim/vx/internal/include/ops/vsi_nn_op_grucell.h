@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     GRUCELL_GATES_Z = 0,
@@ -80,5 +84,9 @@ typedef struct _vsi_nn_grucell_param
 } vsi_nn_grucell_param;
 _compiler_assert(offsetof(vsi_nn_grucell_param, local) == 0, \
                  vsi_nn_conv1d_h );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

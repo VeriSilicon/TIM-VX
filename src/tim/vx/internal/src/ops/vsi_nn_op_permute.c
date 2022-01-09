@@ -254,13 +254,8 @@ static vsi_status op_optimize
     {
         if(NULL == inputs[0]->t && NULL != outputs[0]->t)
         {
-#ifdef VSI_40BIT_VA_SUPPORT
-            inputs[0]->t = vxReshapeTensor( outputs[0]->t,
-                inputs[0]->attr.size, inputs[0]->attr.dim_num );
-#else
-            inputs[0]->t = vxReshapeTensor( outputs[0]->t,
-                (int32_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num );
-#endif
+            inputs[0]->t = vsi_nn_safe_reshape_tensor( outputs[0]->t,
+                (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num, sizeof(inputs[0]->attr.size[0]) );
             if( inputs[0]->t == NULL )
             {
                 status = VSI_FAILURE;

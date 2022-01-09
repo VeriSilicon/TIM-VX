@@ -240,12 +240,12 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t new_rank = 0;
     vsi_bool ret;
 
-    float input0Scale = inputs[0]->attr.dtype.scale;
-    float input0Tail = (float)inputs[0]->attr.dtype.zero_point * input0Scale;
-    float input1Scale = inputs[1]->attr.dtype.scale;
-    float input1Tail = (float)inputs[1]->attr.dtype.zero_point * input1Scale;
-    float outputScale = outputs[0]->attr.dtype.scale;
-    float outputZP = (float)outputs[0]->attr.dtype.zero_point + 0.5f;
+    float input0Scale = vsi_nn_get_tensor_scale(inputs[0]);
+    float input0Tail = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * input0Scale;
+    float input1Scale = vsi_nn_get_tensor_scale(inputs[1]);
+    float input1Tail = (float)vsi_nn_get_tensor_zero_point(inputs[1]) * input1Scale;
+    float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
+    float outputZP = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
     int32_t is_per_channel_alpha = 0;
 
     is_per_channel_alpha = vsi_nn_kernel_param_get_int32(params, "is_per_channel_alpha");
@@ -256,6 +256,11 @@ static vsi_nn_kernel_node_t _setup
     }
 
     outputScale = vsi_abs(outputScale) < 1e-5 ? 0.0f : 1.0f / outputScale;
+
+    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
+    {
+        outputZP += 0.5f;
+    }
 
     ret = vsi_nn_kernel_optimize_eltwise_shape(
             inputs[0]->attr.size, inputs[0]->attr.dim_num,
@@ -329,4 +334,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_CL( prelu, _setup )
-

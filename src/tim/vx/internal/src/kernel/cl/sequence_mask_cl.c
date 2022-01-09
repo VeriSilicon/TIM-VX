@@ -246,14 +246,12 @@ static vsi_nn_kernel_node_t _setup
     int32_t max_len  = vsi_nn_kernel_param_get_int32( params, "max_len" );
     vsi_nn_kernel_node_t node = NULL;
     int32_t is2Dflg = 0;
-    float input_zp = 0;
-    float input_scale = 1.0f;
-    int32_t output_zp = 0;
-    float output_scale = 1.0f;
+    float input_zp = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float input_scale = vsi_nn_get_tensor_scale(inputs[0]);
+    int32_t output_zp = vsi_nn_get_tensor_zero_point(outputs[0]);
+    float output_scale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
     float input_zpScale = 0;
     float outputVal1 = 1.0f;
-    int32_t input_fl = 0;
-    int32_t output_fl = 0;
 
     if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
@@ -269,43 +267,6 @@ static vsi_nn_kernel_node_t _setup
     rs_input = vsi_nn_kernel_tensor_reshape(inputs[0]->t, new_shape[0], 2);
     rs_output = vsi_nn_kernel_tensor_reshape(outputs[0]->t, new_shape[1], 4);
 
-    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        input_zp = (float)inputs[0]->attr.dtype.zero_point;
-        input_scale = inputs[0]->attr.dtype.scale;
-    }
-    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        input_fl = inputs[0]->attr.dtype.fl;
-        if (input_fl > 0)
-        {
-            input_scale = (1.0f / ((float) ((int64_t)1 << input_fl)));
-        }
-        else
-        {
-            input_scale = ((float) ((int64_t)1 << -input_fl));
-        }
-        input_zp = 0.0f;
-    }
-
-    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        output_zp = outputs[0]->attr.dtype.zero_point;
-        output_scale = 1.0f / outputs[0]->attr.dtype.scale;
-    }
-    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        output_fl = outputs[0]->attr.dtype.fl;
-        if (output_fl > 0)
-        {
-            output_scale = (float)((int64_t)1 << output_fl);
-        }
-        else
-        {
-            output_scale = (1.0f / (float)((int64_t)1 << -output_fl));
-        }
-        output_zp = 0;
-    }
     input_zpScale = input_scale * input_zp;
     outputVal1 = output_scale + (float)output_zp;
 
@@ -351,4 +312,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_CL( sequence_mask, _setup )
-

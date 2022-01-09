@@ -26,10 +26,17 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_topk_param
 {
     uint32_t     k;
 } vsi_nn_topk_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

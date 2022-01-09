@@ -46,7 +46,7 @@ typedef enum _vsi_nn_log_level_e
 
 #define VSI_NN_MAX_DEBUG_BUFFER_LEN 1024
 #define VSILOGE( fmt, ... ) \
-    vsi_nn_LogMsg(VSI_NN_LOG_ERROR, "E [%s:%d]" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+    vsi_nn_LogMsg(VSI_NN_LOG_ERROR, "E [%s:%s:%d]" fmt, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define VSILOGW( fmt, ... ) \
     vsi_nn_LogMsg(VSI_NN_LOG_WARN,  "W [%s:%d]" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define VSILOGI( fmt, ... ) \

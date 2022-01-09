@@ -11,6 +11,11 @@ _viv_uniform int offsetZ;
 _viv_uniform int offsetW;
 _viv_uniform int offset_idx;
 
+_viv_uniform VXC_512Bits uniU8MulAndPostShift_0_Lo_2x8;
+_viv_uniform VXC_512Bits uniU8MulAndPostShift_1_Lo_2x8;
+_viv_uniform int2 multAndoutZP0;
+_viv_uniform int2 multAndoutZP1;//[0:15] multiplier, [31:63] output zp
+
 __kernel void scatter_nd_update_F16F16toF16_big(
     __read_only image2d_t   input0,
     __read_only image2d_t   input1,
@@ -61,4 +66,68 @@ __kernel void scatter_nd_update_F16F16toF16_big(
         dst = ref_ptr[loc];
     }
     output_ptr[loc] = dst;
+}
+
+__kernel void scatter_nd_update_F16F16toU8_big(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __read_only image2d_t   input2,
+    image2d_t  output,
+    int width,
+    int area,
+    int vol,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);
+    int gidy = get_global_id(1);
+    int cnt = 0;
+
+    vxc_short8 tmpVal = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
+    vxc_half8 sum;
+    _viv_asm(COPY, sum, tmpVal, 16);
+    Image img1 = create_image_from_image2d(input1, 4);
+    Image img2 = create_image_from_image2d(input2, 2);
+    Image img3 = create_image_from_image2d(output, 1);
+
+    __global int* index_ptr = (__global int*)img1.ptr;
+    __global short* update_ptr = (__global short*)img2.ptr;
+    __global uchar* output_ptr = (__global uchar*)img3.ptr;
+    for(int i = 0; i < index_num; i++)
+    {
+        int4 indice = vload4(0, index_ptr + offset_idx);
+        index_ptr += coord_dim;
+
+        int idx = indice.x * offsetX + indice.y * offsetY + indice.z * offsetZ + indice.w * offsetW;
+        if(gidy == idx)
+        {
+            vxc_half8 src;
+            short tmpData = update_ptr[i * update_width + gidx];
+            cnt++;
+            _viv_asm(COPY, src, tmpData, 4);
+            VXC_DP2x8(sum, sum, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccumulateSum_2x8);
+        }
+    }
+    short dst;
+    vxc_ushort8 ms0;
+    int loc = gidy * output_width+ gidx;
+    if(cnt == 0)
+    {
+        vxc_half8 src;
+        Image img0 = create_image_from_image2d(input0, 2);
+        __global short* ref_ptr = (__global short*)img0.ptr;
+        short tmpData = ref_ptr[loc];
+        _viv_asm(COPY, ms0, multAndoutZP0, 16);
+        _viv_asm(COPY, src, tmpData, 4);
+        VXC_DP2x8(dst, src, ms0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 1),
+                    uniU8MulAndPostShift_0_Lo_2x8);
+        output_ptr[loc] = dst;
+    }
+    else
+    {
+        _viv_asm(COPY, ms0, multAndoutZP1, 16);
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 1),
+                    uniU8MulAndPostShift_1_Lo_2x8);
+        output_ptr[loc] = dst;
+    }
 }

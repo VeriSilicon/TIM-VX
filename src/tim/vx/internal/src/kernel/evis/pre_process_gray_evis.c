@@ -46,14 +46,20 @@ __BEGIN_DECLS
 #define VX_KERNEL_NAME_PRE_PROCESS_GRAY_COPY_U8TOI8       CVIVANTE_NAMESPACE("evis.pre_process_gray_copy_U8toI8")
 #define VX_KERNEL_NAME_PRE_PROCESS_GRAY_COPY_U8TOI16      CVIVANTE_NAMESPACE("evis.pre_process_gray_copy_U8toI16")
 #define VX_KERNEL_NAME_PRE_PROCESS_GRAY_COPY_U8TOF16      CVIVANTE_NAMESPACE("evis.pre_process_gray_copy_U8toF16")
+#define VX_KERNEL_NAME_PRE_PROCESS_GRAY_HALF_U8TOU8       CVIVANTE_NAMESPACE("evis.pre_process_gray_half_U8toU8")
+#define VX_KERNEL_NAME_PRE_PROCESS_GRAY_FOUR_OVER_THREE_U8TOU8 \
+                                                          CVIVANTE_NAMESPACE("evis.pre_process_gray_4over3_U8toU8")
 
 #define KERNEL_SOURCE_1    "pre_process_gray",
 #define KERNEL_SOURCE_2    "pre_process_gray_copy"
+#define KERNEL_SOURCE_3    "pre_process_gray_2"
 
 typedef enum
 {
     COPY = 0,
-    SCALE
+    SCALE,
+    FOUR_OVER_THREE,
+    HALF
 } vsi_nn_gray_convert_type_e;
 
 #define HASH_PRE_PROCESS_GRAY_KEY(_input0_type, _output_type, _convert_type, _image_2d) \
@@ -70,14 +76,16 @@ static const struct {
         const char* source_name;
     } pre_process_gray_map[] =
 {
-    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, U8,  SCALE,        KERNEL_SOURCE_1)
-    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, I8,  SCALE,        KERNEL_SOURCE_1)
-    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, I16, SCALE,        KERNEL_SOURCE_1)
-    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, F16, SCALE,        KERNEL_SOURCE_1)
-    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, U8,  COPY,         KERNEL_SOURCE_2)
-    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, I8,  COPY,         KERNEL_SOURCE_2)
-    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, I16, COPY,         KERNEL_SOURCE_2)
-    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, F16, COPY,         KERNEL_SOURCE_2)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, U8,  SCALE,           KERNEL_SOURCE_1)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, I8,  SCALE,           KERNEL_SOURCE_1)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, I16, SCALE,           KERNEL_SOURCE_1)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, F16, SCALE,           KERNEL_SOURCE_1)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, U8,  COPY,            KERNEL_SOURCE_2)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, I8,  COPY,            KERNEL_SOURCE_2)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, I16, COPY,            KERNEL_SOURCE_2)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, F16, COPY,            KERNEL_SOURCE_2)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, U8,  FOUR_OVER_THREE, KERNEL_SOURCE_3)
+    TENSOR_PRE_PROCESS_GRAY_KERNELS(U8, U8,  HALF,            KERNEL_SOURCE_3)
 };
 
 static vx_param_description_t vxPreProcessGrayKernel_param_def[] =
@@ -358,14 +366,150 @@ OnError:
         attr[0] = NULL;
     }
     return status;
-} /* _pre_process_gray_copy_initializer() */
+} /* _pre_process_gray_initializer() */
+
+DEF_KERNEL_INITIALIZER(_resize_gray_initializer)
+    (
+    vsi_nn_kernel_node_t node,
+    const vsi_nn_kernel_node_param_t * param,
+    size_t param_size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t shaderParam = {
+        2,          // workdim
+        {0, 0, 0},  // globalWorkOffset: control the start location be processed in the image
+        {0, 0, 0},  // globalWorkScale: how many pixels could be processed by a single thread
+        {0, 0, 0},  // localWorkSize: local group size in thread
+        {0, 0, 0}}; // globalWorkSize: image size in thread
+
+    uint32_t    width       = 0;
+    uint32_t    height      = 0;
+    vsi_bool    is_4_over_3 = 0;
+    vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
+    vsi_size_array_t * out_shape = NULL;
+
+    attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
+    attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", OnError );
+
+    out_shape  = attr[1]->shape;
+    width      = (uint32_t)(out_shape->data[0]);
+    height     = (uint32_t)(out_shape->data[1]);
+
+    is_4_over_3 = (attr[0]->shape->data[0] * 3 == width * 4) &&
+                  (attr[0]->shape->data[1] * 3 == height * 4);
+
+    if (is_4_over_3)
+    {
+        shaderParam.global_scale[0]  = 16;
+        shaderParam.global_scale[1]  = 4;
+        shaderParam.global_size[0]   = gpu_align_p2((attr[0]->shape->data[0] + shaderParam.global_scale[0] - 1)
+            / shaderParam.global_scale[0], 4);
+        shaderParam.global_size[1]   = (attr[0]->shape->data[1] + shaderParam.global_scale[1] - 1)
+            / shaderParam.global_scale[1];
+    }
+    else
+    {
+        shaderParam.global_scale[0]  = 16;
+        shaderParam.global_scale[1]  = 2;
+        shaderParam.global_size[0]   = gpu_align_p2((attr[0]->shape->data[0] + shaderParam.global_scale[0] - 1)
+            / shaderParam.global_scale[0], 4);
+        shaderParam.global_size[1]   = (attr[0]->shape->data[1] + shaderParam.global_scale[1] - 1)
+            / shaderParam.global_scale[1];
+    }
+
+    status = vsi_nn_kernel_gpu_config( node, &shaderParam );
+    CHECK_STATUS_FAIL_GOTO(status, OnError);
+
+    if (is_4_over_3)
+    {
+        gpu_dp_inst_t uniBilinear_4over3_l00_2x8 = {{
+            0x51551551, // TCfg
+            0x00000000, // ASelt
+            0x04322100, 0xa9087665, // ABin
+            0xa2aa2aa2, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000610, // AccumType, ConstantType, and PostShift
+            0x0000ffff, 0x5555aaaa, 0xaaaa5555, 0x0000ffff,
+            0x5555aaaa, 0xaaaa5555, 0x0000ffff, 0x5555aaaa // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniBilinear_4over3_l10_2x8 = {{
+            0x00005515, // TCfg
+            0x00000000, // ASelt
+            0xfeed0cba, 0x00000000, // ABin
+            0x0000aa2a, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000610, // AccumType, ConstantType, and PostShift
+            0xaaaa5555, 0x0000ffff, 0x5555aaaa, 0xaaaa5555,
+            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniBilinear_4over3_l01_4x4 = {{
+            0x05555505, // TCfg
+            0x04505004, // ASelt
+            0x21210000, 0x00443232, // ABin
+            0x0aaaaa0a, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000610, // AccumType, ConstantType, and PostShift
+            0x5555aaaa, 0x00000000, 0x38e471c7, 0x1c7238e4,
+            0x71c738e4, 0x38e41c72, 0x5555aaaa, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniBilinear_4over3_l11_4x4 = {{
+            0x55055555, // TCfg
+            0x50045050, // ASelt
+            0x76766565, 0xa9a90088, // ABin
+            0xaa0aaaaa, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000610, // AccumType, ConstantType, and PostShift
+            0x38e471c7, 0x1c7238e4, 0x71c738e4, 0x38e41c72,
+            0x5555aaaa, 0x00000000, 0x38e471c7, 0x1c7238e4 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniBilinear_4over3_l21_4x4 = {{
+            0x55550555, // TCfg
+            0x50500450, // ASelt
+            0x00ccbaba, 0xfefeeded, // ABin
+            0xaaaa0aaa, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000610, // AccumType, ConstantType, and PostShift
+            0x71c738e4, 0x38e41c72, 0x5555aaaa, 0x00000000,
+            0x38e471c7, 0x1c7238e4, 0x71c738e4, 0x38e41c72 // Constant
+        }, GPU_DP_TYPE_16 };
+
+
+        status  = vsi_nn_kernel_gpu_add_param(node, "uniBilinear_4over3_l00_2x8", &uniBilinear_4over3_l00_2x8);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinear_4over3_l10_2x8", &uniBilinear_4over3_l10_2x8);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinear_4over3_l01_4x4", &uniBilinear_4over3_l01_4x4);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinear_4over3_l11_4x4", &uniBilinear_4over3_l11_4x4);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniBilinear_4over3_l21_4x4", &uniBilinear_4over3_l21_4x4);
+
+        CHECK_STATUS_FAIL_GOTO(status, OnError );
+    }
+
+OnError:
+    if (attr[0])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[0] );
+        attr[0] = NULL;
+    }
+    if (attr[1])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[0] );
+        attr[0] = NULL;
+    }
+
+    return status;
+} /* _resize_gray_initializer() */
 
 static vsi_status _query_kernel
     (
     vsi_nn_tensor_t* const* const inputs,
     vsi_nn_tensor_t* const* const outputs,
     vsi_nn_kernel_t* kernel,
-    const vsi_nn_kernel_param_t * params
+    const vsi_nn_kernel_param_t * params,
+    vsi_bool is_no_range_change,
+    int32_t width,
+    int32_t height
     )
 {
     vsi_nn_kernel_dtype_e input0_dtype = U8;
@@ -373,39 +517,60 @@ static vsi_status _query_kernel
     vsi_nn_gray_convert_type_e convert_type = SCALE;
     vsi_status status = VSI_FAILURE;
     uint32_t key = 0;
-    int i = 0;
-    vsi_bool enable_copy  = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
+    int32_t i = 0;
+    vsi_bool is_4_over_3 = FALSE;
+    vsi_bool is_half_scale = FALSE;
+    vsi_bool enable_copy = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
 
+    is_4_over_3 = (width * 3 == (int32_t)outputs[0]->attr.size[0] * 4) &&
+                  (height * 3 == (int32_t)outputs[0]->attr.size[1] * 4);
+    is_half_scale = (width == (int32_t)outputs[0]->attr.size[0] * 2) &&
+                  (height == (int32_t)outputs[0]->attr.size[1] * 2);
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    if(enable_copy)
+    if (enable_copy)
     {
         convert_type = COPY;
     }
     else
     {
-        convert_type = SCALE;
+        if (is_no_range_change && is_4_over_3)
+        {
+            convert_type = FOUR_OVER_THREE;
+        }
+        else if (is_no_range_change && is_half_scale)
+        {
+            convert_type = HALF;
+        }
+        else
+        {
+            convert_type = SCALE;
+        }
     }
 
     key = HASH_PRE_PROCESS_GRAY_KEY( input0_dtype, output_dtype, convert_type, 0 );
 
-    for( i = 0; i < _cnt_of_array(pre_process_gray_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(pre_process_gray_map); i ++ )
     {
-        if( pre_process_gray_map[i].key == key )
+        if ( pre_process_gray_map[i].key == key )
         {
             break;
         }
     }
-    if( i < _cnt_of_array(pre_process_gray_map) )
+    if ( i < _cnt_of_array(pre_process_gray_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  pre_process_gray_map[i].function_name );
         kernel->info.parameters = vxPreProcessGrayKernel_param_def;
         kernel->info.numParams = _cnt_of_array( vxPreProcessGrayKernel_param_def );
 
-        if(enable_copy)
+        if (enable_copy)
         {
             kernel->info.initialize = _pre_process_gray_copy_initializer;
+        }
+        else if (convert_type == FOUR_OVER_THREE || convert_type == HALF)
+        {
+            kernel->info.initialize = _resize_gray_initializer;
         }
         else
         {
@@ -435,6 +600,11 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t tmp_params[_EVIS_PRE_PROCESS_GRAY_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
+    int32_t width  = vsi_nn_kernel_param_get_int32( params, "width" );
+    int32_t height = vsi_nn_kernel_param_get_int32( params, "height" );
+    float mean       = vsi_nn_kernel_param_get_float32( params, "mean" );
+    float scale      = vsi_nn_kernel_param_get_float32( params, "scale" );
+    vsi_bool is_no_range_change = FALSE;
 
     if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
@@ -442,7 +612,16 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    status = _query_kernel( inputs, outputs, kernel, params );
+    if (width == (int32_t)inputs[0]->attr.size[0] && height == (int32_t)inputs[0]->attr.size[1] &&
+        outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8 &&
+        outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC &&
+        (float)outputs[0]->attr.dtype.zero_point == mean &&
+        vsi_nn_abs(outputs[0]->attr.dtype.scale - scale) < 1e-8 )
+    {
+        is_no_range_change = TRUE;
+    }
+
+    status = _query_kernel( inputs, outputs, kernel, params, is_no_range_change, width, height );
     if( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
@@ -453,8 +632,6 @@ static vsi_nn_kernel_node_t _setup
             int32_t scale_y  = vsi_nn_kernel_param_get_int32( params, "scale_y" );
             int32_t left     = vsi_nn_kernel_param_get_int32( params, "left" );
             int32_t top      = vsi_nn_kernel_param_get_int32( params, "top" );
-            float mean       = vsi_nn_kernel_param_get_float32( params, "mean" );
-            float scale      = vsi_nn_kernel_param_get_float32( params, "scale" );
 
             /* Pass parameters to node. */
             vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PRE_PROCESS_GRAY_PARAM_NUM,
@@ -481,4 +658,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( pre_process_gray, _setup )
-

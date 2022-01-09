@@ -337,10 +337,10 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     int32_t operation = 0;
 
-    float input0Scale = inputs[0]->attr.dtype.scale;
-    float input0Tail = (float)inputs[0]->attr.dtype.zero_point * input0Scale;
-    float input1Scale = inputs[1]->attr.dtype.scale;
-    float input1Tail = (float)inputs[1]->attr.dtype.zero_point * input1Scale;
+    float input0Scale = vsi_nn_get_tensor_scale(inputs[0]);
+    float input0Tail = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * input0Scale;
+    float input1Scale = vsi_nn_get_tensor_scale(inputs[1]);
+    float input1Tail = (float)vsi_nn_get_tensor_zero_point(inputs[1]) * input1Scale;
 
     if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )

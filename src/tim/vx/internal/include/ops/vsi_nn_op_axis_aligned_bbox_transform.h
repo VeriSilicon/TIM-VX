@@ -26,10 +26,17 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_axis_aligned_bbox_transform_param
 {
     vsi_enum     type;
 } vsi_nn_axis_aligned_bbox_transform_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

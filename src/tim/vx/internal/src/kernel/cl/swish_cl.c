@@ -279,10 +279,10 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t node = NULL;
     int32_t swish_type  = vsi_nn_kernel_param_get_int32( params, "type" );
     float   beta        = 1.0f;
-    float   inputScale  = inputs[0]->attr.dtype.scale;
-    float   inputTail   = (float)inputs[0]->attr.dtype.zero_point * inputScale;
-    float   outputScale = outputs[0]->attr.dtype.scale == 0.0f ? 0.0f : 1.0f / outputs[0]->attr.dtype.scale;
-    float   outputZP    = (float)outputs[0]->attr.dtype.zero_point + 0.5f;
+    float   inputScale  = vsi_nn_get_tensor_scale(inputs[0]);
+    float   inputTail   = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * inputScale;
+    float   outputScale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
+    float   outputZP    = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
     vx_float32  logE    = (vx_float32)(log10(exp(1.0f)) / log10(2.0f));
     vsi_bool ret = FALSE;
 
@@ -353,7 +353,6 @@ static vsi_nn_kernel_node_t _setup
                 vsi_nn_kernel_scalar_release( &node_params[SCALAR_BETA] );
                 vsi_nn_kernel_scalar_release( &node_params[SCALAR_LOGE] );
             }
-
         }
     }
 
@@ -372,4 +371,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( swish, _setup )
-

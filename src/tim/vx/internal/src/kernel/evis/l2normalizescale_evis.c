@@ -544,7 +544,7 @@ static vsi_nn_kernel_node_t _setup
             border.constant_value.U8 = 0;
             if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8)
             {
-                border.constant_value.U8 = (vx_uint8)inputs[0]->attr.dtype.zero_point;
+                border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
             }
             status  = vsi_nn_kernel_node_set_border( node, &border );
             VSI_ASSERT( status == VSI_SUCCESS );

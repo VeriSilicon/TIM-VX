@@ -32,6 +32,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_dtype_util.h"
+#include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 static vsi_status op_compute
@@ -41,58 +42,31 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vx_tensor bias;
-    vsi_status status;
-    vx_nn_convolution_params_ext_t *p_ext = NULL;
-    vx_nn_convolution_params_ext2_t *p_ext2 = NULL;
-    vx_nn_convolution_params_ext2_t param_ext2;
-    memset( &param_ext2, 0, sizeof( vx_nn_convolution_params_ext2_t ) );
-    p_ext2 = &param_ext2;
-    p_ext = &p_ext2->ext;
-
-    status = VSI_FAILURE;
-
-    //set ext relative parameters
-    p_ext->khr.padding_x = self->nn_param.conv2d.pad[0];
-    p_ext->khr.padding_y = self->nn_param.conv2d.pad[2];
-    if (self->nn_param.conv2d.dilation[0] > 0)
-    {
-        p_ext->khr.dilation_x = self->nn_param.conv2d.dilation[0] - 1;
+    vsi_status status = VSI_FAILURE;
+    vsi_nn_kernel_param_t * param = NULL;
+    param = vsi_nn_kernel_param_create();
+    vsi_nn_kernel_param_add_int32( param, "stride_w", self->nn_param.conv2d.stride[0] );
+    vsi_nn_kernel_param_add_int32( param, "stride_h", self->nn_param.conv2d.stride[1] );
+    vsi_nn_kernel_param_add_int32( param, "pad_h_front", self->nn_param.conv2d.pad[2] );
+    vsi_nn_kernel_param_add_int32( param, "pad_h_end", self->nn_param.conv2d.pad[3] );
+    vsi_nn_kernel_param_add_int32( param, "pad_w_front", self->nn_param.conv2d.pad[0] );
+    vsi_nn_kernel_param_add_int32( param, "pad_w_end", self->nn_param.conv2d.pad[1] );
+    vsi_nn_kernel_param_add_int32( param, "dilation_w", self->nn_param.conv2d.dilation[0] );
+    vsi_nn_kernel_param_add_int32( param, "dilation_h", self->nn_param.conv2d.dilation[1] );
+    vsi_nn_kernel_param_add_int32( param, "overflow_policy", self->vx_param.overflow_policy );
+    vsi_nn_kernel_param_add_int32( param, "rounding_policy", self->vx_param.rounding_policy );
+    vsi_nn_kernel_param_add_int32( param,
+            "down_scale_size_rounding", self->vx_param.down_scale_size_rounding );
+    if (self->nn_param.conv2d.multiplier != 0) {
+        vsi_nn_kernel_param_add_int32( param, "multiplier",
+            self->nn_param.conv2d.multiplier );
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "depthwise_conv2d",
+            inputs, 3, outputs, 1, param );
+    } else {
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "conv2d",
+            inputs, 3, outputs, 1, param );
     }
-    if (self->nn_param.conv2d.dilation[1] > 0)
-    {
-        p_ext->khr.dilation_y = self->nn_param.conv2d.dilation[1] - 1;
-    }
-    p_ext->khr.overflow_policy = self->vx_param.overflow_policy;
-    p_ext->khr.rounding_policy =  self->vx_param.rounding_policy;
-    p_ext->khr.down_scale_size_rounding = self->vx_param.down_scale_size_rounding;
-
-    p_ext->padding_x_right = self->nn_param.conv2d.pad[1];
-    p_ext->padding_y_bottom = self->nn_param.conv2d.pad[3];
-
-    //set ext2 relative parameters
-    p_ext2->depth_multiplier = self->nn_param.conv2d.multiplier;
-    p_ext2->stride_x = self->nn_param.conv2d.stride[0];
-    p_ext2->stride_y = self->nn_param.conv2d.stride[1];
-
-    if( inputs[2] == NULL )
-    {
-        bias = NULL;
-    }
-    else
-    {
-        bias = inputs[2]->t;
-    }
-
-    self->n = vxConvolutionLayer(
-        self->graph->g,
-        inputs[0]->t,
-        inputs[1]->t,
-        bias,
-        (vx_nn_convolution_params_t *)p_ext2,
-        sizeof( vx_nn_convolution_params_ext2_t ),
-        outputs[0]->t
-        );
+    vsi_nn_kernel_param_release( &param );
 
    if( NULL != self->n )
     {
@@ -305,6 +279,20 @@ static vsi_bool op_check
             IO_TYPE(D_F32,       D_BF16,         D_F32,           D_F16)
             IO_TYPE(D_F32,       D_BF16,         D_F32,           D_BF16)
             IO_TYPE(D_F32,       D_BF16,         D_F32,           D_F32)
+
+            IO_TYPE(D_U4|Q_ASYM, D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_U4|Q_ASYM)
+            IO_TYPE(D_U4|Q_ASYM, D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_I4|Q_ASYM)
+            IO_TYPE(D_U4|Q_ASYM, D_I8|Q_ASYM,    D_I32|Q_ASYM,    D_U4|Q_ASYM)
+            IO_TYPE(D_U4|Q_ASYM, D_I8|Q_ASYM,    D_I32|Q_ASYM,    D_I4|Q_ASYM)
+            IO_TYPE(D_U4|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_ASYM,    D_U4|Q_ASYM)
+            IO_TYPE(D_U4|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_ASYM,    D_I4|Q_ASYM)
+            IO_TYPE(D_I4|Q_ASYM, D_I8|Q_ASYM,    D_I32|Q_ASYM,    D_I4|Q_ASYM)
+            IO_TYPE(D_I4|Q_ASYM, D_I8|Q_ASYM,    D_I32|Q_ASYM,    D_U4|Q_ASYM)
+            IO_TYPE(D_I4|Q_ASYM, D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_I4|Q_ASYM)
+            IO_TYPE(D_I4|Q_ASYM, D_U8|Q_ASYM,    D_I32|Q_ASYM,    D_U4|Q_ASYM)
+            IO_TYPE(D_I4|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_I4|Q_ASYM)
+            IO_TYPE(D_I4|Q_ASYM, D_I8|Q_SYM_PC,  D_I32|Q_SYM_PC,  D_U4|Q_ASYM)
+            IO_TYPE(D_I4|Q_DFP,  D_I8|Q_DFP,     D_I32|Q_DFP,     D_I4|Q_DFP)
 
         END_IO_TYPE_DECL(CONV2D)
         ret = VALIDATE_OP_IO_TYPES(CONV2D, self, inputs, self->input.num, outputs, self->output.num);

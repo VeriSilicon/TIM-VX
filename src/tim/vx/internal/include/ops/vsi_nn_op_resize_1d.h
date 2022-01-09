@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_resize_1d_param
 {
     struct _resize_1d_local_data_t* local;
@@ -40,5 +44,8 @@ typedef struct _vsi_nn_resize_1d_param
 _compiler_assert(offsetof(vsi_nn_resize_1d_param, local) == 0, \
     vsi_nn_resize_1d_h );
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

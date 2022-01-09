@@ -1444,7 +1444,6 @@ static vsi_status _query_kernel
     }
 
     return status;
-
 } /* _query_kernel() */
 
 
@@ -1511,65 +1510,57 @@ static vsi_nn_kernel_node_t _setup
 
     if (inputs[LSTMUNIT_ACT_INPUT_FC_I] && VSI_NN_TYPE_UINT8 == inputs[LSTMUNIT_ACT_INPUT_FC_I]->attr.dtype.vx_type)
     {
-        scale_val[0] = inputs[LSTMUNIT_ACT_INPUT_FC_I]->attr.dtype.scale;
-        tail_val[0]  = \
-        -inputs[LSTMUNIT_ACT_INPUT_FC_I]->attr.dtype.scale * inputs[LSTMUNIT_ACT_INPUT_FC_I]->attr.dtype.zero_point;
+        scale_val[0] = vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_INPUT_FC_I]);
+        tail_val[0]  = -(float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_INPUT_FC_I]) * scale_val[0];
     }
 
     if (inputs[LSTMUNIT_ACT_INPUT_FC_F] && VSI_NN_TYPE_UINT8 == inputs[LSTMUNIT_ACT_INPUT_FC_F]->attr.dtype.vx_type)
     {
-        scale_val[1] = inputs[LSTMUNIT_ACT_INPUT_FC_F]->attr.dtype.scale;
-        tail_val[1]  = \
-        -inputs[LSTMUNIT_ACT_INPUT_FC_F]->attr.dtype.scale * inputs[LSTMUNIT_ACT_INPUT_FC_F]->attr.dtype.zero_point;
+        scale_val[1] = vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_INPUT_FC_F]);
+        tail_val[1]  = -(float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_INPUT_FC_F]) * scale_val[1];
     }
 
     if (inputs[LSTMUNIT_ACT_INPUT_FC_C] && VSI_NN_TYPE_UINT8 == inputs[LSTMUNIT_ACT_INPUT_FC_C]->attr.dtype.vx_type)
     {
-        scale_val[2] = inputs[LSTMUNIT_ACT_INPUT_FC_C]->attr.dtype.scale;
-        tail_val[2]  = \
-        -inputs[LSTMUNIT_ACT_INPUT_FC_C]->attr.dtype.scale * inputs[LSTMUNIT_ACT_INPUT_FC_C]->attr.dtype.zero_point;
+        scale_val[2] = vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_INPUT_FC_C]);
+        tail_val[2]  = -(float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_INPUT_FC_C]) * scale_val[2];
     }
 
     if (inputs[LSTMUNIT_ACT_INPUT_FC_O] && VSI_NN_TYPE_UINT8 == inputs[LSTMUNIT_ACT_INPUT_FC_O]->attr.dtype.vx_type)
     {
-        scale_val[3] = inputs[LSTMUNIT_ACT_INPUT_FC_O]->attr.dtype.scale;
-        tail_val[3]  = \
-        -inputs[LSTMUNIT_ACT_INPUT_FC_O]->attr.dtype.scale * inputs[LSTMUNIT_ACT_INPUT_FC_O]->attr.dtype.zero_point;
+        scale_val[3] = vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_INPUT_FC_O]);
+        tail_val[3]  = -(float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_INPUT_FC_O]) * scale_val[3];
     }
 
 
     if (inputs[LSTMUNIT_ACT_HSTATE_FC_I] && VSI_NN_TYPE_UINT8 == inputs[LSTMUNIT_ACT_HSTATE_FC_I]->attr.dtype.vx_type)
     {
-        scale_val[4] = inputs[LSTMUNIT_ACT_HSTATE_FC_I]->attr.dtype.scale;
-        tail_val[4]  = \
-        -inputs[LSTMUNIT_ACT_HSTATE_FC_I]->attr.dtype.scale * inputs[LSTMUNIT_ACT_HSTATE_FC_I]->attr.dtype.zero_point;
+        scale_val[4] = vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_HSTATE_FC_I]);
+        tail_val[4]  = -(float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_HSTATE_FC_I]) * scale_val[4];
     }
 
     if (inputs[LSTMUNIT_ACT_HSTATE_FC_F] && VSI_NN_TYPE_UINT8 == inputs[LSTMUNIT_ACT_HSTATE_FC_F]->attr.dtype.vx_type)
     {
-        scale_val[5] = inputs[LSTMUNIT_ACT_HSTATE_FC_F]->attr.dtype.scale;
-        tail_val[5]  = \
-        -inputs[LSTMUNIT_ACT_HSTATE_FC_F]->attr.dtype.scale * inputs[LSTMUNIT_ACT_HSTATE_FC_F]->attr.dtype.zero_point;
+        scale_val[5] = vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_HSTATE_FC_F]);
+        tail_val[5]  = -(float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_HSTATE_FC_F]) * scale_val[5];
     }
 
     if (inputs[LSTMUNIT_ACT_HSTATE_FC_C] && VSI_NN_TYPE_UINT8 == inputs[LSTMUNIT_ACT_HSTATE_FC_C]->attr.dtype.vx_type)
     {
-        scale_val[6] = inputs[LSTMUNIT_ACT_HSTATE_FC_C]->attr.dtype.scale;
-        tail_val[6]  = \
-        -inputs[LSTMUNIT_ACT_HSTATE_FC_C]->attr.dtype.scale * inputs[LSTMUNIT_ACT_HSTATE_FC_C]->attr.dtype.zero_point;
+        scale_val[6] = vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_HSTATE_FC_C]);
+        tail_val[6]  = -(float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_HSTATE_FC_C]) * scale_val[6];
     }
 
     if (inputs[LSTMUNIT_ACT_HSTATE_FC_O] && VSI_NN_TYPE_UINT8 == inputs[LSTMUNIT_ACT_HSTATE_FC_O]->attr.dtype.vx_type)
     {
-        scale_val[7] = inputs[LSTMUNIT_ACT_HSTATE_FC_O]->attr.dtype.scale;
-        tail_val[7]  = \
-        -inputs[LSTMUNIT_ACT_HSTATE_FC_O]->attr.dtype.scale * inputs[LSTMUNIT_ACT_HSTATE_FC_O]->attr.dtype.zero_point;
+        scale_val[7] = vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_HSTATE_FC_O]);
+        tail_val[7]  = -(float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_HSTATE_FC_O]) * scale_val[7];
     }
 
     if (outputs[LSTMUNIT_ACT_OUTPUT] && VSI_NN_TYPE_UINT8 == outputs[LSTMUNIT_ACT_OUTPUT]->attr.dtype.vx_type)
     {
-        scale_val[8] = 1.0f / outputs[LSTMUNIT_ACT_OUTPUT]->attr.dtype.scale;
-        tail_val[8]  = (float)(outputs[LSTMUNIT_ACT_OUTPUT]->attr.dtype.zero_point);
+        scale_val[8] = 1.0f / vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_OUTPUT]);
+        tail_val[8]  = (float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_OUTPUT]);
     }
 
     if( VSI_SUCCESS == status)
@@ -1645,4 +1636,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( lstmunit_activation, _setup )
-

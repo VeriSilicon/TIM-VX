@@ -81,10 +81,7 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
 
-    if ( ((self->nn_param.resize.align_corners || self->nn_param.resize.half_pixel_centers)
-       && (VSI_NN_INTERPOLATION_BILINEAR == self->nn_param.resize.type
-          || VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR == self->nn_param.resize.type))
-       || _is_same_shape(inputs[0], outputs[0]->attr.size, outputs[0]->attr.dim_num) )
+    if ( self->nn_param.resize.lcl_data->use_internal_node )
     {
         status = vsi_nn_internal_compute_node( self );
     }
@@ -121,10 +118,7 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
-    if ( ((self->nn_param.resize.align_corners || self->nn_param.resize.half_pixel_centers)
-       && (VSI_NN_INTERPOLATION_BILINEAR == self->nn_param.resize.type
-          || VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR == self->nn_param.resize.type) )
-        || _is_same_shape(inputs[0], outputs[0]->attr.size, outputs[0]->attr.dim_num) )
+    if ( self->nn_param.resize.lcl_data->use_internal_node )
     {
         return vsi_nn_internal_optimize_node(self, direction );
     }
@@ -154,6 +148,7 @@ static vsi_bool op_setup
 {
     /* TODO: Add code to comput outputs' shape. */
     float factor = self->nn_param.resize.factor;
+    vsi_enum layout = self->nn_param.resize.layout;
     vsi_nn_internal_node_t* curr = NULL;
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
@@ -161,26 +156,55 @@ static vsi_bool op_setup
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         if (factor != 0)
         {
-            outputs[0]->attr.size[0] = (uint32_t)(inputs[0]->attr.size[0] * factor);
-            outputs[0]->attr.size[1] = (uint32_t)(inputs[0]->attr.size[1] * factor);
+            if (layout == VSI_NN_RESIZE_LAYOUT_NCHW)
+            {
+                outputs[0]->attr.size[0] = (uint32_t)(inputs[0]->attr.size[0] * factor);
+                outputs[0]->attr.size[1] = (uint32_t)(inputs[0]->attr.size[1] * factor);
+            }
+            else
+            {
+                outputs[0]->attr.size[1] = (uint32_t)(inputs[0]->attr.size[1] * factor);
+                outputs[0]->attr.size[2] = (uint32_t)(inputs[0]->attr.size[2] * factor);
+            }
         }
         else
         {
-            outputs[0]->attr.size[0] = self->nn_param.resize.size[0];
-            outputs[0]->attr.size[1] = self->nn_param.resize.size[1];
+            if (layout == VSI_NN_RESIZE_LAYOUT_NCHW)
+            {
+                outputs[0]->attr.size[0] = self->nn_param.resize.size[0];
+                outputs[0]->attr.size[1] = self->nn_param.resize.size[1];
+            }
+            else
+            {
+                outputs[0]->attr.size[1] = self->nn_param.resize.size[0];
+                outputs[0]->attr.size[2] = self->nn_param.resize.size[1];
+            }
         }
-        outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
-        outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+        if (layout == VSI_NN_RESIZE_LAYOUT_NCHW)
+        {
+            outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
+            outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+        }
+        else
+        {
+            outputs[0]->attr.size[0] = inputs[0]->attr.size[0];
+            outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+        }
     }
 
-    if ((self->nn_param.resize.align_corners || self->nn_param.resize.half_pixel_centers)
-       && (VSI_NN_INTERPOLATION_BILINEAR == self->nn_param.resize.type))
+    if ( ( self->nn_param.resize.align_corners ||
+           self->nn_param.resize.half_pixel_centers ||
+           layout == VSI_NN_RESIZE_LAYOUT_NHWC )
+       && ( VSI_NN_INTERPOLATION_BILINEAR == self->nn_param.resize.type ) )
     {
+        self->nn_param.resize.lcl_data->use_internal_node = TRUE;
+
         vsi_nn_internal_init_node_wksp( self );
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESIZE_INTERNAL, 0, 0 );
         curr->node->nn_param.resize_internal.align_corners = self->nn_param.resize.align_corners;
         curr->node->nn_param.resize_internal.factor = self->nn_param.resize.factor;
         curr->node->nn_param.resize_internal.half_pixel_centers = self->nn_param.resize.half_pixel_centers;
+        curr->node->nn_param.resize_internal.layout = self->nn_param.resize.layout;
         curr->inputs[0]  = inputs[0];
         curr->outputs[0] = outputs[0];
         vsi_nn_internal_setup_node(self, curr);
@@ -188,6 +212,8 @@ static vsi_bool op_setup
     else if ((self->nn_param.resize.align_corners || self->nn_param.resize.half_pixel_centers)
             && (VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR == self->nn_param.resize.type))
     {
+        self->nn_param.resize.lcl_data->use_internal_node = TRUE;
+
         vsi_nn_internal_init_node_wksp( self );
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESIZE_NEAREST_INTERNAL, 0, 0 );
         curr->node->nn_param.resize_nearest_internal.align_corners = self->nn_param.resize.align_corners;
@@ -199,6 +225,8 @@ static vsi_bool op_setup
     }
     else if (_is_same_shape(inputs[0], outputs[0]->attr.size, outputs[0]->attr.dim_num))
     {
+        self->nn_param.resize.lcl_data->use_internal_node = TRUE;
+
         vsi_nn_internal_init_node_wksp( self );
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
         curr->inputs[0]  = inputs[0];
@@ -214,14 +242,15 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    if ((self->nn_param.resize.align_corners || self->nn_param.resize.half_pixel_centers)
-       && (VSI_NN_INTERPOLATION_BILINEAR == self->nn_param.resize.type
-          || VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR == self->nn_param.resize.type))
+
+    if (self->nn_param.resize.lcl_data->use_internal_node)
     {
+        vsi_nn_safe_free(self->nn_param.resize.lcl_data);
         vsi_nn_internal_deinit_node_wksp(self);
     }
     else
     {
+        vsi_nn_safe_free(self->nn_param.resize.lcl_data);
         vsi_nn_op_common_deinit(self);
     }
 
@@ -235,12 +264,25 @@ static vsi_status op_init
 {
     vsi_status status = VSI_SUCCESS;
 
+    self->nn_param.resize.lcl_data =
+        (vsi_nn_resize_local_data *)malloc( sizeof(vsi_nn_resize_local_data) );
+    if( NULL == self->nn_param.resize.lcl_data )
+    {
+        VSILOGE( "Create resize local data fail." );
+        status = VSI_FAILURE;
+        goto final;
+    }
+    memset( self->nn_param.resize.lcl_data, 0, sizeof(vsi_nn_resize_local_data) );
+
     if (vsi_nn_compareVersion(self->graph, 1, 1, 14) == -1)
     {
         self->nn_param.resize.align_corners      = FALSE;
         self->nn_param.resize.half_pixel_centers = FALSE;
     }
 
+    self->nn_param.resize.layout = VSI_NN_RESIZE_LAYOUT_NCHW;
+
+final:
     return status;
 } /* op_init() */
 
@@ -263,4 +305,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

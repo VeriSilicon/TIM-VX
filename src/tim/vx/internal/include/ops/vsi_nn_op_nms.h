@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_nms_param
 {
     int32_t max_output_size;
@@ -34,5 +38,9 @@ typedef struct _vsi_nn_nms_param
     float score_threshold;
     float soft_nms_sigma;
 } vsi_nn_nms_param;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

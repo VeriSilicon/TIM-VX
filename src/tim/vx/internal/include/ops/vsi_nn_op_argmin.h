@@ -26,6 +26,9 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define VSI_NN_ARGMIN_SH_KERNEL_IDX(_AXIS, _INPUT_TYPE, _OUTPUT_TYPE, _IMAGE_DIMS) \
     VSI_NN_ARGMIN_AXIS##_AXIS##_##_INPUT_TYPE##TO##_OUTPUT_TYPE##_##_IMAGE_DIMS##_KERNEL,
@@ -110,5 +113,8 @@ typedef struct _vsi_nn_argmin_param
     int32_t axis;
 } vsi_nn_argmin_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

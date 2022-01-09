@@ -52,7 +52,7 @@ typedef enum
 } unary_type_e;
 
 
-#define _CPU_ARG_NUM            (2)
+#define _CPU_ARG_NUM            (3)
 #define _CPU_INPUT_NUM          (1)
 #define _CPU_OUTPUT_NUM         (1)
 #define _CPU_IO_NUM             (_CPU_INPUT_NUM + _CPU_OUTPUT_NUM)
@@ -84,9 +84,9 @@ static float neg_eval(float data)
     return data * -1.0f;
 }
 
-static float hsigmoid_eval(float data)
+static float hsigmoid_eval(float data, float alpha, float beta)
 {
-    data = (float)(0.2 * data + 0.5);
+    data = (float)(alpha * data + beta);
     data = vsi_nn_clamp(data, 0, 1);
 
     return data;
@@ -177,6 +177,7 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
     int32_t i;
     float alpha = 0;
+    float beta = 0;
     int32_t unary_type = 0;
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
@@ -190,6 +191,8 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[2], &unary_type);
     CHECK_STATUS_FAIL_GOTO(status, final );
     status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[3], &alpha);
+    CHECK_STATUS_FAIL_GOTO(status, final );
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[4], &beta);
     CHECK_STATUS_FAIL_GOTO(status, final );
 
     buffer[0] = (float*)vsi_nn_kernel_tensor_create_buffer( tensors[0], attr[0], TRUE );
@@ -222,7 +225,7 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
             data = neg_eval(data);
             break;
         case UNARY_HSIGMOID:
-            data = hsigmoid_eval(data);
+            data = hsigmoid_eval(data, alpha, beta);
             break;
         case UNARY_MISH:
             data = mish_eval(data);
@@ -268,10 +271,12 @@ static vx_param_description_t kernel_param_def[] =
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
 };
 
 #define INPUT_FUNC_TYPE           (2)
 #define INPUT_SCALAR_ALPHA        (3)
+#define INPUT_SCALAR_BETA         (4)
 
 static const vx_kernel_description_t _kernel_info =
 {
@@ -314,6 +319,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t backend_params[_CPU_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     float alpha = vsi_nn_kernel_param_get_float32( params, "alpha" );
+    float beta = vsi_nn_kernel_param_get_float32( params, "beta" );
 
     status = _query_kernel( inputs, outputs, kernel );
     if( VSI_SUCCESS == status)
@@ -328,11 +334,14 @@ static vsi_nn_kernel_node_t _setup
                     graph, I32, &unary_type );
             backend_params[INPUT_SCALAR_ALPHA] = vsi_nn_kernel_scalar_create(
                     graph, F32, &alpha );
+            backend_params[INPUT_SCALAR_BETA] = vsi_nn_kernel_scalar_create(
+                    graph, F32, &beta );
             /* Pass parameters to node. */
             status = vsi_nn_kernel_node_pass_param( node, backend_params, _CPU_PARAM_NUM );
 
             vsi_nn_kernel_scalar_release( &backend_params[INPUT_FUNC_TYPE] );
             vsi_nn_kernel_scalar_release( &backend_params[INPUT_SCALAR_ALPHA] );
+            vsi_nn_kernel_scalar_release( &backend_params[INPUT_SCALAR_BETA] );
         }
         else
         {

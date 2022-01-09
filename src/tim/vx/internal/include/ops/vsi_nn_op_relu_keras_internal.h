@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define _VSI_NN_RELU_KERAS_INTERNAL_LOCAL_TENSOR_NUM 2
 
 typedef struct _vsi_nn_relu_keras_internal_lcl_data
@@ -44,5 +48,8 @@ typedef struct _vsi_nn_relu_keras_internal_param
     float     threshold;
 } vsi_nn_relu_keras_internal_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
     GRUCELL_ACTIVATION_SMA_INPUT_H_STATE    = 0,
     GRUCELL_ACTIVATION_SMA_INPUT_H_T_       = 1,
@@ -47,5 +51,8 @@ typedef struct _vsi_nn_grucell_activation_internal_sma_param
     vsi_nn_grucell_activation_internal_sma_local* local;
 } vsi_nn_grucell_activation_internal_sma_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Define the inputs and outputs for GRU Layer */
 enum
 {
@@ -74,5 +78,8 @@ typedef struct _vsi_nn_gru_param
 _compiler_assert(offsetof(vsi_nn_gru_param, local) == 0, \
                  vsi_nn_gru_h );
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

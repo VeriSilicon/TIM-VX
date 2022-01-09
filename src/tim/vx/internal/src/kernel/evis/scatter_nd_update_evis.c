@@ -98,7 +98,9 @@ static const _kernel_map_type scatter_nd_update_map[] =
     TENSOR_SCATTER_ND_UPDATE_KERNELS(U8,   I32, U8,   F16,    KERNEL_SOURCE_1)
     TENSOR_SCATTER_ND_UPDATE_KERNELS(I8,   I32, I8,   F16,    KERNEL_SOURCE_1)
     TENSOR_SCATTER_ND_UPDATE_KERNELS(I16,  I32, I16,  F16,    KERNEL_SOURCE_1)
+    TENSOR_SCATTER_ND_UPDATE_KERNELS(F16,  I32, F16,  U8,     KERNEL_SOURCE_1)
     TENSOR_SCATTER_ND_UPDATE_BIG_KERNELS(F16, I32, F16, F16,  KERNEL_SOURCE_2)
+    TENSOR_SCATTER_ND_UPDATE_BIG_KERNELS(F16, I32, F16, U8,   KERNEL_SOURCE_2)
 };
 
 static const _kernel_map_type scatter_nd_update_reset_map[] =
@@ -766,7 +768,7 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_big_initializer)
 
         status = vsi_nn_kernel_gpu_add_param( node,
                     "uniAccumulateSum_2x8", &uniAccumulateSum_2x8 );
-        if (attr[2]->quant != VSI_NN_KERNEL_QUANT_NONE)
+        if (attr[3]->quant != VSI_NN_KERNEL_QUANT_NONE)
         {
             status |= vsi_nn_kernel_gpu_add_param( node,
                 "uniU8MulAndPostShift_0_Lo_2x8", &uniU8MulAndPostShift_0_Lo_2x8 );

@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define _VSI_NN_TENSORADD_MEANSTDNORM_LOCAL_TENSOR_NUM 3
 
 typedef struct _vsi_nn_tensoradd_meanstdnorm_lcl_data
@@ -39,5 +43,8 @@ typedef struct _vsi_nn_tensor_add_mean_stddev_norm_param
     float eps;
 } vsi_nn_tensor_add_mean_stddev_norm_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

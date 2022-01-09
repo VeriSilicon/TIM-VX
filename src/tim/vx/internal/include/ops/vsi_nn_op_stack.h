@@ -25,6 +25,11 @@
 #define _VSI_NN_OP_STACK_H
 
 #include "vsi_nn_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define VSI_NN_STACK_MAX_INPUTS (16)
 
 typedef struct _vsi_nn_stack_lcl_data
@@ -63,5 +68,8 @@ typedef struct _vsi_nn_stack_param
     uint32_t axis;
 } vsi_nn_stack_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

@@ -825,7 +825,7 @@ static vsi_nn_kernel_node_t _setup
             CHECK_STATUS(status);
             vsi_nn_kernel_scalar_release( &node_params[3] );
             vsi_nn_kernel_scalar_release( &node_params[4] );
-            status = set_constant_border(node, inputs[0]->attr.dtype.zero_point);
+            status = set_constant_border(node, vsi_nn_get_tensor_zero_point(inputs[0]));
             CHECK_STATUS(status);
         }
     }
@@ -844,4 +844,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( moments, _setup )
-

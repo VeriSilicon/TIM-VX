@@ -66,7 +66,10 @@ __kernel void floordiv_I32I32toU8(
     int4 src1;
     READ_IMAGEI_2DARRAY(src0, input, coord);
     READ_IMAGEI_2DARRAY(src1, input1, coord);
-    uint4 dst  = convert_uint4(floor(convert_float4(src0) / convert_float4(src1)) * outputScale + outputTail);
+    float4 in0 = convert_float4(src0) * input0Scale + input0Tail;
+    float4 in1 = convert_float4(src1) * input1Scale + input1Tail;
+    float4 out = floor(in0 / in1) * outputScale + outputTail;
+    uint4 dst = convert_uint4(out);
     write_imageui(output, coord, dst);
 }
 
@@ -84,7 +87,10 @@ __kernel void floordiv_I32I32toU8_2D(
     int2 coord =  (int2)(get_global_id(0), get_global_id(1));
     int4 src0 = read_imagei(input, coord);
     int4 src1 = read_imagei(input1, coord);
-    uint4 dst  = convert_uint4(floor(convert_float4(src0) / convert_float4(src1)) * outputScale + outputTail);
+    float4 in0 = convert_float4(src0) * input0Scale + input0Tail;
+    float4 in1 = convert_float4(src1) * input1Scale + input1Tail;
+    float4 out = floor(in0 / in1) * outputScale + outputTail;
+    uint4 dst = convert_uint4(out);
     write_imageui(output, coord, dst);
 }
 

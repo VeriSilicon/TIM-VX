@@ -49,10 +49,10 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-
     vsi_status status = VSI_FAILURE;
     int32_t  align_corners       = self->nn_param.resize_internal.align_corners;
     int32_t  half_pixel_centers  = self->nn_param.resize_internal.half_pixel_centers;
+    vsi_enum layout = self->nn_param.resize_internal.layout;
     vsi_nn_kernel_param_t * param = NULL;
 
     param = vsi_nn_kernel_param_create();
@@ -60,10 +60,20 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "align_corners",  align_corners );
     vsi_nn_kernel_param_add_int32( param, "half_pixel_centers",  half_pixel_centers );
 
-    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
-            "resize_bilinear",
-            &inputs[0], 1,
-            &outputs[0], 1, param );
+    if (layout == VSI_NN_RESIZE_LAYOUT_NCHW)
+    {
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+                "resize_bilinear",
+                &inputs[0], 1,
+                &outputs[0], 1, param );
+    }
+    else
+    {
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+                "resize_bilinear_nhwc",
+                &inputs[0], 1,
+                &outputs[0], 1, param );
+    }
 
     if( self->n )
     {
@@ -73,7 +83,6 @@ static vsi_status op_compute
     vsi_nn_kernel_param_release( &param );
 
     return status;
-
 } /* op_compute() */
 
 static vsi_bool op_check
@@ -113,22 +122,47 @@ static vsi_bool op_setup
 {
     /* TODO: Add code to comput outputs' shape. */
     float factor = self->nn_param.resize_internal.factor;
+    vsi_enum layout = self->nn_param.resize_internal.layout;
 
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         if (factor != 0)
         {
-            outputs[0]->attr.size[0] = (uint32_t)(inputs[0]->attr.size[0] * factor);
-            outputs[0]->attr.size[1] = (uint32_t)(inputs[0]->attr.size[1] * factor);
+            if (layout == VSI_NN_RESIZE_LAYOUT_NCHW)
+            {
+                outputs[0]->attr.size[0] = (uint32_t)(inputs[0]->attr.size[0] * factor);
+                outputs[0]->attr.size[1] = (uint32_t)(inputs[0]->attr.size[1] * factor);
+            }
+            else
+            {
+                outputs[0]->attr.size[1] = (uint32_t)(inputs[0]->attr.size[1] * factor);
+                outputs[0]->attr.size[2] = (uint32_t)(inputs[0]->attr.size[2] * factor);
+            }
         }
         else
         {
-            outputs[0]->attr.size[0] = self->nn_param.resize.size[0];
-            outputs[0]->attr.size[1] = self->nn_param.resize.size[1];
+            if (layout == VSI_NN_RESIZE_LAYOUT_NCHW)
+            {
+                outputs[0]->attr.size[0] = self->nn_param.resize.size[0];
+                outputs[0]->attr.size[1] = self->nn_param.resize.size[1];
+            }
+            else
+            {
+                outputs[0]->attr.size[1] = self->nn_param.resize.size[0];
+                outputs[0]->attr.size[2] = self->nn_param.resize.size[1];
+            }
         }
-        outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
-        outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+        if (layout == VSI_NN_RESIZE_LAYOUT_NCHW)
+        {
+            outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
+            outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+        }
+        else
+        {
+            outputs[0]->attr.size[0] = inputs[0]->attr.size[0];
+            outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+        }
     }
     return TRUE;
 } /* op_setup() */
@@ -138,12 +172,6 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    if (self->nn_param.resize_internal.lcl_data_ptr)
-    {
-        free(self->nn_param.resize_internal.lcl_data_ptr);
-        self->nn_param.resize_internal.lcl_data_ptr = NULL;
-    }
-
     vsi_nn_op_common_deinit(self);
 
     return VSI_SUCCESS;
@@ -157,13 +185,8 @@ static vsi_status op_init
 {
     vsi_status status = VSI_SUCCESS;
 
-    self->nn_param.resize_internal.lcl_data_ptr   = \
-                (vsi_nn_resize_in_lcl_data *)malloc(sizeof(vsi_nn_resize_in_lcl_data));
-    if (NULL == self->nn_param.resize_internal.lcl_data_ptr)
-    {
-        return  VX_ERROR_NO_MEMORY;
-    }
-    memset(self->nn_param.resize_internal.lcl_data_ptr, 0, sizeof(vsi_nn_resize_in_lcl_data));
+    self->nn_param.resize_internal.layout = VSI_NN_RESIZE_LAYOUT_NCHW;
+
     return status;
 } /* op_init() */
 

@@ -239,28 +239,14 @@ static vsi_nn_kernel_node_t _setup
     float         inv_scale_h  = vsi_nn_kernel_param_get_float32( params, "inv_scale_h" );
     float         inv_scale_w  = vsi_nn_kernel_param_get_float32( params, "inv_scale_w" );
     vsi_bool      is_use_u8_kernel = FALSE;
-    float         input0Scale  = 1.0f;
-    float         input0Zp     = 0.0f;
-    float         input0Tail   = 0.0f;
-    float         input1Scale  = 1.0f;
-    float         input1Zp     = 0.0f;
-    float         input1Tail   = 0.0f;
+    float         input0Scale  = vsi_nn_get_tensor_scale(inputs[0]);
+    float         input0Zp     = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float         input0Tail   = -input0Zp * input0Scale;
+    float         input1Scale  = vsi_nn_get_tensor_scale(inputs[1]);
+    float         input1Zp     = (float)vsi_nn_get_tensor_zero_point(inputs[1]);
+    float         input1Tail   = -input1Zp * input1Scale;
 
     status = _query_kernel( kernel, inputs, outputs, &is_use_u8_kernel );
-
-    if ( inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC )
-    {
-        input0Zp      = (float)inputs[0]->attr.dtype.zero_point;;
-        input0Scale   = inputs[0]->attr.dtype.scale;
-        input0Tail    = -input0Zp * input0Scale;
-    }
-
-    if ( inputs[1]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC )
-    {
-        input1Zp      = (float)inputs[1]->attr.dtype.zero_point;;
-        input1Scale   = inputs[1]->attr.dtype.scale;
-        input1Tail    = -input1Zp * input1Scale;
-    }
 
     if ( VSI_SUCCESS == status )
     {

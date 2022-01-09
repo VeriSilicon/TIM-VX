@@ -46,6 +46,7 @@ __BEGIN_DECLS
 
  typedef enum
 {
+    _error = -1,
     _1D = 0,
     _2D,
     _3D
@@ -142,6 +143,10 @@ static vsi_status cal_gather_nd_tensor_reshape_size
             sizes[0] = block_size;
             sizes[1] = elementCnt / block_size;
         }
+        else if(coordDim == 4)
+        {
+            newDim[0] = 3;
+        }
 
         status = VSI_SUCCESS;
     }
@@ -223,7 +228,7 @@ static vsi_status _query_kernel
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_dtype_e input0_dtype = U8;
     vsi_nn_kernel_dtype_e output_dtype = U8;
-    vsi_nn_kernel_coord_type_e coord_type = _1D;
+    vsi_nn_kernel_coord_type_e coord_type = _error;
     uint32_t key = 0;
     int i = 0;
 
@@ -237,7 +242,7 @@ static vsi_status _query_kernel
     {
         coord_type = _2D;
     }
-    else if(coord_dim == 3)
+    else if(coord_dim == 3 || coord_dim == 4)
     {
         coord_type = _3D;
     }

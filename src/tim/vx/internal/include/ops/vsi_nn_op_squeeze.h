@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_squeeze_param
 {
     // Add parameters here
@@ -34,5 +38,8 @@ typedef struct _vsi_nn_squeeze_param
     vx_uint32   axis_num;
 } vsi_nn_squeeze_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

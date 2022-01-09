@@ -37,10 +37,6 @@ extern "C"{
 #define inline __inline
 #endif
 
-#if VX_VA40_EXT_SUPPORT
-#define VSI_40BIT_VA_SUPPORT
-#endif
-
 #if (defined(_MSC_VER) || defined(__MINGW32))
     #define SIZE_T_SPECIFIER "Iu"
     #define SSIZE_T_SPECIFIER "Id"
@@ -167,12 +163,20 @@ typedef enum
 #else
     VSI_NN_TYPE_BOOL8 = 0x011,
 #endif
+#ifdef VX_TENSOR_STRIDE_X_BITS_SUPPORT
+    VSI_NN_TYPE_INT4 = VX_TYPE_INT4,
+    VSI_NN_TYPE_UINT4 = VX_TYPE_UINT4,
+#else
+    VSI_NN_TYPE_INT4 = 0x012,
+    VSI_NN_TYPE_UINT4 = 0x013,
+#endif
 #ifdef VSI_BFLOAT16_SUPPORT
     VSI_NN_TYPE_BFLOAT16 = VX_TYPE_BFLOAT16,
 #else
     VSI_NN_TYPE_BFLOAT16 = 0x81A,
 #endif
     VSI_NN_TYPE_VDATA = VX_TYPE_USER_STRUCT_START + 0x1,
+
 }vsi_nn_type_e;
 
 typedef int32_t vsi_nn_activation_e; enum

@@ -26,6 +26,9 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define VSI_NN_LOG_SH_KERNEL_IDX(_INPUT_TYPE, _OUTPUT_TYPE, _IMAGE_DIMS) \
     VSI_NN_LOG_##_INPUT_TYPE##TO##_OUTPUT_TYPE##_##_IMAGE_DIMS##_KERNEL,
@@ -113,6 +116,8 @@ typedef struct _vsi_nn_log_param
     vsi_nn_log_lcl_data local;
 } vsi_nn_log_param;
 
-
+#ifdef __cplusplus
+}
 #endif
 
+#endif

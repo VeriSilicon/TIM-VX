@@ -143,9 +143,9 @@ static vsi_bool op_setup
     }
 
     vsi_nn_internal_init_node_wksp( self );
-    curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE, 0, 0 );
-    curr->node->nn_param.reshape.size = outputs[0]->attr.size;
-    curr->node->nn_param.reshape.dim_num = outputs[0]->attr.dim_num;
+    curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+    curr->node->nn_param.reshape2.size = outputs[0]->attr.size;
+    curr->node->nn_param.reshape2.dim_num = outputs[0]->attr.dim_num;
     curr->inputs[0] = inputs[0];
     curr->outputs[0] = outputs[0];
     vsi_nn_internal_setup_node( self, curr );

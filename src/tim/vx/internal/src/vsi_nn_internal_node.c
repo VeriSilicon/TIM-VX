@@ -213,6 +213,7 @@ vsi_nn_internal_tensor_t* vsi_nn_internal_create_zero_bias_tensor
 
     switch(input_attr->dtype.qnt_type)
     {
+        case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
             scale = input_attr->dtype.scale;
             break;
@@ -233,10 +234,11 @@ vsi_nn_internal_tensor_t* vsi_nn_internal_create_zero_bias_tensor
 
     switch(weight_attr->dtype.qnt_type)
     {
+        case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
             attr.dtype.scale = weight_attr->dtype.scale * scale;
             attr.dtype.zero_point = 0;
-            attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
+            attr.dtype.qnt_type = weight_attr->dtype.qnt_type;
             break;
 
         case VSI_NN_QNT_TYPE_DFP:

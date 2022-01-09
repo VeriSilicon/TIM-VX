@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     Q16_LSTM_INPUT_INPUT        = 0,
@@ -60,5 +64,8 @@ typedef struct _vsi_nn_quantized_16bit_lstm_param
     void* local;
 } vsi_nn_quantized_16bit_lstm_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

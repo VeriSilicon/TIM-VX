@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_reducesum_lcl_data_t
 {
     vsi_nn_tensor_t *reshaped_input;
@@ -40,5 +44,8 @@ typedef struct _vsi_nn_reducesum_internal_param
     vsi_nn_reducesum_lcl_data_t* local;
 } vsi_nn_reducesum_internal_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

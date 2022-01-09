@@ -56,7 +56,7 @@ static vsi_nn_internal_tensor_t * reshape_cell_out
     output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
 
     /* reshape cell_out [w,h,c,n] to [w,h,c,1,n] */
-    curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE, 0, 0 );
+    curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
     reshape_cell_size = vsi_nn_internal_new_node_param(curr,
         VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
     reshape_cell_size[0] = cell_out->attr.size[0];
@@ -64,8 +64,8 @@ static vsi_nn_internal_tensor_t * reshape_cell_out
     reshape_cell_size[2] = cell_out->attr.size[2];
     reshape_cell_size[3] = 1;
     reshape_cell_size[4] = cell_out->attr.size[3];
-    curr->node->nn_param.reshape.size = reshape_cell_size;
-    curr->node->nn_param.reshape.dim_num = 5;
+    curr->node->nn_param.reshape2.size = reshape_cell_size;
+    curr->node->nn_param.reshape2.dim_num = 5;
 
     curr->inputs[0] = cell_out;
     curr->outputs[0] = output_tensor->t;
@@ -90,15 +90,15 @@ static vsi_nn_internal_tensor_t * reshape_split_out
     output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
 
     /* reshape [w,h,c,t,n] to [w,h,c,n] */
-    curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE, 0, 0 );
+    curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
     reshape_split_size = vsi_nn_internal_new_node_param(curr,
         VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
     reshape_split_size[0] = split_out->attr.size[0];
     reshape_split_size[1] = split_out->attr.size[1];
     reshape_split_size[2] = split_out->attr.size[2];
     reshape_split_size[3] = split_out->attr.size[4];
-    curr->node->nn_param.reshape.size = reshape_split_size;
-    curr->node->nn_param.reshape.dim_num = 4;
+    curr->node->nn_param.reshape2.size = reshape_split_size;
+    curr->node->nn_param.reshape2.dim_num = 4;
 
     curr->inputs[0] = split_out;
     curr->outputs[0] = output_tensor->t;

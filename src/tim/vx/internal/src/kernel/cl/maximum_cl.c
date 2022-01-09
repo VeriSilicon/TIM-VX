@@ -239,12 +239,12 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
 
-    float input0Scale = inputs[0]->attr.dtype.scale;
-    float input0Tail = (float)inputs[0]->attr.dtype.zero_point * input0Scale;
-    float input1Scale = inputs[1]->attr.dtype.scale;
-    float input1Tail = (float)inputs[1]->attr.dtype.zero_point * input1Scale;
-    float outputScale = outputs[0]->attr.dtype.scale;
-    float outputZP = (float)outputs[0]->attr.dtype.zero_point + 0.5f;
+    float input0Scale = vsi_nn_get_tensor_scale(inputs[0]);
+    float input0Tail = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * input0Scale;
+    float input1Scale = vsi_nn_get_tensor_scale(inputs[1]);
+    float input1Tail = (float)vsi_nn_get_tensor_zero_point(inputs[1]) * input1Scale;
+    float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
+    float outputZP = (float)vsi_nn_get_tensor_zero_point(outputs[0]) + 0.5f;
 
     outputScale = vsi_abs(outputScale) < 1e-5 ? 0.0f : 1.0f / outputScale;
 
@@ -294,4 +294,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( maximum, _setup )
-

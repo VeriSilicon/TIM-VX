@@ -315,7 +315,7 @@ static vsi_bool op_setup
             memcpy(&attr, &outputs[0]->attr, sizeof(vsi_nn_tensor_attr_t));
             for(i = 0; i < p->output_attr.dim_num; i++)
             {
-                attr.size[i] = (vsi_size_t)p->output_attr.size[i];
+                attr.size[i] = -1 == p->output_attr.size[i] ? -1 : (vsi_size_t)p->output_attr.size[i];
             }
             attr.size[axis] = 1;
             attr.vtl = TRUE;

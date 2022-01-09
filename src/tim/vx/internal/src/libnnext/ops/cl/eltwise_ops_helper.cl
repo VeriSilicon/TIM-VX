@@ -56,13 +56,14 @@ inline Tensor create_tensor_from_image2d_array(image2d_array_t input, int stride
 {
     int8 desc;
     int2 strides;
+    _viv_asm(COPY, desc, input, sizeof(desc));
+
 #if (USE_40BITS_VA==0)
     strides.x = desc.s1;
     strides.y = desc.s4;
 #else
     _viv_asm(GET_IMAGE_STRIDE, strides, input);
 #endif
-    _viv_asm(COPY, desc, input, sizeof(desc));
     uint address = as_uint(desc.s0);
 
     Tensor t =

@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define _VSI_NN_TILE_LOCAL_TENSOR_NUM 2
 
 typedef struct _vsi_nn_tile_lcl_data_t
@@ -43,5 +47,8 @@ typedef struct _vsi_nn_tile_param
     uint32_t multiples_num;
 } vsi_nn_tile_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif
