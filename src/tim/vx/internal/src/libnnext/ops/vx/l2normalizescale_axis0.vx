@@ -262,7 +262,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) \
 { \
     int lidx = get_local_id(0); \
     int offset  = get_global_id(0); \
-    Image src_img = create_image_from_image2d(input, 1);
+    Image src_img = create_image_from_image2d(input, 1); \
     uchar *src_ptr_base = (uchar *)src_img.ptr; \
     uchar *src_ptr; \
     vxc_uchar8 src0, src1; \

@@ -33,10 +33,6 @@
 #include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "libnnext/vsi_nn_libnnext_resource.h"
-#if VSI_USE_VXC_BINARY
-/*this header can be only included once in all *.c files*/
-#include "libnnext/vx_bin/vxc_binaries.h"
-#endif
 
 static char s_vx_resource_path[VSI_NN_MAX_PATH] = "VX";
 
@@ -454,7 +450,7 @@ vx_node vsi_nn_RegisterClientKernelAndCreateNode
     )
 {
     /*
-    * Deprecated: use vsi_nn_RegisterClientKernelAndNewNode() insteatd.
+    * Deprecated: use vsi_nn_RegisterClientKernelAndNewNode() instead.
     */
     vsi_nn_kernel_info_t kernel_info;
     char *resource_name[1] = {NULL};
@@ -543,17 +539,6 @@ const uint8_t * vsi_nn_VxBinResourceGetResource
     vx_size *len
     )
 {
-#if VSI_USE_VXC_BINARY
-    int i;
-    for (i = 0; i < vx_bin_resource_items_cnt; i++)
-    {
-        if (strncmp(vx_bin_resource_items[i].name, name, VSI_NN_MAX_PATH) == 0)
-        {
-            *len = vx_bin_resource_items[i].len;
-            return vx_bin_resource_items[i].data;
-        }
-    }
-#endif
     return NULL;
 } /* vsi_nn_VxResourceGetBinResource() */
 
