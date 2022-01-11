@@ -85,6 +85,7 @@ class Conv2d : public DirectMapOp {
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
+  const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor() const override;
  protected:
   const uint32_t weights_;
   const PadType padding_;

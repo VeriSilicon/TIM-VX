@@ -88,6 +88,14 @@ std::shared_ptr<Operation> Conv2d::Clone(std::shared_ptr<Graph>& graph) const {
       this->kernel_layout_);
 }
 
+const std::vector<std::shared_ptr<Tensor>> Conv2d::ConstantInputsTensor() const {
+   if (this->IsAllInputsConst()) {
+    return {this->impl_->inputs_tensor_[0]};
+  } else {
+    return {};
+  }
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

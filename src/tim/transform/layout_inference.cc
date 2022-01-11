@@ -298,6 +298,16 @@ std::pair<std::shared_ptr<vx::Graph>,
                                        MakeShared(t_src->GetShape().size()));
   }
 
+  auto const_inputs = src_graph->GetConstantInputs();
+  for (auto const_in : const_inputs) {
+    auto input =
+        infer_graph->CreateTensor(const_in->GetSpec(), const_in->GetDataRef());
+    layout_infer_ctx->UpdateTensorMap(const_in, input);
+    tensor_queue.push_back(const_in);
+    layout_infer_ctx->SetPermuteVector(const_in,
+                                       MakeShared(const_in->GetShape().size()));
+  }
+
   while (!tensor_queue.empty()) {
     const auto& tensor = tensor_queue.front();
     tensor_queue.pop_front();

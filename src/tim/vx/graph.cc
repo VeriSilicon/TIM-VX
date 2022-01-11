@@ -35,6 +35,15 @@
 namespace tim {
 namespace vx {
 
+const std::vector<std::shared_ptr<Tensor>> Graph::GetConstantInputs() const {
+    std::vector<std::shared_ptr<Tensor>> const_inputs;
+    for (auto op : op_vector_) {
+      auto const_i = op->ConstantInputsTensor();
+      const_inputs.insert(const_inputs.end(), const_i.begin(), const_i.end());
+    }
+    return const_inputs;
+  }
+
 GraphImpl::GraphImpl(ContextImpl* context)
     : context_(context),
       graph_(vsi_nn_CreateGraph(context_->context(), 0, 0)),
@@ -91,7 +100,7 @@ void GraphImpl::UpdateTensorProducerMap(const std::shared_ptr<Tensor>& tensor,
                                          const Operation* op) {
   for (const auto& added_op : op_vector_) {
     if (added_op.get() == op) {
-      tensor_producer_[tensor].push_back(added_op);
+      tensor_producer_[tensor] = added_op;
     }
   }
 }
@@ -107,7 +116,7 @@ const std::vector<std::shared_ptr<Operation>> GraphImpl::GetConsumersOp(
   }
 }
 
-std::vector<std::shared_ptr<Operation>> GraphImpl::GetProducerOp(
+std::shared_ptr<Operation> GraphImpl::GetProducerOp(
     std::shared_ptr<Tensor> tensor)  {
   auto producer = tensor_producer_.find(tensor);
   if (tensor_producer_.end() != producer) {
