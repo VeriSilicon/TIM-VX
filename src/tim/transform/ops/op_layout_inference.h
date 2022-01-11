@@ -44,6 +44,10 @@ constexpr std::initializer_list<uint32_t> kHWOcIc2OcIcHW = {2, 3, 0, 1};
 constexpr std::initializer_list<uint32_t> kOcIcWH2WHIcOc = {2, 3, 1, 0};
 constexpr std::initializer_list<uint32_t> kIcOcWH2WHIcOc = {2, 3, 0, 1};
 
+constexpr std::initializer_list<uint32_t> kCWHDN2WHDCN = {1, 2, 3, 0, 4};
+constexpr std::initializer_list<uint32_t> kOcIcWHD2WHDIcOc = {2, 3, 4, 1, 0};
+constexpr std::initializer_list<uint32_t> kDHWIcOc2OcIcDHW = {4, 3, 0, 1, 2};
+
 class OpLayoutInfer {
  public:
   OpLayoutInfer(
