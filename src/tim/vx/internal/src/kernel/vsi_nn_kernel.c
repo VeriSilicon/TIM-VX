@@ -79,10 +79,11 @@ static vx_program _create_program_from_code
     vsi_nn_kernel_t* kernel
     );
 
-static const void* _load_internal_executable
+static const uint8_t* _load_internal_executable
     (
     const char* source_name,
-    size_t* size
+    size_t* size,
+    vsi_nn_kernel_type_e type
     );
 
 static char* _load_source_code_from_file
@@ -216,21 +217,62 @@ static vsi_status _cpu_register
     return status;
 } /* _cpu_register() */
 
-static const void* _load_internal_executable
+#if VSI_USE_VXC_BINARY
+static const uint8_t* _load_bin
     (
     const char* source_name,
-    size_t* size
+    size_t* size,
+    const vsi_nn_vx_bin_resource_item_type* source_map,
+    size_t source_map_size,
+    const char* tail
+    )
+{
+    const uint8_t* source;
+    char source_path[VSI_NN_MAX_PATH];
+    size_t n;
+    int i;
+    source = NULL;
+    n = snprintf( source_path, VSI_NN_MAX_PATH, "%s%s", source_name, tail );
+    if( n == VSI_NN_MAX_PATH )
+    {
+        VSILOGE("Kernel source path overflow %d/%d", n, VSI_NN_MAX_PATH);
+        *size = 0;
+        return NULL;
+    }
+    for( i = 0; i < (int)source_map_size; i++ )
+    {
+        if( strncmp( source_map[i].name, source_path, VSI_NN_MAX_PATH ) == 0 )
+        {
+            source = source_map[i].data;
+            *size = source_map[i].len;
+            break;
+        }
+    }
+    if( !source )
+    {
+        *size = 0;
+    }
+    return source;
+} /* _load_bin() */
+#endif
+
+static const uint8_t* _load_internal_executable
+    (
+    const char* source_name,
+    size_t* size,
+    vsi_nn_kernel_type_e type
     )
 {
 #if VSI_USE_VXC_BINARY
-    int i;
-    for( i = 0; i < vx_bin_resource_items_cnt; i++ )
+    switch( type )
     {
-        if( strncmp( vx_bin_resource_items[i].name, source_name, VSI_NN_MAX_PATH ) == 0 )
-        {
-            *size = (size_t)vx_bin_resource_items[i].len;
-            return vx_bin_resource_items[i].data;
-        }
+        case VSI_NN_KERNEL_TYPE_EVIS:
+            return _load_bin( source_name, size,
+                vx_bin_resource_items_vx, vx_bin_resource_items_vx_cnt, "_vx" );
+            break;
+        case VSI_NN_KERNEL_TYPE_CL:
+            return _load_bin( source_name, size,
+                vx_bin_resource_items_cl, vx_bin_resource_items_cl_cnt, "_cl" );
     }
 #endif
     return NULL;
@@ -393,7 +435,7 @@ static vx_program _create_program_from_executable
     memset( &program_info, 0, sizeof( kernel_program_info_t ) );
 
     program_info.data = _load_internal_executable(
-            source_info->data[0], &program_info.size);
+            source_info->data[0], &program_info.size, kernel->type);
     program = vxCreateProgramWithBinary( graph->ctx->c,
             (const vx_uint8 *)program_info.data, program_info.size );
     return program;
