@@ -1,6 +1,7 @@
 #include "cl_viv_vx_ext.h"
 
 _viv_uniform float alpha;
+_viv_uniform float beta;
 
 float4 eltwise_unary_sin(float4 x)
 {
@@ -38,7 +39,7 @@ float4 eltwise_unary_neg(float4 x)
 
 float4 eltwise_unary_hard_sigmoid(float4 x)
 {
-    x = 0.2 * x + 0.5;
+    x = alpha * x + beta;
     x = clamp(x, 0, 1);
     return x;
 }
@@ -136,7 +137,8 @@ _viv_uniform VXC_512Bits uniDatatoFp32Part1_4x4;
     __read_only  image2d_array_t  input, \
     __write_only image2d_array_t  output, \
                  int              type, \
-                 float            _alpha \
+                 float            _alpha, \
+                 float            _beta \
     ) \
 { \
     int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
@@ -285,7 +287,8 @@ _viv_uniform VXC_512Bits uniExtractOddData_2x8;
     __read_only  image2d_array_t  input, \
     __write_only image2d_array_t  output, \
                  int              type, \
-                 float            _alpha \
+                 float            _alpha, \
+                 float            _beta \
     ) \
 { \
     int2 coord = (int2)(get_global_id(0), get_global_id(1)); \

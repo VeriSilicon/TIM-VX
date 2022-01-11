@@ -522,12 +522,10 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t width = inputs[0]->attr.size[0];
     vsi_size_t height = inputs[0]->attr.size[1];
     int32_t group_stride = 1;
-    float input_zp = 0;
-    float input_scale = 1.0f;
-    int32_t input_fl = 0;
-    float output_zp = 0;
-    float output_scale = 1.0f;
-    int32_t output_fl = 0;
+    float input_zp = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float input_scale = vsi_nn_get_tensor_scale(inputs[0]);
+    float output_zp = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float output_scale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
     float rSpaceOrg = 1.0f / (width * height);
     float group_ratio = 1.0f / (inputs[0]->attr.size[0] * inputs[0]->attr.size[1] * group_size);
 
@@ -548,44 +546,6 @@ static vsi_nn_kernel_node_t _setup
     width = new_shape[0];
     height = is2D_flg > 0 ? 1 : new_shape[1];
     group_stride = (int32_t)(((width + 15) / 16) * 4);
-
-    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        input_zp = (float)inputs[0]->attr.dtype.zero_point;
-        input_scale = inputs[0]->attr.dtype.scale;
-    }
-    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        input_fl = inputs[0]->attr.dtype.fl;
-        if (input_fl > 0)
-        {
-            input_scale = (1.0f / ((float) ((int64_t)1 << input_fl)));
-        }
-        else
-        {
-            input_scale = ((float) ((int64_t)1 << -input_fl));
-        }
-        input_zp = 0.0f;
-    }
-
-    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        output_zp = (float)outputs[0]->attr.dtype.zero_point;
-        output_scale = 1.0f / outputs[0]->attr.dtype.scale;
-    }
-    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        output_fl = outputs[0]->attr.dtype.fl;
-        if (output_fl > 0)
-        {
-            output_scale = (float)((int64_t)1 << output_fl);
-        }
-        else
-        {
-            output_scale = (1.0f / (float)((int64_t)1 << -output_fl));
-        }
-        output_zp = 0.0f;
-    }
 
     for( i = 0; i < INTERNAL_KERNEL_SIZE; i ++ )
     {
@@ -757,4 +717,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_CL( group_norm, _setup )
-

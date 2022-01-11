@@ -56,6 +56,9 @@ typedef enum
 #define KERNEL_SOURCE_3    "group_normalization_i16"
 #define KERNEL_SOURCE_4    "group_normalization_f16"
 #define KERNEL_SOURCE_5    "group_normalization_u8_f16"
+#define KERNEL_SOURCE_6    "group_normalization_i8_scale"
+#define KERNEL_SOURCE_7    "group_normalization_i16_scale"
+#define KERNEL_SOURCE_8    "group_normalization_f16_scale"
 
 #define HASH_GROUPNORM_SUM_SQR_SH_KERNEL_NAME(SRC0_TYPE) \
     CVIVANTE_NAMESPACE("evis.group_norm_sumsqr_"#SRC0_TYPE)
@@ -71,6 +74,12 @@ typedef enum
 
 #define HASH_GROUPNORM_SH_KERNEL_2D_NAME(SRC0_TYPE, DST_TYPE) \
     CVIVANTE_NAMESPACE("evis.group_norm_"#SRC0_TYPE"to"#DST_TYPE"_2D")
+
+#define HASH_GROUPNORM_SCALE_SH_KERNEL_NAME(SRC0_TYPE, SRC1_TYPE, DST_TYPE) \
+    CVIVANTE_NAMESPACE("evis.group_norm_"#SRC0_TYPE#SRC1_TYPE"to"#DST_TYPE)
+
+#define HASH_GROUPNORM_SCALE_SH_KERNEL_2D_NAME(SRC0_TYPE, SRC1_TYPE, DST_TYPE) \
+    CVIVANTE_NAMESPACE("evis.group_norm_"#SRC0_TYPE#SRC1_TYPE"to"#DST_TYPE"_2D")
 
 // Add kernel hashtable here
 // Sum Sqr
@@ -96,17 +105,27 @@ typedef enum
         SOURCE },
 
 // normalization
-#define HASH_GROUPNORM_KEY(_input0_type, _output_type, _reshape_flag) \
-    ((_input0_type << 24) | (_output_type << 16) | (_reshape_flag << 8))
+#define HASH_GROUPNORM_KEY(_input0_type, _input1_type, _output_type, _reshape_flag) \
+    ((_input0_type << 24) | (_input1_type << 16) | (_output_type << 8) | (_reshape_flag << 4))
 
 #define TENSOR_GROUPNORM_KERNELS(IN0_TYPE, OUT_TYPE, SOURCE) \
-    { HASH_GROUPNORM_KEY(IN0_TYPE, OUT_TYPE, 0), \
+    { HASH_GROUPNORM_KEY(IN0_TYPE, F16, OUT_TYPE, 0), \
         HASH_GROUPNORM_SH_KERNEL_NAME(IN0_TYPE, OUT_TYPE), \
         SOURCE },
 
 #define TENSOR_GROUPNORM_KERNELS_2D(IN0_TYPE, OUT_TYPE, SOURCE) \
-    { HASH_GROUPNORM_KEY(IN0_TYPE, OUT_TYPE, 1), \
+    { HASH_GROUPNORM_KEY(IN0_TYPE, F16, OUT_TYPE, 1), \
         HASH_GROUPNORM_SH_KERNEL_2D_NAME(IN0_TYPE, OUT_TYPE), \
+        SOURCE },
+
+#define TENSOR_GROUPNORM_SCALE_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_GROUPNORM_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, 0), \
+        HASH_GROUPNORM_SCALE_SH_KERNEL_NAME(IN0_TYPE, IN1_TYPE, OUT_TYPE), \
+        SOURCE },
+
+#define TENSOR_GROUPNORM_SCALE_KERNELS_2D(IN0_TYPE, IN1_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_GROUPNORM_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, 1), \
+        HASH_GROUPNORM_SCALE_SH_KERNEL_2D_NAME(IN0_TYPE, IN1_TYPE, OUT_TYPE), \
         SOURCE },
 
 typedef struct
@@ -157,6 +176,26 @@ static const _kernel_map_type _groupnorm_kernel_map[] =
     TENSOR_GROUPNORM_KERNELS_2D( F16, F16, KERNEL_SOURCE_4 )
     TENSOR_GROUPNORM_KERNELS( F16, U8, KERNEL_SOURCE_4 )
     TENSOR_GROUPNORM_KERNELS_2D( F16, U8, KERNEL_SOURCE_4 )
+
+    TENSOR_GROUPNORM_SCALE_KERNELS( U8, F32, U8, KERNEL_SOURCE_2 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( U8, F32, U8, KERNEL_SOURCE_2 )
+    TENSOR_GROUPNORM_SCALE_KERNELS( U8, F32, F16, KERNEL_SOURCE_5 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( U8, F32, F16, KERNEL_SOURCE_5 )
+
+    TENSOR_GROUPNORM_SCALE_KERNELS( I8, F32, I8, KERNEL_SOURCE_6 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( I8, F32, I8, KERNEL_SOURCE_6 )
+    TENSOR_GROUPNORM_SCALE_KERNELS( I8, F32, F16, KERNEL_SOURCE_6 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( I8, F32, F16, KERNEL_SOURCE_6 )
+
+    TENSOR_GROUPNORM_SCALE_KERNELS( I16, F32, I16, KERNEL_SOURCE_7 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( I16, F32, I16, KERNEL_SOURCE_7 )
+    TENSOR_GROUPNORM_SCALE_KERNELS( I16, F32, F16, KERNEL_SOURCE_7 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( I16, F32, F16, KERNEL_SOURCE_7 )
+
+    TENSOR_GROUPNORM_SCALE_KERNELS( F16, F32, U8, KERNEL_SOURCE_8 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( F16, F32, U8, KERNEL_SOURCE_8 )
+    TENSOR_GROUPNORM_SCALE_KERNELS( F16, F32, F16, KERNEL_SOURCE_8 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( F16, F32, F16, KERNEL_SOURCE_8 )
 };
 
 /*
@@ -483,7 +522,7 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
         {0, 0, 0},  // localWorkSize: local group size in thread
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
-    vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
+    vsi_nn_kernel_tensor_attr_t* attr[4] = {NULL, NULL, NULL, NULL};
     vsi_size_array_t * input_shape = NULL;
     float scaleIn = 1.0f;
     float scaleOut = 1.0f;
@@ -501,6 +540,8 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
     CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", OnError );
     attr[2] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[4] );
     CHECK_PTR_FAIL_GOTO( attr[2], "Create tensor attr buffer fail.", OnError );
+    attr[3] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
+    CHECK_PTR_FAIL_GOTO( attr[3], "Create tensor attr buffer fail.", OnError );
 
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[6], &is2D);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
@@ -735,8 +776,14 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
 
         pack_key = _PACK_SELECT_KEY( attr[0]->dtype, attr[2]->dtype );
 
-        status  = vsi_nn_kernel_gpu_add_param(node, "height", &height);
-        status |= vsi_nn_kernel_gpu_add_param(node, "UniFP16toFP32Lo4_dp4x4", &UniFP16toFP32Lo4_dp4x4);
+        if (attr[3]->dtype != F32)
+        {
+            status  = vsi_nn_kernel_gpu_add_param(node, "height", &height);
+        }
+        if (!(attr[3]->dtype == F32 && (attr[0]->dtype == I16 || attr[0]->dtype == I8)))
+        {
+            status |= vsi_nn_kernel_gpu_add_param(node, "UniFP16toFP32Lo4_dp4x4", &UniFP16toFP32Lo4_dp4x4);
+        }
         CHECK_STATUS_FAIL_GOTO(status, OnError );
 
         switch( pack_key )
@@ -864,6 +911,11 @@ OnError:
     {
         vsi_nn_kernel_tensor_attr_release( &attr[2] );
         attr[2] = NULL;
+    }
+    if (attr[3])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[3] );
+        attr[3] = NULL;
     }
 
     return status;
@@ -1001,6 +1053,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_t tmp_node = NULL, tmp_node1 = NULL;
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_kernel_dtype_e in0_dtype = U8;
+    vsi_nn_kernel_dtype_e in2_dtype = F16;
     vsi_nn_kernel_dtype_e out_dtype = U8;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_kernel_t * ikernels[INTERNAL_KERNEL_SIZE] = { NULL };
@@ -1040,11 +1093,12 @@ static vsi_nn_kernel_node_t _setup
     }
 
     in0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
+    in2_dtype = vsi_nn_kernel_map_dtype( inputs[2]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
     hashkeys[SUM_SQR_INDEX]= HASH_GROUPNORM_SUM_SQR_KEY( in0_dtype, F32, is2D_flg );
     hashkeys[MEAN_VARI_INDEX]= HASH_GROUPNORM_MEAN_VARI_KEY( F32, F32 );
-    hashkey = HASH_GROUPNORM_KEY( in0_dtype, out_dtype, is2D_flg );
+    hashkey = HASH_GROUPNORM_KEY( in0_dtype, in2_dtype, out_dtype, is2D_flg );
 
     status = _query_kernel( ikernels[SUM_SQR_INDEX], hashkeys[SUM_SQR_INDEX], INTERNAL_KERNEL_SUM_SQR );
     if ( VSI_SUCCESS != status )
@@ -1104,7 +1158,7 @@ static vsi_nn_kernel_node_t _setup
             border.constant_value.U16 = 0;
             if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8)
             {
-                border.constant_value.U8 = (vx_uint8)inputs[0]->attr.dtype.zero_point;
+                border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
             }
             status = vxSetNodeAttribute( (vx_node)tmp_node, VX_NODE_BORDER, &border, sizeof(border) );
             CHECK_STATUS(status);
@@ -1134,7 +1188,7 @@ static vsi_nn_kernel_node_t _setup
             border.constant_value.U16 = 0;
             if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8)
             {
-                border.constant_value.U8 = (vx_uint8)inputs[0]->attr.dtype.zero_point;
+                border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
             }
             status = vxSetNodeAttribute( (vx_node)tmp_node1, VX_NODE_BORDER, &border, sizeof(border) );
             CHECK_STATUS(status);
@@ -1177,7 +1231,7 @@ static vsi_nn_kernel_node_t _setup
             border.constant_value.U16 = 0;
             if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8)
             {
-                border.constant_value.U8 = (vx_uint8)inputs[0]->attr.dtype.zero_point;
+                border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
             }
             status = vxSetNodeAttribute( (vx_node)node, VX_NODE_BORDER, &border, sizeof(border) );
             CHECK_STATUS(status);
@@ -1216,4 +1270,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( group_norm, _setup )
-

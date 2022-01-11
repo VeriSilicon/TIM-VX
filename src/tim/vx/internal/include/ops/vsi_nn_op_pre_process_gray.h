@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     PRE_PROCESS_GRAY_INPUT = 0,
@@ -67,5 +71,8 @@ typedef struct _vsi_nn_pre_process_gray_param
     vsi_nn_pre_process_gray_lcl_data local;
 } vsi_nn_pre_process_gray_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

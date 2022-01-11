@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     BI_LSTM_INPUT_INPUT             = 0,
@@ -132,5 +136,8 @@ typedef struct _vsi_nn_bidirectional_sequence_lstm_param
     vsi_nn_dtype_t *internal_dtype;
 } vsi_nn_bidirectional_sequence_lstm_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

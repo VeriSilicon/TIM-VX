@@ -232,7 +232,6 @@ static vsi_status _query_kernel
     }
 
     return status;
-
 } /* _query_kernel() */
 
 
@@ -254,11 +253,11 @@ static vsi_nn_kernel_node_t _setup
     int32_t  scale_y  = 0;
     vsi_bool image_2d = FALSE;
     vsi_bool is_use_u8_kernel = FALSE;
-    float    outputScale  = outputs[0]->attr.dtype.scale == 0.0f ? 1.0f : outputs[0]->attr.dtype.scale;
-    float    outputTail   = (float)outputs[0]->attr.dtype.zero_point;
-    float    inputScale   = inputs[0]->attr.dtype.scale == 0.0f ? 1.0f : inputs[0]->attr.dtype.scale;
-    float    inputTail    = (float)inputs[0]->attr.dtype.zero_point;
-    int32_t  outputZp      = outputs[0]->attr.dtype.zero_point;
+    float    outputScale  = vsi_nn_get_tensor_scale(outputs[0]);
+    float    outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float    inputScale   = vsi_nn_get_tensor_scale(inputs[0]);
+    float    inputTail    = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    int32_t  outputZp     = vsi_nn_get_tensor_zero_point(outputs[0]);
     float    scale_value  = 1.0f;
     float    tail_value   = 0.0f;
 
@@ -314,10 +313,8 @@ static vsi_nn_kernel_node_t _setup
     }
 
     return node;
-
 } /* _setup() */
 
 __END_DECLS
 
 REGISTER_BACKEND_CL( upsample, _setup )
-

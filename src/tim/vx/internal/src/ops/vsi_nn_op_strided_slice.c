@@ -255,11 +255,8 @@ static vsi_status copy_tensor_to_view
     data->src_tensor = src_tensor;
     if (dst_in->t)
     {
-#ifdef VSI_40BIT_VA_SUPPORT
-        data->dst_tensor = vxReshapeTensor(dst_in->t, dst_in->attr.size, dst_in->attr.dim_num);
-#else
-        data->dst_tensor = vxReshapeTensor(dst_in->t, (int32_t*)dst_in->attr.size, dst_in->attr.dim_num);
-#endif
+        data->dst_tensor = vsi_nn_safe_reshape_tensor(dst_in->t, (void*)dst_in->attr.size,
+            (vsi_size_t)dst_in->attr.dim_num, sizeof(dst_in->attr.size[0]));
     }
 
     data->is_dataconvert_op = TRUE;

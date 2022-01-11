@@ -37,81 +37,157 @@ typedef enum
     MEMORY_ACCESSOR_WRITE_ONLY = 1,
 } mem_accessor_e;
 
-vsi_status _copy_tensor
+vsi_status vsi_nn_kernel_copy_tensor_veiw_patch
     (
-    vsi_nn_kernel_tensor_t tensor,
+    vx_tensor tensor,
     const vsi_nn_kernel_tensor_attr_t * attr,
-    mem_accessor_e accessor,
-    void * buffer,
-    size_t buffer_size
+    void *user_ptr,
+    vsi_size_t *start,
+    vsi_size_t *end,
+    vsi_size_t *stride,
+    vsi_enum usage,
+    vsi_enum user_memory_type
     )
 {
+#define USE_OPENVX_1_2
+    size_t dim,i;
+    size_t vstart[VSI_NN_MAX_DIM_NUM],vend[VSI_NN_MAX_DIM_NUM],vstride[VSI_NN_MAX_DIM_NUM];
     vsi_status status = VSI_FAILURE;
-    vsi_nn_kernel_tensor_attr_t * internal_attr = NULL;
-    size_t rank;
-    size_t start[VSI_NN_MAX_DIM_NUM]  = { 0 };
-    size_t end[VSI_NN_MAX_DIM_NUM]    = { 0 };
-    size_t stride[VSI_NN_MAX_DIM_NUM] = { 0 };
-    vsi_size_t stride2[VSI_NN_MAX_DIM_NUM] = { 0 };
-    size_t type_bytes;
-    size_t total_bytes;
-    uint32_t i;
-
-    if( !tensor || !buffer || !buffer_size )
+    if (NULL == tensor || NULL == user_ptr || NULL == start || NULL == end || NULL == stride)
     {
         VSILOGE("Invalid parameter");
         return status;
     }
-    if( !attr )
+    dim = (size_t)attr->shape->size;
+    for (i = 0; i < dim; i++)
     {
-        internal_attr = vsi_nn_kernel_tensor_attr_create( tensor );
-        CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr fail.", final );
-        attr = internal_attr;
+        vstart[i] = (size_t)start[i];
+        vend[i] = (size_t)end[i];
+        vstride[i] = (size_t)stride[i];
     }
 
-    total_bytes = vsi_nn_kernel_tensor_attr_get_bytes( attr );
-    if( total_bytes != (vsi_size_t)buffer_size )
+#ifdef USE_OPENVX_1_2
+
+#ifdef VX_TENSOR_STRIDE_X_BITS_SUPPORT
     {
-        VSILOGE("Read buffer size mismatch %"VSI_SIZE_T_SPECIFIER" vs %"VSI_SIZE_T_SPECIFIER"",
-            total_bytes, (vsi_size_t)buffer_size);
-        goto final;
+        vx_trensor_addressing addr = NULL;
+        vx_size dim_sizes[VSI_NN_MAX_DIM_NUM], strides[VSI_NN_MAX_DIM_NUM];
+        addr = (vx_trensor_addressing)malloc(sizeof(vx_tensorpatch_addressing_t));
+        addr->num_of_dims = (vx_uint32)attr->shape->size;
+
+        for (i = 0; i < dim; i++)
+        {
+            strides[i] = (vx_size)vstride[i];
+            dim_sizes[i] = (vx_size)attr->shape->data[i];
+        }
+        addr->strides = strides;
+        addr->dim_sizes = dim_sizes;
+        if ( attr->dtype == I4 || attr->dtype == U4 )
+        {
+           addr->strides[0] = 0;
+           addr->stride_x_bits = 4;
+        }
+        status = vxCopyTensorPatch2(tensor, dim, vstart, vend, addr,sizeof(vx_tensorpatch_addressing_t),
+                                    user_ptr, usage, user_memory_type);
+        if(addr)
+        {
+            free(addr);
+            addr = NULL;
+        }
+    }
+#else
+    status = vxCopyTensorPatch(tensor, dim, vstart, vend, vstride, user_ptr, usage, user_memory_type);
+#endif
+#else
+    {
+        vx_context context = NULL;
+        vx_tensor_addressing addr = NULL;
+        size_t stride_size[VSI_NN_MAX_DIM_NUM];
+        vsi_nn_tensor_attr_t t;
+
+        memset(vstart, 0, sizeof(size_t) * VSI_NN_MAX_DIM_NUM);
+        memset(vend, 0, sizeof(size_t) * VSI_NN_MAX_DIM_NUM);
+        memset(vstride, 0, sizeof(size_t) * VSI_NN_MAX_DIM_NUM);
+        status = vsi_nn_vxGetTensorAttr(tensor, &t);
+        vsi_nn_kernel_tensor_attr_get_stride( attr, stride_size );
+        context = vxGetContext((vx_reference)tensor);
+        if( NULL == context )
+        {
+            VSILOGE("Call vxGetContext fail");
+            return status;
+        }
+        addr = vxCreateTensorAddressing( context, attr->shape->data,
+            (vx_uint32*)stride_size, attr->shape->size );
+        if( NULL == addr )
+        {
+            VSILOGE("Call vxCreateTensorAddressing fail");
+            return status;
+        }
+        status = vxCopyTensorPatch_11( tensor,
+                                       NULL,
+                                       addr,
+                                       user_ptr,
+                                       usage,
+                                       user_memory_type
+                                      );
+        vxReleaseTensorAddressing( &addr );
+        if( VSI_SUCCESS != status )
+        {
+            VSILOGE("Call vxCopyTensorPatch_11 fail");
+            return status;
+        }
+    }
+#endif
+    return status;
+} /* vsi_nn_kernel_copy_tensor_veiw_patch() */
+
+vsi_status vsi_nn_kernel_copy_tensor_patch
+    (
+    vsi_nn_kernel_tensor_t tensor,
+    const vsi_nn_kernel_tensor_attr_t * attr,
+    mem_accessor_e accessor,
+    void * user_ptr,
+    size_t buffer_size
+    )
+{
+    vsi_size_t start[VSI_NN_MAX_DIM_NUM],end[VSI_NN_MAX_DIM_NUM],stride[VSI_NN_MAX_DIM_NUM];
+    vsi_status status = VSI_FAILURE;
+    uint32_t i;
+    if (NULL == tensor || NULL == user_ptr)
+    {
+        VSILOGE("Invalid parameter");
+        return status;
     }
 
-    vsi_nn_shape_get_stride( attr->shape->data, (vsi_size_t)attr->shape->size, stride2 );
-    for( i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    vsi_nn_kernel_tensor_attr_get_stride( attr, stride );
+    memset(start, 0, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM);
+    for (i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
     {
-        stride[i] = stride2[i];
+        end[i] = attr->shape->data[i];
+        if ( attr->dtype != I4 && attr->dtype != U4 )
+        {
+            size_t type_bytes = vsi_nn_kernel_dtype_get_bytes( attr->dtype );
+            stride[i] = stride[i] * (vsi_size_t)type_bytes;
+        }
     }
-    type_bytes = vsi_nn_kernel_dtype_get_bytes( attr->dtype );
-    rank = attr->shape->size;
-    for( i = 0; i < rank; i++ )
-    {
-        start[i]  = 0;
-        end[i]    = attr->shape->data[i];
-        stride[i] = stride[i] * type_bytes;
-    }
+
     switch( accessor )
     {
         case MEMORY_ACCESSOR_READ_ONLY:
-            status = vxCopyTensorPatch( (vx_tensor)tensor, rank,
-                    start, end, stride, buffer, VX_READ_ONLY, 0);
+            status = vsi_nn_kernel_copy_tensor_veiw_patch( (vx_tensor)tensor, attr,
+                    user_ptr, start, end, stride, VX_READ_ONLY, 0);
             break;
         case MEMORY_ACCESSOR_WRITE_ONLY:
-            status = vxCopyTensorPatch( (vx_tensor)tensor, rank,
-                    start, end, stride, buffer, VX_WRITE_ONLY, 0);
+            status = vsi_nn_kernel_copy_tensor_veiw_patch( (vx_tensor)tensor, attr,
+                    user_ptr, start, end, stride, VX_WRITE_ONLY, 0);
             break;
         default:
             VSI_ASSERT( FALSE );
             break;
     }
 
-final:
-    if( internal_attr )
-    {
-        vsi_nn_kernel_tensor_attr_release( &internal_attr );
-    }
     return status;
-} /* _copy_tensor() */
+} /* vsi_nn_kernel_copy_tensor_patch() */
 
 void * vsi_nn_kernel_tensor_create_buffer
     (
@@ -123,49 +199,76 @@ void * vsi_nn_kernel_tensor_create_buffer
     vsi_status status = VSI_FAILURE;
     void * buffer = NULL;
     void * out_buffer = NULL;
+    void * tensor_buffer = NULL;
+    void * new_data = NULL;
     size_t bytes;
     size_t float_bytes;
     size_t tensor_size = 0;
     vsi_nn_kernel_tensor_attr_t * internal_attr = NULL;
 
-    if( !tensor )
+    if ( !tensor )
     {
         return NULL;
     }
 
-    if( !attr )
+    if ( !attr )
     {
         internal_attr = vsi_nn_kernel_tensor_attr_create( tensor );
         CHECK_PTR_FAIL_GOTO( internal_attr, "Create tensor attr fail.", final );
         attr = internal_attr;
     }
     bytes = vsi_nn_kernel_tensor_attr_get_bytes( attr );
-    out_buffer = malloc( bytes );
-    CHECK_PTR_FAIL_GOTO( out_buffer, "Out of memory, create buffer fail.", final );
+    tensor_buffer = malloc( bytes );
+    CHECK_PTR_FAIL_GOTO( tensor_buffer, "Out of memory, create buffer fail.", final );
 
-    status = vsi_nn_kernel_tensor_read( tensor, attr, out_buffer, bytes );
-    if( status != VSI_SUCCESS )
+    status = vsi_nn_kernel_tensor_read( tensor, attr, tensor_buffer, bytes );
+    if ( status != VSI_SUCCESS )
     {
         VSILOGE("Read tensor fail with error \"%s\".", vsi_nn_DescribeStatus(status));
-        free( out_buffer );
-        out_buffer = NULL;
+        vsi_nn_safe_free( tensor_buffer );
         goto final;
     }
 
-    if( convert_to_float && F32 != attr->dtype )
+    if ( attr->dtype == I4 || attr->dtype == U4 )
+    {
+        vsi_size_t dest_size = vsi_nn_kernel_tensor_attr_get_size( attr );
+        new_data = (uint8_t*)malloc(dest_size);
+        if ( !new_data )
+        {
+            VSILOGE("Out of memory, create buffer fail");
+            vsi_nn_safe_free( tensor_buffer );
+            goto final;
+        }
+        CHECK_PTR_FAIL_GOTO( new_data, "Out of memory, create buffer fail.", final );
+        status = vsi_nn_kernel_unpack_4bit_data(attr, (uint8_t *)tensor_buffer, (uint8_t *)new_data, attr->dtype);
+        if ( status != VSI_SUCCESS )
+        {
+            VSILOGE("Read tensor fail with error \"%s\".", vsi_nn_DescribeStatus(status));
+            vsi_nn_safe_free( tensor_buffer );
+            vsi_nn_safe_free( new_data );
+            goto final;
+        }
+        vsi_nn_safe_free( tensor_buffer );
+        out_buffer = new_data;
+    }
+    else
+    {
+        out_buffer = tensor_buffer;
+    }
+
+    if ( convert_to_float && F32 != attr->dtype )
     {
         buffer = out_buffer;
         tensor_size = vsi_nn_kernel_tensor_attr_get_size( attr );
         float_bytes = tensor_size * sizeof(float);
         out_buffer = malloc( float_bytes );
-        if( !out_buffer )
+        if ( !out_buffer )
         {
             VSILOGE("Out of memory, create float buffer fail.");
-            free( buffer );
-            buffer = NULL;
+            vsi_nn_safe_free( buffer );
             goto final;
         }
-        if( vsi_nn_kernel_tensor_attr_is_quantized( attr ) )
+        if ( vsi_nn_kernel_tensor_attr_is_quantized( attr ) )
         {
             switch( attr->quant )
             {
@@ -202,14 +305,15 @@ void * vsi_nn_kernel_tensor_create_buffer
             vsi_nn_dtype_convert_dtype_to_float( buffer, tensor_size,
                     attr->dtype, (float*)out_buffer );
         }
-        free( buffer );
+        vsi_nn_safe_free( buffer );
     }
 
 final:
-    if( internal_attr )
+    if ( internal_attr )
     {
         vsi_nn_kernel_tensor_attr_release( &internal_attr );
     }
+
     return out_buffer;
 } /* vsi_nn_kernel_tensor_create_buffer() */
 
@@ -221,7 +325,7 @@ vsi_status vsi_nn_kernel_tensor_read
     size_t out_buffer_size
     )
 {
-    return _copy_tensor( tensor, attr, MEMORY_ACCESSOR_READ_ONLY,
+    return  vsi_nn_kernel_copy_tensor_patch( tensor, attr, MEMORY_ACCESSOR_READ_ONLY,
             out_buffer, out_buffer_size );
 } /* vsi_nn_kernel_tensor_read() */
 
@@ -235,7 +339,7 @@ vsi_status vsi_nn_kernel_tensor_write
 {
     // NOTE: openvx api vxCopyTensorPatch access non-const buffer pointer,
     // so here we convert const to non-const ptr.
-    return _copy_tensor( tensor, attr, MEMORY_ACCESSOR_WRITE_ONLY,
+    return vsi_nn_kernel_copy_tensor_patch( tensor, attr, MEMORY_ACCESSOR_WRITE_ONLY,
             (void*)buffer, size );
 } /* vsi_nn_kernel_tensor_write() */
 
@@ -252,8 +356,9 @@ vsi_status vsi_nn_kernel_tensor_write_from_float
     size_t bytes;
     const void * buffer = NULL;
     void * internal_buffer = NULL;
+    void * internal_buffer0 = NULL;
     size_t tensor_size = 0;
-    if( !attr )
+    if ( !attr )
     {
         internal_attr = vsi_nn_kernel_tensor_attr_create( tensor );
         CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr fail.", final );
@@ -261,30 +366,41 @@ vsi_status vsi_nn_kernel_tensor_write_from_float
     }
     bytes = vsi_nn_kernel_tensor_attr_get_bytes( attr );
     tensor_size = vsi_nn_kernel_tensor_attr_get_size( attr );
-    if( tensor_size != size )
+    if ( tensor_size != size )
     {
         VSILOGE("Tensor and buffer size mismatch %d vs %d", tensor_size, size);
         goto final;
     }
 
+    if ( attr->dtype == I4 || attr->dtype == U4 )
+    {
+        vsi_size_t sz = 0;
+        sz = vsi_nn_kernel_tensor_attr_get_size( attr );
+        internal_buffer0 = malloc( sz );
+    }
+    else
+    {
+        internal_buffer0 = malloc( bytes );
+        internal_buffer = internal_buffer0;
+    }
+
     if( attr->dtype != F32 )
     {
-        internal_buffer = malloc( bytes );
-        CHECK_PTR_FAIL_GOTO( internal_buffer, "Create buffer fail.", final );
-        if( vsi_nn_kernel_tensor_attr_is_quantized( attr ) )
+        CHECK_PTR_FAIL_GOTO( internal_buffer0, "Create buffer fail.", final );
+        if ( vsi_nn_kernel_tensor_attr_is_quantized( attr ) )
         {
             switch( attr->quant )
             {
                 case VSI_NN_KERNEL_QUANT_DFP:
                     vsi_nn_dtype_convert_float_to_quantize_dfp(
                             float_buffer, size, attr->dtype,
-                            attr->dfp.fl, internal_buffer );
+                            attr->dfp.fl, internal_buffer0 );
                     break;
                 case VSI_NN_KERNEL_QUANT_ASYMM:
                     vsi_nn_dtype_convert_float_to_quantize_asymm(
                             float_buffer, size, attr->dtype,
                             attr->asymm.scale, attr->asymm.zero_point,
-                            internal_buffer );
+                            internal_buffer0 );
                     break;
                 case VSI_NN_KERNEL_QUANT_SYMM_PERCHANNEL:
                     vsi_nn_dtype_convert_float_to_quantize_symm_perchannel(
@@ -295,12 +411,18 @@ vsi_status vsi_nn_kernel_tensor_write_from_float
                             attr->asymm_v.zero_point->data,
                             attr->asymm_v.zero_point->size,
                             attr->asymm_v.channel_dim,
-                            internal_buffer );
+                            internal_buffer0 );
                     break;
                 default:
                     VSILOGE("Donot support quantize type %d", attr->quant);
                     VSI_ASSERT( FALSE );
                     break;
+            }
+
+            if ( attr->dtype == I4 || attr->dtype == U4 )
+            {
+                internal_buffer = malloc( bytes );
+                status = vsi_nn_kernel_pack_4bit_data(attr, (uint8_t*)internal_buffer0, (uint8_t*)internal_buffer);
             }
         }
         else
@@ -316,14 +438,16 @@ vsi_status vsi_nn_kernel_tensor_write_from_float
     }
     status = vsi_nn_kernel_tensor_write( tensor, attr, buffer, bytes );
 final:
-    if( internal_attr )
+    if ( internal_attr )
     {
         vsi_nn_kernel_tensor_attr_release( &internal_attr );
     }
-    if( internal_buffer )
+    if ( attr->dtype == I4 || attr->dtype == U4 )
     {
-        free( internal_buffer );
+        vsi_nn_safe_free(internal_buffer0);
     }
+    vsi_nn_safe_free(internal_buffer);
+
     return status;
 } /* vsi_nn_kernel_tensor_write_from_float() */
 
@@ -381,6 +505,9 @@ vsi_status vsi_nn_kernel_scalar_get_dtype
         return status; \
     }
 
+DEF_KERNEL_SCALAR_FUNC( vsi_nn_kernel_scalar_read_int4,
+                        vsi_nn_kernel_scalar_write_int4,
+                        int8_t,   I4 )
 DEF_KERNEL_SCALAR_FUNC( vsi_nn_kernel_scalar_read_int8,
                         vsi_nn_kernel_scalar_write_int8,
                         int8_t,   I8 )
@@ -413,7 +540,6 @@ static void _convert_tensor_attr_to_vx_tensor_param
     memset( p, 0, sizeof( vx_tensor_create_params_t ) );
 
     p->num_of_dims = (uint32_t)attr->shape->size;
-    p->sizes = attr->shape->data;
 #define MAP_TYPE( var, src_type, dst_type ) \
     case src_type: \
         var = dst_type; \
@@ -421,6 +547,8 @@ static void _convert_tensor_attr_to_vx_tensor_param
 
     switch( attr->dtype )
     {
+        MAP_TYPE( p->data_format, U4,  VSI_NN_TYPE_UINT4 );
+        MAP_TYPE( p->data_format, I4,  VSI_NN_TYPE_INT4 );
         MAP_TYPE( p->data_format, I8,  VSI_NN_TYPE_INT8 );
         MAP_TYPE( p->data_format, I16, VSI_NN_TYPE_INT16 );
         MAP_TYPE( p->data_format, I32, VSI_NN_TYPE_INT32 );
@@ -479,8 +607,27 @@ vsi_nn_kernel_tensor_t vsi_nn_kernel_tensor_create
 {
     vsi_nn_kernel_tensor_t tensor = NULL;
     vx_tensor_create_params_t params;
+    vx_size size_vxsize[VSI_NN_MAX_DIM_NUM] = {0};
+    vx_uint32 size_u32[VSI_NN_MAX_DIM_NUM] = {0};
+    size_t i = 0;
 
     _convert_tensor_attr_to_vx_tensor_param( &params, attr );
+    //convert attr->shape->data to correct data type
+    for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    {
+        size_vxsize[i] = -1 == attr->shape->data[i] ? -1 : (vx_size)attr->shape->data[i];
+    }
+    for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    {
+        size_u32[i] = -1 == attr->shape->data[i] ? -1 : (vx_uint32)attr->shape->data[i];
+    }
+#ifdef VSI_40BIT_VA_SUPPORT
+    params.sizes = size_vxsize;
+    (void)size_u32;
+#else
+    params.sizes = size_u32;
+    (void)size_vxsize;
+#endif
     if( is_virtual )
     {
         tensor = (vsi_nn_kernel_tensor_t)vxCreateVirtualTensor2(

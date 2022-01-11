@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_grouped_conv2d_param
 {
     uint32_t     ksize[2];
@@ -41,5 +45,8 @@ typedef struct _vsi_nn_grouped_conv2d_param
     void* local;
 } vsi_nn_grouped_conv2d_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

@@ -783,7 +783,7 @@ static vsi_nn_kernel_node_t _setup
                 if (VSI_NN_TYPE_UINT8 == inputs[0]->attr.dtype.vx_type &&
                     VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC == inputs[0]->attr.dtype.qnt_type)
                 {
-                    border.constant_value.U8 = (uint8_t)inputs[0]->attr.dtype.zero_point;
+                    border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
                 }
                 else
                 {
@@ -835,4 +835,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( depthwise_conv1d, _setup )
-

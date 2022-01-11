@@ -26,6 +26,9 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define _VSI_NN_ELU_LOCAL_TENSOR_NUM 2
 
@@ -34,5 +37,8 @@ typedef struct _vsi_nn_neg_param
     vx_tensor   local_tensor[_VSI_NN_ELU_LOCAL_TENSOR_NUM];
 } vsi_nn_neg_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

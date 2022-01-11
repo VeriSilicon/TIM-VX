@@ -413,52 +413,12 @@ static vsi_nn_kernel_node_t _setup
     size_t width = inputs[0]->attr.size[0];
     size_t height = inputs[0]->attr.size[1];
     int32_t group_num = (int32_t)(width + 15) / 16;
-    int32_t input_zp = 0;
-    float input_scale = 1.0f;
-    int32_t input_fl = 0;
-    int32_t output_zp = 0;
-    float output_scale = 1.0f;
-    int32_t output_fl = 0;
+    int32_t input_zp = vsi_nn_get_tensor_zero_point(inputs[0]);
+    float input_scale = vsi_nn_get_tensor_scale(inputs[0]);
+    int32_t output_zp = vsi_nn_get_tensor_zero_point(outputs[0]);
+    float output_scale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
     float in_fl_scale = 1.0f, out_fl_scale = 1.0;
     float dim_ratio = (float)1.0 / (float)(width * height);
-
-    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        input_zp = inputs[0]->attr.dtype.zero_point;
-        input_scale = inputs[0]->attr.dtype.scale;
-    }
-    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        input_fl = inputs[0]->attr.dtype.fl;
-        if (input_fl > 0)
-        {
-            in_fl_scale = (1.0f / ((float) ((int64_t)1 << input_fl)));
-        }
-        else
-        {
-            in_fl_scale = ((float) ((int64_t)1 << -input_fl));
-        }
-        input_zp = 0;
-    }
-
-    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        output_zp = outputs[0]->attr.dtype.zero_point;
-        output_scale = 1.0f / outputs[0]->attr.dtype.scale;
-    }
-    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        output_fl = outputs[0]->attr.dtype.fl;
-        if (output_fl > 0)
-        {
-            out_fl_scale = (float)((int64_t)1 << output_fl);
-        }
-        else
-        {
-            out_fl_scale = (1.0f / (float)((int64_t)1 << -output_fl));
-        }
-        output_zp = 0;
-    }
 
     if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
@@ -674,4 +634,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_CL( instance_norm, _setup )
-

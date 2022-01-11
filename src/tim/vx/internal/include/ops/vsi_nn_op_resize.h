@@ -41,10 +41,15 @@ typedef uint32_t vsi_nn_interpolation_type_t; enum
     VSI_NN_INTERPOLATION_AREA
 };
 
-typedef struct _vsi_nn_resize_lcl_data
+typedef uint32_t vsi_nn_resize_layout_type_t; enum
 {
-    vx_tensor   local_tensor[_VSI_NN_RESIZE_LOCAL_TENSOR_NUM];
-} vsi_nn_resize_lcl_data;
+    VSI_NN_RESIZE_LAYOUT_NCHW = 0,
+    VSI_NN_RESIZE_LAYOUT_NHWC
+};
+
+typedef struct _vsi_nn_resize_local_data {
+    vsi_bool use_internal_node;
+} vsi_nn_resize_local_data;
 
 typedef struct _vsi_nn_resize_param
 {
@@ -53,9 +58,16 @@ typedef struct _vsi_nn_resize_param
     int32_t      size[2];
 
     /* resize layer local data structure */
-    vsi_nn_resize_lcl_data local;
+    union
+    {
+        vsi_nn_resize_local_data *lcl_data;
+        struct {
+            vx_tensor   local_tensor[_VSI_NN_RESIZE_LOCAL_TENSOR_NUM];
+        } reserved;
+    };
     vsi_bool    align_corners;
     vsi_bool    half_pixel_centers;
+    vsi_enum    layout;
 } vsi_nn_resize_param;
 
 #ifdef __cplusplus

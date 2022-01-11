@@ -1022,6 +1022,7 @@ static vsi_bool op_setup_default
             && (p->local->multi_batch))
         {
             vsi_nn_tensor_t* wei_r2c_tensor = NULL;
+            vsi_nn_tensor_t* bias_r2c_tensor = NULL;
 
             memcpy(&attr, &(inputs[GRUCELL_INPUT_WEIGHT_H2C]->attr), sizeof(attr));
             attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
@@ -1036,10 +1037,12 @@ static vsi_bool op_setup_default
             }
 
             wei_r2c_tensor = vsi_nn_ConvertTensorDtype(self->graph, inputs[GRUCELL_INPUT_WEIGHT_H2C], &(attr.dtype));
+            attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+            bias_r2c_tensor = vsi_nn_ConvertTensorDtype(self->graph, inputs[GRUCELL_INPUT_BIAS_H2C], &(attr.dtype));
             rh_cand_fc_output = vsi_nn_rnn_create_tp_fc(self,
                                     rh_mul_outputs->t,
                                     wei_r2c_tensor,
-                                    inputs[GRUCELL_INPUT_BIAS_H2C],
+                                    bias_r2c_tensor,
                                     &p->internal_dtype[GRUCELL_QUANTIZE_PARAM_H2C],
                                     use_virtual_tensor);
         }

@@ -98,7 +98,6 @@ static vsi_status op_compute
     }
 
     return status;
-
 } /* op_compute() */
 
 static vsi_bool op_check
@@ -136,7 +135,14 @@ static vsi_bool op_setup
 
     p->is_cifg = inputs[LSTMUNIT_ACT_INPUT_FC_I] == NULL;
     p->is_projection = outputs[LSTMUNIT_ACT_HSTATE_OUT] == NULL;
-    p->is_layer_norm = inputs[LSTMUNIT_ACT_LN_WF] != NULL;
+    if (self->graph->ctx->config.support_stream_processor)
+    {
+        p->is_layer_norm = inputs[LSTMUNIT_ACT_HSTATE_FC_F] == NULL;
+    }
+    else
+    {
+        p->is_layer_norm = inputs[LSTMUNIT_ACT_LN_WF] != NULL;
+    }
     p->is_hybrid = p->is_layer_norm ? 0 : inputs[LSTMUNIT_ACT_DATA_BF] != NULL;
     p->recurrent_activation = p->recurrent_activation == VSI_NN_ACT_NONE ?
         VSI_NN_ACT_SIGMOID : p->recurrent_activation;
@@ -221,7 +227,6 @@ static vsi_bool op_setup
     }
 
     return TRUE;
-
 } /* op_setup() */
 
 static vsi_status op_deinit
@@ -229,7 +234,6 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-
     vsi_status status = VSI_SUCCESS;
     int32_t i = 0;
 
@@ -249,7 +253,6 @@ static vsi_status op_deinit
     }
 
     return status;
-
 } /* op_deinit() */
 
 static vsi_status op_init
@@ -257,13 +260,11 @@ static vsi_status op_init
     vsi_nn_node_t * self
     )
 {
-
     vsi_status status = VSI_SUCCESS;
 
     self->nn_param.lstmunit_activation.recurrent_activation = VSI_NN_ACT_SIGMOID;
 
     return status;
-
 } /* op_init() */
 
 #ifdef __cpluplus

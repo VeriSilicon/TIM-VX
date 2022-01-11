@@ -225,12 +225,12 @@ static vsi_nn_kernel_node_t _setup
     float   eps         = vsi_nn_kernel_param_get_float32( params, "eps" );
     float   rsEps       = (float)(1.0f / sqrtf(eps));
     float   dimRatio    = (float)(1.0f / (inputs[0]->attr.size[0]));
-    float   input0Scale = inputs[0]->attr.dtype.scale;
-    float   input0Tail  = (float)inputs[0]->attr.dtype.zero_point * input0Scale;
-    float   input1Scale = inputs[1]->attr.dtype.scale;
-    float   input1Tail  = (float)inputs[1]->attr.dtype.zero_point * input1Scale;
-    float   outputScale = outputs[0]->attr.dtype.scale == 0.0f ? 0.0f : 1.0f / outputs[0]->attr.dtype.scale;
-    float   outputZP    = (float)outputs[0]->attr.dtype.zero_point;
+    float   input0Scale = vsi_nn_get_tensor_scale(inputs[0]);
+    float   input0Tail  = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * input0Scale;
+    float   input1Scale = vsi_nn_get_tensor_scale(inputs[1]);
+    float   input1Tail  = (float)vsi_nn_get_tensor_zero_point(inputs[1]) * input1Scale;
+    float   outputScale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
+    float   outputZP    = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
     int32_t width       = (int32_t)inputs[0]->attr.size[0];
 
     status = _query_kernel( kernel, inputs, outputs );
@@ -246,7 +246,7 @@ static vsi_nn_kernel_node_t _setup
             border.constant_value.U8 = 0;
             if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8)
             {
-                border.constant_value.U8 = (vx_uint8)inputs[0]->attr.dtype.zero_point;
+                border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
             }
             status  = vsi_nn_kernel_node_set_border( node, &border );
             VSI_ASSERT( status == VSI_SUCCESS );

@@ -51,7 +51,7 @@ static vsi_status op_compute
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
-    param =vsi_nn_kernel_param_create();
+    param = vsi_nn_kernel_param_create();
 
     vsi_nn_kernel_param_add_int32( param, "scale_x", self->nn_param.pre_process_gray.local.scale_x );
     vsi_nn_kernel_param_add_int32( param, "scale_y", self->nn_param.pre_process_gray.local.scale_y );
@@ -60,6 +60,9 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_float32( param, "mean", self->nn_param.pre_process_gray.mean );
     vsi_nn_kernel_param_add_float32( param, "scale", self->nn_param.pre_process_gray.scale );
     vsi_nn_kernel_param_add_int32( param, "enable_copy", self->nn_param.pre_process_gray.local.enable_copy );
+    vsi_nn_kernel_param_add_int32( param, "width", self->nn_param.pre_process_gray.rect.width );
+    vsi_nn_kernel_param_add_int32( param, "height", self->nn_param.pre_process_gray.rect.height );
+
     n = vsi_nn_kernel_selector( self->graph, "pre_process_gray", inputs, 1, outputs, 1, param );
     if( n != NULL )
     {

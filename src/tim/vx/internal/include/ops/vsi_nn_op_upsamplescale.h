@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_upsamplescale_param
 {
     struct _upsamplescale_local_data_t* local;
@@ -35,5 +39,8 @@ typedef struct _vsi_nn_upsamplescale_param
     float scale;
 } vsi_nn_upsamplescale_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

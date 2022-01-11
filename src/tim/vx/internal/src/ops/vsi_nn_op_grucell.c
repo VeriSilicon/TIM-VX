@@ -24,7 +24,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-
 #include "vsi_nn_types.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_log.h"
@@ -73,7 +72,15 @@ static vsi_nn_internal_tensor_t * _create_fc
     }
 
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if (input->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 ||
+        input->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16)
+    {
+        attr.dtype.vx_type = input->attr.dtype.vx_type;
+    }
+    else
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
     attr.dim_num = VSI_NN_DIM_AUTO;
     attr.vtl = TRUE;
     attr.is_const = FALSE;
@@ -90,110 +97,6 @@ static vsi_nn_internal_tensor_t * _create_fc
 
     return fc_out;
 } /* () */
-
-/*
-    copmute the recurrent hstate gates
-    equations:
-      reset_after == True:
-        ht = FC(hstate, kernel_rh, bias_rh)
-        ht = rt * ht
-      reset_after == False:
-        ht = rt * hstate
-        ht = FC(ht, kernel_rh, bias_rh)
-*/
-static vsi_nn_internal_tensor_t * _compute_ht
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t * input_rt,
-    vsi_nn_tensor_t * hstate,
-    vsi_nn_tensor_t * weight,
-    vsi_nn_tensor_t * bias
-    )
-{
-    vsi_bool use_virtual_tensor = TRUE;
-    vsi_nn_grucell_param * p = &self->nn_param.grucell;
-    vsi_nn_internal_tensor_t * tensor1 = NULL, * tensor2 = NULL;
-
-    if(p->reset_after == TRUE)
-    {
-        tensor1 = _create_fc(
-            self,
-            hstate,
-            weight,
-            bias
-        );
-        tensor2 = vsi_nn_rnn_create_binary_operator(
-            self,
-            VSI_NN_OP_MULTIPLY,
-            input_rt,
-            tensor1->t,
-            &input_rt->attr.dtype,
-            use_virtual_tensor
-        );
-    }
-    else
-    {
-        tensor1 = vsi_nn_rnn_create_binary_operator(
-            self,
-            VSI_NN_OP_MULTIPLY,
-            input_rt,
-            hstate,
-            &input_rt->attr.dtype,
-            use_virtual_tensor
-        );
-        tensor2 = _create_fc(
-            self,
-            tensor1->t,
-            weight,
-            bias
-        );
-    }
-
-    return tensor2;
-} /* _compute_ht() */
-
-/*
-    compute the recurrent update gates or reset gates
-    equations:
-      xt = FC(hstate, kernel_xt, bias_xt)
-      xt = input_xt + xt
-      xt = recurrent_activation(xt)
-*/
-static vsi_nn_internal_tensor_t * _compute_recurrent_gate
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t * input_xt,
-    vsi_nn_tensor_t * hstate,
-    vsi_nn_tensor_t * weight,
-    vsi_nn_tensor_t * bias
-    )
-{
-    vsi_bool use_virtual_tensor = TRUE;
-    vsi_nn_grucell_param * p = &self->nn_param.grucell;
-    vsi_nn_internal_tensor_t * tensor_add = NULL, * tensor_act;
-    vsi_nn_internal_tensor_t * recurrent_fc_out = NULL;
-
-    recurrent_fc_out = _create_fc(self, hstate, weight, bias);
-
-    tensor_add = vsi_nn_rnn_create_binary_operator(
-        self,
-        VSI_NN_OP_ADD,
-        recurrent_fc_out->t,
-        input_xt,
-        &recurrent_fc_out->t->attr.dtype,
-        use_virtual_tensor
-    );
-
-    tensor_act = vsi_nn_rnn_create_activation(
-        self,
-        tensor_add->t,
-        p->recurrent_activation,
-        &tensor_add->t->attr.dtype,
-        use_virtual_tensor
-    );
-
-    return tensor_act;
-} /* _compute_recurrent_gate */
 
 static vsi_bool setup_op_shapes
     (
@@ -251,6 +154,8 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
+    vsi_nn_internal_deinit_node_wksp( self );
+
     return VSI_SUCCESS;
 }
 
@@ -265,7 +170,8 @@ static vsi_status op_optimize
     return vsi_nn_internal_optimize_node( self, direction );
 }
 
-static vsi_bool op_setup
+#if 1
+static vsi_bool op_setup_default
     (
     vsi_nn_node_t * self,
     vsi_nn_tensor_t ** inputs,
@@ -276,7 +182,9 @@ static vsi_bool op_setup
     vsi_nn_internal_node_t * curr = NULL;
     vsi_nn_grucell_param * p = &self->nn_param.grucell;
     vsi_nn_internal_tensor_t * input_fc_outputs[GRUCELL_GATE_CNT] = { NULL };
-    vsi_nn_internal_tensor_t * zt = NULL, * rt = NULL, * ht = NULL;
+    vsi_nn_internal_tensor_t * hstate_fc_outputs[GRUCELL_GATE_CNT] = { NULL };
+    vsi_nn_internal_tensor_t * h_times_r = NULL;
+    vsi_nn_tensor_attr_t attr;
 
     vsi_nn_internal_init_node_wksp( self );
 
@@ -294,42 +202,136 @@ static vsi_bool op_setup
         );
     }
 
-    /* compute update gate and reset gate */
-    zt = _compute_recurrent_gate(
-        self,
-        input_fc_outputs[GRUCELL_GATES_Z]->t,
-        inputs[GRUCELL_IN_H_STATE],
-        inputs[GRUCELL_IN_KERNEL_R2Z],
-        inputs[GRUCELL_IN_BIAS_R2Z]
-    );
-    rt = _compute_recurrent_gate(
-        self,
-        input_fc_outputs[GRUCELL_GATES_R]->t,
-        inputs[GRUCELL_IN_H_STATE],
-        inputs[GRUCELL_IN_KERNEL_R2R],
-        inputs[GRUCELL_IN_BIAS_R2R]
-    );
+    /* create hstate fc */
+    for(i = 0; i < GRUCELL_GATE_CNT - 1; i++)
+    {
+        hstate_fc_outputs[i] = _create_fc(
+            self,
+            inputs[GRUCELL_IN_H_STATE],
+            inputs[GRUCELL_IN_KERNEL_R2Z + i],
+            inputs[GRUCELL_IN_BIAS_R2Z + i]
+        );
+    }
 
-    /* compute recurrent h with parameter 'reset_after' */
-    ht = _compute_ht(
+    memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
+    attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+    if (inputs[GRUCELL_IN_H_STATE]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 ||
+        self->graph->ctx->config.support_stream_processor)
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+    }
+    else
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
+    attr.dim_num = VSI_NN_DIM_AUTO;
+    attr.vtl = TRUE;
+    attr.is_const = FALSE;
+    h_times_r = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+
+    curr = vsi_nn_internal_new_node( self, VSI_NN_OP_GRUCELL_H_TIMES_ACTIVATION_R, 3, 1 );
+    curr->node->nn_param.grucell_h_times_activation_r.recurrent_activation = p->recurrent_activation;
+    curr->inputs[0] = inputs[GRUCELL_IN_H_STATE];
+    curr->inputs[1] = input_fc_outputs[GRUCELL_GATES_R]->t;
+    curr->inputs[2] = hstate_fc_outputs[GRUCELL_GATES_R]->t;
+    curr->outputs[0] = h_times_r->t;
+    vsi_nn_internal_setup_node(self, curr);
+
+    hstate_fc_outputs[GRUCELL_GATES_H] = _create_fc(
         self,
-        rt->t,
-        inputs[GRUCELL_IN_H_STATE],
+        h_times_r->t,
         inputs[GRUCELL_IN_KERNEL_R2H],
         inputs[GRUCELL_IN_BIAS_R2H]
     );
 
+    curr = vsi_nn_internal_new_node( self, VSI_NN_OP_GRUCELL_ACTIVATION_Z_H, 0, 0 );
+    curr->node->nn_param.grucell_activation_z_h.activation = p->activation;
+    curr->node->nn_param.grucell_activation_z_h.recurrent_activation = p->recurrent_activation;
+    curr->inputs[GRUCELL_ACT_Z_H_HSTATE] = inputs[GRUCELL_IN_H_STATE];
+    curr->inputs[GRUCELL_ACT_Z_H_I_FC_Z] = input_fc_outputs[GRUCELL_GATES_Z]->t;
+    curr->inputs[GRUCELL_ACT_Z_H_I_FC_H] = input_fc_outputs[GRUCELL_GATES_H]->t;
+    curr->inputs[GRUCELL_ACT_Z_H_H_FC_Z] = hstate_fc_outputs[GRUCELL_GATES_Z]->t;
+    curr->inputs[GRUCELL_ACT_Z_H_H_FC_H] = hstate_fc_outputs[GRUCELL_GATES_H]->t;
+    curr->outputs[GRUCELL_ACT_Z_H_OUT_OUTPUT] = outputs[GRUCELL_OUT_OUTPUT];
+    curr->outputs[GRUCELL_ACT_Z_H_OUT_HSTATE] = outputs[GRUCELL_OUT_H_STATE];
+    vsi_nn_internal_setup_node(self, curr);
+
+    return TRUE;
+}
+#endif
+
+static vsi_bool op_setup_reset_after
+    (
+    vsi_nn_node_t * self,
+    vsi_nn_tensor_t ** inputs,
+    vsi_nn_tensor_t ** outputs
+    )
+{
+    uint32_t i;
+    vsi_nn_internal_node_t * curr = NULL;
+    vsi_nn_grucell_param * p = &self->nn_param.grucell;
+    vsi_nn_internal_tensor_t * input_fc_outputs[GRUCELL_GATE_CNT] = { NULL };
+    vsi_nn_internal_tensor_t * hstate_fc_outputs[GRUCELL_GATE_CNT] = { NULL };
+
+    vsi_nn_internal_init_node_wksp( self );
+
+    /* compute output tensor's shapes */
+    setup_op_shapes(self, inputs, outputs);
+
+    /* create input fc */
+    for(i = 0; i < GRUCELL_GATE_CNT; i++)
+    {
+        input_fc_outputs[i] = _create_fc(
+            self,
+            inputs[GRUCELL_IN_INPUT],
+            inputs[GRUCELL_IN_KERNEL_I2Z + i],
+            inputs[GRUCELL_IN_BIAS_I2Z + i]
+        );
+    }
+
+    /* create hstate fc */
+    for(i = 0; i < GRUCELL_GATE_CNT; i++)
+    {
+        hstate_fc_outputs[i] = _create_fc(
+            self,
+            inputs[GRUCELL_IN_H_STATE],
+            inputs[GRUCELL_IN_KERNEL_R2Z + i],
+            inputs[GRUCELL_IN_BIAS_R2Z + i]
+        );
+    }
+
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_GRUCELL_ACTIVATION, 0, 0 );
     curr->node->nn_param.grucell_activation.activation = p->activation;
-    curr->inputs[GRUCELL_ACT_IN_H_STATE] = inputs[GRUCELL_IN_H_STATE];
-    curr->inputs[GRUCELL_ACT_IN_INPUT_FC_H] = input_fc_outputs[GRUCELL_GATES_H]->t;
-    curr->inputs[GRUCELL_ACT_IN_H_T] = ht->t;
-    curr->inputs[GRUCELL_ACT_IN_Z_T] = zt->t;
+    curr->node->nn_param.grucell_activation.recurrent_activation = p->recurrent_activation;
+    curr->inputs[GRUCELL_ACT_H_STATE] = inputs[GRUCELL_IN_H_STATE];
+    curr->inputs[GRUCELL_ACT_I_FC_Z] = input_fc_outputs[GRUCELL_GATES_Z]->t;
+    curr->inputs[GRUCELL_ACT_I_FC_R] = input_fc_outputs[GRUCELL_GATES_R]->t;
+    curr->inputs[GRUCELL_ACT_I_FC_H] = input_fc_outputs[GRUCELL_GATES_H]->t;
+    curr->inputs[GRUCELL_ACT_H_FC_Z] = hstate_fc_outputs[GRUCELL_GATES_Z]->t;
+    curr->inputs[GRUCELL_ACT_H_FC_R] = hstate_fc_outputs[GRUCELL_GATES_R]->t;
+    curr->inputs[GRUCELL_ACT_H_FC_H] = hstate_fc_outputs[GRUCELL_GATES_H]->t;
     curr->outputs[GRUCELL_ACT_OUT_OUTPUT] = outputs[GRUCELL_OUT_OUTPUT];
     curr->outputs[GRUCELL_ACT_OUT_H_STATE] = outputs[GRUCELL_OUT_H_STATE];
     vsi_nn_internal_setup_node(self, curr);
 
     return TRUE;
+}
+
+static vsi_bool op_setup
+    (
+    vsi_nn_node_t * self,
+    vsi_nn_tensor_t ** inputs,
+    vsi_nn_tensor_t ** outputs
+    )
+{
+    if (self->nn_param.grucell.reset_after == TRUE)
+    {
+        return op_setup_reset_after(self, inputs, outputs);
+    }
+    else
+    {
+        return op_setup_default(self, inputs, outputs);
+    }
 } /* op_setup() */
 
 #ifdef __cplusplus

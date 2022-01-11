@@ -27,6 +27,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_one_hot_param
 {
     struct _one_hot_local_data_t* local;
@@ -38,5 +42,9 @@ typedef struct _vsi_nn_one_hot_param
 } vsi_nn_one_hot_param;
 _compiler_assert(offsetof(vsi_nn_one_hot_param, local) == 0, \
     vsi_nn_one_hot_h );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

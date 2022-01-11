@@ -50,7 +50,9 @@ enum {
     D_F32 = VSI_NN_TYPE_FLOAT32,
     D_F64 = VSI_NN_TYPE_FLOAT64,
     D_BF16 = VSI_NN_TYPE_BFLOAT16,
-    D_BOOL8 = VSI_NN_TYPE_BOOL8
+    D_BOOL8 = VSI_NN_TYPE_BOOL8,
+    D_I4 = VSI_NN_TYPE_INT4,
+    D_U4 = VSI_NN_TYPE_UINT4
 };
 
 /* short alias for qtype */

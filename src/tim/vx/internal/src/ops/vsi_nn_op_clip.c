@@ -183,7 +183,7 @@ static vsi_status op_init
     vsi_status status = VSI_SUCCESS;
     self->nn_param.clip.local2   =
     (vsi_nn_clip_lcl2_data *)malloc(sizeof(vsi_nn_clip_lcl2_data));
-    if (NULL == self->nn_param.reduce.local2)
+    if (NULL == self->nn_param.clip.local2)
     {
         return  VX_ERROR_NO_MEMORY;
     }

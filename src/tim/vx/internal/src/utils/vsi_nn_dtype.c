@@ -156,6 +156,8 @@ static inline void _convert_float_to_bfloat16
         return TRUE; \
     }
 
+DEF_DTYPE_CONVERT_QUANTIZE( asymmi4, int8_t,   vsi_rtne, -8,        7 )
+DEF_DTYPE_CONVERT_QUANTIZE( asymm4,  uint8_t,  vsi_rtne, 0,         0xF )
 DEF_DTYPE_CONVERT_QUANTIZE( symm8,   int8_t,   vsi_rtne, SCHAR_MIN, SCHAR_MAX )
 DEF_DTYPE_CONVERT_QUANTIZE( symm16,  int16_t,  vsi_rtne, SHRT_MIN,  SHRT_MAX  )
 DEF_DTYPE_CONVERT_QUANTIZE( symm32,  int32_t,  vsi_rtne, INT_MIN,   INT_MAX   )
@@ -256,6 +258,12 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_asymm
 {
     switch( dtype )
     {
+        case I4:
+            return vsi_nn_dtype_convert_float_to_quantize_asymmi4(
+                    buffer, size, scale, zero_point, (int8_t*)out_buffer );
+        case U4:
+            return vsi_nn_dtype_convert_float_to_quantize_asymm4(
+                    buffer, size, scale, zero_point, (uint8_t*)out_buffer );
         case U8:
             return vsi_nn_dtype_convert_float_to_quantize_asymm8(
                     buffer, size, scale, zero_point, (uint8_t*)out_buffer );
@@ -396,6 +404,12 @@ vsi_bool vsi_nn_dtype_convert_quantize_asymm_to_float
 {
     switch( dtype )
     {
+        case I4:
+            return vsi_nn_dtype_convert_quantize_asymmi4_to_float(
+                    (const int8_t *)buffer, size, scale, zero_point, out_buffer );
+        case U4:
+            return vsi_nn_dtype_convert_quantize_asymm4_to_float(
+                    (const uint8_t *)buffer, size, scale, zero_point, out_buffer );
         case U8:
             return vsi_nn_dtype_convert_quantize_asymm8_to_float(
                     (const uint8_t *)buffer, size, scale, zero_point, out_buffer );
@@ -481,4 +495,3 @@ vsi_bool vsi_nn_dtype_convert_quantize_symm_perchannel_to_float
     }
     return TRUE;
 } /* vsi_nn_dtype_convert_quantize_symm_perchannel_to_float() */
-

@@ -187,24 +187,53 @@ static vsi_status op_optimize
             p_opt = &opt;
         }
 
-        inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
-            VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER,
-            4,
 #ifdef VSI_40BIT_VA_SUPPORT
-            inputs[0]->attr.size,
-            outputs[0]->attr.size,
-            outputs[0]->attr.size,
+        {
+            vx_size size_input0[VSI_NN_MAX_DIM_NUM];
+            vx_size size_output0[VSI_NN_MAX_DIM_NUM];
+            size_t i = 0;
+            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+            {
+                size_input0[i] = (vx_size)inputs[0]->attr.size[i];
+                size_output0[i] = (vx_size)outputs[0]->attr.size[i];
+            }
+            inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
+                VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER,
+                4,
+                size_input0,
+                size_output0,
+                size_output0,
+                outputs[0]->attr.dtype.vx_type,
+                (vx_nn_convolution_relu_pooling_params_t *)&p,
+                sizeof(p),
+                p_opt,
+                inputs[1]->t, inputs[2]->t
+                );
+        }
 #else
-            (vx_uint32*)inputs[0]->attr.size,
-            (vx_uint32*)outputs[0]->attr.size,
-            (vx_uint32*)outputs[0]->attr.size,
+        {
+            uint32_t size_u32_input0[VSI_NN_MAX_DIM_NUM];
+            uint32_t size_u32_output0[VSI_NN_MAX_DIM_NUM];
+            size_t i = 0;
+            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+            {
+                size_u32_input0[i] = (uint32_t)inputs[0]->attr.size[i];
+                size_u32_output0[i] = (uint32_t)outputs[0]->attr.size[i];
+            }
+            inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
+                VX_CONVOLUTIONAL_NETWORK_CONVOLUTION_LAYER,
+                4,
+                size_u32_input0,
+                size_u32_output0,
+                size_u32_output0,
+                outputs[0]->attr.dtype.vx_type,
+                (vx_nn_convolution_relu_pooling_params_t *)&p,
+                sizeof(p),
+                p_opt,
+                inputs[1]->t, inputs[2]->t
+                );
+        }
 #endif
-            outputs[0]->attr.dtype.vx_type,
-            (vx_nn_convolution_relu_pooling_params_t *)&p,
-            sizeof(p),
-            p_opt,
-            inputs[1]->t, inputs[2]->t
-            );
         vsi_nn_DeinitConvReluPoolParameter( &p );
     }
 

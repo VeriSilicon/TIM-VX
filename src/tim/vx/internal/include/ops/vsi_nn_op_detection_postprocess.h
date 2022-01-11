@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_detection_postprocess_param
 {
     float dy;
@@ -41,5 +45,8 @@ typedef struct _vsi_nn_detection_postprocess_param
     int32_t is_bg_in_label;
 } vsi_nn_detection_postprocess_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

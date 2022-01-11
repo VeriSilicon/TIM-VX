@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_pre_process_bgra_lcl_data
 {
     int32_t scale_x;
@@ -65,5 +69,8 @@ typedef struct _vsi_nn_pre_process_bgra_param
     vsi_nn_pre_process_bgra_lcl_data local;
 } vsi_nn_pre_process_bgra_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

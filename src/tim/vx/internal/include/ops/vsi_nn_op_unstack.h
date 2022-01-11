@@ -25,6 +25,11 @@
 #define _VSI_NN_OP_UNSTACK_H
 
 #include "vsi_nn_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define VSI_NN_UNSTACK_MAX_OUTPUTS (16)
 
 typedef struct _vsi_nn_unstack_lcl_data
@@ -39,5 +44,8 @@ typedef struct _vsi_nn_unstack_param
     uint32_t     axis;
 } vsi_nn_unstack_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

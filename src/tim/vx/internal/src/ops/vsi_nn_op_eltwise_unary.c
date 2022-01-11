@@ -46,6 +46,7 @@ static vsi_status _eltwise_unary_op_compute
 {
     vsi_status status = VSI_FAILURE;
     float alpha = 0;
+    float beta = 0;
     vsi_nn_kernel_param_t * param = NULL;
 
     if( NULL == self )
@@ -54,8 +55,17 @@ static vsi_status _eltwise_unary_op_compute
     }
     param = vsi_nn_kernel_param_create();
 
-    alpha = self->nn_param.elu.alpha;
+    if (strcmp(kernel_name, "elu") == 0)
+    {
+        alpha = self->nn_param.elu.alpha;
+    }
+    else
+    {
+        alpha = self->nn_param.hard_sigmoid.alpha;
+        beta = self->nn_param.hard_sigmoid.beta;
+    }
     vsi_nn_kernel_param_add_float32( param, "alpha", alpha );
+    vsi_nn_kernel_param_add_float32( param, "beta", beta );
 
     // TODO: This optimzie is a hack for gpu path,
     // it should be moved to gpu kernel setup.
@@ -158,7 +168,8 @@ static vsi_bool op_check
         IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP)
         IO_TYPE(D_I16|Q_DFP, D_F16)
     END_IO_TYPE_DECL(ELTWISE_UNARY)
-    if(!VALIDATE_OP_IO_TYPES(ELTWISE_UNARY, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(ELTWISE_UNARY, self, inputs, self->input.num, outputs, self->output.num))
+    {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -169,14 +180,21 @@ static vsi_bool op_check
     return TRUE;
 } /* op_check() */
 
-static vsi_status op_init
+static vsi_status _eltwise_unary_op_init
     (
+    const char * kernel_name,
     vsi_nn_node_t * self
     )
 {
-    if (vsi_nn_compareVersion(self->graph, 1, 1, 29) == -1)
+    if (vsi_nn_compareVersion(self->graph, 1, 1, 29) == -1 &&
+        strcmp(kernel_name, "elu") == 0)
     {
         self->nn_param.elu.alpha = 1;
+    }
+    else if (strcmp(kernel_name, "hard_sigmoid") == 0)
+    {
+        self->nn_param.hard_sigmoid.alpha = 0.2f;
+        self->nn_param.hard_sigmoid.beta = 0.5f;
     }
 
     return VSI_SUCCESS;
@@ -196,7 +214,15 @@ extern "C" {
     { \
         return _eltwise_unary_op_compute( ""#kernel_name, self, inputs, outputs ); \
     } \
-DEF_OP_REG(name, op_init, op_compute_##kernel_name, vsi_nn_op_common_deinit, op_check, op_setup, NULL, 1, 1)
+    static vsi_status op_init_##kernel_name \
+        ( \
+        vsi_nn_node_t * self \
+        ) \
+    { \
+        return _eltwise_unary_op_init( ""#kernel_name, self ); \
+    } \
+DEF_OP_REG(name, op_init_##kernel_name, op_compute_##kernel_name, \
+    vsi_nn_op_common_deinit, op_check, op_setup, NULL, 1, 1)
 
 DEF_ELEMENT_WISE_UNARY_OP( SIN, sin );
 DEF_ELEMENT_WISE_UNARY_OP( EXP, exp );

@@ -349,75 +349,74 @@ enum eVXC_ERROR
 #define VXC_OP1(Op, Dest, Src0)   _viv_asm(INTRINSIC, Dest, VXC_OP_##Op, Src0)
 
 #define VXC_OP2(Op, Dest, Src0, Src1)                  \
-    do {                                               \
+    {                                                  \
         int _t1;                                       \
-        _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);         \
-        _viv_asm(INTRINSIC, Dest, VXC_OP_##Op, _t1);    \
-    } while(0)
+        _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);        \
+        _viv_asm(INTRINSIC, Dest, VXC_OP_##Op, _t1);   \
+    }
 
 #define VXC_OP3(Op, Dest, Src0, Src1, Src2)            \
-    do {                                               \
+    {                                                  \
         int _t1, _t2;                                  \
         _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);        \
         _viv_asm(PARAM_CHAIN, _t2, _t1, Src2);         \
         _viv_asm(INTRINSIC, Dest, VXC_OP_##Op, _t2);   \
-    } while(0)
+    }
 
 #define VXC_OP3_NoDest(Op, Src0, Src1, Src2)           \
-    do {                                               \
+    {                                                  \
         int _t1, _t2, _t3;                             \
         _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);        \
         _viv_asm(PARAM_CHAIN, _t2, _t1, Src2);         \
         _viv_asm(INTRINSIC_ST, _t3, VXC_OP_##Op, _t2); \
-    } while(0)
-
+    }
 
 #define VXC_OP4(Op, Dest, Src0, Src1, Src2, Src3)      \
-    do {                                               \
+    {                                                  \
         int _t1, _t2, _t3;                             \
         _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);        \
         _viv_asm(PARAM_CHAIN, _t2, _t1, Src2);         \
         _viv_asm(PARAM_CHAIN, _t3, _t2, Src3);         \
         _viv_asm(INTRINSIC, Dest, VXC_OP_##Op, _t3);   \
-    } while(0)
+    }
 
 #define VXC_OP4_NoDest(Op, Src0, Src1, Src2, Src3)     \
-    do {                                               \
+    {                                                  \
         int _t1, _t2, _t3, _t4;                        \
         _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);        \
         _viv_asm(PARAM_CHAIN, _t2, _t1, Src2);         \
         _viv_asm(PARAM_CHAIN, _t3, _t2, Src3);         \
         _viv_asm(INTRINSIC_ST, _t4, VXC_OP_##Op, _t3); \
-    } while(0)
+    }
 
 #define VXC_OP4_ST(Op, Dest, Src0, Src1, Src2, Src3)   \
-    do {                                               \
+    {                                                  \
         int _t1, _t2, _t3;                             \
         _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);        \
         _viv_asm(PARAM_CHAIN, _t2, _t1, Src2);         \
         _viv_asm(PARAM_CHAIN, _t3, _t2, Src3);         \
         _viv_asm(INTRINSIC_ST, Dest, VXC_OP_##Op, _t3);\
-    } while(0)
+    }
 
 #define VXC_OP5(Op, Dest, Src0, Src1, Src2, Src3, Src4)   \
-    do {                                                  \
+    {                                                     \
         int _t1, _t2, _t3, _t4;                           \
         _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);           \
         _viv_asm(PARAM_CHAIN, _t2, _t1, Src2);            \
         _viv_asm(PARAM_CHAIN, _t3, _t2, Src3);            \
         _viv_asm(PARAM_CHAIN, _t4, _t3, Src4);            \
         _viv_asm(INTRINSIC, Dest, VXC_OP_##Op, _t4);      \
-    } while(0)
+    }
 
 #define VXC_OP5_NoDest(Op, Src0, Src1, Src2, Src3, Src4)  \
-    do {                                                  \
+    {                                                     \
         int _t1, _t2, _t3, _t4, _t5;                      \
         _viv_asm(PARAM_CHAIN, _t1, Src0, Src1);           \
         _viv_asm(PARAM_CHAIN, _t2, _t1, Src2);            \
         _viv_asm(PARAM_CHAIN, _t3, _t2, Src3);            \
         _viv_asm(PARAM_CHAIN, _t4, _t3, Src4);            \
         _viv_asm(INTRINSIC_ST, _t5, VXC_OP_##Op, _t4);    \
-    } while(0)
+    }
 
 /* make sure the immediate value offsetX and offsetY are in range of [-16, 15] */
 #define VXC_5BITOFFSET_XY(offsetX, offsetY)  ((((offsetY) & 0x1F) << 5) | ((offsetX) & 0x1F))
@@ -515,41 +514,34 @@ enum eVXC_ERROR
  * Offset should be composed by using VXC_5BITOFFSET_XY(x, y)
  * Coord must be type of int4 or float4 
  */
-#define VXC_ReadImage2DArray(Dest, Image, Coord, Offset, Info)         \
-    do {                                                               \
-       int8 desc;                                                      \
-       _viv_asm(COPY, desc, Image, sizeof(desc));                      \
-       _viv_asm(CLAMP0MAX, (Coord).w, (Coord).z, desc.s5 - 1);         \
-       int baseAddr =  (int)(Coord).w *desc.s4 + desc.s0;              \
-       _viv_asm(MOV, (Coord).w, baseAddr);                             \
-       VXC_OP4(img_load_3d, Dest, Image, (Coord).xyww, Offset, Info);  \
-    } while (0)
-#define VXC_WriteImage2DArray(Image, Coord, Color, Info)               \
-    do {                                                               \
-       int8 desc;                                                      \
-       _viv_asm(COPY, desc, Image, sizeof(desc));                      \
-       _viv_asm(CLAMP0MAX, (Coord).w, (Coord).z, desc.s5 - 1);         \
-       int baseAddr =  (int)(Coord).w *(desc).s4 + desc.s0;            \
-       _viv_asm(MOV, (Coord).w, baseAddr);                             \
-       VXC_OP4_NoDest(img_store_3d, Image, (Coord).xyww, Color, Info); \
-    } while (0)
+#define VXC_ReadImage2DArray(Dest, Image, OrigCoord, Offset, Info)          \
+    {                                                                       \
+       int8 desc;                                                           \
+       int4 tempCoord = (int4)(OrigCoord.xyzz);                             \
+       _viv_asm(COPY, desc, Image, sizeof(desc));                           \
+       _viv_asm(CLAMP0MAX, tempCoord.z, tempCoord.z, desc.s5 - 1);          \
+       tempCoord.z = tempCoord.z *desc.s4 + desc.s0;                        \
+       VXC_OP4(img_load_3d, Dest, Image, tempCoord, Offset, Info);          \
+    }
+#define VXC_WriteImage2DArray(Image, OrigCoord, Color, Info)                \
+    {                                                                       \
+       int8 desc;                                                           \
+       int4 tempCoord = (int4)(OrigCoord.xyzz);                             \
+       _viv_asm(COPY, desc, Image, sizeof(desc));                           \
+       _viv_asm(CLAMP0MAX, tempCoord.z, tempCoord.z, desc.s5 - 1);          \
+       tempCoord.z = tempCoord.z *desc.s4 + desc.s0;                        \
+       VXC_OP4_NoDest(img_store_3d, Image, tempCoord, Color, Info);         \
+    }
 
-/* image load/store for image3d_t, 
- * offset should be composed by using VXC_5BITOFFSET_XY(x, y)
- * Coord must be type of int4 or float4 
- */
-#define VXC_ReadImage3D(Dest, Image, Coord, Offset, Info)       VXC_OP4(img_read_3d, Dest, Image, Coord, Offset, Info)
-#define VXC_WriteImage3D(Image, Coord, Color, Info)             VXC_OP4_NoDest(img_write_3d, Image, Coord, Color, Info)
+#define VXC_Vload2(Dest, Pointer, Offset)    { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload2, Dest, Pointer, byteOffset); }
+#define VXC_Vload4(Dest, Pointer, Offset)    { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload4, Dest, Pointer,  byteOffset); }
+#define VXC_Vload8(Dest, Pointer, Offset)    { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload8, Dest, Pointer,  byteOffset); }
+#define VXC_Vload16(Dest, Pointer, Offset)   { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload16, Dest, Pointer,  byteOffset); }
 
-#define VXC_Vload2(Dest, Pointer, Offset)    do { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload2, Dest, Pointer, byteOffset); } while(0)
-#define VXC_Vload4(Dest, Pointer, Offset)    do { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload4, Dest, Pointer,  byteOffset); } while(0)
-#define VXC_Vload8(Dest, Pointer, Offset)    do { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload8, Dest, Pointer,  byteOffset); } while(0)
-#define VXC_Vload16(Dest, Pointer, Offset)   do { int byteOffset = ((int)sizeof((Dest)))*(Offset); VXC_OP2(vload16, Dest, Pointer,  byteOffset); } while(0)
-
-#define VXC_Vstore2(Pointer, Offset, Data)   do { int byteOffset = ((int)sizeof((Data)))*(Offset); VXC_OP3_NoDest(vstore2, Pointer, byteOffset, Data); } while(0)
-#define VXC_Vstore4(Pointer, Offset, Data)   do { int byteOffset = ((int)sizeof((Data)))*(Offset); VXC_OP3_NoDest(vstore4, Pointer, byteOffset, Data); } while(0)
-#define VXC_Vstore8(Pointer, Offset, Data)   do { int byteOffset = ((int)sizeof((Data)))*(Offset); VXC_OP3_NoDest(vstore8, Pointer, byteOffset, Data); } while(0)
-#define VXC_Vstore16(Pointer, Offset, Data)  do { int byteOffset = ((int)sizeof((Data)))*(Offset); VXC_OP3_NoDest(vstore16, Pointer, byteOffset, Data); } while(0)
+#define VXC_Vstore2(Pointer, Offset, Data)   { int byteOffset = ((int)sizeof((Data)))*(Offset); VXC_OP3_NoDest(vstore2, Pointer, byteOffset, Data); }
+#define VXC_Vstore4(Pointer, Offset, Data)   { int byteOffset = ((int)sizeof((Data)))*(Offset); VXC_OP3_NoDest(vstore4, Pointer, byteOffset, Data); }
+#define VXC_Vstore8(Pointer, Offset, Data)   { int byteOffset = ((int)sizeof((Data)))*(Offset); VXC_OP3_NoDest(vstore8, Pointer, byteOffset, Data); }
+#define VXC_Vstore16(Pointer, Offset, Data)  { int byteOffset = ((int)sizeof((Data)))*(Offset); VXC_OP3_NoDest(vstore16, Pointer, byteOffset, Data); }
 
 /* VX2 only instructions*/
 #define VXC_IndexAdd(Dest, Src0, Src1, Src2, Info)        VXC_OP4(index_add, Dest, Src0, Src1, Src2, Info)
@@ -562,7 +554,7 @@ enum eVXC_ERROR
 
 #if (VX_VERSION == 2)
 #define VXC_BiLinear(Dest, Src0, Src1, Src2, Info)                                      \
-    do {                                                                                \
+    {                                                                                   \
         int endBin = ((Info) & VXC_END_BIN_BITMASK) >> 8;                               \
         int roundMode = ((Info) & VXC_ROUNDING_MODE_BITMASK) >> 2;                      \
         int clamp = ((Info) & VXC_CLAMP_BITMASK) >> 22;                                 \
@@ -576,7 +568,7 @@ enum eVXC_ERROR
         _viv_asm(PARAM_CHAIN, bi4, bi3, 8);                                             \
         _viv_asm(INTRINSIC, bi2, OP_bit_extract, bi4);                                  \
         VXC_Lerp(Dest, bi2!<f:UCHAR>, bi2.y!<f:UCHAR>, (Src2).x, Info);                 \
-    }   while (0)
+    }
 
 #define VXC_BitReplace(Dest, Src0, Src1, Src2, Info)   /* BitReplace definition here */
 #define VXC_IAdd(Dest, Src0, Src1, Src2, Info)         /* IAdd definition here */
@@ -592,7 +584,8 @@ enum eVXC_ERROR
 #define VXC_Filter_Max(Dest, Src0, Src1, Src2, Info)        /* Max filter definition here */
 #define VXC_Filter_Min(Dest, Src0, Src1, Src2, Info)        /* Min filter definition here */
 #define VXC_Filter_Median(Dest, Src0, Src1, Src2, Info)     /* Median filter definition here */
-#define VXC_Filter(Dest, Src0, Src1, Src2, Info)       do {                                    \
+#define VXC_Filter(Dest, Src0, Src1, Src2, Info)                                               \
+    {                                                                                          \
         int filter = (((Info) >> 16)&0x0F);                                                    \
         if (filter == VXC_FM_BOX)       { VXC_Filter_Box(Dest, Src0, Src1, Src2, Info); }      \
         if (filter == VXC_FM_Guassian)  { VXC_Filter_Guassian(Dest, Src0, Src1, Src2, Info); } \
@@ -603,7 +596,7 @@ enum eVXC_ERROR
         if (filter == VXC_FM_Max)       { VXC_Filter_Max(Dest, Src0, Src1, Src2, Info); }      \
         if (filter == VXC_FM_Min)       { VXC_Filter_Min(Dest, Src0, Src1, Src2, Info); }      \
         if (filter == VXC_FM_Median)    { VXC_Filter_Median(Dest, Src0, Src1, Src2, Info); }   \
-    } while (0)
+    } 
 
 #else   /* VX1 */
 

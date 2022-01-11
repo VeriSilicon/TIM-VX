@@ -1077,7 +1077,8 @@ static vsi_nn_kernel_node_t _setup
     attr.vtl = TRUE;
     attr.size[0] = ((shape[0] + 255) / 256) * 4;
     if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT16
-        || inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT16)
+        || inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT16
+        || inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16)
     {
         attr.size[0] = ((shape[0] + 127) / 128) * 4;
     }
@@ -1137,7 +1138,7 @@ static vsi_nn_kernel_node_t _setup
                 border.constant_value.U16 = 0;
                 if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8)
                 {
-                    border.constant_value.U8 = (vx_uint8)inputs[0]->attr.dtype.zero_point;
+                    border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
                 }
                 status = vxSetNodeAttribute( (vx_node)tmp_node, VX_NODE_BORDER, &border, sizeof(border) );
                 CHECK_STATUS(status);
@@ -1200,7 +1201,7 @@ static vsi_nn_kernel_node_t _setup
                 border.constant_value.U16 = 0;
                 if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8)
                 {
-                    border.constant_value.U8 = (vx_uint8)inputs[0]->attr.dtype.zero_point;
+                    border.constant_value.U8 = (uint8_t)vsi_nn_get_tensor_zero_point(inputs[0]);
                 }
                 status = vxSetNodeAttribute( (vx_node)node, VX_NODE_BORDER, &border, sizeof(border) );
                 CHECK_STATUS(status);
@@ -1244,4 +1245,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( instance_norm, _setup )
-

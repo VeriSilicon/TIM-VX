@@ -64,6 +64,8 @@ typedef struct _vsi_nn_hw_config_t
     uint32_t subGroupSize;
 #endif
     uint32_t use_40bits_va;
+    uint32_t support_stream_processor;
+    uint32_t sp_exec_count;
 } vsi_nn_hw_config_t;
 
 typedef struct _vsi_nn_runtime_option_t

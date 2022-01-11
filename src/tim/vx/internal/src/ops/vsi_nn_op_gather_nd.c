@@ -54,17 +54,17 @@ static vsi_status op_compute
     vsi_size_t *input_size = inputs[0]->attr.size;
     vsi_size_t dims_num = inputs[0]->attr.dim_num;
 
-    if(inputs[1]->attr.dim_num > 1)
+    if (inputs[1]->attr.dim_num > 1)
     {
         coord_dim = inputs[1]->attr.size[0];
     }
-    if( coord_dim > 3 )
+    if (coord_dim > 4 || (coord_dim > 3 && input_size[dims_num - 1] != 1))
     {
         CHECK_STATUS(status);
         return status;
     }
 
-    param =vsi_nn_kernel_param_create();
+    param = vsi_nn_kernel_param_create();
 
     for(i = 0; i < dims_num - coord_dim; ++i)
     {
@@ -74,13 +74,13 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "block_size", (int32_t)block_size );
     vsi_nn_kernel_param_add_int32( param, "coord_dim", (int32_t)coord_dim );
     n = vsi_nn_kernel_selector( self->graph, "gather_nd", inputs, 2, outputs, 1, param );
-    if( n != NULL )
+    if ( n != NULL )
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;
     }
 
-    if(param != NULL)
+    if (param != NULL)
     {
         vsi_nn_kernel_param_release( &param );
     }
@@ -110,7 +110,7 @@ static vsi_bool op_check
         IO_TYPE(D_I16|Q_DFP, D_I32, D_I16|Q_DFP)
         IO_TYPE(D_I16|Q_DFP, D_I32, D_F16)
     END_IO_TYPE_DECL(GATHER_ND)
-    if(!VALIDATE_OP_IO_TYPES(GATHER_ND, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(GATHER_ND, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -131,10 +131,10 @@ static vsi_bool op_setup
     /* TODO: Add code to comput outputs' shape. */
     vsi_size_t i = 0;
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         vsi_size_t j = 0, coord_dim = 1;
-        if(inputs[1]->attr.dim_num > 1)
+        if (inputs[1]->attr.dim_num > 1)
         {
             coord_dim = inputs[1]->attr.size[0];
         }
@@ -147,7 +147,7 @@ static vsi_bool op_setup
         {
             outputs[0]->attr.size[j++] = inputs[1]->attr.size[i];
         }
-        if(inputs[1]->attr.dim_num == 1)
+        if (inputs[1]->attr.dim_num == 1)
         {
             outputs[0]->attr.size[j++] = inputs[1]->attr.size[0];
         }

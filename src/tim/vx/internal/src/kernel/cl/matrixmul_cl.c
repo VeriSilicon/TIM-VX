@@ -253,12 +253,12 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t depth = outputs[0]->attr.dim_num > 2 ? outputs[0]->attr.size[2] : 1;
     uint32_t ac2zero = 0;
     uint32_t bc2zero = 0;
-    float    scale_a = 1.0f;
-    float    zp_a = 0;
-    float    scale_b = 1.0f;
-    float    zp_b = 0;
-    float    scale_out = 1.0f;
-    float    zp_out = 0;
+    float    scale_a = vsi_nn_get_tensor_scale(inputs[0]);
+    float    zp_a = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float    scale_b = vsi_nn_get_tensor_scale(inputs[1]);
+    float    zp_b = (float)vsi_nn_get_tensor_zero_point(inputs[1]);
+    float    scale_out = vsi_nn_get_tensor_scale(outputs[0]);
+    float    zp_out = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
 
     if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
@@ -270,60 +270,6 @@ static vsi_nn_kernel_node_t _setup
     {
         N = inputs[1]->attr.size[1];
         transFlg = 2;
-    }
-
-    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        if (inputs[0]->attr.dtype.fl > 0)
-        {
-            scale_a = (1.0f / ((float) ((int64_t)1 << inputs[0]->attr.dtype.fl)));
-        }
-        else
-        {
-            scale_a = ((float) ((int64_t)1 << -inputs[0]->attr.dtype.fl));
-        }
-        zp_a = 0;
-    }
-    else if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        zp_a = (float)inputs[0]->attr.dtype.zero_point;
-        scale_a = inputs[0]->attr.dtype.scale;
-    }
-
-    if (inputs[1]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        if (inputs[1]->attr.dtype.fl > 0)
-        {
-            scale_b = (1.0f / ((float) ((int64_t)1 << inputs[1]->attr.dtype.fl)));
-        }
-        else
-        {
-            scale_b = ((float) ((int64_t)1 << -inputs[1]->attr.dtype.fl));
-        }
-        zp_b = 0;
-    }
-    else if (inputs[1]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        zp_b = (float)inputs[1]->attr.dtype.zero_point;
-        scale_b = inputs[1]->attr.dtype.scale;
-    }
-
-    if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_DFP)
-    {
-        if (outputs[0]->attr.dtype.fl > 0)
-        {
-            scale_out = (float)((int64_t)1 << outputs[0]->attr.dtype.fl);
-        }
-        else
-        {
-            scale_out = (1.0f / (float)((int64_t)1 << -outputs[0]->attr.dtype.fl));
-        }
-        zp_out = 0;
-    }
-    else if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC)
-    {
-        zp_out = (float)outputs[0]->attr.dtype.zero_point;
-        scale_out = outputs[0]->attr.dtype.scale;
     }
 
     if (transposeA)
@@ -389,4 +335,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( matrixmul, _setup )
-

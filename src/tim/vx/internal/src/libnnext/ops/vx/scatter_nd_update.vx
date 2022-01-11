@@ -60,6 +60,63 @@ __kernel void scatter_nd_update_F16F16toF16(
     VXC_WriteImage(output, coord, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 }
 
+__kernel void scatter_nd_update_F16F16toU8(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __read_only image2d_t   input2,
+    image2d_array_t  output,
+    int width,
+    int area,
+    int vol,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);
+    int gidy = get_global_id(1);
+    int cnt = 0;
+
+    vxc_short8 tmpVal = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
+    vxc_half8 sum;
+    _viv_asm(COPY, sum, tmpVal, 16);
+    Image img1 = create_image_from_image2d(input1, 4);
+    __global int* index_ptr = (__global int*)img1.ptr;
+    for(int i = 0; i < index_num; i++)
+    {
+        //int4 indice = read_imagei(input1, (int2)(0, i));
+        int4 indice = vload4(0, index_ptr + offset_idx);
+        index_ptr += coord_dim;
+        int idx = indice.x * offsetX + indice.y * offsetY + indice.z * offsetZ + indice.w * offsetW;
+        if(gidy == idx)
+        {
+            vxc_half8 src;
+            VXC_ReadImage(tmpVal, input2, (int2)(gidx, i), 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+            cnt++;
+            _viv_asm(COPY, src, tmpVal, 16);
+            VXC_DP2x8(sum, sum, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccumulateSum_2x8);
+        }
+    }
+    int2 coord = (int2)(gidx, gidy);
+    vxc_ushort8 ms0;
+    vxc_uchar8 dst;
+    if(cnt == 0)
+    {
+        vxc_half8 src;
+        VXC_ReadImage(tmpVal, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        _viv_asm(COPY, ms0, multAndoutZP0, 16);
+        _viv_asm(COPY, src, tmpVal, 16);
+        VXC_DP2x8(dst, src, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),
+                    uniU8MulAndPostShift_0_Lo_2x8);
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    }
+    else
+    {
+        _viv_asm(COPY, ms0, multAndoutZP1, 16);
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),
+                    uniU8MulAndPostShift_1_Lo_2x8);
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    }
+}
+
 #define SCATTER_ND_UPDATE_QINT(src0_type_name, src2_type_name, out_type_name, data_type) \
 __kernel void scatter_nd_update_##src0_type_name##src2_type_name##to##out_type_name##( \
     __read_only image2d_t   input0, \

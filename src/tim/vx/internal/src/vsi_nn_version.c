@@ -51,3 +51,25 @@ uint32_t vsi_nn_GetVersionPatch(void)
 {
     return VSI_NN_VERSION_PATCH;
 }
+
+const char **vsi_nn_get_feature_config(void)
+{
+    static const char *p[10];
+    int i = 0;
+    #ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
+    {
+        static const char *perchannel_quantization = MACRO_TO_STRING(VSI_PERCHANNEL_QUANTIZATION_SUPPORT);
+        (void)perchannel_quantization;
+        p[i++] = perchannel_quantization;
+    }
+    #endif
+
+    #ifdef VSI_40BIT_VA_SUPPORT
+    {
+        static const char *va40bit = MACRO_TO_STRING(VSI_40BIT_VA_SUPPORT);
+        (void)va40bit;
+        p[i++] = va40bit;
+    }
+    #endif
+    return p;
+}

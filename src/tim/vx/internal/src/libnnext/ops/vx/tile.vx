@@ -46,11 +46,15 @@ __kernel void tile_remain##name2##_##name0##to##name1( \
                 { \
                     coord_out.x = coord.x + x * width; \
                     if (isLastItem) \
+                    { \
                         VXC_WriteImage2DArray(output, coord_out, src, \
                             VXC_MODIFIER(0, remainder, 0, VXC_RM_TowardZero, 0)); \
+                    } \
                     else \
+                    { \
                         VXC_WriteImage2DArray(output, coord_out, src, \
                             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+                    } \
                 } \
             } \
         } \
@@ -103,9 +107,13 @@ __kernel void tile_remain##name2##_##name0##to##name1##_2D( \
         do \
         { \
             if (isLastItem) \
+            { \
                 VXC_WriteImage(output, coord, src, VXC_MODIFIER(0, remainder, 0, VXC_RM_TowardZero, 0)); \
+            } \
             else \
+            { \
                 VXC_WriteImage(output, coord, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            } \
             coord.x += width; \
         } while (coord.x < output_width); \
         coord.x = get_global_id(0); \
@@ -165,6 +173,3 @@ __kernel void tile_1toN_##name0##to##name1##_2D( \
 }
 TILE_2D_1TON(U8,  U8, vxc_uchar8)
 TILE_2D_1TON(I16, I16, vxc_short8)
-
-
-

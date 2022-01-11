@@ -27,6 +27,10 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_op_grucell_ovxlib.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define GRUCELL_RZ_GATE_COUNT 2
 
 /* enum for inputs/outputs */
@@ -102,5 +106,9 @@ typedef struct _vsi_nn_grucell_ovxlib_param
 } vsi_nn_grucell_ovxlib_param;
 _compiler_assert(offsetof(vsi_nn_grucell_ovxlib_param, local) == 0, \
     vsi_nn_vsi_nn_grucell_ovxlib_h );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

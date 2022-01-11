@@ -26,6 +26,9 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define _VSI_NN_SIN_LOCAL_TENSOR_NUM 2
 
@@ -42,5 +45,8 @@ typedef struct _vsi_nn_sin_param
     vsi_nn_sin_lcl_data local;
 } vsi_nn_sin_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

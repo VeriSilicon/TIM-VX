@@ -1,0 +1,126 @@
+#include "cl_viv_vx_ext.h"
+
+#define logE        (1.44269502f)
+#define twoLogE     (logE * 2.0f)
+
+float4 sigmoid_func(float4 x)
+{
+    x *= -logE;
+    x = 1.0f + exp2(x);
+    return 1.0f / x;
+}
+float4 hard_sigmoid(float4 x)
+{
+    x = 0.2 * x + 0.5;
+    x = clamp(x, 0, 1);
+    return x;
+}
+float4 tanh_func(float4 x)
+{
+    x *= -twoLogE;
+    x = 1 + exp2(x);
+    x = 1.0f / x;
+    return 2 * x - 1;
+}
+
+_viv_uniform VXC_512Bits uniF16PlusF16_0_4x4;
+_viv_uniform VXC_512Bits uniF16PlusF16_1_4x4;
+_viv_uniform VXC_512Bits uniConvertF16_0_4x4;
+_viv_uniform VXC_512Bits uniConvertF16_1_4x4;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+
+#define GRUCELL_F16_F16TOF16(act_name, act_func) \
+__kernel void grucell_activation_z_h_F16_F16toF16_##act_name( \
+    __read_only  image2d_t hstate_in, \
+    __read_only  image2d_t input_z_conv, \
+    __read_only  image2d_t input_h_conv, \
+    __read_only  image2d_t hstate_z_conv, \
+    __read_only  image2d_t hstate_h_conv, \
+    __write_only image2d_t output, \
+    __write_only image2d_t hstate_out \
+    ) \
+{ \
+    int2 coord_in = (int2)(get_global_id(0), get_global_id(1)); \
+    vxc_short8 v0, v1, v2, v3, v4, v5, v6; \
+    vxc_half8 src0, src1, src2, src3, src4, src5, src6; \
+    VXC_ReadImage(v2, hstate_h_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src2, v2, 16); \
+    VXC_ReadImage(v4, input_h_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src4, v4, 16); \
+    VXC_ReadImage(v5, input_z_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src5, v5, 16); \
+    VXC_ReadImage(v6, hstate_z_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src6, v6, 16); \
+    VXC_ReadImage(v3, hstate_in, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src3, v3, 16); \
+ \
+    float4 h; \
+    VXC_DP4x4(h, src2, src4, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniF16PlusF16_0_4x4); \
+    float4 z; \
+    VXC_DP4x4(z, src5, src6, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniF16PlusF16_0_4x4); \
+    z = act_func(z); \
+    h = tanh_func(h); \
+    float4 h_tm; \
+    VXC_DP4x4(h_tm, src3, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
+    float4 result = (1 - z) * h + z * h_tm; \
+    half4 dst0; \
+    _viv_asm(CONV_RTE, dst0, result); \
+    vxc_half4 dst1; \
+    VXC_DP2x8(dst1, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    vxc_short4 dst; \
+    _viv_asm(COPY, dst, dst1, 8); \
+    VXC_WriteImage(output, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    VXC_WriteImage(hstate_out, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+GRUCELL_F16_F16TOF16(SIGMOID, sigmoid_func)
+
+_viv_uniform float hstate_in_scale;
+_viv_uniform float hstate_in_tail;
+_viv_uniform float output_scale;
+_viv_uniform float output_zp;
+#define GRUCELL_QNT_F16TO_QNT(name0, name1, act_name, act_func, src0_type, dst_type) \
+__kernel void grucell_activation_z_h_##name0##_F16to##name1##_##act_name( \
+    __read_only  image2d_t hstate_in, \
+    __read_only  image2d_t input_z_conv, \
+    __read_only  image2d_t input_h_conv, \
+    __read_only  image2d_t hstate_z_conv, \
+    __read_only  image2d_t hstate_h_conv, \
+    __write_only image2d_t output, \
+    __write_only image2d_t hstate_out \
+    ) \
+{ \
+    int2 coord_in = (int2)(get_global_id(0), get_global_id(1)); \
+    src0_type src3; \
+    vxc_short8 v0, v1, v2, v3, v4, v5, v6; \
+    vxc_half8 src0, src1, src2, src4, src5, src6; \
+    VXC_ReadImage(v2, hstate_h_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src2, v2, 16); \
+    VXC_ReadImage(v4, input_h_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src4, v4, 16); \
+    VXC_ReadImage(v5, input_z_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src5, v5, 16); \
+    VXC_ReadImage(v6, hstate_z_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src6, v6, 16); \
+    VXC_ReadImage(src3, hstate_in, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    float4 h; \
+    VXC_DP4x4(h, src2, src4, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniF16PlusF16_0_4x4); \
+    float4 z; \
+    VXC_DP4x4(z, src5, src6, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniF16PlusF16_0_4x4); \
+    z = act_func(z); \
+    h = tanh_func(h); \
+    float4 h_tm; \
+    VXC_DP4x4(h_tm, src3, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
+    h_tm = h_tm * hstate_in_scale + hstate_in_tail; \
+    float4 result = (1 - z) * h + z * h_tm; \
+    result = result * output_scale + output_zp; \
+    int4 dst0; \
+    _viv_asm(CONV_RTE, dst0, result); \
+    dst_type dst; \
+    VXC_DP2x8(dst, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    VXC_WriteImage(output, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    VXC_WriteImage(hstate_out, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+GRUCELL_QNT_F16TO_QNT(U8,  U8,  SIGMOID, sigmoid_func, vxc_uchar8, vxc_uchar8)
+GRUCELL_QNT_F16TO_QNT(I8,  I8,  SIGMOID, sigmoid_func, vxc_char8,  vxc_char8)
+GRUCELL_QNT_F16TO_QNT(I16, I16, SIGMOID, sigmoid_func, vxc_short8, vxc_short8)

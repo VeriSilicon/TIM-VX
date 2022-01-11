@@ -41,10 +41,12 @@ static inline vsi_bool type_is_integer
     ret = FALSE;
     switch( type )
     {
+    case VSI_NN_TYPE_INT4:
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_INT16:
     case VSI_NN_TYPE_INT32:
     case VSI_NN_TYPE_INT64:
+    case VSI_NN_TYPE_UINT4:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_UINT16:
     case VSI_NN_TYPE_UINT32:
@@ -67,6 +69,7 @@ static inline vsi_bool type_is_signed
     ret = FALSE;
     switch( type )
     {
+    case VSI_NN_TYPE_INT4:
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_INT16:
     case VSI_NN_TYPE_INT32:
@@ -112,6 +115,38 @@ static inline uint32_t type_get_bytes
     }
 } /* type_get_bytes() */
 
+static inline uint32_t type_get_bits
+    (
+    const vsi_nn_type_e type
+    )
+{
+    switch( type )
+    {
+    case VSI_NN_TYPE_INT4:
+    case VSI_NN_TYPE_UINT4:
+        return 4;
+    case VSI_NN_TYPE_INT8:
+    case VSI_NN_TYPE_UINT8:
+    case VSI_NN_TYPE_BOOL8:
+        return 8;
+    case VSI_NN_TYPE_INT16:
+    case VSI_NN_TYPE_UINT16:
+    case VSI_NN_TYPE_FLOAT16:
+    case VSI_NN_TYPE_BFLOAT16:
+        return 16;
+    case VSI_NN_TYPE_INT32:
+    case VSI_NN_TYPE_UINT32:
+    case VSI_NN_TYPE_FLOAT32:
+        return 32;
+    case VSI_NN_TYPE_INT64:
+    case VSI_NN_TYPE_UINT64:
+    case VSI_NN_TYPE_FLOAT64:
+        return 64;
+    default:
+        return 0;
+    }
+} /* type_get_bits() */
+
 static inline void type_get_range
     (
     vsi_nn_type_e type,
@@ -123,8 +158,8 @@ static inline void type_get_range
     double from, to;
     from = 0.0;
     to = 0.0;
-    bits = type_get_bytes( type ) * 8;
-    if( type_is_integer( type ) )
+    bits = type_get_bits( type );
+    if( type_is_integer( type ) || bits > 0)
     {
         if( type_is_signed( type ) )
         {
@@ -240,6 +275,14 @@ static inline vsi_status integer_convert
         uint32_t   src_sz = type_get_bytes( src_type );
         uint32_t   dest_sz = type_get_bytes( dest_type );
         uint8_t*   buffer = all_zeros;
+        if( src_sz == 0 )
+        {
+            src_sz = 1;
+        }
+        if( dest_sz == 0)
+        {
+            dest_sz = 1;
+        }
         if( type_is_signed( src_type ) && (((int8_t *)src)[src_sz - 1] & 0x80) )
         {
             buffer = all_ones;
@@ -384,6 +427,8 @@ static inline vsi_status dtype_to_float32
     case VSI_NN_TYPE_BFLOAT16:
         *dst = bfp16_to_fp32( *(int16_t *)src );
         break;
+    case VSI_NN_TYPE_INT4:
+    case VSI_NN_TYPE_UINT4:
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_BOOL8:
     case VSI_NN_TYPE_UINT8:
@@ -397,6 +442,7 @@ static inline vsi_status dtype_to_float32
             case VSI_NN_QNT_TYPE_DFP:
                 *dst = dfp_to_fp32( src_value, src_dtype->fl, src_dtype->vx_type );
                 break;
+            case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
             case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
                 *dst = affine_to_fp32( src_value,
                     src_dtype->scale, src_dtype->zero_point, src_dtype->vx_type );
@@ -433,6 +479,8 @@ static inline vsi_status float32_to_dtype
     case VSI_NN_TYPE_BFLOAT16:
         *(int16_t *)dst = fp32_to_bfp16_rtne( src );
         break;
+    case VSI_NN_TYPE_INT4:
+    case VSI_NN_TYPE_UINT4:
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_BOOL8:
     case VSI_NN_TYPE_UINT8:
@@ -446,6 +494,7 @@ static inline vsi_status float32_to_dtype
             case VSI_NN_QNT_TYPE_DFP:
                 dst_value = fp32_to_dfp( src, dst_dtype->fl, dst_dtype->vx_type );
                 break;
+            case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
             case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
                 dst_value = fp32_to_affine( src,
                     dst_dtype->scale, dst_dtype->zero_point, dst_dtype->vx_type );

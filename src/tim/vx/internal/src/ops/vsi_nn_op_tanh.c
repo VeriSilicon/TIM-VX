@@ -32,7 +32,7 @@
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
-
+#include "kernel/vsi_nn_kernel.h"
 
 static vsi_status op_compute
     (
@@ -41,22 +41,23 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status;
-    status = VSI_FAILURE;
+    vsi_status status = VSI_SUCCESS;
+    vsi_nn_kernel_param_t * param;
+    vsi_nn_kernel_node_t    n;
+    param = vsi_nn_kernel_param_create();
 
-    self->n = vxActivationLayer(
-        self->graph->g,
-        inputs[0]->t,
-        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_HYPERBOLIC_TAN,
-        self->nn_param.tanh.scale_a,
-        self->nn_param.tanh.scale_b,
-        outputs[0]->t
-        );
+    vsi_nn_kernel_param_add_float32( param, "scale_a", self->nn_param.tanh.scale_a );
+    vsi_nn_kernel_param_add_float32( param, "scale_b", self->nn_param.tanh.scale_b );
 
-    if( NULL != self->n )
+    n = vsi_nn_kernel_selector( self->graph, "tanh", inputs, 1, outputs, 1, param );
+    if( n == NULL )
     {
-        status = VSI_SUCCESS;
+        vsi_nn_kernel_param_release( &param );
+        status = VSI_FAILURE;
     }
+    self->n = (vx_node)n;
+    vsi_nn_kernel_param_release( &param );
+
     return status;
 } /* op_compute() */
 
@@ -93,4 +94,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

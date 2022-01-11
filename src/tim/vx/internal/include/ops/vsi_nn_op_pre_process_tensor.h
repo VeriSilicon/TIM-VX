@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     PRE_PROCESS_TENSOR_INPUT = 0,
@@ -53,5 +57,8 @@ typedef struct _vsi_nn_pre_process_tensor_param
     vsi_nn_pre_process_tensor_lcl_data local;
 } vsi_nn_pre_process_tensor_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

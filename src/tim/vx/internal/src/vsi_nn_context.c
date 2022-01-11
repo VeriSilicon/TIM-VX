@@ -34,7 +34,9 @@ static vsi_status query_hardware_caps
 {
     vsi_status status = VSI_FAILURE;
     vx_hardware_caps_params_t param;
-
+#if VX_STREAM_PROCESSOR_SUPPORT
+    vx_hardware_caps_params_ext2_t paramExt2;
+#endif
 #if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
     vx_hardware_caps_params_ext_t paramExt;
 
@@ -51,8 +53,15 @@ static vsi_status query_hardware_caps
 
 #if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
     context->config.subGroupSize = paramExt.subGroupSize;
-#if VX_VA40_EXT_SUPPORT
+#ifdef VSI_40BIT_VA_SUPPORT
     context->config.use_40bits_va = paramExt.supportVA40;
+#endif
+#if VX_STREAM_PROCESSOR_SUPPORT
+    memset(&paramExt2, 0, sizeof(vx_hardware_caps_params_ext2_t));
+    status = vxQueryHardwareCaps(context->c, (vx_hardware_caps_params_t*)(&paramExt2),
+                sizeof(vx_hardware_caps_params_ext2_t));
+    context->config.support_stream_processor = paramExt.supportStreamProcessor;
+    context->config.sp_exec_count = paramExt2.streamProcessorExecCount;
 #endif
 
 #endif

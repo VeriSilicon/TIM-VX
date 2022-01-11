@@ -399,6 +399,14 @@ OVXLIB_API void vsi_nn_TransposeTensor
     vsi_size_t       * as_shape
     );
 
+vx_tensor vsi_nn_safe_reshape_tensor
+    (
+    vx_tensor         tensor,
+    void            * num_of_dims,
+    vsi_size_t        sizes,
+    vsi_size_t        size_of_shape_element
+    );
+
 OVXLIB_API void vsi_nn_PermuteTensor
     (
     vsi_nn_graph_t  * graph,
@@ -726,6 +734,13 @@ vsi_bool vsi_nn_ConvertTensor
     vsi_nn_graph_t* graph,
     vsi_nn_tensor_t* input,
     vsi_nn_tensor_t* output
+    );
+
+vsi_nn_tensor_t * vsi_nn_dropout_tensor
+    (
+    vsi_nn_graph_t  * graph,
+    vsi_nn_tensor_t * input,
+    float             rate
     );
 
 #ifdef __cplusplus

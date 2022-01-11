@@ -26,6 +26,10 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_relu_keras_param
 {
     float     alpha;
@@ -33,5 +37,8 @@ typedef struct _vsi_nn_relu_keras_param
     float     threshold;
 } vsi_nn_relu_keras_param;
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

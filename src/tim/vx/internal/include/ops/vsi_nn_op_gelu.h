@@ -27,11 +27,17 @@
 
 #include "vsi_nn_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _vsi_nn_gelu_param
 {
     vsi_bool approximate;
 } vsi_nn_gelu_param;
 
-
+#ifdef __cplusplus
+}
 #endif
 
+#endif

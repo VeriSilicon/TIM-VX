@@ -72,6 +72,16 @@ OVXLIB_API uint32_t vsi_nn_TypeGetBytes
     const vsi_nn_type_e type
     );
 
+OVXLIB_API uint32_t vsi_nn_TypeGetBytesExt
+    (
+    const vsi_nn_type_e type
+    );
+
+OVXLIB_API uint32_t vsi_nn_TypeGetBits
+    (
+    const vsi_nn_type_e type
+    );
+
 OVXLIB_API uint16_t vsi_nn_Fp32ToFp16
     (
     float in

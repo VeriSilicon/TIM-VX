@@ -188,7 +188,6 @@ vsi_size_t vsi_nn_GetStrideSize
     vsi_size_t            * stride
     )
 {
-
     if( NULL == attr || NULL == stride )
     {
         return 0;
@@ -207,20 +206,45 @@ vsi_size_t vsi_nn_GetStrideSizeBySize
 {
     vsi_size_t total_bytes;
     vsi_size_t i;
+    vsi_size_t type_bits;
 
     if( NULL == size || NULL == stride )
     {
         return 0;
     }
-
-    stride[0] = vsi_nn_GetTypeBytes( type );
+    type_bits = vsi_nn_TypeGetBits( type);
+    stride[0] = type_bits / BITS_PER_BYTE;
     total_bytes = stride[0];
-    for( i = 1; i < dim_num; i ++ )
+    if( type_bits < BITS_PER_BYTE )
     {
-        stride[i] = size[i - 1] * stride[i - 1];
-        total_bytes *= size[i];
+        total_bytes = 1;
+        if( size[0] % (BITS_PER_BYTE / type_bits) == 0 )
+        {
+             stride[1] = size[0] * type_bits / BITS_PER_BYTE;
+        }
+        else
+        {
+             stride[1] = size[0] * type_bits / BITS_PER_BYTE + 1;
+        }
+
+        total_bytes *= stride[1];
+        for(i = 2; i < dim_num; i++)
+        {
+            stride[i] = size[i-1] * stride[i-1];
+            total_bytes *= size[i];
+        }
+        total_bytes *= size[1];
     }
-    total_bytes *= size[0];
+    else
+    {
+        for( i = 1; i < dim_num; i ++ )
+        {
+            stride[i] = size[i - 1] * stride[i - 1];
+            total_bytes *= size[i];
+        }
+        total_bytes *= size[0];
+    }
+
     for( i = dim_num; i < VSI_NN_MAX_DIM_NUM; i ++ )
     {
         stride[i] = total_bytes;
@@ -254,6 +278,8 @@ float vsi_nn_DataAsFloat32
     case VSI_NN_TYPE_BOOL8:
         val = (float)((int8_t*)data)[0];
         break;
+    case VSI_NN_TYPE_INT4:
+
     case VSI_NN_TYPE_INT8:
         val = (float)((int8_t*)data)[0];
         break;
@@ -327,7 +353,6 @@ void vsi_nn_UpdateTensorDims
     }
 } /* vsi_nn_UpdateTensorDims() */
 
-
 vsi_size_t vsi_nn_ComputeFilterSize
     (
     vsi_size_t   i_size,
@@ -380,6 +405,26 @@ vsi_size_t vsi_nn_compute_filter_shape
     }
 } /* vsi_nn_compute_filter_shape() */
 
+void vsi_nn_compute_padding_per_axis
+    (
+    vsi_size_t   in_shape,
+    vsi_size_t   ksize,
+    uint32_t     stride,
+    uint32_t     dilation,
+    vsi_nn_pad_e pad_type,
+    vsi_size_t   out_pad[2]
+    )
+{
+    vsi_size_t out_size;
+    vsi_size_t total_pads;
+    if(dilation == 0)  dilation = 1;
+    out_size = vsi_nn_compute_filter_shape(pad_type, in_shape, ksize, stride, dilation);
+    total_pads = _compute_padding(in_shape, ksize, stride, dilation, out_size);
+
+    out_pad[0] = total_pads / 2;
+    out_pad[1] = total_pads - out_pad[0];
+}
+
 void vsi_nn_compute_padding
     (
     vsi_size_t   * in_shape,
@@ -390,8 +435,6 @@ void vsi_nn_compute_padding
     vsi_size_t   * out_pad
     )
 {
-    vsi_size_t out_w, out_h;
-    vsi_size_t pad_w, pad_h;
     uint32_t dilation_w, dilation_h;
     if (NULL == in_shape || NULL == ksize
         || NULL == stride || NULL == out_pad)
@@ -413,15 +456,47 @@ void vsi_nn_compute_padding
         dilation_h = dilation[1];
     }
 
-    out_w = vsi_nn_compute_filter_shape(pad_type, in_shape[0], ksize[0], stride[0], dilation_w);
-    out_h = vsi_nn_compute_filter_shape(pad_type, in_shape[1], ksize[1], stride[1], dilation_h);
-    pad_w = _compute_padding(in_shape[0], ksize[0], stride[0], dilation_w, out_w);
-    pad_h = _compute_padding(in_shape[1], ksize[1], stride[1], dilation_h, out_h);
-    out_pad[0] = pad_w / 2;
-    out_pad[1] = pad_w - out_pad[0];
-    out_pad[2] = pad_h / 2;
-    out_pad[3] = pad_h - out_pad[2];
+    vsi_nn_compute_padding_per_axis(in_shape[0], ksize[0], stride[0], dilation_w, pad_type, out_pad);
+    vsi_nn_compute_padding_per_axis(in_shape[1], ksize[1], stride[1], dilation_h, pad_type, out_pad + 2);
 } /* vsi_nn_compute_padding() */
+
+void vsi_nn_compute_padding_3d
+    (
+    const vsi_size_t   in_shape[3],
+    const vsi_size_t   ksize[3],
+    const uint32_t     stride[3],
+    const uint32_t     dilation[3],
+    const vsi_nn_pad_e pad_type,
+    vsi_size_t   out_pad[6]
+    )
+{
+    uint32_t dilation_w, dilation_h, dilation_d;
+    if (NULL == in_shape || NULL == ksize
+        || NULL == stride || NULL == out_pad)
+    {
+        return;
+    }
+    if (pad_type == VSI_NN_PAD_AUTO)
+    {
+        return;
+    }
+    if (NULL == dilation || (dilation[0] == 0 && dilation[1] == 0 && dilation[2] == 0))
+    {
+        dilation_w = 1;
+        dilation_h = 1;
+        dilation_d = 1;
+    }
+    else
+    {
+        dilation_w = dilation[0];
+        dilation_h = dilation[1];
+        dilation_d = dilation[2];
+    }
+
+    vsi_nn_compute_padding_per_axis(in_shape[0], ksize[0], stride[0], dilation_w, pad_type, out_pad);
+    vsi_nn_compute_padding_per_axis(in_shape[1], ksize[1], stride[1], dilation_h, pad_type, out_pad + 2);
+    vsi_nn_compute_padding_per_axis(in_shape[2], ksize[2], stride[2], dilation_d, pad_type, out_pad + 4);
+}
 
 void vsi_nn_ComputePadWithPadType
     (
@@ -792,10 +867,12 @@ void vsi_nn_FormatToString
 {
     switch(tensor->attr.dtype.vx_type)
     {
+    case VSI_NN_TYPE_INT4:strncpy(buf,  "i4 ",  buf_sz);break;
     case VSI_NN_TYPE_INT8:strncpy(buf,  "i8 ",  buf_sz);break;
     case VSI_NN_TYPE_INT16:strncpy(buf, "i16", buf_sz);break;
     case VSI_NN_TYPE_INT32:strncpy(buf, "i32", buf_sz);break;
     case VSI_NN_TYPE_INT64:strncpy(buf, "i64", buf_sz);break;
+    case VSI_NN_TYPE_UINT4:strncpy(buf,  "u4 ",  buf_sz);break;
     case VSI_NN_TYPE_UINT8:strncpy(buf,  "u8 ",  buf_sz);break;
     case VSI_NN_TYPE_UINT16:strncpy(buf, "u16", buf_sz);break;
     case VSI_NN_TYPE_UINT32:strncpy(buf, "u32", buf_sz);break;
@@ -1003,7 +1080,7 @@ vsi_bool vsi_nn_is_same_quant_type(
                 result = TRUE;
             }
             break;
-
+        case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
             if (src->attr.dtype.scale == dst->attr.dtype.scale &&
                 src->attr.dtype.zero_point == dst->attr.dtype.zero_point)
@@ -1050,3 +1127,220 @@ vsi_bool vsi_nn_is_same_type
 {
     return (vsi_nn_is_same_data_type(src, dst) && vsi_nn_is_same_quant_type(src, dst));
 }
+
+vsi_bool vsi_nn_is_broadcast_operaton
+    (
+    vsi_nn_tensor_t            ** inputs,
+    size_t                        input_num,
+    vsi_nn_tensor_t            *  output
+    )
+{
+    vsi_size_t out_rank = output->attr.dim_num;
+    vsi_size_t i = 0;
+
+    for (i = 0; i < out_rank; i++)
+    {
+        size_t j = 0;
+        vsi_size_t dst_size = output->attr.size[i];
+
+        for (j = 0; j < input_num; j++)
+        {
+            vsi_size_t src_size = i < inputs[j]->attr.dim_num  ? inputs[j]->attr.size[i] : 1;
+
+            if (dst_size != src_size)
+            {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
+float vsi_nn_get_tensor_scale
+    (
+    vsi_nn_tensor_t * tensor
+    )
+{
+    float scale = 1.0f;
+
+    switch (tensor->attr.dtype.qnt_type)
+    {
+        case VSI_NN_QNT_TYPE_DFP:
+        {
+            int8_t fl = tensor->attr.dtype.fl;
+            if (fl >= 0)
+            {
+                scale = 1.0f / ( (float) ( (int64_t)1 << fl ));
+            }
+            else
+            {
+                scale = (float) ( (int64_t)1 << -fl );
+            }
+        }
+            break;
+        case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
+        case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+            scale = tensor->attr.dtype.scale;
+            break;
+    default:
+        break;
+    }
+
+    return scale;
+}
+
+int32_t vsi_nn_get_tensor_zero_point
+    (
+    vsi_nn_tensor_t * tensor
+    )
+{
+    int32_t zero_point = 0;
+
+    switch (tensor->attr.dtype.qnt_type)
+    {
+        case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
+        case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+            zero_point = tensor->attr.dtype.zero_point;
+            break;
+    default:
+        break;
+    }
+
+    return zero_point;
+}
+
+void vsi_nn_get_tensor_clamp_min_max
+    (
+    vsi_nn_tensor_t * input,
+    float *clampMin,
+    float *clampMax
+    )
+{
+    float zero_point = (float)vsi_nn_get_tensor_zero_point(input);
+    vsi_nn_type_e vx_type = input->attr.dtype.vx_type;
+
+    if (vx_type == VSI_NN_TYPE_UINT8)
+    {
+        *clampMin = - zero_point;
+        *clampMax = 255 - zero_point;
+    }
+    else if (vx_type == VSI_NN_TYPE_INT8)
+    {
+        *clampMin = -128 - zero_point;
+        *clampMax = 127 - zero_point;
+    }
+    else if (vx_type == VSI_NN_TYPE_INT16)
+    {
+        *clampMin = -32768 - zero_point;
+        *clampMax = 32767 - zero_point;
+    }
+    else if (vx_type == VSI_NN_TYPE_UINT16)
+    {
+        *clampMin = - zero_point;
+        *clampMax = 65535 - zero_point;
+    }
+    else
+    {
+        uint32_t f32_min = 0xff800000;
+        uint32_t f32_max = 0x7f800000;
+
+        *clampMin = *(float*)&f32_min;
+        *clampMax = *(float*)&f32_max;
+    }
+}
+
+vsi_status vsi_nn_Pack4bitData
+    (
+    vsi_nn_tensor_t * tensor,
+    uint8_t   * src,
+    uint8_t * dest
+    )
+{
+    vsi_status status;
+    uint32_t i = 0, j = 0;
+    uint8_t high = 0, low = 0;
+    vsi_size_t src_size;
+
+    status = VSI_SUCCESS;
+    src_size = vsi_nn_GetElementNum( tensor );
+    for( i = 0; i < src_size; i++ )
+    {
+        if( (i+1) % tensor->attr.size[0] == 0)
+        {
+            high = 0;
+            low = src[i];
+        }
+        else
+        {
+            high = src[i+1];
+            low = src[i];
+            i++;
+        }
+        dest[j] = (high << 4) | (low & 0xF);
+        j++;
+    }
+    return status;
+} /* vsi_nn_Pack4bitData() */
+
+vsi_status vsi_nn_Unpack4bitData
+    (
+    vsi_nn_tensor_t * tensor,
+    uint8_t   * src,
+    uint8_t * dest,
+    vsi_nn_type_e type
+    )
+{
+    vsi_status status;
+    uint32_t i = 0, j = 0;
+    uint8_t high = 0, low = 0;
+    vsi_size_t stride[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t src_size;
+
+    status = VSI_SUCCESS;
+    src_size = vsi_nn_GetStrideSize(&tensor->attr, stride);
+    for( i = 0 ; i < src_size; i++)
+    {
+        high = src[i] >> 4;
+        low = src[i] & 0x0F;
+        if( type == VSI_NN_TYPE_INT4 )
+        {
+            if( high > 7)
+            {
+                high = high | 0xF0;
+            }
+            if( low > 7)
+            {
+                low = low | 0xF0;
+            }
+        }
+        if( tensor->attr.size[0] % stride[1] == 0 )
+        {
+            if( tensor->attr.size[0] == 1 )
+            {
+                dest[j] = low;
+                j++;
+            }
+            else
+            {
+                dest[j] = low;
+                dest[j+1] = high;
+                j += 2;
+            }
+        }
+        else
+        {
+            if( (i+1) % stride[1] == 0 )
+            {
+                dest[j] = low;
+                j++;
+            }
+            else
+            {
+                dest[j] = low;
+                dest[j+1] = high;
+                j += 2;
+            }
+        }
+    }
+    return status;
+} /* vsi_nn_Unpack4bitData() */
