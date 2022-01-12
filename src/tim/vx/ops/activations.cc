@@ -43,7 +43,6 @@ DEFINE_NO_PARAMETER_ACTIVATION(Relu6, VSI_NN_OP_RELU6)
 DEFINE_NO_PARAMETER_ACTIVATION(Elu, VSI_NN_OP_ELU)
 DEFINE_NO_PARAMETER_ACTIVATION(Sigmoid, VSI_NN_OP_SIGMOID)
 DEFINE_NO_PARAMETER_ACTIVATION(Mish, VSI_NN_OP_MISH)
-DEFINE_NO_PARAMETER_ACTIVATION(HardSigmoid, VSI_NN_OP_HARD_SIGMOID)
 DEFINE_NO_PARAMETER_ACTIVATION(SoftRelu, VSI_NN_OP_SOFTRELU)
 
 
@@ -76,6 +75,16 @@ Prelu::Prelu(Graph* graph, int axis)
 
 std::shared_ptr<Operation> Prelu::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Prelu>(this->axis_);
+}
+
+HardSigmoid::HardSigmoid(Graph* graph, float alpha, float beta)
+    : DirectMapOp(graph, VSI_NN_OP_HARD_SIGMOID), alpha_(alpha), beta_(beta) {
+  this->impl()->node()->nn_param.hard_sigmoid.alpha = alpha_;
+  this->impl()->node()->nn_param.hard_sigmoid.beta = beta_;
+}
+
+std::shared_ptr<Operation> HardSigmoid::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<HardSigmoid>(this->alpha_, this->beta_);
 }
 
 Tanh::Tanh(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_TANH) {
