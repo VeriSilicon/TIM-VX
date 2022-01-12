@@ -18,6 +18,8 @@ Main Features
 - [Tensorflow-Lite](https://github.com/VeriSilicon/tflite-vx-delegate) (External Delegate)
 - [Tengine](https://github.com/OAID/Tengine) (Official)
 - [TVM](https://github.com/VeriSilicon/tvm) (Fork)
+- [Paddle-Lite](https://github.com/PaddlePaddle/Paddle-Lite) (Official)
+- [OpenCV](https://github.com/opencv/opencv/pull/21036) (In development)
 - MLIR Dialect (In development)
 
 Feel free to raise a github issue if you wish to add TIM-VX for other frameworks.
