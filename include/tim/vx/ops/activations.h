@@ -85,7 +85,6 @@ DECLARE_NO_PARAMETER_ACTIVATION(Sigmoid)
 DECLARE_NO_PARAMETER_ACTIVATION(Swish)
 DECLARE_NO_PARAMETER_ACTIVATION(HardSwish)
 DECLARE_NO_PARAMETER_ACTIVATION(Mish)
-DECLARE_NO_PARAMETER_ACTIVATION(HardSigmoid)
 DECLARE_NO_PARAMETER_ACTIVATION(SoftRelu)
 
 #undef DEFINE_NO_PARAMETER_ACTIVATION
@@ -98,6 +97,17 @@ class Prelu : public DirectMapOp {
 
  protected:
   int axis_;
+};
+
+class HardSigmoid : public DirectMapOp {
+ public:
+  HardSigmoid(Graph* graph, float alpha, float beta);
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float alpha_;
+  float beta_;
 };
 
 class LeakyRelu : public DirectMapOp {

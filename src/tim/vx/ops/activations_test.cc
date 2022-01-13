@@ -178,3 +178,53 @@ TEST(Gelu, shape_5_1_uint8_Quantized) {
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   EXPECT_TRUE(ArraysMatch(golden, output, (uint8_t)1));
 }
+
+TEST(HardSigmoid, shape_5_1_uint8_Quantized) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType in_shape({20, 1});
+  tim::vx::ShapeType out_shape({20, 1});
+
+  std::vector<float> scalesInput = {0.00228914};         //scale
+  std::vector<int32_t> zeroPointsInput = {128};  //zero point
+
+  std::vector<float> scalesOutput = {0.005};
+  std::vector<int32_t> zeroPointsOutput = {128};
+
+  tim::vx::Quantization quantInput(tim::vx::QuantType::ASYMMETRIC, 1,
+                                   scalesInput, zeroPointsInput);
+  tim::vx::Quantization quantOutput(tim::vx::QuantType::ASYMMETRIC, 1,
+                                    scalesOutput, zeroPointsOutput);
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, in_shape,
+                                 tim::vx::TensorAttribute::INPUT, quantInput);
+
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, out_shape,
+                                  tim::vx::TensorAttribute::OUTPUT,
+                                  quantOutput);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<uint8_t> in_data = {65, 255, 140, 92, 142,
+                                  122, 117, 167, 132, 117,
+                                  44, 99, 109, 96, 216,
+                                  222, 135, 126, 113, 100};
+  std::vector<uint8_t> golden_data = {222, 240, 229, 225, 229,
+                                      227, 227, 232, 228, 227,
+                                      220, 225, 226, 225, 236,
+                                      237, 229, 228, 227, 225};
+
+  EXPECT_TRUE(
+      input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+  auto op = graph->CreateOperation<tim::vx::ops::HardSigmoid>(0.2, 0.5);
+  (*op).BindInput(input_tensor).BindOutput(output_tensor);
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+  std::vector<uint8_t> output(golden_data.size());
+
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden_data, output, (uint8_t)1));
+}
