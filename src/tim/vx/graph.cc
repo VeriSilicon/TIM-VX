@@ -156,6 +156,8 @@ bool GraphImpl::Compile() {
 
   vsi_nn_SetGraphVersion(graph_, major, minor, patch);
 
+  vsi_nn_SetGraphFastMode(graph_, false);
+
   std::call_once(setio_once_, [&status, this]() {
     status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(),
                                     this->inputs_.size()) &&
