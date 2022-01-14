@@ -76,10 +76,12 @@ class Graph {
   virtual const std::vector<std::shared_ptr<Operation>> GetConsumersOp(
       std::shared_ptr<Tensor> tensor) const = 0;
 
-  virtual std::vector<std::shared_ptr<Operation>> GetProducerOp(
+  virtual std::shared_ptr<Operation> GetProducerOp(
       std::shared_ptr<Tensor> tensor) = 0;
 
   virtual void PrintGraph() const = 0;
+
+  const std::vector<std::shared_ptr<Tensor>> GetConstantInputs() const;
 
  protected:
   std::vector<std::shared_ptr<tim::vx::Operation>> op_vector_;

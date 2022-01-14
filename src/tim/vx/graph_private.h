@@ -60,7 +60,7 @@ class GraphImpl : public Graph {
                                 const Operation* op) override;
   const std::vector<std::shared_ptr<Operation>> GetConsumersOp(
       std::shared_ptr<Tensor> tensor) const override;
-  std::vector<std::shared_ptr<Operation>> GetProducerOp(
+  std::shared_ptr<Operation> GetProducerOp(
       std::shared_ptr<Tensor> tensor) override;
 
   void PrintGraph() const override;
@@ -87,7 +87,7 @@ class GraphImpl : public Graph {
   std::vector<std::shared_ptr<Tensor>> inputs_tensor_;
   std::vector<std::shared_ptr<Tensor>> outputs_tensor_;
   std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>> tensor_consumers_;
-  std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>> tensor_producer_;
+  std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>> tensor_producer_;
 };
 
 }  // namespace vx

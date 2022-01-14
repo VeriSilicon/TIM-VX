@@ -76,5 +76,20 @@ Operation& Operation::BindOutputs(
   return *this;
 }
 
+bool Operation::IsAllInputsConst() const{
+  for (auto tensor : impl_->inputs_tensor_) {
+    if (!tensor->IsConstTensor()) return false;
+  }
+  return true;
+}
+
+const std::vector<std::shared_ptr<Tensor>> Operation::ConstantInputsTensor() const{
+  if (this->IsAllInputsConst()) {
+    return impl_->inputs_tensor_;
+  } else {
+    return {};
+  }
+}
+
 }  // namespace vx
 }  // namespace tim
