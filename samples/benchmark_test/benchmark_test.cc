@@ -23,14 +23,14 @@ enum ConfigField {
     kKernelW = 3,
     kKernelH = 4,
     kOutChannel = 5,
-
+    deptwise_option = 6,
     kConfigFiledCnt,
 
     kOutImageW = kInImageW,
     kOutImageH = kInImageH,
 };
 
-static const uint32_t default_cfg[] = {256, 256, 128, 3, 3, 1};
+static const uint32_t default_cfg[] = {256, 256, 128, 3, 3, 1, 0};
 
 int main(int argc, char* argv[]) {
 
@@ -44,6 +44,8 @@ int main(int argc, char* argv[]) {
     uint32_t out_image_w = default_cfg[kOutImageW];
     uint32_t out_image_h = default_cfg[kOutImageH];
     uint32_t out_image_c = default_cfg[kOutChannel];
+    uint32_t is_depthwise = default_cfg[deptwise_option];
+    uint32_t multiplier;
 
     if (argc != 0 && argc != kConfigFiledCnt + 1){
         std::cout << "argc = " << argc << std::endl;
@@ -58,12 +60,29 @@ int main(int argc, char* argv[]) {
         out_image_c = atoi(argv[kOutChannel]);
         out_image_h = atoi(argv[kOutImageH]);
         out_image_w = atoi(argv[kOutImageW]);
+        is_depthwise = atoi(argv[deptwise_option]);
+        switch(is_depthwise){
+            case 1:
+                multiplier = out_image_c/in_image_c;
+                break;
+            default:
+                break;
+        }
     }
 
-    if (!single_layer_test && in_image_c != out_image_c) {
-        std::cout << "Fatal error: multi-layer test only valid for ic = oc" << std::endl;
-        return -1;
-    }
+    // if (!single_layer_test && in_image_c != out_image_c) {
+    //     std::cout << "Fatal error: multi-layer test only valid for ic = oc" << std::endl;
+    //     return -1;
+    // }
+
+    tim::vx::ShapeType in_shape = {in_image_h, in_image_w, in_image_c, batch_sz};
+    tim::vx::ShapeType kernel_shape, bias_shape, out_shape;
+
+    std::vector<uint8_t> in_data(batch_sz * in_image_w * in_image_h * in_image_c);
+    fillRandomData(in_data);
+    std::vector<uint8_t> kernel_data;
+    std::vector<uint32_t> bias_data;
+
 
     std::cout << "\n ===========================================================\n";
     std::cout << "\t test config: \n";
@@ -72,22 +91,37 @@ int main(int argc, char* argv[]) {
     #endif
     std::cout << "\t input image shape in (w,h,c): " << in_image_w << ", "
               << in_image_h << ", " << in_image_c << ", " << std::endl;
-    std::cout << "\t kernel shape in (w, h, ic, oc): " << kernel_w << ", "
-              << kernel_h << ", " << in_image_c << ", " << out_image_c << ", "
-              << std::endl;
-    std::cout << "\t output image shape in(w,h,c): " << out_image_w << ", " << out_image_h << ", " << out_image_c << ",\n";
+    switch(is_depthwise){
+        case 0:
+            std::cout << "\t kernel shape in (w, h, ic, oc): " << kernel_w << ", "
+                        << kernel_h << ", " << in_image_c << ", " << out_image_c << ", "
+                        << std::endl;
+            std::cout << "\t output image shape in(w,h,c): " << out_image_w << ", " << out_image_h << ", " << out_image_c << ",\n";
+
+            kernel_shape = {kernel_w, kernel_h, in_image_c, out_image_c};
+            bias_shape = {out_image_c};
+            out_shape = {out_image_h, out_image_w, out_image_c, batch_sz};
+            kernel_data.resize(kernel_w * kernel_h * in_image_c * out_image_c);
+            bias_data.resize(out_image_c);
+            break;
+        case 1:
+            std::cout << "\t kernel shape in (w, h, c*multipier, 1): " << kernel_w << ", "
+                    << kernel_h << ", " << in_image_c*multiplier << ", " << 1 << ", "
+                    << std::endl;
+            std::cout << "\t output image shape in(w,h,c): " << out_image_w << ", " << out_image_h << ", " << in_image_c*multiplier << ",\n";
+
+            kernel_shape = {kernel_w, kernel_h, in_image_c * multiplier, 1};
+            bias_shape = {in_image_c * multiplier};
+            out_shape = {out_image_w, out_image_h, in_image_c * multiplier, batch_sz};
+            kernel_data.resize(kernel_w * kernel_h * in_image_c * multiplier);
+            bias_data.resize(in_image_c * multiplier);
+            break;
+        default:
+            break;
+    }
     std::cout << " ===========================================================" << std::endl;
 
-    tim::vx::ShapeType in_shape = {in_image_h, in_image_w, in_image_c, batch_sz};
-    tim::vx::ShapeType kernel_shape = {kernel_w, kernel_h, in_image_c, out_image_c};
-    tim::vx::ShapeType bias_shape = {out_image_c};
-    tim::vx::ShapeType out_shape = {out_image_h, out_image_w, out_image_c, batch_sz};
-
-    std::vector<uint8_t> in_data(batch_sz * in_image_w * in_image_h * in_image_c);
-    fillRandomData(in_data);
-    std::vector<uint8_t> kernel_data(kernel_w * kernel_h * in_image_c * out_image_c);
     fillRandomData(kernel_data);
-    std::vector<uint32_t> bias_data(out_image_c);
     fillRandomData(bias_data);
 
     tim::vx::Quantization quant_type(tim::vx::QuantType::ASYMMETRIC, 1.0f, 0);
@@ -109,7 +143,7 @@ int main(int argc, char* argv[]) {
     auto relu6_input_tensor = graph->CreateTensor(relu6_spec);
     #endif
 
-       auto output_tensor = graph->CreateTensor(output_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
 
     std::array<uint32_t, 4> pad = {
         (out_image_w - in_image_w + kernel_w - 1) / 2,
@@ -119,7 +153,17 @@ int main(int argc, char* argv[]) {
     };
     std::array<uint32_t, 2> stride = {1,1};
     std::array<uint32_t, 2> dilation = {1,1};
-    auto conv2d_op = graph->CreateOperation<tim::vx::ops::Conv2d>(pad, stride, dilation);
+    std::shared_ptr<tim::vx::ops::Conv2d> conv2d_op;
+    switch(is_depthwise){
+        case 0:
+            conv2d_op = graph->CreateOperation<tim::vx::ops::Conv2d>(pad, stride, dilation);
+            break;
+        case 1:
+            conv2d_op = graph->CreateOperation<tim::vx::ops::Conv2d>(pad, stride, dilation, multiplier);
+            break;
+        default:
+            break;
+    }
     (*conv2d_op).BindInputs({input_tensor, kernel_tensor, bias_tensor});
     #if ENABLE_RELU6
     (*conv2d_op).BindOutput(relu6_input_tensor);
