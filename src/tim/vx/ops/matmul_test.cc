@@ -76,6 +76,48 @@ TEST(Matmul, shape_2_6_shape_6_2_float) {
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
+TEST(Matmul, shape_3_1_shape_1_3_float) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType a_shape({3, 1});
+    tim::vx::ShapeType b_shape({1, 3});
+    tim::vx::ShapeType out_shape({1, 1});
+    tim::vx::TensorSpec a_spec(tim::vx::DataType::FLOAT32,
+                    a_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec b_spec(tim::vx::DataType::FLOAT32,
+                    b_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec out_spec(tim::vx::DataType::FLOAT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto a_tensor = graph->CreateTensor(a_spec);
+    auto b_tensor = graph->CreateTensor(b_spec);
+    auto out_tensor = graph->CreateTensor(out_spec);
+
+    std::vector<float> a_data = {
+        -0.22248997, -2.0454798, -1.4306251,
+    };
+    std::vector<float> b_data = {
+        -0.6248956, -0.50848556, -0.42812803,
+    };
+    std::vector<float> golden = {
+        1.7916206,
+    };
+
+    EXPECT_TRUE(a_tensor->CopyDataToTensor(a_data.data(), a_data.size() * sizeof(float)));
+    EXPECT_TRUE(b_tensor->CopyDataToTensor(b_data.data(), b_data.size() * sizeof(float)));
+
+    auto op = graph->CreateOperation<tim::vx::ops::Matmul>();
+    (*op).BindInputs({a_tensor, b_tensor}).BindOutputs({out_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(golden.size());
+    EXPECT_TRUE(out_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}
+
 TEST(Matmul, shape_2_3_2_shape_2_3_2_float_transpose_b) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
