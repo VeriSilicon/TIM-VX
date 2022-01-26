@@ -187,6 +187,7 @@ bool TensorImpl::Init() {
 
   PackTensorDtype(spec_, &attr.dtype);
 
+#ifndef VSI_40BIT_VA_SUPPORT
   if ((spec_.attr_ & TensorAttribute::INPUT) ||
       (spec_.attr_ & TensorAttribute::OUTPUT)) {
 #ifdef VX_CREATE_TENSOR_SUPPORT_PHYSICAL
@@ -209,7 +210,9 @@ bool TensorImpl::Init() {
     }
 #endif
 
-  } else {
+  } else
+#endif
+  {
     id_ = vsi_nn_AddTensor(graph_->graph(), VSI_NN_TENSOR_ID_AUTO, &attr,
                            nullptr);
   }

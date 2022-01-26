@@ -9,6 +9,7 @@ option(TIM_VX_CODE_COVERAGE             "Run code coverage with gconv(gcc only" 
 option(TIM_VX_USE_EXTERNAL_OVXLIB       "Use external OVXLIB"                   OFF)
 option(TIM_VX_BUILD_EXAMPLES            "Build demos show general usage"        OFF)
 option(TIM_VX_ENABLE_VIPLITE            "Enable lite driver api support"        OFF)
+option(TIM_VX_ENABLE_40BIT              "Enable large memory support"           OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -22,6 +23,11 @@ endif()
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
+endif()
+
+if(${TIM_VX_ENABLE_40BIT})
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVSI_40BIT_VA_SUPPORT")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVSI_40BIT_VA_SUPPORT")
 endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)

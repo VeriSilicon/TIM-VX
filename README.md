@@ -58,8 +58,9 @@ cmake options:
 |`TIM_VX_USE_EXTERNAL_OVXLIB`| Replace internal with a prebuilt libovxlib library | OFF |
 |`OVXLIB_LIB`|full path to libovxlib.so include so name, required if `TIM_VX_USE_EXTERNAL_OVXLIB`=ON | Not set |
 |`OVXLIB_INC`|ovxlib's include path, required if `TIM_VX_USE_EXTERNAL_OVXLIB`=ON| Not set |
-|`EXTERNAL_VIV_SDK`| Give external vivante openvx driver libraries | OFF |
+|`EXTERNAL_VIV_SDK`| Give external vivante openvx driver libraries | Not set|
 |`TIM_VX_BUILD_EXAMPLES`| Build example applications | OFF |
+|`TIM_VX_ENABLE_40BIT` | Enable large memory (over 4G) support in NPU driver | OFF |
 
 ----
 run unit test:
