@@ -1,5 +1,5 @@
 set(PKG_NAME "OVXDRV")
-message(STATUS "Using YOCTO Project configuration.")
+message(STATUS "Using YOCTO/BUILDROOT Project configuration.")
 
 # The include directories are available in SDK
 set(OVXDRV_INCLUDE_DIRS)
