@@ -25,6 +25,8 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/stridedslice.h"
 
+#include <algorithm>
+
 #include "gtest/gtest.h"
 
 TEST(StridedSlice, shape_) {
