@@ -91,7 +91,8 @@ export DISABLE_IDE_DEBUG=1
 1. prepare toolchain file follow cmake standard
 2. make sure cross build low-level driver with toolchain separately, we need the sdk from the low-level driver
 3. add -DEXTERNAL_VIV_SDK=<low-level-driver/out/sdk> to cmake definitions, also remember -DCMAKE_TOOLCHAIN_FILE=<Your_Toolchain_Config>
-4. then make
+4. or for using a buildroot toolchain with extrnal VIV-SDK add: -DCONFIG=BUILDROOT -DCMAKE_SYSROOT=${CMAKE_SYSROOT} -DEXTERNAL_VIV_SDK=${BUILDROOT_SYSROOT}
+5. then make
 
 ----
 #### Important notice for integration
