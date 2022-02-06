@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,27 +21,30 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_CONTEXT_PRIVATE_H_
-#define TIM_VX_CONTEXT_PRIVATE_H_
-#include "tim/vx/context.h"
-#include "vsi_nn_pub.h"
+#ifndef TIM_VX_COMPILE_OPTION_H_
+#define TIM_VX_COMPILE_OPTION_H_
+
+#include <map>
+#include <memory>
 
 namespace tim {
 namespace vx {
-
-class ContextImpl : public Context {
+struct CompileOptionImpl;
+class CompileOption {
  public:
-  ContextImpl();
-  ~ContextImpl();
-  vsi_nn_context_t context();
-  std::shared_ptr<Graph> CreateGraph() override;
-  std::shared_ptr<Graph> CreateGraph(const CompileOption&) override;
-  
- protected:
-  vsi_nn_context_t context_;
-};
+  CompileOption();
+  ~CompileOption(){};
 
+  bool isRelaxMode() const;
+  bool setRelaxMode(bool enable = false);
+
+  static CompileOption DefaultOptions;
+
+ private:
+  // option can have dafult values
+  std::shared_ptr<CompileOptionImpl> impl_;
+};
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_CONTEXT_PRIVATE_H_ */
+#endif

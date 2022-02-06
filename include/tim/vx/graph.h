@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <vector>
+
 namespace tim {
 namespace vx {
 

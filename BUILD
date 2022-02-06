@@ -34,6 +34,7 @@ cc_library(
         "include/tim/vx/ops.h",
         "include/tim/vx/tensor.h",
         "include/tim/vx/types.h",
+        "include/tim/vx/compile_option.h",
         "include/tim/transform/layout_inference.h",
     ] + glob([
         "include/tim/vx/ops/*.h"
@@ -41,6 +42,7 @@ cc_library(
     srcs = [
         "src/tim/vx/context_private.h",
         "src/tim/vx/context.cc",
+        "src/tim/vx/compile_option.cc",
         "src/tim/vx/graph_private.h",
         "src/tim/vx/graph.cc",
         "src/tim/vx/direct_map_op_impl.cc",

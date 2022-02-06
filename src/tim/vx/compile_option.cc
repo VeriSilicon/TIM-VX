@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,27 +21,40 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_CONTEXT_PRIVATE_H_
-#define TIM_VX_CONTEXT_PRIVATE_H_
-#include "tim/vx/context.h"
-#include "vsi_nn_pub.h"
+#include "tim/vx/compile_option.h"
+#include <string>
 
 namespace tim {
 namespace vx {
 
-class ContextImpl : public Context {
- public:
-  ContextImpl();
-  ~ContextImpl();
-  vsi_nn_context_t context();
-  std::shared_ptr<Graph> CreateGraph() override;
-  std::shared_ptr<Graph> CreateGraph(const CompileOption&) override;
-  
- protected:
-  vsi_nn_context_t context_;
+CompileOption CompileOption::DefaultOptions;
+
+struct CompileOptionImpl {
+  // string: readable name; bool: setup or not; bool: value if setup; bool: default value if not setup;
+  using RelaxModeType = std::tuple<std::string, bool, bool, bool>;
+  CompileOptionImpl() {
+    relax_mode_ = {std::string("RelaxMode"), false, false, false};
+  }
+
+  bool RelaxMode() const {
+    return std::get<1>(relax_mode_) ? std::get<2>(relax_mode_)
+                                    : std::get<3>(relax_mode_);
+  }
+
+  bool& RelaxMode() {
+    return std::get<1>(relax_mode_) ? std::get<2>(relax_mode_)
+                                    : std::get<3>(relax_mode_);
+  }
+
+  RelaxModeType relax_mode_;
 };
 
+CompileOption::CompileOption() : impl_(new CompileOptionImpl()) {}
+
+bool CompileOption::isRelaxMode() const { return this->impl_->RelaxMode(); }
+
+bool CompileOption::setRelaxMode(bool enable) {
+  return this->impl_->RelaxMode() = enable;
+}
 }  // namespace vx
 }  // namespace tim
-
-#endif /* TIM_VX_CONTEXT_PRIVATE_H_ */

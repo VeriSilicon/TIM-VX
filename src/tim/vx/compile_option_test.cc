@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,27 +21,16 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_CONTEXT_PRIVATE_H_
-#define TIM_VX_CONTEXT_PRIVATE_H_
-#include "tim/vx/context.h"
-#include "vsi_nn_pub.h"
+#include "tim/vx/compile_option.h"
 
-namespace tim {
-namespace vx {
+#include "gtest/gtest.h"
 
-class ContextImpl : public Context {
- public:
-  ContextImpl();
-  ~ContextImpl();
-  vsi_nn_context_t context();
-  std::shared_ptr<Graph> CreateGraph() override;
-  std::shared_ptr<Graph> CreateGraph(const CompileOption&) override;
-  
- protected:
-  vsi_nn_context_t context_;
-};
+TEST(compile_option, relax_mode) {
+  tim::vx::CompileOption opt;
 
-}  // namespace vx
-}  // namespace tim
+  EXPECT_TRUE(opt.isRelaxMode() == false);
+  opt.setRelaxMode(true);
+  EXPECT_TRUE(opt.isRelaxMode() == true);
 
-#endif /* TIM_VX_CONTEXT_PRIVATE_H_ */
+  EXPECT_TRUE(tim::vx::CompileOption::DefaultOptions.isRelaxMode() == false);
+}

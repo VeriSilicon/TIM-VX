@@ -30,6 +30,7 @@
 #include "tensor_private.h"
 #include "tim/vx/context.h"
 #include "tim/vx/ops/nbg.h"
+#include "tim/vx/compile_option.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -44,10 +45,11 @@ const std::vector<std::shared_ptr<Tensor>> Graph::GetConstantInputs() const {
     return const_inputs;
   }
 
-GraphImpl::GraphImpl(ContextImpl* context)
+GraphImpl::GraphImpl(ContextImpl* context, const CompileOption& options)
     : context_(context),
       graph_(vsi_nn_CreateGraph(context_->context(), 0, 0)),
-      tensor_placeholder_(nullptr) {}
+      tensor_placeholder_(nullptr),
+      options_(options){}
 
 GraphImpl::~GraphImpl() { vsi_nn_ReleaseGraph(&graph_); }
 
@@ -156,7 +158,12 @@ bool GraphImpl::Compile() {
 
   vsi_nn_SetGraphVersion(graph_, major, minor, patch);
 
-  vsi_nn_SetGraphFastMode(graph_, false);
+  bool is_fast_mode = options_.isRelaxMode();
+  if (is_fast_mode) {
+    VSILOGW("Important notice: float model executed in bfloat16 "
+            "mode which will have better performance but lower precesion");
+  }
+  vsi_nn_SetGraphFastMode(graph_, is_fast_mode);
 
   std::call_once(setio_once_, [&status, this]() {
     status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(),
