@@ -33,7 +33,7 @@ struct CompileOptionImpl {
   // string: readable name; bool: setup or not; bool: value if setup; bool: default value if not setup;
   using RelaxModeType = std::tuple<std::string, bool, bool, bool>;
   CompileOptionImpl() {
-    relax_mode_ = {std::string("RelaxMode"), false, false, false};
+    relax_mode_ = RelaxModeType(std::string("RelaxMode"), false, false, false);
   }
 
   bool RelaxMode() const {
