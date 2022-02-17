@@ -785,8 +785,8 @@ void vsi_nn_ReleaseTensor
     )
 {
     vsi_nn_tensor_t * ptr;
-    ptr = *tensor;
-    if( NULL != tensor && NULL != *tensor )
+    ptr = NULL != tensor ? *tensor : NULL;
+    if( NULL != ptr )
     {
         uint8_t * handle = NULL;
         if( NULL != ptr->t )

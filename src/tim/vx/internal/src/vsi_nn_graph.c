@@ -614,8 +614,8 @@ void vsi_nn_ReleaseGraph
     uint32_t i;
     vsi_nn_graph_t  * ptr;
 
-    ptr = *graph;
-    if( NULL != graph && NULL != * graph )
+    ptr = NULL != graph ? *graph : NULL;
+    if( NULL != ptr )
     {
         if( NULL != ptr->nodes )
         {
