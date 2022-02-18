@@ -21,32 +21,38 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_NBG_H_
-#define TIM_VX_OPS_NBG_H_
-#include "tim/vx/direct_map_op.h"
+#ifndef TIM_VX_IDEVICE_H_
+#define TIM_VX_IDEVICE_H_
+
+#include <memory>
+#include <vector>
+#include <functional>
+#include "graph.h"
 
 namespace tim {
 namespace vx {
-namespace ops {
 
-/**
- * ## NBG
- *
- * Network Binary Graph is a precompile technology, which can compile a fuse graph into
- * a bianry file.
- */
-
-class NBG : public DirectMapOp {
+class IDevice {
  public:
-  NBG(Graph* graph, const char* binary, size_t input_count, size_t output_count);
-  ~NBG(){
-      printf("Destructor NBG: %p\n", this);
-  }
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  using device_id_t = uint32_t;
+  using async_callback = std::function<bool (const void*)>;
+  using data_t = const void*;
+  virtual ~IDevice(){
+      printf("Destructor IDevice: %p\n", this);
+  };
+  virtual bool Submit(const std::shared_ptr<Graph> graph/*, func_t func=NULL, data_t data=NULL*/) = 0;
+  virtual bool Trigger(bool async = false, async_callback cb = NULL) = 0;
+  device_id_t device_id() {return device_id_;}
+  virtual void WaitDeviceIdle() = 0;
+  virtual bool DeviceExit() = 0;
 
+ protected:
+  device_id_t device_id_;
+  
 };
 
-}  // namespace ops
+
 }  // namespace vx
 }  // namespace tim
-#endif
+
+#endif /* TIM_VX_IDEVICE_H_*/

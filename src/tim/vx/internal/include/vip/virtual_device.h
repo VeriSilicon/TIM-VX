@@ -21,32 +21,36 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_NBG_H_
-#define TIM_VX_OPS_NBG_H_
-#include "tim/vx/direct_map_op.h"
+#ifndef _VIP_VIRTUAL_DEVICE_H
+#define _VIP_VIRTUAL_DEVICE_H
 
-namespace tim {
-namespace vx {
-namespace ops {
+#include <memory>
+#include <functional>
 
-/**
- * ## NBG
- *
- * Network Binary Graph is a precompile technology, which can compile a fuse graph into
- * a bianry file.
- */
+struct _vsi_nn_graph;
+typedef struct _vsi_nn_graph vsi_nn_graph_t;
 
-class NBG : public DirectMapOp {
- public:
-  NBG(Graph* graph, const char* binary, size_t input_count, size_t output_count);
-  ~NBG(){
-      printf("Destructor NBG: %p\n", this);
-  }
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+namespace vip {
 
+class Device;
+using func_t = std::function<bool (const void*)>;
+using data_t = const void*;
+
+class IDevice {
+    public:
+        IDevice(uint32_t id);
+        ~IDevice();
+        uint32_t Id() const;
+        bool GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data);
+        bool GraphRemove(const vsi_nn_graph_t* graph);
+        bool ThreadExit();
+        bool ThreadIdle();
+        void WaitThreadIdle();
+
+    protected:
+        Device* device_;
 };
 
-}  // namespace ops
-}  // namespace vx
-}  // namespace tim
+}  // namespace vip
+
 #endif

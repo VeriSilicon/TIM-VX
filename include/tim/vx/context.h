@@ -33,7 +33,9 @@ class CompileOption;
 class Graph;
 class Context {
  public:
-  virtual ~Context() {}
+  virtual ~Context() {
+    printf("Destructor Context: %p\n", this);
+  }
   static std::shared_ptr<Context> Create();
   virtual std::shared_ptr<Graph> CreateGraph() = 0;
   virtual std::shared_ptr<Graph> CreateGraph(const CompileOption& options) = 0;

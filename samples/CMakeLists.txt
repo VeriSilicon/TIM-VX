@@ -1,6 +1,8 @@
 add_subdirectory("benchmark_test")
 add_subdirectory("custom_op_test")
 add_subdirectory("lenet")
+add_subdirectory("lenet_multi_device")
+# add_subdirectory("lenet_nbg")
 if(${TIM_VX_ENABLE_VIPLITE})
     add_subdirectory("lenet_lite")
 endif()

@@ -21,32 +21,20 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_NBG_H_
-#define TIM_VX_OPS_NBG_H_
-#include "tim/vx/direct_map_op.h"
+// #include <algorithm>
+// #include <iomanip>
+// #include <iostream>
+// #include <tuple>
+// #include <vector>
+// #include <assert.h>
 
-namespace tim {
-namespace vx {
-namespace ops {
-
-/**
- * ## NBG
- *
- * Network Binary Graph is a precompile technology, which can compile a fuse graph into
- * a bianry file.
- */
-
-class NBG : public DirectMapOp {
- public:
-  NBG(Graph* graph, const char* binary, size_t input_count, size_t output_count);
-  ~NBG(){
-      printf("Destructor NBG: %p\n", this);
-  }
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
-
-};
-
-}  // namespace ops
-}  // namespace vx
-}  // namespace tim
-#endif
+// #include "lenet.h"
+// #include "tim/vx/context.h"
+// #include "tim/vx/graph.h"
+// #include "tim/vx/operation.h"
+// #include "tim/vx/ops/activations.h"
+// #include "tim/vx/ops/conv2d.h"
+// #include "tim/vx/ops/fullyconnected.h"
+// #include "tim/vx/ops/pool2d.h"
+// #include "tim/vx/ops/softmax.h"
+// #include "tim/vx/tensor.h"
