@@ -70,3 +70,49 @@ TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn) {
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
+
+TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn_PaddingTest) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType in_shape({2, 4, 1});
+    tim::vx::ShapeType param_shape({3, 2, 4});
+    tim::vx::ShapeType out_shape({2, 4, 1});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            in_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
+                            param_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto weight_tensor = graph->CreateTensor(param_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = {
+        -1, 0, 1, -1.5, 0.5, 1.5, 1, 1
+        };
+    std::vector<float> weight = {
+        -3,   -2, -1.5, 1.5, 2,   3,
+        -2.5, -2, -1.5, 1.5, 2, 2.5,
+        -1,    0,    1, -1.5, 0.5, 1.5,
+        -1.5, 1.5, 2, -1, 0, 1,
+    };
+    std::vector<float> golden = {
+        1.5, -2.25, 1, -2.25, -1.5, -3, 0.5, -3.25
+    };
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
+    EXPECT_TRUE(weight_tensor->CopyDataToTensor(weight.data(), weight.size() * sizeof(float)));
+
+    auto op = graph->CreateOperation<tim::vx::ops::GroupedConv1d>(tim::vx::PadType::VALID, 1, 1, 2);
+    (*op).BindInputs({input_tensor, weight_tensor}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(golden.size());
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    // EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_EQ(golden, output);
+}

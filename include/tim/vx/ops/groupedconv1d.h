@@ -55,22 +55,25 @@ namespace ops {
 
 class GroupedConv1d : public DirectMapOp {
  public:
-  GroupedConv1d(Graph* graph, PadType padding,
-         uint32_t stride,
-         uint32_t dilation,
-         uint32_t group,
-         DataLayout input_layout = DataLayout::WCN,
-         DataLayout kernel_layout = DataLayout::WIcOc);
+  GroupedConv1d(Graph* graph, PadType padding, std::array<uint32_t, 2> pad,
+                uint32_t stride, uint32_t dilation, uint32_t group,
+                DataLayout input_layout = DataLayout::WCN,
+                DataLayout kernel_layout = DataLayout::WIcOc);
+  GroupedConv1d(Graph* graph, PadType padding, const uint32_t stride,
+                const uint32_t dilation, uint32_t group,
+                DataLayout input_layout = DataLayout::WCN,
+                DataLayout kernel_layout = DataLayout::WIcOc);
 
   DataLayout KernelDataLayout() { return kernel_layout_; }
 
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 
  protected:
   const PadType padding_;
+  const std::array<uint32_t, 2> pad_;
   const uint32_t stride_;
   const uint32_t dilation_;
-  const std::array<uint32_t, 2> pad_;
   const uint32_t group_;
   const DataLayout kernel_layout_;
 };
