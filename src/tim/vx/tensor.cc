@@ -198,7 +198,7 @@ bool TensorImpl::Init() {
         graph_->graph(),
         VSI_NN_TENSOR_ID_AUTO,  // DMABUF's fd is created by TensorFromHandle as input or output,
         &attr,
-        fd_ != -1 ? (uint8_t*)fd_ : nullptr);  // and cannot be set to const
+        fd_ != -1 ? (uint8_t*)fd_ : (uint8_t*)data_);  // and cannot be set to const
 #else
     if (-1 == fd_) {
       id_ = vsi_nn_AddTensorFromHandle(graph_->graph(), VSI_NN_TENSOR_ID_AUTO,
@@ -219,7 +219,8 @@ bool TensorImpl::Init() {
     return false;
   }
 
-  if (data_) {
+  if (data_ &&
+      !(spec_.attr_ & (TensorAttribute::INPUT | TensorAttribute::OUTPUT))) {
     if (!CopyDataToTensor(data_, 0)) {
       VSILOGE("Copy data to tensor fail!");
       return false;
