@@ -26,6 +26,7 @@
 #include "tim/vx/ops/elementwise.h"
 
 #include "gtest/gtest.h"
+#include "test_utils.h"
 
 TEST(FloorDiv, shape_1_fp32) {
     auto ctx = tim::vx::Context::Create();
@@ -233,7 +234,7 @@ TEST(Div, shape_5_1_broadcast_scale_uint8) {
     std::vector<uint8_t> output(5);
 
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
+    EXPECT_TRUE(ArraysMatch(golden, output, (uint8_t)1));
 }
 
 TEST(Div, Div_uint8) {
