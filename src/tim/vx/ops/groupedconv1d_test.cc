@@ -27,7 +27,7 @@
 #include "test_utils.h"
 #include "gtest/gtest.h"
 
-TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn) {
+TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn_PaddingTest) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -47,20 +47,21 @@ TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn) {
 
     std::vector<float> in_data = {
         -1,    0, 1, -1.5, 0.5, 1.5,
-        -2, -0.5, 2, -2.5,   0, 2.5,
+        2, -0.5, 2, -2.5,   0, 2.5,
         };
     std::vector<float> weight = {
-        -3,   -2, -1.5, 1.5, 2,   3,
+        -3,   2, -1.5, 1.5, 2,   3,
         -2.5, -2, -1.5, 1.5, 2, 2.5,
     };
     std::vector<float> golden = {
-        4.75, 5.5,
+        -1, -6
     };
 
     EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
     EXPECT_TRUE(weight_tensor->CopyDataToTensor(weight.data(), weight.size() * sizeof(float)));
 
-    auto op = graph->CreateOperation<tim::vx::ops::GroupedConv1d>(tim::vx::PadType::VALID, 1, 1, 2);
+    std::array<uint32_t, 2> pad = {0,0};
+    auto op = graph->CreateOperation<tim::vx::ops::GroupedConv1d>(tim::vx::PadType::SAME, pad, 1, 1, 2);
     (*op).BindInputs({input_tensor, weight_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
@@ -71,7 +72,7 @@ TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn) {
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
-TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn_PaddingTest) {
+TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -113,6 +114,5 @@ TEST(GroupedConv1d, shape_6_2_1_float_ksize_6_stride_1_group_2_no_bias_wcn_Paddi
 
     std::vector<float> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    // EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
-    EXPECT_EQ(golden, output);
+    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }

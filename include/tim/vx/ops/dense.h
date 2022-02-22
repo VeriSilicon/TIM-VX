@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,34 +21,34 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_RNN_CELL_H_
-#define TIM_VX_OPS_RNN_CELL_H_
+#ifndef TIM_VX_OPS_DENSE_H_
+#define TIM_VX_OPS_DENSE_H_
+#include "tim/vx/direct_map_op.h"
 
-#include "tim/vx/operation.h"
 namespace tim {
 namespace vx {
 namespace ops {
 
-class RNNCell : public Operation {
+/**
+ * ## Dense
+ *
+ * Denotes a fully (densely) connected layer, which connects all elements in the
+ * input tensor with each element in the output tensor.
+ *
+ * - axis: Describes the axis of the inputs when coerced to 2D.
+ * - weights: the output channel number for weight tensor.
+ */
+
+class Dense : public Operation {
  public:
-  enum ActivationType {
-    kNONE = 0,
-    kRELU = 1,
-    kRELU1 = 2,
-    kRELU6 = 3,
-    kTANH = 4,
-    kSIGMOID = 6,
-    kHARDSIGMOID = 31, /* temporary use 31 */
-  };
-  RNNCell(Graph* graph, ActivationType activation);
-  std::shared_ptr<Operation> Clone(
-      std::shared_ptr<Graph>& graph) const override;
+  Dense(Graph* graph, uint32_t axis);
+  Dense(Graph* graph, uint32_t axis, uint32_t weights);
 
-
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 };
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPS_RNN_CELL_H_ */
+#endif /* TIM_VX_OPS_DENSE_H_ */
