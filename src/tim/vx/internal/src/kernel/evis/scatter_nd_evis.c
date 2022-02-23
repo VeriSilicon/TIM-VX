@@ -74,6 +74,7 @@ static const struct {
     TENSOR_SCATTER_ND_KERNELS(I32, U8,  U8,       KERNEL_SOURCE_1)
     TENSOR_SCATTER_ND_KERNELS(I32, I16, I16,      KERNEL_SOURCE_1)
     TENSOR_SCATTER_ND_KERNELS(I32, F16, F16,      KERNEL_SOURCE_1)
+    TENSOR_SCATTER_ND_KERNELS(I32, BF16,BF16,     KERNEL_SOURCE_1)
     TENSOR_SCATTER_ND_BIG_KERNELS(I32, I8,  I8,   KERNEL_SOURCE_2)
     TENSOR_SCATTER_ND_BIG_KERNELS(I32, U8,  U8,   KERNEL_SOURCE_2)
     TENSOR_SCATTER_ND_BIG_KERNELS(I32, I16, I16,  KERNEL_SOURCE_2)
@@ -250,8 +251,45 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_initializer)
                 0x00010001, 0x00010001, 0x00010001, 0x00010001 // Constant
         }, GPU_DP_TYPE_16 };
 
+        gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+            0x11111111, // TCfg
+            0x01010101, // ASelt
+            0x01050004, 0x03070206, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvBF16toF32_Part1_2x8 = {{
+            0x11111111, // TCfg
+            0x01010101, // ASelt
+            0x05050404, 0x07070606, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractOddData_2x8 = {{
+            0x11111111, // TCfg
+            0x11110000, // ASelt
+            0x07050301, 0x07050301, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16};
+
         status = vsi_nn_kernel_gpu_add_param( node,
             "uniAccumulateSum_2x8", &uniAccumulateSum_2x8 );
+        status |= vsi_nn_kernel_gpu_add_param( node,
+            "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8 );
+        status |= vsi_nn_kernel_gpu_add_param( node,
+            "uniConvBF16toF32_Part1_2x8", &uniConvBF16toF32_Part1_2x8 );
+        status |= vsi_nn_kernel_gpu_add_param( node,
+            "uniExtractOddData_2x8", &uniExtractOddData_2x8 );
         status |= vsi_nn_kernel_gpu_add_param( node, "index_num", &index_num );
         status |= vsi_nn_kernel_gpu_add_param( node, "zeropoint", &output_zp );
         status |= vsi_nn_kernel_gpu_add_param( node, "offsetX", &offsetX );

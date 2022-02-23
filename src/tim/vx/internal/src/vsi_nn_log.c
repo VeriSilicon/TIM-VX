@@ -40,7 +40,6 @@ static const char* ENV_LOG_LEVEL = "VSI_NN_LOG_LEVEL";
 #endif
 
 int get_env_as_int(const char* env, int default_value) {
-
     int value = default_value;
     #ifdef __ANDROID__
     {
@@ -52,7 +51,7 @@ int get_env_as_int(const char* env, int default_value) {
     }
     #else
     {
-        char* env_s = getenv(env);
+        char* env_s = vsi_nn_getenv(env);
         if (env_s) {
             value = atoi(env_s);
         }

@@ -67,6 +67,13 @@ static vsi_status _gpu_register
     vsi_nn_kernel_t* kernel
     );
 
+static vsi_status _gpu_register_ext
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_kernel_t* kernel,
+    const char** resources
+    );
+
 static vx_program _create_program_from_executable
     (
     vsi_nn_graph_t* graph,
@@ -77,6 +84,13 @@ static vx_program _create_program_from_code
     (
     vsi_nn_graph_t* graph,
     vsi_nn_kernel_t* kernel
+    );
+
+static vx_program _create_program_from_code_ext
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_kernel_t* kernel,
+    const char** resources
     );
 
 static const uint8_t* _load_internal_executable
@@ -103,6 +117,14 @@ static void _kernel_clear_source
     ( vsi_nn_kernel_t * kernel );
 
 static vsi_bool _check_shader_support(vsi_nn_graph_t* graph);
+
+static vsi_bool vsi_nn_kernel_is_asymmtric_int8
+    (
+    vsi_nn_tensor_t** inputs,
+    size_t input_num,
+    vsi_nn_tensor_t** outputs,
+    size_t output_num
+    );
 
 static vsi_status VX_CALLBACK _kernel_validator
     (
@@ -290,7 +312,7 @@ static char* _load_source_code_from_file
     size_t read_bytes;
     source = NULL;
     //TODO: Pack new name
-    fp = fopen( source_name, "rb" );
+    fp = vsi_nn_fopen( source_name, "rb" );
     if( NULL == fp )
     {
         VSILOGE("Open program file %s fail.", source_name);
@@ -413,6 +435,58 @@ static vx_program _create_program_from_code
     }
     return program;
 } /* _create_program_from_code() */
+
+static vx_program _create_program_from_code_ext
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_kernel_t* kernel,
+    const char** resources
+    )
+{
+    const vsi_nn_kernel_source_info_t* source_info;
+    kernel_program_info_t* program_info;
+    size_t i;
+    vx_program program = NULL;
+    source_info = &kernel->gpu.sources[VSI_NN_GPU_SOURCE_FMT_CODE];
+
+    if( source_info->num == 0 )
+    {
+        VSILOGE("Not executable source found in kernel.");
+        return NULL;
+    }
+    program_info = (kernel_program_info_t*)malloc(
+            source_info->num * sizeof(kernel_program_info_t) );
+    if( !program_info )
+    {
+        VSILOGE("Malloc program memory fail.");
+        return NULL;
+    }
+    memset( program_info, 0, source_info->num * sizeof(kernel_program_info_t) );
+
+    for( i = 0; i < source_info->num; i ++ )
+    {
+        program_info[i].data = (const void*)(resources[i]);
+        if( !program_info[i].data )
+        {
+            program_info[i].reserve_mem = (void*)_load_source_code_from_file(
+                    source_info->data[i], &program_info[i].size );
+            program_info[i].data = (const void*)program_info[i].reserve_mem;
+        }
+    }
+    program = _create_program( graph->ctx->c, program_info, source_info->num );
+    if( program_info )
+    {
+        for( i = 0; i < source_info->num; i ++ )
+        {
+            if( program_info[i].reserve_mem )
+            {
+                free( program_info[i].reserve_mem );
+            }
+        }
+        free( program_info );
+    }
+    return program;
+} /* _create_program_from_code_ext() */
 
 static vx_program _create_program_from_executable
     (
@@ -547,6 +621,113 @@ static vsi_status _gpu_register
     return status;
 } /* _gpu_register() */
 
+static vsi_status _gpu_register_ext
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_kernel_t* kernel,
+    const char** resources
+    )
+{
+    vsi_status status;
+    vx_kernel_description_t* info;
+    vx_kernel obj;
+    vsi_nn_context_t context;
+    vx_program program = NULL;
+    const vsi_nn_gpu_source_fmt_e active_fmt = kernel->gpu.active_source_fmt;
+
+#define MAX_BUILDPROGRAM_LEN 1024
+    char cmd[MAX_BUILDPROGRAM_LEN] = { 0 };
+    size_t cost_bytes = 0;
+
+    memset( cmd, 0, sizeof(char) * MAX_BUILDPROGRAM_LEN );
+    context = graph->ctx;
+
+    status = VSI_FAILURE;
+    info = &(kernel->info);
+
+    switch( active_fmt )
+    {
+        case VSI_NN_GPU_SOURCE_FMT_CODE:
+            program = _create_program_from_code_ext( graph, kernel,resources );
+            break;
+        case VSI_NN_GPU_SOURCE_FMT_EXECUTABLE:
+            program = _create_program_from_executable( graph, kernel );
+            break;
+        default:
+            VSILOGE("Unknown source format %d", kernel->gpu.active_source_fmt);
+            break;
+    }
+    if( NULL == program )
+    {
+        return status;
+    }
+
+    if( context->config.evis.ver == VSI_NN_HW_EVIS_NONE )
+    {
+        // set default evis version is 2
+        if( VSI_NN_KERNEL_TYPE_EVIS == kernel->type )
+        {
+            cost_bytes = snprintf( cmd, MAX_BUILDPROGRAM_LEN,
+                    "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d",
+                    context->config.use_40bits_va );
+        }
+    }
+    else
+    {
+        cost_bytes = snprintf( cmd, MAX_BUILDPROGRAM_LEN,
+                "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d",
+                context->config.evis.ver, context->config.use_40bits_va );
+    }
+    // Pack build option
+    if( kernel->gpu.sources[active_fmt].build_option.data )
+    {
+        vsi_nn_kernel_build_option_t * option = &kernel->gpu.sources[active_fmt].build_option;
+        if( MAX_BUILDPROGRAM_LEN - cost_bytes > strlen( option->data ) + 1 )
+        {
+            snprintf( &cmd[cost_bytes], MAX_BUILDPROGRAM_LEN - cost_bytes,
+                    " %s", option->data );
+        }
+        else
+        {
+            VSILOGE("Build option is too long!");
+            VSI_ASSERT( FALSE );
+        }
+    }
+
+    status = vxBuildProgram( program, cmd );
+
+    if( VSI_SUCCESS != status )
+    {
+        VSILOGE("Build program fail.");
+        return status;
+    }
+
+    obj = vxAddKernelInProgram(
+        program,
+        info->name,
+        info->enumeration,
+        info->numParams,
+        info->validate,
+        info->initialize,
+        info->deinitialize
+        );
+
+    if( obj )
+    {
+        status = _kernel_init_obj( info, obj );
+        //vxReleaseKernel( &obj );
+    }
+    else
+    {
+        VSILOGE( "Add kernel %s fail.", info->name );
+    }
+    if( program )
+    {
+        vxReleaseProgram( &program );
+    }
+    return status;
+} /* _gpu_register_ext() */
+
 static vsi_status _kernel_init_obj
     (
     vx_kernel_description_t* info,
@@ -620,6 +801,19 @@ vsi_status vsi_nn_kernel_register
     return status;
 } /* vsi_nn_kernel_register() */
 
+vsi_status vsi_nn_kernel_register_ext
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_kernel_t * kernel,
+    const char** resources
+    )
+{
+    vsi_status status;
+    status = VSI_FAILURE;
+    status = _gpu_register_ext( graph, kernel,resources );
+    return status;
+} /* vsi_nn_kernel_register_ext */
+
 vsi_nn_kernel_node_t  vsi_nn_kernel_create_node
     (
     vsi_nn_graph_t* graph,
@@ -667,7 +861,6 @@ vsi_nn_kernel_node_t  vsi_nn_kernel_create_node
     status = vxGetStatus( (vx_reference)obj );
     if (VSI_SUCCESS != status)
     {
-        fprintf(stderr, "\n"); // TODO: This is a hack for driver msg
         /* Register kernel */
         status = vsi_nn_kernel_register( graph, kernel );
         if( VSI_SUCCESS != status )
@@ -711,6 +904,92 @@ vsi_nn_kernel_node_t  vsi_nn_kernel_create_node
     }
     return (vsi_nn_kernel_node_t)node;
 } /* vsi_nn_kernel_create_node() */
+
+vsi_nn_kernel_node_t  vsi_nn_kernel_create_node_ext
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_kernel_t * kernel,
+    const char** resources
+    ){
+    vsi_status status;
+    vx_context ctx;
+    vx_kernel obj;
+    vx_node node;
+    vx_kernel_description_t* info;
+
+    info = &(kernel->info);
+    // Validate kernel
+    if( !info->initialize )
+    {
+        VSILOGE("Kernel %s initializer is NULL", info->name);
+        return NULL;
+    }
+    if( !info->validate )
+    {
+        VSILOGE("Kernel %s validator is NULL", info->name);
+        return NULL;
+    }
+    if( !info->deinitialize )
+    {
+        VSILOGE("Kernel %s deinitializer is NULL", info->name);
+        return NULL;
+    }
+    if( info->enumeration == KERNEL_ID_PLACEHOLDER )
+    {
+        //VSILOGD("Kernel id: %#x, %#x", kernel->unique_id, info->enumeration);
+        info->enumeration = (vx_enum)kernel->unique_id;
+    }
+
+    ctx = vxGetContext( (vx_reference)graph->g );
+
+    obj = vxGetKernelByName( ctx, info->name );
+    status = vxGetStatus( (vx_reference)obj );
+    if (VSI_SUCCESS != status)
+    {
+        fprintf(stderr, "\n"); // TODO: This is a hack for driver msg
+        /* Register kernel */
+        status = vsi_nn_kernel_register_ext( graph, kernel,resources );
+        if( VSI_SUCCESS != status )
+        {
+            VSILOGE( "Register client kernel %s fail with %d.",
+                info->name, status );
+            return NULL;
+        }
+        else
+        {
+            VSILOGD( "Register client kernel %s successfully.",
+                info->name );
+        }
+
+        /* Load kernel */
+        obj = vxGetKernelByName( ctx, info->name );
+        status = vxGetStatus( (vx_reference)obj );
+    }
+    if( VSI_SUCCESS != status )
+    {
+        VSILOGE( "Load client kernel %s fail with %d.",
+            info->name, status );
+        return NULL;
+    }
+    node = vxCreateGenericNode( graph->g, obj );
+    vxReleaseKernel( &obj );
+    status = vxGetStatus( (vx_reference)node );
+    if( VSI_SUCCESS != status )
+    {
+        VSILOGE( "Load client node from kernel %s fail with %d.",
+            info->name, status );
+        return NULL;
+    }
+    if( node )
+    {
+        // Set default border mode.
+        vx_border_t border;
+        border.mode = VX_BORDER_REPLICATE;
+        border.constant_value.U32 = 0;
+        status |= vxSetNodeAttribute( node, VX_NODE_BORDER, &border, sizeof(border) );
+    }
+    return (vsi_nn_kernel_node_t)node;
+} /* vsi_nn_kernel_create_node_ext() */
 
 vsi_status vsi_nn_kernel_node_set_border
     (vsi_nn_kernel_node_t node,
@@ -987,7 +1266,8 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
 
             /* Skip evis and cl when disable shader */
             if ( (type == VSI_NN_KERNEL_TYPE_EVIS || type == VSI_NN_KERNEL_TYPE_CL)
-                && _check_shader_support(graph) == FALSE)
+                && ( _check_shader_support(graph) == FALSE ||
+                vsi_nn_kernel_is_asymmtric_int8(inputs, input_num, outputs, output_num) ) )
             {
                 continue;
             }
@@ -1288,6 +1568,41 @@ static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
     if (enableShader >= 1)
     {
         return TRUE;
+    }
+
+    return FALSE;
+}
+
+static vsi_bool vsi_nn_kernel_is_asymmtric_int8
+    (
+    vsi_nn_tensor_t** inputs,
+    size_t input_num,
+    vsi_nn_tensor_t** outputs,
+    size_t output_num
+    )
+{
+    size_t i = 0;
+
+    for (i = 0; i < input_num; i++)
+    {
+        if ( inputs[i] &&
+             inputs[i]->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
+             inputs[i]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC
+           )
+        {
+            return TRUE;
+        }
+    }
+
+    for (i = 0; i < output_num; i++)
+    {
+        if ( outputs[i] &&
+             outputs[i]->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
+             outputs[i]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC
+           )
+        {
+            return TRUE;
+        }
     }
 
     return FALSE;

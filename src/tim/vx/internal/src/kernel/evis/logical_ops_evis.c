@@ -76,9 +76,15 @@ static const _kernel_map_type _logical_ops_kernel_map[] =
     PACK_KERNEL_MAP(VSI_NN_LOGICAL_OR,  I8,  I8,  "or"),
     PACK_KERNEL_MAP(VSI_NN_LOGICAL_AND, I8,  I8,  "and"),
     PACK_KERNEL_MAP(VSI_NN_LOGICAL_XOR, I8,  I8,  "xor"),
+    PACK_KERNEL_MAP(VSI_NN_LOGICAL_OR,  BF16,  I8,  "or"),
+    PACK_KERNEL_MAP(VSI_NN_LOGICAL_AND, BF16,  I8,  "and"),
+    PACK_KERNEL_MAP(VSI_NN_LOGICAL_XOR, BF16,  I8,  "xor"),
     PACK_KERNEL_MAP_2D(VSI_NN_LOGICAL_OR,  I8,  I8,  "or"),
     PACK_KERNEL_MAP_2D(VSI_NN_LOGICAL_AND, I8,  I8,  "and"),
     PACK_KERNEL_MAP_2D(VSI_NN_LOGICAL_XOR, I8,  I8,  "xor"),
+    PACK_KERNEL_MAP_2D(VSI_NN_LOGICAL_OR,  BF16,  I8,  "or"),
+    PACK_KERNEL_MAP_2D(VSI_NN_LOGICAL_AND, BF16,  I8,  "and"),
+    PACK_KERNEL_MAP_2D(VSI_NN_LOGICAL_XOR, BF16,  I8,  "xor"),
 };
 
 
@@ -159,6 +165,22 @@ DEF_KERNEL_INITIALIZER(_logical_ops_initializer)
         status = vsi_nn_kernel_gpu_add_param( node, "uniMulShortMinus1toFp16_2x8", &uniMulShortMinus1toFp16_2x8);
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
+    else if (BF16 == input_dtype)
+    {
+        gpu_dp_inst_t uniConvertInt16toInt8_2x8 = {{
+                0x11111111, // TCfg
+                0x00000000, // ASelt
+                0x03020100, 0x07060504, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000700, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16};
+
+        status = vsi_nn_kernel_gpu_add_param( node, "uniConvertInt16toInt8_2x8", &uniConvertInt16toInt8_2x8);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
 
     status = vsi_nn_kernel_gpu_config( node, &gpu_param );
     CHECK_STATUS_FAIL_GOTO(status, final );
@@ -209,9 +231,13 @@ static vsi_status _query_kernel
         return VSI_FAILURE;
     }
 
-    if (BOOL8 == in_dtype && BOOL8 == out_dtype)
+    if (BOOL8 == in_dtype)
     {
         in_dtype  = I8;
+    }
+
+    if (BOOL8 == out_dtype)
+    {
         out_dtype = I8;
     }
 

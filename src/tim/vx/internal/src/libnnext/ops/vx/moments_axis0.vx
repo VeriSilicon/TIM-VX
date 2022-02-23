@@ -17,6 +17,9 @@ _viv_uniform float e2InScale;
 _viv_uniform float rowSumScale;
 _viv_uniform VXC_512Bits uniFp16SumSqr_dp8x2;
 _viv_uniform VXC_512Bits uniConvertHalftoFp16_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
 
 #define MOMENTS_AXIS0_QINT(src0_type_name, read0_type) \
 __kernel void moments_axis0_##src0_type_name##toF16( \
@@ -261,6 +264,88 @@ __kernel void moments_axis0_I16toF16_2D(
     _viv_asm(CONV, tmpData, mean_vari0);
     VXC_DP2x8(tmpVal, tmpData, tmpData, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvertHalftoFp16_2x8);
     _viv_asm(COPY, dst, tmpVal, 16);
+
+    VXC_WriteImage(output_mean, coord_out, dst.s0123, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output_vari, coord_out, dst.s1023, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void moments_axis0_BF16toBF16(
+    image2d_array_t input,
+    image2d_t output_mean,
+    image2d_t output_vari,
+              int axis, int axis_num)
+{
+    int gidy = get_global_id(0);
+    int gidz = get_global_id(1);
+    int4 coord = (int4)(0, gidy, gidz, 0);
+    vxc_ushort8 src0, src1;
+    vxc_ushort8 val;
+    vxc_float4 mean_vari0 = (vxc_float4)(0);
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);
+    vxc_float4 one = (vxc_float4)(1.0f, 1.0f, 1.0f, 1.0f);
+    for(coord.x = 0; coord.x < width; coord.x += 8)
+    {
+        VXC_ReadImage2DArray(val, input, coord, VXC_5BITOFFSET_XY(0, 0),
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        float4 vec0, vec1;
+        VXC_DP2x8(src0, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                uniConvBF16toF32_Part0_2x8);
+        _viv_asm(COPY, vec0, src0, 16);
+        VXC_DP2x8(src1, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                uniConvBF16toF32_Part1_2x8);
+        _viv_asm(COPY, vec1, src1, 16);
+        mean_vari0.x += dot(vec0, one) + dot(vec1, one);
+        mean_vari0.y += dot(vec0, vec0) + dot(vec1, vec1);
+    }
+
+    mean_vari0 *= dimRatio;
+    mean_vari0.s1 = mean_vari0.s1 - mean_vari0.s0 * mean_vari0.s0;
+
+    int2 coord_out = (int2)(gidy, gidz);
+
+    vxc_short8 dst;
+    _viv_asm(COPY, src0, mean_vari0, 16);
+    VXC_DP2x8(dst, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+    VXC_WriteImage(output_mean, coord_out, dst.s0123, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output_vari, coord_out, dst.s1023, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void moments_axis0_BF16toBF16_2D(
+    image2d_t input,
+    image2d_t output_mean,
+    image2d_t output_vari,
+              int axis, int axis_num)
+{
+    int gidy = get_global_id(0);
+    int2 coord = (int2)(0, gidy);
+    vxc_ushort8 src0, src1;
+    vxc_ushort8 val;
+    vxc_float4 mean_vari0 = (vxc_float4)(0);
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);
+    vxc_float4 one = (vxc_float4)(1.0f, 1.0f, 1.0f, 1.0f);
+
+    for(coord.x = 0; coord.x < width; coord.x += 8)
+    {
+        VXC_ReadImage(val, input, coord, VXC_5BITOFFSET_XY(0, 0),
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        float4 vec0, vec1;
+        VXC_DP2x8(src0, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                uniConvBF16toF32_Part0_2x8);
+        _viv_asm(COPY, vec0, src0, 16);
+        VXC_DP2x8(src1, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                uniConvBF16toF32_Part1_2x8);
+        _viv_asm(COPY, vec1, src1, 16);
+        mean_vari0.x += dot(vec0, one) + dot(vec1, one);
+        mean_vari0.y += dot(vec0, vec0) + dot(vec1, vec1);
+    }
+    mean_vari0 *= dimRatio;
+    mean_vari0.s1 = mean_vari0.s1 - mean_vari0.s0 * mean_vari0.s0;
+
+    int2 coord_out = (int2)(gidy, 0);
+
+    vxc_short8 dst;
+    _viv_asm(COPY, src0, mean_vari0, 16);
+    VXC_DP2x8(dst, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
 
     VXC_WriteImage(output_mean, coord_out, dst.s0123, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
     VXC_WriteImage(output_vari, coord_out, dst.s1023, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));

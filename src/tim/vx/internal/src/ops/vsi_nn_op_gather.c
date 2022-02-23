@@ -51,6 +51,7 @@ static vsi_status op_compute
     uint32_t i = 0;
     vsi_size_t block_size = 1, block_num = 1, axis_num = 0, indices_num = 1;
     int32_t axis = self->nn_param.gather.axis;
+    int32_t batch_dims = self->nn_param.gather.batch_dims;
     vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t dims_num = inputs[0]->attr.dim_num;
 
@@ -62,11 +63,11 @@ static vsi_status op_compute
     }
 
     axis_num = input_size[axis];
-    for(i = axis + 1; i < dims_num; ++i)
+    for(i = axis + 1; i < dims_num - batch_dims; ++i)
     {
         block_num *= input_size[i];
     }
-    for(i = 0; i < (uint32_t)inputs[1]->attr.dim_num; ++i)
+    for(i = 0; i < (uint32_t)inputs[1]->attr.dim_num - batch_dims; ++i)
     {
         indices_num *= inputs[1]->attr.size[i];
     }
@@ -76,6 +77,7 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "axis_num", (int32_t)axis_num );
     vsi_nn_kernel_param_add_int32( param, "axis", (int32_t)axis );
     vsi_nn_kernel_param_add_int32( param, "indices_num", (int32_t)indices_num );
+    vsi_nn_kernel_param_add_int32( param, "batch_dims", (int32_t)batch_dims );
     n = vsi_nn_kernel_selector( self->graph, "gather", inputs, 2, outputs, 1, param );
     if( n != NULL )
     {
@@ -124,6 +126,18 @@ static vsi_bool op_check
 
     return TRUE;
 } /* op_check() */
+
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+
+    self->nn_param.gather.batch_dims = 0;
+
+    return status;
+} /* op_init() */
 
 static vsi_bool op_setup
     (
@@ -186,7 +200,7 @@ extern "C" {
 DEF_OP_REG
     (
     /* op_name    */ GATHER,
-    /* init       */ NULL,
+    /* init       */ op_init,
     /* compute    */ op_compute,
     /* deinit     */ op_deinit,
     /* check      */ op_check,

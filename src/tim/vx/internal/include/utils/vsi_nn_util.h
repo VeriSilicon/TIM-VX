@@ -28,6 +28,7 @@
 /*-------------------------------------------
                 Includes
 -------------------------------------------*/
+#include <stdio.h>
 #include "vsi_nn_platform.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_types.h"
@@ -396,6 +397,31 @@ void vsi_nn_get_tensor_clamp_min_max
     vsi_nn_tensor_t * input,
     float *clampMin,
     float *clampMax
+    );
+
+char* vsi_nn_strncpy
+    (
+    char* dest,
+    const char* source,
+    size_t count
+    );
+
+char* vsi_nn_strncat
+    (
+    char* dest,
+    const char* source,
+    size_t count
+    );
+
+char* vsi_nn_getenv
+    (
+    const char * var_name
+    );
+
+FILE* vsi_nn_fopen
+    (
+    const char * file_name,
+    const char * mode
     );
 
 #ifdef __cplusplus

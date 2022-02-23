@@ -104,11 +104,11 @@ static vsi_bool op_setup
 
     out_rank = inputs[0]->attr.dim_num;
 
-    for(i = 0; i < out_rank; i++)
+    for (i = 0; i < out_rank; i++)
     {
         shape[i] = inputs[0]->attr.size[i];
     }
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = out_rank;
         memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(vsi_size_t) );
@@ -120,7 +120,7 @@ static vsi_bool op_setup
         total_size_expected = vsi_nn_ShapeProduct( shape, out_rank );
         total_size_got = vsi_nn_ShapeProduct( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num );
-        if( total_size_expected != total_size_got )
+        if ( total_size_expected != total_size_got )
         {
             VSILOGW("Output size mismatch, expect %"VSI_SIZE_T_SPECIFIER", but got %"VSI_SIZE_T_SPECIFIER"",
                     total_size_expected, total_size_got);
@@ -225,6 +225,7 @@ DEF_OP_REG(name, op_init_##kernel_name, op_compute_##kernel_name, \
     vsi_nn_op_common_deinit, op_check, op_setup, NULL, 1, 1)
 
 DEF_ELEMENT_WISE_UNARY_OP( SIN, sin );
+DEF_ELEMENT_WISE_UNARY_OP( COS, cos );
 DEF_ELEMENT_WISE_UNARY_OP( EXP, exp );
 DEF_ELEMENT_WISE_UNARY_OP( LOG, log );
 DEF_ELEMENT_WISE_UNARY_OP( ELU, elu );

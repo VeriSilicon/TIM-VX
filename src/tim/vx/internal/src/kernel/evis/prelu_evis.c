@@ -98,7 +98,6 @@ static const struct {
     PRELU_KERNELS_2D(I8,   F16,  F16,  _2D,     KERNEL_SOURCE0)
     PRELU_KERNELS_2D(U8,   U8,   U8,   _2D,     KERNEL_SOURCE0)
     PRELU_KERNELS_2D(U8,   U8,   F16,  _2D,     KERNEL_SOURCE0)
-
 };
 
 static vx_param_description_t kernel_param_def[] =
@@ -199,6 +198,7 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
     }
     else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
+        out_fl = 1;
         outputZP      = (float)attr[2]->asymm.zero_point;
         input_scale0   = input_scale0 / attr[2]->asymm.scale;
     }
@@ -628,7 +628,6 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PARAM_NUM,
                     reshape_tensors, 2, &reshape_tensors[2], 1 );
             status = vsi_nn_kernel_node_pass_param( node, tmp_params, _EVIS_PARAM_NUM );
-
         }
     }
 
@@ -643,4 +642,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( prelu, _setup )
-

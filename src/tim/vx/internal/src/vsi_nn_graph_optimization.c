@@ -205,7 +205,6 @@ static void _get_graph_input_asymm_int8_norm_tensor
                     {
                         tensor_ids[id_count ++] = id;
                     }
-
                 }
                 tensor_count += 1;
             }
@@ -867,7 +866,7 @@ vsi_status vsi_nn_OptimizeGraph
         }
     }
 
-    if (!nbg_flag)
+    if (!nbg_flag && graph->ctx->options.enable_asymi8_to_u8)
     {
         status = _graph_optimization_convert_int8_to_uint8(graph, dirty);
         TEST_CHECK_STATUS(status, final);
@@ -876,4 +875,3 @@ vsi_status vsi_nn_OptimizeGraph
 final:
     return status;
 } /* vsi_nn_OptimizeGraph() */
-

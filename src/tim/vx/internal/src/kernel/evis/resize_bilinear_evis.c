@@ -51,11 +51,13 @@ typedef enum
     UP_2X_HALF,
     UP_3X_HALF,
     UP_4X_HALF,
+    UP_8X_HALF,
 } _internal_scale_e;
 
 #define _RESIZE_BILINEAR_KERNEL_SOURCE(_input_type)      "resize_bilinear_"#_input_type
 #define _RESIZE_BILINEAR_KERNEL_SOURCE_OPT(_input_type)  "resize_bilinear_"#_input_type"_opt"
-#define _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC(_input_type)  "resize_bilinear_"#_input_type"_half_pixel_centers"
+#define _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC1(_input_type)  "resize_bilinear_"#_input_type"_half_pixel_centers_1"
+#define _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC2(_input_type)  "resize_bilinear_"#_input_type"_half_pixel_centers_2"
 
 #define STR(a) #a
 // Add kernel hashtable here
@@ -81,19 +83,25 @@ typedef enum
         { RESIZE_BILINEAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, UP_2X_HALF ), \
           CVIVANTE_NAMESPACE("evis.resize_bilinear_"STR(IN_DTYPE)"to"STR(OUT_DTYPE) \
             "_SAME_2x_upsample_half_pixel_centers"), \
-          _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC(IN_DTYPE) }
+          _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC1(IN_DTYPE) }
 
 #define PACK_KERNEL_MAP_UP_4X_HALF( IN_DTYPE, OUT_DTYPE ) \
         { RESIZE_BILINEAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, UP_4X_HALF ), \
           CVIVANTE_NAMESPACE("evis.resize_bilinear_"STR(IN_DTYPE)"to"STR(OUT_DTYPE) \
             "_SAME_4x_upsample_half_pixel_centers"), \
-          _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC(IN_DTYPE) }
+          _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC1(IN_DTYPE) }
+
+#define PACK_KERNEL_MAP_UP_8X_HALF( IN_DTYPE, OUT_DTYPE ) \
+        { RESIZE_BILINEAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, UP_8X_HALF ), \
+          CVIVANTE_NAMESPACE("evis.resize_bilinear_"STR(IN_DTYPE)"to"STR(OUT_DTYPE) \
+            "_SAME_8x_upsample_half_pixel_centers"), \
+          _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC2(IN_DTYPE) }
 
 #define PACK_KERNEL_MAP_UP_3X_HALF( IN_DTYPE, OUT_DTYPE ) \
         { RESIZE_BILINEAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, UP_3X_HALF ), \
           CVIVANTE_NAMESPACE("evis.resize_bilinear_"STR(IN_DTYPE)"to"STR(OUT_DTYPE) \
             "_SAME_3x_upsample_half_pixel_centers"), \
-          _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC(IN_DTYPE) }
+          _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC1(IN_DTYPE) }
 
 typedef struct
 {
@@ -120,6 +128,7 @@ static const _kernel_map_type _resize_bilinear_kernel_map[] =
     PACK_KERNEL_MAP_UP_2X_HALF(U8, U8),
     PACK_KERNEL_MAP_UP_3X_HALF(U8, U8),
     PACK_KERNEL_MAP_UP_4X_HALF(U8, U8),
+    PACK_KERNEL_MAP_UP_8X_HALF(U8, U8),
 };
 
 
@@ -224,6 +233,7 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
     vsi_bool    is_2x_up_kernel  = FALSE;
     vsi_bool    is_3x_up_kernel  = FALSE;
     vsi_bool    is_4x_up_kernel  = FALSE;
+    vsi_bool    is_8x_up_kernel  = FALSE;
 
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
@@ -280,6 +290,7 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         is_2x_up_kernel = (2 * in_width == out_width) && (2 * in_height == out_height);
         is_3x_up_kernel = (3 * in_width == out_width) && (3 * in_height == out_height);
         is_4x_up_kernel = (4 * in_width == out_width) && (4 * in_height == out_height);
+        is_8x_up_kernel = (8 * in_width == out_width) && (8 * in_height == out_height);
     }
 
     if (U8 == input_dtype && VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant )
@@ -330,7 +341,7 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         outputZP     = 0;
     }
 
-    if (is_2x_up_kernel || is_4x_up_kernel)
+    if (is_2x_up_kernel || is_4x_up_kernel || is_8x_up_kernel)
     {
         gpu_param.global_scale[0] = 16;
         gpu_param.global_scale[1] = 1;
@@ -476,6 +487,76 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l01_4x8", &uniResize4xUp_l01_4x8);
         status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l10_4x8", &uniResize4xUp_l10_4x8);
         status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l11_4x8", &uniResize4xUp_l11_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "out_height", &out_height);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else if (is_8x_up_kernel)
+    {
+        gpu_dp_inst_t uniResize8xUp_l00_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x513f3f31, 0x632d4d23, 0x751b5b15, 0x87096907,
+            0x09870769, 0x1b75155b, 0x2d63234d, 0x3f51313f // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l01_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x513f3f31, 0x632d4d23, 0x751b5b15, 0x87096907,
+            0x09870769, 0x1b75155b, 0x2d63234d, 0x3f51313f // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l10_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x634d2d23, 0x79373719, 0x8f21410f, 0xa50b4b05,
+            0x0ba5054b, 0x218f0f41, 0x37791937, 0x4d63232d // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l11_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x634d2d23, 0x79373719, 0x8f21410f, 0xa50b4b05,
+            0x0ba5054b, 0x218f0f41, 0x37791937, 0x4d63232d // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l20_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x755b1b15, 0x8f41210f, 0xa9272709, 0xc30d2d03,
+            0x0dc3032d, 0x27a90927, 0x418f0f21, 0x5b75151b // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l21_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x755b1b15, 0x8f41210f, 0xa9272709, 0xc30d2d03,
+            0x0dc3032d, 0x27a90927, 0x418f0f21, 0x5b75151b // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l30_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x87690907, 0xa54b0b05, 0xc32d0d03, 0xe10f0f01,
+            0x0fe1010f, 0x2dc3030d, 0x4ba5050b, 0x69870709 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l31_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x87690907, 0xa54b0b05, 0xc32d0d03, 0xe10f0f01,
+            0x0fe1010f, 0x2dc3030d, 0x4ba5050b, 0x69870709 // Constant
+        }, GPU_DP_TYPE_16};
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l00_4x8", &uniResize8xUp_l00_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l01_4x8", &uniResize8xUp_l01_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l10_4x8", &uniResize8xUp_l10_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l11_4x8", &uniResize8xUp_l11_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l20_4x8", &uniResize8xUp_l20_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l21_4x8", &uniResize8xUp_l21_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l30_4x8", &uniResize8xUp_l30_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l31_4x8", &uniResize8xUp_l31_4x8);
         status |= vsi_nn_kernel_gpu_add_param( node, "out_height", &out_height);
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
@@ -965,25 +1046,25 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         goto final;
     }
 
-    if (!is_2x_up_kernel && !is_3x_up_kernel && !is_4x_up_kernel)
+    if (!is_2x_up_kernel && !is_3x_up_kernel && !is_4x_up_kernel&& !is_8x_up_kernel)
     {
         status  = vsi_nn_kernel_gpu_add_param( node, "half_pixel_value", &half_pixel_value);
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
 
-    if (is_2x_up_kernel || is_4x_up_kernel)
+    if (is_2x_up_kernel || is_4x_up_kernel || is_8x_up_kernel)
     {
-        gpu_param.global_size[0]   = gpu_align_p2((out_width  + \
-                                     gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0], 4);
-        gpu_param.global_size[1]   = depth;
-        gpu_param.dim              = 2;
+        gpu_param.global_size[0] = gpu_align_p2((out_width  + \
+                                   gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0], 4);
+        gpu_param.global_size[1] = depth;
+        gpu_param.dim            = 2;
     }
     else
     {
-        gpu_param.global_size[0]   = gpu_align_p2((out_width  + \
-                                     gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0], 4);
-        gpu_param.global_size[1]   = (out_height + gpu_param.global_scale[1] - 1) / gpu_param.global_scale[1];
-        gpu_param.global_size[2]   = depth / gpu_param.global_scale[2];
+        gpu_param.global_size[0] = gpu_align_p2((out_width  + \
+                                   gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0], 4);
+        gpu_param.global_size[1] = (out_height + gpu_param.global_scale[1] - 1) / gpu_param.global_scale[1];
+        gpu_param.global_size[2] = depth / gpu_param.global_scale[2];
     }
 
     status = vsi_nn_kernel_gpu_config( node, &gpu_param );
@@ -1024,6 +1105,8 @@ static vsi_status _query_kernel
                     && (3 * inputs[0]->attr.size[1] == outputs[0]->attr.size[1]);
     vsi_bool is_4x_upsample =(4 * inputs[0]->attr.size[0] == outputs[0]->attr.size[0]) \
                     && (4 * inputs[0]->attr.size[1] == outputs[0]->attr.size[1]);
+    vsi_bool is_8x_upsample =(8 * inputs[0]->attr.size[0] == outputs[0]->attr.size[0]) \
+                    && (8 * inputs[0]->attr.size[1] == outputs[0]->attr.size[1]);
     _internal_scale_e scale_flag = UP;
 
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
@@ -1032,6 +1115,7 @@ static vsi_status _query_kernel
     is_2x_upsample &= (in_dtype == U8);
     is_3x_upsample &= (in_dtype == U8);
     is_4x_upsample &= (in_dtype == U8);
+    is_8x_upsample &= (in_dtype == U8);
 
     if (outputs[0]->attr.size[0] > inputs[0]->attr.size[0])
     {
@@ -1046,6 +1130,10 @@ static vsi_status _query_kernel
         else if (is_same_type && (!align_corners) && (half_pixel_centers) && is_4x_upsample)
         {
             scale_flag = UP_4X_HALF;
+        }
+        else if (is_same_type && (!align_corners) && (half_pixel_centers) && is_8x_upsample)
+        {
+            scale_flag = UP_8X_HALF;
         }
         else if (is_same_type && is_evis2)
         {
@@ -1123,7 +1211,6 @@ static vsi_status _query_kernel
     }
 
     return status;
-
 } /* _query_kernel() */
 
 static vsi_nn_tensor_t* _create_scale_tensor
@@ -1307,4 +1394,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( resize_bilinear, _setup )
-

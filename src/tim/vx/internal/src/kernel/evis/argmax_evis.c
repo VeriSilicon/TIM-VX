@@ -63,6 +63,11 @@ __BEGIN_DECLS
         CVIVANTE_NAMESPACE("evis.argmax_axis"#AXIS"_F16to"#OUT_DTYPE"_2D"), \
         HASH_ARGMAX_KERNEL_SOURCE_NAME(AXIS) },
 
+#define HASH_ARGMAX_KERNELS_MIX_OPT( AXIS, IN_DTYPE, OUT_DTYPE) \
+        { HASH_ARGMAX_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, 2), \
+        CVIVANTE_NAMESPACE("evis.argmax_axis"#AXIS"_"#IN_DTYPE"to"#OUT_DTYPE"_opt"), \
+        HASH_ARGMAX_KERNEL_SOURCE_NAME(AXIS) },
+
 static const struct {
         uint32_t key;
         char* function_name;
@@ -132,6 +137,8 @@ static const struct {
     HASH_ARGMAX_KERNELS_2D(2, U8,  I16)
     HASH_ARGMAX_KERNELS_2D(2, I16, U8)
     HASH_ARGMAX_KERNELS_2D(2, I16, I16)
+    HASH_ARGMAX_KERNELS_MIX_OPT(2, U8,  I16)
+    HASH_ARGMAX_KERNELS_MIX_OPT(2, I8,  I16)
 };
 
 static vx_param_description_t kernel_param_def[] =
@@ -228,7 +235,18 @@ DEF_KERNEL_INITIALIZER(_argmax_initializer)
         if (attr[0]->dtype == I8 ||
             attr[0]->dtype == U8)
         {
-            if ( attr[1]->dtype == I8 ||
+            if (axis == 2 &&
+                input_shape->data[2] > 1 &&
+                ((attr[1]->dtype == I8 || attr[1]->dtype == U8)
+                  || (attr[1]->dtype == I16 && input_shape->data[2] < 256)))
+            {
+                uint32_t pack = ((argLenSub1 & 0xFF) << 24) | ((argLenSub1 & 0xFF) << 16)
+                                 | ((argLenSub1 & 0xFF) << 8) | (argLenSub1 & 0xFF);
+                packedArgIdx[0] = packedArgIdx[1] = pack;
+                packedArgIdx[2] = packedArgIdx[3] = pack;
+                gpu_param.global_scale[0]  = 16;
+            }
+            else if ( attr[1]->dtype == I8 ||
                  attr[1]->dtype == U8)
             {
                 uint32_t pack = ((argLenSub1 & 0xFF) << 24) | ((argLenSub1 & 0xFF) << 16)
@@ -302,7 +320,6 @@ DEF_KERNEL_INITIALIZER(_argmax_initializer)
         }
         break;
     case 1:
-    case 2:
         {
             gpu_dp_inst_t uniExtractData_2x8 = {{
                 0x11111111, // TCfg
@@ -317,6 +334,52 @@ DEF_KERNEL_INITIALIZER(_argmax_initializer)
 
             status = vsi_nn_kernel_gpu_add_param( node,
                     "uniExtractData_2x8", &uniExtractData_2x8 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                    "argLenSub1", &argLenSub1 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                    "packedArgIdx", packedArgIdx );
+            CHECK_STATUS_FAIL_GOTO(status, final );
+        }
+        break;
+    case 2:
+        {
+            gpu_dp_inst_t uniExtractData_2x8 = {{
+                0x11111111, // TCfg
+                0x00000000, // ASelt
+                0x03020100, 0x07060504, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000600, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+            }, GPU_DP_TYPE_16 };
+            gpu_dp_inst_t uniExtract1stU8toI16_2x8 = {{
+                0x11111111, // TCfg
+                0x00000000, // ASelt
+                0x03020100, 0x07060504, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000600, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+            }, GPU_DP_TYPE_16 };
+            gpu_dp_inst_t uniExtract2ndU8toI16_2x8 = {{
+                0x11111111, // TCfg
+                0x00000000, // ASelt
+                0x0b0a0908, 0x0f0e0d0c, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000600, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+            }, GPU_DP_TYPE_16 };
+
+            status = vsi_nn_kernel_gpu_add_param( node,
+                    "uniExtractData_2x8", &uniExtractData_2x8 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniExtract1stU8toI16_2x8", &uniExtract1stU8toI16_2x8 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniExtract2ndU8toI16_2x8", &uniExtract2ndU8toI16_2x8 );
             status |= vsi_nn_kernel_gpu_add_param( node,
                     "argLenSub1", &argLenSub1 );
             status |= vsi_nn_kernel_gpu_add_param( node,
@@ -354,6 +417,16 @@ static vsi_status _query_kernel
 
     input_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    if ((input_dtype == I8 || input_dtype == U8)
+        && output_dtype == I16
+        && axis == 2
+        && inputs[0]->attr.size[2] < 256
+        && image_2d == 0)
+    {
+        image_2d = 2;
+    }
+
     key = HASH_ARGMAX_HASH_KEY( axis, input_dtype, output_dtype, image_2d );
 
     for( i = 0; i < _cnt_of_array(_argmax_evis_kernel_map); i ++ )
