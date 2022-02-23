@@ -48,7 +48,7 @@ extern "C"{
  * @see include/custom/custom_ops.def
  * @see include/internal/internal_ops.def
  */
-typedef uint32_t vsi_nn_op_t; enum
+typedef int32_t vsi_nn_op_t; enum
 {
 #define DEF_OP( NAME, ... ) VSI_NN_OP_##NAME,
     #include "interface/ops.def"
@@ -315,6 +315,13 @@ vsi_bool vsi_nn_OpRegisterOvxInit
     (
     vsi_nn_op_t op,
     vsi_nn_op_compute_t compute
+    );
+
+vsi_bool vsi_nn_OpRegisterExternalOvxInit
+    (
+    vsi_nn_op_t op,
+    const char* kernel_name,
+    vsi_nn_op_proc_t* proc
     );
 
 /**

@@ -1004,12 +1004,15 @@ static vsi_nn_kernel_node_t _setup
     uint32_t hashkeys[INTERNAL_KERNEL_SIZE] = { 0 };
     uint32_t hashkey = 0;
     int32_t i = 0;
+    uint32_t rank = outputs[0]->attr.dim_num;
     float eps  = vsi_nn_kernel_param_get_float32( params, "eps" );
-    int32_t reshape_flg  = vsi_nn_kernel_param_get_int32( params, "reshape_flg" );
+    int32_t reshape_flg  = outputs[0]->attr.size[1] * outputs[0]->attr.size[2] < GPU_TENSOR_MAX_WIDTH
+            && rank > 2;
 
     // Check if gpu can support the size
     if ( !vsi_nn_kernel_gpu_check_shape(
-        outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
+        outputs[0]->attr.size, outputs[0]->attr.dim_num ) ||
+        rank > 4 )
     {
         return NULL;
     }

@@ -91,8 +91,6 @@ __kernel void gather_F16toF16(
     int gidz = get_global_id(2);  // block_num
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
-
-
     int4 indice = read_imagei(input1, coord_in.xy);
     coord_in.w = gidz * axis_num + indice.x;
 

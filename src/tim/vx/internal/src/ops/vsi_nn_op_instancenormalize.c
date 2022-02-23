@@ -37,6 +37,7 @@
 #include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)
@@ -72,18 +73,46 @@ static vsi_status _try_set_high_presision_tensor
     return status;
 }
 
-static vsi_bool _is_3d_instance_norm
+static void vsi_nn_optimize_instance_norm_shape
     (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    vsi_size_t* out_shape_x, vsi_size_t* out_rank_x
     )
 {
-    if( 3 == inputs[0]->attr.dim_num )
+    vsi_size_t rank = rank_x;
+    vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = { {0} };
+
+    if (rank_x > 4)
     {
-        return TRUE;
+        memcpy(shape[0], shape_x, (rank_x - 2) * sizeof(vsi_size_t));
+
+        vsi_nn_kernel_optimize_element_shape(shape[0], rank_x - 2, shape[1], &rank);
     }
-    return FALSE;
-} /* _is_3d_instance_norm() */
+
+    if (rank_x == 3)
+    {
+        out_shape_x[0] = shape_x[0];
+        out_shape_x[1] = 1;
+        out_shape_x[2] = shape_x[1];
+        out_shape_x[3] = shape_x[2];
+
+        *out_rank_x = 4;
+    }
+    /****reshape [n, c, d0, d1, ..., dn] to [n, c, h, w]***/
+    else if (rank_x > 4 && rank == 2)
+    {
+        memcpy(out_shape_x, shape[1], 2 * sizeof(vsi_size_t));
+        memcpy(&out_shape_x[2], &shape_x[rank_x - 2], 2 * sizeof(vsi_size_t));
+
+        *out_rank_x = 4;
+    }
+    else
+    {
+        memcpy(out_shape_x, shape_x, rank_x * sizeof(vsi_size_t));
+
+        *out_rank_x = rank_x;
+    }
+}
 
 static vsi_status op_compute
     (
@@ -96,111 +125,47 @@ static vsi_status op_compute
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
     float eps = self->nn_param.instancenorm.eps;
-    vsi_size_t *input_size = inputs[0]->attr.size;
-    vsi_size_t dims_num = inputs[0]->attr.dim_num;
-    int32_t rs_flg = 0;
-    vsi_nn_tensor_t * tmp_inputs[3]  = {NULL, NULL, NULL};
-    vsi_nn_tensor_t * tmp_outputs[1] = {NULL};
-    vsi_nn_instancenorm_lcl_data2 *local = self->nn_param.instancenorm.lcl2_data;
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t new_rank = 0;
+    vsi_nn_tensor_t * tmp_tensors[4] = {NULL};
 
-    status = _try_set_high_presision_tensor(inputs);
+    vsi_nn_optimize_instance_norm_shape(inputs[0]->attr.size, inputs[0]->attr.dim_num, shape, &new_rank);
+
+    tmp_tensors[0] = vsi_nn_reshape_tensor( self->graph,
+        inputs[0], shape, new_rank );
+    tmp_tensors[1] = inputs[1];
+    tmp_tensors[2] = inputs[2];
+    tmp_tensors[3] = vsi_nn_reshape_tensor( self->graph,
+            outputs[0], shape, new_rank );
+
+    status = _try_set_high_presision_tensor(tmp_tensors);
     if(status != VSI_SUCCESS)
     {
         VSILOGE("Set tensor attr of high presision fail");
         return status;
     }
 
-    if(_is_3d_instance_norm(self, inputs))
-    {
-        tmp_inputs[0]  = local->reshaped_input;
-        tmp_outputs[0] = local->reshaped_output;
-        tmp_inputs[1] = inputs[1];
-        tmp_inputs[2] = inputs[2];
-    }
-    else
-    {
-        tmp_inputs[0] = inputs[0];
-        tmp_outputs[0] = outputs[0];
-        tmp_inputs[1] = inputs[1];
-        tmp_inputs[2] = inputs[2];
-        if((input_size[1] * input_size[2] < 65536)
-            && dims_num > 2)
-        {
-            rs_flg = 1;
-        }
-    }
-
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_float32( param, "eps", eps );
-    vsi_nn_kernel_param_add_int32( param, "reshape_flg", rs_flg );
+
     n = vsi_nn_kernel_selector( self->graph, "instance_norm",
-                    tmp_inputs, _INPUT_NUM, tmp_outputs, _OUTPUT_NUM, param );
+                    tmp_tensors, _INPUT_NUM, &tmp_tensors[3], _OUTPUT_NUM, param );
     if( n != NULL )
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;
     }
 
-    if(param != NULL)
+    if (param != NULL)
     {
         vsi_nn_kernel_param_release( &param );
     }
 
+    vsi_safe_release_tensor(tmp_tensors[0]);
+    vsi_safe_release_tensor(tmp_tensors[3]);
+
     return status;
 } /* op_compute() */
-
-static vsi_status op_optimize
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs,
-    vsi_nn_opt_direction_e direction
-    )
-{
-    uint32_t dim = 0;
-    vsi_nn_instancenorm_lcl_data2 *local = NULL;
-    vsi_size_t shape[VSI_NN_MAX_DIM_NUM];
-    char tensor_name[128];
-
-    dim = inputs[0]->attr.dim_num;
-    if(_is_3d_instance_norm(self, inputs) == FALSE)
-    {
-        return VSI_SUCCESS;
-    }
-
-    VSILOGD("Optimize 3D %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
-    /*
-        insert a reshape node before and after 3D instance_norm
-    */
-    shape[0] = inputs[0]->attr.size[0];
-    shape[1] = 1;
-    shape[2] = inputs[0]->attr.size[1];
-    shape[3] = inputs[0]->attr.size[2];
-    dim = 4;
-    local = self->nn_param.instancenorm.lcl2_data;
-    if (VSI_NN_OPTIMIZE_FORWARD == direction)
-    {
-        /* reshape 3d input (xcn) --> 4d input (whcn) */
-        local->reshaped_input = vsi_nn_reshape_tensor(self->graph, inputs[0], shape, dim);
-    }
-    else
-    {
-        /* reshape 3d output(xcn) --> 4d output(whcn) */
-        local->reshaped_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shape, dim);
-        if(local->reshaped_output && local->reshaped_output->t)
-        {
-            memset(tensor_name, 0, sizeof(tensor_name));
-            snprintf(tensor_name, sizeof(tensor_name), "uid_%u_reshape_out_0", self->uid);
-            if(vxSetReferenceName((vx_reference)local->reshaped_output->t, tensor_name) == VSI_FAILURE)
-            {
-                VSILOGW("Set uid %u batchnorm reshaped output name fail", self->uid);
-                return VSI_FAILURE;
-            }
-        }
-    }
-
-    return VSI_SUCCESS;
-} /* op_optimize() */
 
 static vsi_bool op_check
     (
@@ -241,66 +206,6 @@ static vsi_bool op_check
     return TRUE;
 } /* op_check() */
 
-static vsi_status op_init
-    (
-    vsi_nn_node_t * self
-    )
-{
-    vsi_status status = VSI_SUCCESS;
-
-    self->nn_param.instancenorm.lcl2_data =
-    (vsi_nn_instancenorm_lcl_data2 *)malloc(sizeof(vsi_nn_instancenorm_lcl_data2));
-    if (NULL == self->nn_param.instancenorm.lcl2_data)
-    {
-        return  VX_ERROR_NO_MEMORY;
-    }
-
-    memset( self->nn_param.instancenorm.lcl2_data, 0, sizeof(vsi_nn_instancenorm_lcl_data2) );
-
-    self->nn_param.instancenorm.lcl2_data->reshapeFlg = 0;
-    self->nn_param.instancenorm.lcl2_data->execute_on_sw = 0;
-    self->nn_param.instancenorm.lcl2_data->hash_idx = 0;
-    self->nn_param.instancenorm.lcl2_data->reshaped_input = NULL;
-    self->nn_param.instancenorm.lcl2_data->reshaped_output = NULL;
-
-    return status;
-} /* op_init() */
-
-static vsi_status op_deinit
-    (
-    vsi_nn_node_t * self
-    )
-{
-    uint32_t i;
-    vsi_nn_instancenormalize_param *p = &(self->nn_param.instancenorm);
-    for (i = 0; i < _VSI_NN_INSTANCENORM_LOCAL_TENSOR_NUM; i++)
-    {
-        if (self->nn_param.instancenorm.local.local_tensor[i] != NULL)
-        {
-            vxReleaseTensor(&(self->nn_param.instancenorm.local.local_tensor[i]));
-            self->nn_param.instancenorm.local.local_tensor[i] = NULL;
-        }
-    }
-    if(p->lcl2_data->reshaped_input)
-    {
-        vsi_nn_ReleaseTensor(&(p->lcl2_data->reshaped_input));
-        p->lcl2_data->reshaped_input = NULL;
-    }
-    if(p->lcl2_data->reshaped_output)
-    {
-        vsi_nn_ReleaseTensor(&(p->lcl2_data->reshaped_output));
-        p->lcl2_data->reshaped_output = NULL;
-    }
-    if(self->nn_param.instancenorm.lcl2_data)
-    {
-        free(self->nn_param.instancenorm.lcl2_data);
-        self->nn_param.instancenorm.lcl2_data = NULL;
-    }
-    vsi_nn_op_common_deinit(self);
-
-    return VSI_SUCCESS;
-} /* op_deinit() */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -308,12 +213,12 @@ extern "C" {
 DEF_OP_REG
     (
     /* op_name    */ INSTANCE_NORM,
-    /* init       */ op_init,
+    /* init       */ NULL,
     /* compute    */ op_compute,
-    /* deinit     */ op_deinit,
+    /* deinit     */ vsi_nn_op_common_deinit,
     /* check      */ op_check,
     /* setup      */ vsi_nn_op_common_setup,
-    /* optimize   */ op_optimize,
+    /* optimize   */ NULL,
     /* input_num  */ _INPUT_NUM,
     /* output_num */ _OUTPUT_NUM
     );

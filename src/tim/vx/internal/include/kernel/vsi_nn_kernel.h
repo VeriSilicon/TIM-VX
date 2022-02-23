@@ -640,6 +640,13 @@ vsi_nn_kernel_node_t  vsi_nn_kernel_create_node
     vsi_nn_kernel_t * kernel
     );
 
+vsi_nn_kernel_node_t  vsi_nn_kernel_create_node_ext
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_kernel_t * kernel,
+    const char** resources
+    );
+
 vsi_status vsi_nn_kernel_node_set_border
     (vsi_nn_kernel_node_t node,
     vx_border_t* border);
@@ -718,6 +725,13 @@ vsi_status vsi_nn_kernel_register
     (
     vsi_nn_graph_t * graph,
     vsi_nn_kernel_t * kernel
+    );
+
+vsi_status vsi_nn_kernel_register_ext
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_kernel_t * kernel,
+    const char** resources
     );
 
 vsi_bool vsi_nn_kernel_gpu_check_shape

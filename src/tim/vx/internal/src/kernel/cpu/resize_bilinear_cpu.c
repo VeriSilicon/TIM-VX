@@ -104,7 +104,6 @@ DEF_KERNEL_EXECUTOR(_compute)
         in_attr[i] = vsi_nn_kernel_tensor_attr_create( input[i] );
         f32_in_buffer[i] = (float*)vsi_nn_kernel_tensor_create_buffer( input[i], in_attr[i], TRUE );
         CHECK_PTR_FAIL_GOTO( f32_in_buffer[i], "Create input0 buffer fail.", final );
-
     }
     for(i = 0; i < _OUTPUT_NUM; i ++)
     {
@@ -311,4 +310,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CPU( resize_bilinear, _setup )
-

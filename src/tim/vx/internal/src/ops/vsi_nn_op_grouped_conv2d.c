@@ -196,6 +196,12 @@ static vsi_status op_compute
             VSILOGE("Add vxConvolutionLayer fail, (GROUPED_CONV2D) at [%s : %d]\n", __FILE__, __LINE__);
             return VSI_FAILURE;
         }
+        else
+        {
+            // no need to maintain self->n
+            vxReleaseNode( &self->n );
+            self->n = NULL;
+        }
     }
     return VSI_SUCCESS;
 } /* op_compute() */

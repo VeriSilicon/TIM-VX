@@ -2,3 +2,6 @@
     custom op data struct def
 */
 DEF_NODE_TYPE(custom_softmax)
+DEF_NODE_TYPE(custom_ainr_denoise_postprocess)
+DEF_NODE_TYPE(custom_warp_affine)
+DEF_NODE_TYPE(custom_warp_perspective)

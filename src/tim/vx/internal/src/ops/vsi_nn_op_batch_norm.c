@@ -131,7 +131,8 @@ static vsi_status _static_batchnorm
     )
 {
     vsi_status         status;
-    vx_tensor vx_input,vx_output;
+    vsi_nn_kernel_param_t * param = NULL;
+    vsi_nn_tensor_t* reshape_tensors[6] = { NULL };
     status = VSI_FAILURE;
 
     status = _try_set_high_presision_tensor(inputs);
@@ -142,29 +143,35 @@ static vsi_status _static_batchnorm
     }
     if(_is_3d_batchnorm(self, inputs))
     {
-        vx_input  = self->nn_param.batch_norm.local->reshaped_input->t;
-        vx_output = self->nn_param.batch_norm.local->reshaped_output->t;
+        reshape_tensors[0] = self->nn_param.batch_norm.local->reshaped_input;
+        reshape_tensors[5] = self->nn_param.batch_norm.local->reshaped_output;
     }
     else
     {
-        vx_input  = inputs[0]->t;
-        vx_output = outputs[0]->t;
+        reshape_tensors[0] = inputs[0];
+        reshape_tensors[5] = outputs[0];
     }
 
-    self->n = vxBatchNormalizationLayer(
-        self->graph->g,
-        self->nn_param.batch_norm.eps,
-        inputs[1]->t,
-        inputs[2]->t,
-        inputs[3]->t,
-        inputs[4]->t,
-        vx_input,
-        vx_output
-        );
-    if( NULL == self->n )
+    reshape_tensors[1] = inputs[1];
+    reshape_tensors[2] = inputs[2];
+    reshape_tensors[3] = inputs[3];
+    reshape_tensors[4] = inputs[4];
+
+    param = vsi_nn_kernel_param_create();
+    vsi_nn_kernel_param_add_float32( param, "eps", self->nn_param.batch_norm.eps );
+
+    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+        "batch_norm",
+        reshape_tensors, 5,
+        &reshape_tensors[5], 1, param );
+
+    if( self->n )
     {
-        status = VSI_FAILURE;
+        status = VSI_SUCCESS;
     }
+
+    vsi_nn_kernel_param_release( &param );
+
     return status;
 }
 
@@ -439,7 +446,6 @@ static vsi_bool op_check
     }
 } /* op_check() */
 
-
 static vsi_bool op_setup
     (
     vsi_nn_node_t * self,
@@ -492,7 +498,6 @@ static vsi_status op_deinit
     return VSI_SUCCESS;
 }
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -512,4 +517,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

@@ -224,6 +224,62 @@ __kernel void minimum_U8U8toU8_2D
     VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
 }
 
+__kernel void minimum_U8U8toI16
+    (
+    __read_only  image2d_array_t    input0,
+    __read_only  image2d_array_t    input1,
+    __write_only image2d_array_t    output
+    )
+{
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+
+    vxc_uchar16 src0, src1;
+    VXC_ReadImage2DArray(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage2DArray(src1, input1, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    vxc_short8 dst0, dst1, dst;
+    vxc_ushort8 mp0, mp1;
+    _viv_asm(COPY, mp0, multAndoutZP0, 16);
+    _viv_asm(COPY, mp1, multAndoutZP1, 16);
+    VXC_DP2x8(dst0, src0, mp0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),\
+        uniU8MulAndPostShift0_Lo_2x8);
+    VXC_DP2x8(dst1, src1, mp1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),\
+        uniU8MulAndPostShift1_Lo_2x8);
+    dst = min(dst0, dst1);
+
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+}
+
+__kernel void minimum_U8U8toI16_2D
+    (
+    __read_only  image2d_array_t    input0,
+    __read_only  image2d_array_t    input1,
+    __write_only image2d_array_t    output
+    )
+{
+    int2 coord =  (int2)(get_global_id(0), get_global_id(1));
+
+    vxc_uchar16 src0, src1;
+    VXC_ReadImage(src0, input0, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src1, input1, coord, VXC_5BITOFFSET_XY(0, 0),\
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    vxc_short8 dst0, dst1, dst;
+    vxc_ushort8 mp0, mp1;
+    _viv_asm(COPY, mp0, multAndoutZP0, 16);
+    _viv_asm(COPY, mp1, multAndoutZP1, 16);
+    VXC_DP2x8(dst0, src0, mp0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),\
+        uniU8MulAndPostShift0_Lo_2x8);
+    VXC_DP2x8(dst1, src1, mp1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),\
+        uniU8MulAndPostShift1_Lo_2x8);
+    dst = min(dst0, dst1);
+
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+}
+
 _viv_uniform VXC_512Bits uniConvertI16toI16_0_2x8;
 _viv_uniform VXC_512Bits uniConvertI16toI16_1_2x8;
 __kernel void minimum_I16I16toI16

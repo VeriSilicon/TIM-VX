@@ -53,6 +53,7 @@ typedef struct _vsi_nn_reduce_lcl2_data_t
     vsi_nn_tensor_t *axis_tensor2;
     int32_t axes[VSI_NN_MAX_DIM_NUM];
     int32_t axes_num;
+    vsi_bool use_internal_node;
 } vsi_nn_reduce_lcl2_data_t;
 
 static vsi_status op_comput_reduce_mean(vsi_nn_node_t * self,
@@ -148,7 +149,54 @@ static vsi_bool caculate_reshape_size(uint32_t* dim_value,
     return enable_reshape;
 }
 
+static vsi_bool _check_is_sp_supported_type
+    (
+    vsi_nn_node_t * self,
+    vsi_nn_tensor_t * input,
+    vsi_enum type
+    )
+{
+    int32_t * axes = self->nn_param.reduce.local2->axes;
+    int32_t axes_num = self->nn_param.reduce.local2->axes_num;
+    vsi_size_t shapes[4][VSI_NN_MAX_DIM_NUM] = { 0 };
+    int32_t axis_in[VSI_NN_MAX_DIM_NUM] = {0};
+    int32_t new_axis[VSI_NN_MAX_DIM_NUM] = {0};
+    int32_t i = 0;
+    uint32_t axis_size = 0;
+    uint32_t rank_in = 0;
+    uint32_t rank_out = 0;
+    vsi_bool ret = FALSE;
 
+    if ( !self->graph->ctx->config.support_stream_processor ||
+         (type != VSI_NN_REDUCE_SUM && type != VSI_NN_REDUCE_MEAN) )
+    {
+        return FALSE;
+    }
+
+    if (   (VSI_NN_TYPE_FLOAT64 == input->attr.dtype.vx_type)
+        || (VSI_NN_TYPE_UINT32  == input->attr.dtype.vx_type)
+        || (VSI_NN_TYPE_UINT64  == input->attr.dtype.vx_type)
+        )
+    {
+        return FALSE;
+    }
+
+    for (i = 0; i < axes_num; i++)
+    {
+        shapes[0][i] = input->attr.size[axes[i]];
+        shapes[1][i] = 1;
+        axis_in[i] = i;
+    }
+
+    ret = vsi_nn_kernel_optimize_reduce_shape(
+            shapes[0], axes_num,
+            axis_in, axes_num,
+            shapes[1], axes_num,
+            shapes[2], &rank_in, shapes[3], &rank_out,
+            new_axis, &axis_size);
+
+    return ret && axis_size < 3;
+}
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -158,7 +206,11 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
 
-    if (self->nn_param.reduce.type == VSI_NN_REDUCE_MEAN)
+    if ( self->nn_param.reduce.local2->use_internal_node )
+    {
+        status = vsi_nn_internal_compute_node( self );
+    }
+    else if (self->nn_param.reduce.type == VSI_NN_REDUCE_MEAN)
     {
         vx_tensor input_t, output_t;
         vsi_nn_tensor_t *axis_tensor = NULL;
@@ -440,16 +492,6 @@ static vsi_status op_compute
                                             input_t,
                                             output_t);
         }
-
-    }
-    else if (self->nn_param.reduce.type == VSI_NN_REDUCE_SUM ||
-             self->nn_param.reduce.type == VSI_NN_REDUCE_MAX ||
-             self->nn_param.reduce.type == VSI_NN_REDUCE_MIN ||
-             self->nn_param.reduce.type == VSI_NN_REDUCE_ALL ||
-             self->nn_param.reduce.type == VSI_NN_REDUCE_ANY ||
-             self->nn_param.reduce.type == VSI_NN_REDUCE_PROD)
-    {
-        status = vsi_nn_internal_compute_node( self );
     }
 
     return status;
@@ -463,12 +505,7 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
-    if (self->nn_param.reduce.type == VSI_NN_REDUCE_SUM ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_MAX ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_MIN ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_ALL ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_ANY ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_PROD)
+    if ( self->nn_param.reduce.local2->use_internal_node )
     {
         return vsi_nn_internal_optimize_node(self, direction );
     }
@@ -726,7 +763,6 @@ static vsi_bool op_set_reduce_axis(
             (vsi_size_t*)resolved_dim2,  &resolved_dim_count2 );
     }
 
-
     for (i = 0; i < (uint32_t)resolved_dim_count2; i++)
     {
         self->nn_param.reduce.local2->axes[i] = (int32_t)resolved_dim2[i];
@@ -736,6 +772,92 @@ static vsi_bool op_set_reduce_axis(
     return TRUE;
 }
 
+static vsi_bool op_set_sp_reduce_internal
+    (
+    vsi_nn_node_t * self,
+    vsi_nn_tensor_t ** inputs,
+    vsi_nn_tensor_t ** outputs,
+    vsi_enum  type_name
+    )
+{
+    vsi_nn_tensor_attr_t attr;
+    vsi_nn_internal_tensor_t* tensor1 = NULL;
+    vsi_nn_tensor_t* new_output = NULL;
+    uint32_t* permute_in_perm = NULL;
+    int32_t * new_axis = NULL;
+    vsi_size_t shapes[VSI_NN_MAX_DIM_NUM] = {1};
+    int32_t use_virtual_tensor = TRUE;
+    vsi_nn_internal_node_t* tmp_inode = NULL;
+    int32_t * axes = self->nn_param.reduce.local2->axes;
+    int32_t axes_num = self->nn_param.reduce.local2->axes_num;
+    int32_t i = 0, j = 0, index = 0;
+    vsi_size_t reduce_size = 1;
+
+    vsi_nn_internal_init_node_wksp( self );
+
+    memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
+    vsi_nn_internal_init_tensor_attr(&attr, &inputs[0]->attr.dtype, use_virtual_tensor);
+    tensor1 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+
+    tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_PERMUTE, 0, 0 );
+    permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(tmp_inode,
+        inputs[0]->attr.dim_num * sizeof(uint32_t));
+
+    for ( i = 0;  i < axes_num; i++)
+    {
+        shapes[index] = outputs[0]->attr.size[axes[i]];
+        permute_in_perm[index ++] = axes[i];
+        reduce_size *= inputs[0]->attr.size[axes[i]];
+    }
+
+    for ( j = 0;  j < (int32_t)inputs[0]->attr.dim_num;  j++)
+    {
+        for (i = 0; i < axes_num; i++)
+        {
+            if (j == axes[i])
+            {
+                break;
+            }
+        }
+        if (i == axes_num)
+        {
+            shapes[index] = outputs[0]->attr.size[j];
+            permute_in_perm[index ++] = j;
+        }
+    }
+    tmp_inode->node->nn_param.permute.perm = permute_in_perm;
+    tmp_inode->node->nn_param.permute.dim_num = inputs[0]->attr.dim_num;
+    tmp_inode->inputs[0] = inputs[0];
+    tmp_inode->outputs[0] = tensor1->t;
+    vsi_nn_internal_setup_node(self, tmp_inode);
+
+    new_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shapes, outputs[0]->attr.dim_num);
+
+    tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_REDUCE_MEAN_INTERNAL, 0, 0 );
+    new_axis = (int32_t *)vsi_nn_internal_new_node_param(tmp_inode,
+        axes_num * sizeof(int32_t));
+    for (i = 0; i < axes_num; i++)
+    {
+        new_axis[i] = i;
+    }
+    tmp_inode->inputs[0] = tensor1->t;
+    tmp_inode->outputs[0] = new_output;
+    tmp_inode->node->nn_param.reduce_mean_internal.axis = new_axis;
+    tmp_inode->node->nn_param.reduce_mean_internal.axis_num = axes_num;
+    if (type_name == VSI_NN_REDUCE_SUM)
+    {
+        tmp_inode->node->nn_param.reduce_mean_internal.scale = 1.0f;
+    }
+    else
+    {
+        tmp_inode->node->nn_param.reduce_mean_internal.scale = 1.0f / (float)reduce_size;
+    }
+    vsi_nn_internal_setup_node(self, tmp_inode);
+
+    self->nn_param.reduce.local2->reshaped_output = new_output;
+
+    return TRUE;
+}
 
 static vsi_bool op_set_reduce_internal
     (
@@ -920,7 +1042,6 @@ static vsi_bool op_set_reduce_internal
         curr->outputs[0] = tmp_output_tensor[1]->t;
         vsi_nn_internal_setup_node( self, curr );
 
-
         if (3 == axes[resolved_dim_count - 1])
         {
             vsi_bool enable_reshape = TRUE;
@@ -967,7 +1088,6 @@ static vsi_bool op_set_reduce_internal
     }
     return TRUE;
 }
-
 
 static vsi_bool op_setup
     (
@@ -1063,31 +1183,42 @@ static vsi_bool op_setup
     reshape_out_t[0] = vsi_nn_reshape_tensor( self->graph,
             outputs[0], shape, new_rank );
     self->nn_param.reduce.local2->reshaped_output1 = reshape_out_t[0];
-    if (self->nn_param.reduce.type == VSI_NN_REDUCE_SUM)
+
+    if (_check_is_sp_supported_type(self, reshape_in_t[0], self->nn_param.reduce.type))
     {
+        self->nn_param.reduce.local2->use_internal_node = TRUE;
+        ret = op_set_sp_reduce_internal(self, reshape_in_t, reshape_out_t, self->nn_param.reduce.type);
+    }
+    else if (self->nn_param.reduce.type == VSI_NN_REDUCE_SUM)
+    {
+        self->nn_param.reduce.local2->use_internal_node = TRUE;
         ret = op_set_reduce_internal(self, reshape_in_t, reshape_out_t, VSI_NN_OP_REDUCESUM_INTERNAL);
     }
     else if (self->nn_param.reduce.type == VSI_NN_REDUCE_MAX)
     {
+        self->nn_param.reduce.local2->use_internal_node = TRUE;
         ret = op_set_reduce_internal(self, reshape_in_t, reshape_out_t, VSI_NN_OP_REDUCEMAX_INTERNAL);
     }
     else if (self->nn_param.reduce.type == VSI_NN_REDUCE_MIN)
     {
+        self->nn_param.reduce.local2->use_internal_node = TRUE;
         ret = op_set_reduce_internal(self, reshape_in_t, reshape_out_t, VSI_NN_OP_REDUCEMIN_INTERNAL);
     }
     else if (self->nn_param.reduce.type == VSI_NN_REDUCE_PROD)
     {
+        self->nn_param.reduce.local2->use_internal_node = TRUE;
         ret = op_set_reduce_internal(self, reshape_in_t, reshape_out_t, VSI_NN_OP_REDUCEPROD_INTERNAL);
     }
     else if (self->nn_param.reduce.type == VSI_NN_REDUCE_ALL)
     {
+        self->nn_param.reduce.local2->use_internal_node = TRUE;
         ret = op_set_reduce_internal(self, reshape_in_t, reshape_out_t, VSI_NN_OP_REDUCEALL_INTERNAL);
     }
     else if (self->nn_param.reduce.type == VSI_NN_REDUCE_ANY)
     {
+        self->nn_param.reduce.local2->use_internal_node = TRUE;
         ret = op_set_reduce_internal(self, reshape_in_t, reshape_out_t, VSI_NN_OP_REDUCEANY_INTERNAL);
     }
-
 
     return ret;
 } /* op_setup() */
@@ -1097,6 +1228,8 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
+    vsi_bool use_interanl_node = self->nn_param.reduce.local2->use_internal_node;
+
     if (self->nn_param.reduce.local.axis_tensor != NULL)
     {
         vsi_nn_ReleaseTensor(&(self->nn_param.reduce.local.axis_tensor));
@@ -1132,12 +1265,7 @@ static vsi_status op_deinit
         self->nn_param.reduce.local2 = NULL;
     }
 
-    if (self->nn_param.reduce.type == VSI_NN_REDUCE_SUM ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_MAX ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_MIN ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_ALL ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_ANY ||
-        self->nn_param.reduce.type == VSI_NN_REDUCE_PROD)
+    if ( use_interanl_node )
     {
         vsi_nn_internal_deinit_node_wksp(self);
     }
@@ -1184,4 +1312,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

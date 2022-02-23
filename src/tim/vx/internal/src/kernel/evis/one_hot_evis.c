@@ -68,27 +68,29 @@ typedef struct
 static const _kernel_map_type _one_hot_kernel_map[] =
 {
     // Register kernel here
-    PACK_ONE_HOT_KERNEL_3D( U8,  U8 ),
-    PACK_ONE_HOT_KERNEL_3D( U8,  F16 ),
-    PACK_ONE_HOT_KERNEL_3D( I8,  I8 ),
-    PACK_ONE_HOT_KERNEL_3D( I8,  F16 ),
-    PACK_ONE_HOT_KERNEL_3D( I16, I16 ),
-    PACK_ONE_HOT_KERNEL_3D( I16, F16 ),
-    PACK_ONE_HOT_KERNEL_3D( F16, F16 ),
-    PACK_ONE_HOT_KERNEL_3D( F16, I16 ),
-    PACK_ONE_HOT_KERNEL_3D( F16, U8 ),
-    PACK_ONE_HOT_KERNEL_3D( F16, I8 ),
+    PACK_ONE_HOT_KERNEL_3D( U8,   U8 ),
+    PACK_ONE_HOT_KERNEL_3D( U8,   F16 ),
+    PACK_ONE_HOT_KERNEL_3D( I8,   I8 ),
+    PACK_ONE_HOT_KERNEL_3D( I8,   F16 ),
+    PACK_ONE_HOT_KERNEL_3D( I16,  I16 ),
+    PACK_ONE_HOT_KERNEL_3D( I16,  F16 ),
+    PACK_ONE_HOT_KERNEL_3D( F16,  F16 ),
+    PACK_ONE_HOT_KERNEL_3D( F16,  I16 ),
+    PACK_ONE_HOT_KERNEL_3D( F16,  U8 ),
+    PACK_ONE_HOT_KERNEL_3D( F16,  I8 ),
+    PACK_ONE_HOT_KERNEL_3D( BF16, BF16 ),
 
-    PACK_ONE_HOT_KERNEL_2D( U8,  U8 ),
-    PACK_ONE_HOT_KERNEL_2D( U8,  F16 ),
-    PACK_ONE_HOT_KERNEL_2D( I8,  I8 ),
-    PACK_ONE_HOT_KERNEL_2D( I8,  F16 ),
-    PACK_ONE_HOT_KERNEL_2D( I16, I16 ),
-    PACK_ONE_HOT_KERNEL_2D( I16, F16 ),
-    PACK_ONE_HOT_KERNEL_2D( F16, F16 ),
-    PACK_ONE_HOT_KERNEL_2D( F16, I16 ),
-    PACK_ONE_HOT_KERNEL_2D( F16, U8 ),
-    PACK_ONE_HOT_KERNEL_2D( F16, I8 ),
+    PACK_ONE_HOT_KERNEL_2D( U8,   U8 ),
+    PACK_ONE_HOT_KERNEL_2D( U8,   F16 ),
+    PACK_ONE_HOT_KERNEL_2D( I8,   I8 ),
+    PACK_ONE_HOT_KERNEL_2D( I8,   F16 ),
+    PACK_ONE_HOT_KERNEL_2D( I16,  I16 ),
+    PACK_ONE_HOT_KERNEL_2D( I16,  F16 ),
+    PACK_ONE_HOT_KERNEL_2D( F16,  F16 ),
+    PACK_ONE_HOT_KERNEL_2D( F16,  I16 ),
+    PACK_ONE_HOT_KERNEL_2D( F16,  U8 ),
+    PACK_ONE_HOT_KERNEL_2D( F16,  I8 ),
+    PACK_ONE_HOT_KERNEL_2D( BF16, BF16 ),
 };
 
 
@@ -274,6 +276,51 @@ DEF_KERNEL_INITIALIZER(_one_hot_initializer)
             "depth", &depth );
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
+    break;
+    case BF16:
+    {
+        gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+            0x11111111, // TCfg
+            0x01010101, // ASelt
+            0x01050004, 0x03070206, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvBF16toF32_Part1_2x8 = {{
+            0x11111111, // TCfg
+            0x01010101, // ASelt
+            0x05050404, 0x07070606, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractInteger_2x8 = {{
+            0x33333333, // TCfg
+            0x11110000, // ASelt
+            0x03020100, 0x03020100, // ABin
+            0x00000000, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00002400, // AccumType, ConstantType, and PostShift
+            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+
+        status = vsi_nn_kernel_gpu_add_param( node,
+            "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8 );
+        status |= vsi_nn_kernel_gpu_add_param( node,
+            "uniConvBF16toF32_Part1_2x8", &uniConvBF16toF32_Part1_2x8 );
+        status |= vsi_nn_kernel_gpu_add_param( node,
+            "uniExtract8Data_2x8", &uniExtractInteger_2x8 );
+        status |= vsi_nn_kernel_gpu_add_param( node,
+            "depth", &depth );
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    break;
     default:
         break;
     }

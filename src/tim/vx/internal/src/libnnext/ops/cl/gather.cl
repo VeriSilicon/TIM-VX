@@ -5,7 +5,8 @@ __kernel void gather_U8toU8(
     int block_size,
     int block_num,
     int axis_num,
-    int indices_num
+    int indices_num,
+    int batch
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -29,7 +30,8 @@ __kernel void gather_F16toF16(
     int block_size,
     int block_num,
     int axis_num,
-    int indices_num
+    int indices_num,
+    int batch
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -53,7 +55,8 @@ __kernel void gather_I32toI32(
     int block_size,
     int block_num,
     int axis_num,
-    int indices_num
+    int indices_num,
+    int batch
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -77,7 +80,8 @@ __kernel void gather_F32toF32(
     int block_size,
     int block_num,
     int axis_num,
-    int indices_num
+    int indices_num,
+    int batch
     )
 {
     int gidx = get_global_id(0);  // block_size

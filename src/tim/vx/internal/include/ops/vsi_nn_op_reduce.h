@@ -51,7 +51,7 @@ typedef struct _vsi_nn_reduce_param
 {
     /* local data must be the first. */
     vsi_nn_reduce_lcl_data_t local;
-    vx_enum     type;
+    vsi_enum     type;
     const int32_t *axis;
     vx_uint32   axis_num;
     vx_bool     keep_dim;

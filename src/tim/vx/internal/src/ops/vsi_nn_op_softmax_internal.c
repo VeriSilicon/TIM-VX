@@ -81,7 +81,7 @@ static vsi_status _create_split_softmax
     return VSI_SUCCESS;
 } /* _create_split_softmax() */
 
-static vsi_status vsi_nn_softmax_compute
+vsi_status op_compute
     (
     vsi_nn_node_t * self,
     vsi_nn_tensor_t ** inputs,
@@ -161,7 +161,7 @@ static vsi_status vsi_nn_softmax_compute
     }
 
     return status;
-} /* vsi_nn_softmax_compute() */
+} /* op_compute() */
 
 static vsi_status op_optimize
     (
@@ -296,7 +296,7 @@ DEF_OP_REG
     (
     /* op_name    */ SOFTMAX_INTERNAL,
     /* init       */ NULL,
-    /* compute    */ vsi_nn_softmax_compute,
+    /* compute    */ op_compute,
     /* deinit     */ op_deinit,
     /* check      */ op_check,
     /* setup      */ vsi_nn_op_common_setup,

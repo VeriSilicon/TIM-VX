@@ -103,9 +103,10 @@ DEF_KERNEL_EXECUTOR(_gather_nd_exec)
     if(coord_stride <= 4) // reshape 3D
     {
         vsi_ssize_t stride[4] = {block_size, 0, 0, 0};
+        int32_t     start_dim = (int32_t)attr[0]->shape->size - coord_stride;
         for(i = 1; i < coord_stride; ++i)
         {
-            stride[i] = stride[i - 1] * attr[0]->shape->data[i];
+            stride[i] = stride[i - 1] * attr[0]->shape->data[start_dim + i - 1];
         }
 
         for(i = 0; i < indices_num; i++)
@@ -118,8 +119,8 @@ DEF_KERNEL_EXECUTOR(_gather_nd_exec)
             for(j = 0; j < coord_stride; j++)
             {
                 coord[j] = buffer_idx[i * coord_stride + j];
+                in_index += coord[j] * stride[j];
             }
-            in_index = coord[3] * stride[3] + coord[2] * stride[2] + coord[1] * stride[1] + coord[0] * stride[0];
             memcpy(&(buffer[1][out_index]), &(buffer[0][in_index]), block_size * sizeof(float));
         }
     }

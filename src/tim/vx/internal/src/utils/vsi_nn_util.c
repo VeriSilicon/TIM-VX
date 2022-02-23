@@ -1199,6 +1199,8 @@ int32_t vsi_nn_get_tensor_zero_point
     switch (tensor->attr.dtype.qnt_type)
     {
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
+            zero_point = 0;
+            break;
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
             zero_point = tensor->attr.dtype.zero_point;
             break;
@@ -1226,7 +1228,14 @@ void vsi_nn_get_tensor_clamp_min_max
     }
     else if (vx_type == VSI_NN_TYPE_INT8)
     {
-        *clampMin = -128 - zero_point;
+        if (input->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC)
+        {
+            *clampMin = -127 - zero_point;
+        }
+        else
+        {
+            *clampMin = -128 - zero_point;
+        }
         *clampMax = 127 - zero_point;
     }
     else if (vx_type == VSI_NN_TYPE_INT16)

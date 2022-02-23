@@ -40,6 +40,7 @@ __BEGIN_DECLS
 typedef enum
 {
     UNARY_SIN,
+    UNARY_COS,
     UNARY_EXP,
     UNARY_LOG,
     UNARY_ELU,
@@ -67,6 +68,11 @@ static float exp_eval(float data)
 static float sin_eval(float data)
 {
     return sinf(data);
+}
+
+static float cos_eval(float data)
+{
+    return cosf(data);
 }
 
 static float log_eval(float data)
@@ -211,6 +217,9 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
         {
         case UNARY_SIN:
             data = sin_eval(data);
+            break;
+        case UNARY_COS:
+            data = cos_eval(data);
             break;
         case UNARY_EXP:
             data = exp_eval(data);
@@ -372,6 +381,7 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( sin,          UNARY_SIN )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( cos,          UNARY_COS )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( exp,          UNARY_EXP )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( log,          UNARY_LOG )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( elu,          UNARY_ELU )
