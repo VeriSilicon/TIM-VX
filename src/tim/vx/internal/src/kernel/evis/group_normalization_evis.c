@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -994,44 +993,6 @@ static vsi_status _query_kernel
     return status;
 } /* _query_kernel() */
 
-static int32_t _optimize_gn_shape
-    (
-    vsi_nn_tensor_t ** inputs,
-    vsi_size_t group_size,
-    int32_t group_num,
-    vsi_size_t* opt_shape,
-    int32_t* is2D_flg
-    )
-{
-    vsi_status status = VSI_SUCCESS;
-    vsi_size_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
-    vsi_size_t new_rank = 0;
-    group_shape[0] = inputs[0]->attr.size[0];
-    group_shape[1] = inputs[0]->attr.size[1];
-    group_shape[2] = group_size;
-
-    vsi_nn_kernel_optimize_element_shape( group_shape, 3, opt_shape, &new_rank );
-
-    if (opt_shape[1] == 1)
-    {
-        opt_shape[1] = group_num;
-        opt_shape[2] = 1;
-        opt_shape[3] = inputs[0]->attr.dim_num > 3 ? inputs[0]->attr.size[3] : 1;
-        is2D_flg[0] = 1;
-    }
-    else if (new_rank == 2)
-    {
-        opt_shape[2] = group_num;
-        opt_shape[3] = inputs[0]->attr.dim_num > 3 ? inputs[0]->attr.size[3] : 1;
-    }
-    else
-    {
-        status = VSI_FAILURE;
-    }
-
-    return status;
-}
-
 static vsi_nn_kernel_node_t _setup
     (
     vsi_nn_graph_t              * graph,
@@ -1077,11 +1038,13 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    status = _optimize_gn_shape(inputs, group_size, group_num, new_shape, &is2D_flg);
+    status =  vsi_nn_kernel_optimize_group_norm_shape( (const vsi_size_t*)inputs[0]->attr.size,
+        inputs[0]->attr.dim_num, group_num, 0, new_shape);
     if ( VSI_SUCCESS != status )
     {
         goto final;
     }
+    is2D_flg = (new_shape[2] == 1) && ((int32_t)new_shape[1] == group_num);
     rs_input = vsi_nn_kernel_tensor_reshape(inputs[0]->t, new_shape, 4);
     rs_output = vsi_nn_kernel_tensor_reshape(outputs[0]->t, new_shape, 4);
 

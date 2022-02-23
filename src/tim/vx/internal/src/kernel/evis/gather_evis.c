@@ -64,6 +64,28 @@ __BEGIN_DECLS
 #define VX_KERNEL_NAME_GATHER_AXIS0_U8TOF16   CVIVANTE_NAMESPACE("evis.gather_U8toF16_axis0")
 #define VX_KERNEL_NAME_GATHER_AXIS0_F16TOU8   CVIVANTE_NAMESPACE("evis.gather_F16toU8_axis0")
 
+#define VX_KERNEL_NAME_GATHER_BATCH_U8TOU8       CVIVANTE_NAMESPACE("evis.gather_batch_U8toU8")
+#define VX_KERNEL_NAME_GATHER_BATCH_I8TOI8       CVIVANTE_NAMESPACE("evis.gather_batch_I8toI8")
+#define VX_KERNEL_NAME_GATHER_BATCH_I16TOI16     CVIVANTE_NAMESPACE("evis.gather_batch_I16toI16")
+#define VX_KERNEL_NAME_GATHER_BATCH_F16TOF16     CVIVANTE_NAMESPACE("evis.gather_batch_F16toF16")
+#define VX_KERNEL_NAME_GATHER_BATCH_I8TOF16      CVIVANTE_NAMESPACE("evis.gather_batch_I8toF16")
+#define VX_KERNEL_NAME_GATHER_BATCH_I16TOF16     CVIVANTE_NAMESPACE("evis.gather_batch_I16toF16")
+#define VX_KERNEL_NAME_GATHER_BATCH_F16TOI8      CVIVANTE_NAMESPACE("evis.gather_batch_F16toI8")
+#define VX_KERNEL_NAME_GATHER_BATCH_F16TOI16     CVIVANTE_NAMESPACE("evis.gather_batch_F16toI16")
+#define VX_KERNEL_NAME_GATHER_BATCH_U8TOF16      CVIVANTE_NAMESPACE("evis.gather_batch_U8toF16")
+#define VX_KERNEL_NAME_GATHER_BATCH_F16TOU8      CVIVANTE_NAMESPACE("evis.gather_batch_F16toU8")
+
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_U8TOU8    CVIVANTE_NAMESPACE("evis.gather_batch_U8toU8_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_I8TOI8    CVIVANTE_NAMESPACE("evis.gather_batch_I8toI8_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_I16TOI16  CVIVANTE_NAMESPACE("evis.gather_batch_I16toI16_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_F16TOF16  CVIVANTE_NAMESPACE("evis.gather_batch_F16toF16_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_I8TOF16   CVIVANTE_NAMESPACE("evis.gather_batch_I8toF16_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_I16TOF16  CVIVANTE_NAMESPACE("evis.gather_batch_I16toF16_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_F16TOI8   CVIVANTE_NAMESPACE("evis.gather_batch_F16toI8_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_F16TOI16  CVIVANTE_NAMESPACE("evis.gather_batch_F16toI16_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_U8TOF16   CVIVANTE_NAMESPACE("evis.gather_batch_U8toF16_axis0")
+#define VX_KERNEL_NAME_GATHER_BATCH_AXIS0_F16TOU8   CVIVANTE_NAMESPACE("evis.gather_batch_F16toU8_axis0")
+
 #define VX_KERNEL_NAME_GATHER_ARRAY_U8TOU8    CVIVANTE_NAMESPACE("evis.gather_U8toU8_array")
 #define VX_KERNEL_NAME_GATHER_ARRAY_I8TOI8    CVIVANTE_NAMESPACE("evis.gather_I8toI8_array")
 #define VX_KERNEL_NAME_GATHER_ARRAY_I16TOI16  CVIVANTE_NAMESPACE("evis.gather_I16toI16_array")
@@ -77,29 +99,41 @@ __BEGIN_DECLS
 #define KERNEL_SOURCE_1    "gather"
 #define KERNEL_SOURCE_2    "gather_mix"
 #define KERNEL_SOURCE_3    "gather_array"
+#define KERNEL_SOURCE_4    "gather_batch"
+#define KERNEL_SOURCE_5    "gather_mix_batch"
 
 // Add kernel hashtable here
-#define HASH_GATHER_KEY(_input0_type, _input1_type, _output_type, _is_axis0, _is_max) \
-    ((_input0_type << 24) | (_input1_type << 16) | (_output_type << 8) | (_is_axis0 << 4) | (_is_max))
+#define HASH_GATHER_KEY(_in0_type, _in1_type, _out_type, _axis0, _max, _batch) \
+    ((_in0_type << 24) | (_in1_type << 16) | (_out_type << 8) | (_axis0 << 6) | (_max << 4) | (_batch))
 
 #define TENSOR_GATHER_KERNELS(IN0_TYPE, IN1TYPE, OUT_TYPE, SOURCE) \
-    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 0, 0), \
+    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 0, 0, 0), \
         VX_KERNEL_NAME_GATHER_##IN0_TYPE##TO##OUT_TYPE, \
         SOURCE },
 
 #define TENSOR_GATHER_AXIS0_KERNELS(IN0_TYPE, IN1TYPE, OUT_TYPE, SOURCE) \
-    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 1, 0), \
+    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 1, 0, 0), \
         VX_KERNEL_NAME_GATHER_AXIS0_##IN0_TYPE##TO##OUT_TYPE, \
         SOURCE },
 
 #define TENSOR_GATHER_ARRAY_KERNELS(IN0_TYPE, IN1TYPE, OUT_TYPE, SOURCE) \
-    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 0, 1), \
+    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 0, 1, 0), \
         VX_KERNEL_NAME_GATHER_ARRAY_##IN0_TYPE##TO##OUT_TYPE, \
         SOURCE },
 
 #define TENSOR_GATHER_AXIS0_ARRAY_KERNELS(IN0_TYPE, IN1TYPE, OUT_TYPE, SOURCE) \
-    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 1, 1), \
+    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 1, 1, 0), \
         VX_KERNEL_NAME_GATHER_AXIS0_ARRAY_##IN0_TYPE##TO##OUT_TYPE, \
+        SOURCE },
+
+#define TENSOR_GATHER_BATCH_KERNELS(IN0_TYPE, IN1TYPE, OUT_TYPE, SOURCE) \
+    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 0, 0, 1), \
+        VX_KERNEL_NAME_GATHER_BATCH_##IN0_TYPE##TO##OUT_TYPE, \
+        SOURCE },
+
+#define TENSOR_GATHER_BATCH_AXIS0_KERNELS(IN0_TYPE, IN1TYPE, OUT_TYPE, SOURCE) \
+    { HASH_GATHER_KEY(IN0_TYPE, IN1TYPE, OUT_TYPE, 1, 0, 1), \
+        VX_KERNEL_NAME_GATHER_BATCH_AXIS0_##IN0_TYPE##TO##OUT_TYPE, \
         SOURCE },
 
 static const struct {
@@ -136,6 +170,26 @@ static const struct {
     TENSOR_GATHER_AXIS0_ARRAY_KERNELS(I8, I32,  I8,    KERNEL_SOURCE_3)
     TENSOR_GATHER_AXIS0_ARRAY_KERNELS(I16, I32, I16,   KERNEL_SOURCE_3)
     TENSOR_GATHER_AXIS0_ARRAY_KERNELS(F16, I32, F16,   KERNEL_SOURCE_3)
+    TENSOR_GATHER_BATCH_KERNELS(U8, I32,  U8,          KERNEL_SOURCE_4)
+    TENSOR_GATHER_BATCH_KERNELS(I8, I32,  I8,          KERNEL_SOURCE_4)
+    TENSOR_GATHER_BATCH_KERNELS(I16, I32, I16,         KERNEL_SOURCE_4)
+    TENSOR_GATHER_BATCH_KERNELS(F16, I32, F16,         KERNEL_SOURCE_4)
+    TENSOR_GATHER_BATCH_KERNELS(I8, I32,  F16,         KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_KERNELS(I16, I32, F16,         KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_KERNELS(F16, I32, I8,          KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_KERNELS(F16, I32, I16,         KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_KERNELS(U8, I32,  F16,         KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_KERNELS(F16, I32, U8,          KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(U8, I32,  U8,    KERNEL_SOURCE_4)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(I8, I32,  I8,    KERNEL_SOURCE_4)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(I16, I32, I16,   KERNEL_SOURCE_4)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(F16, I32, F16,   KERNEL_SOURCE_4)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(I8, I32,  F16,   KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(I16, I32, F16,   KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(F16, I32, I8,    KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(F16, I32, I16,   KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(U8, I32,  F16,   KERNEL_SOURCE_5)
+    TENSOR_GATHER_BATCH_AXIS0_KERNELS(F16, I32, U8,    KERNEL_SOURCE_5)
 };
 
 /*
@@ -158,6 +212,7 @@ static vsi_status get_gather_tensor_reshape_size
     vsi_nn_tensor_t ** inputs,
     vsi_size_t sizes[VSI_NN_MAX_DIM_NUM],
     vsi_size_t block_size,
+    vsi_size_t batch_dims,
     uint32_t idxFlg,
     int32_t* arrayFlg
     )
@@ -167,11 +222,17 @@ static vsi_status get_gather_tensor_reshape_size
     vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t i = 0;
     vsi_size_t elementCnt = 1;
+    vsi_size_t outerCnt = 1;
 #define VSI_NN_MAX_IMAGE_WIDTH  (65536)
 
-    for(i = 0; i < dims_num; ++i)
+    for(i = 0; i < dims_num - batch_dims; ++i)
     {
         elementCnt *= input_size[i];
+    }
+
+    for(; i < dims_num; ++i)
+    {
+        outerCnt *= input_size[i];
     }
 
     for(i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
@@ -182,13 +243,14 @@ static vsi_status get_gather_tensor_reshape_size
     if (idxFlg && elementCnt < VSI_NN_MAX_IMAGE_WIDTH)
     {
         sizes[0] = elementCnt;
-        sizes[1] = 1;
+        sizes[1] = outerCnt;
         status = VSI_SUCCESS;
     }
     else
     {
         sizes[0] = block_size;
         sizes[1] = elementCnt / block_size;
+        sizes[2] = outerCnt;
         if ((elementCnt / block_size) > VSI_NN_MAX_IMAGE_WIDTH)
         {
             arrayFlg[0] = 1;
@@ -222,6 +284,7 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
     int32_t       block_num   = 0;
     int32_t       indices_num = 1;
     uint32_t      input_dims1 = 0;
+    int32_t       batch       = 1;
     vx_uint32     i           = 0;
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
     vsi_size_array_t * input1_shape = NULL;
@@ -283,7 +346,7 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
 
     input1_shape  = attr[1]->shape;
     input_dims1   = (uint32_t)input1_shape->size;
-    for (i = 0; i < input_dims1; i++)
+    for (i = 0; i < input_dims1 - 1; i++)
     {
         indices_num *= (int32_t)(input1_shape->data[i]);
     }
@@ -376,6 +439,11 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
 #undef _PACK_SELECT_KEY
 
     status = vsi_nn_kernel_gpu_add_param(node, "indices_num", &indices_num);
+    if (attr[2]->shape->size > 2)
+    {
+        batch = (int32_t)attr[2]->shape->data[2];
+        status = vsi_nn_kernel_gpu_add_param(node, "batch", &batch);
+    }
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
 OnError:
@@ -415,6 +483,7 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
 
     int32_t       block_num   = 0;
     int32_t       indices_num = 1;
+    int32_t       batch       = 1;
     uint32_t      input_dims1 = 0;
     vx_uint32     i           = 0;
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
@@ -475,10 +544,11 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
 
     input1_shape  = attr[1]->shape;
     input_dims1   = (uint32_t)input1_shape->size;
-    for (i = 0; i < input_dims1; i++)
+    for (i = 0; i < input_dims1 - 1; i++)
     {
         indices_num *= (int32_t)(input1_shape->data[i]);
     }
+    batch = (int32_t)(input1_shape->data[input_dims1 - 1]);
 
     shaderParam.global_scale[0]  = 4;
     shaderParam.global_scale[1]  = 1;
@@ -486,7 +556,7 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
     shaderParam.global_size[0]   = gpu_align_p2((indices_num + shaderParam.global_scale[0] - 1)
         / shaderParam.global_scale[0], 4);
     shaderParam.global_size[1]   = block_num;
-    shaderParam.global_size[2]   = 1;
+    shaderParam.global_size[2]   = batch;
 
     status = vsi_nn_kernel_gpu_config( node, &shaderParam );
     CHECK_STATUS_FAIL_GOTO(status, OnError);
@@ -585,6 +655,10 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
 #undef _PACK_SELECT_KEY
 
     status = vsi_nn_kernel_gpu_add_param(node, "indices_num", &indices_num);
+    if (attr[2]->shape->size > 2)
+    {
+        status |= vsi_nn_kernel_gpu_add_param(node, "batch", &batch);
+    }
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
 OnError:
@@ -617,7 +691,8 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t* kernel,
     const vsi_nn_kernel_param_t * params,
     int32_t axis,
-    int32_t is_array
+    int32_t is_array,
+    int32_t is_batch
     )
 {
     vsi_status status = VSI_FAILURE;
@@ -638,7 +713,7 @@ static vsi_status _query_kernel
         output_dtype = F16;
     }
 
-    key = HASH_GATHER_KEY( input0_dtype, I32, output_dtype, axis, is_array);
+    key = HASH_GATHER_KEY( input0_dtype, I32, output_dtype, axis, is_array, is_batch);
 
     for( i = 0; i < _cnt_of_array(gather_map); i ++ )
     {
@@ -688,25 +763,30 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t tmp_params[_GATHER_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
     vsi_size_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
+    vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
     int32_t block_size  = vsi_nn_kernel_param_get_int32( params, "block_size" );
     int32_t block_num   = vsi_nn_kernel_param_get_int32( params, "block_num" );
     int32_t axis_num    = vsi_nn_kernel_param_get_int32( params, "axis_num" );
     int32_t axis        = vsi_nn_kernel_param_get_int32( params, "axis" );
+    int32_t batch_dims  = vsi_nn_kernel_param_get_int32( params, "batch_dims" );
     int32_t axis0_flg   = 0;
     int32_t is_array    = block_size > VSI_NN_MAX_BLOCK_SIZE ? 1 : 0;
+    int32_t is_batch    = batch_dims > 0 ? 1 : 0;
+    vsi_size_t rs_dim   = batch_dims == 0 ? 2 : 3;
+    int32_t i           = 0;
 
     if (axis == 0)
     {
-        status = get_gather_tensor_reshape_size(&inputs[0], shapes[0], axis_num, 0, &is_array);
-        status |= get_gather_tensor_reshape_size(&inputs[1], shapes[1], 1, 1, &is_array);
-        status |= get_gather_tensor_reshape_size(&outputs[0], shapes[2], shapes[1][0], 0, &is_array);
+        status = get_gather_tensor_reshape_size(&inputs[0], shapes[0], axis_num, batch_dims, 0, &is_array);
+        status |= get_gather_tensor_reshape_size(&inputs[1], shapes[1], 1, batch_dims, 1, &is_array);
+        status |= get_gather_tensor_reshape_size(&outputs[0], shapes[2], shapes[1][0], batch_dims, 0, &is_array);
         axis0_flg = 1;
     }
     else
     {
-        status = get_gather_tensor_reshape_size(&inputs[0], shapes[0], block_size, 0, &is_array);
-        status |= get_gather_tensor_reshape_size(&inputs[1], shapes[1], 1, 1, &is_array);
-        status |= get_gather_tensor_reshape_size(&outputs[0], shapes[2], block_size, 0, &is_array);
+        status = get_gather_tensor_reshape_size(&inputs[0], shapes[0], block_size, batch_dims, 0, &is_array);
+        status |= get_gather_tensor_reshape_size(&inputs[1], shapes[1], 1, batch_dims, 1, &is_array);
+        status |= get_gather_tensor_reshape_size(&outputs[0], shapes[2], block_size, batch_dims, 0, &is_array);
         axis0_flg = 0;
     }
 #undef VSI_NN_MAX_BLOCK_SIZE
@@ -715,38 +795,45 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
+    reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
+        inputs[0], shapes[0], rs_dim );
+    reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
+        inputs[1], shapes[1], 2 );
+    reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
+        outputs[0], shapes[2], rs_dim );
+
     if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
     }
 
-    status = _query_kernel( inputs, outputs, kernel, params, axis0_flg, is_array);
+    status = _query_kernel( inputs, outputs, kernel, params, axis0_flg, is_array, is_batch);
     if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
         if ( node )
         {
-            uint32_t index = 0;
-#define RESHAPE_DIM 2
+            uint32_t index = 3;
+
             /* Pass parameters to node. */
-            tmp_params[index++] = vsi_nn_kernel_tensor_reshape( inputs[0]->t,  shapes[0], RESHAPE_DIM );
-            tmp_params[index++] = vsi_nn_kernel_tensor_reshape( inputs[1]->t,  shapes[1], RESHAPE_DIM );
-            tmp_params[index++] = vsi_nn_kernel_tensor_reshape( outputs[0]->t, shapes[2], RESHAPE_DIM );
-#undef RESHAPE_DIM
+            vsi_nn_kernel_node_pack_io( tmp_params, _GATHER_PARAM_NUM,
+                reshape_tensors, 2, &reshape_tensors[2], 1 );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &block_size );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &block_num );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &axis_num );
             status = vsi_nn_kernel_node_pass_param( node, tmp_params, _GATHER_PARAM_NUM );
-            CHECK_STATUS(status);
-            vsi_nn_kernel_tensor_release( &tmp_params[0] );
-            vsi_nn_kernel_tensor_release( &tmp_params[1] );
-            vsi_nn_kernel_tensor_release( &tmp_params[2] );
             vsi_nn_kernel_scalar_release( &tmp_params[3] );
             vsi_nn_kernel_scalar_release( &tmp_params[4] );
             vsi_nn_kernel_scalar_release( &tmp_params[5] );
         }
     }
+
+    for (i = 0; i < 3; i++)
+    {
+        vsi_safe_release_tensor(reshape_tensors[i]);
+    }
+
     return node;
 } /* _setup() */
 

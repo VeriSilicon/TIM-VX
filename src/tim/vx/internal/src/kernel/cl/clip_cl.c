@@ -64,14 +64,16 @@ typedef struct
 
 static const _kernel_map_type _clip_kernel_map[] =
 {
-    PACK_KERNEL_MAP(F32, F32),
-    PACK_KERNEL_MAP(F32, U8),
-    PACK_KERNEL_MAP(U8,  U8),
-    PACK_KERNEL_MAP(U8,  F32),
-    PACK_KERNEL_MAP_2D(F32, F32),
-    PACK_KERNEL_MAP_2D(F32, U8),
-    PACK_KERNEL_MAP_2D(U8,  U8),
-    PACK_KERNEL_MAP_2D(U8,  F32),
+    PACK_KERNEL_MAP(F32,     F32),
+    PACK_KERNEL_MAP(F32,     U8),
+    PACK_KERNEL_MAP(U8,      U8),
+    PACK_KERNEL_MAP(U8,      F32),
+    PACK_KERNEL_MAP(BF16,    BF16),
+    PACK_KERNEL_MAP_2D(F32,  F32),
+    PACK_KERNEL_MAP_2D(F32,  U8),
+    PACK_KERNEL_MAP_2D(U8,   U8),
+    PACK_KERNEL_MAP_2D(U8,   F32),
+    PACK_KERNEL_MAP_2D(BF16, BF16),
 };
 
 

@@ -41,6 +41,7 @@ typedef struct _vsi_nn_gather_param
 {
     vsi_nn_gather_lcl_data local;
     int32_t     axis;
+    int32_t     batch_dims;
 } vsi_nn_gather_param;
 
 #ifdef __cplusplus

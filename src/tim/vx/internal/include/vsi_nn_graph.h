@@ -457,6 +457,29 @@ OVXLIB_API vsi_nn_node_t * vsi_nn_AddNode
     );
 
 /**
+ * Add External node
+ * Create a new External node and attach it to graph.
+ *
+ * @param[in] graph Graph handle
+ * @param[in] op Node operation.
+ * @param[in] vsi_nn_proc_t to this node.
+ * @param[in] output_num Number of outputs to this node.
+ * @param[in] kernel name.
+ * @param[out] node_id A handle to get the id of new node,
+ *                  pass it to NULL to get nothing.
+ *
+ * @return The node handle on success, or NULL otherwise.
+ */
+OVXLIB_API vsi_nn_node_t * vsi_nn_AddExternalNode
+    (
+    vsi_nn_graph_t      * graph,
+    vsi_nn_op_t           op,
+    const void           * proc,
+    vsi_nn_node_id_t    * node_id,
+    const char          *kernel_name
+    );
+
+/**
  * @deprecated
  * @see vsi_nn_AddNode
  */

@@ -7,6 +7,8 @@ _viv_uniform float input1Tail;
 _viv_uniform VXC_512Bits uniExtract8Data_2x8;
 _viv_uniform VXC_512Bits uniDatatoFp32Part0_4x4;
 _viv_uniform VXC_512Bits uniDatatoFp32Part1_4x4;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
 
 #define COMPARISONS_3D(func_name, src0_type_name, src1_type_name, \
         src0_type, src0_copy_type, src1_type, src1_copy_type, cmp_op) \
@@ -112,3 +114,42 @@ COMPARISONS_3D(not_equal, U8,  F16, vxc_uchar8, vxc_uchar8, vxc_short8, vxc_half
 COMPARISONS_3D(not_equal, I16, I16, vxc_short8, vxc_short8, vxc_short8, vxc_short8, !=)
 COMPARISONS_3D(not_equal, I16, F16, vxc_short8, vxc_short8, vxc_short8, vxc_half8,  !=)
 
+#define COMPARISONS_BF_3D(func_name, src0_type_name, src1_type_name, cmp_op) \
+__kernel void func_name##_##src0_type_name##src1_type_name##toBOOL8_3D( \
+    __read_only  image2d_array_t  input0, \
+    __read_only  image2d_array_t  input1, \
+    __write_only image2d_array_t  output \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    vxc_ushort8 src0, src1, srcA, srcB; \
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0); \
+    VXC_ReadImage2DArray(srcA, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage2DArray(srcB, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    float4 vecA0, vecA1; \
+    float4 vecB0, vecB1; \
+    VXC_DP2x8(src0, srcA, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8); \
+    _viv_asm(COPY, vecA0, src0, 16); \
+    VXC_DP2x8(src1, srcA, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8); \
+    _viv_asm(COPY, vecA1, src1, 16); \
+    VXC_DP2x8(src0, srcB, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8); \
+    _viv_asm(COPY, vecB0, src0, 16); \
+    VXC_DP2x8(src1, srcB, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8); \
+    _viv_asm(COPY, vecB1, src1, 16); \
+    int4 dst0, dst1; \
+    dst0 = (vecA0)cmp_op(vecB0); \
+    dst1 = (vecA1)cmp_op(vecB1); \
+ \
+    vxc_char16 dst; \
+    VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    dst &= 1; \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+
+COMPARISONS_BF_3D(less,        BF16, BF16,  <)
+COMPARISONS_BF_3D(great,       BF16, BF16,  >)
+COMPARISONS_BF_3D(less_equal,  BF16, BF16,  <=)
+COMPARISONS_BF_3D(great_equal, BF16, BF16,  >=)
+COMPARISONS_BF_3D(equal,       BF16, BF16,  ==)
+COMPARISONS_BF_3D(not_equal,   BF16, BF16,  !=)

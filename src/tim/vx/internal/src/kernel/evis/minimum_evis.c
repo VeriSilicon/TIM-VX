@@ -64,6 +64,10 @@ __BEGIN_DECLS
 #define KERNEL_NAME_MINIMUM_F16F16TOI8_2D           CVIVANTE_NAMESPACE("evis.minimum_F16F16toI8_2D")
 #define KERNEL_NAME_MINIMUM_F16F16TOI16             CVIVANTE_NAMESPACE("evis.minimum_F16F16toI16")
 #define KERNEL_NAME_MINIMUM_F16F16TOI16_2D          CVIVANTE_NAMESPACE("evis.minimum_F16F16toI16_2D")
+#define KERNEL_NAME_MINIMUM_I16I16TOU8              CVIVANTE_NAMESPACE("evis.minimum_I16I16toU8")
+#define KERNEL_NAME_MINIMUM_I16I16TOU8_2D           CVIVANTE_NAMESPACE("evis.minimum_I16I16toU8_2D")
+#define KERNEL_NAME_MINIMUM_U8U8TOI16               CVIVANTE_NAMESPACE("evis.minimum_U8U8toI16")
+#define KERNEL_NAME_MINIMUM_U8U8TOI16_2D            CVIVANTE_NAMESPACE("evis.minimum_U8U8toI16_2D")
 
 #define KERNEL_SOURCE_1    "minimum",
 #define KERNEL_SOURCE_2    "minimum_fp16",
@@ -109,6 +113,7 @@ static const struct {
     TENSOR_MIN_KERNELS(F16, F16, I8,        KERNEL_SOURCE_1)
     TENSOR_MIN_KERNELS(I8,  I8, I8,         KERNEL_SOURCE_1)
     TENSOR_MIN_KERNELS(U8,  U8, U8,         KERNEL_SOURCE_1)
+    TENSOR_MIN_KERNELS(U8,  U8, I16,        KERNEL_SOURCE_1)
     TENSOR_MIN_KERNELS(I16, I16, I16,       KERNEL_SOURCE_1)
 
     TENSOR_MIN_KERNELS(F16, F16, U8,        KERNEL_SOURCE_2)
@@ -120,12 +125,14 @@ static const struct {
     TENSOR_MIN_KERNELS(I16, F16, I16,       KERNEL_SOURCE_3)
     TENSOR_MIN_KERNELS(I16, F16, F16,       KERNEL_SOURCE_3)
     TENSOR_MIN_KERNELS(F16, F16, I16,       KERNEL_SOURCE_3)
+    TENSOR_MIN_KERNELS(I16, I16, U8,        KERNEL_SOURCE_3)
 
     TENSOR_MIN_KERNELS_2D_HALF(F16, F16, F16,    KERNEL_SOURCE_1)
     TENSOR_MIN_KERNELS_2D_HALF(BF16, BF16, BF16, KERNEL_SOURCE_1)
     TENSOR_MIN_KERNELS_2D(F16, F16, I8,     KERNEL_SOURCE_1)
     TENSOR_MIN_KERNELS_2D(I8,  I8, I8,      KERNEL_SOURCE_1)
     TENSOR_MIN_KERNELS_2D(U8,  U8, U8,      KERNEL_SOURCE_1)
+    TENSOR_MIN_KERNELS_2D(U8,  U8,  I16,    KERNEL_SOURCE_1)
     TENSOR_MIN_KERNELS_2D(I16, I16, I16,    KERNEL_SOURCE_1)
 
     TENSOR_MIN_KERNELS_2D(F16, F16, U8,     KERNEL_SOURCE_2)
@@ -137,6 +144,7 @@ static const struct {
     TENSOR_MIN_KERNELS_2D(I16, F16, I16,    KERNEL_SOURCE_3)
     TENSOR_MIN_KERNELS_2D(I16, F16, F16,    KERNEL_SOURCE_3)
     TENSOR_MIN_KERNELS_2D(F16, F16, I16,    KERNEL_SOURCE_3)
+    TENSOR_MIN_KERNELS_2D(I16, I16, U8,     KERNEL_SOURCE_3)
 };
 
 static vx_param_description_t kernel_param_def[] =
@@ -192,6 +200,14 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
     if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         in0_fl = (uint8_t)attr[0]->dfp.fl;
+        if (in0_fl > 0)
+        {
+            src0Scale = 1.0f / (float) ((int64_t)1 << in0_fl);
+        }
+        else
+        {
+            src0Scale = (float)((int64_t)1 << -in0_fl);
+        }
     }
     else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM
         || attr[0]->quant == VSI_NN_KERNEL_QUANT_SYMM)
@@ -203,6 +219,14 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
     if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         in1_fl = (uint8_t)attr[1]->dfp.fl;
+        if (in1_fl > 0)
+        {
+            src0Scale = 1.0f / (float) ((int64_t)1 << in1_fl);
+        }
+        else
+        {
+            src0Scale = (float)((int64_t)1 << -in1_fl);
+        }
     }
     else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM
         || attr[1]->quant == VSI_NN_KERNEL_QUANT_SYMM)
@@ -242,7 +266,8 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
             attr[1]->dtype, attr[2]->dtype );
 
     if ( (attr[2]->dtype == F16 || attr[2]->dtype == I16 || attr[2]->dtype == BF16)
-        || ((attr[2]->dtype == I8 || attr[2]->dtype == U8) && (attr[0]->dtype == F16 && attr[1]->dtype == F16)) )
+        || ((attr[2]->dtype == I8 || attr[2]->dtype == U8) && (attr[0]->dtype == F16 && attr[1]->dtype == F16))
+        || (attr[0]->dtype == I16 && attr[1]->dtype == I16 && attr[2]->dtype == U8) )
     {
         gpu_param.global_scale[0] = 8;
         gpu_param.global_scale[1] = 1;
@@ -384,6 +409,8 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
     case _PACK_SELECT_KEY( U8, U8, U8 ):
     case _PACK_SELECT_KEY( U8, F16, U8 ):
     case _PACK_SELECT_KEY( F16, F16, U8 ):
+    case _PACK_SELECT_KEY( U8, U8, I16 ):
+    case _PACK_SELECT_KEY( I16, I16, U8 ):
         {
             uint16_t M0               = 0;
             uint16_t M1               = 0;
@@ -427,12 +454,15 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
             status = vsi_nn_kernel_gpu_add_param( node, "multAndoutZP1", &multAndoutZP1 );
             CHECK_STATUS_FAIL_GOTO(status, final );
 
-            if (attr[0]->dtype == U8)
+            if (attr[0]->dtype == U8 || attr[0]->dtype == I16)
             {
                 status = vsi_nn_kernel_gpu_add_param( node,
                         "uniU8MulAndPostShift0_Lo_2x8",  &uniU8MulAndPostShift_Lo_2x8 );
-                status |= vsi_nn_kernel_gpu_add_param( node,
-                        "uniU8MulAndPostShift0_Hi_2x8",  &uniU8MulAndPostShift_Hi_2x8 );
+                if (attr[0]->dtype != I16)
+                {
+                    status |= vsi_nn_kernel_gpu_add_param( node,
+                            "uniU8MulAndPostShift0_Hi_2x8",  &uniU8MulAndPostShift_Hi_2x8 );
+                }
                 status |= vsi_nn_kernel_gpu_add_param( node, "multAndoutZP0", &multAndoutZP0 );
                 CHECK_STATUS_FAIL_GOTO(status, final );
             }
@@ -461,8 +491,11 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
                 gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift_Hi_2x8, postShift1 );
                 status = vsi_nn_kernel_gpu_add_param( node,
                         "uniU8MulAndPostShift1_Lo_2x8", &uniU8MulAndPostShift_Lo_2x8 );
-                status |= vsi_nn_kernel_gpu_add_param( node,
-                        "uniU8MulAndPostShift1_Hi_2x8", &uniU8MulAndPostShift_Hi_2x8 );
+                if (attr[0]->dtype != I16)
+                {
+                    status |= vsi_nn_kernel_gpu_add_param( node,
+                            "uniU8MulAndPostShift1_Hi_2x8", &uniU8MulAndPostShift_Hi_2x8 );
+                }
                 CHECK_STATUS_FAIL_GOTO(status, final );
             }
         }
@@ -751,7 +784,6 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PARAM_NUM,
                     tmp_inputs, 2, outputs, 1 );
             status = vsi_nn_kernel_node_pass_param( node, tmp_params, _EVIS_PARAM_NUM );
-
         }
     }
     return node;
@@ -760,4 +792,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( minimum, _setup )
-

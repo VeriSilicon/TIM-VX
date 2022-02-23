@@ -1,0 +1,237 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int indices_num;
+_viv_uniform VXC_512Bits uniExtraCopyDpKeepinEvis_2x8;
+_viv_uniform int batch;
+
+__kernel void gather_batch_I8toI8(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_array_t  output,
+    int block_size,
+    int block_num,
+    int axis_num
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+    int gidz = get_global_id(2);  // block_num
+
+    int2 coord_idx = (int2)(gidy, 0);
+    int4 coord_in = (int4)(gidx, 0, 0, 0);
+    int4 coord = (int4)(gidx, gidz * indices_num + gidy, 0, 0);
+    for(; coord_idx.y < batch;)
+    {
+        int4 indice = read_imagei(input1, coord_idx);
+        coord_idx.y++;
+        coord_in.y = gidz * axis_num + indice.x;
+
+        vxc_char16 src;
+        VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+        coord_in.z++;
+        VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+        coord.z++;
+    }
+}
+
+__kernel void gather_batch_U8toU8(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_array_t  output,
+    int block_size,
+    int block_num,
+    int axis_num
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+    int gidz = get_global_id(2);  // block_num
+
+    int2 coord_idx = (int2)(gidy, 0);
+    int4 coord_in = (int4)(gidx, 0, 0, 0);
+    int4 coord = (int4)(gidx, gidz * indices_num + gidy, 0, 0);
+    for(; coord_idx.y < batch;)
+    {
+        int4 indice = read_imagei(input1, coord_idx);
+        coord_idx.y++;
+        coord_in.y = gidz * axis_num + indice.x;
+
+        vxc_uchar16 src;
+        VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+        coord_in.z++;
+        VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+        coord.z++;
+    }
+}
+
+__kernel void gather_batch_I16toI16(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_array_t  output,
+    int block_size,
+    int block_num,
+    int axis_num
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+    int gidz = get_global_id(2);  // block_num
+
+    int2 coord_idx = (int2)(gidy, 0);
+    int4 coord_in = (int4)(gidx, 0, 0, 0);
+    int4 coord = (int4)(gidx, gidz * indices_num + gidy, 0, 0);
+    for(; coord_idx.y < batch;)
+    {
+        int4 indice = read_imagei(input1, coord_idx);
+        coord_idx.y++;
+        coord_in.y = gidz * axis_num + indice.x;
+
+        vxc_short8 src;
+        VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        coord_in.z++;
+        VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        coord.z++;
+    }
+}
+
+__kernel void gather_batch_F16toF16(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_array_t  output,
+    int block_size,
+    int block_num,
+    int axis_num
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+    int gidz = get_global_id(2);  // block_num
+
+    int2 coord_idx = (int2)(gidy, 0);
+    int4 coord_in = (int4)(gidx, 0, 0, 0);
+    int4 coord = (int4)(gidx, gidz * indices_num + gidy, 0, 0);
+    for(; coord_idx.y < batch;)
+    {
+        int4 indice = read_imagei(input1, coord_idx);
+        coord_idx.y++;
+        coord_in.y = gidz * axis_num + indice.x;
+
+        vxc_short8 src;
+        VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        coord_in.z++;
+        VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        coord.z++;
+    }
+}
+
+__kernel void gather_batch_I8toI8_axis0(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_array_t  output,
+    int block_size,
+    int block_num,
+    int axis_num
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 indices = read_imagei(input1, coord.xz);
+    int4 coord_in = (int4)(indices.x, get_global_id(1), get_global_id(2), 0);
+
+    vxc_char16 src, dst;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.y;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.z;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.w;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));
+
+    VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                     uniExtraCopyDpKeepinEvis_2x8);
+
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_batch_U8toU8_axis0(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_array_t  output,
+    int block_size,
+    int block_num,
+    int axis_num
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 indices = read_imagei(input1, coord.xz);
+    int4 coord_in = (int4)(indices.x, get_global_id(1), get_global_id(2), 0);
+
+    vxc_uchar16 src, dst;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.y;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.z;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.w;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));
+
+    VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                     uniExtraCopyDpKeepinEvis_2x8);
+
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_batch_I16toI16_axis0(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_array_t  output,
+    int block_size,
+    int block_num,
+    int axis_num
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 indices = read_imagei(input1, coord.xz);
+    int4 coord_in = (int4)(indices.x, get_global_id(1), get_global_id(2), 0);
+
+    vxc_short8 src, dst;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.y;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.z;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.w;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));
+
+    VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                     uniExtraCopyDpKeepinEvis_2x8);
+
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_batch_F16toF16_axis0(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_array_t  output,
+    int block_size,
+    int block_num,
+    int axis_num
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 indices = read_imagei(input1, coord.xz);
+    int4 coord_in = (int4)(indices.x, get_global_id(1), get_global_id(2), 0);
+
+    vxc_short8 src, dst;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.y;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.z;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0));
+    coord_in.x = indices.w;
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0));
+
+    VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                     uniExtraCopyDpKeepinEvis_2x8);
+
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+}

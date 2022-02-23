@@ -267,6 +267,12 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_asymm
         case U8:
             return vsi_nn_dtype_convert_float_to_quantize_asymm8(
                     buffer, size, scale, zero_point, (uint8_t*)out_buffer );
+        case I8:
+            return vsi_nn_dtype_convert_float_to_quantize_symm8(
+                    buffer, size, scale, zero_point, (int8_t*)out_buffer );
+        case I16:
+            return vsi_nn_dtype_convert_float_to_quantize_symm16(
+                    buffer, size, scale, zero_point, (int16_t*)out_buffer );
         default:
             VSILOGE("Don't support convert float to asymm quant %d.", dtype);
             break;
@@ -413,6 +419,12 @@ vsi_bool vsi_nn_dtype_convert_quantize_asymm_to_float
         case U8:
             return vsi_nn_dtype_convert_quantize_asymm8_to_float(
                     (const uint8_t *)buffer, size, scale, zero_point, out_buffer );
+        case I8:
+            return vsi_nn_dtype_convert_quantize_symm8_to_float(
+                    (const int8_t *)buffer, size, scale, zero_point, out_buffer );
+        case I16:
+            return vsi_nn_dtype_convert_quantize_symm16_to_float(
+                    (const int16_t *)buffer, size, scale, zero_point, out_buffer );
         case I32:
             return vsi_nn_dtype_convert_quantize_symm32_to_float(
                     (const int *)buffer, size, scale, zero_point, out_buffer );

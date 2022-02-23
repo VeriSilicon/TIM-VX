@@ -106,8 +106,8 @@ void vsi_nn_ReleaseNode
     )
 {
     vsi_nn_node_t * ptr;
-    ptr = *node;
-    if( NULL != node && NULL != *node )
+    ptr = (NULL != node) ? *node : NULL;
+    if( NULL != ptr)
     {
         vsi_nn_OpDeinit( ptr->op, ptr );
         if( NULL != ptr->input.tensors )

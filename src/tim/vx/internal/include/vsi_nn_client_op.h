@@ -71,6 +71,17 @@ OVXLIB_API void vsi_nn_OpRemoveClient
     vsi_nn_op_t op
     );
 
+vsi_bool vsi_nn_OpAddClientName
+  (
+    vsi_nn_op_t op,
+    const char* kernel_name
+  );
+
+const char* vsi_nn_OpGetClientName
+  (
+    vsi_nn_op_t op
+  );
+
 #if defined(__cplusplus)
 }
 #endif

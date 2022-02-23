@@ -51,6 +51,7 @@ static vsi_status op_compute
     {
         status = VSI_FAILURE;
     }
+    self->n = (vx_node)n;
 
     return status;
 } /* op_compute() */

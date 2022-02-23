@@ -1,5 +1,7 @@
 #include "cl_viv_vx_ext.h"
 
+_viv_uniform VXC_512Bits uniConvertInt16toInt8_2x8;
+
 #define TENSORLOGICAL_PROCESS(input_type, copy_type, output_type, out_copy_type,\
 lgc_op, lgc_op2, read_fun, write_fun) \
     input_type vA;\
@@ -59,7 +61,7 @@ out_copy_type, lgc_op, lgc_op2,  read_fun, write_fun) \
     VXC_DP2x8(tmpOut,dst,dst,VXC_MODIFIER(0,7,0,VXC_RM_TowardZero, 0),uniMulShortMinus1toFp16_2x8); \
     out_copy_type data; \
     _viv_asm(COPY, data, tmpOut, 16); \
-    write_fun(output, coord, data, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    write_fun(output, coord, data, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 
 
 #define TENSORLOGICAL_FP(name0, src_type_name, dst_type_name, input_type,\
@@ -86,6 +88,47 @@ copy_type, output_type, out_copy_type, lgc_op, lgc_op2) \
     VXC_ReadImage, VXC_WriteImage) \
 }
 
+#define TENSORLOGICAL_BFP_PROCESS(input_type, copy_type, output_type,\
+out_copy_type, lgc_op, lgc_op2,  read_fun, write_fun) \
+    input_type vA;\
+    copy_type  src0;\
+    input_type vB;\
+    copy_type  src1;\
+    read_fun(vA,in0,coord,VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0,7,0,VXC_RM_TowardZero,0));\
+    _viv_asm(COPY, src0, vA, 16); \
+    read_fun(vB,in1,coord,VXC_5BITOFFSET_XY(0,0),VXC_MODIFIER(0,7,0,VXC_RM_TowardZero,0));\
+    _viv_asm(COPY, src1, vB, 16); \
+    output_type dst; \
+    dst = (lgc_op2(src0))lgc_op(lgc_op2(src1)); \
+    vxc_char8 data; \
+    VXC_DP2x8(data,dst,dst,VXC_MODIFIER(0,7,0,VXC_RM_TowardZero, 1),uniConvertInt16toInt8_2x8); \
+    data &= 1; \
+    write_fun(output, coord, data, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+#define TENSORLOGICAL_BFP16(name0, src_type_name, dst_type_name, input_type,\
+copy_type, output_type, out_copy_type, lgc_op, lgc_op2) \
+    __kernel void logical_##name0##_##src_type_name##to##dst_type_name( \
+    __read_only  image2d_array_t in0, \
+    __read_only  image2d_array_t in1, \
+    __write_only image2d_array_t output) \
+{\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\
+    TENSORLOGICAL_BFP_PROCESS(input_type, copy_type, output_type, out_copy_type, lgc_op, lgc_op2,\
+    VXC_ReadImage2DArray, VXC_WriteImage2DArray) \
+}
+
+#define TENSORLOGICAL_BFP16_2D(name0, src_type_name, dst_type_name, input_type,\
+copy_type, output_type, out_copy_type, lgc_op, lgc_op2) \
+    __kernel void logical_##name0##_##src_type_name##to##dst_type_name##_2D( \
+    __read_only  image2d_array_t in0, \
+    __read_only  image2d_array_t in1, \
+    __write_only image2d_array_t output) \
+{\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\
+    TENSORLOGICAL_BFP_PROCESS(input_type, copy_type, output_type, out_copy_type, lgc_op, lgc_op2,\
+    VXC_ReadImage, VXC_WriteImage) \
+}
+
 //          name0, src_name, dst_name, input_type, copy_type, output_type, out_copy_type, lgc_op, lgc_op2
 TENSORLOGICAL(or,      I8,     I8,     vxc_char8,   vxc_char8,   vxc_char8,   vxc_char8,   ||, )
 //TENSORLOGICAL(or,      U8,     U8,     vxc_uchar8,  vxc_uchar8,  vxc_char8,   vxc_uchar8,  ||, )
@@ -100,6 +143,10 @@ TENSORLOGICAL(xor,     I8,     I8,     vxc_char8,   vxc_char8,   vxc_char8,   vx
 //TENSORLOGICAL(xor,     I16,    I16,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ^, !!)
 //TENSORLOGICAL_FP(xor,  F16,    F16,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ^, !!)
 
+TENSORLOGICAL_BFP16(or,   BF16,   I8,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ||, )
+TENSORLOGICAL_BFP16(and,  BF16,   I8,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  &&, )
+TENSORLOGICAL_BFP16(xor,  BF16,   I8,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ^, !!)
+
 TENSORLOGICAL_2D(or,      I8,     I8,     vxc_char8,   vxc_char8,   vxc_char8,   vxc_char8,   ||, )
 //TENSORLOGICAL_2D(or,      U8,     U8,     vxc_uchar8,  vxc_uchar8,  vxc_char8,   vxc_uchar8,  ||, )
 //TENSORLOGICAL_2D(or,      I16,    I16,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ||, )
@@ -112,3 +159,7 @@ TENSORLOGICAL_2D(xor,     I8,     I8,     vxc_char8,   vxc_char8,   vxc_char8,  
 //TENSORLOGICAL_2D(xor,     U8,     U8,     vxc_uchar8,  vxc_uchar8,  vxc_char8,   vxc_uchar8,  ^, !!)
 //TENSORLOGICAL_2D(xor,     I16,    I16,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ^, !!)
 //TENSORLOGICAL_FP_2D(xor,  F16,    F16,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ^, !!)
+
+TENSORLOGICAL_BFP16_2D(or,   BF16,  I8,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ||, )
+TENSORLOGICAL_BFP16_2D(and,  BF16,  I8,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  &&, )
+TENSORLOGICAL_BFP16_2D(xor,  BF16,  I8,    vxc_short8,  vxc_short8,  vxc_short8,  vxc_short8,  ^, !!)
