@@ -280,5 +280,5 @@ TEST(Div, Div_uint8) {
     EXPECT_TRUE(-1);
   }
 
-  EXPECT_EQ(golden, output_data);
+  EXPECT_TRUE(ArraysMatch(golden, output_data, (uint8_t)1));
 }
