@@ -31,11 +31,17 @@
 namespace tim {
 namespace vx {
 namespace ops {
-
 class ReshapeImpl : public DirectMapOpImpl {
   public:
    ReshapeImpl(Graph* graph, const std::vector<vsi_size_t>& shape)
-       : DirectMapOpImpl(graph, VSI_NN_OP_RESHAPE2, 1, 1), shape_(shape) {}
+       : DirectMapOpImpl(graph, 
+       #ifdef _VSI_NN_OP_RESHAPE2_H
+       VSI_NN_OP_RESHAPE2
+       #else
+       VSI_NN_OP_RESHAPE
+       #endif
+       , 1, 1), shape_(shape) {}
+
    std::vector<vsi_size_t> shape_;
 };
 
@@ -48,8 +54,13 @@ Reshape::Reshape(Graph* graph, const std::vector<uint32_t>& size)
 
   auto lcl_impl = std::make_unique<ReshapeImpl>(graph, shape);
   
+  #ifdef _VSI_NN_OP_RESHAPE2_H
   lcl_impl->node()->nn_param.reshape2.size = lcl_impl->shape_.data();
   lcl_impl->node()->nn_param.reshape2.dim_num = size.size();
+  #else
+  lcl_impl->node()->nn_param.reshape.size = lcl_impl->shape_.data();
+  lcl_impl->node()->nn_param.reshape.dim_num = size.size();
+  #endif
 
   impl_.reset(dynamic_cast<OpImpl*>(lcl_impl.release()));
 }
