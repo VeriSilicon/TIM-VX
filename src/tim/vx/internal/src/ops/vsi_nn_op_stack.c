@@ -118,6 +118,16 @@ static vsi_bool op_setup
         }
     }
 
+    if (1 == node->input.num)
+    {
+        curr = vsi_nn_internal_new_node( node, VSI_NN_OP_RESHAPE2, 1, 1);
+        curr->inputs[0] = inputs[0];
+        curr->outputs[0] = outputs[0];
+        curr->node->nn_param.reshape2.dim_num = outputs[0]->attr.dim_num;
+        curr->node->nn_param.reshape2.size = outputs[0]->attr.size;
+        goto final;
+    }
+
     input_shape[0] = block_size;
     input_shape[1] = block_num;
 

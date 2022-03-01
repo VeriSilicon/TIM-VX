@@ -361,7 +361,6 @@ vsi_bool vsi_nn_kernel_optimize_softmax_shape
     return ret;
 } /* vsi_nn_kernel_optimize_softmax_shape() */
 
-
 typedef enum
 {
     TILE_STATE_AXIS_X  = 0,
@@ -611,4 +610,47 @@ vsi_bool vsi_nn_kernel_optimize_nchw2xhw_shape
     *out_rank = vsi_nn_min(dim_num, 3);
 
     return TRUE;
+}
+
+vsi_bool vsi_nn_kernel_optimize_group_norm_shape
+    (
+    const vsi_size_t* shape, const uint32_t rank, int32_t groups,
+    int32_t is_sp_kernel, vsi_size_t* out_shape
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    uint32_t i = 0;
+    vsi_size_t out_rank = 0;
+    vsi_size_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    group_shape[0] = shape[0];
+    group_shape[1] = shape[1];
+    group_shape[2] = shape[2] / groups;
+
+    vsi_nn_kernel_optimize_element_shape( group_shape, 3, out_shape, &out_rank );
+
+    if (!is_sp_kernel && out_shape[1] == 1 && out_rank < 3)
+    {
+        out_shape[1] = groups;
+        out_shape[2] = 1;
+        out_shape[3] = 1;
+        for (i = 3; i < rank; i++)
+        {
+            out_shape[3] = out_shape[3] * shape[i];
+        }
+    }
+    else if (out_rank == 2)
+    {
+        out_shape[2] = groups;
+        out_shape[3] = 1;
+        for (i = 3; i < rank; i++)
+        {
+            out_shape[3] = out_shape[3] * shape[i];
+        }
+    }
+    else
+    {
+        status = VSI_FAILURE;
+    }
+
+    return status;
 }

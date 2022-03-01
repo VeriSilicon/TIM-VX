@@ -19,14 +19,13 @@ __kernel void Softmax2VXC
     int axis
     )
 {
-
    int4 coord_in = (int4)(0,0,0,0);
    float fMax = 0.0;
    for (int i = 0; i < sf_size; i++)
    {
        vxc_char8 val;
        coord_in.x = i;
-       VXC_ReadImage2DArray(val, input, coord_in, VXC_5BITOFFSET_XY(0,0), VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
+       VXC_ReadImage2DArray(val, input, coord_in, 0, VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
        float fval;
        VXC_DP4x4(fval, val, val, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 1), Uni4x4_Fp16ToFp32);
 
@@ -40,7 +39,7 @@ __kernel void Softmax2VXC
        vxc_char8 val;
 
        coord_in.x = i;
-       VXC_ReadImage2DArray(val, input, coord_in, VXC_5BITOFFSET_XY(0,0), VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
+       VXC_ReadImage2DArray(val, input, coord_in, 0, VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
        float fval;
        VXC_DP4x4(fval, val, val, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 1), Uni4x4_Fp16ToFp32);
 
@@ -57,7 +56,7 @@ __kernel void Softmax2VXC
        vxc_short8 val;
        vxc_half8  val_h;
        coord_in.x = i;
-       VXC_ReadImage2DArray(val, output, coord_in, VXC_5BITOFFSET_XY(0,0), VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
+       VXC_ReadImage2DArray(val, output, coord_in, 0, VXC_MODIFIER(0,0, 0, VXC_RM_TowardZero, 0));
        float fval;
        _viv_asm(COPY, val_h,val, 16);
        VXC_DP4x4(fval, val_h, val_h, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 1), Uni4x4_Fp16ToFp32);
@@ -68,8 +67,4 @@ __kernel void Softmax2VXC
        _viv_asm(COPY,dst,hVal, 4);
        VXC_WriteImage2DArray(output, coord_in, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
     }
-
 }
-
-
-

@@ -49,7 +49,7 @@ uint8_t * vsi_nn_LoadBinarySource
 
     buf = NULL;
 
-    fp = fopen( (char *)file, "rb" );
+    fp = vsi_nn_fopen( (char *)file, "rb" );
 
     VSILOGI( "Loading program from binary file." );
     if( NULL == fp )
@@ -234,11 +234,13 @@ static vsi_status vsi_nn_RegisterVXKernel
     if(evis == VSI_NN_HW_EVIS_NONE)
     {
         // set default evis version is 2
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
+        snprintf(cmd, MAX_BUILDPROGRAM_LEN,
+            "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
     }
     else
     {
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
+        snprintf(cmd, MAX_BUILDPROGRAM_LEN,
+            "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
     }
     status = vxBuildProgram(program, cmd);
 
@@ -319,14 +321,16 @@ static vsi_status vsi_nn_RegisterBinKernel
     if(evis == VSI_NN_HW_EVIS_NONE)
     {
         // set default evis version is 2
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
+        snprintf(cmd, MAX_BUILDPROGRAM_LEN,
+            "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
     }
     else
     {
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
+        snprintf(cmd, MAX_BUILDPROGRAM_LEN,
+            "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
     }
 #else
-    sprintf(cmd, "-cl-viv-vx-extension");
+    snprintf(cmd, MAX_BUILDPROGRAM_LEN, "-cl-viv-vx-extension");
 #endif
     status = vxBuildProgram(program, cmd);
 
@@ -530,7 +534,7 @@ void vsi_nn_VxResourceSetPath
     char* path
     )
 {
-    strncpy(s_vx_resource_path, path, VSI_NN_MAX_PATH - 1);
+    vsi_nn_strncpy(s_vx_resource_path, path, VSI_NN_MAX_PATH - 1);
 } /* vsi_nn_VxResourceSetPath() */
 
 const uint8_t * vsi_nn_VxBinResourceGetResource

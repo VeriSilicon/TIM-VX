@@ -34,6 +34,7 @@ typedef struct _client_node
 {
     vsi_nn_op_t                op;
     vsi_nn_op_proc_t           proc;
+    const char*                kernel_name;
 } _client_node_t;
 
 static vsi_nn_binary_tree_t * s_root = NULL;
@@ -139,3 +140,41 @@ void vsi_nn_OpRemoveClient
     }
 } /* vsi_nn_OpRemoveClient() */
 
+vsi_bool vsi_nn_OpAddClientName
+  (
+    vsi_nn_op_t op,
+    const char* kernel_name
+  )
+{
+    _client_node_t * node;
+     vsi_bool ret;
+
+    ret = FALSE;
+    node = (_client_node_t *)vsi_nn_BinaryTreeGetNode(
+        &s_root,
+        (vsi_nn_binary_tree_key_t)op );
+    if( NULL != node && NULL != kernel_name)
+    {
+        node->kernel_name = kernel_name;
+        ret = TRUE;
+    }
+    return ret;
+}/* vsi_nn_OpAddClientName() */
+
+const char * vsi_nn_OpGetClientName
+    (
+    vsi_nn_op_t op
+    )
+{
+    _client_node_t * node;
+
+    node = (_client_node_t *)vsi_nn_BinaryTreeGetNode(
+        &s_root,
+        (vsi_nn_binary_tree_key_t)op );
+
+    if( NULL != node ){
+        return node->kernel_name;
+    }else{
+        return NULL;
+    }
+} /* vsi_nn_OpGetClientName() */

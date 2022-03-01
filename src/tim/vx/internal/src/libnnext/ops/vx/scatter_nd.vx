@@ -7,10 +7,14 @@ _viv_uniform int offsetX;
 _viv_uniform int offsetY;
 _viv_uniform int offsetZ;
 
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+
 __kernel void scatter_nd_F16toF16(
     __read_only image2d_t   input0,
     __read_only image2d_t   input1,
-    image2d_array_t  output,
+    image2d_t  output,
     int width,
     int area,
     int coord_dim
@@ -38,11 +42,53 @@ __kernel void scatter_nd_F16toF16(
     VXC_WriteImage(output, (int2)(gidx, gidy), tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
 }
 
+__kernel void scatter_nd_BF16toBF16(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    image2d_t  output,
+    int width,
+    int area,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);
+    int gidy = get_global_id(1);
+
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);
+    float4 sum0 = (float4)(0);
+    float4 sum1 = (float4)(0);
+    vxc_ushort8 tmpVal;
+    for(int i = 0; i < index_num; i++)
+    {
+        int4 indice = read_imagei(input0, (int2)(0, i));
+        int idx = indice.x * offsetX + indice.y * offsetY + indice.z * offsetZ;
+        if(gidy == idx)
+        {
+            vxc_ushort8 src0, src1;
+            VXC_ReadImage(tmpVal, input1, (int2)(gidx, i), 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+            float4 vec0, vec1;
+            VXC_DP2x8(src0, tmpVal, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                    uniConvBF16toF32_Part0_2x8);
+            _viv_asm(COPY, vec0, src0, 16);
+            VXC_DP2x8(src1, tmpVal, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                    uniConvBF16toF32_Part1_2x8);
+            _viv_asm(COPY, vec1, src1, 16);
+            sum0 += vec0;
+            sum1 += vec1;
+        }
+    }
+    vxc_ushort8 dst0, dst1, dst;
+    _viv_asm(COPY, dst0, sum0, 16);
+    _viv_asm(COPY, dst1, sum1, 16);
+    VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+    VXC_WriteImage(output, (int2)(gidx, gidy), dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
 #define SCATTER_ND_QINT(src0_type_name, data_type) \
 __kernel void scatter_nd_##src0_type_name##to##src0_type_name##( \
     __read_only image2d_t   input0, \
     __read_only image2d_t   input1, \
-    image2d_array_t  output, \
+    image2d_t  output, \
     int width, \
     int area, \
     int coord_dim \

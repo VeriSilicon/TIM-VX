@@ -118,22 +118,37 @@ static void _set_preproc_node_rect_params
     (
     vsi_nn_node_t* node,
     vsi_nn_preprocess_crop_t* crop,
-    vsi_nn_preprocess_image_size_t* input_size
+    vsi_nn_preprocess_image_size_t* input_size,
+    vsi_nn_preprocess_source_format_e* source_format
     )
 {
     if(crop != NULL)
     {
-        node->nn_param.pre_process.rect.left = crop->begin[0];
-        node->nn_param.pre_process.rect.top = crop->begin[1];
-        node->nn_param.pre_process.rect.width = crop->size[0];
-        node->nn_param.pre_process.rect.height = crop->size[1];
+        if(*source_format == VSI_NN_SOURCE_FORMAT_TENSOR)
+        {
+            VSILOGW("don not need to set crop parameter for tensor preprocess");
+        }
+        else
+        {
+            node->nn_param.pre_process.rect.left = crop->begin[0];
+            node->nn_param.pre_process.rect.top = crop->begin[1];
+            node->nn_param.pre_process.rect.width = crop->size[0];
+            node->nn_param.pre_process.rect.height = crop->size[1];
+        }
     }
-    else
+    else if (*source_format != VSI_NN_SOURCE_FORMAT_TENSOR)
     {
-        node->nn_param.pre_process.rect.left = 0;
-        node->nn_param.pre_process.rect.top = 0;
-        node->nn_param.pre_process.rect.width = input_size->w;
-        node->nn_param.pre_process.rect.height = input_size->h;
+        if(input_size == NULL)
+        {
+            VSILOGE("Please set image size for preprocess node");
+        }
+        else
+        {
+            node->nn_param.pre_process.rect.left = 0;
+            node->nn_param.pre_process.rect.top = 0;
+            node->nn_param.pre_process.rect.width = input_size->w;
+            node->nn_param.pre_process.rect.height = input_size->h;
+        }
     }
 } /* _set_preproc_node_rect_params() */
 
@@ -490,7 +505,7 @@ vsi_status vsi_nn_add_single_preproc_node
     status = _set_preproc_node_type(node, source_format);
     TEST_CHECK_STATUS(status, final);
 
-    _set_preproc_node_rect_params(node, crop, input_size);
+    _set_preproc_node_rect_params(node, crop, input_size, source_format);
     _set_preproc_node_norm_params(node, mean_and_scale, &org_norm_tensor->attr);
 
     if(permute != NULL)

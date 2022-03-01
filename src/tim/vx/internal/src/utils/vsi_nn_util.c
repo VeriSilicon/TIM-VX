@@ -23,6 +23,7 @@
 *****************************************************************************/
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <math.h>
 #include <fcntl.h>
@@ -103,6 +104,69 @@ _compiler_assert(VX_STATUS_MIN == -25, VX_STATUS_VALUE_CHANGED);
 
 static const int16_t vx_status_desc_cnt = _cnt_of_array( vx_status_desc );
 
+char* vsi_nn_strncpy
+    (
+    char* dest,
+    const char* source,
+    size_t count
+    )
+{
+    char* ret = NULL;
+    #ifdef _MSC_VER
+        strncpy_s(dest, count, source, _TRUNCATE);
+    #else
+        strncpy(dest, source, count);
+    #endif
+    return ret;
+}
+
+char* vsi_nn_strncat
+    (
+    char* dest,
+    const char* source,
+    size_t count
+    )
+{
+    char* ret = NULL;
+    #ifdef _MSC_VER
+        strncat_s(dest, count, source, _TRUNCATE);
+        ret = dest;
+    #else
+        ret = strncat(dest, source, count);
+    #endif
+    return ret;
+}
+
+char* vsi_nn_getenv
+    (
+    const char * var_name
+    )
+{
+    char* var = NULL;
+    #ifdef _MSC_VER
+        size_t var_size = 0;
+        _dupenv_s(&var, &var_size, var_name);
+    #else
+        var = getenv(var_name);
+    #endif
+    return var;
+};
+
+FILE* vsi_nn_fopen
+    (
+    const char * file_name,
+    const char * mode
+    )
+{
+    FILE * file = NULL;
+    #ifdef _MSC_VER
+        fopen_s(&file, file_name, mode);
+    #else
+        file = fopen(file_name, mode);
+    #endif
+    return file;
+}
+
 static vsi_size_t _compute_stride_rounding
     (
     vsi_size_t out,
@@ -148,7 +212,7 @@ uint8_t * vsi_nn_LoadBinaryData
     vsi_size_t      cnt;
     FILE      * fp;
 
-    fp = fopen( filename, "rb" );
+    fp = vsi_nn_fopen( filename, "rb" );
     if( NULL == fp )
     {
         return NULL;
@@ -867,21 +931,21 @@ void vsi_nn_FormatToString
 {
     switch(tensor->attr.dtype.vx_type)
     {
-    case VSI_NN_TYPE_INT4:strncpy(buf,  "i4 ",  buf_sz);break;
-    case VSI_NN_TYPE_INT8:strncpy(buf,  "i8 ",  buf_sz);break;
-    case VSI_NN_TYPE_INT16:strncpy(buf, "i16", buf_sz);break;
-    case VSI_NN_TYPE_INT32:strncpy(buf, "i32", buf_sz);break;
-    case VSI_NN_TYPE_INT64:strncpy(buf, "i64", buf_sz);break;
-    case VSI_NN_TYPE_UINT4:strncpy(buf,  "u4 ",  buf_sz);break;
-    case VSI_NN_TYPE_UINT8:strncpy(buf,  "u8 ",  buf_sz);break;
-    case VSI_NN_TYPE_UINT16:strncpy(buf, "u16", buf_sz);break;
-    case VSI_NN_TYPE_UINT32:strncpy(buf, "u32", buf_sz);break;
-    case VSI_NN_TYPE_UINT64:strncpy(buf, "u64", buf_sz);break;
-    case VSI_NN_TYPE_FLOAT16:strncpy(buf, "f16", buf_sz);break;
-    case VSI_NN_TYPE_FLOAT32:strncpy(buf, "f32", buf_sz);break;
-    case VSI_NN_TYPE_FLOAT64:strncpy(buf, "f64", buf_sz);break;
-    case VSI_NN_TYPE_BFLOAT16:strncpy(buf, "bf16", buf_sz);break;
-    case VSI_NN_TYPE_BOOL8:strncpy(buf, "bool8", buf_sz);break;
+    case VSI_NN_TYPE_INT4:vsi_nn_strncpy(buf,  "i4 ",  buf_sz);break;
+    case VSI_NN_TYPE_INT8:vsi_nn_strncpy(buf,  "i8 ",  buf_sz);break;
+    case VSI_NN_TYPE_INT16:vsi_nn_strncpy(buf, "i16", buf_sz);break;
+    case VSI_NN_TYPE_INT32:vsi_nn_strncpy(buf, "i32", buf_sz);break;
+    case VSI_NN_TYPE_INT64:vsi_nn_strncpy(buf, "i64", buf_sz);break;
+    case VSI_NN_TYPE_UINT4:vsi_nn_strncpy(buf,  "u4 ",  buf_sz);break;
+    case VSI_NN_TYPE_UINT8:vsi_nn_strncpy(buf,  "u8 ",  buf_sz);break;
+    case VSI_NN_TYPE_UINT16:vsi_nn_strncpy(buf, "u16", buf_sz);break;
+    case VSI_NN_TYPE_UINT32:vsi_nn_strncpy(buf, "u32", buf_sz);break;
+    case VSI_NN_TYPE_UINT64:vsi_nn_strncpy(buf, "u64", buf_sz);break;
+    case VSI_NN_TYPE_FLOAT16:vsi_nn_strncpy(buf, "f16", buf_sz);break;
+    case VSI_NN_TYPE_FLOAT32:vsi_nn_strncpy(buf, "f32", buf_sz);break;
+    case VSI_NN_TYPE_FLOAT64:vsi_nn_strncpy(buf, "f64", buf_sz);break;
+    case VSI_NN_TYPE_BFLOAT16:vsi_nn_strncpy(buf, "bf16", buf_sz);break;
+    case VSI_NN_TYPE_BOOL8:vsi_nn_strncpy(buf, "bool8", buf_sz);break;
     default:
         break;
     }
@@ -1199,6 +1263,8 @@ int32_t vsi_nn_get_tensor_zero_point
     switch (tensor->attr.dtype.qnt_type)
     {
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
+            zero_point = 0;
+            break;
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
             zero_point = tensor->attr.dtype.zero_point;
             break;
@@ -1226,7 +1292,14 @@ void vsi_nn_get_tensor_clamp_min_max
     }
     else if (vx_type == VSI_NN_TYPE_INT8)
     {
-        *clampMin = -128 - zero_point;
+        if (input->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC)
+        {
+            *clampMin = -127 - zero_point;
+        }
+        else
+        {
+            *clampMin = -128 - zero_point;
+        }
         *clampMax = 127 - zero_point;
     }
     else if (vx_type == VSI_NN_TYPE_INT16)

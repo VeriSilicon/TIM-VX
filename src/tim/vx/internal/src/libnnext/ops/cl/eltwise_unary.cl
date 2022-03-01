@@ -3,6 +3,11 @@ float eltwise_unary_sin(float x, float alpha, float beta)
     return native_sin(x);
 }
 
+float eltwise_unary_cos(float x, float alpha, float beta)
+{
+    return native_cos(x);
+}
+
 #define logE        (1.44269502f)
 #define twoLogE     (logE * 2.0f)
 float eltwise_unary_exp(float x, float alpha, float beta)
@@ -135,6 +140,7 @@ __kernel void func_name##_F32toF32 \
     write_imagef(output, coord, dst.xxxx); \
 }
 ELTWISE_UNARY_F32(sin)
+ELTWISE_UNARY_F32(cos)
 ELTWISE_UNARY_F32(exp)
 ELTWISE_UNARY_F32(log)
 ELTWISE_UNARY_F32(elu)
@@ -168,6 +174,7 @@ __kernel void func_name##_F32toF32_2D \
     write_imagef(output, coord, dst.xxxx); \
 }
 ELTWISE_UNARY_F32_2D(sin)
+ELTWISE_UNARY_F32_2D(cos)
 ELTWISE_UNARY_F32_2D(exp)
 ELTWISE_UNARY_F32_2D(log)
 ELTWISE_UNARY_F32_2D(elu)
@@ -202,6 +209,7 @@ __kernel void func_name##_U8toU8 \
     write_imageui(output, coord, dst); \
 }
 ELTWISE_UNARY_U8(sin)
+ELTWISE_UNARY_U8(cos)
 ELTWISE_UNARY_U8(exp)
 ELTWISE_UNARY_U8(log)
 ELTWISE_UNARY_U8(elu)
@@ -236,6 +244,7 @@ __kernel void func_name##_U8toU8_2D \
     write_imageui(output, coord, dst); \
 }
 ELTWISE_UNARY_U8_2D(sin)
+ELTWISE_UNARY_U8_2D(cos)
 ELTWISE_UNARY_U8_2D(exp)
 ELTWISE_UNARY_U8_2D(log)
 ELTWISE_UNARY_U8_2D(elu)

@@ -301,6 +301,7 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
         case _PACK_SELECT_KEY( I8, I8):
         case _PACK_SELECT_KEY( I16, I16):
         case _PACK_SELECT_KEY( F16, F16):
+        case _PACK_SELECT_KEY( BF16, BF16):
             {
                 gpu_quantize_multiplier_16bit( (double)src0Scale / dstScale, &M0, &postShift);
                 multAndoutZP0[0] = (uint32_t)(M0);
@@ -366,6 +367,16 @@ static vsi_status _query_kernel
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    if (input0_dtype == BF16)
+    {
+        input0_dtype = F16;
+    }
+
+    if (output_dtype == BF16)
+    {
+        output_dtype = F16;
+    }
 
     key = HASH_DEPTH2SPACE_CRD_KEY( input0_dtype, output_dtype, blk_flg );
 

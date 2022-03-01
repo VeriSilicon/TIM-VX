@@ -54,7 +54,7 @@ static void _try_open_file
         VSILOGW( "File handle is not NULL." );
         fclose( *fp );
     }
-    *fp = fopen( file_path, mode );
+    *fp = vsi_nn_fopen( file_path, mode );
     if( NULL == *fp )
     {
         VSILOGE( "Open file %s fail.", file_path );
@@ -437,6 +437,9 @@ static _op_param_gen_t s_op_gen[] =
     /* GRUCELL_ACTIVATION */    NULL,
     /* RESHAPE2 */              NULL,
     /* CONV3D */                NULL,
+    /* DECONV3D */              NULL,
+    /* PAD2 */                  NULL,
+    /* COS */                   NULL,
 };
 _compiler_assert( _cnt_of_array(s_op_gen) == VSI_NN_OP_NUM, vsi_nn_code_generator_c );
 
@@ -557,4 +560,3 @@ void vsi_nn_GenGraphCCode
     _try_close_file( &s_dfile_hndl );
     _try_close_file( &s_net_file_hndl );
 } /* vsi_nn_GenGraphCCode() */
-

@@ -24,14 +24,18 @@
 
 #ifndef _VSI_NN_LOG_H
 #define _VSI_NN_LOG_H
-#include <stdio.h>
+
+#include "utils/vsi_nn_util.h"
 
 #if defined(__cplusplus)
 extern "C"{
 #endif
 
 #ifdef _MSC_VER
-#define snprintf _snprintf
+#define snprintf(buffer, count, format, ...) \
+    _snprintf_s(buffer, count, _TRUNCATE, format, ##__VA_ARGS__)
+#define vsnprintf(buffer, count, format, args) \
+    _vsnprintf_s(buffer, count, _TRUNCATE, format, args)
 #endif
 
 typedef enum _vsi_nn_log_level_e
@@ -68,4 +72,3 @@ OVXLIB_API void vsi_nn_LogMsg
 #endif
 
 #endif
-

@@ -203,3 +203,91 @@ __kernel void one_hot_##name0##to##name1##_2D \
 ONE_HOT_ASYM_SH_IMPL_2D(U8,  F16, vxc_uchar8,  vxc_uchar8, vxc_ushort8)
 ONE_HOT_ASYM_SH_IMPL_2D(U8,  U8,  vxc_uchar8,  vxc_uchar8, vxc_uchar8)
 
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+__kernel void one_hot_BF16toBF16
+    (
+    __read_only  image2d_array_t input,
+    __write_only image2d_array_t output,
+                 int             suffix_sz,
+                 int             on_val,
+                 int             off_val
+    )
+{
+    int4 coord =  (int4)(get_global_id(0), 0, get_global_id(0), get_global_id(0));
+
+    vxc_ushort8 src0, src1;
+    vxc_ushort8 val;
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);
+
+    VXC_ReadImage(val, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+    float4 vec0, vec1;
+    VXC_DP2x8(src0, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);
+    _viv_asm(COPY, vec0, src0, 16);
+    VXC_DP2x8(src1, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, vec1, src1, 16);
+    int4 data0 = convert_int4(vec0);
+    int4 data1 = convert_int4(vec1);
+
+    do
+    {
+        int4 d0 = data0 == coord.zzzz ? on_val : off_val;
+        int4 d1 = data1 == coord.zzzz ? on_val : off_val;
+
+        vxc_short8 dst;
+        VXC_DP2x8(dst, d0, d1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+
+        VXC_WriteImage2DArray(output, coord.xzyw, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+
+        coord.z ++;
+    } while (coord.z < depth);
+}
+
+__kernel void one_hot_BF16toBF16_2D
+    (
+    __read_only  image2d_array_t input,
+    __write_only image2d_array_t output,
+                 int             suffix_sz,
+                 int             on_val,
+                 int             off_val
+    )
+{
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), 0, 0);
+
+    vxc_ushort8 src0, src1;
+    vxc_ushort8 val;
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);
+
+    VXC_ReadImage(val, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+    float4 vec0;
+    VXC_DP2x8(src0, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);
+    _viv_asm(COPY, vec0, src0, 16);
+    int4 data = convert_int4(vec0);
+    int4 data0, data1;
+    int4 d4 = (int4)(0, 1, 2, 3);
+    do
+    {
+        coord.zw = coord.xx + (int2)(0, 1);
+        vxc_short8 dst;
+        data0 = data.xxxx == d4 ? on_val : off_val;
+        data1 = data.yyyy == d4 ? on_val : off_val;
+
+        VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+
+        VXC_WriteImage(output, coord.yz, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
+        VXC_WriteImage(output, coord.yw, dst, VXC_MODIFIER(4, 7, 0,VXC_RM_TowardZero, 0));
+        coord.zw = coord.zw + (int2)(2, 2);
+
+        data0 = data.zzzz == d4 ? on_val : off_val;
+        data1 = data.wwww == d4 ? on_val : off_val;
+
+        VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+
+        VXC_WriteImage(output, coord.yz, dst, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
+        VXC_WriteImage(output, coord.yw, dst, VXC_MODIFIER(4, 7, 0,VXC_RM_TowardZero, 0));
+        d4 += 4;
+        coord.y += 4;
+    } while (coord.y < depth);
+}

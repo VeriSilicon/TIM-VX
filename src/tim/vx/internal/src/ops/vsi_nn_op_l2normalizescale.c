@@ -45,7 +45,6 @@
 
 #define VSI_NN_L2NORMALIZESCALE_DEFAULT_AXIS 2
 
-
 static vsi_nn_tensor_t* _expand_scale_tensor
     (
     vsi_nn_graph_t  *graph,
@@ -84,7 +83,7 @@ static vsi_nn_tensor_t* _expand_scale_tensor
     attr.size[0] = scale_size_out;
     attr.size[1] = 1;
     attr.dim_num = 2;
-    out_dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+    attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
     attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
     attr.vtl = FALSE;
     scale_tensor = vsi_nn_CreateTensor(graph, &attr);
@@ -114,7 +113,6 @@ final:
 
     return scale_tensor;
 }
-
 
 static vsi_bool _check_value_is_equal_to_one
     (
@@ -429,4 +427,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-
