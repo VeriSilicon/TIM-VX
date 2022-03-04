@@ -1,4 +1,5 @@
 add_subdirectory("benchmark_test")
+add_subdirectory("custom_op_test")
 add_subdirectory("lenet")
 if(${TIM_VX_ENABLE_VIPLITE})
     add_subdirectory("lenet_lite")

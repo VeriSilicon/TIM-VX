@@ -35,6 +35,8 @@ class OpImpl {
  public:
   OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
          DataLayout layout);
+  OpImpl(Graph* graph, DataLayout layout);
+
   virtual ~OpImpl() = default;
   virtual OpImpl& BindInput(const std::shared_ptr<Tensor>& tensor) = 0;
   virtual OpImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) = 0;

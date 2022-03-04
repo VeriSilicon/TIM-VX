@@ -105,6 +105,8 @@ if(TIM_VX_ENABLE_TEST)
     target_include_directories(unit_test PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
+        ${OVXLIB_INCLUDE_DIR}
+        ${INC_DIRS}
     )
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})

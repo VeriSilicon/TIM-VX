@@ -21,22 +21,16 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "op_impl.h"
+#include "custom_gemm.h"
 
 namespace tim {
 namespace vx {
+namespace ops {
 
-OpImpl::OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
-               DataLayout layout)
-    : graph_(reinterpret_cast<GraphImpl*>(graph)),
-      kind_(kind),
-      input_cnt_(input_cnt),
-      output_cnt_(output_cnt),
-      layout_(layout) {}
+const char* CustomGemm::kernel_name_ = "xxxx_name12345";
+int32_t CustomGemm::kernel_id_ = -1 * (++gobal_kernel_id_);
 
-OpImpl::OpImpl(Graph* graph, DataLayout layout)
-      : graph_(reinterpret_cast<GraphImpl*>(graph)),
-      layout_(layout) {}
 
+}  // namespace ops
 }  // namespace vx
 }  // namespace tim
