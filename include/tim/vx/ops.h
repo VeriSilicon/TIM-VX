@@ -85,5 +85,6 @@
 #include "tim/vx/ops/unidirectional_sequence_lstm.h"
 #include "tim/vx/ops/unstack.h"
 #include "tim/vx/ops/conv3d.h"
+#include "tim/vx/ops/custom_base.h"
 
 #endif /* TIM_VX_OPS_H_ */

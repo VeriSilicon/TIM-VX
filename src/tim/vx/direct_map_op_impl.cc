@@ -36,6 +36,10 @@ DirectMapOpImpl::DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt,
   node_->uid = graph_->graph()->cur_nid;
 }
 
+DirectMapOpImpl::DirectMapOpImpl(Graph* graph,DataLayout layout)
+    : OpImpl(graph, layout){}
+
+
 DirectMapOpImpl& DirectMapOpImpl::BindInput(
     const std::shared_ptr<Tensor>& tensor) {
   inputs_tensor_.push_back(tensor);
@@ -70,6 +74,17 @@ void DirectMapOpImpl::SetRoundingPolicy(OverflowPolicy overflow_policy,
       TranslateDownScaleSizeRounding(down_scale_size_rounding);
   node_->vx_param.accumulator_bits = accumulator_bits;
 }
+
+CustomOpBaseImpl::CustomOpBaseImpl(Graph* graph, uint32_t operation_id, const void* proc,
+                   const char* kernel_name, DataLayout layout)
+    : DirectMapOpImpl(graph, layout) {
+    op_proc_ = proc;
+    vsi_nn_node_t* node = vsi_nn_AddExternalNode(graph_->graph(), operation_id,
+                                                 proc, NULL, kernel_name);
+    node->uid = graph_->graph()->cur_nid;
+    SetNode(node);
+    SetRoundingPolicy();
+  };
 
 }  // namespace vx
 }  // namespace tim
