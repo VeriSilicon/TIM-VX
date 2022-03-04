@@ -34,16 +34,16 @@ namespace vx {
 
 class DirectMapOpImpl : public OpImpl {
  public:
-  // DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt = 0,
-  //               int output_cnt = 0);
   DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt = 0,
                   int output_cnt = 0, DataLayout layout = DataLayout::ANY);
+  DirectMapOpImpl(Graph* graph,DataLayout layout = DataLayout::ANY);
   ~DirectMapOpImpl() {}
 
   DirectMapOpImpl& BindInput(const std::shared_ptr<Tensor>& tensor) override;
   DirectMapOpImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) override;
 
   vsi_nn_node_t* node() override { return this->node_; }
+  void SetNode(vsi_nn_node_t* node) {this->node_ = node; }
 
   void SetRoundingPolicy(
       OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
@@ -60,6 +60,14 @@ class DirectMapOpImpl : public OpImpl {
 
  protected:
   vsi_nn_node_t* node_{nullptr};
+};
+
+class CustomOpBaseImpl : public DirectMapOpImpl {
+ public:
+  CustomOpBaseImpl(Graph* graph, uint32_t operation_id, const void* proc,
+                   const char* kernel_name, DataLayout layout = DataLayout::ANY);
+  protected:
+  const void* op_proc_;
 };
 
 }  // namespace vx
