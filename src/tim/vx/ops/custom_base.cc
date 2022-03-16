@@ -95,7 +95,7 @@ vsi_bool op_setup(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
 vsi_bool op_compute(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
                     vsi_nn_tensor_t** outputs) {
   vsi_status status = VSI_FAILURE;
-  auto kernel = vsi_nn_kernel_create(VSI_NN_KERNEL_TYPE_CL);
+  auto kernel = vsi_nn_KernelCreate(VSI_NN_KERNEL_TYPE_CL);
   CustomOpBase* op_this =
       reinterpret_cast<CustomOpBase*>(self->nn_param.client_param);
 
@@ -149,18 +149,18 @@ vsi_bool op_compute(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
   kernel->info.initialize =
       reinterpret_cast<vx_kernel_initialize_f>(op_this->init_kernel_);
 
-  vsi_nn_kernel_add_source(kernel, VSI_NN_GPU_SOURCE_FMT_EXECUTABLE, 1,
+  vsi_nn_KernelAddSource(kernel, VSI_NN_GPU_SOURCE_FMT_EXECUTABLE, 1,
                            "executable_name");
 
-  vsi_nn_kernel_add_source(kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 2, "helper",
+  vsi_nn_KernelAddSource(kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 2, "helper",
                            "fmt_code_name");
 
   const char* tmp[] = {"", op_this->kernel_resource_};
   const char** resource = tmp;
 
-  vsi_nn_kernel_add_build_option(kernel, build_option.c_str());
+  vsi_nn_KernelAddBuildOption(kernel, build_option.c_str());
 
-  auto node = vsi_nn_kernel_create_node_ext(self->graph, kernel, resource);
+  auto node = vsi_nn_KernelCreateNodeExt(self->graph, kernel, resource);
   if (node) {
     vsi_nn_kernel_node_param_t node_params[param_num] = {NULL};
     vsi_nn_kernel_node_pack_io(node_params, param_num, inputs,
@@ -170,22 +170,22 @@ vsi_bool op_compute(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
     uint32_t input_start = op_this->input_num_ + op_this->output_num_;
     for (uint32_t i = 0; i < op_this->param_list_.size(); i++) {
       if (op_this->param_list_[i].type == tim::vx::DataType::FLOAT32) {
-        node_params[input_start++] = vsi_nn_kernel_scalar_create(
+        node_params[input_start++] = vsi_nn_kernelScalarCreate(
             self->graph, F32, &(op_this->param_list_[i].data.f));
       } else if (op_this->param_list_[i].type == tim::vx::DataType::UINT32) {
-        node_params[input_start++] = vsi_nn_kernel_scalar_create(
+        node_params[input_start++] = vsi_nn_kernelScalarCreate(
             self->graph, U32, &(op_this->param_list_[i].data.ui));
       } else if (op_this->param_list_[i].type == tim::vx::DataType::INT32) {
-        node_params[input_start++] = vsi_nn_kernel_scalar_create(
+        node_params[input_start++] = vsi_nn_kernelScalarCreate(
             self->graph, I32, &(op_this->param_list_[i].data.i));
       } else if (op_this->param_list_[i].type == tim::vx::DataType::BOOL8) {
-        node_params[input_start++] = vsi_nn_kernel_scalar_create(
+        node_params[input_start++] = vsi_nn_kernelScalarCreate(
             self->graph, BOOL8, &(op_this->param_list_[i].data.b));
       }else if (op_this->param_list_[i].type == tim::vx::DataType::UINT8) {
-        node_params[input_start++] = vsi_nn_kernel_scalar_create(
+        node_params[input_start++] = vsi_nn_kernelScalarCreate(
             self->graph, U8, &(op_this->param_list_[i].data.b));
       } else if (op_this->param_list_[i].type == tim::vx::DataType::INT8) {
-        node_params[input_start++] = vsi_nn_kernel_scalar_create(
+        node_params[input_start++] = vsi_nn_kernelScalarCreate(
             self->graph, I8, &(op_this->param_list_[i].data.b));
       } else{
           std::cout << "Can not find scalar type in op compute" << std::endl;
@@ -194,7 +194,7 @@ vsi_bool op_compute(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
     }
 
     input_start = op_this->input_num_ + op_this->output_num_;
-    status = vsi_nn_kernel_node_pass_param(node, node_params, param_num);
+    status = vsi_nn_KernelNodePassParam(node, node_params, param_num);
     for (uint32_t i = 0; i < param_num; i++) {
       vsi_nn_kernel_scalar_release(&node_params[input_start + i]);
     }
@@ -240,7 +240,7 @@ vx_status derive_kernel_init(vx_node node, const vx_reference* param,
   gpu_param.local_size[0] = local_size[0];
   gpu_param.local_size[1] = local_size[1];
   gpu_param.local_size[2] = local_size[2];
-  status = vsi_nn_kernel_gpu_config(node, &gpu_param);
+  status = vsi_nn_KernelGpuConfig(node, &gpu_param);
 
   return status;
 }

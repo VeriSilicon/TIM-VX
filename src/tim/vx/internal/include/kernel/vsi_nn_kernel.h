@@ -1018,6 +1018,60 @@ vsi_nn_tensor_t* vsi_nn_merge_input_zeropoint_to_bias
     vsi_nn_tensor_t * bias
     );
 
+void vsi_nn_kernel_add_source_internal
+    (
+        vsi_nn_kernel_t * kernel,
+        vsi_nn_gpu_source_fmt_e fmt,
+        size_t source_num,
+        va_list args
+    );
+
+OVXLIB_API vsi_nn_kernel_t * vsi_nn_KernelCreate
+    (
+    vsi_nn_kernel_type_e type
+    );
+
+OVXLIB_API void vsi_nn_KernelAddSource
+    (
+    vsi_nn_kernel_t * kernel,
+    vsi_nn_gpu_source_fmt_e fmt,
+    size_t source_num,
+    ...
+    );
+
+OVXLIB_API void vsi_nn_KernelAddBuildOption
+    (
+    vsi_nn_kernel_t * kernel,
+    const char * option
+    );
+
+OVXLIB_API vsi_status vsi_nn_KernelNodePassParam
+    (
+    vsi_nn_kernel_node_t node,
+    vsi_nn_kernel_node_param_t * params,
+    size_t num
+    );
+
+OVXLIB_API vsi_nn_kernel_node_t  vsi_nn_KernelCreateNodeExt
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_kernel_t * kernel,
+    const char** resources
+    );
+
+OVXLIB_API vsi_nn_kernel_scalar_t vsi_nn_kernelScalarCreate
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_kernel_dtype_e dtype,
+    const void * data
+    );
+
+OVXLIB_API vsi_status vsi_nn_KernelGpuConfig
+    (
+    vsi_nn_kernel_node_t node,
+    const gpu_param_t * gpu_param
+    );
+
 static inline const char* vsi_nn_kernel_type_str
     (
     vsi_nn_kernel_type_e type

@@ -1051,54 +1051,10 @@ void vsi_nn_kernel_add_source
     ...
     )
 {
-    va_list arg;
-    size_t i;
-    vsi_nn_kernel_source_info_t* source;
-    if( source_num == 0 )
-    {
-        return;
-    }
-    if( fmt >= VSI_NN_GPU_SOURCE_FMT_NUM )
-    {
-        VSILOGE("Unknown source type %d", fmt);
-        return;
-    }
-    if( kernel->gpu.sources[fmt].data )
-    {
-        VSILOGE("Kernel source %d has been attached!", fmt);
-        return;
-    }
-    source = &(kernel->gpu.sources[fmt]);
-    va_start( arg, source_num );
-    if( source_num > 0 )
-    {
-        const size_t mem_size = sizeof(vsi_nn_kernel_source_t) * source_num;
-        source->data = (vsi_nn_kernel_source_t*)malloc( mem_size );
-        if( !source->data )
-        {
-            VSILOGE("Out of memory, create kernel source fail.");
-            return;
-        }
-        memset( source->data, 0, mem_size );
-    }
-    for( i = 0; i < source_num; i ++ )
-    {
-        vsi_nn_kernel_source_t src = va_arg( arg, vsi_nn_kernel_source_t );
-        size_t size = strlen( src );
-        source->data[i] = (vsi_nn_kernel_source_t)malloc( size * sizeof(char) + 1 );
-        if( source->data[i] )
-        {
-            memcpy( source->data[i], src, size );
-            source->data[i][size] = 0;
-        }
-        else
-        {
-            VSILOGE("Malloc source memory fail.");
-            return;
-        }
-    }
-    source->num = source_num;
-    va_end(arg);
+    va_list args;
+    va_start( args, source_num );
+    vsi_nn_kernel_add_source_internal( kernel, fmt, source_num, args );
+    va_end( args );
 } /* vsi_nn_kernel_add_source() */
 
 void vsi_nn_kernel_add_build_option
@@ -1553,6 +1509,128 @@ vsi_status vsi_nn_kernel_pirority_set
     }
     return status;
 } /* vsi_nn_kernel_pirority_set() */
+
+vsi_nn_kernel_t * vsi_nn_KernelCreate(vsi_nn_kernel_type_e type)
+{
+    return vsi_nn_kernel_create(type);
+}/* vsi_nn_KernelCreate() */
+
+void vsi_nn_kernel_add_source_internal
+    (
+        vsi_nn_kernel_t * kernel,
+        vsi_nn_gpu_source_fmt_e fmt,
+        size_t source_num,
+        va_list args
+    )
+{
+    size_t i;
+    vsi_nn_kernel_source_info_t* source;
+    if( source_num == 0 )
+    {
+        return;
+    }
+    if( fmt >= VSI_NN_GPU_SOURCE_FMT_NUM )
+    {
+        VSILOGE("Unknown source type %d", fmt);
+        return;
+    }
+    if( kernel->gpu.sources[fmt].data )
+    {
+        VSILOGE("Kernel source %d has been attached!", fmt);
+        return;
+    }
+    source = &(kernel->gpu.sources[fmt]);
+    if( source_num > 0 )
+    {
+        const size_t mem_size = sizeof(vsi_nn_kernel_source_t) * source_num;
+        source->data = (vsi_nn_kernel_source_t*)malloc( mem_size );
+        if( !source->data )
+        {
+            VSILOGE("Out of memory, create kernel source fail.");
+            return;
+        }
+        memset( source->data, 0, mem_size );
+    }
+    for( i = 0; i < source_num; i ++ )
+    {
+        vsi_nn_kernel_source_t src = va_arg( args, vsi_nn_kernel_source_t );
+        size_t size = strlen( src );
+        source->data[i] = (vsi_nn_kernel_source_t)malloc( size * sizeof(char) + 1 );
+        if( source->data[i] )
+        {
+            memcpy( source->data[i], src, size );
+            source->data[i][size] = 0;
+        }
+        else
+        {
+            VSILOGE("Malloc source memory fail.");
+            return;
+        }
+    }
+    source->num = source_num;
+}/* vsi_nn_kernel_add_source_internal() */
+
+void vsi_nn_KernelAddSource
+    (
+    vsi_nn_kernel_t * kernel,
+    vsi_nn_gpu_source_fmt_e fmt,
+    size_t source_num,
+    ...
+    )
+{
+    va_list args;
+    va_start( args, source_num);
+    vsi_nn_kernel_add_source_internal( kernel, fmt, source_num, args );
+    va_end( args );
+}/* vsi_nn_KernelAddSource() */
+
+void vsi_nn_KernelAddBuildOption
+    (
+    vsi_nn_kernel_t * kernel,
+    const char * option
+    )
+{
+    vsi_nn_kernel_add_build_option( kernel, option );
+}/* vsi_nn_KernelAddBuildOption() */
+
+vsi_status vsi_nn_KernelNodePassParam
+    (
+    vsi_nn_kernel_node_t node,
+    vsi_nn_kernel_node_param_t * params,
+    size_t num
+    )
+{
+    return vsi_nn_kernel_node_pass_param( node, params, num );
+}/* vsi_nn_KernelNodePassParam() */
+
+vsi_nn_kernel_node_t  vsi_nn_KernelCreateNodeExt
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_kernel_t * kernel,
+    const char** resources
+    )
+{
+    return vsi_nn_kernel_create_node_ext( graph, kernel, resources );
+}/* vsi_nn_KernelCreateNodeExt() */
+
+vsi_nn_kernel_scalar_t vsi_nn_kernelScalarCreate
+    (
+    vsi_nn_graph_t * graph,
+    vsi_nn_kernel_dtype_e dtype,
+    const void * data
+    )
+{
+    return vsi_nn_kernel_scalar_create( graph, dtype, data );
+}/* vsi_nn_kernelScalarCreate() */
+
+vsi_status vsi_nn_KernelGpuConfig
+    (
+    vsi_nn_kernel_node_t node,
+    const gpu_param_t * gpu_param
+    )
+{
+    return vsi_nn_kernel_gpu_config( node, gpu_param );
+}/* vsi_nn_KernelGpuConfig() */
 
 static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
 {
