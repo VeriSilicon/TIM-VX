@@ -28,6 +28,9 @@ Feel free to raise a github issue if you wish to add TIM-VX for other frameworks
 
 ![TIM-VX Architecture](docs/image/timvx_overview.svg)
 
+
+## Technical documents
+*   [Add customized operator](docs/customized_op.md)
 # Get started
 
 ## Build and Run
