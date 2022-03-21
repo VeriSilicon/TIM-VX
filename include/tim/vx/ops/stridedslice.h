@@ -32,7 +32,7 @@ namespace ops {
 /**
  * ## StridedSlice
  *
- * Extracts a strided slice of a tensor.
+ * Extracts a strided slice of a tensor.Same as tensorflow.
  *
  * Roughly speaking, this op extracts a slice of size (end - begin) / stride from
  * the given input tensor. Starting at the location specified by begin the slice
