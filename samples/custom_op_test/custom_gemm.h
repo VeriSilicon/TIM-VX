@@ -31,20 +31,32 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-//scalar param for kernel function input
-using DeriveParmaTuple = std::tuple<int, int, int, int, int, float, float,
-                                    float, float, float, float>;
+
 
 class CustomGemm : public CustomOpBase {
  public:
+  //scalar param for kernel function input
+  using ParamTuple = std::tuple<int,   /* M */
+                                      int,   /* K */
+                                      int,   /* N */
+                                      int,   /* ac2zero */
+                                      int,   /* bc2zero */
+                                      float, /* scale_a */
+                                      float, /* zp_a */
+                                      float, /* scale_b */
+                                      float, /* zp_b */
+                                      float, /* scale_out */
+                                      float  /* zp_out */
+                                      >;
   CustomGemm(Graph* graph, bool trans_a, bool trans_b,
-                 DeriveParmaTuple tuple_list,
-                 uint32_t input_num = 2, uint32_t output_num = 1)
-      : CustomOpBase(graph, input_num, output_num,
-                     CustomGemm::kernel_id_, CustomGemm::kernel_name_),
-                    trans_a_(trans_a),trans_b_(trans_b) {
+             ParamTuple tuple_list, uint32_t input_num = 2,
+             uint32_t output_num = 1)
+      : CustomOpBase(graph, input_num, output_num, CustomGemm::kernel_id_,
+                     CustomGemm::kernel_name_),
+        trans_a_(trans_a),
+        trans_b_(trans_b) {
     tuple_list_.swap(tuple_list);
-    transform_tuple_to_param_list(tuple_list_, param_list_);
+    param_transform(tuple_list_, param_list_);
 
     kernel_resource_ =
         "__kernel void gemm_F32F32toF32_2D(\n\
@@ -87,14 +99,14 @@ class CustomGemm : public CustomOpBase {
  protected:
   const char* kernel_NotTransA_NotTransB = "gemm_F32F32toF32_2D";
   const char* kernel_TransA_NotTransB = ".....";
-  DeriveParmaTuple tuple_list_;
+  ParamTuple tuple_list_;
   bool trans_a_;
   bool trans_b_;
   static const char* kernel_name_;
   static int32_t kernel_id_;
 
   //function for setup output
-  void setup_output_shape_info() override {
+  void SetupShapeInfor() override {
     if (!trans_a_ && !trans_a_) {
       outputs_size_[0].push_back(inputs_size_[0][1]);
       outputs_size_[0].push_back(inputs_size_[1][0]);
@@ -105,7 +117,7 @@ class CustomGemm : public CustomOpBase {
   }
 
   //function for kernel select and build option
-  void extract_parameter_and_register(
+  void SetupParams(
       std::vector<tim::vx::DataType> input_types,
       std::string& build_option) override {
     if (trans_a_ == false &&
@@ -115,16 +127,13 @@ class CustomGemm : public CustomOpBase {
       func_name_ = kernel_NotTransA_NotTransB;
       build_option = "";
     } else {
-      //other situation: named func_name_ and setup param_list
-      //func_name_ = "......";
-      //std::get<2>(param_list) = ......
+      // other situation: named func_name_ and setup param_list
     }
-    return;
   }
 
   //function for kernel local size and gobal size
-  void setup_kernel_param(uint32_t& dim, std::vector<size_t>& global_size,
-                          std::vector<size_t>& local_size) {
+  void SetupEnqueue(uint32_t& dim, std::vector<size_t>& global_size,
+                    std::vector<size_t>& local_size) {
     dim = 3;
     local_size[0] = 0;
     local_size[1] = 0;

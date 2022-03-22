@@ -65,7 +65,7 @@ void custom_gemm_single_test(){
     a_tensor->CopyDataToTensor(a_data.data(), a_data.size() * sizeof(float));
     b_tensor->CopyDataToTensor(b_data.data(), b_data.size() * sizeof(float));
 
-    tim::vx::ops::DeriveParmaTuple tuple_list(2,6,6,0,0,1.0,0,1.0,0,1.0,0);
+    tim::vx::ops::CustomGemm::ParamTuple tuple_list(2,6,6,0,0,1.0,0,1.0,0,1.0,0);
 
     auto op = graph->CreateOperation<tim::vx::ops::CustomGemm>(
         false,false,tuple_list);
@@ -143,7 +143,7 @@ void custom_gemm_op_and_add_op_test(){
     auto op_add = graph->CreateOperation<tim::vx::ops::AddN>(2);
     (*op_add).BindInputs({a_tensor, b_tensor}).BindOutputs({c_tensor});
 
-    tim::vx::ops::DeriveParmaTuple tuple_list(2,6,6,0,0,1.0,0,1.0,0,1.0,0);
+    tim::vx::ops::CustomGemm::ParamTuple tuple_list(2,6,6,0,0,1.0,0,1.0,0,1.0,0);
 
     auto op_gemm = graph->CreateOperation<tim::vx::ops::CustomGemm>(
         false,false,tuple_list);
@@ -210,7 +210,7 @@ void custom_gemm_op_and_custom_gemm_op_test(){
     b_tensor->CopyDataToTensor(b_data.data(), b_data.size() * sizeof(float));
     d_tensor->CopyDataToTensor(d_data.data(), d_data.size() * sizeof(float));
 
-    tim::vx::ops::DeriveParmaTuple tuple_list(2,2,2,0,0,1.0,0,1.0,0,1.0,0);
+    tim::vx::ops::CustomGemm::ParamTuple tuple_list(2,2,2,0,0,1.0,0,1.0,0,1.0,0);
 
     auto op_gemm = graph->CreateOperation<tim::vx::ops::CustomGemm>(
         false,false,tuple_list);
