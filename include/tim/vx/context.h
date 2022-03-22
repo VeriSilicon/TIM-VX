@@ -29,7 +29,7 @@
 namespace tim {
 namespace vx {
 
-struct CompileOption;
+class CompileOption;
 class Graph;
 class Context {
  public:
