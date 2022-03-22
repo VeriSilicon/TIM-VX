@@ -88,7 +88,7 @@ vsi_bool op_setup(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
     op_this->inputs_size_.push_back(input_size);
   }
 
-  op_this->setup_output_shape_info();
+  op_this->SetupShapeInfor();
 
   for (uint32_t i = 0; i < op_this->outputs_size_.size(); i++) {
     outputs[i]->attr.dim_num = op_this->outputs_size_[i].size();
@@ -129,7 +129,7 @@ vsi_bool op_compute(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
   }
 
   std::string build_option;
-  op_this->extract_parameter_and_register(input_types, build_option);
+  op_this->SetupParams(input_types, build_option);
 
   snprintf(kernel->info.name, VX_MAX_KERNEL_NAME, "%s", op_this->func_name_);
   kernel->unique_id =
@@ -233,7 +233,7 @@ vx_status derive_kernel_init(vx_node node, const vx_reference* param,
 
   auto iter = node_base_map_.find(reinterpret_cast<void*>(node));
   if (iter != node_base_map_.end()) {
-    iter->second->setup_kernel_param(dim, global_size, local_size);
+    iter->second->SetupEnqueue(dim, global_size, local_size);
   } else {
     std::cout << "Something wrong in finding gpu param setup function"
               << std::endl;
