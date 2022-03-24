@@ -4,6 +4,21 @@
 ![Bazel.VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml/badge.svg)
 ![CMake.VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/cmake_x86_vsim_unit_test.yml/badge.svg)
 
+- [TIM-VX - Tensor Interface Module](#tim-vx---tensor-interface-module)
+  - [Framework Support](#framework-support)
+  - [Architecture Overview](#architecture-overview)
+  - [Technical documents](#technical-documents)
+- [Get started](#get-started)
+  - [Build and Run](#build-and-run)
+    - [cmake](#cmake)
+      - [Build with local google test source](#build-with-local-google-test-source)
+      - [Build for evk-boards](#build-for-evk-boards)
+      - [Important notice for integration](#important-notice-for-integration)
+    - [Bazel](#bazel)
+  - [Other](#other)
+- [Reference board](#reference-board)
+- [Support](#support)
+
 TIM-VX is a software integration module provided by VeriSilicon to facilitate deployment of Neural-Networks on Verisilicon ML accelerators. It serves as the backend binding for runtime frameworks such as Android NN, Tensorflow-Lite, MLIR, TVM and more.
 
 Main Features
@@ -28,6 +43,9 @@ Feel free to raise a github issue if you wish to add TIM-VX for other frameworks
 
 ![TIM-VX Architecture](docs/image/timvx_overview.svg)
 
+
+## Technical documents
+*   [Add customized operator](docs/customized_op.md)
 # Get started
 
 ## Build and Run
@@ -63,7 +81,7 @@ cmake options:
 |`TIM_VX_ENABLE_40BIT` | Enable large memory (over 4G) support in NPU driver | OFF |
 
 ----
-run unit test:
+Run unit test:
 
 ```shell
 cd host_build/src/tim
@@ -86,12 +104,15 @@ export DISABLE_IDE_DEBUG=1
 ```
 
 ----
-#### Build for your evk-board
+#### Build for evk-boards
 
 1. prepare toolchain file follow cmake standard
 2. make sure cross build low-level driver with toolchain separately, we need the sdk from the low-level driver
-3. add -DEXTERNAL_VIV_SDK=<low-level-driver/out/sdk> to cmake definitions, also remember -DCMAKE_TOOLCHAIN_FILE=<Your_Toolchain_Config>
-4. or for using a buildroot toolchain with extrnal VIV-SDK add: -DCONFIG=BUILDROOT -DCMAKE_SYSROOT=${CMAKE_SYSROOT} -DEXTERNAL_VIV_SDK=${BUILDROOT_SYSROOT}
+3. add ```-DEXTERNAL_VIV_SDK=<low-level-driver/out/sdk>``` to cmake definitions, also remember ```-DCMAKE_TOOLCHAIN_FILE=<Toolchain_Config>```
+4. or for using a buildroot toolchain with extrnal VIV-SDK add: 
+   ```cmake
+   -DCONFIG=BUILDROOT -DCMAKE_SYSROOT=${CMAKE_SYSROOT} -DEXTERNAL_VIV_SDK=${BUILDROOT_SYSROOT}
+   ```
 5. then make
 
 ----
@@ -130,11 +151,11 @@ To build and run TVM with TIM-VX, please see [TVM README](https://github.com/Ver
 
 # Reference board
 
-Chip | Vendor | References 
-:------    |:----- |:------
-i.MX 8M Plus | NXP | [ML Guide](https://www.nxp.com.cn/docs/en/user-guide/IMX-MACHINE-LEARNING-UG.pdf), [BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab)
-A311D | Khadas - VIM3 | [A311D datasheet](https://dl.khadas.com/Hardware/VIM3/Datasheet/A311D_Quick_Reference_Manual_01_Wesion.pdf), [BSP](https://dl.khadas.com/Firmware/VIM3/Ubuntu/EMMC/VIM3_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z)
+Chip | Vendor | References | Success Stories |
+:------    |:----- |:------ |:------
+i.MX 8M Plus | NXP | [ML Guide](https://www.nxp.com.cn/docs/en/user-guide/IMX-MACHINE-LEARNING-UG.pdf), [BSP](https://www.nxp.com/design/software/embedded-software/i-mx-software/embedded-linux-for-i-mx-applications-processors:IMXLINUX?tab=Design_Tools_Tab) | [SageMaker with 8MP](https://docs.aws.amazon.com/sagemaker/latest/dg/neo-supported-devices-edge.html)
+A311D | Khadas - VIM3 | [A311D datasheet](https://dl.khadas.com/Hardware/VIM3/Datasheet/A311D_Quick_Reference_Manual_01_Wesion.pdf), [BSP](https://dl.khadas.com/Firmware/VIM3/Ubuntu/EMMC/VIM3_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z) | [Paddle-lite demo](https://github.com/PaddlePaddle/Paddle-Lite/blob/develop/docs/demo_guides/verisilicon_timvx.md)
 S905D3 | Khadas - VIM3L | [S905D3](https://dl.khadas.com/Hardware/VIM3/Datasheet/S905D3_datasheet_0.2_Wesion.pdf) , [BSP](https://dl.khadas.com/Firmware/VIM3L/Ubuntu/EMMC/VIM3L_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z)
 
 # Support
-create issue on github or email to ML_Support@verisilicon.com
+Create issue on github or email to ML_Support@verisilicon.com

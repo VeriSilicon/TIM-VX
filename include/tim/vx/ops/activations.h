@@ -51,11 +51,11 @@ namespace ops {
  *
  *   HardSwish(x)           : 0 if x <= -3; x(x + 3)/6 if -3 < x < 3; x if x >= 3
  *
- *   Mish(x)                : x if x >= 0 else alpha * x
- *
  *   HardSigmoid(x)         : min(max(alpha*x + beta, 0), 1)
  *
  *   SoftRelu(x)            : log(1 + e^x). Also known as SoftPlus.
+ *
+ *   Mish(x)                : x * tanh(softrelu(x))
  *
  *   LeakyRelu(x)           : alpha * x if x <= 0; x if x > 0. alpha is a scalar.
  *
