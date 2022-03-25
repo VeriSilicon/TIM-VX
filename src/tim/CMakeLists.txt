@@ -5,6 +5,10 @@ set(TARGET_NAME "tim-vx")
 aux_source_directory(./vx VX_SRC)
 aux_source_directory(./vx/ops OPS_SRC)
 
+if(NOT ${TIM_VX_ENABLE_CUSTOM_OP})
+    list(REMOVE_ITEM OPS_SRC "./vx/ops/custom_base.cc")
+endif()
+
 set(${TARGET_NAME}_SRCS)
 list(APPEND ${TARGET_NAME}_SRCS
     ${VX_SRC}
