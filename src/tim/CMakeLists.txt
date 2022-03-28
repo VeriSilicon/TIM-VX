@@ -83,11 +83,6 @@ if (NOT CMAKE_INSTALL_LIBDIR)
 	set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
-if(TIM_VX_ENABLE_LAYOUT_INFER)
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
-endif()
-
 if(TIM_VX_ENABLE_TEST)
     include(GoogleTest)
 
