@@ -83,17 +83,8 @@ if (NOT CMAKE_INSTALL_LIBDIR)
 	set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
-install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx 
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
-
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/lite
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
-
 if(TIM_VX_ENABLE_LAYOUT_INFER)
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform 
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform
             DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
 endif()
 
