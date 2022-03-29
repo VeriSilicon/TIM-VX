@@ -1,5 +1,6 @@
 set(PKG_NAME "OVXDRV")
 
+set(VIV_SDK_DRIVER_PREFIX "drivers" CACHE STRING "")
 message("include driver sdk from ${EXTERNAL_VIV_SDK}")
 set(OVXDRV_INCLUDE_DIRS)
 list(APPEND OVXDRV_INCLUDE_DIRS
@@ -8,12 +9,12 @@ list(APPEND OVXDRV_INCLUDE_DIRS
 
 set(OVXDRV_LIBRARIES)
 list(APPEND OVXDRV_LIBRARIES
-    ${EXTERNAL_VIV_SDK}/drivers/libCLC.so
-    ${EXTERNAL_VIV_SDK}/drivers/libGAL.so
-    ${EXTERNAL_VIV_SDK}/drivers/libOpenVX.so
-    ${EXTERNAL_VIV_SDK}/drivers/libOpenVXU.so
-    ${EXTERNAL_VIV_SDK}/drivers/libVSC.so
-    ${EXTERNAL_VIV_SDK}/drivers/libArchModelSw.so
-    ${EXTERNAL_VIV_SDK}/drivers/libNNArchPerf.so)
+    ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}/libCLC.so
+    ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}/libGAL.so
+    ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}/libOpenVX.so
+    ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}/libOpenVXU.so
+    ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}/libVSC.so
+    ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}/libArchModelSw.so
+    ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}/libNNArchPerf.so)
 
 mark_as_advanced(${OVXDRV_INCLUDE_DIRS} ${OVXDRV_LIBRARIES})

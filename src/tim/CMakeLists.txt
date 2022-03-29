@@ -63,6 +63,7 @@ add_library(${TARGET_NAME}-static STATIC ${SRC})
 target_link_libraries(${TARGET_NAME}-static PRIVATE
 	-Wl,--whole-archive tim_internal -Wl,--no-whole-archive)
 
+if(${CMAKE_SOURCE_DIR} STREQUAL ${PROJECT_SOURCE_DIR})
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}-static
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
@@ -70,6 +71,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx DESTINATION ${CMAKE_INSTALL
 
 if(TIM_VX_ENABLE_LAYOUT_INFER)
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim/)
+endif()
 endif()
 
 if (TIM_VX_ENABLE_TEST)
