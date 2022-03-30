@@ -8,7 +8,6 @@ add_compile_options(-Wno-strict-aliasing -Wno-unused-but-set-variable -Wno-maybe
 aux_source_directory(src INTERNAL_SRC)
 aux_source_directory(src/kernel INTERNAL_KERNEL)
 aux_source_directory(src/kernel/cl INTERNAL_KERNEL_CL)
-aux_source_directory(src/kernel/cpu INTERNAL_KERNEL_CPU)
 aux_source_directory(src/kernel/evis INTERNAL_KERNEL_EVIS)
 aux_source_directory(src/kernel/vx INTERNAL_KERNEL_VX)
 aux_source_directory(src/ops INTERNAL_OPS)
