@@ -1,5 +1,7 @@
 set(PKG_NAME "OVXDRV")
 
+set(VIV_SDK_DRIVER_PREFIX "drivers" CACHE STRING "")
+
 message("include driver sdk from ${EXTERNAL_VIV_SDK}")
 set(OVXDRV_INCLUDE_DIRS)
 list(APPEND OVXDRV_INCLUDE_DIRS
@@ -8,8 +10,6 @@ list(APPEND OVXDRV_INCLUDE_DIRS
 
 if("${CONFIG}" STREQUAL "BUILDROOT")
     set(VIV_SDK_DRIVER_PREFIX "usr/lib")
-else()
-    set(VIV_SDK_DRIVER_PREFIX "drivers")
 endif()
 
 message("using driver libs from ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}")
