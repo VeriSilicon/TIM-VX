@@ -40,7 +40,6 @@
 #include "tim/vx/ops/elementwise.h"
 #include "tim/vx/ops/erf.h"
 #include "tim/vx/ops/fullyconnected.h"
-#include "tim/vx/ops/dense.h"
 #include "tim/vx/ops/gather.h"
 #include "tim/vx/ops/gathernd.h"
 #include "tim/vx/ops/groupedconv2d.h"
