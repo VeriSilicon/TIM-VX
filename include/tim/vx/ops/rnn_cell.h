@@ -44,7 +44,8 @@ class RNNCell : public Operation {
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
 
-
+ protected:
+  const ActivationType activation_;
 };
 
 }  // namespace ops

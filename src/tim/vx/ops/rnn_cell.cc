@@ -48,9 +48,9 @@ class RNNCellImpl : public OpImpl {
     // signature end
   };
 
-  RNNCellImpl(Graph* graph, int input_cnt, int output_cnt, RNNCell::ActivationType activation,
+  RNNCellImpl(Graph* graph, int input_cnt, int output_cnt,
               DataLayout layout = DataLayout::ANY)
-      : OpImpl(graph, -1, input_cnt, output_cnt, layout), activation_(activation){
+      : OpImpl(graph, -1, input_cnt, output_cnt, layout) {
     fc0_ = graph->CreateOperation<tim::vx::ops::FullyConnected>(0, 4);
     fc1_ = graph->CreateOperation<tim::vx::ops::FullyConnected>(0, 4);
     add_ = graph->CreateOperation<tim::vx::ops::Add>();
@@ -126,16 +126,15 @@ class RNNCellImpl : public OpImpl {
 
   std::array<std::shared_ptr<tim::vx::Tensor>, INPUT_CNT> in_tensors_;
   std::array<std::shared_ptr<tim::vx::Tensor>, OUT_CNT> out_tensors_;
-public:
-  const RNNCell::ActivationType activation_;
 };
 
-RNNCell::RNNCell(Graph* graph, ActivationType activation) {
-  impl_ = std::make_unique<RNNCellImpl>(graph, 0, 0, activation, DataLayout::ANY);
+RNNCell::RNNCell(Graph* graph, ActivationType activation)
+    : activation_(activation) {
+  impl_ = std::make_unique<RNNCellImpl>(graph, 0, 0, DataLayout::ANY);
 }
 
 std::shared_ptr<Operation> RNNCell::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<RNNCell>(dynamic_cast<RNNCellImpl*>(this->impl_.get())->activation_);
+  return graph->CreateOperation<RNNCell>(this->activation_);
 }
 
 }  // namespace ops
