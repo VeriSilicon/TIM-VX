@@ -25,7 +25,6 @@
 #include "vsi_nn_pub.h"
 #include "op_impl.h"
 
-#include <array>
 namespace tim {
 namespace vx {
 namespace ops {

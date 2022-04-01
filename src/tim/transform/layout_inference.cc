@@ -61,6 +61,7 @@
 #include "ops/conv3d_layout_inference.h"
 #include "ops/default_layout_inference.h"
 #include "ops/transpose_layout_inference.h"
+#include "ops/dense_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -108,7 +109,8 @@ void LayoutInferContext::MarkVisited(const std::shared_ptr<vx::Operation>& op) {
   }
 }
 
-bool LayoutInferContext::IsVisited(const std::shared_ptr<vx::Operation>& op) const {
+bool LayoutInferContext::IsVisited(
+    const std::shared_ptr<vx::Operation>& op) const {
   if (visited_op_.end() !=
       std::find(visited_op_.begin(), visited_op_.end(), op)) {
     return true;
@@ -147,13 +149,15 @@ std::shared_ptr<vx::Tensor> LayoutInferContext::GetMapedTensor(
   return nullptr;
 }
 
-void LayoutInferContext::UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& i_src,
-                           const std::shared_ptr<vx::Tensor>& i_layout) {
+void LayoutInferContext::UpdateGraphInputMap(
+    const std::shared_ptr<vx::Tensor>& i_src,
+    const std::shared_ptr<vx::Tensor>& i_layout) {
   graph_input_map_[i_src] = i_layout;
 }
 
-void LayoutInferContext::UpdateGraphOutputMap(const std::shared_ptr<vx::Tensor>& o_src,
-                           const std::shared_ptr<vx::Tensor>& o_layout) {
+void LayoutInferContext::UpdateGraphOutputMap(
+    const std::shared_ptr<vx::Tensor>& o_src,
+    const std::shared_ptr<vx::Tensor>& o_layout) {
   graph_output_map_[o_src] = o_layout;
 }
 
@@ -163,38 +167,39 @@ void LayoutInferContext::UpdateGraphOutputMap(const std::shared_ptr<vx::Tensor>&
     op_infer->OnInputs(next_tensors);                             \
     op_infer->OnOutputs(next_tensors);                            \
     break;                                                        \
-  }                                                               \
+  }
 
-#define REGIST_REDUCE_LAYOUT_INFERENCE(op_idx)                                 \
-  case op_idx: {                                                               \
-    auto reduce_type = op->impl()->node()->nn_param.reduce.type;               \
-    switch (reduce_type) {                                                     \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MEAN, ReduceMean);                 \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MAX, ReduceMax);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MIN, ReduceMin);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_PROD, ReduceProd);                 \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_ANY, ReduceAny);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_SUM, ReduceSum);                   \
-    default:                                                                   \
-      VSILOGW("Op %d: Default layout inference pass for reduce.", reduce_type);\
-      assert(false);                                                           \
-    }                                                                          \
-    break;                                                                     \
-  }                                                                            \
+#define REGIST_REDUCE_LAYOUT_INFERENCE(op_idx)                      \
+  case op_idx: {                                                    \
+    auto reduce_type = op->impl()->node()->nn_param.reduce.type;    \
+    switch (reduce_type) {                                          \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MEAN, ReduceMean);      \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MAX, ReduceMax);        \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MIN, ReduceMin);        \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_PROD, ReduceProd);      \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_ANY, ReduceAny);        \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_SUM, ReduceSum);        \
+      default:                                                      \
+        VSILOGW("Op %d: Default layout inference pass for reduce.", \
+                reduce_type);                                       \
+        assert(false);                                              \
+    }                                                               \
+    break;                                                          \
+  }
 
-#define REGIST_LOGICAL_LAYOUT_INFERENCE(op_idx)                                  \
-  case op_idx: {                                                                 \
-    auto logical_type = op->impl()->node()->nn_param.relational_ops.op;          \
-    switch (logical_type)                                                        \
-    {                                                                            \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_LOGICAL_AND, LogicalAnd);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_LOGICAL_OR, LogicalOr);                     \
-    default:                                                                     \
-      VSILOGW("Op %d: Default layout inference pass for logical.", logical_type);\
-      assert(false);                                                             \
-    }                                                                            \
-    break;                                                                       \
-  }                                                                              \
+#define REGIST_LOGICAL_LAYOUT_INFERENCE(op_idx)                         \
+  case op_idx: {                                                        \
+    auto logical_type = op->impl()->node()->nn_param.relational_ops.op; \
+    switch (logical_type) {                                             \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_LOGICAL_AND, LogicalAnd);          \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_LOGICAL_OR, LogicalOr);            \
+      default:                                                          \
+        VSILOGW("Op %d: Default layout inference pass for logical.",    \
+                logical_type);                                          \
+        assert(false);                                                  \
+    }                                                                   \
+    break;                                                              \
+  }
 
 std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     std::shared_ptr<layout_inference_impl::LayoutInferContext>& ctx,
@@ -265,8 +270,14 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     // use default layout inference
     default: {
-      VSILOGW("Op %d: default layout inference pass.", op_id);
-      auto op_infer = std::make_shared<DefaultLayoutInfer>(op, ctx);
+      std::shared_ptr<tim::transform::OpLayoutInfer> op_infer;
+      if ((int32_t)op_id == -1) {
+        VSILOGW("Op %d: compose layout inference pass.", op_id);
+        op_infer = std::make_shared<DenseLayoutInfer>(op, ctx);
+      } else {
+        VSILOGW("Op %d: default layout inference pass.", op_id);
+        op_infer = std::make_shared<DefaultLayoutInfer>(op, ctx);
+      }
       op_infer->OnInputs(next_tensors);
       op_infer->OnOutputs(next_tensors);
     }
@@ -276,10 +287,9 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
 }  // namespace layout_inference_impl
 
 std::pair<std::shared_ptr<vx::Graph>,
-          std::map<std::shared_ptr<vx::Tensor>,
-                   std::shared_ptr<vx::Tensor>>> LayoutInference(
-    const std::shared_ptr<vx::Graph>& src_graph,
-    std::shared_ptr<vx::Context>& ctx) {
+          std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>>
+LayoutInference(const std::shared_ptr<vx::Graph>& src_graph,
+                std::shared_ptr<vx::Context>& ctx) {
   std::shared_ptr<vx::Graph> infer_graph = ctx->CreateGraph();
   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
       graph_io_map;

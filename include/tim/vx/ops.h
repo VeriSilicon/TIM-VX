@@ -36,6 +36,7 @@
 #include "tim/vx/ops/deconv1d.h"
 #include "tim/vx/ops/deconv.h"
 #include "tim/vx/ops/depth2space.h"
+#include "tim/vx/ops/dense.h"
 #include "tim/vx/ops/dropout.h"
 #include "tim/vx/ops/elementwise.h"
 #include "tim/vx/ops/erf.h"
