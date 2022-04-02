@@ -21,25 +21,41 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VSI_NN_OP_EXPAND_BROADCAST_H
-#define _VSI_NN_OP_EXPAND_BROADCAST_H
+#ifndef OVXLIBXX_OPERATIONS_BROADCAST_H_
+#define OVXLIBXX_OPERATIONS_BROADCAST_H_
+#include "tim/vx/direct_map_op.h"
 
-#include "vsi_nn_types.h"
+namespace tim {
+namespace vx {
+namespace ops {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/**
+ * ## Broadcast
+ *
+ * Broadcast an array for a compatible shape. See also numpy.broadcast_to().
+ *
+ * Input:
+ * - input.
+ * 
+ * Attribute:
+ * - shape: the shape which broadcast to.
+ * - dimensions(optional): Which dimension in the target shape each dimension 
+ *   of the operand shape corresponds to. For BroadcastInDim.
+ */
 
-typedef struct _vsi_nn_expand_broadcast_param
-{
-    uint32_t *shape;
-    uint32_t dim_num;
-    uint32_t *dimensions;
-    uint32_t dimensions_num;
-} vsi_nn_expand_broadcast_param;
+class Broadcast : public DirectMapOp {
+  public:
+    Broadcast(Graph* graph, const std::vector<int32_t>& shape, const std::vector<int32_t>& dimensions = {});
 
-#ifdef __cplusplus
-}
-#endif
+    std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
-#endif
+   protected:
+    const std::vector<int32_t> shape_;
+    const std::vector<int32_t> dimensions_;
+};
+
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim
+
+#endif /* OVXLIBXX_OPERATIONS_BROADCAST_H_ */

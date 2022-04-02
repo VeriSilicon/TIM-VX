@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2021 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,25 +21,37 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VSI_NN_OP_EXPAND_BROADCAST_H
-#define _VSI_NN_OP_EXPAND_BROADCAST_H
+#include "tim/vx/ops/broadcast.h"
 
-#include "vsi_nn_types.h"
+#include <cassert>
+#include "direct_map_op_impl.h"
+#include "vsi_nn_pub.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace tim {
+namespace vx {
+namespace ops {
+Broadcast::Broadcast(Graph* graph, const std::vector<int32_t>& shape,
+                     const std::vector<int32_t>& dimensions)
+    : DirectMapOp(graph, VSI_NN_OP_EXPAND_BROADCAST),
+      shape_(shape),
+      dimensions_(dimensions) {
+  this->impl()->node()->nn_param.expand_broadcast.dim_num = shape_.size();
+  this->impl()->node()->nn_param.expand_broadcast.shape = (uint32_t*)shape_.data();
+  this->impl()->node()->nn_param.expand_broadcast.dimensions_num = dimensions_.size();
+  if (dimensions.size() > 0)
+  {
+    this->impl()->node()->nn_param.expand_broadcast.dimensions = (uint32_t*)dimensions_.data();
+  } else {
+    this->impl()->node()->nn_param.expand_broadcast.dimensions = nullptr;
+  }
 
-typedef struct _vsi_nn_expand_broadcast_param
-{
-    uint32_t *shape;
-    uint32_t dim_num;
-    uint32_t *dimensions;
-    uint32_t dimensions_num;
-} vsi_nn_expand_broadcast_param;
-
-#ifdef __cplusplus
 }
-#endif
 
-#endif
+std::shared_ptr<Operation> Broadcast::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Broadcast>(this->shape_, this->dimensions_);
+}
+
+}  // namespace ops
+}  // namespace vx
+}  // namespace tim
