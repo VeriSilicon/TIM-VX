@@ -27,155 +27,144 @@
 
 #include "gtest/gtest.h"
 
-TEST(Stack, shape_2_3_axis_2) {
-    auto ctx = tim::vx::Context::Create();
-    auto graph = ctx->CreateGraph();
+TEST(Stack, shape_3_4_axis_2) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
 
-    tim::vx::ShapeType input_shape({2,3});
-    tim::vx::ShapeType output_shape({2,3,2});
-    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
-        input_shape, tim::vx::TensorAttribute::INPUT);
-    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
-        output_shape, tim::vx::TensorAttribute::OUTPUT);
+  tim::vx::ShapeType input_shape({4, 3});
+  tim::vx::ShapeType output_shape({4, 3, 2});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
 
-    auto input_tensor1 = graph->CreateTensor(input_spec);
-    auto input_tensor2 = graph->CreateTensor(input_spec);
-    auto output_tensor = graph->CreateTensor(output_spec);
+  auto input_tensor1 = graph->CreateTensor(input_spec);
+  auto input_tensor2 = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
 
-    std::vector<float> in_data1 = {
-        1,4,
-        2,5,
-        3,6
-    };
-    std::vector<float> in_data2 = {
-        1,4,
-        2,5,
-        3,6
-    };
-    std::vector<float> golden = {
-        1,4,
-        2,5,
-        3,6,
+  std::vector<float> in_data = {
+      2, 1, 0, 1,
+      2, 4, 4, 4,
+      3, 2, 1, 4,
+  };
+  std::vector<float> golden = {
+      2, 1, 0, 1,
+      2, 4, 4, 4,
+      3, 2, 1, 4,
+      2, 1, 0, 1,
+      2, 4, 4, 4,
+      3, 2, 1, 4,
+  };
 
-        1,4,
-        2,5,
-        3,6
-        };
+  EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data.data(),
+                                              in_data.size() * sizeof(float)));
+  EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data.data(),
+                                              in_data.size() * sizeof(float)));
+  auto op = graph->CreateOperation<tim::vx::ops::Stack>(2, 2);
+  (*op).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
 
-    EXPECT_TRUE(input_tensor1->CopyDataToTensor(
-        in_data1.data(), in_data1.size() * sizeof(float)));
-    EXPECT_TRUE(input_tensor2->CopyDataToTensor(
-        in_data2.data(), in_data2.size() * sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::Stack>(2, 2);
-    (*op).BindInputs({input_tensor1,input_tensor2}).BindOutputs(
-        {output_tensor});
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
 
-    EXPECT_TRUE(graph->Compile());
-    EXPECT_TRUE(graph->Run());
-
-    std::vector<float> output(golden.size());
-    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
 }
 
-TEST(Stack, shape_2_3_axis_1) {
-    auto ctx = tim::vx::Context::Create();
-    auto graph = ctx->CreateGraph();
+TEST(Stack, shape_3_4_axis_1) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
 
-    tim::vx::ShapeType input_shape({2,3});
-    tim::vx::ShapeType output_shape({2,3,2});
-    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
-        input_shape, tim::vx::TensorAttribute::INPUT);
-    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
-        output_shape, tim::vx::TensorAttribute::OUTPUT);
+  tim::vx::ShapeType input_shape({4, 3});
+  tim::vx::ShapeType output_shape({4, 2, 3});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
 
-    auto input_tensor1 = graph->CreateTensor(input_spec);
-    auto input_tensor2 = graph->CreateTensor(input_spec);
-    auto output_tensor = graph->CreateTensor(output_spec);
+  auto input_tensor1 = graph->CreateTensor(input_spec);
+  auto input_tensor2 = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
 
-    std::vector<float> in_data1 = {
-        1,4,
-        2,5,
-        3,6
-    };
-    std::vector<float> in_data2 = {
-        1,4,
-        2,5,
-        3,6
-    };
-    std::vector<float> golden = {
-        1,4,
-        1,4,
-        2,5,
+  std::vector<float> in_data = {
+      2, 1, 0, 1,
+      2, 4, 4, 4,
+      3, 2, 1, 4,
+  };
+  std::vector<float> golden = {
+        2, 1, 0, 1,
+        2, 1, 0, 1,
 
-        2,5,
-        3,6,
-        3,6,
-        };
+        2, 4, 4, 4,
+        2, 4, 4, 4,
 
-    EXPECT_TRUE(input_tensor1->CopyDataToTensor(
-        in_data1.data(), in_data1.size() * sizeof(float)));
-    EXPECT_TRUE(input_tensor2->CopyDataToTensor(
-        in_data2.data(), in_data2.size() * sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::Stack>(1, 2);
-    (*op).BindInputs({input_tensor1,input_tensor2}).BindOutputs(
-        {output_tensor});
+        3, 2, 1, 4,
+        3, 2, 1, 4,
+  };
 
-    EXPECT_TRUE(graph->Compile());
-    EXPECT_TRUE(graph->Run());
+  EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data.data(),
+                                              in_data.size() * sizeof(float)));
+  EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data.data(),
+                                              in_data.size() * sizeof(float)));
+  auto op = graph->CreateOperation<tim::vx::ops::Stack>(1, 2);
+  (*op).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
 
-    std::vector<float> output(golden.size());
-    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
 }
 
-TEST(Stack, shape_2_3_axis_0) {
-    auto ctx = tim::vx::Context::Create();
-    auto graph = ctx->CreateGraph();
+TEST(Stack, shape_3_4_axis_0) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
 
-    tim::vx::ShapeType input_shape({2,3});
-    tim::vx::ShapeType output_shape({2,3,2});
-    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
-        input_shape, tim::vx::TensorAttribute::INPUT);
-    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
-        output_shape, tim::vx::TensorAttribute::OUTPUT);
+  tim::vx::ShapeType input_shape({4, 3});
+  tim::vx::ShapeType output_shape({2, 4, 3});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
 
-    auto input_tensor1 = graph->CreateTensor(input_spec);
-    auto input_tensor2 = graph->CreateTensor(input_spec);
-    auto output_tensor = graph->CreateTensor(output_spec);
+  auto input_tensor1 = graph->CreateTensor(input_spec);
+  auto input_tensor2 = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
 
-    std::vector<float> in_data1 = {
-        1,4,
-        2,5,
-        3,6
-    };
-    std::vector<float> in_data2 = {
-        1,4,
-        2,5,
-        3,6
-    };
-    std::vector<float> golden = {
+  std::vector<float> in_data = {
+      2, 1, 0, 1,
+      2, 4, 4, 4,
+      3, 2, 1, 4,
+  };
+  std::vector<float> golden = {
+        2, 2,
+        1, 1,
+        0, 0,
+        1, 1,
+
+        2, 2,
+        4, 4,
+        4, 4,
+        4, 4,
+
+        3, 3,
+        2, 2,
         1, 1,
         4, 4,
-        2, 2,
+  };
 
-        5, 5,
-        3, 3,
-        6, 6
-        };
+  EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data.data(),
+                                              in_data.size() * sizeof(float)));
+  EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data.data(),
+                                              in_data.size() * sizeof(float)));
+  auto op = graph->CreateOperation<tim::vx::ops::Stack>(0, 2);
+  (*op).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
 
-    EXPECT_TRUE(input_tensor1->CopyDataToTensor(
-        in_data1.data(), in_data1.size() * sizeof(float)));
-    EXPECT_TRUE(input_tensor2->CopyDataToTensor(
-        in_data2.data(), in_data2.size() * sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::Stack>(0, 2);
-    (*op).BindInputs({input_tensor1,input_tensor2}).BindOutputs(
-        {output_tensor});
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
 
-    EXPECT_TRUE(graph->Compile());
-    EXPECT_TRUE(graph->Run());
-
-    std::vector<float> output(golden.size());
-    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
 }

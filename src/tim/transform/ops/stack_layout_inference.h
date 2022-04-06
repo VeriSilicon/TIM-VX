@@ -25,6 +25,7 @@
 #define TIM_LAYOUT_INFER_STACK_LAYOUT_INFERENCE_H_
 
 #include "tim/vx/ops/stack.h"
+#include "tim/vx/ops/transpose.h"
 
 #include "direct_map_op_impl.h"
 #include "permute_vector.h"
@@ -40,17 +41,42 @@ class StackLayoutInfer : public OpLayoutInfer {
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    ReverseInputsPermuteVector();
+    auto src_input = op_->impl()->InputsTensor()[0];
+    auto input_pv = context_->GetPermuteVector(src_input);
+
     int32_t axis = op_->impl()->node()->nn_param.stack.axis;
     auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
         axis, op_->impl()->input_cnt_);
+    auto aligninput_pv = AlignPermuteVectorForMutilInputs();
+
     for (const auto& i_src : op_->impl()->InputsTensor()) {
       (*stack).BindInput(context_->GetMapedTensor(i_src));
     }
-    auto required_pv = MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    auto out_infer = CreateOutputsTensor(required_pv);
+
+    std::vector<uint32_t> v;
+    uint32_t dim_num = src_input->GetShape().size();
+    if (axis < 0) {
+      axis += dim_num;
+    }
+    for (uint32_t i = 0; i < src_input->GetShape().size(); ++i) {
+      if (input_pv->At(i) > (uint32_t)axis) {
+        v.push_back(input_pv->At(i) + 1);
+      } else if (input_pv->At(i) == (uint32_t)axis) {
+        v.push_back(input_pv->At(i));
+        v.push_back(input_pv->At(i) + 1);
+      } else {
+        v.push_back(input_pv->At(i));
+      }
+    }
+    auto out_pv =
+        MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
+    for (uint32_t i = 0; i < out_pv->Rank(); ++i) {
+      out_pv->At(i) = v[i];
+    }
+
+    auto out_infer = CreateOutputsTensor(out_pv);
     (*stack).BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], out_pv);
     // Add out tensor of src_graph into next_tensor
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
