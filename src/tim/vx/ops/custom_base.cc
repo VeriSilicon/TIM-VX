@@ -45,13 +45,6 @@ static vx_status derive_kernel_init(vx_node node, const vx_reference* param,
 
 static std::map<void*, CustomOpBase*> node_base_map_;
 
-namespace {
-  typedef struct DynamicArrayOfKernelParam_ {
-    uint32_t size_;
-    vsi_nn_kernel_node_param_t params_[1];
-  } DynamicArrayOfKernelParam;
-}
-
 CustomOpBase::CustomOpBase(Graph* graph, uint32_t input_num,
                            uint32_t output_num, int32_t kernel_id,
                            const char* kernel_name)
@@ -169,15 +162,15 @@ vsi_bool op_compute(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
 
   auto node = vsi_nn_KernelCreateNodeExt(self->graph, kernel, resource);
   if (node) {
-    vsi_nn_kernel_node_param_t* node_params = nullptr;
-    DynamicArrayOfKernelParam* node_params_array = (DynamicArrayOfKernelParam*)malloc(sizeof(DynamicArrayOfKernelParam) + sizeof(vsi_nn_kernel_node_param_t)*(param_num - 1) );
-    node_params_array->size_ = param_num;
-    node_params = &node_params_array->params_[0];
+    uint32_t input_start = op_this->input_num_ + op_this->output_num_;
+
+    vsi_nn_kernel_node_param_t* node_params =
+        (vsi_nn_kernel_node_param_t*)malloc(sizeof(vsi_nn_kernel_node_param_t) *
+                                            (param_num + input_start));
     vsi_nn_kernel_node_pack_io(node_params, param_num, inputs,
                                op_this->input_num_, outputs,
                                op_this->output_num_);
 
-    uint32_t input_start = op_this->input_num_ + op_this->output_num_;
     for (uint32_t i = 0; i < op_this->param_list_.size(); i++) {
       if (op_this->param_list_[i].type == tim::vx::DataType::FLOAT32) {
         node_params[input_start++] = vsi_nn_kernelScalarCreate(
@@ -209,7 +202,7 @@ vsi_bool op_compute(vsi_nn_node_t* self, vsi_nn_tensor_t** inputs,
       vsi_nn_kernel_scalar_release(&node_params[input_start + i]);
     }
 
-    free(node_params_array);
+    free(node_params);
   }
   self->n = (vx_node)node;
 
