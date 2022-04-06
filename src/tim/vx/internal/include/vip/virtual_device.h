@@ -44,7 +44,6 @@ class IDevice {
         bool GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data);
         bool GraphRemove(const vsi_nn_graph_t* graph);
         bool ThreadExit();
-        bool ThreadIdle();
         void WaitThreadIdle();
 
     protected:

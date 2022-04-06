@@ -27,193 +27,189 @@
 
 namespace vip {
 
-Device::Device(uint32_t id){
+Device::Device(uint32_t id) {
     id_ = id;
     graphqueue_ = std::make_unique<GraphQueue> ();
     worker_ = std::make_unique<Worker> ();;
     ThreadInit();
-    StatusInit();
 }
 
-Device::~Device(){
+Device::~Device() {
+    ThreadExit();
 }
 
 uint32_t Device::Id() const{
     return id_;
 }
 
-void Device::ThreadInit(){
-    for (std::size_t i = 0; i < threads_.size(); ++i){
+void Device::ThreadInit() {
+    for (std::size_t i = 0; i < threads_.size(); ++i) {
         std::thread t(&Device::HandleQueue, this);
         threads_[i] = std::move(t);
     }
 }
 
-void Device::StatusInit(){
-    // init thread status after thread id has been generated
-    for (std::size_t i = 0; i < threads_.size(); ++i){
-        VSILOGI("Init thread[%ld] status = %d", threads_[i].get_id(), IDLE);
-        threads_status_[threads_[i].get_id()] = IDLE;
+bool Device::ThreadExit() {
+    for (std::size_t i = 0; i < threads_.size(); ++i) {
+        graphqueue_->Submit(nullptr, NULL, NULL);  // submit fake graph to exit thread
     }
-}
-
-bool Device::ThreadExit(){
-    WaitThreadIdle();
-    for (std::size_t i = 0; i < threads_.size(); ++i){
-        threads_status_[threads_[i].get_id()] = CANCEL;
-    }
-    for (std::size_t i = 0; i < threads_.size(); ++i){
-        graphqueue_->Submit(NULL, NULL, NULL);  // submit fake graph to exit thread
-    }
-    for (std::size_t i = 0; i < threads_.size(); ++i){
-        threads_[i].join();
+    for (std::size_t i = 0; i < threads_.size(); ++i) {
+        if (threads_[i].joinable()) {
+            threads_[i].join();
+        }
     }
     return true;
 }
 
-bool Device::GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data){
+bool Device::GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data) {
     bool status = false;
     status = graphqueue_->Submit(graph, func, data);
     return status;
 }
 
-bool Device::GraphRemove(const vsi_nn_graph_t* graph){
+bool Device::GraphRemove(const vsi_nn_graph_t* graph) {
     return graphqueue_->Remove(graph);
 }
 
-bool Device::ThreadIdle(){
-    for (std::size_t i = 0; i < threads_.size(); ++i){
-        if (threads_status_[threads_[i].get_id()] !=  IDLE){
-            return false;
-    }
-  }
-  return true;
+void Device::WaitThreadIdle() {
+    ThreadExit();
+    ThreadInit();
 }
 
-void Device::WaitThreadIdle(){
-  if (!ThreadIdle()){
-    VSILOGI("Wait threads idle ...");
-    std::unique_lock<std::mutex> lck(idle_mtx_);
-    idle_cv_.wait(lck);
-    VSILOGI("Threads idle");
-  }
+Worker::Worker() {
 }
 
-Worker::Worker(){
-}
-
-void Worker::RunGraph(const vsi_nn_graph_t* graph){
+void Worker::RunGraph(const vsi_nn_graph_t* graph) {
     vsi_nn_RunGraph(graph);
 }
 
-void Worker::Handle(const QueueItem& item){
+void Worker::Handle(const QueueItem& item) {
     vsi_nn_graph_t* graph = item.graph;
     func_t func = item.func;
     data_t data = item.data;
-    if (graph != NULL){
-        VSILOGI("Start running graph%d in thread[%ld] ", item.id , std::this_thread::get_id());
+    size_t id = item.id;
+    if (nullptr != graph) {
+        VSILOGI("Start running graph%ld in thread[%ld] ", id , std::this_thread::get_id());
         RunGraph(graph);
-        VSILOGI("End running graph%d in thread[%ld]", item.id , std::this_thread::get_id());
+        VSILOGI("End running graph%ld in thread[%ld]", id , std::this_thread::get_id());
     }
-    if (func != NULL){
+    if (NULL != func) {
         func(data);
     }
 }
 
-void Device::HandleQueue(){
+void Device::HandleQueue() {
     std::thread::id thd_id;
     thd_id = std::this_thread::get_id();
-    // VSILOGI("Thread[%ld] status = %d", thd_id, threads_status_[thd_id]);
     while (1) {
         QueueItem item = graphqueue_->Fetch();
-        if (threads_status_[thd_id] == IDLE) {threads_status_[thd_id] = RUNNING;}
-        worker_->Handle(item);
-        if (threads_status_[thd_id] == RUNNING) {threads_status_[thd_id] = IDLE;}
-        if (threads_status_[thd_id] == CANCEL) {VSILOGI("Thread[%ld] exit", thd_id); break;}
-        if ((graphqueue_->Empty()) && ThreadIdle()) {idle_cv_.notify_one();}
+        if (0 == item.id) {  // exit when fetch fake graph
+            // VSILOGD("Thread[%ld] exit", thd_id);
+            break;
+        }
+        worker_->Handle(item);  // run graph
     }
 }
 
-GraphQueue::GraphQueue(){
-    gcount_ = 0;
+GraphQueue::GraphQueue() {
+    gcount_ = 1;  // 0 for fake graph
 }
 
-void GraphQueue::Show(){
+void GraphQueue::Show() {
     queue_mtx_.lock();
     VSILOGI("Queue element:");
-    for (std::size_t i=0; i < queue_.size(); i++){
+    for (std::size_t i=0; i < queue_.size(); i++) {
         auto gid = queue_[i].id;
         VSILOGI("%d", gid);
     }
     queue_mtx_.unlock();
 }
 
-void GraphQueue::Notify(){
+void GraphQueue::Notify() {
     cv_.notify_one();
 }
 
-bool GraphQueue::Submit(vsi_nn_graph_t* graph, func_t func, data_t data){
+bool GraphQueue::Submit(vsi_nn_graph_t* graph, func_t func, data_t data) {
     queue_mtx_.lock();
     QueueItem item;
     item.graph = graph;
     item.func = func;
     item.data = data;
-    item.id = gcount_;
-    queue_.push_back(item);
-    if (graph != NULL){
-        VSILOGI("Submit graph%d", item.id);
+    if (nullptr != graph) {
+        item.id = gcount_;
+        VSILOGI("Submit graph%ld", item.id);
         gcount_++;
+        if (size_t(-1) == gcount_) {
+            gcount_ = 1;
+        }
     }
+    else{
+        item.id = 0;  // fake graph
+    }
+    queue_.push_back(item);
     queue_mtx_.unlock();
     Notify();
     return true;
 }
 
-QueueItem GraphQueue::Fetch(){
-        QueueItem item;
-        if (queue_.empty()){
-            std::unique_lock<std::mutex> lock(queue_mtx_);
+QueueItem GraphQueue::Fetch() {
+        std::unique_lock<std::mutex> lock(queue_mtx_);
+        QueueItem item = {(size_t)-1, nullptr, NULL, NULL};
+        if (queue_.empty()) {
             cv_.wait(lock);
         }
-        queue_mtx_.lock();
-        if (!queue_.empty()){
-            item = queue_.front();
+        if (!queue_.empty()) {
+            auto first = queue_[0];
+            item.id = first.id;
+            item.graph = first.graph;
+            item.func = first.func;
+            item.data = first.data;
             queue_.erase(queue_.begin());
         }
-        queue_mtx_.unlock();
+        // VSILOGD("Fetch graph%ld[%p] in thread[%ld]", item.id, item.graph, std::this_thread::get_id());
         return item;
 }
 
-bool GraphQueue::Remove(const vsi_nn_graph_t* graph){
+bool GraphQueue::Remove(const vsi_nn_graph_t* graph) {
     queue_mtx_.lock();
     std::size_t idx=0;
     bool exist=false;
-    if (!queue_.empty()){
-        for (std::size_t i=0; i < queue_.size(); i++){
-            if (graph == queue_[i].graph){
+    if (!queue_.empty()) {
+        for (std::size_t i=0; i < queue_.size(); i++) {
+            if (graph == queue_[i].graph) {
                 idx = i;
                 exist = true;
             }
         }
-        if (exist){
+        if (exist) {
             auto gid = queue_[idx].id;
             queue_.erase(queue_.begin() + idx);
-            VSILOGI("Remove graph%d", gid);
+            VSILOGI("Remove graph%ld", gid);
         }
     }
     queue_mtx_.unlock();
     return true;
 }
 
-bool GraphQueue::Empty() const{
-    return queue_.empty();
+bool GraphQueue::Empty() {
+        queue_mtx_.lock();
+        bool status = queue_.empty();
+        queue_mtx_.unlock();
+    return status;
 }
 
-IDevice::IDevice(uint32_t id){
+size_t GraphQueue::Size() {
+        queue_mtx_.lock();
+        size_t size = queue_.size();
+        queue_mtx_.unlock();
+    return size;
+}
+
+IDevice::IDevice(uint32_t id) {
     device_ = new Device(id);
 }
 
-IDevice::~IDevice(){
+IDevice::~IDevice() {
     delete device_;
 }
 
@@ -221,23 +217,19 @@ uint32_t IDevice::Id() const{
     return device_->Id();
 }
 
-bool IDevice::GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data){
+bool IDevice::GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data) {
     return device_->GraphSubmit(graph, func, data);
 }
 
-bool IDevice::GraphRemove(const vsi_nn_graph_t* graph){
+bool IDevice::GraphRemove(const vsi_nn_graph_t* graph) {
     return device_->GraphRemove(graph);
 }
 
-bool IDevice::ThreadExit(){
+bool IDevice::ThreadExit() {
     return device_->ThreadExit();
 }
 
-bool IDevice::ThreadIdle(){
-    return device_->ThreadIdle();
-}
-
-void IDevice::WaitThreadIdle(){
+void IDevice::WaitThreadIdle() {
     device_->WaitThreadIdle();
 }
 
