@@ -15,3 +15,7 @@ endif()
 if(TIM_VX_ENABLE_NBG_PARSER)
     add_subdirectory("nbg_runner")
 endif()
+
+if(TIM_VX_ENABLE_PLATFORM)
+    add_subdirectory("lenet_multi_device")
+endif()

@@ -45,6 +45,14 @@ if(TIM_VX_ENABLE_LAYOUT_INFER)
     )
 endif()
 
+if(TIM_VX_ENABLE_PLATFORM)
+    message(STATUS "Using paltform")
+    aux_source_directory(./vx/platform PLATFORM_SRC)
+    list(APPEND ${TARGET_NAME}_SRCS
+        ${PLATFORM_SRC}
+    )
+endif()
+
 foreach(src_file ${${TARGET_NAME}_SRCS})
     if(${src_file} MATCHES ".*_test\.cc")
         list(REMOVE_ITEM ${TARGET_NAME}_SRCS ${src_file})
@@ -114,6 +122,11 @@ if(TIM_VX_ENABLE_TEST)
     )
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+endif()
+
+if(TIM_VX_ENABLE_PLATFORM)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx)
 endif()
 
 add_subdirectory("utils")
