@@ -440,6 +440,10 @@ static _op_param_gen_t s_op_gen[] =
     /* DECONV3D */              NULL,
     /* PAD2 */                  NULL,
     /* COS */                   NULL,
+    /* PRE_PROCESS_RGB888_PLANAR */ NULL,
+    /* GATHER_ELEMENTS */       NULL,
+    /* SELU */                  NULL,
+    /* CELU */                  NULL,
 };
 _compiler_assert( _cnt_of_array(s_op_gen) == VSI_NN_OP_NUM, vsi_nn_code_generator_c );
 

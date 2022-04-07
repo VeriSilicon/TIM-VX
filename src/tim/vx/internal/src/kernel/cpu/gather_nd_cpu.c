@@ -35,7 +35,6 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 
 __BEGIN_DECLS
 
@@ -166,20 +165,6 @@ static vx_param_description_t _gather_nd_kernel_param_def[] =
 };
 #define _GATHER_ND_PARAM_NUM  _cnt_of_array( _gather_nd_kernel_param_def )
 
-static const vx_kernel_description_t _kernel_info =
-{
-    KERNEL_ID_PLACEHOLDER,
-    _KERNEL_NAME,
-    _gather_nd_exec,
-    _gather_nd_kernel_param_def,
-    _cnt_of_array( _gather_nd_kernel_param_def ),
-    vsi_nn_KernelValidator,
-    NULL,
-    NULL,
-    vsi_nn_KernelInitializer,
-    vsi_nn_KernelDeinitializer
-};
-
 static vsi_status _query_kernel
     (
     vsi_nn_tensor_t* const* const inputs,
@@ -187,7 +172,11 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t* kernel
     )
 {
-    memmove( &kernel->info, &_kernel_info, sizeof(vx_kernel_description_t) );
+    snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  _KERNEL_NAME );
+    kernel->info.function    = _gather_nd_exec;
+    kernel->info.parameters  = _gather_nd_kernel_param_def;
+    kernel->info.numParams   = _cnt_of_array( _gather_nd_kernel_param_def );
+
     return VSI_SUCCESS;
 } /* _query_kernel() */
 
@@ -238,4 +227,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CPU( gather_nd, _setup )
-

@@ -81,12 +81,7 @@ typedef struct _vsi_nn_clip_lcl_data
 
 typedef struct _vsi_nn_clip_lcl2_data
 {
-    uint32_t    hash_idx;
-    vsi_bool    execute_on_sw;
-    vsi_bool    enable_image_2d;
-    uint32_t    sizes0[VSI_NN_MAX_DIM_NUM];
-    uint32_t    sizes1[VSI_NN_MAX_DIM_NUM];
-    uint32_t    dim_num;
+    vsi_bool is_internal_node;
 } vsi_nn_clip_lcl2_data;
 
 typedef struct _vsi_nn_clip_param
@@ -103,4 +98,3 @@ typedef struct _vsi_nn_clip_param
 #endif
 
 #endif
-

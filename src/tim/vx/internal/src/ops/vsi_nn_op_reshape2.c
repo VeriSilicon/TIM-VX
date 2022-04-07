@@ -50,7 +50,7 @@ static vsi_status op_compute
     *If reshape is un-initialized, we need add a tensorcopy
     * when input and output are initialized.
     */
-    if(inputs[0]->t != NULL && outputs[0]->t != NULL &&
+    if (inputs[0]->t != NULL && outputs[0]->t != NULL &&
         self->nn_param.reshape2.local->initialized == FALSE)
     {
         self->n = vxTensorCopyNode(self->graph->g,
@@ -72,8 +72,7 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
-    //TODO: Check tensor shapes.
-    return TRUE;
+    return vsi_nn_OpCheck(VSI_NN_OP_DATACONVERT, self, inputs, outputs);
 } /* op_check() */
 
 static vsi_status op_init
@@ -116,7 +115,7 @@ static vsi_bool op_setup
     )
 {
     vsi_bool ret = TRUE;
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {0};
         memcpy(shape, self->nn_param.reshape2.size,
@@ -139,44 +138,44 @@ static vsi_status op_optimize
     )
 {
     vsi_status status;
-    vsi_bool ret;
 
     status = VSI_SUCCESS;
-    ret = TRUE;
     if ( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
     {
         return status;
     }
 
-    if (self->nn_param.reshape2.local->initialized == FALSE)
+    if ( direction == VSI_NN_OPTIMIZE_BACKWARD )
     {
-        VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
-        if ( direction == VSI_NN_OPTIMIZE_BACKWARD )
+        if (NULL == inputs[0]->t && NULL != outputs[0]->t)
         {
-            if (NULL == inputs[0]->t && NULL != outputs[0]->t)
+            inputs[0]->t = vsi_nn_safe_reshape_tensor( outputs[0]->t,
+                (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num,
+                sizeof(inputs[0]->attr.size[0]) );
+            if ( inputs[0]->t == NULL )
             {
-                inputs[0]->t = vsi_nn_safe_reshape_tensor( outputs[0]->t,
-                    (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num,
-                    sizeof(inputs[0]->attr.size[0]) );
-                if ( inputs[0]->t == NULL )
-                {
-                    status = VSI_FAILURE;
-                }
-                self->nn_param.reshape2.local->initialized = TRUE;
+                status = VSI_FAILURE;
             }
+            self->nn_param.reshape2.local->initialized = TRUE;
         }
-        else
+    }
+    else
+    {
+        if (NULL == outputs[0]->t)
         {
-            if (NULL == outputs[0]->t)
+            if ( NULL == inputs[0]->t )
             {
-                ret = vsi_nn_ReshapeTensor( self->graph, inputs[0], outputs[0],
-                    self->nn_param.reshape2.size, self->nn_param.reshape2.dim_num );
-                if ( ret == FALSE )
-                {
-                    status = VSI_FAILURE;
-                }
-                self->nn_param.reshape2.local->initialized = TRUE;
+                vsi_nn_TensorReinit( self->graph, inputs[0] );
             }
+
+            outputs[0]->t = vsi_nn_safe_reshape_tensor( inputs[0]->t,
+                (void*)outputs[0]->attr.size, (vsi_size_t)outputs[0]->attr.dim_num,
+                sizeof(outputs[0]->attr.size[0]) );
+            if ( outputs[0]->t == NULL )
+            {
+                status = VSI_FAILURE;
+            }
+            self->nn_param.reshape2.local->initialized = TRUE;
         }
     }
 

@@ -3347,6 +3347,36 @@ VX_API_ENTRY vx_status VX_API_CALL vxSwapTensorHandle(vx_tensor tensor, void* ne
 VX_API_ENTRY vx_status VX_API_CALL vxCopyTensorPatch(vx_tensor tensor, vx_size number_of_dims, const vx_size * view_start, const vx_size * view_end,
         const vx_size * user_stride, void * user_ptr, vx_enum usage, vx_enum user_memory_type);
 
+/*! \brief Allows the application to copy a view patch from/into an tensor object .
+ * \param [in] tensor The reference to the tensor object that is the source or the
+ * destination of the copy.
+ * \param [in] number_of_dims Number of patch dimension. Error return if 0 or greater than number of
+ * tensor dimensions. If smaller than number of tensor dimensions, the lower dimensions are assumed.
+ * \param [in] view_start Array of patch start points in each dimension
+ * \param [in] view_end Array of patch end points in each dimension
+ * \param [in] tensorpatch_addressing Pointer to parameter of type <tt>\ref vx_tensorpatch_addressing_t</tt>.
+ * \param [in] user_ptr The address of the memory location where to store the requested data
+ * if the copy was requested in read mode, or from where to get the data to store into the tensor
+ * object if the copy was requested in write mode. The accessible memory must be large enough
+ * to contain the specified patch with the specified layout:\n
+ * accessible memory in bytes >= (end[last_dimension] - start[last_dimension]) * stride[last_dimension].\n
+ * The layout of the user memory must follow a row major order.
+ * \param [in] usage This declares the effect of the copy with regard to the tensor object
+ * using the <tt>\ref vx_accessor_e</tt> enumeration. Only <tt>\ref VX_READ_ONLY</tt> and <tt>\ref VX_WRITE_ONLY</tt> are supported:
+ * \arg <tt>\ref VX_READ_ONLY</tt> means that data is copied from the tensor object into the application memory
+ * \arg <tt>\ref VX_WRITE_ONLY</tt> means that data is copied into the tensor object from the application memory
+ * \param [in] user_memory_type A <tt>\ref vx_memory_type_e</tt> enumeration that specifies
+ * the memory type of the memory referenced by the user_addr.
+ * \return A <tt>\ref vx_status_e</tt> enumeration.
+ * \retval VX_ERROR_OPTIMIZED_AWAY This is a reference to a virtual tensor that cannot be
+ * accessed by the application.
+ * \retval VX_ERROR_INVALID_REFERENCE The tensor reference is not actually an tensor reference.
+ * \retval VX_ERROR_INVALID_PARAMETERS An other parameter is incorrect.
+ * \ingroup group_object_tensor
+ */
+VX_API_ENTRY vx_status VX_API_CALL vxCopyTensorPatch2(vx_tensor tensor, vx_size number_of_dims, const vx_size * view_start, const vx_size * view_end,
+        const vx_tensorpatch_addressing_t * addressing, vx_size size_of_addressing, void * user_ptr, vx_enum usage, vx_enum user_memory_type);
+
 /*! \brief Allows the application to get direct access to a patch of tensor object.
  * \param [in] tensor The reference to the tensor object that is the source or the
  * destination for direct access.

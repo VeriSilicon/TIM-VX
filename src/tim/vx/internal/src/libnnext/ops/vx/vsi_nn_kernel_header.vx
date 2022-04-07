@@ -1,12 +1,4 @@
-/*
- ============================================================================
- Name        : libNNExt.vx
- Author      : VSI
- Version     :
- Copyright   : Your copyright notice
- Description :
- ============================================================================
- */
+
 #pragma OPENCL EXTENSION cl_viv_vx_extension : enable
 
 typedef struct Image

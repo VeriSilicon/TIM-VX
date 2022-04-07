@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -58,7 +57,6 @@ static vx_param_description_t _erf_kernel_param_def[] =
 };
 #define _ERF_PARAM_NUM  _cnt_of_array( _erf_kernel_param_def )
 
-
 /*
  * Kernel function
  */
@@ -74,8 +72,8 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_nn_kernel_tensor_t output[_OUTPUT_NUM] = {NULL};
     float *f32_in_buffer[_INPUT_NUM] = {NULL};
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
-    vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
-    vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
+    vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM] = {NULL};
+    vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM] = {NULL};
     vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
     vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
     vsi_size_t   out_bytes[_OUTPUT_NUM] = {0};
@@ -101,34 +99,10 @@ DEF_KERNEL_EXECUTOR(_compute)
         CHECK_PTR_FAIL_GOTO( f32_out_buffer[i], "Create output buffer fail.", final );
         memset( f32_out_buffer[i], 0, out_bytes[i] );
     }
-#define VSI_ERF_PI  3.141592653589793
     for (i = 0; i < out_elements[0]; i ++)
     {
-        /* 2 / sqrt(pi) * (sum[(-1)^n! * x ^ (2n + 1)] + x) */
-        float x = vsi_clamp(f32_in_buffer[0][i], -2, 2);
-        float res = 0;
-        float tmp = x;
-        float factorial = 1; /*n!*/
-        float x_pow = x;
-        int32_t one = 1;
-        int32_t n = 1;
-
-        while (vsi_abs(tmp) > 1e-5)
-        {
-            res += tmp;
-
-            factorial *= n;
-            one *= -1;
-            x_pow *= x * x;
-            tmp = one / factorial * x_pow / ( 2 * n + 1);
-
-            n ++;
-        }
-
-
-        res *= 2.0f / (float)sqrt(VSI_ERF_PI);
-
-        f32_out_buffer[0][i] = res;
+        float x = vsi_nn_erf_impl(f32_in_buffer[0][i]);
+        f32_out_buffer[0][i] = x;
     }
 
     /* save data */

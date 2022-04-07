@@ -50,14 +50,15 @@ static vsi_status op_compute
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     //int32_t mode = self->nn_param.depth2space_internal.mode;
-    int32_t block_size = self->nn_param.depth2space_internal.block_size;
+    int32_t block_size = 0;
 
     if( NULL == self )
     {
         return VSI_FAILURE;
     }
 
-    param =vsi_nn_kernel_param_create();
+    block_size = self->nn_param.depth2space_internal.block_size;
+    param = vsi_nn_kernel_param_create();
 
     // Add params
     vsi_nn_kernel_param_add_int32( param, "block_size", block_size );

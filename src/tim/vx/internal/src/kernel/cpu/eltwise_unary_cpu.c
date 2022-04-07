@@ -32,7 +32,6 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_error.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 
 __BEGIN_DECLS
 
@@ -43,13 +42,14 @@ typedef enum
     UNARY_COS,
     UNARY_EXP,
     UNARY_LOG,
-    UNARY_ELU,
     UNARY_NEG,
     UNARY_HSIGMOID,
     UNARY_MISH,
     UNARY_ROUND,
     UNARY_GELU,
     UNARY_HGELU,
+    UNARY_SELU,
+    UNARY_CELU,
 } unary_type_e;
 
 
@@ -78,11 +78,6 @@ static float cos_eval(float data)
 static float log_eval(float data)
 {
     return logf(data);
-}
-
-static float elu_eval(float data, float alpha)
-{
-    return data >=0 ? data : expf(data) * alpha - alpha;
 }
 
 static float neg_eval(float data)
@@ -117,45 +112,9 @@ static float round_eval(float data)
     return data;
 }
 
-static float erf_eval(float x)
-{
-    float res = 0;
-    float tmp = x;
-    float factorial = 1; /*n!*/
-    float x_pow = x;
-    int32_t one = 1;
-    int32_t n = 1;
-
-    if (x <= -3)
-    {
-        return -1;
-    }
-    else if (x >= 3)
-    {
-        return 1;
-    }
-
-    while (vsi_abs(tmp) > 1e-5)
-    {
-        res += tmp;
-
-        factorial *= n;
-        one *= -1;
-        x_pow *= x * x;
-        tmp = one / factorial * x_pow / ( 2 * n + 1);
-
-        n ++;
-    }
-#define VSI_MUL2_RSQRTPI    (1.1283791670955126f)
-
-    res *= VSI_MUL2_RSQRTPI;
-
-    return res;
-}
-
 static float gelu_eval(float data)
 {
-    data = (float)(0.5f * data * (1 + erf_eval(data / (float)sqrt(2.0f))));
+    data = (float)(0.5f * data * (1 + vsi_nn_erf_impl(data / (float)sqrt(2.0f))));
 
     return data;
 }
@@ -167,6 +126,23 @@ static float hgelu_eval(float data)
         (data + 0.044715f * data * data * data)))));
 
     return data * cdf;
+}
+
+static float selu_eval(float data, float alpha, float gamma)
+{
+    float y0 = alpha * gamma * expf(data) - alpha * gamma;
+    float y1 = gamma * data;
+    float y = data <= 0 ? y0 : y1;
+
+    return y;
+}
+
+static float celu_eval(float x, float alpha)
+{
+    float positive = vsi_nn_max(0, x);
+    float negative = vsi_nn_min(alpha * (expf(x / alpha) - 1), 0);
+
+    return positive + negative;
 }
 
 DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
@@ -227,9 +203,6 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
         case UNARY_LOG:
             data = log_eval(data);
             break;
-        case UNARY_ELU:
-            data = elu_eval(data, alpha);
-            break;
         case UNARY_NEG:
             data = neg_eval(data);
             break;
@@ -247,6 +220,12 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
             break;
         case UNARY_HGELU:
             data = hgelu_eval(data);
+            break;
+        case UNARY_SELU:
+            data = selu_eval(data, alpha, beta);
+            break;
+        case UNARY_CELU:
+            data = celu_eval(data, alpha);
             break;
         default:
             break;
@@ -287,20 +266,6 @@ static vx_param_description_t kernel_param_def[] =
 #define INPUT_SCALAR_ALPHA        (3)
 #define INPUT_SCALAR_BETA         (4)
 
-static const vx_kernel_description_t _kernel_info =
-{
-    KERNEL_ID_PLACEHOLDER,
-    _KERNEL_NAME,
-    _eltwise_unary_exec,
-    kernel_param_def,
-    _cnt_of_array( kernel_param_def ),
-    vsi_nn_KernelValidator,
-    NULL,
-    NULL,
-    vsi_nn_KernelInitializer,
-    vsi_nn_KernelDeinitializer
-};
-
 static vsi_status _query_kernel
     (
     vsi_nn_tensor_t* const* const inputs,
@@ -308,7 +273,11 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t* kernel
     )
 {
-    memmove( &kernel->info, &_kernel_info, sizeof(vx_kernel_description_t) );
+    snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  _KERNEL_NAME );
+    kernel->info.function    = _eltwise_unary_exec;
+    kernel->info.parameters  = kernel_param_def;
+    kernel->info.numParams   = _cnt_of_array( kernel_param_def );
+
     return VSI_SUCCESS;
 } /* _query_kernel() */
 
@@ -384,10 +353,11 @@ REGISTER_ELTWISE_UNARY_BACKEND_CPU( sin,          UNARY_SIN )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( cos,          UNARY_COS )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( exp,          UNARY_EXP )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( log,          UNARY_LOG )
-REGISTER_ELTWISE_UNARY_BACKEND_CPU( elu,          UNARY_ELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( neg,          UNARY_NEG )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( hard_sigmoid, UNARY_HSIGMOID )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( mish,         UNARY_MISH )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( round,        UNARY_ROUND )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( gelu,         UNARY_GELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( hard_gelu,    UNARY_HGELU )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( selu,         UNARY_SELU )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( celu,         UNARY_CELU )

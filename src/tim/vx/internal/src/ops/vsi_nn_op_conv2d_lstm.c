@@ -35,7 +35,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
 
@@ -515,7 +515,9 @@ static vsi_bool op_setup
     trans_input_tensor(self, inputs, trans_inputs);
 
     split_outputs = (vsi_nn_tensor_t **)malloc(sizeof(vsi_nn_tensor_t *) * timestep);
+    CHECK_PTR_FAIL_GOTO( split_outputs, "Create buffer fail.", final );
     conv2dlstm_step_outputs = (vsi_nn_tensor_t **)malloc(sizeof(vsi_nn_tensor_t *) * timestep);
+    CHECK_PTR_FAIL_GOTO( conv2dlstm_step_outputs, "Create buffer fail.", final );
     memset(split_outputs, 0, sizeof(vsi_nn_tensor_t *) * timestep);
     memset(conv2dlstm_step_outputs, 0, sizeof(vsi_nn_tensor_t *) * timestep);
 
@@ -636,6 +638,7 @@ static vsi_bool op_setup
         trans_output_tensor(self, conv2dlstm_outputs, outputs);
     }
 
+final:
     vsi_nn_safe_free(split_outputs);
     vsi_nn_safe_free(conv2dlstm_step_outputs)
     return TRUE;

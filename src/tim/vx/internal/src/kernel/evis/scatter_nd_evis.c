@@ -35,7 +35,6 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -206,7 +205,11 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_initializer)
     block_size = (int32_t)(attr[2]->shape->data[0]);
     height     = (int32_t)(attr[2]->shape->data[1]);
     index_num  = (int32_t)(attr[0]->shape->data[1]);
-    output_zp  = (int32_t)(attr[2]->asymm.zero_point);
+
+    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
+    {
+        output_zp = attr[2]->asymm.zero_point;
+    }
 
     if(coord_dim == 3)
     {
@@ -359,7 +362,11 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_big_initializer)
     block_size = (int32_t)(attr[2]->shape->data[0]);
     height     = (int32_t)(attr[2]->shape->data[1]);
     index_num  = (int32_t)(attr[0]->shape->data[1]);
-    output_zp  = (int32_t)(attr[2]->asymm.zero_point);
+
+    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
+    {
+        output_zp = attr[2]->asymm.zero_point;
+    }
 
     if(coord_dim == 3)
     {
@@ -552,4 +559,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( scatter_nd, _setup )
-

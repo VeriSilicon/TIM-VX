@@ -42,8 +42,6 @@ __BEGIN_DECLS
  * Define kernel meta.
  */
 #define KERNEL_SOURCE_1    "minimum",
-#define KERNEL_SOURCE_2    "minimum_fp16",
-#define KERNEL_SOURCE_3    "minimum_i16"
 
 #define HASH_MINIMUM_KEY(_input0_type, _input1_type, _output_type, _image_2d) \
     ((_input0_type << 24) | (_input1_type << 16) | (_output_type << 8) | (_image_2d))
@@ -197,16 +195,25 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+#define CONVERT_I8_OR_I16TOI32(dtype) \
+    dtype = (dtype == I8 || dtype == I16) ? I32 : dtype
+
+    CONVERT_I8_OR_I16TOI32(input0_dtype);
+    CONVERT_I8_OR_I16TOI32(input1_dtype);
+    CONVERT_I8_OR_I16TOI32(output_dtype);
+#undef CONVERT_I8_OR_I16TOI32
+
     key = HASH_MINIMUM_KEY( input0_dtype, input1_dtype, output_dtype, image_2d );
 
-    for( i = 0; i < _cnt_of_array(kernel_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(kernel_map); i ++ )
     {
-        if( kernel_map[i].key == key )
+        if ( kernel_map[i].key == key )
         {
             break;
         }
     }
-    if( i < _cnt_of_array(kernel_map) )
+    if ( i < _cnt_of_array(kernel_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
         kernel->info.parameters = kernel_param_def;
@@ -247,7 +254,7 @@ static vsi_nn_kernel_node_t _setup
 
     outputScale = vsi_abs(outputScale) < 1e-5 ? 0.0f : 1.0f / outputScale;
 
-    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -255,11 +262,11 @@ static vsi_nn_kernel_node_t _setup
 
     image_2d = (outputs[0]->attr.dim_num == 2);
     status = _query_kernel( inputs, outputs, image_2d, kernel );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
 
-        if( node )
+        if ( node )
         {
             vsi_nn_kernel_node_pack_io( node_params, _CL_PARAM_NUM,
                     inputs, 2, outputs, 1 );

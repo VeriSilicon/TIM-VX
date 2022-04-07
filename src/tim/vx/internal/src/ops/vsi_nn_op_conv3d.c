@@ -83,7 +83,7 @@ static vsi_status op_compute
          self->nn_param.conv3d.dilation[2] > 1)
     {
         VSILOGE("conv3d could not support dilation > 1\n");
-        return status;
+        goto final;
     }else
     {
         MAP_PARAM("dilation_w",self->nn_param.conv3d.dilation[0]);
@@ -98,6 +98,7 @@ static vsi_status op_compute
         status = VSI_SUCCESS;
     }
 
+final:
     vsi_nn_kernel_param_release( &param );
     return status;
 } /* op_compute() */

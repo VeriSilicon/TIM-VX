@@ -340,7 +340,7 @@ static char* _load_source_code_from_file
         *size = read_bytes;
     }
 final:
-    fclose( fp );
+    if (fp) fclose( fp );
     return source;
 } /* _load_source_code_from_file() */
 
@@ -351,15 +351,17 @@ static vx_program _create_program
     size_t num
     )
 {
-    vx_char** sources;
-    vx_size* source_sizes;
+    vx_char** sources = NULL;
+    vx_size* source_sizes = NULL;
     size_t i;
     vsi_status status;
     vx_program program;
     program = NULL;
 
     sources = (vx_char**)malloc( sizeof(vx_char*) * num );
+    CHECK_PTR_FAIL_GOTO( sources, "Create buffer fail.", final );
     source_sizes = (vx_size*)malloc( sizeof(vx_size) * num );
+    CHECK_PTR_FAIL_GOTO( source_sizes, "Create buffer fail.", final );
 
     for( i = 0; i < num; i ++ )
     {
@@ -373,14 +375,11 @@ static vx_program _create_program
     {
         VSILOGE("Create program from source fail!");
     }
-    if( sources )
-    {
-        free( sources );
-    }
-    if( source_sizes )
-    {
-        free( source_sizes );
-    }
+
+final:
+    vsi_nn_safe_free( sources );
+    vsi_nn_safe_free( source_sizes );
+
     return program;
 } /* _create_program() */
 

@@ -23,8 +23,8 @@ __kernel void moments_axis01_U8toF32(
         {
             data = read_imageui(input, coord);
             coord.y++;
-            tmpSum += data.x;
-            tmpSqr += data.x * data.x;
+            tmpSum = tmpSum + data.x;
+            tmpSqr = tmpSqr + data.x * data.x;
         }
         sqr += (tmpSqr - 2 * input_zp * tmpSum + height * input_zp * input_zp) * e2InScale;
         sum += (tmpSum - height * input_zp) * input_scale;

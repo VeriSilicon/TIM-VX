@@ -36,7 +36,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -103,7 +102,6 @@ DEF_KERNEL_EXECUTOR(_compute)
         }
         f32_in_buffer[i] = (float*)vsi_nn_kernel_tensor_create_buffer( input[i], in_attr[i], TRUE );
         CHECK_PTR_FAIL_GOTO( f32_in_buffer[i], "Create input0 buffer fail.", final );
-
     }
     for(i = 0; i < _OUTPUT_NUM; i ++)
     {
@@ -261,10 +259,8 @@ static vsi_nn_kernel_node_t _setup
     }
 
     return node;
-
 } /* _setup() */
 
 __END_DECLS
 
 REGISTER_BACKEND_CPU( upsample, _setup )
-

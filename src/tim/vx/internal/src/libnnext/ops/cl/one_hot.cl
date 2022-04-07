@@ -37,12 +37,13 @@ __kernel void one_hot_I32toI32
 {
     int4 coord =  (int4)(get_global_id(0), get_global_id(1), 0, 0);
 
-    int4 val = read_imagei(input, coord.xy);
+    int4 src = read_imagei(input, coord.xy);
 
+    int  val = convert_int(convert_float(src.x) * inputScale - inputTail);
     do
     {
         int4 dst;
-        dst.x = val.x == coord.z ? on_value : off_value;
+        dst.x = val == coord.z ? on_value : off_value;
 
         write_imagei(output, coord.xzyw, dst.xxxx);
 
@@ -63,11 +64,13 @@ __kernel void one_hot_I32toU8
 {
     int4 coord =  (int4)(get_global_id(0), get_global_id(1), 0, 0);
 
-    int4 val = read_imagei(input, coord.xy);
+    int4 src = read_imagei(input, coord.xy);
+
+    int  val = convert_int(convert_float(src.x) * inputScale - inputTail);
     do
     {
         uint4 dst;
-        dst.x = val.x == coord.z ? on_value : off_value;
+        dst.x = val == coord.z ? on_value : off_value;
 
         write_imageui(output, coord.xzyw, dst.xxxx);
 
@@ -88,12 +91,13 @@ __kernel void one_hot_I32toF32
 {
     int4 coord =  (int4)(get_global_id(0), get_global_id(1), 0, 0);
 
-    int4 val = read_imagei(input, coord.xy);
+    int4 src = read_imagei(input, coord.xy);
 
+    int  val = convert_int(convert_float(src.x) * inputScale - inputTail);
     do
     {
         float4 dst;
-        dst.x = val.x == coord.z ? on_value : off_value;
+        dst.x = val == coord.z ? on_value : off_value;
 
         write_imagef(output, coord.xzyw, dst.xxxx);
 

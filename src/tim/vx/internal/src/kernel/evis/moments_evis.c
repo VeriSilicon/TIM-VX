@@ -802,6 +802,13 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
+    if ( ( input0_dtype == I8 || input0_dtype == I16 ) &&
+         ( inputs[0]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_DFP &&
+           inputs[0]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_NONE ) )
+    {
+        return VSI_FAILURE;
+    }
+
     key = HASH_MOMENTS_KEY( input0_dtype, output_dtype, axis_num, axis[0], axis[1], axis[2], rs_flg );
 
     for( i = 0; i < _cnt_of_array(moments_map); i++ )

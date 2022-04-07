@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,31 +67,42 @@ typedef struct
 static const _kernel_map_type _one_hot_kernel_map[] =
 {
     // Register kernel here
+    PACK_ONE_HOT_KERNEL_3D( U8,   I8 ),
     PACK_ONE_HOT_KERNEL_3D( U8,   U8 ),
     PACK_ONE_HOT_KERNEL_3D( U8,   F16 ),
+    PACK_ONE_HOT_KERNEL_3D( U8,   I16 ),
+    PACK_ONE_HOT_KERNEL_3D( U8,   BF16 ),
     PACK_ONE_HOT_KERNEL_3D( I8,   I8 ),
     PACK_ONE_HOT_KERNEL_3D( I8,   F16 ),
+    PACK_ONE_HOT_KERNEL_3D( I16,  I8 ),
+    PACK_ONE_HOT_KERNEL_3D( I16,  U8 ),
     PACK_ONE_HOT_KERNEL_3D( I16,  I16 ),
     PACK_ONE_HOT_KERNEL_3D( I16,  F16 ),
+    PACK_ONE_HOT_KERNEL_3D( I16,  BF16 ),
     PACK_ONE_HOT_KERNEL_3D( F16,  F16 ),
     PACK_ONE_HOT_KERNEL_3D( F16,  I16 ),
     PACK_ONE_HOT_KERNEL_3D( F16,  U8 ),
     PACK_ONE_HOT_KERNEL_3D( F16,  I8 ),
     PACK_ONE_HOT_KERNEL_3D( BF16, BF16 ),
 
+    PACK_ONE_HOT_KERNEL_2D( U8,   I8 ),
     PACK_ONE_HOT_KERNEL_2D( U8,   U8 ),
     PACK_ONE_HOT_KERNEL_2D( U8,   F16 ),
+    PACK_ONE_HOT_KERNEL_2D( U8,   I16 ),
+    PACK_ONE_HOT_KERNEL_2D( U8,   BF16 ),
     PACK_ONE_HOT_KERNEL_2D( I8,   I8 ),
     PACK_ONE_HOT_KERNEL_2D( I8,   F16 ),
+    PACK_ONE_HOT_KERNEL_2D( I16,  U8 ),
+    PACK_ONE_HOT_KERNEL_2D( I16,  I16 ),
     PACK_ONE_HOT_KERNEL_2D( I16,  I16 ),
     PACK_ONE_HOT_KERNEL_2D( I16,  F16 ),
+    PACK_ONE_HOT_KERNEL_2D( I16,  BF16 ),
     PACK_ONE_HOT_KERNEL_2D( F16,  F16 ),
     PACK_ONE_HOT_KERNEL_2D( F16,  I16 ),
     PACK_ONE_HOT_KERNEL_2D( F16,  U8 ),
     PACK_ONE_HOT_KERNEL_2D( F16,  I8 ),
     PACK_ONE_HOT_KERNEL_2D( BF16, BF16 ),
 };
-
 
 /*
  * Kernel params
@@ -151,7 +161,7 @@ DEF_KERNEL_INITIALIZER(_one_hot_initializer)
 
     if (VSI_NN_KERNEL_QUANT_DFP == attr[0]->quant)
     {
-        srcFixPointPos   = attr[0]->dfp.fl;
+        srcFixPointPos = attr[0]->dfp.fl;
     }
     else if (VSI_NN_KERNEL_QUANT_ASYMM == attr[0]->quant)
     {
@@ -335,7 +345,6 @@ final:
     return status;
 } /* _one_hot_initializer() */
 
-
 /*
  * Query kernel
  */
@@ -360,6 +369,13 @@ static vsi_status _query_kernel
 
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    if ( ( in_dtype == I8 || in_dtype == I16 ) &&
+         ( inputs[0]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_DFP &&
+           inputs[0]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_NONE ) )
+    {
+        return VSI_FAILURE;
+    }
 
     key = ONE_HOT_HASH_KEY( in_dtype, out_dtype, image_2d );
 
@@ -388,7 +404,6 @@ static vsi_status _query_kernel
 
     return status;
 } /* _query_kernel() */
-
 
 static vsi_nn_kernel_node_t _setup
     (
@@ -504,4 +519,3 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( one_hot, _setup )
-

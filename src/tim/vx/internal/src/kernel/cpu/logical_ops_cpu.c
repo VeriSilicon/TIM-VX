@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -96,8 +95,8 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_nn_kernel_tensor_t output[_OUTPUT_NUM] = {NULL};
     float *f32_in_buffer[_INPUT_NUM] = {NULL};
     float *f32_out_buffer[_OUTPUT_NUM] = {NULL};
-    vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM];
-    vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM];
+    vsi_nn_kernel_tensor_attr_t *in_attr[_INPUT_NUM] = {NULL};
+    vsi_nn_kernel_tensor_attr_t *out_attr[_OUTPUT_NUM] = {NULL};
     vsi_size_t   in_stride_size[_INPUT_NUM][VSI_NN_MAX_DIM_NUM]   = {{1}};
     vsi_size_t   out_stride_size[_OUTPUT_NUM][VSI_NN_MAX_DIM_NUM] = {{1}};
     vsi_size_t   out_elements[_OUTPUT_NUM] = {0};
@@ -113,7 +112,6 @@ DEF_KERNEL_EXECUTOR(_compute)
         vsi_nn_kernel_tensor_attr_get_stride( in_attr[i], in_stride_size[i] );
         f32_in_buffer[i] = (float*)vsi_nn_kernel_tensor_create_buffer( input[i], in_attr[i], TRUE );
         CHECK_PTR_FAIL_GOTO( f32_in_buffer[i], "Create input0 buffer fail.", final );
-
     }
     for(i = 0; i < _OUTPUT_NUM; i ++)
     {
@@ -264,4 +262,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CPU( logical_ops, _setup )
-

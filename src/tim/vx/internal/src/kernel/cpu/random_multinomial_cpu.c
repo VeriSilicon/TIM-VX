@@ -38,7 +38,6 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "kernel/vsi_nn_kernel_eltwise.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 
 __BEGIN_DECLS
 
@@ -259,4 +258,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CPU( random_multinomial, _setup )
-

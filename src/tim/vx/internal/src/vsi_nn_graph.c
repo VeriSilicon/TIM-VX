@@ -40,6 +40,7 @@
 #include "utils/vsi_nn_vdata.h"
 #include "utils/vsi_nn_map.h"
 #include "vsi_nn_graph_optimization.h"
+#include "vsi_nn_error.h"
 
 static vsi_status _set_reference_node_name
     (
@@ -1320,13 +1321,13 @@ vsi_nn_node_id_t * vsi_nn_SortGraphNode
     uint32_t             count;
     vsi_bool             dirty;
     vsi_bool             all_tensor_processed;
-    vsi_bool           * tensors;
-    vsi_nn_node_id_t   * nodes;
-    vsi_nn_node_id_t   * sorted_nodes;
-    vsi_nn_node_t      * node;
+    vsi_bool           * tensors = NULL;
+    vsi_nn_node_id_t   * nodes = NULL;
+    vsi_nn_node_id_t   * sorted_nodes = NULL;
+    vsi_nn_node_t      * node = NULL;
     vsi_nn_node_id_t     node_id;
     vsi_nn_tensor_id_t   tensor_id;
-    vsi_nn_tensor_t    * tensor;
+    vsi_nn_tensor_t    * tensor = NULL;
 
     if( NULL == graph || NULL == graph->nodes
         || NULL == graph->tensors )
@@ -1884,7 +1885,7 @@ vsi_status vsi_nn_setup_binary_graph_inputs_outputs
     )
 {
     uint32_t i,j;
-    vsi_status status;
+    vsi_status status = VSI_FAILURE;
     uint32_t num_of_graph_inputs;
     uint32_t num_of_graph_real_inputs;
     vx_reference *graph_inputs = NULL;
@@ -1911,6 +1912,7 @@ vsi_status vsi_nn_setup_binary_graph_inputs_outputs
         }
     }
     graph_inputs = (vx_reference *)malloc( num_of_graph_real_inputs * sizeof( vx_reference ) );
+    CHECK_PTR_FAIL_GOTO( graph_inputs, "Create buffer fail.", final );
     for( i = 0, j = 0; i < num_of_graph_inputs; i++ )
     {
         tensor = vsi_nn_GetTensor( graph, graph->input.tensors[i] );
@@ -1946,6 +1948,7 @@ vsi_status vsi_nn_setup_binary_graph_inputs_outputs
         }
     }
     graph_outputs = (vx_reference *)malloc( num_of_graph_real_outputs * sizeof( vx_reference ) );
+    CHECK_PTR_FAIL_GOTO( graph_outputs, "Create buffer fail.", final );
     for( i = 0, j = 0; i < num_of_graph_outputs; i++ )
     {
         tensor = vsi_nn_GetTensor( graph, graph->output.tensors[i] );
@@ -1981,14 +1984,9 @@ vsi_status vsi_nn_setup_binary_graph_inputs_outputs
     }
 
 final:
-    if ( NULL != graph_inputs)
-    {
-        free( graph_inputs );
-    }
-    if ( NULL != graph_outputs)
-    {
-        free( graph_outputs );
-    }
+    vsi_nn_safe_free(graph_inputs);
+    vsi_nn_safe_free(graph_outputs);
+
     return status;
 } /* vsi_nn_setup_binary_graph_inputs_outputs() */
 

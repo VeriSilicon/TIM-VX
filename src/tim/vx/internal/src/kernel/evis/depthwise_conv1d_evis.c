@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -759,8 +758,10 @@ static vsi_nn_kernel_node_t _setup
 
     weights = vsi_nn_pad_tensor(graph, reshape_tensors[1], weight_pad_front, weight_pad_end,
         reshape_tensors[1]->attr.dim_num, VSI_NN_PAD_MODE_CONSTANT, 0);
+    CHECK_PTR_FAIL_GOTO( weights, "Create tensor afail.", final );
 
     biases = vsi_nn_merge_input_zeropoint_to_bias(graph, reshape_tensors[0], reshape_tensors[1], reshape_tensors[2]);
+    CHECK_PTR_FAIL_GOTO( biases, "Create tensor afail.", final );
 
     temp_tensor[0] = reshape_tensors[0];
     temp_tensor[1] = weights;
@@ -809,6 +810,7 @@ static vsi_nn_kernel_node_t _setup
         }
     }
 
+final:
     if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
     {
         vsi_nn_ReleaseTensor( &reshape_tensors[1] );

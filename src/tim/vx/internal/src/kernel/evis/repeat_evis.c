@@ -35,7 +35,6 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 
 __BEGIN_DECLS
@@ -480,6 +479,7 @@ static vsi_nn_kernel_node_t _setup
     }
 
     kernel_preprocess = vsi_nn_kernel_create( VSI_NN_KERNEL_TYPE_EVIS );
+    CHECK_PTR_FAIL_GOTO( kernel_preprocess, "Create kernel fail.", final );
     // Assign unique_id
     kernel_preprocess->unique_id = kernel->unique_id;
 

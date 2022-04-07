@@ -34,7 +34,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -474,7 +473,9 @@ static vsi_nn_kernel_node_t _setup
         if( node )
         {
             _inputs = (vsi_nn_tensor_t**)malloc(input_count * sizeof(vsi_nn_tensor_t**));
+            CHECK_PTR_FAIL_GOTO( _inputs, "Create buffer fail.", final );
             node_params = (vsi_nn_kernel_node_param_t *)malloc(sizeof(vsi_nn_kernel_node_param_t) * param_count);
+            CHECK_PTR_FAIL_GOTO( node_params, "Create buffer fail.", final );
             for(i = 0; i < input_count; i++)
             {
                 _inputs[i] = inputs[i];
@@ -504,6 +505,7 @@ static vsi_nn_kernel_node_t _setup
         }
     }
 
+final:
     vsi_nn_safe_free(_inputs);
     vsi_nn_safe_free(node_params);
     return node;
@@ -512,4 +514,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CPU( grucell_activation, _setup )
-

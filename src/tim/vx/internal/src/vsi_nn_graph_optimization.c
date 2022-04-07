@@ -149,11 +149,11 @@ static vsi_status _add_dataconvert_node
 
     /* Add dataconvert node */
     node = vsi_nn_AddNode(graph, VSI_NN_OP_DATACONVERT, 1, 1, NULL);
-    node->uid = (uint32_t)(VSI_NN_DATACONVERT_NODE_UID_BASE) + idx;
     if( NULL == node ) {
         status = VSI_FAILURE;
         goto final;
     }
+    node->uid = (uint32_t)(VSI_NN_DATACONVERT_NODE_UID_BASE) + idx;
 
     if( direction == VSI_NN_OPTIMIZE_FORWARD )
     {

@@ -139,6 +139,10 @@ static vsi_nn_internal_tensor_t * create_recurrent_conv
 
     internal_bias = vsi_nn_internal_create_zero_bias_tensor(
         self, &input->attr, &weight->attr, VSI_NN_OP_CONV2D, FALSE);
+    if (internal_bias == NULL)
+    {
+        return NULL;
+    }
     bias = internal_bias->t;
 
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;

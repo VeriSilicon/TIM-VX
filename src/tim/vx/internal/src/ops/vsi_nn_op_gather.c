@@ -101,22 +101,34 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(GATHER, 2, 1)
-        IO_TYPE(D_I32,  D_I32, D_I32)
-        IO_TYPE(D_F32,  D_I32, D_F32)
-        IO_TYPE(D_F16,  D_I32, D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_I32, D_I16|Q_DFP)
-        IO_TYPE(D_F16,  D_I32, D_I8|Q_DFP)
-        IO_TYPE(D_F16,  D_I32, D_F16)
-        IO_TYPE(D_BF16, D_I32, D_BF16)
-        IO_TYPE(D_U8|Q_ASYM, D_I32, D_U8|Q_ASYM)
-        IO_TYPE(D_U8, D_I32, D_U8)
-        IO_TYPE(D_U8|Q_ASYM, D_I32, D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_I32,  D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,  D_I32,  D_F16)
-        IO_TYPE(D_I16|Q_DFP, D_I32, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_I32, D_F16)
+        IO_TYPE(D_I32,        D_I32,  D_I32)
+        IO_TYPE(D_F32,        D_I32,  D_F32)
+        IO_TYPE(D_F16,        D_I32,  D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_I32,  D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_I32,  D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_I32,  D_I16|Q_SYM)
+        IO_TYPE(D_F16,        D_I32,  D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_I32,  D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_I32,  D_I8|Q_SYM)
+        IO_TYPE(D_F16,        D_I32,  D_F16)
+        IO_TYPE(D_BF16,       D_I32,  D_BF16)
+        IO_TYPE(D_U8|Q_ASYM,  D_I32,  D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_I32,  D_F16)
+        IO_TYPE(D_I8|Q_DFP,   D_I32,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,   D_I32,  D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_I32,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_I32,  D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_I32,  D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_SYM,   D_I32,  D_F16)
+        IO_TYPE(D_I16|Q_DFP,  D_I32,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,  D_I32,  D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_I32,  D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_ASYM, D_I32,  D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_I32,  D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_SYM,  D_I32,  D_F16)
     END_IO_TYPE_DECL(GATHER)
-    if(!VALIDATE_OP_IO_TYPES(GATHER, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(GATHER, self, inputs, self->input.num, outputs, self->output.num))
+    {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -150,7 +162,7 @@ static vsi_bool op_setup
     uint32_t i = 0;
     vsi_nn_gather_param * p = NULL;
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         uint32_t j = 0;
         p = &(self->nn_param.gather);

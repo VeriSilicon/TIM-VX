@@ -35,7 +35,7 @@ typedef int32_t vsi_nn_kernel_lut_act_e; enum
     VSI_NN_KERNEL_LUT_MISH             = 1,
     VSI_NN_KERNEL_LUT_LOG              = 2,
     VSI_NN_KERNEL_LUT_EXP              = 3,
-    VSI_NN_KERNEL_LUT_ELU              = 4,
+    VSI_NN_KERNEL_LUT_SELU             = 4,
     VSI_NN_KERNEL_LUT_NEG              = 5,
     VSI_NN_KERNEL_LUT_HSIGMOID         = 6,
     VSI_NN_KERNEL_LUT_SOFT_PLUS        = 7,
@@ -45,6 +45,7 @@ typedef int32_t vsi_nn_kernel_lut_act_e; enum
     VSI_NN_KERNEL_LUT_RELU_KERAS       = 11,
     VSI_NN_KERNEL_LUT_CLIP             = 12,
     VSI_NN_KERNEL_LUT_SQUARE           = 13,
+    VSI_NN_KERNEL_LUT_CELU             = 14,
 };
 
 #define VSI_NN_KERNEL_LUT_MAX_SIZE  (1024)
