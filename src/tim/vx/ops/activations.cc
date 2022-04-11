@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 #define DEFINE_NO_PARAMETER_ACTIVATION(NAME, VSI_OP_CODE)               \
-  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE) {}           \
+  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE) {}         \
   std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
       const {                                                           \
     return graph->CreateOperation<NAME>();                              \
@@ -40,13 +40,20 @@ namespace ops {
 DEFINE_NO_PARAMETER_ACTIVATION(Relu, VSI_NN_OP_RELU)
 DEFINE_NO_PARAMETER_ACTIVATION(Relu1, VSI_NN_OP_RELU1)
 DEFINE_NO_PARAMETER_ACTIVATION(Relu6, VSI_NN_OP_RELU6)
-DEFINE_NO_PARAMETER_ACTIVATION(Elu, VSI_NN_OP_ELU)
 DEFINE_NO_PARAMETER_ACTIVATION(Sigmoid, VSI_NN_OP_SIGMOID)
 DEFINE_NO_PARAMETER_ACTIVATION(Mish, VSI_NN_OP_MISH)
 DEFINE_NO_PARAMETER_ACTIVATION(SoftRelu, VSI_NN_OP_SOFTRELU)
 
-
 #undef DEFINE_NO_PARAMETER_ACTIVATION
+
+Elu::Elu(Graph* graph, float alpha)
+    : DirectMapOp(graph, VSI_NN_OP_ELU), alpha_(alpha) {
+  this->impl()->node()->nn_param.elu.alpha = alpha_;
+}
+
+std::shared_ptr<Operation> Elu::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Elu>(this->alpha_);
+}
 
 HardSwish::HardSwish(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_SWISH) {
   this->impl()->node()->nn_param.swish.type = VSI_NN_HSWISH;
@@ -63,8 +70,7 @@ Swish::Swish(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_SWISH) {
   this->impl()->node()->nn_param.swish.beta = 1.0f;
 }
 
-std::shared_ptr<Operation> Swish::Clone(
-    std::shared_ptr<Graph>& graph) const {
+std::shared_ptr<Operation> Swish::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Swish>();
 }
 
@@ -83,7 +89,8 @@ HardSigmoid::HardSigmoid(Graph* graph, float alpha, float beta)
   this->impl()->node()->nn_param.hard_sigmoid.beta = beta_;
 }
 
-std::shared_ptr<Operation> HardSigmoid::Clone(std::shared_ptr<Graph>& graph) const {
+std::shared_ptr<Operation> HardSigmoid::Clone(
+    std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<HardSigmoid>(this->alpha_, this->beta_);
 }
 
@@ -117,12 +124,13 @@ std::shared_ptr<Operation> Linear::Clone(std::shared_ptr<Graph>& graph) const {
 }
 
 Gelu::Gelu(Graph* graph, bool approximate)
-    : DirectMapOp(graph, VSI_NN_OP_GELU){
-      this->impl()->node()->nn_param.gelu.approximate = approximate;
-    }
+    : DirectMapOp(graph, VSI_NN_OP_GELU) {
+  this->impl()->node()->nn_param.gelu.approximate = approximate;
+}
 
 std::shared_ptr<Operation> Gelu::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<Gelu>(this->impl()->node()->nn_param.gelu.approximate);
+  return graph->CreateOperation<Gelu>(
+      this->impl()->node()->nn_param.gelu.approximate);
 }
 
 }  // namespace ops

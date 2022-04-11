@@ -69,7 +69,7 @@ namespace ops {
  */
 
 #define DECLARE_NO_PARAMETER_ACTIVATION(NAME)          \
-  class NAME : public DirectMapOp {                      \
+  class NAME : public DirectMapOp {                    \
    public:                                             \
     NAME(Graph* graph);                                \
     std::shared_ptr<Operation> Clone(                  \
@@ -79,7 +79,6 @@ namespace ops {
 DECLARE_NO_PARAMETER_ACTIVATION(Relu)
 DECLARE_NO_PARAMETER_ACTIVATION(Relu1)
 DECLARE_NO_PARAMETER_ACTIVATION(Relu6)
-DECLARE_NO_PARAMETER_ACTIVATION(Elu)
 DECLARE_NO_PARAMETER_ACTIVATION(Tanh)
 DECLARE_NO_PARAMETER_ACTIVATION(Sigmoid)
 DECLARE_NO_PARAMETER_ACTIVATION(Swish)
@@ -88,6 +87,16 @@ DECLARE_NO_PARAMETER_ACTIVATION(Mish)
 DECLARE_NO_PARAMETER_ACTIVATION(SoftRelu)
 
 #undef DEFINE_NO_PARAMETER_ACTIVATION
+
+class Elu : public DirectMapOp {
+ public:
+  Elu(Graph* graph, float alpha);
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float alpha_;
+};
 
 class Prelu : public DirectMapOp {
  public:
