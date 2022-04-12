@@ -29,21 +29,31 @@
 namespace tim {
 namespace vx {
 namespace ops {
+
 Pad::Pad(Graph* graph, const std::vector<uint32_t>& front_size,
          const std::vector<uint32_t>& back_size, int32_t const_val)
+    : Pad(graph, front_size, back_size, const_val, PAD_MODE_CONSTANT) {}
+
+Pad::Pad(Graph* graph, const std::vector<uint32_t>& front_size,
+         const std::vector<uint32_t>& back_size, int32_t const_val,
+         pad_mode_type pad_mode)
     : DirectMapOp(graph, VSI_NN_OP_PAD),
       front_size_(front_size),
       back_size_(back_size),
-      const_val_(const_val) {
+      const_val_(const_val),
+      pad_mode_(pad_mode) {
   this->impl()->node()->nn_param.pad.front_size = front_size_.data();
   this->impl()->node()->nn_param.pad.back_size = back_size_.data();
   this->impl()->node()->nn_param.pad.dim_num = front_size_.size();
-  this->impl()->node()->nn_param.pad.const_val = const_val_;
-  this->impl()->node()->nn_param.pad.mode = VSI_NN_PAD_MODE_CONSTANT;
+  if (pad_mode_ == PAD_MODE_CONSTANT) {
+    this->impl()->node()->nn_param.pad.const_val = const_val_;
+  }
+  this->impl()->node()->nn_param.pad.mode = (vsi_nn_pad_mode_e)pad_mode_;
 }
 
 std::shared_ptr<Operation> Pad::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<Pad>(this->front_size_, this->back_size_, this->const_val_);
+  return graph->CreateOperation<Pad>(this->front_size_, this->back_size_,
+                                     this->const_val_, this->pad_mode_);
 }
 
 }  // namespace ops
