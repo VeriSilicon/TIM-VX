@@ -45,7 +45,7 @@ __BEGIN_DECLS
 #define CLIP_HASH_KEY( IN_DTYPE, OUT_DTYPE, _image_2d ) \
         (( IN_DTYPE << 20 ) | ( OUT_DTYPE << 8) | (_image_2d))
 
-#define PACK_KERNEL_MAP( IN_DTYPE, OUT_DTYPE ) \
+#define PACK_KERNEL_MAP_3D( IN_DTYPE, OUT_DTYPE ) \
         { CLIP_HASH_KEY( IN_DTYPE, OUT_DTYPE, 0 ), \
           CVIVANTE_NAMESPACE("cl.clip_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
           _CLIP_KERNEL_SOURCE(IN_DTYPE) }
@@ -64,16 +64,22 @@ typedef struct
 
 static const _kernel_map_type _clip_kernel_map[] =
 {
-    PACK_KERNEL_MAP(F32,     F32),
-    PACK_KERNEL_MAP(F32,     U8),
-    PACK_KERNEL_MAP(U8,      U8),
-    PACK_KERNEL_MAP(U8,      F32),
-    PACK_KERNEL_MAP(BF16,    BF16),
-    PACK_KERNEL_MAP_2D(F32,  F32),
-    PACK_KERNEL_MAP_2D(F32,  U8),
-    PACK_KERNEL_MAP_2D(U8,   U8),
-    PACK_KERNEL_MAP_2D(U8,   F32),
-    PACK_KERNEL_MAP_2D(BF16, BF16),
+    PACK_KERNEL_MAP_3D(F32,   F32),
+    PACK_KERNEL_MAP_3D(F32,   U8),
+    PACK_KERNEL_MAP_3D(F32,   I32),
+    PACK_KERNEL_MAP_3D(U8,    U8),
+    PACK_KERNEL_MAP_3D(U8,    F32),
+    PACK_KERNEL_MAP_3D(I32,   I32),
+    PACK_KERNEL_MAP_3D(I32,   F32),
+    PACK_KERNEL_MAP_3D(BF16,  BF16),
+    PACK_KERNEL_MAP_2D(F32,   F32),
+    PACK_KERNEL_MAP_2D(F32,   U8),
+    PACK_KERNEL_MAP_2D(F32,   I32),
+    PACK_KERNEL_MAP_2D(U8,    U8),
+    PACK_KERNEL_MAP_2D(U8,    F32),
+    PACK_KERNEL_MAP_2D(I32,   I32),
+    PACK_KERNEL_MAP_2D(I32,   F32),
+    PACK_KERNEL_MAP_2D(BF16,  BF16),
 };
 
 
@@ -100,9 +106,6 @@ static vx_param_description_t _clip_kernel_param_def[] =
 #define SCALAR_OUTPUT_SCALE       (6)
 #define SCALAR_OUTPUT_TAIL        (7)
 
-#define CLIP_PARAM_NUM         4
-#define CLIP_QUANT_PARAM_NUM   _cnt_of_array( _clip_kernel_param_def )
-
 /*
  * Kernel initializer
  */
@@ -122,7 +125,7 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
         {0, 0, 0}
         };
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
-    vsi_size_array_t * out_shape                 = NULL;
+    vsi_size_array_t * out_shape                = NULL;
 
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
@@ -149,8 +152,6 @@ final:
     return status;
 } /* _clip_initializer() */
 
-
-
 /*
  * Query kernel
  */
@@ -159,8 +160,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t * kernel,
     vsi_nn_tensor_t * const * const inputs,
     vsi_nn_tensor_t * const * const outputs,
-    vsi_bool image_2d,
-    vsi_bool *is_use_u8_kernel
+    vsi_bool image_2d
     )
 {
     vsi_status status = VSI_FAILURE;
@@ -178,37 +178,47 @@ static vsi_status _query_kernel
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    if (F16 == in_dtype)
-    {
-        in_dtype = F32;
-    }
+#define _PACK_SELECT_KEY( in_type, out_type ) \
+    ( ( in_type ) | ( out_type << 8 ))
 
-    if (F16 == out_dtype)
+    switch (_PACK_SELECT_KEY(in_dtype, out_dtype))
     {
-        out_dtype = F32;
+    case _PACK_SELECT_KEY(F32, F32):
+    case _PACK_SELECT_KEY(F16, F16):
+        key = CLIP_HASH_KEY( F32, F32, image_2d );
+        break;
+    case _PACK_SELECT_KEY(F32, I8):
+    case _PACK_SELECT_KEY(F16, I16):
+    case _PACK_SELECT_KEY(F16, I32):
+        key = CLIP_HASH_KEY( F32, I32, image_2d );
+        break;
+    case _PACK_SELECT_KEY(I8,  I8):
+    case _PACK_SELECT_KEY(I16, I16):
+    case _PACK_SELECT_KEY(I32, I32):
+        key = CLIP_HASH_KEY( I32, I32, image_2d );
+        break;
+    case _PACK_SELECT_KEY(I8,  F16):
+    case _PACK_SELECT_KEY(I16, F16):
+    case _PACK_SELECT_KEY(I32, F16):
+    case _PACK_SELECT_KEY(I8,  F32):
+    case _PACK_SELECT_KEY(I16, F32):
+    case _PACK_SELECT_KEY(I32, F32):
+        key = CLIP_HASH_KEY( I32, F32, image_2d );
+        break;
+    default:
+        key = CLIP_HASH_KEY( in_dtype, out_dtype, image_2d );
+        break;
     }
+#undef _PACK_SELECT_KEY
 
-   if ((U8 == in_dtype) || (U8 == out_dtype))
-    {
-        param_def_size    = CLIP_QUANT_PARAM_NUM;
-        *is_use_u8_kernel = TRUE;
-    }
-    else
-    {
-        param_def_size    = CLIP_PARAM_NUM;
-        *is_use_u8_kernel = FALSE;
-    }
-
-    key = CLIP_HASH_KEY( in_dtype, out_dtype, image_2d );
-
-    for( i = 0; i < (uint32_t)kernel_map_size; i ++ )
+    for ( i = 0; i < (uint32_t)kernel_map_size; i ++ )
     {
         if( kernel_map[i].key == key )
         {
             break;
         }
     }
-    if( i < (uint32_t)kernel_map_size )
+    if ( i < (uint32_t)kernel_map_size )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
         kernel->info.parameters  = param_def;
@@ -246,7 +256,6 @@ static vsi_nn_kernel_node_t _setup
     float    outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
     float    inputScale   = vsi_nn_get_tensor_scale(inputs[0]);
     float    inputTail    = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
-    vsi_bool is_use_u8_kernel = FALSE;
     float    min_value    = vsi_nn_kernel_param_get_float32( params, "min_value" );
     float    max_value    = vsi_nn_kernel_param_get_float32( params, "max_value" );
 
@@ -261,40 +270,31 @@ static vsi_nn_kernel_node_t _setup
 
     image_2d = (inputs[0]->attr.dim_num == 2 || inputs[0]->attr.size[2] == 1);
 
-    status = _query_kernel( kernel, inputs, outputs, image_2d, &is_use_u8_kernel);
+    status = _query_kernel( kernel, inputs, outputs, image_2d);
 
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status )
     {
-        size_t node_params_num = CLIP_PARAM_NUM;
-
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             /* Set inputs and outputs */
             vsi_nn_kernel_node_pack_io( node_params, _CLIP_PARAM_NUM,
                     inputs, input_num, outputs, output_num );
             node_params[SCALAR_MIN_VALUE] = vsi_nn_kernel_scalar_create( graph, F32, &min_value );
             node_params[SCALAR_MAX_VALUE] = vsi_nn_kernel_scalar_create( graph, F32, &max_value );
-           if (is_use_u8_kernel)
-            {
-                node_params[SCALAR_INPUT_SCALE]  = vsi_nn_kernel_scalar_create( graph, F32, &inputScale );
-                node_params[SCALAR_INPUT_TAIL]   = vsi_nn_kernel_scalar_create(graph, F32, &inputTail );
-                node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &outputScale );
-                node_params[SCALAR_OUTPUT_TAIL]  = vsi_nn_kernel_scalar_create(graph, F32, &outputTail );
-                node_params_num = CLIP_QUANT_PARAM_NUM;
-            }
+            node_params[SCALAR_INPUT_SCALE]  = vsi_nn_kernel_scalar_create( graph, F32, &inputScale );
+            node_params[SCALAR_INPUT_TAIL]   = vsi_nn_kernel_scalar_create(graph, F32, &inputTail );
+            node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &outputScale );
+            node_params[SCALAR_OUTPUT_TAIL]  = vsi_nn_kernel_scalar_create(graph, F32, &outputTail );
             /* Pass parameters to node. */
-            status  = vsi_nn_kernel_node_pass_param( node, node_params, node_params_num );
+            status  = vsi_nn_kernel_node_pass_param( node, node_params, _CLIP_PARAM_NUM );
             VSI_ASSERT( status == VSI_SUCCESS );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_MIN_VALUE] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_MAX_VALUE] );
-            if (is_use_u8_kernel)
-            {
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_SCALE] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_TAIL] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_SCALE] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_TAIL] );
-            }
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_SCALE] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_TAIL] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_SCALE] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_TAIL] );
         }
     }
     return node;

@@ -188,9 +188,10 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    vx_tensor rois = self->nn_param.roi_pool.local.rois;
-    if( NULL != self && NULL != self->n )
+    vx_tensor rois = NULL;
+    if ( NULL != self && NULL != self->n )
     {
+        rois = self->nn_param.roi_pool.local.rois;
         if(rois)
         {
             vxReleaseTensor(&rois);

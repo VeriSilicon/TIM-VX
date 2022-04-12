@@ -1,0 +1,153 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int axis_size;
+
+#define GATHER_ELEMENTS_AXIS0_2D(name, data_type) \
+__kernel void gather_elements_axis0_##name##_I32to##name##_2D \
+    ( \
+    __read_only  image2d_t input0, \
+    __read_only  image2d_t input1, \
+    __write_only image2d_t output, \
+                 int       axis \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+ \
+    Image img = create_image_from_image2d(input1, 4); \
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \
+    int4 indice = ((int4 *)indice_ptr)[0]; \
+    int4 indice1 = indice + axis_size; \
+    indice = indice < 0 ? indice1 : indice; \
+ \
+    data_type src; \
+    VXC_ReadImage(src, input0, (int2)(indice.x, coord.y), 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(src, input0, (int2)(indice.y, coord.y), 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(src, input0, (int2)(indice.z, coord.y), 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(src, input0, (int2)(indice.w, coord.y), 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0)); \
+ \
+    VXC_WriteImage(output, coord, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+GATHER_ELEMENTS_AXIS0_2D(F16, vxc_short4)
+GATHER_ELEMENTS_AXIS0_2D(I16, vxc_short4)
+GATHER_ELEMENTS_AXIS0_2D(I8,  vxc_char4)
+GATHER_ELEMENTS_AXIS0_2D(U8,  vxc_uchar4)
+
+#define GATHER_ELEMENTS_AXIS0(name, data_type) \
+__kernel void gather_elements_axis0_##name##_I32to##name \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_array_t input1, \
+    __write_only image2d_array_t output, \
+                 int             axis \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2)); \
+ \
+    Tensor img = create_tensor_from_image2d_array(input1, 4); \
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord); \
+    int4 indice = ((int4 *)indice_ptr)[0]; \
+    int4 indice1 = indice + axis_size; \
+    indice = indice < 0 ? indice1 : indice; \
+ \
+    data_type src; \
+    int4 coord_in = coord; \
+    coord_in.x = indice.x; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, \
+                VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+    coord_in.x = indice.y; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, \
+                VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0)); \
+    coord_in.x = indice.z; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, \
+                VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0)); \
+    coord_in.x = indice.w; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, \
+                VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0)); \
+ \
+    VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+GATHER_ELEMENTS_AXIS0(F16, vxc_short4)
+GATHER_ELEMENTS_AXIS0(I16, vxc_short4)
+GATHER_ELEMENTS_AXIS0(I8,  vxc_char4)
+GATHER_ELEMENTS_AXIS0(U8,  vxc_uchar4)
+
+#define GATHER_ELEMENTS_AXIS1_2D(name, data_type) \
+__kernel void gather_elements_axis1_##name##_I32to##name##_2D \
+    ( \
+    __read_only  image2d_t input0, \
+    __read_only  image2d_t input1, \
+    __write_only image2d_t output, \
+                 int       axis \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+ \
+    int index = read_imagei(input1, coord).x; \
+    int index1 = index + axis_size; \
+    index = index < 0 ? index1 : index; \
+ \
+    data_type src; \
+    VXC_ReadImage(src, input0, (int2)(coord.x, index), 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    VXC_WriteImage(output, coord, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+GATHER_ELEMENTS_AXIS1_2D(F16, vxc_short4)
+GATHER_ELEMENTS_AXIS1_2D(I16, vxc_short4)
+GATHER_ELEMENTS_AXIS1_2D(I8,  vxc_char4)
+GATHER_ELEMENTS_AXIS1_2D(U8,  vxc_uchar4)
+
+#define GATHER_ELEMENTS_AXIS1(name, data_type) \
+__kernel void gather_elements_axis1_##name##_I32to##name \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_array_t input1, \
+    __write_only image2d_array_t output, \
+                 int             axis \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2)); \
+ \
+    int index = read_imagei(input1, coord).x; \
+    int index1 = index + axis_size; \
+    index = index < 0 ? index1 : index; \
+ \
+    data_type src; \
+    int4 coord_in = coord; \
+    coord_in.y = index; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, \
+                VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+GATHER_ELEMENTS_AXIS1(F16, vxc_short4)
+GATHER_ELEMENTS_AXIS1(I16, vxc_short4)
+GATHER_ELEMENTS_AXIS1(I8,  vxc_char4)
+GATHER_ELEMENTS_AXIS1(U8,  vxc_uchar4)
+
+#define GATHER_ELEMENTS_AXIS2(name, data_type) \
+__kernel void gather_elements_axis2_##name##_I32to##name \
+    ( \
+    __read_only  image2d_array_t input0, \
+    __read_only  image2d_array_t input1, \
+    __write_only image2d_array_t output, \
+                 int             axis \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2)); \
+ \
+    int index = read_imagei(input1, coord).x; \
+    int index1 = index + axis_size; \
+    index = index < 0 ? index1 : index; \
+ \
+    data_type src; \
+    int4 coord_in = coord; \
+    coord_in.z = index; \
+    VXC_ReadImage2DArray(src, input0, coord_in, 0, \
+                VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+GATHER_ELEMENTS_AXIS2(F16, vxc_short4)
+GATHER_ELEMENTS_AXIS2(I16, vxc_short4)
+GATHER_ELEMENTS_AXIS2(I8,  vxc_char4)
+GATHER_ELEMENTS_AXIS2(U8,  vxc_uchar4)

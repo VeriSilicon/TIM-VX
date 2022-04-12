@@ -27,6 +27,7 @@
 
 #include "vsi_nn_types.h"
 #include "vsi_nn_assert.h"
+#include "utils/vsi_nn_util.h"
 #include "ops/vsi_nn_op_activations.h"
 #include "ops/vsi_nn_op_batch_norm.h"
 #include "ops/vsi_nn_op_multiply.h"
@@ -185,6 +186,10 @@
 #include "ops/vsi_nn_op_deconv3d.h"
 #include "ops/vsi_nn_op_reduce_mean_internal.h"
 #include "ops/vsi_nn_op_pad2.h"
+#include "ops/vsi_nn_op_pre_process_rgb888_planar.h"
+#include "ops/vsi_nn_op_gather_elements.h"
+#include "ops/vsi_nn_op_selu.h"
+#include "ops/vsi_nn_op_celu.h"
 /* custom node head define define */
 #include "custom/vsi_nn_custom_node_type.h"
 
@@ -210,7 +215,7 @@ typedef union _vsi_nn_nn_param
     vsi_nn_multiply_param           multiply;
     vsi_nn_proposal_param           proposal;
     vsi_nn_deconv_param             deconv;
-    vsi_nn_reshape_param            reshape;
+    vsi_nn_reshape_param            VSI_NN_DEPRECATED(reshape, "Replace with reshape2");
     vsi_nn_permute_param            permute;
     vsi_nn_upsample_param           upsample;
     vsi_nn_resize_param             resize;
@@ -356,6 +361,10 @@ typedef union _vsi_nn_nn_param
     vsi_nn_deconv3d_param           deconv3d;
     vsi_nn_reduce_mean_internal_param reduce_mean_internal;
     vsi_nn_pad2_param               pad2;
+    vsi_nn_pre_process_rgb888_planar_param pre_process_rgb888_planar;
+    vsi_nn_gather_elements_param    gather_elements;
+    vsi_nn_selu_param               selu;
+    vsi_nn_celu_param               celu;
     void*                         client_param;
 
     /* custom node data struct define */

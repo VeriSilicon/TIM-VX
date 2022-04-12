@@ -35,7 +35,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
 
@@ -157,11 +157,14 @@ static vsi_bool op_setup
     vsi_bool use_virtual_tensor = TRUE;
     uint32_t kernel_h = 1;
     uint32_t kernel_w = 1;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
     p->local = (vsi_nn_rnncell_ovxlib_lcl_data_t*)
         malloc(sizeof(vsi_nn_rnncell_ovxlib_lcl_data_t));
+    CHECK_PTR_FAIL_GOTO( p->local, "Create buffer fail.", final );
+    ret = TRUE;
 
     memset(p->local, 0x00, sizeof(vsi_nn_rnncell_ovxlib_lcl_data_t));
     memset(&attr, 0x00, sizeof(attr));
@@ -328,7 +331,8 @@ static vsi_bool op_setup
         vsi_nn_internal_setup_node(self, curr);
     }
 
-    return TRUE;
+final:
+    return ret;
 } /* op_setup() */
 
 static vsi_status op_deinit
@@ -349,16 +353,22 @@ static vsi_status op_init
     vsi_nn_node_t * self
     )
 {
+    vsi_status status = VSI_FAILURE;
+
     self->nn_param.rnncell_ovxlib.local = (vsi_nn_rnncell_ovxlib_lcl_data_t *)
         malloc(sizeof(vsi_nn_rnncell_ovxlib_lcl_data_t));
+    CHECK_PTR_FAIL_GOTO( self->nn_param.rnncell_ovxlib.local, "Create buffer fail.", final );
     memset(self->nn_param.rnncell_ovxlib.local, 0,
         sizeof(vsi_nn_rnncell_ovxlib_lcl_data_t));
     self->nn_param.rnncell_ovxlib.internal_dtype = (vsi_nn_dtype_t *)
         malloc(sizeof(vsi_nn_dtype_t) * RNNCELL_QUANTIZE_PARAM_COUNT);
+    CHECK_PTR_FAIL_GOTO( self->nn_param.rnncell_ovxlib.internal_dtype, "Create buffer fail.", final );
     memset(self->nn_param.rnncell_ovxlib.internal_dtype, 0,
         sizeof(vsi_nn_dtype_t) * RNNCELL_QUANTIZE_PARAM_COUNT);
 
-    return VSI_SUCCESS;
+    status = VSI_SUCCESS;
+final:
+    return status;
 } /* op_init() */
 
 #ifdef __cplusplus

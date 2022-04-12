@@ -1,0 +1,220 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float alpha;
+_viv_uniform float beta;
+
+float4 eltwise_unary_sin(float4 x)
+{
+    return native_sin(x);
+}
+
+float4 eltwise_unary_cos(float4 x)
+{
+    return native_cos(x);
+}
+
+#define logE        (1.44269502f)
+#define twoLogE     (logE * 2.0f)
+float4 eltwise_unary_exp(float4 x)
+{
+    x *= logE;
+    x = exp2(x);
+    return x;
+}
+
+#define rlogE    (0.693147182f)
+float4 eltwise_unary_log(float4 x)
+{
+    x = log2(x);
+    return x * rlogE;
+}
+
+float4 eltwise_unary_neg(float4 x)
+{
+    return x * -1;
+}
+
+float4 eltwise_unary_selu(float4 val)
+{
+    float4 x = val * logE;
+    x = exp2(x) * alpha - alpha;
+
+    return val < 0 ? x : val * beta;
+}
+
+float4 eltwise_unary_celu(float4 val)
+{
+    float4 x = val * logE * beta;
+    x = exp2(x) * alpha - alpha;
+
+    return val < 0 ? x : val;
+}
+
+_viv_uniform float inputScale;
+_viv_uniform float inputTail;
+_viv_uniform float outputScale;
+_viv_uniform float outputZP;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform VXC_512Bits uniDatatoFp32Part0_4x4;
+_viv_uniform VXC_512Bits uniDatatoFp32Part1_4x4;
+
+#define ELTSISE_UNARY_3D(func_name, src_type_name, dst_type_name, src_type, \
+                src_copy_type, convert_type, dst_type, dst_copy_type) \
+__kernel void func_name##_##src_type_name##to##dst_type_name( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 int              type, \
+                 float            _alpha, \
+                 float            _beta \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    src_type      src0; \
+    src_copy_type src1; \
+    VXC_ReadImage2DArray(src0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src1, src0, 16); \
+ \
+    float4 vecA; \
+    float4 vecB; \
+    VXC_DP4x4(vecA, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFp32Part0_4x4); \
+    VXC_DP4x4(vecB, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFp32Part1_4x4); \
+    vecA = vecA * inputScale + inputTail; \
+    vecB = vecB * inputScale + inputTail; \
+    vecA = eltwise_unary_##func_name(vecA); \
+    vecB = eltwise_unary_##func_name(vecB); \
+    vecA = vecA * outputScale + outputZP; \
+    vecB = vecB * outputScale + outputZP; \
+ \
+    convert_type dst0, dst1; \
+    _viv_asm(CONV_RTE, dst0, vecA); \
+    _viv_asm(CONV_RTE, dst1, vecB); \
+    dst_type dst2; \
+    VXC_DP2x8(dst2, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    dst_copy_type dst; \
+    _viv_asm(COPY, dst, dst2, 16); \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+//EXP
+ELTSISE_UNARY_3D(exp, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(exp, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(exp, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(exp, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(exp, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(exp, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(exp, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(exp, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(exp, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(exp, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//SIN
+ELTSISE_UNARY_3D(sin, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(sin, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(sin, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(sin, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(sin, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(sin, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(sin, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(sin, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(sin, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(sin, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//COS
+ELTSISE_UNARY_3D(cos, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(cos, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(cos, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(cos, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(cos, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(cos, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(cos, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(cos, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(cos, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(cos, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//LOG
+ELTSISE_UNARY_3D(log, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(log, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(log, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(log, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(log, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(log, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(log, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(log, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(log, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(log, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//SELU
+ELTSISE_UNARY_3D(selu, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(selu, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(selu, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(selu, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(selu, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(selu, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(selu, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(selu, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(selu, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(selu, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//NEG
+ELTSISE_UNARY_3D(neg, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(neg, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(neg, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(neg, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(neg, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(neg, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(neg, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(neg, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(neg, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(neg, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//CELU
+ELTSISE_UNARY_3D(celu, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(celu, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(celu, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(celu, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(celu, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_3D(celu, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(celu, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_3D(celu, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_3D(celu, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_3D(celu, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+#define ELTSISE_UNARY_BF16(func_name) \
+    __kernel void func_name##_BF16toBF16( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 int              type, \
+                 float            _alpha, \
+                 float            _beta \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    vxc_ushort8   src0, src1, dst; \
+    VXC_ReadImage2DArray(src0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    float4 vecA; \
+    float4 vecB; \
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0); \
+    VXC_DP2x8(src1, src0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8); \
+    _viv_asm(COPY, vecA, src1, 16); \
+    VXC_DP2x8(src1, src0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8); \
+    _viv_asm(COPY, vecB, src1, 16); \
+    vecA = eltwise_unary_##func_name(vecA); \
+    vecB = eltwise_unary_##func_name(vecB); \
+ \
+    _viv_asm(COPY, src0, vecA, 16); \
+    _viv_asm(COPY, src1, vecB, 16); \
+ \
+    VXC_DP2x8(dst, src0, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8); \
+    VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+//EXP
+ELTSISE_UNARY_BF16(exp)
+//SIN
+ELTSISE_UNARY_BF16(sin)
+//COS
+ELTSISE_UNARY_BF16(cos)
+//LOG
+ELTSISE_UNARY_BF16(log)
+//SELU
+ELTSISE_UNARY_BF16(selu)
+//NEG
+ELTSISE_UNARY_BF16(neg)
+//CELU
+ELTSISE_UNARY_BF16(selu)

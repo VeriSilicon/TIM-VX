@@ -52,13 +52,15 @@ static vsi_status _comparisons_op_compute
     vsi_size_t new_rank = 0;
     vsi_bool ret;
     vsi_nn_kernel_param_t * param = NULL;
-    vsi_nn_relational_ops_type_t op_type = self->nn_param.relational_ops.op;
+    vsi_nn_relational_ops_type_t op_type;
 
     if( NULL == self )
     {
         return VSI_FAILURE;
     }
     status = VSI_FAILURE;
+
+    op_type = self->nn_param.relational_ops.op;
 
     // TODO: This optimzie is a hack for gpu path,
     // it should be moved to gpu kernel setup.

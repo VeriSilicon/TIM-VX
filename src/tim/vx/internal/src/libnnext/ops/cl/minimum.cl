@@ -121,7 +121,10 @@ __kernel void minimum_I32I32toI32
     READ_IMAGEI_2DARRAY(src0, input0, coord);
     READ_IMAGEI_2DARRAY(src1, input1, coord);
 
-    int4 dst = src0 < src1 ? src0 : src1;
+    float4 data0 = convert_float4(src0) * input0Scale - input0Tail;
+    float4 data1 = convert_float4(src1) * input1Scale - input1Tail;
+    float4 data = data0 < data1 ? data0 : data1;
+    int4 dst = convert_int4(data * outputScale + outputZP);
 
     write_imagei(output, coord, dst);
 }
@@ -144,8 +147,10 @@ __kernel void minimum_I32I32toI32_2D
     int4 src0 = read_imagei(input0, coord);
     int4 src1 = read_imagei(input1, coord);
 
-    int4 dst = src0 < src1 ? src0 : src1;
+    float4 data0 = convert_float4(src0) * input0Scale - input0Tail;
+    float4 data1 = convert_float4(src1) * input1Scale - input1Tail;
+    float4 data = data0 < data1 ? data0 : data1;
+    int4 dst = convert_int4(data * outputScale + outputZP);
 
     write_imagei(output, coord, dst);
 }
-

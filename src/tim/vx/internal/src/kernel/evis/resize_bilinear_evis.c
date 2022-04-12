@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 #include "utils/vsi_nn_dtype_util_prv.h"
 
 __BEGIN_DECLS
@@ -1370,6 +1369,7 @@ static vsi_nn_kernel_node_t _setup
             if (is_run_opt_kernel)
             {
                 scale = _create_scale_tensor(graph, inputs[0], outputs[0], align_corners, half_pixel_centers);
+                CHECK_PTR_FAIL_GOTO( scale, "Create buffer fail.", final );
                 node_params[SCALAR_TENSOR_SCALE] = (vsi_nn_kernel_node_param_t)(scale->t);
                 node_params_num = _RESIZE_BILINEAR_PARAM_NUM;
             }
@@ -1378,16 +1378,11 @@ static vsi_nn_kernel_node_t _setup
             VSI_ASSERT( status == VSI_SUCCESS );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_ALIGN_CORNERS] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_HALF_PIXEL] );
-            if (is_run_opt_kernel)
-            {
-                if (scale)
-                {
-                    vsi_nn_ReleaseTensor(&scale);
-                }
-            }
         }
     }
 
+final:
+    vsi_safe_release_tensor(scale);
     return node;
 } /* _setup() */
 

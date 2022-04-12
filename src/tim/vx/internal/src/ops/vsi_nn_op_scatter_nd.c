@@ -54,16 +54,16 @@ static vsi_status op_compute
     vsi_size_t *input_size = inputs[1]->attr.size;
     uint32_t dims_num = inputs[1]->attr.dim_num;
 
-    if(inputs[0]->attr.dim_num > 1)
+    if (inputs[0]->attr.dim_num > 1)
     {
         coord_dim = (uint32_t)inputs[0]->attr.size[0];
     }
-    if( coord_dim > 3 )
+    if ( coord_dim > 3 )
     {
         CHECK_STATUS(status);
         return status;
     }
-    for(i = 0; i < inputs[0]->attr.dim_num; i++)
+    for (i = 0; i < inputs[0]->attr.dim_num; i++)
     {
         idx_num *= (uint32_t)inputs[0]->attr.size[i];
     }
@@ -71,7 +71,7 @@ static vsi_status op_compute
 
     param =vsi_nn_kernel_param_create();
 
-    for(i = 0; i < dims_num; ++i)
+    for (i = 0; i < dims_num; ++i)
     {
         block_size *= (uint32_t)input_size[i];
     }
@@ -81,13 +81,13 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "coord_dim", coord_dim );
     vsi_nn_kernel_param_add_int32( param, "idx_num", idx_num );
     n = vsi_nn_kernel_selector( self->graph, "scatter_nd", inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
-    if( n != NULL )
+    if ( n != NULL )
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;
     }
 
-    if(param != NULL)
+    if (param != NULL)
     {
         vsi_nn_kernel_param_release( &param );
     }
@@ -104,15 +104,20 @@ static vsi_bool op_check
 {
     BEGIN_IO_TYPE_DECL(SCATTER_ND, 2, 1)
         IO_TYPE(D_I32, D_I8|Q_DFP,   D_I8|Q_DFP)
+        IO_TYPE(D_I32, D_I8|Q_ASYM,  D_I8|Q_ASYM)
+        IO_TYPE(D_I32, D_I8|Q_SYM,   D_I8|Q_SYM)
         IO_TYPE(D_I32, D_U8|Q_ASYM,  D_U8|Q_ASYM)
         IO_TYPE(D_I32, D_I16|Q_DFP,  D_I16|Q_DFP)
-        IO_TYPE(D_I32, D_F16, D_F16)
-        IO_TYPE(D_I32, D_I32, D_I32)
-        IO_TYPE(D_I32, D_U32, D_U32)
-        IO_TYPE(D_I32, D_F32, D_F32)
-        IO_TYPE(D_I32, D_BF16,D_BF16)
+        IO_TYPE(D_I32, D_I16|Q_ASYM, D_I16|Q_ASYM)
+        IO_TYPE(D_I32, D_I16|Q_SYM,  D_I16|Q_SYM)
+        IO_TYPE(D_I32, D_F16,        D_F16)
+        IO_TYPE(D_I32, D_I32,        D_I32)
+        IO_TYPE(D_I32, D_U32,        D_U32)
+        IO_TYPE(D_I32, D_F32,        D_F32)
+        IO_TYPE(D_I32, D_BF16,       D_BF16)
     END_IO_TYPE_DECL(SCATTER_ND)
-    if(!VALIDATE_OP_IO_TYPES(SCATTER_ND, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(SCATTER_ND, self, inputs, self->input.num, outputs, self->output.num))
+    {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -134,9 +139,9 @@ static vsi_bool op_setup
     uint32_t i = 0;
     vsi_nn_scatter_nd_param * p = &(self->nn_param.scatter_nd);
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        if(p->shape == NULL)
+        if (p->shape == NULL)
         {
             return FALSE;
         }

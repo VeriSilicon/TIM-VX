@@ -176,6 +176,10 @@ static vsi_status _query_kernel
     {
         in_dtype = F32;
     }
+    else if (in_dtype == I16 || in_dtype == I8)
+    {
+        in_dtype = I32;
+    }
 
     if (out_dtype == F16)
     {

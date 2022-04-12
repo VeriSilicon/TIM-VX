@@ -55,8 +55,7 @@ static vsi_status op_compute
     float min_value = self->nn_param.clip.min;
     float max_value = self->nn_param.clip.max;
 
-    if ( (min_value == -1.0f && max_value == 1.0f)
-      || (min_value == 0.0f && max_value == 6.0f) )
+    if ( self->nn_param.clip.local2->is_internal_node )
     {
         status = VSI_SUCCESS;
         vsi_nn_internal_compute_node( self );
@@ -69,7 +68,7 @@ static vsi_status op_compute
         vsi_bool ret;
         vsi_nn_kernel_param_t * param = NULL;
 
-        param =vsi_nn_kernel_param_create();
+        param = vsi_nn_kernel_param_create();
 
         ret = vsi_nn_kernel_optimize_element_shape(
                 inputs[0]->attr.size, inputs[0]->attr.dim_num,
@@ -78,7 +77,7 @@ static vsi_status op_compute
         vsi_nn_kernel_param_add_float32( param, "min_value",  min_value );
         vsi_nn_kernel_param_add_float32( param, "max_value",  max_value );
 
-        if( ret )
+        if ( ret )
         {
             reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
                     inputs[0], shape, new_rank );
@@ -90,17 +89,16 @@ static vsi_status op_compute
                     &reshape_tensors[0], 1,
                     &reshape_tensors[1], 1, param );
 
-            vsi_nn_ReleaseTensor( &reshape_tensors[0] );
-            vsi_nn_ReleaseTensor( &reshape_tensors[1] );
+            vsi_safe_release_tensor( reshape_tensors[0] );
+            vsi_safe_release_tensor( reshape_tensors[1] );
         }
 
-        if( self->n )
+        if ( self->n )
         {
             status = VSI_SUCCESS;
         }
 
         vsi_nn_kernel_param_release( &param );
-
     }
 
     return status;
@@ -114,22 +112,48 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(CLIP, 1, 1)
-        IO_TYPE(D_F16,  D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_I16|Q_DFP)
-        IO_TYPE(D_F16,  D_I8|Q_DFP)
-        IO_TYPE(D_F16,  D_F16)
-        IO_TYPE(D_F32,  D_F32)
-        IO_TYPE(D_U8|Q_ASYM,  D_F32)
-        IO_TYPE(D_F32,  D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM,  D_F16)
-        IO_TYPE(D_I8|Q_DFP,   D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,   D_F16)
-        IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP,  D_F16)
-        IO_TYPE(D_BF16,       D_BF16)
+        IO_TYPE(D_F16,          D_U8|Q_ASYM)
+        IO_TYPE(D_F16,          D_I16|Q_DFP)
+        IO_TYPE(D_F16,          D_I16|Q_ASYM)
+        IO_TYPE(D_F16,          D_I16|Q_SYM)
+        IO_TYPE(D_F16,          D_I8|Q_DFP)
+        IO_TYPE(D_F16,          D_I8|Q_ASYM)
+        IO_TYPE(D_F16,          D_I8|Q_SYM)
+        IO_TYPE(D_F16,          D_F16)
+        IO_TYPE(D_F32,          D_F32)
+        IO_TYPE(D_I32,          D_I32)
+        IO_TYPE(D_U8|Q_ASYM,    D_F32)
+        IO_TYPE(D_I8|Q_DFP,     D_F32)
+        IO_TYPE(D_I8|Q_ASYM,    D_F32)
+        IO_TYPE(D_I8|Q_SYM,     D_F32)
+        IO_TYPE(D_I16|Q_DFP,    D_F32)
+        IO_TYPE(D_I16|Q_ASYM,   D_F32)
+        IO_TYPE(D_I16|Q_SYM,    D_F32)
+        IO_TYPE(D_F32,          D_U8|Q_ASYM)
+        IO_TYPE(D_F32,          D_I16|Q_DFP)
+        IO_TYPE(D_F32,          D_I16|Q_ASYM)
+        IO_TYPE(D_F32,          D_I16|Q_SYM)
+        IO_TYPE(D_F32,          D_I8|Q_DFP)
+        IO_TYPE(D_F32,          D_I8|Q_ASYM)
+        IO_TYPE(D_F32,          D_I8|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,     D_F16)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_SYM,     D_F16)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,    D_F16)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_SYM,    D_F16)
+        IO_TYPE(D_BF16,         D_BF16)
     END_IO_TYPE_DECL(CLIP)
-    if(!VALIDATE_OP_IO_TYPES(CLIP, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(CLIP, self, inputs, self->input.num, outputs, self->output.num))
+    {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -145,30 +169,12 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    uint32_t i;
-    float min = self->nn_param.clip.min;
-    float max = self->nn_param.clip.max;
-
-    for (i = 0; i < _VSI_NN_CLIP_LOCAL_TENSOR_NUM; i++)
-    {
-        if (self->nn_param.clip.local.local_tensor[i] != NULL)
-        {
-            vxReleaseTensor(&(self->nn_param.clip.local.local_tensor[i]));
-            self->nn_param.clip.local.local_tensor[i] = NULL;
-        }
-    }
-
-    if (self->nn_param.clip.local2 != NULL)
-    {
-        free(self->nn_param.clip.local2);
-        self->nn_param.clip.local2 = NULL;
-    }
-
-    if ( (min == -1.0f && max == 1.0f)
-      || (min == 0.0f && max == 6.0f) )
+    if ( self->nn_param.clip.local2->is_internal_node )
     {
         vsi_nn_internal_deinit_node_wksp( self );
     }
+
+    vsi_nn_safe_free(self->nn_param.clip.local2);
 
     vsi_nn_op_common_deinit(self);
 
@@ -202,23 +208,39 @@ static vsi_bool op_setup
     vsi_nn_internal_node_t* curr = NULL;
     float min = self->nn_param.clip.min;
     float max = self->nn_param.clip.max;
+    uint32_t infinity = VSI_NN_FLOAT32_INF;
+    float neg_infinity = -*(float*)&infinity;
+    int32_t max_float = *(int32_t*)&max;
 
     if ( (min == -1.0f && max == 1.0f)
-      || (min == 0.0f && max == 6.0f) )
+      || (min == 0.0f && max == 6.0f)
+      || (min == 0.0f && max_float == VSI_NN_FLOAT32_INF)
+      || (min == neg_infinity && max_float == VSI_NN_FLOAT32_INF))
     {
         vsi_nn_internal_init_node_wksp(self);
         if (min == -1.0f && max == 1.0f)
         {
             curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU1, 0, 0);
         }
-        else
+        else if (min == 0.0f && max == 6.0f)
         {
             curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU6, 0, 0);
         }
+        else if (min == 0.0f && max_float == VSI_NN_FLOAT32_INF)
+        {
+            curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU, 0, 0);
+        }
+        else
+        {
+            curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 0, 0);
+        }
+
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
 
         vsi_nn_internal_setup_node(self, curr);
+
+        self->nn_param.clip.local2->is_internal_node = TRUE;
     }
     else
     {

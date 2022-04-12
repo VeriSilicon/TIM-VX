@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +34,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 #include "utils/vsi_nn_dtype_util.h"
 
 __BEGIN_DECLS
@@ -287,7 +285,6 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
             uniDataMulAndPostShift_2x8.data[7] |= (postShift & 0x1F);
             status |= vsi_nn_kernel_gpu_add_param( node, "multAndoutZP", multAndoutZP);
             status |= vsi_nn_kernel_gpu_add_param( node, "uniDataMulAndPostShift_2x8", &uniDataMulAndPostShift_2x8);
-
         }
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
@@ -502,10 +499,7 @@ final:
     SAFE_FREE_TENSOR_ATTR(output_attr);
     SAFE_FREE_TENSOR_ATTR(input_attr);
     return status;
-
 } /* _clip_initializer() */
-
-
 
 /*
  * Query kernel
@@ -535,14 +529,21 @@ static vsi_status _query_kernel
 
     key = CLIP_HASH_KEY( in_dtype, out_dtype, image_2d );
 
-    for( i = 0; i < (uint32_t)kernel_map_size; i ++ )
+    if ( ( in_dtype == I8 || in_dtype == I16 ) &&
+         ( inputs[0]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_DFP &&
+           inputs[0]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_NONE ) )
     {
-        if( kernel_map[i].key == key )
+        return VSI_FAILURE;
+    }
+
+    for ( i = 0; i < (uint32_t)kernel_map_size; i ++ )
+    {
+        if ( kernel_map[i].key == key )
         {
             break;
         }
     }
-    if( i < (uint32_t)kernel_map_size )
+    if ( i < (uint32_t)kernel_map_size )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
         kernel->info.parameters  = param_def;
@@ -579,7 +580,7 @@ static vsi_nn_kernel_node_t _setup
     float   min_value  = vsi_nn_kernel_param_get_float32( params, "min_value" );
     float   max_value  = vsi_nn_kernel_param_get_float32( params, "max_value" );
 
-    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -587,10 +588,10 @@ static vsi_nn_kernel_node_t _setup
 
     image_2d = (inputs[0]->attr.dim_num == 2 || inputs[0]->attr.size[2] == 1);
     status = _query_kernel( kernel, inputs, outputs, image_2d );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             /* Set inputs and outputs */
             vsi_nn_kernel_node_pack_io( node_params, _CLIP_PARAM_NUM,
@@ -610,4 +611,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( clip, _setup )
-

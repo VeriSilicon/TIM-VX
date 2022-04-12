@@ -83,6 +83,10 @@ vsi_nn_node_t * vsi_nn_NewNode
         node->attr.const_tensor_preload_type = VSI_NN_NODE_PRELOAD_NONE;
         node->attr.enable_op_constraint_check = TRUE;
     }
+    else
+    {
+        return NULL;
+    }
 
     node->uid = VSI_NN_NODE_UID_NA;
     return node;

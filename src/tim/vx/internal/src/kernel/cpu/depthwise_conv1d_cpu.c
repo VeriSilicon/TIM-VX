@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 #include "cpu_backend/npuref_interface.h"
 
 __BEGIN_DECLS
@@ -272,4 +271,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CPU( depthwise_conv1d, _setup )
-

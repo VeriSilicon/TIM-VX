@@ -20,8 +20,8 @@ __kernel void moments_axis1_U8toF32(
         {
             data = read_imageui(input, coord0).x;
             coord0.y++;
-            tmpSum += (data);
-            tmpSqr += (data * data);
+            tmpSum = tmpSum + data;
+            tmpSqr = tmpSqr + data * data;
         }
         sqr = convert_float(as_int(tmpSqr - 2 * input_zp * tmpSum + height * input_zp * input_zp)) * e2InScale;
         sum = convert_float(as_int(tmpSum - height * input_zp)) * input_scale;
@@ -95,7 +95,7 @@ __kernel void moments_axis1_I32toF32(
 
     for(coord0.y = 0; coord0.y < height;)
     {
-        data = convert_float(read_imagei(input, coord0).x);
+        data = convert_float(read_imagei(input, coord0).x - input_zp);
         coord0.y++;
         sum = sum + data;
         sqr = sqr + data * data;

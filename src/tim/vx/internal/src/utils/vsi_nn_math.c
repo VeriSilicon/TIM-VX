@@ -429,3 +429,45 @@ void vsi_nn_random_uniform_transform
         uniform_buf[i] = random_buf[i] / rand_max;
     }
 }
+
+float _evaluate_polynomial(float x, const float *coefficients, int32_t len)
+{
+    float poly = 0;
+    int32_t i = 0;
+
+    for (i = 0; i < len; i ++)
+    {
+        float c = coefficients[i];
+        poly = poly * x + c;
+    }
+    return poly;
+}
+
+// Compute a polynomial approximation of the error function.
+// This is the same approximation used by Eigen.
+float vsi_nn_erf_impl(float x)
+{
+    float x2 = 0 ;
+    // The monomial coefficients of the numerator polynomial (odd).
+    const float kAlpha[7] =
+    {
+        -2.72614225801306e-10f, 2.77068142495902e-08f,  -2.10102402082508e-06f,
+        -5.69250639462346e-05f, -7.34990630326855e-04f, -2.95459980854025e-03f,
+        -1.60960333262415e-02f,
+    };
+    // The monomial coefficients of the denominator polynomial (even).
+    const float kBeta[5] =
+    {
+        -1.45660718464996e-05f, -2.13374055278905e-04f, -1.68282697438203e-03f,
+        -7.37332916720468e-03f, -1.42647390514189e-02f,
+    };
+
+   // Clamp the inputs to the range [-4, 4] since anything outside
+   // this range is +/-1.0f in single-precision.
+    x = vsi_clamp(-4.f, x, 4.f);
+    // Since the polynomials are odd/even, we need x^2.
+    x2 = x * x;
+
+    return x * _evaluate_polynomial(x2, kAlpha, 7) /
+        _evaluate_polynomial(x2, kBeta, 5);
+}

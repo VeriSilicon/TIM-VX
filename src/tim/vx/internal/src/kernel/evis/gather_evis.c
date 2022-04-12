@@ -35,7 +35,6 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -289,9 +288,9 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
     vsi_size_array_t * input1_shape = NULL;
     int32_t     src0ZP     = 0;
-    float       src0Scale  = 0;
+    float       src0Scale  = 1;
     int32_t     dstZP      = 0;
-    float       dstScale   = 0;
+    float       dstScale   = 1;
 
     uint32_t pack_key = 0;
 
@@ -307,10 +306,6 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[4], &block_num);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    src0ZP     = attr[0]->asymm.zero_point;
-    src0Scale  = attr[0]->asymm.scale;
-    dstZP      = attr[2]->asymm.zero_point;
-    dstScale   = attr[2]->asymm.scale;
     if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         if (attr[0]->dfp.fl > 0)
@@ -322,9 +317,10 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
             src0Scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
         }
     }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
+    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
-        src0Scale = 1;
+        src0Scale = attr[0]->asymm.scale;
+        src0ZP = attr[0]->asymm.zero_point;
     }
 
     if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
@@ -337,11 +333,11 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
         {
             dstScale = (1.0f / (float)((int64_t)1 << -attr[2]->dfp.fl));
         }
-        dstScale = 1.0f/dstScale;
     }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_NONE )
+    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
-        dstScale = 1;
+        dstScale = 1.0f / attr[2]->asymm.scale;
+        dstZP = attr[2]->asymm.zero_point;
     }
 
     input1_shape  = attr[1]->shape;
@@ -404,7 +400,7 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
         case _PACK_SELECT_KEY( I8, F16):
         case _PACK_SELECT_KEY( I16, F16):
             {
-                gpu_quantize_multiplier_16bit( (double)src0Scale / dstScale, &M0, &postShift);
+                gpu_quantize_multiplier_16bit( (double)src0Scale * dstScale, &M0, &postShift);
                 multAndoutZP0[0] = (uint32_t)(M0);
                 multAndoutZP0[1] = (uint32_t)((dstZP << postShift) - src0ZP * M0);
 
@@ -420,7 +416,7 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
         case _PACK_SELECT_KEY( F16, I16):
             {
                 int32_t  postShift0       = 0;
-                gpu_quantize_multiplier_16bit( (double)src0Scale / dstScale, &M0, &postShift0);
+                gpu_quantize_multiplier_16bit( (double)src0Scale * dstScale, &M0, &postShift0);
 
                 multAndoutZP1[0] = (uint32_t)(M0);
                 multAndoutZP1[1] = (uint32_t)((dstZP << postShift0) - src0ZP * M0);
@@ -489,9 +485,9 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
     vsi_size_array_t * input1_shape = NULL;
     int32_t     src0ZP     = 0;
-    float       src0Scale  = 0;
+    float       src0Scale  = 1;
     int32_t     dstZP      = 0;
-    float       dstScale   = 0;
+    float       dstScale   = 1;
 
     uint32_t pack_key = 0;
 
@@ -505,10 +501,6 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[4], &block_num);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    src0ZP     = attr[0]->asymm.zero_point;
-    src0Scale  = attr[0]->asymm.scale;
-    dstZP      = attr[2]->asymm.zero_point;
-    dstScale   = attr[2]->asymm.scale;
     if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         if (attr[0]->dfp.fl > 0)
@@ -520,9 +512,10 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
             src0Scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
         }
     }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
+    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
-        src0Scale = 1;
+        src0Scale = attr[0]->asymm.scale;
+        src0ZP = attr[0]->asymm.zero_point;
     }
 
     if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
@@ -535,11 +528,11 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
         {
             dstScale = (1.0f / (float)((int64_t)1 << -attr[2]->dfp.fl));
         }
-        dstScale = 1.0f/dstScale;
     }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_NONE )
+    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
-        dstScale = 1;
+        dstScale = 1.0f / attr[2]->asymm.scale;
+        dstZP = attr[2]->asymm.zero_point;
     }
 
     input1_shape  = attr[1]->shape;
@@ -609,7 +602,7 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
         case _PACK_SELECT_KEY( I8, F16):
         case _PACK_SELECT_KEY( I16, F16):
             {
-                gpu_quantize_multiplier_16bit( (double)src0Scale / dstScale, &M0, &postShift);
+                gpu_quantize_multiplier_16bit( (double)src0Scale * dstScale, &M0, &postShift);
                 multAndoutZP0[0] = (uint32_t)(M0);
                 multAndoutZP0[1] = (uint32_t)((dstZP << postShift) - src0ZP * M0);
 
@@ -625,7 +618,7 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
         case _PACK_SELECT_KEY( F16, I16):
             {
                 int32_t  postShift0       = 0;
-                gpu_quantize_multiplier_16bit( (double)src0Scale / dstScale, &M0, &postShift0);
+                gpu_quantize_multiplier_16bit( (double)src0Scale * dstScale, &M0, &postShift0);
 
                 multAndoutZP1[0] = (uint32_t)(M0);
                 multAndoutZP1[1] = (uint32_t)((dstZP << postShift0) - src0ZP * M0);
@@ -840,4 +833,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( gather, _setup )
-

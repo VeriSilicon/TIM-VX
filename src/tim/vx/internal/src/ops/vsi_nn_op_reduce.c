@@ -1228,7 +1228,7 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    vsi_bool use_interanl_node = self->nn_param.reduce.local2->use_internal_node;
+    vsi_bool use_interanl_node = FALSE;
 
     if (self->nn_param.reduce.local.axis_tensor != NULL)
     {
@@ -1237,6 +1237,7 @@ static vsi_status op_deinit
 
     if (self->nn_param.reduce.local2 != NULL)
     {
+        use_interanl_node = self->nn_param.reduce.local2->use_internal_node;
         if (self->nn_param.reduce.local2->axis_tensor2 != NULL)
         {
             vsi_nn_ReleaseTensor(&(self->nn_param.reduce.local2->axis_tensor2));

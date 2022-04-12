@@ -66,6 +66,11 @@ static vsi_status op_compute
     vsi_nn_grouped_conv2d_param *nn_param = &self->nn_param.grouped_conv2d;
     nn_param->local = (vsi_nn_grouped_conv2d_param_local_data*)malloc(
         sizeof(vsi_nn_grouped_conv2d_param_local_data));
+    if (NULL == nn_param->local)
+    {
+        VSILOGE("Malloc fail, (GROUPED_CONV2D) at [%s : %d]\n", __FILE__, __LINE__);
+        return VSI_FAILURE;
+    }
     memset(nn_param->local, 0, sizeof(vsi_nn_grouped_conv2d_param_local_data));
     /* TODO */
     /* example code : add op */

@@ -53,17 +53,19 @@ VX_API_ENTRY vx_status VX_API_CALL vxSysSetVipFrequency(
     vx_uint32 shaderFscaleValue
     );
 
-/*! \brief cancel all VIP processing jobs.
+/*! \brief cancel all VIP processing jobs on a device.
  * \param [in] context The reference to the implementation context.
+ * \param [in] deviceID bound to graph.
  * \return A <tt>\ref vx_status_e</tt> enumeration.
- * \retval VX_SUCCESS Cancelled all VIP processing job successfully
+ * \retval VX_SUCCESS Cancelled all VIP processing job successfully on a device
  *                    and user can check return of vxProcessGraph() to get cancelled status.
  * \retval VX_ERROR_INVAID_PARAMETERS Invalid context reference.
  * \retval VX_ERROR_NOT_SUPPORTED Hardware does not support job cancellation.
- * \retval VX_FAILURE Failed to cancel VIP proccessing job.
+ * \retval VX_FAILURE Failed to cancel VIP proccessing job on a device.
  */
 VX_API_ENTRY vx_status VX_API_CALL vxSysCancelJob(
-    vx_context context
+    vx_context context,
+    vx_uint32  deviceID
     );
 
 #ifdef  __cplusplus

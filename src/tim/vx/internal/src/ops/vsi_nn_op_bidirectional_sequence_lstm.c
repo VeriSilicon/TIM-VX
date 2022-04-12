@@ -35,9 +35,9 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
+#include "vsi_nn_error.h"
 
 static vsi_bool setup_op_shapes
     (
@@ -225,8 +225,10 @@ static vsi_bool op_setup
 
     /* split input tensor */
     split_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+    CHECK_PTR_FAIL_GOTO( split_output_tensors, "Create buffer fail.", final );
     memset( split_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
     reshape_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+    CHECK_PTR_FAIL_GOTO( reshape_output_tensors, "Create buffer fail.", final );
     memset( reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
     vsi_nn_rnn_split_input_tensor(self, input_tensor,
@@ -238,8 +240,10 @@ static vsi_bool op_setup
     if(has_aux_input)
     {
         aux_split_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+        CHECK_PTR_FAIL_GOTO( aux_split_output_tensors, "Create buffer fail.", final );
         memset( aux_split_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
         aux_reshape_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+        CHECK_PTR_FAIL_GOTO( aux_reshape_output_tensors, "Create buffer fail.", final );
         memset( aux_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
         vsi_nn_rnn_split_input_tensor(self, aux_input_tensor,
@@ -251,9 +255,11 @@ static vsi_bool op_setup
     /* prepare output tensor */
     lstmcell_reshape_output_tensors_fw = (vsi_nn_tensor_t **)malloc(time_step *
         sizeof(vsi_nn_tensor_t **));
+    CHECK_PTR_FAIL_GOTO( lstmcell_reshape_output_tensors_fw, "Create buffer fail.", final );
     memset( lstmcell_reshape_output_tensors_fw, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
     lstmcell_reshape_output_tensors_bw = (vsi_nn_tensor_t **)malloc(time_step *
         sizeof(vsi_nn_tensor_t **));
+    CHECK_PTR_FAIL_GOTO( lstmcell_reshape_output_tensors_bw, "Create buffer fail.", final );
     memset( lstmcell_reshape_output_tensors_bw, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
     for( i = 0; i < time_step; i++ )
@@ -474,6 +480,7 @@ static vsi_bool op_setup
     {
         vsi_nn_tensor_t** merge_tensors = NULL;
         merge_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+        CHECK_PTR_FAIL_GOTO( merge_tensors, "Create buffer fail.", final );
         memset( merge_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
         tensor = outputs[BI_LSTM_FW_OUTPUT_OUTPUT];
@@ -580,6 +587,7 @@ static vsi_bool op_setup
         }
     }
 
+final:
     vsi_nn_safe_free( split_output_tensors );
     vsi_nn_safe_free( aux_split_output_tensors )
     vsi_nn_safe_free( reshape_output_tensors );

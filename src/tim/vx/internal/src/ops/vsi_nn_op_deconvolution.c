@@ -71,6 +71,11 @@ static vsi_status op_compute
             attr.size[2] = inputs[1]->attr.size[3];
             attr.size[3] = inputs[1]->attr.size[2];
             permute_tensor = vsi_nn_CreateTensor(self->graph, &attr);
+            if ( NULL == permute_tensor )
+            {
+                status = VSI_FAILURE;
+                goto final;
+            }
             self->n = vxTensorPermuteNode( self->graph->g, inputs[1]->t,
                         permute_tensor->t, perm, 4);
             if( NULL == self->n )
@@ -88,6 +93,11 @@ static vsi_status op_compute
         memset(&attr_reverse, 0, sizeof(vsi_nn_tensor_attr_t));
         memcpy(&attr_reverse, &tmp_in_tensor->attr, sizeof(vsi_nn_tensor_attr_t) );
         reverse_tensor = vsi_nn_CreateTensor(self->graph, &attr_reverse);
+        if ( NULL == reverse_tensor )
+        {
+            status = VSI_FAILURE;
+            goto final;
+        }
         para.axis = axis_reverse;
         para.numberOfAxis = 2;
 
@@ -116,6 +126,11 @@ static vsi_status op_compute
         attr.size[2] = inputs[1]->attr.size[3];
         attr.size[3] = inputs[1]->attr.size[2];
         permute_tensor = vsi_nn_CreateTensor(self->graph, &attr);
+        if ( NULL == permute_tensor )
+        {
+            status = VSI_FAILURE;
+            goto final;
+        }
         self->n = vxTensorPermuteNode( self->graph->g, inputs[1]->t,
                     permute_tensor->t, perm, 4);
         if( NULL == self->n )
