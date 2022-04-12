@@ -90,6 +90,7 @@ DECLARE_NO_PARAMETER_ACTIVATION(SoftRelu)
 
 class Elu : public DirectMapOp {
  public:
+  Elu(Graph* graph);
   Elu(Graph* graph, float alpha);
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;

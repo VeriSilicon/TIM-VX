@@ -46,6 +46,8 @@ DEFINE_NO_PARAMETER_ACTIVATION(SoftRelu, VSI_NN_OP_SOFTRELU)
 
 #undef DEFINE_NO_PARAMETER_ACTIVATION
 
+Elu::Elu(Graph* graph) : Elu(graph, 1) {}
+
 Elu::Elu(Graph* graph, float alpha)
     : DirectMapOp(graph, VSI_NN_OP_ELU), alpha_(alpha) {
   this->impl()->node()->nn_param.elu.alpha = alpha_;
