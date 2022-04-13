@@ -41,18 +41,13 @@ extern "C" {
 
 namespace vip {
 
-enum the_state {
-  CANCEL,
-  IDLE,
-  RUNNING,
-};
 using func_t = std::function<bool (const void*)>;
 using data_t = const void*;
 typedef struct _Queueitem{
+    size_t id;
     vsi_nn_graph_t* graph;
     func_t func;
     data_t data;
-    size_t id;
 } QueueItem;
 
 class GraphQueue{
@@ -63,7 +58,8 @@ class GraphQueue{
         bool Submit(vsi_nn_graph_t* graph, func_t func, data_t data);
         bool Remove(const vsi_nn_graph_t* graph);
         QueueItem Fetch();
-        bool Empty() const;
+        bool Empty();
+        size_t Size();
         void Notify();
 
     protected:
@@ -99,11 +95,7 @@ class Device {
 
     protected:
         uint32_t id_;
-        enum the_state thd_state_;
         std::array<std::thread, 2> threads_;
-        std::map<std::thread::id, the_state> threads_status_;
-        std::condition_variable idle_cv_;
-        std::mutex idle_mtx_;
         std::unique_ptr<GraphQueue> graphqueue_;
         std::unique_ptr<Worker> worker_;
 };
