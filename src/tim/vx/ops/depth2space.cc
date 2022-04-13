@@ -30,15 +30,22 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-DepthToSpace::DepthToSpace(Graph* graph, int block_size, DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_DEPTH2SPACE, 0, 0, layout),
-      block_size_(block_size) {
+DepthToSpace::DepthToSpace(Graph* Graph, int block_size, DataLayout layout)
+    : DepthToSpace(Graph, block_size, CRD_mode, layout) {}
+
+DepthToSpace::DepthToSpace(Graph* Graph, int block_size, depth2space_mode mode,
+                           DataLayout layout)
+    : DirectMapOp(Graph, VSI_NN_OP_DEPTH2SPACE, 0, 0, layout),
+      block_size_(block_size),
+      mode_(mode) {
   this->impl()->node()->nn_param.depth2space.block_size = block_size_;
+  this->impl()->node()->nn_param.depth2space.mode =
+      (vsi_nn_depth2space_mode_e)mode_;
 }
 
 std::shared_ptr<Operation> DepthToSpace::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<DepthToSpace>(this->block_size_,
+  return graph->CreateOperation<DepthToSpace>(this->block_size_, this->mode_,
                                               this->impl_->layout_);
 }
 
