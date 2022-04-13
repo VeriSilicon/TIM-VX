@@ -37,7 +37,6 @@ aux_source_directory(./vx/internal/src/quantization INTERNAL_QUANTIZATION)
 aux_source_directory(./vx/internal/src/custom/ops INTERNAL_CUSTOM_OPS)
 aux_source_directory(./vx/internal/src/custom/ops/kernel INTERNAL_CUSTOM_OPS_KERNEL)
 aux_source_directory(./vx/internal/src/utils INTERNAL_UTILS)
-aux_source_directory(./vx/internal/src/vip INTERNAL_VIPS)
 aux_source_directory(./vx/internal/src/POST POST)
 
 list(APPEND ${TARGET_NAME}_SRCS
@@ -52,6 +51,13 @@ list(APPEND ${TARGET_NAME}_SRCS
     ${INTERNAL_CUSTOM_OPS}
     ${INTERNAL_CUSTOM_OPS_KERNEL}
     ${INTERNAL_UTILS}
-    ${INTERNAL_VIPS}
     ${POST}
 )
+
+if(TIM_VX_ENABLE_PLATFORM)
+    message(STATUS "Using ovxlib vip")
+    aux_source_directory(./vx/internal/src/vip INTERNAL_VIPS)
+    list(APPEND ${TARGET_NAME}_SRCS
+        ${INTERNAL_VIPS}
+    )
+endif()
