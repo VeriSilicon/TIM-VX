@@ -24,6 +24,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/stridedslice.h"
+#include "tim/transform/layout_inference.h"
 
 #include <algorithm>
 

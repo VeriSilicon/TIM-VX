@@ -393,5 +393,13 @@ std::vector<int32_t> OpLayoutInfer::MapMultipleAxis(
   return r;
 }
 
+int32_t OpLayoutInfer::MapMask(const std::vector<uint32_t>& perm,
+                               int32_t mask) {
+  int32_t m = 0;
+  for (uint32_t i = 0; i < perm.size(); ++i)
+    if (mask & 1 << perm[i]) m |= (0x01 << i);
+  return m;
+}
+
 }  // namespace transform
 }  // namespace tim
