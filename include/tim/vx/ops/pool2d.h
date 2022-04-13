@@ -37,61 +37,61 @@ namespace ops {
  * ## Pool2d
  *
  * ### Classic Pool2d
- * 
+ *
  * Performs an 2-D pooling operation.
  *
  * - type : MAX, AVG, L2 or AVG_ANDROID.
  * - padding : AUTO, VALID or SAME.
+ * - pad : Specify the number of pad values for left, right, top, and bottom.
  * - ksize : filter size.
  * - stride : stride along each spatial axis.
  * - round_type : CEILING or FLOOR.
- * 
+ *
  * ### Global Pool2d
- * 
+ *
  * - type : MAX, AVG, L2 or AVG_ANDROID.
  * - input_size : input size(only [W， H])
  * - round_type : CEILING or FLOOR.
- * 
+ *
  * ### Adaptive Pool2d
- * 
+ *
  * Same as torch.nn.AdaptiveXXXPool2d.
- * 
+ *
  * - type : MAX, AVG, L2 or AVG_ANDROID.
  * - input_size : input size(only [W， H])
  * - output_size : output size(only [W， H])
  * - round_type : CEILING or FLOOR.
- * 
+ *
  */
 
 class Pool2d : public DirectMapOp {
  public:
-  // for Classic Pool2d
+  /* for Classic Pool2d, pool does not support auto-completion of pad value,
+  you need to specify pad size explicitly, it is recommended to use the second api.*/
   Pool2d(Graph* graph, PoolType type, PadType padding,
          const std::array<uint32_t, 2>& ksize,
          const std::array<uint32_t, 2>& stride,
          RoundType round_type = RoundType::FLOOR,
          DataLayout layout = DataLayout::WHCN);
-  Pool2d(Graph* graph, PoolType type,
-         const std::array<uint32_t, 4>& pad,
+  Pool2d(Graph* graph, PoolType type, const std::array<uint32_t, 4>& pad,
          const std::array<uint32_t, 2>& ksize,
          const std::array<uint32_t, 2>& stride,
          RoundType round_type = RoundType::FLOOR,
          DataLayout layout = DataLayout::WHCN);
 
   // for Global Pool2d
-  Pool2d(Graph* graph, PoolType type,
-         const std::array<uint32_t, 2>& input_size,
+  Pool2d(Graph* graph, PoolType type, const std::array<uint32_t, 2>& input_size,
          RoundType round_type = RoundType::FLOOR,
          DataLayout layout = DataLayout::WHCN);
 
   // for Adaptive Pool2d
-  Pool2d(Graph* graph, PoolType type,
-         const std::array<uint32_t, 2>& input_size,
+  Pool2d(Graph* graph, PoolType type, const std::array<uint32_t, 2>& input_size,
          const std::array<uint32_t, 2>& output_size,
          RoundType round_type = RoundType::FLOOR,
          DataLayout layout = DataLayout::WHCN);
 
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
   void Init();
 
  protected:
