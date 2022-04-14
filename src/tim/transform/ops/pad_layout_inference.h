@@ -51,15 +51,13 @@ class PadLayoutInfer : public OpLayoutInfer {
            sizeof(uint32_t) * dim_num);
     memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
            sizeof(uint32_t) * dim_num);
-    int32_t pad_value = op_->impl()->node()->nn_param.pad.const_val;
 
     if (!input_pv->IsAligned()) {
       front_size = MapMultipleAxis(input_pv->AsStdVec(), front_size);
       back_size = MapMultipleAxis(input_pv->AsStdVec(), back_size);
     }
 
-    auto pad = context_->infer_graph_->CreateOperation<vx::ops::Pad>(
-        front_size, back_size, pad_value);
+    auto pad = op_->Clone(context_->infer_graph_);
     auto out_infer = CreateOutputsTensor(input_pv);
     (*pad).BindInput(context_->GetMapedTensor(i_src));
     (*pad).BindOutput(out_infer[0]);
