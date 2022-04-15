@@ -135,6 +135,25 @@ std::shared_ptr<Operation> Gelu::Clone(std::shared_ptr<Graph>& graph) const {
       this->impl()->node()->nn_param.gelu.approximate);
 }
 
+Selu::Selu(Graph* graph, float alpha, float gamma)
+    : DirectMapOp(graph, VSI_NN_OP_SELU), alpha_(alpha), gamma_(gamma) {
+  this->impl()->node()->nn_param.selu.alpha = alpha;
+  this->impl()->node()->nn_param.selu.gamma = gamma;
+}
+
+std::shared_ptr<Operation> Selu::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Selu>(this->alpha_, this->gamma_);
+}
+
+Celu::Celu(Graph* graph, float alpha)
+    : DirectMapOp(graph, VSI_NN_OP_CELU), alpha_(alpha) {
+  this->impl()->node()->nn_param.selu.alpha = alpha;
+}
+
+std::shared_ptr<Operation> Celu::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<Selu>(this->alpha_);
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
