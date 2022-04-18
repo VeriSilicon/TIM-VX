@@ -29,6 +29,7 @@
 #include "tim/vx/ops/arg.h"
 #include "tim/vx/ops/batch2space.h"
 #include "tim/vx/ops/batchnorm.h"
+#include "tim/vx/ops/broadcast.h"
 #include "tim/vx/ops/clip.h"
 #include "tim/vx/ops/concat.h"
 #include "tim/vx/ops/conv1d.h"
