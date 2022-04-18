@@ -330,3 +330,69 @@ TEST(Elu, shape_5_1_fp32_a) {
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
+
+TEST(Selu, shape_2_2) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType in_shape({2, 2});
+  tim::vx::ShapeType out_shape({2, 2});
+
+  tim::vx::TensorSpec in_spec(tim::vx::DataType::FLOAT32, in_shape,
+                              tim::vx::TensorAttribute::INPUT);
+
+  tim::vx::TensorSpec out_spec(tim::vx::DataType::FLOAT32, out_shape,
+                               tim::vx::TensorAttribute::OUTPUT);
+
+  auto in_tensor = graph->CreateTensor(in_spec);
+  auto out_tensor = graph->CreateTensor(out_spec);
+
+  std::vector<float> in_data = {2, 1, 3, 10};
+  std::vector<float> golden = {2.1014, 1.0507, 3.1521, 10.507};
+
+  EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(),
+                                          in_data.size() * sizeof(float)));
+
+  auto op = graph->CreateOperation<tim::vx::ops::Selu>();
+  (*op).BindInputs({in_tensor}).BindOutputs({out_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(out_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}
+
+TEST(Celu, shape_2_2) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType in_shape({2, 2});
+  tim::vx::ShapeType out_shape({2, 2});
+
+  tim::vx::TensorSpec in_spec(tim::vx::DataType::FLOAT32, in_shape,
+                              tim::vx::TensorAttribute::INPUT);
+
+  tim::vx::TensorSpec out_spec(tim::vx::DataType::FLOAT32, out_shape,
+                               tim::vx::TensorAttribute::OUTPUT);
+
+  auto in_tensor = graph->CreateTensor(in_spec);
+  auto out_tensor = graph->CreateTensor(out_spec);
+
+  std::vector<float> in_data = {-1, 0.71, 3, 10};
+  std::vector<float> golden = {-0.69762, 0.71, 3, 10};
+
+  EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(),
+                                          in_data.size() * sizeof(float)));
+
+  auto op = graph->CreateOperation<tim::vx::ops::Celu>(1.3);
+  (*op).BindInputs({in_tensor}).BindOutputs({out_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(out_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}

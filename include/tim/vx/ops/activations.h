@@ -65,6 +65,10 @@ namespace ops {
  *   Linear(x, a, b)        : a*x + b.
  *
  *   Gelu(x)                : x * P(X <= x), where P(x) ~ N(0, 1). https://tensorflow.google.cn/api_docs/python/tf/nn/gelu
+ *
+ *   Selu(x, alpha, gamma)  : gamma * x if(x>=0), gamma * alpha * (exp(x)-1) x<0
+ *
+ *   Celu(x, alpha)         : x if x >= 0; alpha * (exp(x/alpha) - 1)
  * ```
  */
 
@@ -150,6 +154,29 @@ class Gelu : public DirectMapOp {
   explicit Gelu(Graph* graph, bool approximate = true);
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
+};
+
+class Selu : public DirectMapOp {
+ public:
+  Selu(Graph* graph, float alpha = 1.67326, float gamma = 1.0507);
+
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float alpha_;
+  float gamma_;
+};
+
+class Celu : public DirectMapOp {
+ public:
+  Celu(Graph* graph, float alpha);
+
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float alpha_;
 };
 
 }  // namespace ops
