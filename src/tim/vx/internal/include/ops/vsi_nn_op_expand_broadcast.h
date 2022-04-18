@@ -34,6 +34,8 @@ typedef struct _vsi_nn_expand_broadcast_param
 {
     uint32_t *shape;
     uint32_t dim_num;
+    uint32_t *dimensions;
+    uint32_t dimensions_num;
 } vsi_nn_expand_broadcast_param;
 
 #ifdef __cplusplus
