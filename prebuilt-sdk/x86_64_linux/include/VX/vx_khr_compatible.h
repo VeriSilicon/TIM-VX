@@ -29,8 +29,8 @@
 #define __VX_KHR_COMPATIBLE_H__
 /*
  VX_DECONVOLUTION_WEIGHT_LAYOUT_COMPATIBLE_KHRONOS is used to distingush deconvolution weight layout
- [value] 
- 0: weight_layout is whnc 
+ [value]
+ 0: weight_layout is whnc
  1: weight_layout is whcn
 */
 #ifndef VX_DECONVOLUTION_WEIGHT_LAYOUT_COMPATIBLE_KHRONOS
@@ -164,6 +164,36 @@ VX_CONV_3D_API_SUPPORT is used to declare that vsi openvx driver can support con
 */
 #ifndef VX_CONV_3D_API_SUPPORT
 #define VX_CONV_3D_API_SUPPORT 1
+#endif
+
+/*
+VX_DECONV_3D_API_SUPPORT is used to declare that vsi openvx driver can support deconv3d by vxDeconv3dLayer API.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_DECONV_3D_API_SUPPORT
+#define VX_DECONV_3D_API_SUPPORT 0
+#endif
+
+/*
+ VX_PAD_CONST_SUPPORT is used to declare that openvx can support pad_const for tensorpad and convolution.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_PAD_CONST_SUPPORT
+#define VX_PAD_CONST_SUPPORT 1
+#endif
+
+/*
+ VX_TENSOR_STRIDE_X_BITS_SUPPORT is used to declare that openvx can support tensor which bits of stride in x dimension is not an integer number of bytes.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_STRIDE_X_BITS_SUPPORT
+#define VX_TENSOR_STRIDE_X_BITS_SUPPORT 1
 #endif
 
 #endif /* __VX_KHR_COMPATIBLE_H__ */

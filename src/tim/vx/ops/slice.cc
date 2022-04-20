@@ -43,8 +43,36 @@ Slice::Slice(Graph* graph, uint32_t dims, const std::vector<int32_t>& start,
       reinterpret_cast<const uint32_t*>(length_.data());
 }
 
+Slice::Slice(Graph* graph, uint32_t dims, const std::vector<int32_t>& start,
+             const std::vector<int32_t>& length,
+             const std::vector<int32_t>& step)
+    : DirectMapOp(graph, VSI_NN_OP_STRIDED_SLICE),
+      dims_(dims),
+      start_(std::move(start)),
+      length_(std::move(length)),
+      step_(std::move(step)) {
+  for (uint32_t i = 0; i < length_.size(); ++i) {
+    end_dims_.push_back(start_.at(i) + length_.at(i));
+  }
+  this->impl()->node()->nn_param.strided_slice.begin_mask = 0;
+  this->impl()->node()->nn_param.strided_slice.end_mask = 0;
+  this->impl()->node()->nn_param.strided_slice.shrink_axis_mask = 0;
+  this->impl()->node()->nn_param.strided_slice.begin_dims = start_.data();
+  this->impl()->node()->nn_param.strided_slice.begin_dims_num = start_.size();
+  this->impl()->node()->nn_param.strided_slice.end_dims = end_dims_.data();
+  this->impl()->node()->nn_param.strided_slice.end_dims_num = end_dims_.size();
+  this->impl()->node()->nn_param.strided_slice.stride_dims = step_.data();
+  this->impl()->node()->nn_param.strided_slice.stride_dims_num = step_.size();
+}
+
 std::shared_ptr<Operation> Slice::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<Slice>(this->dims_, this->start_, this->length_);
+  if (this->impl()->kind_ == VSI_NN_OP_STRIDED_SLICE) {
+    return graph->CreateOperation<Slice>(this->dims_, this->start_,
+                                         this->length_, this->step_);
+  } else {
+    return graph->CreateOperation<Slice>(this->dims_, this->start_,
+                                         this->length_);
+  }
 }
 
 }  // namespace ops

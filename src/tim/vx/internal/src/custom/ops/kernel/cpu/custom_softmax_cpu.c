@@ -77,7 +77,7 @@ DEF_KERNEL_EXECUTOR(_softmax_exec)
 
     /* alloc the float32 data buffer */
     buffer[1] = (float *)malloc(out_elements * sizeof(float));
-    CHECK_PTR_FAIL_GOTO( buffer[0], "Create input buffer fail.", final );
+    CHECK_PTR_FAIL_GOTO( buffer[1], "Create input buffer fail.", final );
     memset(buffer[1], 0, out_elements * sizeof(float));
 
     buffer[0] = (float*)vsi_nn_kernel_tensor_create_buffer( tensors[0], attr[0], TRUE );

@@ -25,7 +25,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-
 #include "vsi_nn_types.h"
 #include "vsi_nn_log.h"
 #include "vsi_nn_node.h"
@@ -81,7 +80,7 @@ static vsi_status op_compute
             outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes_ptr, shapes[3], &new_rank);
 
-    if( ret )
+    if ( ret )
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
             inputs[0], shapes[0], new_rank );
@@ -148,39 +147,74 @@ static vsi_bool op_check
 
     /* check inputs outputs data type */
     BEGIN_IO_TYPE_DECL(BATCHNORM_SINGLE, 5, 1)
-        IO_TYPE(D_F16,       D_F16, D_F16, D_F16, D_F32, D_U8|Q_ASYM)
-        IO_TYPE(D_F16,       D_F16, D_F16, D_F16, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_F16,       D_F16, D_F16, D_F16, D_F32, D_I8|Q_DFP)
-        IO_TYPE(D_F16,       D_F16, D_F16, D_F16, D_F32, D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16, D_F16, D_F32, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16, D_F16, D_F32, D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_F16, D_F16, D_F16, D_F32, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,  D_F16, D_F16, D_F16, D_F32, D_F16)
-        IO_TYPE(D_I16|Q_DFP, D_F16, D_F16, D_F16, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_F16, D_F16, D_F16, D_F32, D_F16)
-        IO_TYPE(D_F16,       D_F16, D_F16, D_F32, D_F32, D_U8|Q_ASYM)
-        IO_TYPE(D_F16,       D_F16, D_F16, D_F32, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_F16,       D_F16, D_F16, D_F32, D_F32, D_I8|Q_DFP)
-        IO_TYPE(D_F16,       D_F16, D_F16, D_F32, D_F32, D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16, D_F32, D_F32, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16, D_F32, D_F32, D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_F16, D_F16, D_F32, D_F32, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,  D_F32, D_F32, D_F32, D_F32, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,  D_F16, D_F16, D_F32, D_F32, D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_F32, D_F32, D_F32, D_F32, D_F16)
-        IO_TYPE(D_I16|Q_DFP, D_F16, D_F16, D_F32, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_F32, D_F32, D_F32, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_F32, D_F32, D_F32, D_F32, D_F16)
-        IO_TYPE(D_F32,       D_F32, D_F32, D_F32, D_F32, D_F32)
-        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F32, D_F32, D_F32, D_F32, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F32, D_F32, D_F32, D_F32, D_F16)
-        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_F16)
-        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_U8|Q_ASYM)
-        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_F16,       D_F32, D_F32, D_F32, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F16, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F16, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F16, D_F32, D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F16, D_F32, D_I16|Q_SYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F16, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F16, D_F32, D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F16, D_F32, D_I8|Q_SYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_U8|Q_ASYM,  D_F16, D_F16, D_F16, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_DFP,   D_F16, D_F16, D_F16, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,   D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_F16, D_F16, D_F16, D_F32, D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_F16, D_F16, D_F16, D_F32, D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_SYM,   D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_I16|Q_DFP,  D_F16, D_F16, D_F16, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,  D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_F16, D_F16, D_F16, D_F32, D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_ASYM, D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_F16, D_F16, D_F16, D_F32, D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_SYM,  D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F32, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F32, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F32, D_F32, D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F32, D_F32, D_I16|Q_SYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F32, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F32, D_F32, D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F32, D_F32, D_I8|Q_SYM)
+        IO_TYPE(D_F16,        D_F16, D_F16, D_F32, D_F32, D_F16)
+        IO_TYPE(D_U8|Q_ASYM,  D_F16, D_F16, D_F32, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_F16, D_F16, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_DFP,   D_F16, D_F16, D_F32, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,   D_F32, D_F32, D_F32, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,   D_F16, D_F16, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_DFP,   D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_F16, D_F16, D_F32, D_F32, D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32, D_F32, D_F32, D_F32, D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_F16, D_F16, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_F16, D_F16, D_F32, D_F32, D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_SYM,   D_F32, D_F32, D_F32, D_F32, D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_SYM,   D_F16, D_F16, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I16|Q_DFP,  D_F16, D_F16, D_F32, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,  D_F32, D_F32, D_F32, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,  D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_F16, D_F16, D_F32, D_F32, D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_ASYM, D_F32, D_F32, D_F32, D_F32, D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_ASYM, D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_F16, D_F16, D_F32, D_F32, D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_SYM,  D_F32, D_F32, D_F32, D_F32, D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_SYM,  D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_F32,        D_F32, D_F32, D_F32, D_F32, D_F32)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_U8|Q_ASYM,  D_F32, D_F32, D_F32, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_I16|Q_SYM)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32, D_F32, D_F32, D_F32, D_I8|Q_SYM)
     END_IO_TYPE_DECL(BATCHNORM_SINGLE)
-    if(!VALIDATE_OP_IO_TYPES(BATCHNORM_SINGLE, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(BATCHNORM_SINGLE, self, inputs, self->input.num, outputs, self->output.num))
+    {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -188,7 +222,7 @@ static vsi_bool op_check
         return FALSE;
     }
 
-    for(i = 0; i < rank; i++)
+    for (i = 0; i < rank; i++)
     {
         vsi_size_t shape0 = inputs[0]->attr.size[i];
 
@@ -197,7 +231,7 @@ static vsi_bool op_check
             uint32_t rank1 = inputs[j]->attr.dim_num;
             vsi_size_t shape1 = rank1 > i ? inputs[j]->attr.size[i] : 1;
 
-            if(shape0 != shape1 && shape1 != 1)
+            if (shape0 != shape1 && shape1 != 1)
             {
                 VSILOGE("Invalid broadcast for inputs[%d] size[%"VSI_SIZE_T_SPECIFIER"]", j, shape1);
                 return FALSE;
@@ -215,7 +249,7 @@ static vsi_bool op_setup
     )
 {
     /* TODO: Add code to comput outputs' shape. */
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         memcpy( outputs[0]->attr.size, inputs[0]->attr.size,

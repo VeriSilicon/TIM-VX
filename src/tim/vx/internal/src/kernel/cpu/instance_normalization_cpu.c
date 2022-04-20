@@ -35,7 +35,6 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 
 __BEGIN_DECLS
 
@@ -61,7 +60,13 @@ DEF_KERNEL_EXECUTOR(_instance_norm_exec)
     float * buffer[_CPU_IO_NUM] = { NULL };
     size_t out_elements = 0;
     vsi_nn_kernel_tensor_attr_t * attr[_CPU_IO_NUM] = { NULL };
-    uint32_t i = 0;
+    vsi_size_t batch = 1;
+    vsi_size_t depth = 1;
+    vsi_size_t norm_size = 1;
+    vsi_size_t b = 0;
+    vsi_size_t c = 0;
+    vsi_size_t i = 0;
+    size_t rank = 1;
     float eps = .0f;
 
     tensors[0]  = (vsi_nn_kernel_tensor_t)param[0];
@@ -96,62 +101,55 @@ DEF_KERNEL_EXECUTOR(_instance_norm_exec)
     CHECK_PTR_FAIL_GOTO( buffer[3], "Create output buffer fail.", final );
     memset( buffer[3], 0, out_elements * sizeof(float) );
 
+    rank = attr[0]->shape->size;
+
+    batch = attr[0]->shape->data[rank - 1];
+    depth = attr[0]->shape->data[rank - 2];
+
+    for ( i = 0; i < (vsi_size_t)rank - 2; i++)
     {
-        vsi_size_t b = 0, c = 0, h = 0, w = 0;
-        vsi_size_t height = attr[0]->shape->data[1];
-        vsi_size_t width = attr[0]->shape->data[0];
-        vsi_size_t ch = attr[0]->shape->size > 2 ? attr[0]->shape->data[2] : 1;
-        vsi_size_t bh = attr[0]->shape->size > 3 ? attr[0]->shape->data[3] : 1;
+        norm_size *= attr[0]->shape->data[i];
+    }
 
-        for (b = 0; b < bh; b++)
+    for (b = 0; b < batch; b++)
+    {
+        for (c = 0; c < depth; c++)
         {
-            for (c = 0; c < ch; c++)
+            vsi_size_t page = c * norm_size + b * norm_size * depth;
+            float sum = .0f;
+            float sumsq = .0f;
+            float mean = .0f;
+            float vari = .0f;
+            float data = 0;
+            float scaleVal = buffer[2][c];
+            float biasVal = buffer[1][c];
+
+            for (i = 0; i < norm_size; i++)
             {
-                vsi_size_t page = c * (height * width) + b * (height * width * ch);
-                float sum = .0f;
-                float sumsq = .0f;
-                float mean = .0f;
-                float vari = .0f;
-                float data = 0;
-                float scaleVal = buffer[2][c];
-                float biasVal = buffer[1][c];
+                vsi_size_t index = page + i;
+                sum += buffer[0][index];
+            }
 
-                for (h = 0; h < height; h++)
-                {
-                    vsi_size_t len = page + h * width;
+            mean = sum / (float)norm_size;
 
-                    for (w = 0; w < width; w++)
-                    {
-                        vsi_size_t index = len + w;
-                        sum += buffer[0][index];
-                    }
-                }
-                mean = sum / (width * height);
-                for (h = 0; h < height; h++)
-                {
-                    vsi_size_t len = page + h * width;
-                    for (w = 0; w < width; w++)
-                    {
-                        vsi_size_t index = len + w;
-                        data = buffer[0][index] - mean;
-                        sumsq += data * data;
-                    }
-                }
-                vari = sumsq / (width * height);
-                vari = (float)(1.0 / sqrtf(vari + eps));
-                for (h = 0; h < height; h++)
-                {
-                    vsi_size_t len = page + h * width;
-                    for (w = 0; w < width; w++)
-                    {
-                        float normVal = 0;
-                        vsi_size_t index = len + w;
-                        data = buffer[0][index] - mean;
+            for (i = 0; i < norm_size; i++)
+            {
+                vsi_size_t index = page + i;
+                data = buffer[0][index] - mean;
+                sumsq += data * data;
+            }
 
-                        normVal = data * vari * scaleVal + biasVal;
-                        buffer[3][index] = normVal;
-                    }
-                }
+            vari = sumsq / (float)norm_size;
+            vari = (float)(1.0 / sqrtf(vari + eps));
+
+            for (i = 0; i < norm_size; i++)
+            {
+                float normVal = 0;
+                vsi_size_t index = page + i;
+                data = buffer[0][index] - mean;
+
+                normVal = data * vari * scaleVal + biasVal;
+                buffer[3][index] = normVal;
             }
         }
     }
@@ -188,20 +186,6 @@ static vx_param_description_t _instance_normalization_kernel_param_def[] =
 };
 #define _INSTANCE_NORMALIZATION_PARAM_NUM  _cnt_of_array( _instance_normalization_kernel_param_def )
 
-static const vx_kernel_description_t _kernel_info =
-{
-    KERNEL_ID_PLACEHOLDER,
-    _KERNEL_NAME,
-    _instance_norm_exec,
-    _instance_normalization_kernel_param_def,
-    _cnt_of_array( _instance_normalization_kernel_param_def ),
-    vsi_nn_KernelValidator,
-    NULL,
-    NULL,
-    vsi_nn_KernelInitializer,
-    vsi_nn_KernelDeinitializer
-};
-
 static vsi_status _query_kernel
     (
     vsi_nn_tensor_t* const* const inputs,
@@ -209,7 +193,11 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t* kernel
     )
 {
-    memmove( &kernel->info, &_kernel_info, sizeof(vx_kernel_description_t) );
+    snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  _KERNEL_NAME );
+    kernel->info.function    = _instance_norm_exec;
+    kernel->info.parameters  = _instance_normalization_kernel_param_def;
+    kernel->info.numParams   = _cnt_of_array( _instance_normalization_kernel_param_def );
+
     return VSI_SUCCESS;
 } /* _query_kernel() */
 
@@ -256,4 +244,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CPU( instance_norm, _setup )
-

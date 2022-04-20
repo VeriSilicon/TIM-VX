@@ -1,0 +1,92 @@
+<diagram program="umletino" version="14.4.0-SNAPSHOT"><zoom_level>10</zoom_level><help_text>Space for diagram notes</help_text><element><id>UMLClass</id><coordinates><x>190</x><y>69</y><w>310</w><h>60</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+tim::vx::Operation
+bg=green
+--
+BindInput(tensor: const shared_ptr&lt;Tensor&gt;): Operation&amp;
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>590</x><y>69</y><w>130</w><h>60</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+OpImpl
+bg=gray
+--
+graph_ : GraphImpl*
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>70</x><y>209</y><w>320</w><h>60</h></coordinates><panel_attributes>tim::vx::DirectMapOp
+bg=green
+--
+DirectMapOp(graph: Graph*, kind: uint32_t, in_cnt: int =0, 
+out_cnt: int=0, layout : DataLayout = DataLayout::ANY)
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>220</x><y>118</y><w>30</w><h>110</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;90</additional_attributes></element><element><id>Relation</id><coordinates><x>490</x><y>78</y><w>120</w><h>50</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1
+</panel_attributes><additional_attributes>10;20;100;20</additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>324</y><w>180</w><h>100</h></coordinates><panel_attributes>vx.builtin.ops
+bg=green
+--
+{innerclass
+Conv1d
+innerclass}
+{innerclass
+Conv2d
+innerclass}
+{innerclass
+{innerclass
+Conv3d
+innerclass}</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>80</x><y>258</y><w>140</w><h>80</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>120;10;120;40;10;40;10;60</additional_attributes></element><element><id>UMLClass</id><coordinates><x>670</x><y>209</y><w>180</w><h>60</h></coordinates><panel_attributes>DirectMapOpImpl
+"VxBuiltInOpImpl"
+bg=gray
+--
+node_: vsi_nn_node_t* = nullptr
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>640</x><y>123</y><w>140</w><h>100</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;120;80</additional_attributes></element><element><id>UMLClass</id><coordinates><x>476</x><y>308</y><w>170</w><h>60</h></coordinates><panel_attributes>RNNCellImpl
+bg=gray
+--
+fc0_ : shared_ptr&lt;Operation&gt;
+fc1_ : sahred_ptr&lt;Operation&gt;</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>246</x><y>308</y><w>160</w><h>60</h></coordinates><panel_attributes>RNNCell
+bg=green
+--
+RNNCell(graph: Graph, 
+              act : ActivationType)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>336</x><y>118</y><w>30</w><h>210</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;190</additional_attributes></element><element><id>Relation</id><coordinates><x>376</x><y>238</y><w>310</w><h>40</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>10;10;290;11</additional_attributes></element><element><id>Relation</id><coordinates><x>396</x><y>318</y><w>100</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>10;10;80;10</additional_attributes></element><element><id>Relation</id><coordinates><x>210</x><y>514</y><w>150</w><h>120</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>127;10;10;50;10;100</additional_attributes></element><element><id>Relation</id><coordinates><x>421</x><y>123</y><w>40</w><h>310</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>20;10;16;290</additional_attributes></element><element><id>UMLClass</id><coordinates><x>66</x><y>618</y><w>310</w><h>110</h></coordinates><panel_attributes>CustomizedOp
+bg=red
+{innerclass
+ParamType = tuple&lt;int ...&gt;
+--
+innerclass}
+kernel_str_ : const char*
+kernel_init_fp_: vx_kernel_initialize_f
+kernel_name_ : const char*
+params_ : ParamType
+
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>440</x><y>609</y><w>280</w><h>120</h></coordinates><panel_attributes>Access Parameter 
+{innerclass
+PackedParam
+bg=green
+--
+type: enum {FLOAT, INT32, ...}
+data: unin{float, int32, pointer}
+innerclass}
+
+{innerclass
+at(p: const T&amp;, offset: int): Param
+innerclass}
+
+
+
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>741</x><y>263</y><w>40</w><h>160</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>20;10;16;140</additional_attributes></element><element><id>Relation</id><coordinates><x>541</x><y>123</y><w>120</w><h>210</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>100;10;20;60;16;190</additional_attributes></element><element><id>Relation</id><coordinates><x>430</x><y>510</y><w>160</w><h>120</h></coordinates><panel_attributes>lt=&lt;.
+m2=use</panel_attributes><additional_attributes>140;100;140;50;10;50;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>257</x><y>409</y><w>230</w><h>110</h></coordinates><panel_attributes>CostomOpBase
+bg=green
+--
+Setup(in: vec&lt;tim::vx::tensor&gt;, 
+               out: vec&lt;tim::vx::tensor&gt;): bool
+--
+get(offset: int):PackedParam
+next(): bool
+size(): size_t</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>476</x><y>458</y><w>180</w><h>40</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>10;10;160;11</additional_attributes></element><element><id>UMLClass</id><coordinates><x>640</x><y>409</y><w>270</w><h>130</h></coordinates><panel_attributes>CustomOpBaseImpl
+bg=gray
+--
+name_: char*
+--
+_op_setup(self: vsi_nn_node_t*,_
+_                inputs: vsi_nn_tensor_t**,_
+_                outputs: vsi_nn_tensor_t**): vsi_bool_
+_op_compute(...)_
+--
+proc_: vsi_nn_op_proc_t*
+
+
+</panel_attributes><additional_attributes></additional_attributes></element></diagram>

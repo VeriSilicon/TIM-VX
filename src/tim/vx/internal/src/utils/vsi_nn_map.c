@@ -83,6 +83,10 @@ void vsi_nn_MapAdd
     {
         key_iter = (vsi_nn_map_key_list_t *)vsi_nn_LinkListNewNode(
                 sizeof( vsi_nn_map_key_list_t ), NULL );
+        if ( NULL == key_iter )
+        {
+            return;
+        }
         key_iter->val = key;
         vsi_nn_LinkListPushStart( (vsi_nn_link_list_t **)&map->keys,
                 (vsi_nn_link_list_t *)key_iter );
@@ -140,4 +144,3 @@ vsi_bool vsi_nn_MapHasKey
         return TRUE;
     }
 }  /* vsi_nn_MapHasKey() */
-

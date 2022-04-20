@@ -139,7 +139,7 @@ static void print_tensor
         break;
 #endif
     default:
-        strncpy(ext_attr, "NONE", _EXT_ATTR_BUF_SZ);
+        vsi_nn_strncpy(ext_attr, "NONE", _EXT_ATTR_BUF_SZ);
         break;
     }
 
@@ -369,12 +369,14 @@ static vsi_bool _init_tensor
         params.quant_data.affinePerChannel.scales = scales;
         params.quant_data.affinePerChannel.zeroPoint = NULL;
         params.quant_data.affinePerChannel.zeroPointCount = 0;
-        // TODO: This is a hack since driver will access a NULL pointer and cause a crash.
-        // Remove me in the future.
         {
+            // Low-level driver only support asymmetric. Application doesn't provide zp information if
+            // it's symmetric quantized tensor. Fake a zp information filled with zero to meet low-level's
+            // requirement
             null_zp = (int32_t*)malloc(sizeof(int32_t) * tensor->attr.dtype.scale_dim);
             memset(null_zp, 0, sizeof(int32_t) * tensor->attr.dtype.scale_dim);
             params.quant_data.affinePerChannel.zeroPoint = null_zp;
+            params.quant_data.affinePerChannel.zeroPointCount= tensor->attr.dtype.scale_dim;
         }
         break;
 #else
@@ -475,18 +477,18 @@ static vsi_bool _init_tensor
             {
 #ifdef VSI_40BIT_VA_SUPPORT
                 {
-                    vx_size size_vxsize[_cnt_of_array(tensor->attr.size)] = {0};
+                    vx_size size_vxsize2[_cnt_of_array(tensor->attr.size)] = {0};
                     vx_size stride_size_vxsize[_cnt_of_array(stride_size)] = {0};
                     for(i = 0; i < _cnt_of_array(tensor->attr.size); i++)
                     {
-                        size_vxsize[i] = -1 == tensor->attr.size[i] ? -1 : (vx_size)tensor->attr.size[i];
+                        size_vxsize2[i] = -1 == tensor->attr.size[i] ? -1 : (vx_size)tensor->attr.size[i];
                     }
                     for(i = 0; i < _cnt_of_array(stride_size); i++)
                     {
                         stride_size_vxsize[i] = -1 == stride_size[i] ? -1 : (vx_size)stride_size[i];
                     }
                     addr = vxCreateTensorAddressing(graph->ctx->c,
-                        size_vxsize, stride_size_vxsize, (vx_size)tensor->attr.dim_num);
+                        size_vxsize2, stride_size_vxsize, (vx_size)tensor->attr.dim_num);
                 }
 #else
                 {
@@ -785,8 +787,8 @@ void vsi_nn_ReleaseTensor
     )
 {
     vsi_nn_tensor_t * ptr;
-    ptr = *tensor;
-    if( NULL != tensor && NULL != *tensor )
+    ptr = (NULL != tensor) ? *tensor : NULL;
+    if( NULL != ptr)
     {
         uint8_t * handle = NULL;
         if( NULL != ptr->t )
@@ -1224,11 +1226,11 @@ void vsi_nn_SaveTensorToTextByFp32
         return;
     }
 
-    fp = fopen( filename, "w" );
+    fp = vsi_nn_fopen( filename, "w" );
     if( NULL == fp )
     {
         VSILOGW( "Write file %s fail. Please check...", filename );
-        return;
+        goto final;
     }
     sz = vsi_nn_GetElementNum( tensor );
     ptr = data;
@@ -1249,6 +1251,8 @@ void vsi_nn_SaveTensorToTextByFp32
     }
     fwrite( buf, count, 1, fp );
     fclose( fp );
+
+final:
     vsi_nn_safe_free( data );
 } /* vsi_nn_SaveTensorToTextByFp32() */
 
@@ -1313,7 +1317,7 @@ void vsi_nn_SaveDataToText
         return;
     }
 
-    fp = fopen( filename, "w" );
+    fp = vsi_nn_fopen( filename, "w" );
     if( NULL == fp )
     {
         VSILOGW( "Write file %s fail. Please check...", filename );
@@ -1358,6 +1362,8 @@ void vsi_nn_SaveTensorToBinary
     FILE            * fp;
     vsi_size_t         sz;
     uint32_t         i;
+    uint8_t        * packed_data = NULL;
+    vsi_size_t     packed_size;
 
     if( NULL == graph || NULL == tensor || NULL == filename )
     {
@@ -1365,25 +1371,44 @@ void vsi_nn_SaveTensorToBinary
     }
 
     data = vsi_nn_ConvertTensorToData( graph, tensor );
+
     if( NULL == data )
     {
         VSILOGE( "Convert data fail." );
         return;
     }
 
-    fp = fopen( filename, "wb" );
+    fp = vsi_nn_fopen( filename, "wb" );
     if( NULL == fp )
     {
         VSILOGW( "Write file %s fail. Please check...", filename );
-        return;
+        goto final;
     }
     sz = (vsi_size_t)vsi_nn_GetTypeBytes( tensor->attr.dtype.vx_type );
-    for( i = 0; i < tensor->attr.dim_num; i ++ )
+    if( tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT4 ||
+        tensor->attr.dtype.vx_type == VSI_NN_TYPE_UINT4 )
     {
-        sz *= tensor->attr.size[i];
+        packed_size = vsi_nn_GetTensorSize( tensor->attr.size, tensor->attr.dim_num,
+                                                         tensor->attr.dtype.vx_type);
+        packed_data = (uint8_t*)malloc(packed_size);
+        vsi_nn_Pack4bitData(tensor, data, packed_data);
+        fwrite( packed_data, packed_size, 1, fp );
+        if( packed_data )
+        {
+            free(packed_data);
+            packed_data = NULL;
+        }
     }
-    fwrite( data, sz, 1, fp );
+    else
+    {
+        for( i = 0; i < tensor->attr.dim_num; i ++ )
+        {
+            sz *= tensor->attr.size[i];
+        }
+        fwrite( data, sz, 1, fp );
+    }
     fclose( fp );
+final:
     vsi_nn_safe_free( data );
 } /* vsi_nn_SaveTensorToBinary() */
 
@@ -2352,6 +2377,11 @@ vsi_status vsi_nn_copy_tensor_veiw_patch
         vx_trensor_addressing addr = NULL;
         vx_size dim_sizes[VSI_NN_MAX_DIM_NUM], strides[VSI_NN_MAX_DIM_NUM];
         addr = (vx_trensor_addressing)malloc(sizeof(vx_tensorpatch_addressing_t));
+        if( NULL == addr )
+        {
+            VSILOGE("Call malloc fail");
+            return status;
+        }
         addr->num_of_dims = (vx_uint32)attr->dim_num;
         for(i = 0; i < dim; i++)
         {
@@ -2547,6 +2577,7 @@ vsi_nn_tensor_t* vsi_nn_ConcatTensor_impl
     va_end(args);
 
     tensors = (vsi_nn_tensor_t**)malloc(sizeof(vsi_nn_tensor_t*) * tensor_count);
+    TEST_CHECK_PTR( tensors, final );
     tensor_count = 0;
     va_start(args, axis);
 
@@ -2558,6 +2589,7 @@ vsi_nn_tensor_t* vsi_nn_ConcatTensor_impl
 
     next = vsi_nn_Concat(graph, tensors, tensor_count, axis);
 
+final:
     vsi_nn_safe_free(tensors);
 
     return next;
@@ -2583,6 +2615,7 @@ vsi_nn_tensor_t* vsi_nn_ConstTensorAdd_impl
     va_end(args);
 
     tensors = (vsi_nn_tensor_t**)malloc(sizeof(vsi_nn_tensor_t*) * tensor_count);
+    TEST_CHECK_PTR( tensors, final );
     tensor_count = 0;
     va_start(args, output_attr);
     FOREACH_ARGS(args, next, vsi_nn_tensor_t*)
@@ -2593,6 +2626,7 @@ vsi_nn_tensor_t* vsi_nn_ConstTensorAdd_impl
 
     next = vsi_nn_TensorAdd(graph, tensors, tensor_count, output_attr);
 
+final:
     vsi_nn_safe_free(tensors);
 
     return next;

@@ -33,10 +33,6 @@
 #include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "libnnext/vsi_nn_libnnext_resource.h"
-#if VSI_USE_VXC_BINARY
-/*this header can be only included once in all *.c files*/
-#include "libnnext/vx_bin/vxc_binaries.h"
-#endif
 
 static char s_vx_resource_path[VSI_NN_MAX_PATH] = "VX";
 
@@ -53,7 +49,7 @@ uint8_t * vsi_nn_LoadBinarySource
 
     buf = NULL;
 
-    fp = fopen( (char *)file, "rb" );
+    fp = vsi_nn_fopen( (char *)file, "rb" );
 
     VSILOGI( "Loading program from binary file." );
     if( NULL == fp )
@@ -238,11 +234,13 @@ static vsi_status vsi_nn_RegisterVXKernel
     if(evis == VSI_NN_HW_EVIS_NONE)
     {
         // set default evis version is 2
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
+        snprintf(cmd, MAX_BUILDPROGRAM_LEN,
+            "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
     }
     else
     {
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
+        snprintf(cmd, MAX_BUILDPROGRAM_LEN,
+            "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
     }
     status = vxBuildProgram(program, cmd);
 
@@ -323,14 +321,16 @@ static vsi_status vsi_nn_RegisterBinKernel
     if(evis == VSI_NN_HW_EVIS_NONE)
     {
         // set default evis version is 2
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
+        snprintf(cmd, MAX_BUILDPROGRAM_LEN,
+            "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
     }
     else
     {
-        sprintf(cmd, "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
+        snprintf(cmd, MAX_BUILDPROGRAM_LEN,
+            "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
     }
 #else
-    sprintf(cmd, "-cl-viv-vx-extension");
+    snprintf(cmd, MAX_BUILDPROGRAM_LEN, "-cl-viv-vx-extension");
 #endif
     status = vxBuildProgram(program, cmd);
 
@@ -454,7 +454,7 @@ vx_node vsi_nn_RegisterClientKernelAndCreateNode
     )
 {
     /*
-    * Deprecated: use vsi_nn_RegisterClientKernelAndNewNode() insteatd.
+    * Deprecated: use vsi_nn_RegisterClientKernelAndNewNode() instead.
     */
     vsi_nn_kernel_info_t kernel_info;
     char *resource_name[1] = {NULL};
@@ -534,7 +534,7 @@ void vsi_nn_VxResourceSetPath
     char* path
     )
 {
-    strncpy(s_vx_resource_path, path, VSI_NN_MAX_PATH - 1);
+    vsi_nn_strncpy(s_vx_resource_path, path, VSI_NN_MAX_PATH - 1);
 } /* vsi_nn_VxResourceSetPath() */
 
 const uint8_t * vsi_nn_VxBinResourceGetResource
@@ -543,17 +543,6 @@ const uint8_t * vsi_nn_VxBinResourceGetResource
     vx_size *len
     )
 {
-#if VSI_USE_VXC_BINARY
-    int i;
-    for (i = 0; i < vx_bin_resource_items_cnt; i++)
-    {
-        if (strncmp(vx_bin_resource_items[i].name, name, VSI_NN_MAX_PATH) == 0)
-        {
-            *len = vx_bin_resource_items[i].len;
-            return vx_bin_resource_items[i].data;
-        }
-    }
-#endif
     return NULL;
 } /* vsi_nn_VxResourceGetBinResource() */
 

@@ -7,10 +7,6 @@ _viv_uniform VXC_512Bits UniFp16MulHi_dp4x4;
 
 //int8 version
 _viv_uniform float r_inputScale;
-_viv_uniform VXC_512Bits uniIntegerSquareLo_4x4;
-_viv_uniform VXC_512Bits uniIntegerSquareHi_4x4;
-_viv_uniform VXC_512Bits uniDataSquareAddU32Lo_4x4;
-_viv_uniform VXC_512Bits uniDataSquareAddU32Hi_4x4;
 
 _viv_uniform VXC_512Bits uniUInt8SquareLo_4x4;
 _viv_uniform VXC_512Bits uniUInt8SquareHi_4x4;
@@ -127,10 +123,9 @@ __kernel void l2normalizescale_axis1_F16_##in1_name##to##out_name##_2D \
 
 L2NORMSCALE_AXIS1_F16_2D(F16, F16, vxc_short8,  vxc_half8,   vxc_half8,   half4,        vxc_short8)
 
-
-#define L2NORMSCALE_AXIS1_I8_2D(in1_name, out_name,\
+#define L2NORMSCALE_AXIS1_QNT_2D(in0_name, in1_name, out_name,\
        input_type, incopy_type, output_type, convert_type, copy_type) \
-__kernel void l2normalizescale_axis1_I8_##in1_name##to##out_name##_2D \
+__kernel void l2normalizescale_axis1_##in0_name##_##in1_name##to##out_name##_2D \
     (\
     __read_only  image2d_array_t input,\
     __read_only  image2d_array_t scale,\
@@ -139,93 +134,11 @@ __kernel void l2normalizescale_axis1_I8_##in1_name##to##out_name##_2D \
     )\
 { \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), 0); \
-    vxc_char8 src0_I8, src1_I8; \
-    vxc_uint4 dst0_I8 = 0, dst1_I8 = 0; \
-    for(int i = 0; i < L2NorS_depth; i += 2) \
-    { \
-        VXC_ReadImage(src0_I8, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
-        VXC_ReadImage(src1_I8, input, coord.xy, VXC_5BITOFFSET_XY(0, 1),\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
-        coord.y += 2; \
-        VXC_DP4x4(dst0_I8, src0_I8, dst0_I8, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
-            uniDataSquareAddU32Lo_4x4); \
-        VXC_DP4x4(dst1_I8, src0_I8, dst1_I8, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
-            uniDataSquareAddU32Hi_4x4); \
-        VXC_DP4x4(dst0_I8, src1_I8, dst0_I8, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
-            uniDataSquareAddU32Lo_4x4); \
-        VXC_DP4x4(dst1_I8, src1_I8, dst1_I8, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
-            uniDataSquareAddU32Hi_4x4); \
-    } \
-    vxc_float4 sum_lo, sum_hi; \
-    sum_lo = convert_float4(dst0_I8); \
-    sum_hi = convert_float4(dst1_I8); \
-    sum_lo = rsqrt(sum_lo) * r_inputScale; \
-    sum_hi = rsqrt(sum_hi) * r_inputScale; \
-    L2NORMSCALE_MUL_AXIS1_PROCESS(input_type, incopy_type, output_type, convert_type, copy_type) \
-}
-
-L2NORMSCALE_AXIS1_I8_2D(F16, I8,  vxc_char16,  vxc_char16,  vxc_char16,  int4,   vxc_char16)
-L2NORMSCALE_AXIS1_I8_2D(F16, F16, vxc_char16,  vxc_char16,  vxc_half8,   half4,  vxc_short8)
-
-
-#define L2NORMSCALE_AXIS1_I16_2D(in1_name, out_name,\
-       input_type, incopy_type, output_type, convert_type, copy_type) \
-__kernel void l2normalizescale_axis1_I16_##in1_name##to##out_name##_2D \
-    (\
-    __read_only  image2d_array_t input,\
-    __read_only  image2d_array_t scale,\
-    __write_only image2d_array_t output,\
-    int axis\
-    )\
-{ \
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), 0); \
-    vxc_short8 src0_I16, src1_I16; \
+    input_type src0_U8, src1_U8; \
     vxc_float4 squr, sum_lo = 0, sum_hi = 0; \
     for(int i = 0; i < L2NorS_depth; i += 2) \
     { \
-        VXC_ReadImage(src0_I16, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
-        VXC_ReadImage(src1_I16, input, coord.xy, VXC_5BITOFFSET_XY(0, 1),\
-            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
-        coord.y += 2; \
-        VXC_DP4x4(squr, src0_I16, src0_I16, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
-            uniIntegerSquareLo_4x4); \
-        sum_lo = squr + sum_lo; \
-        VXC_DP4x4(squr, src0_I16, src0_I16, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
-            uniIntegerSquareHi_4x4); \
-        sum_hi = squr + sum_hi; \
-        VXC_DP4x4(squr, src1_I16, src1_I16, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
-            uniIntegerSquareLo_4x4); \
-        sum_lo = squr + sum_lo; \
-        VXC_DP4x4(squr, src1_I16, src1_I16, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
-            uniIntegerSquareHi_4x4); \
-        sum_hi = squr + sum_hi; \
-    } \
-    sum_lo = rsqrt(sum_lo) * r_inputScale; \
-    sum_hi = rsqrt(sum_hi) * r_inputScale; \
-    L2NORMSCALE_MUL_AXIS1_PROCESS(input_type, incopy_type, output_type, convert_type, copy_type) \
-}
-
-L2NORMSCALE_AXIS1_I16_2D(F16, I16, vxc_short8, vxc_short8, vxc_short8, int4,  vxc_short8)
-L2NORMSCALE_AXIS1_I16_2D(F16, F16, vxc_short8, vxc_short8, vxc_half8,  half4, vxc_short8)
-
-#define L2NORMSCALE_AXIS1_U8_2D(in1_name, out_name,\
-       input_type, incopy_type, output_type, convert_type, copy_type) \
-__kernel void l2normalizescale_axis1_U8_##in1_name##to##out_name##_2D \
-    (\
-    __read_only  image2d_array_t input,\
-    __read_only  image2d_array_t scale,\
-    __write_only image2d_array_t output,\
-    int axis\
-    )\
-{ \
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), 0); \
-    vxc_uchar8 src0_U8, src1_U8; \
-    vxc_float4 squr, sum_lo = 0, sum_hi = 0; \
-    for(int i = 0; i < L2NorS_depth; i += 2) \
-    { \
-        vxc_uchar8 zero; \
+        vxc_short2 zero; \
         VXC_ReadImage(src0_U8, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
             VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
         VXC_ReadImage(src1_U8, input, coord.xy, VXC_5BITOFFSET_XY(0, 1),\
@@ -246,5 +159,9 @@ __kernel void l2normalizescale_axis1_U8_##in1_name##to##out_name##_2D \
     L2NORMSCALE_MUL_AXIS1_PROCESS(input_type, incopy_type, output_type, convert_type, copy_type) \
 }
 
-L2NORMSCALE_AXIS1_U8_2D(F16, F16, vxc_uchar16, vxc_uchar16, vxc_half8,   half4,  vxc_short8)
-L2NORMSCALE_AXIS1_U8_2D(F16, U8,  vxc_uchar16, vxc_uchar16, vxc_uchar16, int4,   vxc_uchar16)
+L2NORMSCALE_AXIS1_QNT_2D(U8,  F16, F16, vxc_uchar16, vxc_uchar16, vxc_half8,   half4,  vxc_short8)
+L2NORMSCALE_AXIS1_QNT_2D(U8,  F16, U8,  vxc_uchar16, vxc_uchar16, vxc_uchar16, int4,   vxc_uchar16)
+L2NORMSCALE_AXIS1_QNT_2D(I8,  F16, F16, vxc_char16,  vxc_char16,  vxc_half8,   half4,  vxc_short8)
+L2NORMSCALE_AXIS1_QNT_2D(I8,  F16, I8,  vxc_char16,  vxc_char16,  vxc_uchar16, int4,   vxc_char16)
+L2NORMSCALE_AXIS1_QNT_2D(I16, F16, F16, vxc_short8,  vxc_short8,  vxc_half8,   half4,  vxc_short8)
+L2NORMSCALE_AXIS1_QNT_2D(I16, F16, I16, vxc_short8,  vxc_short8,  vxc_short8,  int4,   vxc_short8)

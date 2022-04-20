@@ -38,6 +38,7 @@
 #include "libnnext/vsi_nn_vxkernel.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
+#include "vsi_nn_error.h"
 
 typedef struct _gru_ovxlib_local_data_t {
     vsi_nn_tensor_t* weights_input;
@@ -214,8 +215,10 @@ static vsi_bool op_setup_default
 
     /* split input tensor */
     split_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+    CHECK_PTR_FAIL_GOTO( split_output_tensors, "Create buffer fail.", final );
     memset( split_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
     grucell_reshape_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+    CHECK_PTR_FAIL_GOTO( grucell_reshape_output_tensors, "Create buffer fail.", final );
     memset( grucell_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
     vsi_nn_rnn_split_input_tensor(self, input_tensor, split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
@@ -346,6 +349,7 @@ static vsi_bool op_setup_default
         }
     }
 
+final:
     vsi_nn_safe_free( split_output_tensors );
     vsi_nn_safe_free( grucell_reshape_output_tensors );
 
@@ -486,8 +490,10 @@ static vsi_bool op_setup_optimized
 
     /* split input tensor */
     split_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+    CHECK_PTR_FAIL_GOTO( split_output_tensors, "Create buffer fail.", final );
     memset( split_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
     grucell_reshape_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * sizeof(vsi_nn_tensor_t **));
+    CHECK_PTR_FAIL_GOTO( grucell_reshape_output_tensors, "Create buffer fail.", final );
     memset( grucell_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t **));
 
     vsi_nn_rnn_split_input_tensor(self, tmp_tensor->t, split_output_tensors, (uint32_t)time_step, use_virtual_tensor);
@@ -650,6 +656,7 @@ static vsi_bool op_setup_optimized
     vsi_nn_rnn_create_permute(self, last_step_h_state, outputs[GRU_OUTPUT_H_STATE],
         permute_in_perm, 2, use_virtual_tensor);
 
+final:
     vsi_nn_safe_free( split_output_tensors );
     vsi_nn_safe_free( grucell_reshape_output_tensors );
 

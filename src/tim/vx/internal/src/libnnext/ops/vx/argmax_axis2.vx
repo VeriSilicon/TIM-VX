@@ -3,6 +3,8 @@
 _viv_uniform int4 packedArgIdx;
 _viv_uniform int argLenSub1;
 _viv_uniform VXC_512Bits uniExtractData_2x8;
+_viv_uniform VXC_512Bits uniExtract1stU8toI16_2x8;
+_viv_uniform VXC_512Bits uniExtract2ndU8toI16_2x8;
 
 #define TENSOR_ARGMAX_AXIS2_16BITS(src_type_name, dst_type_name,\
                 src_type, copy_type, axis_type, dst_type, inst_type) \
@@ -74,6 +76,56 @@ __write_only image2d_array_t  output, \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), argLenSub1, 0); \
     src_type src; \
     src_type maxVal; \
+    VXC_ReadImage2DArray(maxVal, input, coord.xyzw, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    dst_type axis; \
+    dst_type packIdx; \
+ \
+    _viv_asm(COPY, axis, packedArgIdx, 16); \
+    _viv_asm(COPY, packIdx, packedArgIdx, 16); \
+ \
+    coord.z --; \
+    do \
+    { \
+       VXC_ReadImage2DArray(src, input, coord.xyzw, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+       coord.z --; \
+       packIdx --; \
+       maxVal = max(maxVal, src); \
+       src_type condition; \
+       VXC_Clamp(condition, src, maxVal, maxVal, VXC_MODIFIER_CLAMP(0, 15, 0, 1)); \
+       axis = condition ? packIdx : axis; \
+    } while (coord.z >= 0); \
+ \
+    VXC_WriteImage(output, coord.xy, axis, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+}
+TENSOR_ARGMAX_AXIS2_8BITS(I8,  U8,  vxc_char16,  vxc_uchar16)
+TENSOR_ARGMAX_AXIS2_8BITS(U8,  U8,  vxc_uchar16, vxc_uchar16)
+
+#define TENSOR_ARGMAX_AXIS2_8BITS_2D(src_type_name, dst_type_name, src_type, dst_type) \
+    __kernel void argmax_axis2_##src_type_name##to##dst_type_name##_2D( \
+__read_only  image2d_array_t  input, \
+__write_only image2d_array_t  output, \
+        int  axisVal \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+    dst_type axis = (dst_type)(0, 0, 0, 0, 0, 0, 0, 0); \
+    VXC_WriteImage(output, coord, axis, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+TENSOR_ARGMAX_AXIS2_8BITS_2D(I8,  I16, vxc_char8,  vxc_short8)
+TENSOR_ARGMAX_AXIS2_8BITS_2D(I8,  U8,  vxc_char8,  vxc_uchar8)
+TENSOR_ARGMAX_AXIS2_8BITS_2D(U8,  I16, vxc_uchar8, vxc_short8)
+TENSOR_ARGMAX_AXIS2_8BITS_2D(U8,  U8,  vxc_uchar8, vxc_uchar8)
+
+#define TENSOR_ARGMAX_AXIS2_MIX(src_type_name, dst_type_name, src_type, dst_type) \
+    __kernel void argmax_axis2_##src_type_name##to##dst_type_name( \
+__read_only  image2d_array_t  input, \
+__write_only image2d_array_t  output, \
+        int  axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), argLenSub1, 0); \
+    src_type src; \
+    src_type maxVal; \
     VXC_ReadImage2DArray(maxVal, input, coord.xyzw, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
     dst_type axis; \
     dst_type packIdx; \
@@ -95,23 +147,46 @@ __write_only image2d_array_t  output, \
  \
     VXC_WriteImage(output, coord.xy, axis, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
 }
-TENSOR_ARGMAX_AXIS2_8BITS(I8,  I16, vxc_char8,  vxc_short8)
-TENSOR_ARGMAX_AXIS2_8BITS(I8,  U8,  vxc_char8,  vxc_uchar8)
-TENSOR_ARGMAX_AXIS2_8BITS(U8,  I16, vxc_uchar8, vxc_short8)
-TENSOR_ARGMAX_AXIS2_8BITS(U8,  U8,  vxc_uchar8, vxc_uchar8)
+TENSOR_ARGMAX_AXIS2_MIX(I8,  I16, vxc_char8,  vxc_short8)
+TENSOR_ARGMAX_AXIS2_MIX(U8,  I16, vxc_uchar8, vxc_short8)
 
-#define TENSOR_ARGMAX_AXIS2_8BITS_2D(src_type_name, dst_type_name, src_type, dst_type) \
-    __kernel void argmax_axis2_##src_type_name##to##dst_type_name##_2D( \
+#define TENSOR_ARGMAX_AXIS2_MIX_OPT(src_type_name, dst_type_name, src_type, dst_type) \
+    __kernel void argmax_axis2_##src_type_name##to##dst_type_name##_opt( \
 __read_only  image2d_array_t  input, \
 __write_only image2d_array_t  output, \
         int  axisVal \
     ) \
 { \
-    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
-    dst_type axis = (dst_type)(0, 0, 0, 0, 0, 0, 0, 0); \
-    VXC_WriteImage(output, coord, axis, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), argLenSub1, 0); \
+    src_type src; \
+    src_type maxVal; \
+    VXC_ReadImage2DArray(maxVal, input, coord.xyzw, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    vxc_uchar16 axis; \
+    vxc_uchar16 packIdx; \
+ \
+    _viv_asm(COPY, axis, packedArgIdx, 16); \
+    _viv_asm(COPY, packIdx, packedArgIdx, 16); \
+ \
+    coord.z --; \
+    do \
+    { \
+       VXC_ReadImage2DArray(src, input, coord.xyzw, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+       coord.z --; \
+       packIdx --; \
+       maxVal = max(maxVal, src); \
+       src_type condition; \
+       VXC_Clamp(condition, src, maxVal, maxVal, VXC_MODIFIER_CLAMP(0, 15, 0, 1)); \
+       axis = condition ? packIdx : axis; \
+    } while (coord.z >= 0); \
+    vxc_short8 dst0, dst1; \
+    VXC_DP2x8(dst0, axis, axis, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), \
+                    uniExtract1stU8toI16_2x8); \
+    VXC_DP2x8(dst1, axis, axis, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), \
+                    uniExtract2ndU8toI16_2x8); \
+ \
+    VXC_WriteImage(output, coord.xy, dst0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    coord.x += 8; \
+    VXC_WriteImage(output, coord.xy, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
 }
-TENSOR_ARGMAX_AXIS2_8BITS_2D(I8,  I16, vxc_char8,  vxc_short8)
-TENSOR_ARGMAX_AXIS2_8BITS_2D(I8,  U8,  vxc_char8,  vxc_uchar8)
-TENSOR_ARGMAX_AXIS2_8BITS_2D(U8,  I16, vxc_uchar8, vxc_short8)
-TENSOR_ARGMAX_AXIS2_8BITS_2D(U8,  U8,  vxc_uchar8, vxc_uchar8)
+TENSOR_ARGMAX_AXIS2_MIX_OPT(I8,  I16, vxc_char16,  vxc_short8)
+TENSOR_ARGMAX_AXIS2_MIX_OPT(U8,  I16, vxc_uchar16, vxc_short8)

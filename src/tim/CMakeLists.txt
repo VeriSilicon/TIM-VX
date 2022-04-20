@@ -5,6 +5,10 @@ set(TARGET_NAME "tim-vx")
 aux_source_directory(./vx VX_SRC)
 aux_source_directory(./vx/ops OPS_SRC)
 
+if(NOT ${TIM_VX_ENABLE_CUSTOM_OP})
+    list(REMOVE_ITEM OPS_SRC "./vx/ops/custom_base.cc")
+endif()
+
 set(${TARGET_NAME}_SRCS)
 list(APPEND ${TARGET_NAME}_SRCS
     ${VX_SRC}
@@ -38,6 +42,14 @@ if(TIM_VX_ENABLE_LAYOUT_INFER)
     list(APPEND ${TARGET_NAME}_SRCS
         ${LAYOUT_INFER_FRAMEWORK_SRCS}
         ${LAYOUT_INFER_OP_SRCS}
+    )
+endif()
+
+if(TIM_VX_ENABLE_PLATFORM)
+    message(STATUS "Using paltform")
+    aux_source_directory(./vx/platform PLATFORM_SRC)
+    list(APPEND ${TARGET_NAME}_SRCS
+        ${PLATFORM_SRC}
     )
 endif()
 
@@ -83,19 +95,18 @@ if (NOT CMAKE_INSTALL_LIBDIR)
 	set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
-
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx 
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/lite
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
 
 if(TIM_VX_ENABLE_LAYOUT_INFER)
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform 
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tim)
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
 endif()
 
 if(TIM_VX_ENABLE_TEST)
@@ -106,9 +117,16 @@ if(TIM_VX_ENABLE_TEST)
     target_include_directories(unit_test PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
+        ${OVXLIB_INCLUDE_DIR}
+        ${INC_DIRS}
     )
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+endif()
+
+if(TIM_VX_ENABLE_PLATFORM)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx)
 endif()
 
 add_subdirectory("utils")

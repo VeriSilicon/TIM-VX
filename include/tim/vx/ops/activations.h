@@ -51,11 +51,11 @@ namespace ops {
  *
  *   HardSwish(x)           : 0 if x <= -3; x(x + 3)/6 if -3 < x < 3; x if x >= 3
  *
- *   Mish(x)                : x if x >= 0 else alpha * x
- *
  *   HardSigmoid(x)         : min(max(alpha*x + beta, 0), 1)
  *
  *   SoftRelu(x)            : log(1 + e^x). Also known as SoftPlus.
+ *
+ *   Mish(x)                : x * tanh(softrelu(x))
  *
  *   LeakyRelu(x)           : alpha * x if x <= 0; x if x > 0. alpha is a scalar.
  *
@@ -65,11 +65,15 @@ namespace ops {
  *   Linear(x, a, b)        : a*x + b.
  *
  *   Gelu(x)                : x * P(X <= x), where P(x) ~ N(0, 1). https://tensorflow.google.cn/api_docs/python/tf/nn/gelu
+ *
+ *   Selu(x, alpha, gamma)  : gamma * x if(x>=0), gamma * alpha * (exp(x)-1) x<0
+ *
+ *   Celu(x, alpha)         : x if x >= 0; alpha * (exp(x/alpha) - 1)
  * ```
  */
 
 #define DECLARE_NO_PARAMETER_ACTIVATION(NAME)          \
-  class NAME : public DirectMapOp {                      \
+  class NAME : public DirectMapOp {                    \
    public:                                             \
     NAME(Graph* graph);                                \
     std::shared_ptr<Operation> Clone(                  \
@@ -79,16 +83,25 @@ namespace ops {
 DECLARE_NO_PARAMETER_ACTIVATION(Relu)
 DECLARE_NO_PARAMETER_ACTIVATION(Relu1)
 DECLARE_NO_PARAMETER_ACTIVATION(Relu6)
-DECLARE_NO_PARAMETER_ACTIVATION(Elu)
 DECLARE_NO_PARAMETER_ACTIVATION(Tanh)
 DECLARE_NO_PARAMETER_ACTIVATION(Sigmoid)
 DECLARE_NO_PARAMETER_ACTIVATION(Swish)
 DECLARE_NO_PARAMETER_ACTIVATION(HardSwish)
 DECLARE_NO_PARAMETER_ACTIVATION(Mish)
-DECLARE_NO_PARAMETER_ACTIVATION(HardSigmoid)
 DECLARE_NO_PARAMETER_ACTIVATION(SoftRelu)
 
 #undef DEFINE_NO_PARAMETER_ACTIVATION
+
+class Elu : public DirectMapOp {
+ public:
+  Elu(Graph* graph);
+  Elu(Graph* graph, float alpha);
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float alpha_;
+};
 
 class Prelu : public DirectMapOp {
  public:
@@ -98,6 +111,17 @@ class Prelu : public DirectMapOp {
 
  protected:
   int axis_;
+};
+
+class HardSigmoid : public DirectMapOp {
+ public:
+  HardSigmoid(Graph* graph, float alpha, float beta);
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float alpha_;
+  float beta_;
 };
 
 class LeakyRelu : public DirectMapOp {
@@ -130,6 +154,29 @@ class Gelu : public DirectMapOp {
   explicit Gelu(Graph* graph, bool approximate = true);
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
+};
+
+class Selu : public DirectMapOp {
+ public:
+  Selu(Graph* graph, float alpha = 1.67326, float gamma = 1.0507);
+
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float alpha_;
+  float gamma_;
+};
+
+class Celu : public DirectMapOp {
+ public:
+  Celu(Graph* graph, float alpha);
+
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  float alpha_;
 };
 
 }  // namespace ops

@@ -58,6 +58,7 @@
 #include "ops/arg_layout_inference.h"
 #include "ops/deconv2d_layout_inference.h"
 #include "ops/batchnorm_layout_inference.h"
+#include "ops/conv3d_layout_inference.h"
 #include "ops/default_layout_inference.h"
 #include "ops/transpose_layout_inference.h"
 
@@ -259,6 +260,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DECONVOLUTION, DeConv2d);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH_NORM, BatchNorm);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PERMUTE, Transpose);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONV3D, Conv3d);
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     // use default layout inference
@@ -294,6 +296,16 @@ std::pair<std::shared_ptr<vx::Graph>,
     tensor_queue.push_back(t_src);
     layout_infer_ctx->SetPermuteVector(t_src,
                                        MakeShared(t_src->GetShape().size()));
+  }
+
+  auto const_inputs = src_graph->GetConstantInputs();
+  for (auto const_in : const_inputs) {
+    auto input =
+        infer_graph->CreateTensor(const_in->GetSpec(), const_in->GetDataRef());
+    layout_infer_ctx->UpdateTensorMap(const_in, input);
+    tensor_queue.push_back(const_in);
+    layout_infer_ctx->SetPermuteVector(const_in,
+                                       MakeShared(const_in->GetShape().size()));
   }
 
   while (!tensor_queue.empty()) {

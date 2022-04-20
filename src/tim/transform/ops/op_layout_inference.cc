@@ -322,10 +322,13 @@ bool OpLayoutInfer::TransposeConstTensorData(
   std::vector<uint32_t> perm = KOcHWIc2OcIcHW;
   std::vector<uint32_t> tmp_vec0 = kOcIcWH2WHIcOc;
   std::vector<uint32_t> tmp_vec1 = kIcOcWH2WHIcOc;
+  std::vector<uint32_t> tmp_vec2 = kOcIcWHD2WHDIcOc;
   if (pv->AsStdVec() == tmp_vec0) {
     perm = kHWIcOc2OcIcHW;
   } else if (pv->AsStdVec() == tmp_vec1) {
     perm = kHWOcIc2OcIcHW;
+  } else if (pv->AsStdVec() == tmp_vec2) {
+    perm = kDHWIcOc2OcIcDHW;
   }
 
   std::vector<vsi_size_t> native_shape_array;
@@ -388,6 +391,14 @@ std::vector<int32_t> OpLayoutInfer::MapMultipleAxis(
   }
 
   return r;
+}
+
+int32_t OpLayoutInfer::MapMask(const std::vector<uint32_t>& perm,
+                               int32_t mask) {
+  int32_t m = 0;
+  for (uint32_t i = 0; i < perm.size(); ++i)
+    if (mask & 1 << perm[i]) m |= (0x01 << i);
+  return m;
 }
 
 }  // namespace transform

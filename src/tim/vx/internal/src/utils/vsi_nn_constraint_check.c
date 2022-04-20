@@ -33,6 +33,7 @@
 #include "vsi_nn_log.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_math.h"
+#include "vsi_nn_error.h"
 
 typedef struct _node_io_signature_t {
     int count;
@@ -102,6 +103,7 @@ static node_io_signature_t* _get_op_signature
 
     item = malloc(sizeof(node_io_signature_t) + \
         (reg_io_count - 1) * sizeof(vsi_nn_type_e));
+    CHECK_PTR_FAIL_GOTO( item, "Create buffer fail.", final );
     item->count = inputs_num + outputs_num;
     memset(&item->types[0], 0x00, reg_io_count * sizeof(vsi_nn_type_e));
 
@@ -128,6 +130,7 @@ static node_io_signature_t* _get_op_signature
                 outputs[i]->attr.dtype.qnt_type << Q_SHIFT;
     }
 
+final:
     return item;
 }
 

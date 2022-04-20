@@ -55,10 +55,12 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_float32( param, "b_v", self->nn_param.linear.b );
 
     n = vsi_nn_kernel_selector( self->graph, "linear", inputs, 1, outputs, 1, param );
-    if( n == NULL )
+    if ( n == NULL )
     {
         status = VSI_FAILURE;
     }
+
+    self->n = (vx_node)n;
 
     vsi_nn_kernel_param_release( &param );
 

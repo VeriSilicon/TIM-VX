@@ -18,6 +18,9 @@ _viv_uniform float e2InScale;
 _viv_uniform float rowSumScale;
 _viv_uniform VXC_512Bits uniFp16SumSqr_dp8x2;
 _viv_uniform VXC_512Bits uniConvertHalftoFp16_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
 
 #define MOMENTS_AXIS012_QINT(src0_type_name, read0_type) \
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void moments_axis012_##src0_type_name##toF16( \
@@ -235,5 +238,80 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void moments_axis012_I1
 
         VXC_WriteImage(output_mean, coord_out, dst.s0123, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
         VXC_WriteImage(output_vari, coord_out, dst.s4567, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    }
+}
+
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void moments_axis012_BF16toBF16(
+    image2d_array_t input,
+    image2d_t output_mean,
+    image2d_t output_vari,
+              int axis,
+              int axis_num)
+{
+    int gidx = get_global_id(0) << 3;
+    int lidx = get_local_id(0);
+    int4 coord = (int4)(gidx, 0, 0, 0);
+    vxc_float4 sumsqr;
+
+    __local float lcl_sum[16];
+    __local float lcl_sqr[16];
+    float tmpSum = 0;
+    float tmpSqr = 0;
+    vxc_ushort8 src0, src1;
+    vxc_ushort8 val;
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);
+    vxc_float4 one = (vxc_float4)(1.0f, 1.0f, 1.0f, 1.0f);
+
+    for(coord.z = 0; coord.z < channel; coord.z++)
+    {
+        for(coord.x = gidx; coord.x < width; coord.x += 128)
+        {
+            for(coord.y = 0; coord.y < height;)
+            {
+                VXC_ReadImage2DArray(val, input, coord, VXC_5BITOFFSET_XY(0, 0),
+                    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+                coord.y++;
+                float4 vec0, vec1;
+                VXC_DP2x8(src0, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part0_2x8);
+                _viv_asm(COPY, vec0, src0, 16);
+                VXC_DP2x8(src1, val, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part1_2x8);
+                _viv_asm(COPY, vec1, src1, 16);
+                tmpSum += dot(vec0, one) + dot(vec1, one);
+                tmpSqr += dot(vec0, vec0) + dot(vec1, vec1);
+            }
+        }
+    }
+    lcl_sum[lidx] = tmpSum;
+    lcl_sqr[lidx] = tmpSqr;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    int2 coord_out = (int2)(0, 0);
+    if(lidx == 0)
+    {
+        __local float4* tmp_sum = (__local float4*)lcl_sum;
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr;
+
+        float sum = (float)(0);
+        float sqr = (float)(0);
+        for(int i = 0; i < 4; i++)
+        {
+            sum += dot(tmp_sum[i], one);
+            sqr += dot(tmp_sqr[i], one);
+        }
+
+        float4 mean_vari;
+        mean_vari.x = sum * dimRatio;
+        mean_vari.y = sqr * dimRatio;
+        mean_vari.y = mean_vari.y  - mean_vari.x * mean_vari.x;
+
+        vxc_short8 dst;
+        _viv_asm(COPY, src0, mean_vari, 16);
+        VXC_DP2x8(dst, src0, src0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+
+        VXC_WriteImage(output_mean, coord_out, dst.s0123, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+        VXC_WriteImage(output_vari, coord_out, dst.s1023, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
     }
 }

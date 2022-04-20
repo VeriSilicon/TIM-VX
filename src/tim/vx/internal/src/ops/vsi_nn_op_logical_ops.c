@@ -113,6 +113,7 @@ static vsi_bool op_check
     BEGIN_IO_TYPE_DECL(LOGICAL_OPS, 2, 1)
         IO_TYPE(D_I8, D_I8, D_I8)
         IO_TYPE(D_BOOL8, D_BOOL8, D_BOOL8)
+        IO_TYPE(D_BF16, D_BF16, D_BOOL8)
     END_IO_TYPE_DECL(LOGICAL_OPS)
     if(!VALIDATE_OP_IO_TYPES(LOGICAL_OPS, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,

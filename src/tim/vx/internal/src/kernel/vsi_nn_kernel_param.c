@@ -74,7 +74,7 @@ typedef struct
     vsi_bool vsi_nn_kernel_param_add_##TYPE_NAME \
         (vsi_nn_kernel_param_t* params, const char* key, TYPE value) \
     { \
-        _param_type* p; \
+        _param_type* p = NULL; \
         CHECK_PARAM_NULL( params, FALSE, "Params is null ptr." ); \
         CHECK_PARAM_NULL( key, FALSE, "Param key is null ptr." ); \
         p = malloc( sizeof(_param_type) ); \
@@ -89,11 +89,11 @@ typedef struct
     TYPE vsi_nn_kernel_param_get_##TYPE_NAME \
         ( const vsi_nn_kernel_param_t* params, const char* key) \
     { \
-        _param_type* p; \
+        _param_type* p = NULL; \
         CHECK_PARAM_NULL( params, FALSE, "Params is null ptr." ); \
         CHECK_PARAM_NULL( key, FALSE, "Param key is null ptr." ); \
         p = vsi_nn_hashmap_get( params, key ); \
-        if( p->type != PARAM_DTYPE ) { \
+        if( p && p->type != PARAM_DTYPE ) { \
             VSILOGW("Key %s is not \"%s\"", key, ""#TYPE_NAME ); \
         } \
         CHECK_PARAM_NULL( p, DEFAULT_VALUE, "Key %s not in params.", key ); \
@@ -236,4 +236,3 @@ void vsi_nn_kernel_param_clear( vsi_nn_kernel_param_t * params )
         vsi_nn_hashmap_clear( hashmap );
     }
 } /* vsi_nn_kernel_param_clear() */
-

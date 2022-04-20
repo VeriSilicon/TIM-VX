@@ -33,7 +33,8 @@ namespace ops {
  * ## Stack
  *
  * Packs the list of tensors in inputs into a tensor with rank one higher than
- * each tensor in values, by packing them along the **axis** dimension. 
+ * each tensor in values, by packing them along the **axis** dimension.
+ * Dimensions below the dimension specified by axis will be packed together with other inputs.
  */
 
 class Stack : public DirectMapOp {

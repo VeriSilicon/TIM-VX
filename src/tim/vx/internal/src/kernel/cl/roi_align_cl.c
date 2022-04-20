@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 
 __BEGIN_DECLS
@@ -146,6 +145,7 @@ DEF_KERNEL_INITIALIZER(_roi_align_initializer)
 
 final:
 #define SAFE_FREE_TENSOR_ATTR(_PTR) if( _PTR ) { vsi_nn_kernel_tensor_attr_release( &_PTR ); _PTR = NULL; }
+    SAFE_FREE_TENSOR_ATTR(rois_attr);
     SAFE_FREE_TENSOR_ATTR(output_attr);
 
     return status;
@@ -212,7 +212,6 @@ static vsi_status _query_kernel
     }
 
     return status;
-
 } /* _query_kernel() */
 
 #define _INPUT_NUM          (3)
@@ -326,4 +325,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( roi_align, _setup )
-

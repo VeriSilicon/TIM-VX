@@ -86,7 +86,7 @@ final:
 
 int32_t vsi_nn_getEnv(const char* name, char** env_s) {
     int32_t ret = 0;
-    *env_s = getenv(name);
+    *env_s = vsi_nn_getenv(name);
     if (*env_s) {
         ret = TRUE;
     }
@@ -119,6 +119,13 @@ static vsi_status vsi_nn_initOptions
     if (vsi_nn_getEnv("VSI_NN_ENABLE_CONCAT_OPTIMIZE", &env_s) && env_s)
     {
         options->enable_concat_optimize = atoi(env_s);
+    }
+
+    env_s = NULL;
+    options->enable_asymi8_to_u8 = 1;
+    if (vsi_nn_getEnv("VSI_NN_ENABLE_I8TOU8", &env_s) && env_s)
+    {
+        options->enable_asymi8_to_u8 = atoi(env_s);
     }
 
     return VSI_SUCCESS;

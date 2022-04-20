@@ -37,6 +37,8 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
 
+VSI_NN_SUPPRESS_DEPRECATED_BEGIN
+
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -81,8 +83,7 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
-    //TODO: Check tensor shapes.
-    return TRUE;
+    return vsi_nn_OpCheck(VSI_NN_OP_DATACONVERT, self, inputs, outputs);
 } /* op_check() */
 
 static vsi_bool op_setup
@@ -93,11 +94,11 @@ static vsi_bool op_setup
     )
 {
     vsi_bool ret = TRUE;
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {0};
         uint32_t i = 0;
-        for(i = 0; i < self->nn_param.reshape.dim_num; i++)
+        for (i = 0; i < self->nn_param.reshape.dim_num; i++)
         {
             shape[i] = -1 == self->nn_param.reshape.size[i] ? -1 : (vsi_size_t)self->nn_param.reshape.size[i];
         }
@@ -119,51 +120,46 @@ static vsi_status op_optimize
     )
 {
     vsi_status status;
-    vsi_bool ret;
 
     status = VSI_SUCCESS;
-    ret = TRUE;
 
-    if( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
+    if ( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
     {
         return status;
     }
 
-    if (self->nn_param.reshape.local.initialized == FALSE)
+    VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
+    if ( direction == VSI_NN_OPTIMIZE_BACKWARD )
     {
-        VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
-        if ( direction == VSI_NN_OPTIMIZE_BACKWARD )
+        if (NULL == inputs[0]->t && NULL != outputs[0]->t)
         {
-            if (NULL == inputs[0]->t && NULL != outputs[0]->t)
+            inputs[0]->t = vsi_nn_safe_reshape_tensor( outputs[0]->t,
+                (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num,
+                sizeof(inputs[0]->attr.size[0]) );
+            if ( inputs[0]->t == NULL )
             {
-                inputs[0]->t = vsi_nn_safe_reshape_tensor( outputs[0]->t,
-                    (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num,
-                    sizeof(inputs[0]->attr.size[0]) );
-                if ( inputs[0]->t == NULL )
-                {
-                    status = VSI_FAILURE;
-                }
-                self->nn_param.reshape.local.initialized = TRUE;
+                status = VSI_FAILURE;
             }
+            self->nn_param.reshape.local.initialized = TRUE;
         }
-        else
+    }
+    else
+    {
+        if (NULL == outputs[0]->t)
         {
-            if (NULL == outputs[0]->t)
+            if ( NULL == inputs[0]->t )
             {
-                vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {0};
-                uint32_t i = 0;
-                for (i = 0; i < self->nn_param.reshape.dim_num; i++)
-                {
-                    shape[i] = -1 == self->nn_param.reshape.size[i] ? -1 : (vsi_size_t)self->nn_param.reshape.size[i];
-                }
-                ret = vsi_nn_ReshapeTensor( self->graph, inputs[0], outputs[0],
-                    shape, self->nn_param.reshape.dim_num );
-                if ( ret == FALSE )
-                {
-                    status = VSI_FAILURE;
-                }
-                self->nn_param.reshape.local.initialized = TRUE;
+                vsi_nn_TensorReinit( self->graph, inputs[0] );
             }
+
+            outputs[0]->t = vsi_nn_safe_reshape_tensor( inputs[0]->t,
+                (void*)outputs[0]->attr.size, (vsi_size_t)outputs[0]->attr.dim_num,
+                sizeof(outputs[0]->attr.size[0]) );
+            if ( outputs[0]->t == NULL )
+            {
+                status = VSI_FAILURE;
+            }
+            self->nn_param.reshape.local.initialized = TRUE;
         }
     }
 
@@ -188,4 +184,5 @@ DEF_OP_REG
     );
 #ifdef __cplusplus
 }
+VSI_NN_SUPPRESS_DEPRECATED_END
 #endif

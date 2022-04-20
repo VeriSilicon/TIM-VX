@@ -1,4 +1,8 @@
 add_subdirectory("benchmark_test")
+if(${TIM_VX_ENABLE_CUSTOM_OP})
+    add_subdirectory("custom_op_test")
+endif()
+
 add_subdirectory("lenet")
 if(${TIM_VX_ENABLE_VIPLITE})
     add_subdirectory("lenet_lite")
@@ -10,4 +14,8 @@ endif()
 
 if(TIM_VX_ENABLE_NBG_PARSER)
     add_subdirectory("nbg_runner")
+endif()
+
+if(TIM_VX_ENABLE_PLATFORM)
+    add_subdirectory("lenet_multi_device")
 endif()

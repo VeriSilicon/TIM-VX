@@ -44,23 +44,28 @@ constexpr std::initializer_list<uint32_t> kHWOcIc2OcIcHW = {2, 3, 0, 1};
 constexpr std::initializer_list<uint32_t> kOcIcWH2WHIcOc = {2, 3, 1, 0};
 constexpr std::initializer_list<uint32_t> kIcOcWH2WHIcOc = {2, 3, 0, 1};
 
+constexpr std::initializer_list<uint32_t> kCWHDN2WHDCN = {1, 2, 3, 0, 4};
+constexpr std::initializer_list<uint32_t> kOcIcWHD2WHDIcOc = {2, 3, 4, 1, 0};
+constexpr std::initializer_list<uint32_t> kDHWIcOc2OcIcDHW = {4, 3, 0, 1, 2};
+
 class OpLayoutInfer {
  public:
   OpLayoutInfer(
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
       : op_(op), context_(context) {}
-  virtual void OnInputs(std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) = 0;
+  virtual void OnInputs(
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) = 0;
   virtual void OnOutputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors);
 
   virtual ~OpLayoutInfer() = default;
 
  protected:
-  std::shared_ptr<vx::Tensor> InsertPermute(std::shared_ptr<vx::Tensor> input,
-                                            std::shared_ptr<IPermuteVector> perm,
-                                            bool is_graph_output = false,
-                                            std::shared_ptr<vx::Tensor> src_out = nullptr);
+  std::shared_ptr<vx::Tensor> InsertPermute(
+      std::shared_ptr<vx::Tensor> input, std::shared_ptr<IPermuteVector> perm,
+      bool is_graph_output = false,
+      std::shared_ptr<vx::Tensor> src_out = nullptr);
   std::vector<std::shared_ptr<vx::Tensor>> CreateOutputsTensor(
       std::shared_ptr<IPermuteVector> required_pv);
 
@@ -91,11 +96,12 @@ class OpLayoutInfer {
   std::shared_ptr<vx::Tensor> PermuteConstTensor(
       const std::shared_ptr<vx::Tensor>& input,
       const std::shared_ptr<IPermuteVector>& pv);
-  
+
   std::vector<uint32_t> MapMultipleAxis(const std::vector<uint32_t>& perm,
-                                   const std::vector<uint32_t>& axises);
+                                        const std::vector<uint32_t>& axises);
   std::vector<int32_t> MapMultipleAxis(const std::vector<uint32_t>& perm,
-                                   const std::vector<int32_t>& axises);
+                                       const std::vector<int32_t>& axises);
+  int32_t MapMask(const std::vector<uint32_t>& perm, int32_t mask);
 
  protected:
   const std::shared_ptr<vx::Operation> op_;

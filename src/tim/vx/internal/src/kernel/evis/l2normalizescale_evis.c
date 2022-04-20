@@ -218,46 +218,6 @@ DEF_KERNEL_INITIALIZER(_l2normalizescale_initializer)
             0x00000000, 0x00000000, 0x00000000, 0x00000000,
             0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniIntegerSquareLo_4x4 = {{
-            0x01010101, // TCfg
-            0x00000000, // ASelt
-            0x00010000, 0x00030002, // ABin
-            0x00000000, // BSelt
-            0x00010000, 0x00030002, // BBin
-            0x00000400, // AccumType, ConstantType, and PostShift
-            0x00000000, 0x00000000, 0x00000000, 0x00000000,
-            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniIntegerSquareHi_4x4 = {{
-            0x01010101, // TCfg
-            0x00000000, // ASelt
-            0x00050004, 0x00070006, // ABin
-            0x00000000, // BSelt
-            0x00050004, 0x00070006, // BBin
-            0x00000400, // AccumType, ConstantType, and PostShift
-            0x00000000, 0x00000000, 0x00000000, 0x00000000,
-            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniDataSquareAddU32Lo_4x4 = {{
-            0x0d0d0d0d, // TCfg
-            0x04040404, // ASelt
-            0x00110000, 0x00330022, // ABin
-            0x00000000, // BSelt
-            0x00010000, 0x00030002, // BBin
-            0x00005400, // AccumType, ConstantType, and PostShift
-            0x00000000, 0x00000000, 0x00000000, 0x00000000,
-            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniDataSquareAddU32Hi_4x4 = {{
-            0x0d0d0d0d, // TCfg
-            0x04040404, // ASelt
-            0x00150004, 0x00370026, // ABin
-            0x00000000, // BSelt
-            0x00050004, 0x00070006, // BBin
-            0x00005400, // AccumType, ConstantType, and PostShift
-            0x00000000, 0x00000000, 0x00000000, 0x00000000,
-            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
         gpu_dp_inst_t uniUInt8SquareLo_4x4 = {{
             0x69696969, // TCfg
             0x40404040, // ASelt
@@ -307,19 +267,7 @@ DEF_KERNEL_INITIALIZER(_l2normalizescale_initializer)
                 status |= vsi_nn_kernel_gpu_add_param( node, "UniFp16MulLo_dp4x4", &UniFp16MulLo_dp4x4);
                 status |= vsi_nn_kernel_gpu_add_param( node, "UniFp16MulHi_dp4x4", &UniFp16MulHi_dp4x4);
             }
-            else if(I8 == input_dtype)
-            {
-                status |= vsi_nn_kernel_gpu_add_param( node, "r_inputScale", &r_inputScale);
-                status |= vsi_nn_kernel_gpu_add_param( node, "uniDataSquareAddU32Lo_4x4", &uniDataSquareAddU32Lo_4x4);
-                status |= vsi_nn_kernel_gpu_add_param( node, "uniDataSquareAddU32Hi_4x4", &uniDataSquareAddU32Hi_4x4);
-            }
-            else if(I16 == input_dtype)
-            {
-                status |= vsi_nn_kernel_gpu_add_param( node, "r_inputScale", &r_inputScale);
-                status |= vsi_nn_kernel_gpu_add_param( node, "uniIntegerSquareLo_4x4", &uniIntegerSquareLo_4x4);
-                status |= vsi_nn_kernel_gpu_add_param( node, "uniIntegerSquareHi_4x4", &uniIntegerSquareHi_4x4);
-            }
-            else if(U8 == input_dtype)
+            else
             {
                 status |= vsi_nn_kernel_gpu_add_param( node, "r_inputScale", &r_inputScale);
                 status |= vsi_nn_kernel_gpu_add_param( node, "uniUInt8SquareLo_4x4", &uniUInt8SquareLo_4x4);
@@ -337,12 +285,7 @@ DEF_KERNEL_INITIALIZER(_l2normalizescale_initializer)
             vsi_nn_kernel_gpu_add_param( node, "inputWidthRemain256", &inputWidthRemain256);
             vsi_nn_kernel_gpu_add_param( node, "inputWidthCount", &inputWidthCount);
             vsi_nn_kernel_gpu_add_param( node, "uniSumSqrt_16x1", &uniSumSqrt_16x1);
-            if (I16 == input_dtype || I8 == input_dtype)
-            {
-                status = vsi_nn_kernel_gpu_add_param( node, "r_inputScale", &r_inputScale);
-                CHECK_STATUS_FAIL_GOTO(status, final );
-            }
-            else if(U8 == input_dtype)
+            if (U8 == input_dtype || I16 == input_dtype || I8 == input_dtype)
             {
                 float zP2x = 2 * (float)inputZP;
                 float zpSqrt16x =  16 * (float)inputZP * (float)inputZP;
@@ -477,14 +420,14 @@ static vsi_status _query_kernel
 
     key = HASH_L2NORMALIZESCALE_HASH_KEY(axis, in0_dtype, in1_dtype, out_dtype, image_2d);
 
-    for( i = 0; i < kernel_map_size; i ++ )
+    for ( i = 0; i < kernel_map_size; i ++ )
     {
-        if( kernel_map[i].key == key )
+        if ( kernel_map[i].key == key )
         {
             break;
         }
     }
-    if( i < kernel_map_size )
+    if ( i < kernel_map_size )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
         kernel->info.parameters  = param_def;
@@ -521,7 +464,7 @@ static vsi_nn_kernel_node_t _setup
 
     axis = vsi_nn_kernel_param_get_int32(params, "axis");
 
-    if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
      || !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num )
@@ -532,10 +475,10 @@ static vsi_nn_kernel_node_t _setup
 
     image_2d = (inputs[0]->attr.dim_num == 2 || inputs[0]->attr.size[2] == 1);
     status = _query_kernel( kernel, inputs, outputs, axis, image_2d );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             vx_border_t border;
             border.mode = VX_BORDER_CONSTANT;

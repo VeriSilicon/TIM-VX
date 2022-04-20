@@ -35,19 +35,35 @@ namespace ops {
  * Pads a tensor.
  *
  * - const_val : the value to pad.
+ * - pad_mode : the mode of pad.
+ * - front_size : Add pad values to the left and top.
+ * - back_size : Add pad values to the right and bottom.
  */
 
 class Pad : public DirectMapOp {
  public:
-  Pad(Graph* graph, const std::vector<uint32_t>& front_size,
-      const std::vector<uint32_t>& back_size, int32_t const_val);
+  typedef enum {
+    // signature
+    PAD_MODE_CONSTANT,
+    PAD_MODE_EDGE,
+    PAD_MODE_SYMMETRIC,
+    PAD_MODE_REFLECT,
+  } pad_mode_type;
 
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  Pad(Graph* graph, const std::vector<uint32_t>& front_size,
+           const std::vector<uint32_t>& back_size, int32_t const_val);
+  Pad(Graph* graph, const std::vector<uint32_t>& front_size,
+      const std::vector<uint32_t>& back_size, int32_t const_val,
+      pad_mode_type pad_mode);
+
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 
  protected:
   std::vector<uint32_t> front_size_;
   std::vector<uint32_t> back_size_;
   int32_t const_val_;
+  pad_mode_type pad_mode_;
 };
 }  // namespace ops
 }  // namespace vx

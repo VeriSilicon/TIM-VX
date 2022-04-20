@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -167,6 +166,7 @@ DEF_KERNEL_INITIALIZER(_get_matrix_initializer)
     float    scale[4] = {0};
 
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr buffer fail.", final );
 
     if ( attr->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
@@ -257,7 +257,9 @@ DEF_KERNEL_INITIALIZER(_warp_affine_initializer)
     float    output_zp  = 0;
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
+    CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
 
     if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {

@@ -132,9 +132,9 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
     int32_t                      input0_fl    = 0;
     int32_t                      input1_fl    = 0;
     int32_t                      output_fl    = 0;
-    float                        inScale0     = 0;
-    float                        inScale1     = 0;
-    float                        outScale     = 0;
+    float                        inScale0     = 1.0f;
+    float                        inScale1     = 1.0f;
+    float                        outScale     = 1.0f;
     float                        in0Tail      = 0;
     float                        in1Tail      = 0;
     float                        outZp        = 0;
@@ -178,16 +178,11 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
         {
             inScale0 = (float)((int64_t)1 << -input0_fl);
         }
-        status  = vsi_nn_kernel_gpu_add_param( node, "in_scale0", &inScale0 );
-        CHECK_STATUS_FAIL_GOTO(status, final );
     }
     else if( input0_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
         inScale0   = input0_attr->asymm.scale;
         in0Tail    = -inScale0 * ((float)input0_attr->asymm.zero_point);
-        status     = vsi_nn_kernel_gpu_add_param( node, "in_scale0", &inScale0 );
-        status    |= vsi_nn_kernel_gpu_add_param( node, "in0Tail", &in0Tail );
-        CHECK_STATUS_FAIL_GOTO(status, final );
     }
 
     if( input1_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
@@ -201,16 +196,11 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
         {
             inScale1 = (float)((int64_t)1 << -input1_fl);
         }
-        status  = vsi_nn_kernel_gpu_add_param( node, "in_scale1", &inScale1 );
-        CHECK_STATUS_FAIL_GOTO(status, final );
     }
     else if( input1_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
         inScale1   = input1_attr->asymm.scale;
         in1Tail    = -inScale1 * ((float)input1_attr->asymm.zero_point);
-        status     = vsi_nn_kernel_gpu_add_param( node, "in_scale1", &inScale1 );
-        status    |= vsi_nn_kernel_gpu_add_param( node, "in1Tail", &in1Tail );
-        CHECK_STATUS_FAIL_GOTO(status, final );
     }
 
     if( output_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
@@ -224,16 +214,11 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
         {
             outScale = 1.0f / (float)((int64_t)1 << -output_fl);
         }
-        status  = vsi_nn_kernel_gpu_add_param( node, "out_scale", &outScale );
-        CHECK_STATUS_FAIL_GOTO(status, final );
     }
     else if( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
         outScale    = 1.0f / output_attr->asymm.scale;
         outZp       = (float)(output_attr->asymm.zero_point);
-        status  = vsi_nn_kernel_gpu_add_param( node, "out_scale", &outScale );
-        status |= vsi_nn_kernel_gpu_add_param( node, "out_zp", &outZp );
-        CHECK_STATUS_FAIL_GOTO(status, final );
     }
 
     if (BF16 == input0_dtype)
@@ -317,6 +302,12 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
                     "uniConvertFstToFp32_4x4", &uniConvertFstToFp32_4x4 );
         status |= vsi_nn_kernel_gpu_add_param( node,
                     "uniConvertSecToFp32_4x4", &uniConvertSecToFp32_4x4 );
+        status |= vsi_nn_kernel_gpu_add_param( node, "in_scale0", &inScale0 );
+        status |= vsi_nn_kernel_gpu_add_param( node, "in0Tail", &in0Tail );
+        status |= vsi_nn_kernel_gpu_add_param( node, "in_scale1", &inScale1 );
+        status |= vsi_nn_kernel_gpu_add_param( node, "in1Tail", &in1Tail );
+        status |= vsi_nn_kernel_gpu_add_param( node, "out_scale", &outScale );
+        status |= vsi_nn_kernel_gpu_add_param( node, "out_zp", &outZp );
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
 
@@ -439,4 +430,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( floordiv, _setup )
-

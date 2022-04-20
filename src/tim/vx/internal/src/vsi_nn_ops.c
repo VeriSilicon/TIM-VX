@@ -87,6 +87,15 @@ static const char * vsi_nn_internal_ops_name[] =
 };
 #undef DEF_OP
 
+
+vsi_bool _is_external_ops(vsi_nn_op_t op) {
+    vsi_bool ret = FALSE;
+    if (op <  0) {
+        ret = TRUE;
+    }
+    return ret;
+}
+
 vsi_bool _is_custom_ops
     (
     vsi_nn_op_t op
@@ -357,13 +366,33 @@ vsi_bool vsi_nn_OpRegisterOvxInit
     return ret;
 } /* vsi_nn_OpRegisterClientCompute() */
 
+vsi_bool vsi_nn_OpRegisterExternalOvxInit
+    (
+    vsi_nn_op_t op,
+    const char* kernel_name,
+    vsi_nn_op_proc_t* proc
+    )
+{
+    vsi_bool ret;
+
+    ret = FALSE;
+    if (vsi_nn_OpRegisterClient(op, proc) &&
+        vsi_nn_OpAddClientName(op, kernel_name)) {
+        ret = TRUE;
+    }
+    return ret;
+}
+
 const char * vsi_nn_OpGetName
     (
     vsi_nn_op_t op
     )
 {
     const char * name;
-    if( op < VSI_NN_OP_NUM )
+    if(_is_external_ops(op)){
+        name = vsi_nn_OpGetClientName(op);
+    }
+    else if( op < VSI_NN_OP_NUM )
     {
         name = vsi_nn_ops_name[op];
     }

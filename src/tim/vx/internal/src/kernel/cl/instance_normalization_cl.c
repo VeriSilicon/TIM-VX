@@ -406,12 +406,12 @@ static vsi_nn_kernel_node_t _setup
     uint32_t hashkeys[INTERNAL_KERNEL_SIZE] = { 0 };
     uint32_t hashkey = 0;
     int32_t i = 0;
-
+    uint32_t rank = outputs[0]->attr.dim_num;
     float eps  = vsi_nn_kernel_param_get_float32( params, "eps" );
-    int32_t reshape_flg  = vsi_nn_kernel_param_get_int32( params, "reshape_flg" );
-
     size_t width = inputs[0]->attr.size[0];
     size_t height = inputs[0]->attr.size[1];
+    int32_t reshape_flg  = outputs[0]->attr.size[1] * outputs[0]->attr.size[2] < GPU_TENSOR_MAX_WIDTH
+            && rank > 2;
     int32_t group_num = (int32_t)(width + 15) / 16;
     int32_t input_zp = vsi_nn_get_tensor_zero_point(inputs[0]);
     float input_scale = vsi_nn_get_tensor_scale(inputs[0]);

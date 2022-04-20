@@ -35,7 +35,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
+#include "vsi_nn_error.h"
 
 __BEGIN_DECLS
 
@@ -435,6 +435,8 @@ DEF_KERNEL_INITIALIZER(_conv1d_ovxlib_initializer)
 final:
 #define SAFE_FREE_TENSOR_ATTR(_PTR) if( _PTR ) { vsi_nn_kernel_tensor_attr_release( &_PTR ); _PTR = NULL; }
     SAFE_FREE_TENSOR_ATTR(input_attr);
+    SAFE_FREE_TENSOR_ATTR(weights_attr);
+    SAFE_FREE_TENSOR_ATTR(output_attr);
 
     return status;
 } /* _conv1d_ovxlib_initializer() */
@@ -513,6 +515,7 @@ static vsi_nn_tensor_t* _create_new_bias_tensor
     uint32_t  i, j;
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     weight_data = vsi_nn_ConvertTensorToData(graph, weight);
+    CHECK_PTR_FAIL_GOTO( weight_data, "Create buffer fail.", final );
 
     if (bias == NULL)
     {
@@ -539,6 +542,7 @@ static vsi_nn_tensor_t* _create_new_bias_tensor
     }
 
     new_bias_data_ptr = (int32_t *)malloc(attr.size[0] * sizeof(int32_t));
+    CHECK_PTR_FAIL_GOTO( new_bias_data_ptr, "Create buffer fail.", final );
     memset((void *)new_bias_data_ptr, 0, sizeof(int32_t) * attr.size[0]);
 
     if (input->attr.dtype.zero_point != 0)
@@ -564,6 +568,7 @@ static vsi_nn_tensor_t* _create_new_bias_tensor
 
     new_bias = vsi_nn_CreateTensorFromData(graph, (uint8_t *)new_bias_data_ptr, &attr);
 
+final:
     vsi_nn_safe_free( new_bias_data_ptr );
     vsi_nn_safe_free( bias_data );
     vsi_nn_safe_free( weight_data );

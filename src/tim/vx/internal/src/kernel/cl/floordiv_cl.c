@@ -103,7 +103,6 @@ static vx_param_description_t _floordiv_kernel_param_def[] =
 #define SCALAR_OUTPUT_SCALE          (7)
 #define SCALAR_OUTPUT_TAIL           (8)
 
-#define FLOORDIV_PARAM_NUM         3
 #define FLOORDIV_QUANT_PARAM_NUM   _cnt_of_array( _floordiv_kernel_param_def )
 
 /*
@@ -154,8 +153,6 @@ final:
     return status;
 } /* _floordiv_initializer() */
 
-
-
 /*
  * Query kernel
  */
@@ -164,8 +161,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t * kernel,
     vsi_nn_tensor_t * const * const inputs,
     vsi_nn_tensor_t * const * const outputs,
-    vsi_bool image_2d,
-    vsi_bool *is_use_u8_kernel
+    vsi_bool image_2d
     )
 {
     vsi_status status = VSI_FAILURE;
@@ -189,7 +185,7 @@ static vsi_status _query_kernel
     {
         in0_dtype = F32;
     }
-    else if (I16 == in0_dtype)
+    else if (I16 == in0_dtype || I8 == in0_dtype)
     {
         in0_dtype = I32;
     }
@@ -198,7 +194,7 @@ static vsi_status _query_kernel
     {
         in1_dtype = F32;
     }
-    else if (I16 == in1_dtype)
+    else if (I16 == in1_dtype || I8 == in1_dtype)
     {
         in1_dtype = I32;
     }
@@ -207,16 +203,9 @@ static vsi_status _query_kernel
     {
         out_dtype  = F32;
     }
-
-    if ((U8 == in0_dtype) || (U8 == in1_dtype) || (U8 == out_dtype))
+    else if (I16 == out_dtype || I8 == out_dtype)
     {
-        param_def_size = FLOORDIV_QUANT_PARAM_NUM;
-        *is_use_u8_kernel = TRUE;
-    }
-    else
-    {
-        param_def_size = FLOORDIV_PARAM_NUM;
-        *is_use_u8_kernel = FALSE;
+        out_dtype = I32;
     }
 
     key = FLOORDIV_HASH_KEY( in0_dtype, in1_dtype, out_dtype, image_2d);
@@ -228,7 +217,7 @@ static vsi_status _query_kernel
             break;
         }
     }
-    if( i < kernel_map_size )
+    if ( i < kernel_map_size )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
         kernel->info.parameters  = param_def;
@@ -262,19 +251,18 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_FLOORDIV_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     vsi_bool image_2d = FALSE;
-    float    outputScale  = vsi_nn_get_tensor_scale(outputs[0]);
-    float    outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
-    float    input0Scale  = vsi_nn_get_tensor_scale(inputs[0]);
-    float    input0Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
-    float    input1Scale  = vsi_nn_get_tensor_scale(inputs[1]);
-    float    input1Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[1]);
-    vsi_bool is_use_u8_kernel = FALSE;
+    float outputScale  = vsi_nn_get_tensor_scale(outputs[0]);
+    float outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float input0Scale  = vsi_nn_get_tensor_scale(inputs[0]);
+    float input0Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float input1Scale  = vsi_nn_get_tensor_scale(inputs[1]);
+    float input1Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[1]);
 
     outputScale = 1.0f / outputScale;
     input0Tail   = -(input0Tail * input0Scale);
     input1Tail   = -(input1Tail * input1Scale);
 
-    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -282,40 +270,35 @@ static vsi_nn_kernel_node_t _setup
 
     image_2d = (outputs[0]->attr.dim_num == 2);
 
-    status = _query_kernel( kernel, inputs, outputs, image_2d, &is_use_u8_kernel);
-    if( VSI_SUCCESS == status)
+    status = _query_kernel( kernel, inputs, outputs, image_2d);
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
-            size_t node_params_num = FLOORDIV_PARAM_NUM;
+            size_t node_params_num = FLOORDIV_QUANT_PARAM_NUM;
             /* Set inputs and outputs */
             vsi_nn_kernel_node_pack_io( node_params, _FLOORDIV_PARAM_NUM,
                     inputs, input_num, outputs, output_num );
-            if (is_use_u8_kernel)
-            {
-                node_params[SCALAR_INPUT0_SCALE]  = vsi_nn_kernel_scalar_create( graph, F32, &input0Scale );
-                node_params[SCALAR_INPUT0_TAIL]   = vsi_nn_kernel_scalar_create(graph, F32, &input0Tail );
-                node_params[SCALAR_INPUT1_SCALE]  = vsi_nn_kernel_scalar_create( graph, F32, &input1Scale );
-                node_params[SCALAR_INPUT1_TAIL]   = vsi_nn_kernel_scalar_create(graph, F32, &input1Tail );
-                node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &outputScale );
-                node_params[SCALAR_OUTPUT_TAIL]  = vsi_nn_kernel_scalar_create(graph, F32, &outputTail );
-                node_params_num = FLOORDIV_QUANT_PARAM_NUM;
-            }
+
+            node_params[SCALAR_INPUT0_SCALE]  = vsi_nn_kernel_scalar_create( graph, F32, &input0Scale );
+            node_params[SCALAR_INPUT0_TAIL]   = vsi_nn_kernel_scalar_create(graph, F32, &input0Tail );
+            node_params[SCALAR_INPUT1_SCALE]  = vsi_nn_kernel_scalar_create( graph, F32, &input1Scale );
+            node_params[SCALAR_INPUT1_TAIL]   = vsi_nn_kernel_scalar_create(graph, F32, &input1Tail );
+            node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &outputScale );
+            node_params[SCALAR_OUTPUT_TAIL]  = vsi_nn_kernel_scalar_create(graph, F32, &outputTail );
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, node_params_num );
             VSI_ASSERT( status == VSI_SUCCESS );
-            if (is_use_u8_kernel)
-            {
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT0_SCALE] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT0_TAIL] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT1_SCALE] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT1_TAIL] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_SCALE] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_TAIL] );
-            }
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT0_SCALE] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT0_TAIL] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT1_SCALE] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT1_TAIL] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_SCALE] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_TAIL] );
         }
     }
+
     return node;
 } /* _setup() */
 

@@ -209,7 +209,8 @@ bool TensorImpl::Init() {
     }
 #endif
 
-  } else {
+  } else
+  {
     id_ = vsi_nn_AddTensor(graph_->graph(), VSI_NN_TENSOR_ID_AUTO, &attr,
                            nullptr);
   }

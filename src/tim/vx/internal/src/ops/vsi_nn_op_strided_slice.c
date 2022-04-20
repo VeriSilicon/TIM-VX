@@ -151,17 +151,17 @@ static vsi_bool _get_stride_slice_start_stop_stride
 
         start[i] = vsi_nn_clamp(start[i], 0, (vx_int32)(inputs[0]->attr.size[i] - 1));
 
-        if (params->shrink_axis_mask & (1 << i))
-        {
-            stop[i] = start[i] + 1;
-        }
-
         if (params->end_mask & (1 << i))
         {
             stop[i] = (int32_t)get_slice_mask_stop_value(stride[i], (uint32_t)inputs[0]->attr.size[i]);
         }
 
         stop[i] = (int32_t)get_slice_clamp_stop(stride[i], stop[i], (uint32_t)inputs[0]->attr.size[i]);
+
+        if (params->shrink_axis_mask & (1 << i))
+        {
+            stop[i] = start[i] + 1;
+        }
     }
 
     /* reset start stop and stride when output size is 1*/
@@ -467,6 +467,7 @@ static vsi_bool op_check
 
         IO_TYPE(D_F16,          D_BF16)
         IO_TYPE(D_F16,          D_F32)
+        IO_TYPE(D_U8|Q_ASYM,    D_I32|Q_ASYM)
 
     END_IO_TYPE_DECL(STRIDED_SLICE)
     if (!VALIDATE_OP_IO_TYPES(STRIDED_SLICE, self, inputs, self->input.num, outputs, self->output.num))
@@ -832,7 +833,7 @@ static vsi_status op_init
 
     params->begin_dims =
         (int32_t *)malloc(sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
-    if (NULL == lcl2_data->begin_dims)
+    if (NULL == params->begin_dims)
     {
         return  VX_ERROR_NO_MEMORY;
     }

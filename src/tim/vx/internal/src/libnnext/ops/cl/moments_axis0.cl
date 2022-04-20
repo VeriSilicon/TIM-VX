@@ -26,8 +26,8 @@ __kernel void moments_axis0_U8toF32(
         {
             data = read_imageui(input, coord0).x;
             coord0.x++;
-            tmpSum += (data);
-            tmpSqr += (data * data);
+            tmpSum = tmpSum + data;
+            tmpSqr = tmpSqr + data * data;
         }
         sqr = convert_float(as_int(tmpSqr - 2 * input_zp * tmpSum + width * input_zp * input_zp)) * e2InScale;
         sum = convert_float(as_int(tmpSum - width * input_zp)) * input_scale;
@@ -100,7 +100,7 @@ __kernel void moments_axis0_I32toF32(
 
     for(coord0.x = 0; coord0.x < width;)
     {
-        data = convert_float(read_imagei(input, coord0).x);
+        data = convert_float(read_imagei(input, coord0).x - input_zp);
         coord0.x++;
 
         sum = sum + data;
@@ -110,6 +110,48 @@ __kernel void moments_axis0_I32toF32(
     float4 mean, vari;
     mean.x = sum * dimRatio * input_scale;
     vari.x = sqr * dimRatio * input_scale * input_scale;
+    vari.x = vari.x - mean.x * mean.x;
+
+    int2 coord_out = (int2)(gidy, gidz);
+    write_imagef(output_mean, coord_out, mean);
+    write_imagef(output_vari, coord_out, vari);
+}
+
+__kernel void moments_axis0_BF16toF32(
+    __read_only image2d_array_t   input,
+    __write_only image2d_t  output_mean,
+    __write_only image2d_t  output_vari,
+    int axis,
+    int axis_num,
+    int input_zp,
+    float input_scale,
+    int width,
+    int height,
+    int chn,
+    float dimRatio
+    )
+{
+    int gidy = get_global_id(0);
+    int gidz = get_global_id(1);
+
+    int4 coord0 = (int4)(0, gidy, gidz, 0);
+    float4 data;
+    float sum = 0, sqr = 0;
+
+    for(coord0.x = 0; coord0.x < width;)
+    {
+        uint4 src0 = read_imageui(input, coord0);
+        src0 = src0 << 16;
+        _viv_asm(COPY, data, src0, 16);
+        coord0.x++;
+
+        sum = sum + data.x;
+        sqr = sqr + data.x * data.x;
+    }
+
+    float4 mean, vari;
+    mean.x = sum * dimRatio;
+    vari.x = sqr * dimRatio;
     vari.x = vari.x - mean.x * mean.x;
 
     int2 coord_out = (int2)(gidy, gidz);

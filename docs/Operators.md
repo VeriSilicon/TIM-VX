@@ -7,9 +7,11 @@
     - [ArgMin/ArgMax](#argminargmax)
     - [Batch2Space](#batch2space)
     - [BatchNorm](#batchnorm)
+    - [Broadcast](#broadcast)
     - [Clip](#clip)
     - [Concat](#concat)
     - [Conv2d](#conv2d)
+    - [Conv3d](#conv3d)
     - [DeConv2d](#deconv2d)
     - [DeConv1d](#deconv1d)
     - [DepthToSpace](#depthtospace)
@@ -22,9 +24,11 @@
     - [Minimum](#minimum)
     - [Maximum](#maximum)
     - [FloorDiv](#floordiv)
+    - [Erf](#erf)
     - [FullyConnected](#fullyconnected)
     - [Gather](#gather)
     - [GatherNd](#gathernd)
+    - [GroupedConv1d](#groupedconv1d)
     - [GroupedConv2d](#groupedconv2d)
     - [L2Normalization](#l2normalization)
     - [LocalResponseNormalization](#localresponsenormalization)
@@ -36,8 +40,12 @@
     - [MaxUnpool2d](#maxunpool2d)
     - [Moments](#moments)
     - [NBG](#nbg)
+    - [OneHot](#onehot)
     - [Pad](#pad)
     - [Pool2d](#pool2d)
+        - [Classic Pool2d](#classic-pool2d)
+        - [Global Pool2d](#global-pool2d)
+        - [Adaptive Pool2d](#adaptive-pool2d)
     - [ReduceMin](#reducemin)
     - [ReduceMax](#reducemax)
     - [ReduceAny](#reduceany)
@@ -78,6 +86,7 @@
     - [Squeeze](#squeeze)
     - [Stack](#stack)
     - [StridedSlice](#stridedslice)
+    - [Svdf](#svdf)
     - [Tile](#tile)
     - [Transpose](#transpose)
     - [Unidirectional sequence lstm](#unidirectional-sequence-lstm)
@@ -108,11 +117,11 @@ Swish(x)               : x * sigmoid(x)
 
 HardSwish(x)           : 0 if x <= -3; x(x + 3)/6 if -3 < x < 3; x if x >= 3
 
-Mish(x)                : x if x >= 0 else alpha * x
-
 HardSigmoid(x)         : min(max(alpha*x + beta, 0), 1)
 
 SoftRelu(x)            : log(1 + e^x). Also known as SoftPlus.
+
+Mish(x)                : x * tanh(softrelu(x))
 
 LeakyRelu(x)           : alpha * x if x <= 0; x if x > 0. alpha is a scalar.
 
@@ -153,7 +162,22 @@ rank as the input. This is the reverse transformation of Space2Batch.
 Carries out batch normalization as described in the paper
 https://arxiv.org/abs/1502.03167.
 
-Y = (X - Mean) / Sqrt( Var + Eps) * Gama + Beta
+$$\hat x_i\leftarrow \frac{x_i-\mu_\mathcal{B}}{\sqrt{\sigma_\mathcal{B}^2+\epsilon}}$$
+
+$$y_i=\gamma\hat x_i+\beta\equiv BN_{\gamma,\beta}(x_i)$$
+
+<a class="mk-toclify" id="broadcast"></a>
+## Broadcast
+
+Broadcast an array for a compatible shape. See also numpy.broadcast_to().
+
+Input:
+- input.
+
+Attribute:
+- shape: the shape which broadcast to.
+- dimensions(optional): Which dimension in the target shape each dimension 
+of the operand shape corresponds to. For BroadcastInDim.
 
 <a class="mk-toclify" id="clip"></a>
 ## Clip
@@ -188,6 +212,28 @@ Attribute:
 - multiplier: function similar to group attribute on other framework,
 but the value is different. multiplier = weights / group.
 - layout : WHCN or CWHN.
+
+<a class="mk-toclify" id="conv3d"></a>
+## Conv3d
+
+Performs a 3-D convolution operation
+
+Input:
+- input [WHDCN].
+- kernel [ WHDIcOc ] (Ic: Input Channels. Oc: Output Channels).
+- bias [ O ]. Optional.
+
+Attribute:
+- weights : the output channel number for weight tensor.
+- ksize : the height and width for weight tensor.
+- padding : AUTO, VALID or SAME.
+- pad : pad value for each spatial axis. (left, right, top, bottom, front, rear).
+- stride : stride along each spatial axis.
+- dilation : dilation value along each spatial axis of the filter.
+- multiplier: function similar to group attribute on other framework,
+but the value is different. multiplier = weights / group.
+- input_layout : WHDCN or WHCDN.
+- kernel_layout : WHDIcOc
 
 <a class="mk-toclify" id="deconv2d"></a>
 ## DeConv2d
@@ -292,6 +338,13 @@ Maximum(x, y) : max(x, y). This operation supports broadcasting.
 
 FloorDiv(x, y): floor( x / y ). This operation supports broadcasting.
 
+<a class="mk-toclify" id="erf"></a>
+## Erf
+
+Computes the Gauss error function of x element-wise.
+
+- no parameters
+
 <a class="mk-toclify" id="fullyconnected"></a>
 ## FullyConnected
 
@@ -310,6 +363,26 @@ Gather slices from input, **axis** according to **indices**.
 ## GatherNd
 
 An operation similar to Gather but gathers across multiple axis at once.
+
+<a class="mk-toclify" id="groupedconv1d"></a>
+## GroupedConv1d
+
+Performs a grouped 1-D convolution operation.
+
+Input:
+- input [WCN].
+- kernel [ WIcOc ] (Ic: Input Channels. Oc: Output Channels).Ic*group=C.
+- bias [ O ]. Optional.
+
+Attribute:
+- weights : the output channel number for weight tensor.
+- ksize : the height and width for weight tensor.
+- padding : AUTO, VALID or SAME.
+- pad : pad value for each spatial axis.
+- stride : stride along each spatial axis.
+- dilation : dilation value along each spatial axis of the filter.
+- group: Split conv to n group.
+- layout : WCN or CWN.
 
 <a class="mk-toclify" id="groupedconv2d"></a>
 ## GroupedConv2d
@@ -415,23 +488,58 @@ If x is 1-D and axes = [0] this is just the mean and variance of a vector.
 Network Binary Graph is a precompile technology, which can compile a fuse graph into
 a bianry file.
 
+<a class="mk-toclify" id="onehot"></a>
+## OneHot
+
+Create a one-hot tensor.
+
+- depth : A scalar defining the depth of the one hot dimension.
+- on_value : A scalar defining the value to fill in output.
+- off_value : A scalar defining the value to fill in output.
+- axis : The axis to fill.
+
 <a class="mk-toclify" id="pad"></a>
 ## Pad
 
 Pads a tensor.
 
 - const_val : the value to pad.
+- pad_mode : the mode of pad.
+- front_size : Add pad values to the left and top.
+- back_size : Add pad values to the right and bottom.
 
 <a class="mk-toclify" id="pool2d"></a>
 ## Pool2d
+
+<a class="mk-toclify" id="classic-pool2d"></a>
+### Classic Pool2d
 
 Performs an 2-D pooling operation.
 
 - type : MAX, AVG, L2 or AVG_ANDROID.
 - padding : AUTO, VALID or SAME.
+- pad : Specify the number of pad values for left, right, top, and bottom.
 - ksize : filter size.
 - stride : stride along each spatial axis.
 - round_type : CEILING or FLOOR.
+
+<a class="mk-toclify" id="global-pool2d"></a>
+### Global Pool2d
+
+- type : MAX, AVG, L2 or AVG_ANDROID.
+- input_size : input size(only [W， H])
+- round_type : CEILING or FLOOR.
+
+<a class="mk-toclify" id="adaptive-pool2d"></a>
+### Adaptive Pool2d
+
+Same as torch.nn.AdaptiveXXXPool2d.
+
+- type : MAX, AVG, L2 or AVG_ANDROID.
+- input_size : input size(only [W， H])
+- output_size : output size(only [W， H])
+- round_type : CEILING or FLOOR.
+
 
 <a class="mk-toclify" id="reducemin"></a>
 ## ReduceMin
@@ -714,12 +822,13 @@ Removes dimensions of size 1 from the shape of a tensor.
 ## Stack
 
 Packs the list of tensors in inputs into a tensor with rank one higher than
-each tensor in values, by packing them along the **axis** dimension. 
+each tensor in values, by packing them along the **axis** dimension.
+Dimensions below the dimension specified by axis will be packed together with other inputs.
 
 <a class="mk-toclify" id="stridedslice"></a>
 ## StridedSlice
 
-Extracts a strided slice of a tensor.
+Extracts a strided slice of a tensor.Same as tensorflow.
 
 Roughly speaking, this op extracts a slice of size (end - begin) / stride from
 the given input tensor. Starting at the location specified by begin the slice
@@ -737,6 +846,15 @@ possible range in that dimension is used instead.
 specification shrinks the dimensionality by 1, taking on the value at index begin[i].
 In this case, the ith specification must define a slice of size 1,
 e.g. begin[i] = x, end[i] = x + 1.
+
+<a class="mk-toclify" id="svdf"></a>
+## Svdf
+
+Performs an 2-D pooling operation.
+
+- rank : The rank of the SVD approximation.
+- num_units : corresponds to the number of units.
+- spectrogram_length : corresponds to the fixed-size of the memory.
 
 <a class="mk-toclify" id="tile"></a>
 ## Tile

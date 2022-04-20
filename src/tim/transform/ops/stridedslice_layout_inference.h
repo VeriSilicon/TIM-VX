@@ -70,15 +70,40 @@ class StridedSliceLayoutInfer : public OpLayoutInfer {
     end_dims = MapMultipleAxis(input_pv->AsStdVec(), end_dims);
     stride_dims = MapMultipleAxis(input_pv->AsStdVec(), stride_dims);
 
+    shrink_axis_mask = MapMask(input_pv->AsStdVec(), shrink_axis_mask);
+    begin_mask = MapMask(input_pv->AsStdVec(), begin_mask);
+    end_mask = MapMask(input_pv->AsStdVec(), end_mask);
     auto strided_slice =
         context_->infer_graph_->CreateOperation<vx::ops::StridedSlice>(
             begin_dims, end_dims, stride_dims, begin_mask, end_mask,
             shrink_axis_mask);
-    auto infer_out = CreateOutputsTensor(input_pv);
+    // The following is the normalized dimension calculation
+    std::set<uint32_t> remaind_set;
+    std::vector<uint32_t> remaind_axis;
+    for (uint32_t i = 0; i < input_pv->AsStdVec().size(); ++i)
+      if ((shrink_axis_mask & (1 << i)) == 0) {
+        remaind_axis.push_back(
+            input_pv->AsStdVec()
+                [i]);  // Store unnormalized dimensionality reduction pv values
+        remaind_set.insert(input_pv->AsStdVec()[i]);
+      }
+    // Traverse the input pv to find a dimension smaller than the current remaining dimension
+    auto out_pv = MakeShared(remaind_axis.size());
+    for (uint32_t i = 0; i < remaind_axis.size(); ++i) {
+      uint32_t cnt = 0;
+      for (uint32_t j = 0; j < input_pv->AsStdVec().size(); j++) {
+        if (input_pv->AsStdVec()[j] < remaind_axis[i] &&
+            remaind_set.end() == remaind_set.find(input_pv->AsStdVec()[j])) {
+          cnt++;  // Record the number of dimensions smaller than the current dimension
+        }
+      }
+      out_pv->At(i) = remaind_axis[i] - cnt;
+    }
+
+    auto infer_out = CreateOutputsTensor(out_pv);
     (*strided_slice).BindInput(context_->GetMapedTensor(src_input));
     (*strided_slice).BindOutput(infer_out[0]);
-
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], out_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }
 };

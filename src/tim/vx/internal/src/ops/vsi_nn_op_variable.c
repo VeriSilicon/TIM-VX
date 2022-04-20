@@ -1,4 +1,3 @@
-
 /****************************************************************************
 *
 *    Copyright (c) 2020 Vivante Corporation
@@ -45,22 +44,7 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    /*
-        Need copy input data to output if don't reshape input to output
-    */
-    if(inputs[0]->t != NULL && outputs[0]->t != NULL &&
-        self->nn_param.variable.local->initialized == FALSE)
-    {
-        self->n = vxTensorCopyNode(self->graph->g,
-            inputs[0]->t, outputs[0]->t);
-        if(NULL == self->n)
-        {
-            VSILOGE( "Create vxTensorCopyNode fail." );
-            return VSI_FAILURE;
-        }
-        VSILOGD("Create a copy node for variable");
-    }
-    return VSI_SUCCESS;
+    return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
 static vsi_bool op_check
@@ -85,53 +69,41 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
-    vsi_nn_variable_lcl_data *local = NULL;
-    if( direction == VSI_NN_OPTIMIZE_BACKWARD )
-    {
-        return VSI_SUCCESS;
-    }
-    local = (vsi_nn_variable_lcl_data *)malloc(sizeof(vsi_nn_variable_lcl_data));
-    if( NULL == local )
-    {
-        VSILOGE("malloc memory fail");
-        return VSI_FAILURE;
-    }
-    memset(local, 0, sizeof(vsi_nn_variable_lcl_data));
-    if( NULL != inputs[0]->t && NULL == outputs[0]->t &&
-        vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype))
-    {
-        VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
-        outputs[0]->t = vsi_nn_safe_reshape_tensor(inputs[0]->t, (void*)outputs[0]->attr.size,
-            (vsi_size_t)outputs[0]->attr.dim_num, sizeof(outputs[0]->attr.size[0]));
-        if( NULL == outputs[0]->t )
-        {
-            VSILOGE("Call vsi_nn_safe_reshape_tensor fail");
-            free(local);
-            local = NULL;
-            return VSI_FAILURE;
-        }
-        local->initialized = TRUE;
-    }
-    else
-    {
-        local->initialized = FALSE;
-    }
-    self->nn_param.variable.local = local;
-    return VSI_SUCCESS;
+    return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
+
+static vsi_bool op_setup
+    (
+    vsi_nn_node_t * self,
+    vsi_nn_tensor_t ** inputs,
+    vsi_nn_tensor_t ** outputs
+    )
+{
+    vsi_bool ret = TRUE;
+    vsi_nn_internal_node_t* curr = NULL;
+
+    vsi_nn_internal_init_node_wksp(self);
+    curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 1, 1);
+    if (NULL == curr)
+    {
+        return FALSE;
+    }
+    curr->inputs[0]  = inputs[0];
+    curr->outputs[0] = outputs[0];
+
+    vsi_nn_internal_setup_node(self, curr);
+
+    return ret;
+}
 
 static vsi_status op_deinit
     (
     vsi_nn_node_t * self
     )
 {
-    vsi_nn_variable_lcl_data *local = self->nn_param.variable.local;
-    if(local)
-    {
-        free(local);
-        local = NULL;
-    }
+    vsi_nn_internal_deinit_node_wksp(self);
     vsi_nn_op_common_deinit(self);
+
     return VSI_SUCCESS;
 } /* op_deinit() */
 
@@ -146,7 +118,7 @@ DEF_OP_REG
     /* compute    */ op_compute,
     /* deinit     */ op_deinit,
     /* check      */ op_check,
-    /* setup      */ vsi_nn_op_common_setup,
+    /* setup      */ op_setup,
     /* optimize   */ op_optimize,
     /* input_num  */ 1,
     /* output_num */ 1
@@ -154,4 +126,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

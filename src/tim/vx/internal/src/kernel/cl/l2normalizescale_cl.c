@@ -59,9 +59,11 @@ typedef struct
 static const _kernel_map_type _l2normalizescale_kernel_map[] =
 {
     HASH_L2NORMALIZESCALE_KERNELS_2D( 0, F32, F32, F32 )
-    HASH_L2NORMALIZESCALE_KERNELS_2D( 0, U8 , F32, U8  )
+    HASH_L2NORMALIZESCALE_KERNELS_2D( 0, U8,  F32, U8  )
+    HASH_L2NORMALIZESCALE_KERNELS_2D( 0, I32, F32, I32  )
     HASH_L2NORMALIZESCALE_KERNELS_2D( 1, F32, F32, F32 )
-    HASH_L2NORMALIZESCALE_KERNELS_2D( 1, U8 , F32, U8  )
+    HASH_L2NORMALIZESCALE_KERNELS_2D( 1, U8,  F32, U8  )
+    HASH_L2NORMALIZESCALE_KERNELS_2D( 1, I32, F32, I32  )
 };
 
 
@@ -90,9 +92,6 @@ static vx_param_description_t _l2normalizescale_kernel_param_def[] =
 #define SCALAR_INPUT_TAIL           (7)
 #define SCALAR_OUTPUT_SCALE         (8)
 #define SCALAR_OUTPUT_TAIL          (9)
-
-#define L2NORMSCALE_PARAM_NUM         6
-#define L2NORMSCALE_QUANT_PARAM_NUM   _cnt_of_array( _l2normalizescale_kernel_param_def )
 
 /*
  * Kernel initializer
@@ -168,8 +167,7 @@ static vsi_status _query_kernel
     vsi_nn_tensor_t * const * const inputs,
     vsi_nn_tensor_t * const * const outputs,
     int32_t axis,
-    vsi_bool image_2d,
-    vsi_bool *is_use_u8_kernel
+    vsi_bool image_2d
     )
 {
     vsi_status status = VSI_FAILURE;
@@ -193,6 +191,10 @@ static vsi_status _query_kernel
     {
         in0_dtype = F32;
     }
+    else if (I8 == in0_dtype || I16 == in0_dtype)
+    {
+        in0_dtype = I32;
+    }
 
     if (F16 == in1_dtype)
     {
@@ -203,16 +205,9 @@ static vsi_status _query_kernel
     {
         out_dtype = F32;
     }
-
-   if ((U8 == in0_dtype) || (U8 == out_dtype))
+    else if (I8 == out_dtype || I16 == out_dtype)
     {
-        param_def_size = L2NORMSCALE_QUANT_PARAM_NUM;
-        *is_use_u8_kernel = TRUE;
-    }
-    else
-    {
-        param_def_size = L2NORMSCALE_PARAM_NUM;
-        *is_use_u8_kernel = FALSE;
+        out_dtype = I32;
     }
 
     key = HASH_L2NORMALIZESCALE_HASH_KEY(axis, in0_dtype, in1_dtype, out_dtype, image_2d);
@@ -265,7 +260,6 @@ static vsi_nn_kernel_node_t _setup
     float    inputTail    = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
     float    epsilon      = (float)10e-12;
     float    rsEps        = 1.0f / sqrtf(epsilon);
-    vsi_bool is_use_u8_kernel = FALSE;
 
     outputScale = 1.0f / outputScale;
     inputTail   = -(inputTail * inputScale);
@@ -282,7 +276,7 @@ static vsi_nn_kernel_node_t _setup
     }
 
     image_2d = (inputs[0]->attr.dim_num == 2 || inputs[0]->attr.size[2] == 1);
-    status = _query_kernel( kernel, inputs, outputs, axis, image_2d, &is_use_u8_kernel );
+    status = _query_kernel( kernel, inputs, outputs, axis, image_2d );
     axis_size = inputs[0]->attr.size[axis];
 
 
@@ -291,7 +285,6 @@ static vsi_nn_kernel_node_t _setup
         node = vsi_nn_kernel_create_node( graph, kernel );
         if( node )
         {
-            size_t node_params_num = L2NORMSCALE_PARAM_NUM;
             /* Set inputs and outputs */
             vsi_nn_kernel_node_pack_io( node_params, _L2NORMALIZESCALE_PARAM_NUM,
                     inputs, input_num, outputs, output_num );
@@ -301,27 +294,21 @@ static vsi_nn_kernel_node_t _setup
                     graph, I32, &axis_size );
             node_params[SCALAR_EPS_VALUE] = vsi_nn_kernel_scalar_create(
                     graph, F32, &rsEps );
-            if (is_use_u8_kernel)
-            {
-                node_params[SCALAR_INPUT_SCALE]  = vsi_nn_kernel_scalar_create( graph, F32, &inputScale );
-                node_params[SCALAR_INPUT_TAIL]   = vsi_nn_kernel_scalar_create(graph, F32, &inputTail );
-                node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &outputScale );
-                node_params[SCALAR_OUTPUT_TAIL]  = vsi_nn_kernel_scalar_create(graph, F32, &outputTail );
-                node_params_num = L2NORMSCALE_QUANT_PARAM_NUM;
-            }
+            node_params[SCALAR_INPUT_SCALE]  = vsi_nn_kernel_scalar_create( graph, F32, &inputScale );
+            node_params[SCALAR_INPUT_TAIL]   = vsi_nn_kernel_scalar_create(graph, F32, &inputTail );
+            node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &outputScale );
+            node_params[SCALAR_OUTPUT_TAIL]  = vsi_nn_kernel_scalar_create(graph, F32, &outputTail );
+
             /* Pass parameters to node. */
-            status  = vsi_nn_kernel_node_pass_param( node, node_params, node_params_num );
+            status  = vsi_nn_kernel_node_pass_param( node, node_params, _L2NORMALIZESCALE_PARAM_NUM );
             VSI_ASSERT( status == VSI_SUCCESS );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_AXIS] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_AXIS_SIZE] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_EPS_VALUE] );
-            if (is_use_u8_kernel)
-            {
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_SCALE] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_TAIL] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_SCALE] );
-                vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_TAIL] );
-            }
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_SCALE] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_TAIL] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_SCALE] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_TAIL] );
         }
     }
     return node;

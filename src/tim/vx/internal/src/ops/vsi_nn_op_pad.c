@@ -36,6 +36,7 @@
 #include "utils/vsi_nn_math.h"
 #include "utils/vsi_nn_constraint_check.h"
 #include "utils/vsi_nn_dtype_util.h"
+#include "vsi_nn_error.h"
 
 vsi_status vsi_nn_InitPadParameter
     (
@@ -45,6 +46,8 @@ vsi_status vsi_nn_InitPadParameter
 {
     int32_t pad_const_val;
     uint8_t i;
+    vsi_status status = VSI_FAILURE;
+
     if(NULL == node || NULL == param)
     {
         VSILOGE("Set param fail\n");
@@ -85,7 +88,11 @@ vsi_status vsi_nn_InitPadParameter
      */
     param->numViewDimensions = vsi_nn_max(node->nn_param.pad.dim_num, 2);
     param->pad_front_array = (int32_t *)malloc(sizeof(int32_t) * param->numViewDimensions);
+    CHECK_PTR_FAIL_GOTO( param->pad_front_array, "Create buffer fail.", final );
     param->pad_back_array = (int32_t *)malloc(sizeof(int32_t) * param->numViewDimensions);
+    CHECK_PTR_FAIL_GOTO( param->pad_back_array, "Create buffer fail.", final );
+    status = VSI_SUCCESS;
+
     memset(param->pad_front_array, 0, sizeof(int32_t) * param->numViewDimensions);
     memset(param->pad_back_array, 0, sizeof(int32_t) * param->numViewDimensions);
     for(i=0; i < vsi_nn_min(param->numViewDimensions, node->nn_param.pad.dim_num); i++)
@@ -94,7 +101,8 @@ vsi_status vsi_nn_InitPadParameter
         param->pad_back_array[i]  = (int32_t)node->nn_param.pad.back_size[i];
     }
 
-    return VSI_SUCCESS;
+final:
+    return status;
 } /* vsi_nn_InitPadParameter() */
 
 void vsi_nn_DeinitPadParameter

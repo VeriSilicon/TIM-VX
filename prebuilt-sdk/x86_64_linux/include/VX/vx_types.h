@@ -304,6 +304,39 @@ typedef struct _vx_tensor_view_t * vx_tensor_view;
 */
 typedef struct _vx_tensor_addressing_t  * vx_tensor_addressing;
 
+/*!
+ * \brief The addressing image patch structure is used by the Host only
+ * to address pixels in an image patch. The fields of the structure are defined as:
+ * \arg dim - The dimensions of the image in logical pixel units in the x & y direction.
+ * \arg stride - The physical byte distance from a logical pixel to the next
+ * logically adjacent pixel in the positive x or y direction.
+ * \arg scale - The relationship of scaling from the primary plane (typically
+ * the zero indexed plane) to this plane. An integer down-scaling factor of \f$ f \f$ shall be
+ * set to a value equal to \f$ scale = \frac{unity}{f} \f$ and an integer up-scaling factor of \f$ f \f$
+ * shall be set to a value of \f$ scale = unity * f \f$. \f$ unity \f$ is defined as <tt>\ref VX_SCALE_UNITY</tt>.
+ * \arg step - The step is the number of logical pixel units to skip to
+ * arrive at the next physically unique pixel. For example, on a plane that is
+ * half-scaled in a dimension, the step in that dimension is 2 to indicate that
+ * every other pixel in that dimension is an alias. This is useful in situations
+ * where iteration over unique pixels is required, such as in serializing
+ * or de-serializing the image patch information.
+ * \see <tt>\ref vxMapImagePatch</tt>
+ * \ingroup group_image
+ */
+typedef struct _vx_tensorpatch_addressing_t {
+    vx_uint32 num_of_dims;    /*!< \brief Width of patch in X dimension in pixels. */
+    vx_size   *dim_sizes;     /*!< \brief Pointer to dimensions array */
+    vx_size   *strides;       /*!< \brief Pointer to strides array */
+    vx_uint16 stride_x_bits; /*!< \brief Stride in X dimension in bits. Used when stride_x is not an integer number of bytes. */
+} vx_tensorpatch_addressing_t;
+
+/*! \brief The addressing of a tensor patch structure is used by the Host only
+* to address elements in a tensor view patch.
+* \see <tt>\ref vxCopyTensorPatch2</tt>
+* \ingroup group_tensor
+*/
+typedef struct _vx_tensorpatch_addressing_t * vx_trensor_addressing;
+
 /*! \brief The weight bias parameter for fused layers
  * \ingroup group_cnn
  */
@@ -437,6 +470,8 @@ enum vx_type_e {
     /* \todo add new object types here */
     VX_TYPE_BFLOAT16        = 0x81A,/*!< \brief A <tt>\ref vx_bfloat16</tt>. */
 
+    VX_TYPE_INT4            = 0x81C,/*!< \brief A <tt>\ref signed 4bits tensor.</tt>. */
+    VX_TYPE_UINT4           = 0x81D,/*!< \brief A <tt>\ref unsigned 4bits tensor.</tt>. */
 };
 
 /*! \brief The enumeration of all status codes.

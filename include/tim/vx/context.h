@@ -29,13 +29,14 @@
 namespace tim {
 namespace vx {
 
+class CompileOption;
 class Graph;
-
 class Context {
  public:
   virtual ~Context() {}
   static std::shared_ptr<Context> Create();
   virtual std::shared_ptr<Graph> CreateGraph() = 0;
+  virtual std::shared_ptr<Graph> CreateGraph(const CompileOption& options) = 0;
 };
 
 }  // namespace vx

@@ -46,33 +46,9 @@ class ActivationLayoutInfer : public OpLayoutInfer {
     assert(op_->impl()->InputsTensor().size() == 1);
     auto i_src = op_->impl()->InputsTensor()[0];
     auto input_pv = context_->GetPermuteVector(i_src);
-    auto activation = context_->infer_graph_->CreateOperation<OpType>();
+    auto activation = op_->Clone(context_->infer_graph_);
     auto out_infer = CreateOutputsTensor(input_pv);
     (*activation)
-        .BindInput(context_->GetMapedTensor(i_src))
-        .BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
-    next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
-  }
-};
-
-class LeakyReluLayoutInfer : public OpLayoutInfer {
- public:
-  LeakyReluLayoutInfer(
-      const std::shared_ptr<vx::Operation> op,
-      std::shared_ptr<layout_inference_impl::LayoutInferContext>& context)
-      : OpLayoutInfer(op, context) {}
-
-  void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    assert(op_->impl()->InputsTensor().size() == 1);
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto input_pv = context_->GetPermuteVector(i_src);
-    auto leaky_relu =
-        context_->infer_graph_->CreateOperation<vx::ops::LeakyRelu>(
-            op_->impl()->node()->nn_param.activation.leaky_ratio);
-    auto out_infer = CreateOutputsTensor(input_pv);
-    (*leaky_relu)
         .BindInput(context_->GetMapedTensor(i_src))
         .BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
@@ -107,6 +83,7 @@ class PReluLayoutInfer : public OpLayoutInfer {
 using ReluLayoutInfer = ActivationLayoutInfer<vx::ops::Relu>;
 using Relu1LayoutInfer = ActivationLayoutInfer<vx::ops::Relu1>;
 using Relu6LayoutInfer = ActivationLayoutInfer<vx::ops::Relu6>;
+using LeakyReluLayoutInfer = ActivationLayoutInfer<vx::ops::LeakyRelu>;
 using EluLayoutInfer = ActivationLayoutInfer<vx::ops::Elu>;
 using SigmoidLayoutInfer = ActivationLayoutInfer<vx::ops::Sigmoid>;
 using MishLayoutInfer = ActivationLayoutInfer<vx::ops::Mish>;

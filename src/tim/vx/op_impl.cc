@@ -33,5 +33,10 @@ OpImpl::OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
       input_cnt_(input_cnt),
       output_cnt_(output_cnt),
       layout_(layout) {}
+
+OpImpl::OpImpl(Graph* graph, DataLayout layout)
+      : graph_(reinterpret_cast<GraphImpl*>(graph)),
+      layout_(layout) {}
+
 }  // namespace vx
 }  // namespace tim

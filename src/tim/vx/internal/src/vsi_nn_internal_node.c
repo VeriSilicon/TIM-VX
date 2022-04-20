@@ -474,7 +474,10 @@ vsi_nn_internal_node_t* vsi_nn_internal_new_node
 
     inode = vsi_nn_internal_create_node( node->graph,
                 op, input_num, output_num );
-    inode->node->attr.const_tensor_preload_type = node->attr.const_tensor_preload_type;
+    if (inode)
+    {
+        inode->node->attr.const_tensor_preload_type = node->attr.const_tensor_preload_type;
+    }
     return inode;
 } /* vsi_nn_internal_new_node() */
 

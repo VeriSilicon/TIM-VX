@@ -56,6 +56,7 @@ __BEGIN_DECLS
 #define KERNEL_SOURCE_12   "matrixmul_u8u8_f16"
 #define KERNEL_SOURCE_13   "matrixmul_i16"
 #define KERNEL_SOURCE_14   "matrixmul_f16i16_i16"
+#define KERNEL_SOURCE_15   "matrixmul_bf16"
 
 #define HASH_MATRIX_MUL_KEY(_input0_type, _input1_type, _output_type, _trans_a, _trans_b) \
     ((_input0_type << 24) | (_input1_type << 16) | (_output_type << 8) | (_trans_a << 4) | (_trans_b))
@@ -110,6 +111,7 @@ static const struct {
     TENSOR_MATRIX_MUL_KERNELS(I8,  F16, F16,      KERNEL_SOURCE_8)
     TENSOR_MATRIX_MUL_KERNELS(I16, F16, F16,      KERNEL_SOURCE_8)
     TENSOR_MATRIX_MUL_KERNELS(F16, F16, F16,      KERNEL_SOURCE_2)
+    TENSOR_MATRIX_MUL_KERNELS(BF16,BF16,BF16,     KERNEL_SOURCE_15)
     TENSOR_MATRIX_MUL_KERNELS(F16, F16, U8,       KERNEL_SOURCE_11)
     TENSOR_MATRIX_MUL_KERNELS(F16, F16, I8,       KERNEL_SOURCE_11)
     TENSOR_MATRIX_MUL_KERNELS(F16, F16, I16,      KERNEL_SOURCE_11)
@@ -119,6 +121,7 @@ static const struct {
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(F16, U8,  U8,     KERNEL_SOURCE_4)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(U8,  U8,  F16,    KERNEL_SOURCE_5)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(U8,  U8,  U8,     KERNEL_SOURCE_5)
+    TENSOR_MATRIX_MUL_TRANSB_KERNELS(BF16,BF16,BF16,   KERNEL_SOURCE_15)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(U8,  U8,  U8,     KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(I8,  I8,  I8,     KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(I16, I16, I16,    KERNEL_SOURCE_7)
@@ -126,6 +129,7 @@ static const struct {
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(I8,  F16, I8,     KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(I16, F16, I16,    KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(F16, F16, F16,    KERNEL_SOURCE_7)
+    TENSOR_MATRIX_MUL_TRANSA_KERNELS(BF16,BF16,BF16,   KERNEL_SOURCE_15)
 };
 
 /*
@@ -587,6 +591,36 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
             0x00000600, // AccumType, ConstantType, and PostShift
             0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+            0x11111111, // TCfg
+            0x01010101, // ASelt
+            0x01050004, 0x03070206, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvBF16toF32_Part1_2x8 = {{
+            0x11111111, // TCfg
+            0x01010101, // ASelt
+            0x05050404, 0x07070606, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractOddData_2x8 = {{
+            0x11111111, // TCfg
+            0x11110000, // ASelt
+            0x07050301, 0x07050301, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16};
 
         float scaleIn0divOut = src0Scale / dstScale;
         float scaleIn1divOut = src1Scale / dstScale;
@@ -933,6 +967,22 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
                         "uniGemmFp16toFp32Row1Lo_4x4", &uniGemmFp16toFp32Row1Lo_4x4 );
                 status |= vsi_nn_kernel_gpu_add_param( node,
                         "uniGemmFp16toFp32Row1Hi_4x4", &uniGemmFp16toFp32Row1Hi_4x4 );
+                CHECK_STATUS_FAIL_GOTO(status, OnError );
+            }
+            break;
+        case _PACK_SELECT_KEY( BF16, BF16, BF16, 0, 0, 0 ):
+        case _PACK_SELECT_KEY( BF16, BF16, BF16, 0, 0, 1 ):
+        case _PACK_SELECT_KEY( BF16, BF16, BF16, 0, 1, 0 ):
+        case _PACK_SELECT_KEY( BF16, BF16, BF16, 0, 1, 1 ):
+        case _PACK_SELECT_KEY( BF16, BF16, BF16, 1, 0, 0 ):
+        case _PACK_SELECT_KEY( BF16, BF16, BF16, 1, 0, 1 ):
+            {
+                status = vsi_nn_kernel_gpu_add_param( node,
+                        "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                        "uniConvBF16toF32_Part1_2x8", &uniConvBF16toF32_Part1_2x8 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                        "uniExtractOddData_2x8", &uniExtractOddData_2x8 );
                 CHECK_STATUS_FAIL_GOTO(status, OnError );
             }
             break;

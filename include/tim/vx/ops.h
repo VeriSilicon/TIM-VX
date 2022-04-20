@@ -29,6 +29,7 @@
 #include "tim/vx/ops/arg.h"
 #include "tim/vx/ops/batch2space.h"
 #include "tim/vx/ops/batchnorm.h"
+#include "tim/vx/ops/broadcast.h"
 #include "tim/vx/ops/clip.h"
 #include "tim/vx/ops/concat.h"
 #include "tim/vx/ops/conv1d.h"
@@ -84,5 +85,7 @@
 #include "tim/vx/ops/transpose.h"
 #include "tim/vx/ops/unidirectional_sequence_lstm.h"
 #include "tim/vx/ops/unstack.h"
+#include "tim/vx/ops/conv3d.h"
+#include "tim/vx/ops/custom_base.h"
 
 #endif /* TIM_VX_OPS_H_ */

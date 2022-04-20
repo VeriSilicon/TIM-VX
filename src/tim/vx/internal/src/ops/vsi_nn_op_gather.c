@@ -51,6 +51,7 @@ static vsi_status op_compute
     uint32_t i = 0;
     vsi_size_t block_size = 1, block_num = 1, axis_num = 0, indices_num = 1;
     int32_t axis = self->nn_param.gather.axis;
+    int32_t batch_dims = self->nn_param.gather.batch_dims;
     vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t dims_num = inputs[0]->attr.dim_num;
 
@@ -62,11 +63,11 @@ static vsi_status op_compute
     }
 
     axis_num = input_size[axis];
-    for(i = axis + 1; i < dims_num; ++i)
+    for(i = axis + 1; i < dims_num - batch_dims; ++i)
     {
         block_num *= input_size[i];
     }
-    for(i = 0; i < (uint32_t)inputs[1]->attr.dim_num; ++i)
+    for(i = 0; i < (uint32_t)inputs[1]->attr.dim_num - batch_dims; ++i)
     {
         indices_num *= inputs[1]->attr.size[i];
     }
@@ -76,6 +77,7 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "axis_num", (int32_t)axis_num );
     vsi_nn_kernel_param_add_int32( param, "axis", (int32_t)axis );
     vsi_nn_kernel_param_add_int32( param, "indices_num", (int32_t)indices_num );
+    vsi_nn_kernel_param_add_int32( param, "batch_dims", (int32_t)batch_dims );
     n = vsi_nn_kernel_selector( self->graph, "gather", inputs, 2, outputs, 1, param );
     if( n != NULL )
     {
@@ -99,22 +101,34 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(GATHER, 2, 1)
-        IO_TYPE(D_I32,  D_I32, D_I32)
-        IO_TYPE(D_F32,  D_I32, D_F32)
-        IO_TYPE(D_F16,  D_I32, D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_I32, D_I16|Q_DFP)
-        IO_TYPE(D_F16,  D_I32, D_I8|Q_DFP)
-        IO_TYPE(D_F16,  D_I32, D_F16)
-        IO_TYPE(D_BF16, D_I32, D_BF16)
-        IO_TYPE(D_U8|Q_ASYM, D_I32, D_U8|Q_ASYM)
-        IO_TYPE(D_U8, D_I32, D_U8)
-        IO_TYPE(D_U8|Q_ASYM, D_I32, D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_I32,  D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,  D_I32,  D_F16)
-        IO_TYPE(D_I16|Q_DFP, D_I32, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_I32, D_F16)
+        IO_TYPE(D_I32,        D_I32,  D_I32)
+        IO_TYPE(D_F32,        D_I32,  D_F32)
+        IO_TYPE(D_F16,        D_I32,  D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_I32,  D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_I32,  D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_I32,  D_I16|Q_SYM)
+        IO_TYPE(D_F16,        D_I32,  D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_I32,  D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_I32,  D_I8|Q_SYM)
+        IO_TYPE(D_F16,        D_I32,  D_F16)
+        IO_TYPE(D_BF16,       D_I32,  D_BF16)
+        IO_TYPE(D_U8|Q_ASYM,  D_I32,  D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_I32,  D_F16)
+        IO_TYPE(D_I8|Q_DFP,   D_I32,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,   D_I32,  D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_I32,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_I32,  D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_I32,  D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_SYM,   D_I32,  D_F16)
+        IO_TYPE(D_I16|Q_DFP,  D_I32,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,  D_I32,  D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_I32,  D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_ASYM, D_I32,  D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_I32,  D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_SYM,  D_I32,  D_F16)
     END_IO_TYPE_DECL(GATHER)
-    if(!VALIDATE_OP_IO_TYPES(GATHER, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(GATHER, self, inputs, self->input.num, outputs, self->output.num))
+    {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -124,6 +138,18 @@ static vsi_bool op_check
 
     return TRUE;
 } /* op_check() */
+
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+
+    self->nn_param.gather.batch_dims = 0;
+
+    return status;
+} /* op_init() */
 
 static vsi_bool op_setup
     (
@@ -136,7 +162,7 @@ static vsi_bool op_setup
     uint32_t i = 0;
     vsi_nn_gather_param * p = NULL;
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         uint32_t j = 0;
         p = &(self->nn_param.gather);
@@ -186,7 +212,7 @@ extern "C" {
 DEF_OP_REG
     (
     /* op_name    */ GATHER,
-    /* init       */ NULL,
+    /* init       */ op_init,
     /* compute    */ op_compute,
     /* deinit     */ op_deinit,
     /* check      */ op_check,

@@ -28,6 +28,7 @@
 /*-------------------------------------------
                 Includes
 -------------------------------------------*/
+#include <stdio.h>
 #include "vsi_nn_platform.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_types.h"
@@ -56,6 +57,41 @@ extern "C" {
     while(((_arg_type)((size_t)END_OF_VARIADIC_ARGUMENTS)) != (_next = va_arg(_args, _arg_type)))
 
 #define BITS_PER_BYTE 8
+
+#define VSI_NN_STRINGIZE(X) VSI_NN_DO_STRINGIZE(X)
+#define VSI_NN_DO_STRINGIZE(X) #X
+
+#define VSI_NN_JOIN(X, Y) VSI_NN_DO_JOIN(X, Y)
+#define VSI_NN_DO_JOIN(X, Y) VSI_NN_DO_JOIN2(X,Y)
+#define VSI_NN_DO_JOIN2(X, Y) X##Y
+
+#if defined(_MSC_VER)
+    #define VSI_NN_DEPRECATED(symbol, hints) \
+       __declspec(deprecated(VSI_NN_STRINGIZE(hints))) symbol
+
+    #define VSI_NN_SUPPRESS_DEPRECATED_BEGIN \
+        __pragma(warning( push )) \
+        __pragma(warning(disable : 4996))
+    #define VSI_NN_SUPPRESS_DEPRECATED_END \
+        __pragma(warning(pop))
+
+#elif defined(__GNUC__)
+    #define VSI_NN_DEPRECATED(symbol, hints) \
+        symbol __attribute__((deprecated(VSI_NN_STRINGIZE(hints))))
+
+    #define VSI_NN_SUPPRESS_DEPRECATED_BEGIN \
+        _Pragma("GCC diagnostic push")  \
+        _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+
+    #define VSI_NN_SUPPRESS_DEPRECATED_END \
+        _Pragma("GCC diagnostic pop")
+#else
+    #define VSI_NN_DEPRECATED(symbol, hints) \
+        symbol
+
+    #define VSI_NN_SUPPRESS_DEPRECATED_BEGIN
+    #define VSI_NN_SUPPRESS_DEPRECATED_END
+#endif
 
 /*-------------------------------------------
                   Functions
@@ -396,6 +432,31 @@ void vsi_nn_get_tensor_clamp_min_max
     vsi_nn_tensor_t * input,
     float *clampMin,
     float *clampMax
+    );
+
+char* vsi_nn_strncpy
+    (
+    char* dest,
+    const char* source,
+    size_t count
+    );
+
+char* vsi_nn_strncat
+    (
+    char* dest,
+    const char* source,
+    size_t count
+    );
+
+char* vsi_nn_getenv
+    (
+    const char * var_name
+    );
+
+FILE* vsi_nn_fopen
+    (
+    const char * file_name,
+    const char * mode
     );
 
 #ifdef __cplusplus
