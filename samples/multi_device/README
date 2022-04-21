@@ -1,0 +1,16 @@
+## brief
+The multi_device demo uses some acuity exported tim-vx networks, and running on 4 devices of NPU using platform api.
+
+## environment
+  export VSIMULATOR_CONFIG=VIP9400O_PID0XD9
+  export VIV_MGPU_AFFINITY="1:0"
+  export VIV_OVX_USE_MULTI_DEVICE="1:1"
+  export TIM_VX_ROOT="${workspaceFolder}/tim-vx"
+
+## build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DTIM_VX_BUILD_EXAMPLES=ON -DTIM_VX_ENABLE_PLATFORM=ON
+
+## run
+cd build
+./samples/multi_device/multi_device
