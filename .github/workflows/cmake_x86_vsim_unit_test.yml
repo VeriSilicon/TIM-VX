@@ -1,4 +1,4 @@
-name: cmake_x86_vsim_unit_test
+name: cmake_x86_vsim
 
 on:
   # push:
@@ -11,9 +11,12 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  LD_LIBRARY_PATH: ${{github.workspace}}/tim-vx-install/prebuilt-sdk/x86_64_linux/lib:${{github.workspace}}/tim-vx-install/build/lib:${{github.workspace}}/tim-vx-install/tim-vx.install.dir/lib
+  VIVANTE_SDK_DIR: ${{github.workspace}}/tim-vx-install/prebuilt-sdk/x86_64_linux/
+  VSI_NN_LOG_LEVEL: 5
 
 jobs:
-  build:
+  tim-vx-build:
     # The CMake configure and build commands are platform agnostic and should work equally
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
@@ -26,15 +29,310 @@ jobs:
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTIM_VX_ENABLE_TEST=ON
+      run: |
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTIM_VX_ENABLE_TEST=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/tim-vx.install.dir/ -DTIM_VX_BUILD_EXAMPLES=ON -DTIM_VX_ENABLE_PLATFORM=ON -DTIM_VX_ENABLE_CUSTOM_OP=ON
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    - name: tvx-install
+      run: |
+        cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    - name: upload tim-vx-install
+      uses: actions/upload-artifact@v3
+      with:
+        name: tim-vx-install
+        path: |
+          ${{github.workspace}}/prebuilt-sdk
+          ${{github.workspace}}/build/lib
+          ${{github.workspace}}/tim-vx.install.dir/
+          ${{github.workspace}}/.github/
+
+  tim-vx-build-clang:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: |
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTIM_VX_ENABLE_TEST=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/tim-vx.install.dir/
 
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-    - name: execute-unit-test.x86.vsim
+  tim-vx-unit-test:
+    needs: tim-vx-build
+    runs-on: ubuntu-latest
+    env:
+      LD_LIBRARY_PATH: ${{github.workspace}}/prebuilt-sdk/x86_64_linux/lib:${{github.workspace}}/build/lib:${{github.workspace}}/tim-vx.install.dir/lib
+      VIVANTE_SDK_DIR: ${{github.workspace}}/prebuilt-sdk/x86_64_linux/
+    steps:
+    - name: download tim-vx build output
+      uses: actions/download-artifact@v3
+      with:
+        name: tim-vx-install
+
+    - name: tim-vx.unit-test.x86.vsim
       run: |
-        export LD_LIBRARY_PATH=`pwd`/prebuilt-sdk/x86_64_linux/lib
-        export VIVANTE_SDK_DIR=`pwd`/prebuilt-sdk/x86_64_linux/
-        cd ${{github.workspace}}/build/src/tim/
+        cd ${{github.workspace}}/tim-vx.install.dir/bin
+        chmod u+x ./unit_test
         ./unit_test
+    - name: tim-vx.samples
+      run: |
+        cd ${{github.workspace}}/tim-vx.install.dir/bin
+        chmod u+x multi_thread_test
+        chmod u+x lenet_multi_device
+        ./multi_thread_test
+        ./lenet_multi_device
+
+  vx-delegate-build:
+    runs-on: ubuntu-latest
+    needs: tim-vx-build
+    steps:
+      - name: download tim-vx build output
+        uses: actions/download-artifact@v3
+        with:
+          name: tim-vx-install
+      - name: apply-patch-build
+        run: |
+          git config --global user.email "xiang.zhang@verisilicon.com"
+          git config --global user.name "xiang.zhang"
+          git clone https://github.com/tensorflow/tensorflow.git ${{github.workspace}}/3rd-party/tensorflow && cd ${{github.workspace}}/3rd-party/tensorflow/ && git checkout v2.8.0 && git am ${{github.workspace}}/.github/workflows/0001-TensorFlow-V280-Enable-External-Delegate.patch
+          git clone https://github.com/VeriSilicon/tflite-vx-delegate.git ${{github.workspace}}/vx-delegate
+          cmake -B ${{github.workspace}}/vx-delegate/build -S ${{github.workspace}}/vx-delegate -DFETCHCONTENT_SOURCE_DIR_TENSORFLOW=${{github.workspace}}/3rd-party/tensorflow -DTIM_VX_INSTALL=${{github.workspace}}/tim-vx.install.dir/ -DTFLITE_ENABLE_NNAPI=OFF -DTFLITE_ENABLE_XNNPACK=OFF
+          cmake --build ${{github.workspace}}/vx-delegate/build --config ${{env.BUILD_TYPE}}
+          cd ${{github.workspace}}/vx-delegate/build
+          make vx_delegate benchmark_model
+      - name: upload vx-delegate
+        uses: actions/upload-artifact@v3
+        with:
+          name: vx-delegate-bin
+          path: |
+            ${{github.workspace}}/vx-delegate/build/_deps/tensorflow-build/tools/benchmark/benchmark_model
+            ${{github.workspace}}/vx-delegate/build/libvx_delegate.so
+
+  # AI-Benchmark 5.0.1 model zoo
+  mobilenet_v2_quant:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download binary
+        uses: actions/download-artifact@v3
+
+      - name: download mobilenet_v2_quant.tflite
+        run: |
+          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mobilenet_v2_quant.tflite
+      - name: benchmark_model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/mobilenet_v2_quant.tflite
+
+  mobilenet_v2_b8_quant:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download binary
+        uses: actions/download-artifact@v3
+      - name: download mobilenet_v2_b8_quant.tflite
+        run: |
+          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mobilenet_v2_b8_quant.tflite
+      - name: benchmark_model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/mobilenet_v2_b8_quant.tflite
+
+  resnet_quant:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download resnet_quant.tflite
+        run: |
+          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/resnet_quant.tflite
+      - name: benchmark_model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/resnet_quant.tflite
+
+  inception_v3_quant:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/inception_v3_quant.tflite
+      - name: benchmark_model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/inception_v3_quant.tflite
+
+  mobilenet_v3_b4_quant:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mobilenet_v3_b4_quant.tflite
+      - name: benchmark_model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/mobilenet_v3_b4_quant.tflite
+
+  mobilenet_v3_quant:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mobilenet_v3_quant.tflite
+      - name: benchmark_model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/mobilenet_v3_quant.tflite
+
+  mv3_depth_quant:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mv3_depth_quant.tflite
+      - name: benchmark_model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/mv3_depth_quant.tflite
+
+  yolo_v4_tiny_quant:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/yolo_v4_tiny_quant.tflite
+      - name: benchmark_model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/yolo_v4_tiny_quant.tflite
+
+  # Disable huge compilation cost
+  # deeplab_v3_plus_quant:
+  #   runs-on: ubuntu-latest
+  #   needs: vx-delegate-build
+  #   steps:
+  #     - name: download test binary
+  #       uses: actions/download-artifact@v3
+  #     - name: download model
+  #       run: |
+  #         curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/deeplab_v3_plus_quant.tflite
+  #     - name: benchmark_model
+  #       run: |
+  #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+  #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/deeplab_v3_plus_quant.tflite
+
+  # Tensorflow Hub
+  # tfhub-movenet-multipose:
+  #   runs-on: ubuntu-latest
+  #   needs: vx-delegate-build
+  #   steps:
+  #     - name: download test binary
+  #       uses: actions/download-artifact@v3
+  #     - name: download model
+  #       run: |
+  #         wget https://storage.googleapis.com/tfhub-lite-models/google/lite-model/movenet/multipose/lightning/tflite/float16/1.tflite
+  #         mv 1.tflite tfhub.movenet.multipose.tflite
+  #     - name: benchmark-model
+  #       run: |
+  #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+  #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/tfhub.movenet.multipose.tflite
+
+  tfhub-efficientdet-lite0:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite0/detection/metadata/1.tflite
+      - name: benchmark-model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
+
+  tfhub-efficientdet-lite1:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite1/detection/metadata/1.tflite
+      - name: benchmark-model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
+
+  tfhub-efficientdet-lite2:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite2/detection/metadata/1.tflite
+      - name: benchmark-model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
+
+  tfhub-efficientdet-lite3:
+    runs-on: ubuntu-latest
+    needs: vx-delegate-build
+    steps:
+      - name: download test binary
+        uses: actions/download-artifact@v3
+      - name: download model
+        run: |
+          wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite2/detection/metadata/1.tflite
+      - name: benchmark-model
+        run: |
+          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
+
+  # Graph compilation time is huge over 20mins
+  # tfhub-efficientdet-lite4:
+  #   runs-on: ubuntu-latest
+  #   needs: vx-delegate-build
+  #   steps:
+  #     - name: download test binary
+  #       uses: actions/download-artifact@v3
+  #     - name: download model
+  #       run: |
+  #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite4/detection/metadata/1.tflite
+  #     - name: benchmark-model
+  #       run: |
+  #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+  #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
