@@ -293,7 +293,7 @@ bool NativeTensorHandle::CopyDataToTensor(const void* data, uint32_t size_in_byt
   return tensor_->CopyDataToTensor(data, size_in_bytes);
 }
 
-bool NativeTensorHandle::CopyTensorToData(void* data) {
+bool NativeTensorHandle::CopyDataFromTensor(void* data) {
   return tensor_->CopyDataFromTensor(data);
 }
 

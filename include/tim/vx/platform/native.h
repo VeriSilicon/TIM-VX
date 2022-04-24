@@ -74,7 +74,7 @@ class NativeTensorHandle : public ITensorHandle {
  public:
   NativeTensorHandle(const std::shared_ptr<Tensor>& tensor);
   bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) override;
-  bool CopyTensorToData(void* data) override;
+  bool CopyDataFromTensor(void* data) override;
 
 };
 

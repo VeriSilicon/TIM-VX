@@ -126,7 +126,7 @@ class ITensorHandle {
  public:
   virtual ~ITensorHandle(){};
   virtual bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) = 0;
-  virtual bool CopyTensorToData(void* data) = 0;
+  virtual bool CopyDataFromTensor(void* data) = 0;
   virtual std::shared_ptr<Tensor> GetTensor() const;
 
  protected:
