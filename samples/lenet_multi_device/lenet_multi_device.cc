@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
 
   std::vector<uint8_t> input_data0;
   input_data0.resize(28 * 28);
-  if (!input_handle0->CopyTensorToData(input_data0.data())) {
+  if (!input_handle0->CopyDataFromTensor(input_data0.data())) {
     std::cout << "Copy intput data fail." << std::endl;
     return -1;
   }
@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
 
   std::vector<float> output_data;
   output_data.resize(1 * 10);
-  if (!output_handle0->CopyTensorToData(output_data.data())) {
+  if (!output_handle0->CopyDataFromTensor(output_data.data())) {
     std::cout << "Copy output data fail." << std::endl;
     return -1;
   }
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
 
   std::vector<float> output_data1;
   output_data1.resize(1 * 10);
-  if (!output_handle1->CopyTensorToData(output_data1.data())) {
+  if (!output_handle1->CopyDataFromTensor(output_data1.data())) {
     std::cout << "Copy output data fail." << std::endl;
     return -1;
   }
