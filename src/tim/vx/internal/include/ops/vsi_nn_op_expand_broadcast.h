@@ -30,6 +30,8 @@
 extern "C" {
 #endif
 
+#define VSI_EXPAND_BROADCAST_ENABLE_DIMENSIONS
+
 typedef struct _vsi_nn_expand_broadcast_param
 {
     uint32_t *shape;

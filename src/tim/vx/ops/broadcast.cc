@@ -37,6 +37,7 @@ Broadcast::Broadcast(Graph* graph, const std::vector<int32_t>& shape,
       dimensions_(dimensions) {
   this->impl()->node()->nn_param.expand_broadcast.dim_num = shape_.size();
   this->impl()->node()->nn_param.expand_broadcast.shape = (uint32_t*)shape_.data();
+#ifdef VSI_EXPAND_BROADCAST_ENABLE_DIMENSIONS
   this->impl()->node()->nn_param.expand_broadcast.dimensions_num = dimensions_.size();
   if (dimensions.size() > 0)
   {
@@ -44,7 +45,7 @@ Broadcast::Broadcast(Graph* graph, const std::vector<int32_t>& shape,
   } else {
     this->impl()->node()->nn_param.expand_broadcast.dimensions = nullptr;
   }
-
+#endif
 }
 
 std::shared_ptr<Operation> Broadcast::Clone(
