@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
     uint32_t out_image_h = default_cfg[kOutImageH];
     uint32_t out_image_c = default_cfg[kOutChannel];
     uint32_t is_depthwise = default_cfg[deptwise_option];
-    uint32_t multiplier;
+    uint32_t multiplier = 1;
 
     if (argc != 0 && argc != kConfigFiledCnt + 1){
         std::cout << "argc = " << argc << std::endl;
