@@ -158,4 +158,4 @@ A311D | Khadas - VIM3 | [A311D datasheet](https://dl.khadas.com/Hardware/VIM3/Da
 S905D3 | Khadas - VIM3L | [S905D3](https://dl.khadas.com/Hardware/VIM3/Datasheet/S905D3_datasheet_0.2_Wesion.pdf) , [BSP](https://dl.khadas.com/Firmware/VIM3L/Ubuntu/EMMC/VIM3L_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z)
 
 # Support
-Create issue on github or email to ML_Support@verisilicon.com
+Create issue on github or email to ML_Support at verisilicon dot com
