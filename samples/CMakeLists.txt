@@ -18,4 +18,5 @@ endif()
 
 if(TIM_VX_ENABLE_PLATFORM)
     add_subdirectory("lenet_multi_device")
+    add_subdirectory("multi_device")
 endif()
