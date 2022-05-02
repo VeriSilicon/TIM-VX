@@ -1,11 +1,7 @@
 name: cmake_x86_vsim
 
 on:
-  # push:
-  #   branches: [ main ]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
     branches: [ main ]
 
 env:
