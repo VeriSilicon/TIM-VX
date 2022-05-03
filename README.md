@@ -1,8 +1,8 @@
 
 
 # TIM-VX - Tensor Interface Module
-![Bazel.VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml/badge.svg)
-![CMake.VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/cmake_x86_vsim_unit_test.yml/badge.svg)
+[![bazel_x86_vsim_unit_test](https://github.com/VeriSilicon/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml/badge.svg)](https://github.com/VeriSilicon/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml)
+[![cmake_x86_vsim](https://github.com/VeriSilicon/TIM-VX/actions/workflows/cmake_x86_vsim.yml/badge.svg)](https://github.com/VeriSilicon/TIM-VX/actions/workflows/cmake_x86_vsim.yml)
 
 - [TIM-VX - Tensor Interface Module](#tim-vx---tensor-interface-module)
   - [Framework Support](#framework-support)
