@@ -15,4 +15,4 @@ CMakeLists.txt TIM_VX_INCLUE_PATH中的，然后在当前路径执行：
 替换下面的TIMVX_PATH为本地真实路径  
 1. export VIVANTE_SDK_DIR=TIMVX_PATH/prebuilt-sdk/x86_64_linux
 2. export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:TIMVX_PATH/prebuilt-sdk/x86_64_linux/lib
-3. python lenet_test.py
+3. python examples/lenet_test/lenet_test.py
