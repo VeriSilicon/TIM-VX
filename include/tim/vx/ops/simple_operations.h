@@ -82,6 +82,10 @@ namespace ops {
  *
  * returns the largest integer less than or equal to a given number.
  *
+ * ## Ceil
+ * 
+ * returns the largest integer more than or equal to a given number.
+ * 
  * ## Cast
  *
  * Change the format from input tensor to output tensor. This operation ignores
@@ -101,6 +105,8 @@ DECLARE_SIMPLE_OP(Rsqrt)
 DECLARE_SIMPLE_OP(Square)
 DECLARE_SIMPLE_OP(LogicalNot)
 DECLARE_SIMPLE_OP(Floor)
+DECLARE_SIMPLE_OP(Ceil)
+DECLARE_SIMPLE_OP(Round)
 DECLARE_SIMPLE_OP(Cast)
 
 #undef DECLARE_SIMPLE_OP
