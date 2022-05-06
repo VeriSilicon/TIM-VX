@@ -39,7 +39,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.01928069
     quant_info["zero_point"] = 140
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], tensor_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "pool1_output"

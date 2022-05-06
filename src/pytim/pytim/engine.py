@@ -82,7 +82,7 @@ class Engine():
             ret = self.engine.bind_inputs(op_name, op_inputs)
         if ret and "op_outputs" in op_info.keys():
             op_outputs = op_info["op_outputs"]
-            ret = self.engine.bind_inputs(op_name, op_outputs)
+            ret = self.engine.bind_outputs(op_name, op_outputs)
         return ret
 
     def get_op_info(self, op_name:str):
