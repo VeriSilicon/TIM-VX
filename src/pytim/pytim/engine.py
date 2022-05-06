@@ -3,8 +3,8 @@ import numpy as np
 from .lib.timvx import *
 
 class Engine():
-    def __init__(self, name):
-        self.engine = timvx(name)
+    def __init__(self, name:str):
+        self.engine = timvx_engine(name)
 
     def convert_np_dtype_to_tim_dtype(self, datatype):
         if datatype == np.int8:
@@ -28,7 +28,7 @@ class Engine():
         else:
             assert False, "unspoorted datatype {}, when convert np type to tim type".format(datatype)
 
-    def convert_tim_dtype_to_np_dtype(self, datatype):
+    def convert_tim_dtype_to_np_dtype(self, datatype:str):
         if datatype == "INT8":
             return np.int8
         elif datatype == "UINT8":
@@ -50,37 +50,54 @@ class Engine():
         else:
             assert False, "unspoorted datatype {}, when convert tim tensor type to np type".format(datatype)
 
-    def get_graph_name(self, ):
+    def get_graph_name(self):
         return self.engine.get_graph_name()
 
-    def get_tensor_size(self, tensor_name):
+    def get_tensor_size(self, tensor_name:str):
         return self.engine.get_tensor_size(tensor_name)
 
-    def create_tensor(self, tensor_name, tensor_dtype, tensor_attr, tensor_shape, quant_info):
-        self.engine.create_tensor(tensor_name, tensor_dtype, tensor_attr, tensor_shape, quant_info)
+    def create_tensor(self, tensor_name:str, tensor_dtype:str, tensor_attr:str, \
+        tensor_shape:list, quant_info:dict={}, np_data:np.array=np.array([])):
+        tensor_info = {}
+        tensor_info["shape"] = tensor_shape
+        tensor_info["data_type"] = tensor_dtype
+        tensor_info["attribute"] = tensor_attr
+        if quant_info != {}:
+            tensor_info["quant_info"] = quant_info
+        if np_data.size != 0:
+            tensor_info["data"] = np_data
+        return self.engine.create_tensor(tensor_name, tensor_info)
 
-    def copy_data_from_tensor(self, tensor_name, np_data):
+    def copy_data_from_tensor(self, tensor_name:str, np_data:np.array):
         return self.engine.copy_data_from_tensor(tensor_name, np_data)
 
-    def copy_data_to_tensor(self, tensor_name, np_data):
+    def copy_data_to_tensor(self, tensor_name:str, np_data:np.array):
         return self.engine.copy_data_to_tensor(tensor_name, np_data)
 
-    def create_operation(self, op_info):
-        return self.engine.create_operation(op_info)
+    def create_operation(self, op_info:dict):
+        ret = self.engine.create_operation(op_info)
+        op_name = op_info["op_name"]
+        if ret and "op_inputs" in op_info.keys():
+            op_inputs = op_info["op_inputs"]
+            ret = self.engine.bind_inputs(op_name, op_inputs)
+        if ret and "op_outputs" in op_info.keys():
+            op_outputs = op_info["op_outputs"]
+            ret = self.engine.bind_inputs(op_name, op_outputs)
+        return ret
 
-    def get_op_info(self, op_name):
+    def get_op_info(self, op_name:str):
         self.engine.get_op_info(op_name)
 
-    def bind_input(self, op_name, tensor_name):
+    def bind_input(self, op_name:str, tensor_name:str):
         return self.engine.bind_input(op_name, tensor_name)
 
-    def bind_output(self, op_name, tensor_name):
+    def bind_output(self, op_name:str, tensor_name:str):
         return self.engine.bind_output(op_name, tensor_name)
 
-    def bind_inputs(self, op_name, tensor_names):
+    def bind_inputs(self, op_name:str, tensor_names:list):
         return self.engine.bind_inputs(op_name, tensor_names)
 
-    def bind_outputs(self, op_name, tensor_names):
+    def bind_outputs(self, op_name:str, tensor_names:list):
         return self.engine.bind_outputs(op_name, tensor_names)
 
     def set_rounding_policy(self, overflow_policy, rounding_policy,
