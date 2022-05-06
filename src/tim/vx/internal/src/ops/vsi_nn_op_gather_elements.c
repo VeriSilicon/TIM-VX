@@ -46,7 +46,7 @@ typedef struct _gather_elements_local_data_t {
 /*
  Declare number of input and output.
  */
-#define _INPUT_NUM          (1)
+#define _INPUT_NUM          (2)
 #define _OUTPUT_NUM         (1)
 
 static vsi_status op_compute
