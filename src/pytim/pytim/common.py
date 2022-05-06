@@ -184,7 +184,7 @@ def ConstructPool2dOpConfig(op_name:str, type:str, ksize:list=[], stride:list=[]
     if len(input_size) > 0:
         assert len(ksize) == 0 and len(stride) == 0, "ksize and stride len should be 0, when input_size len > 0"
     if padding != "AUTO":
-        assert pad != [0, 0, 0, 0], "pad should be [0, 0, 0, 0], when padding is not AUTO"
+        assert pad == [0, 0, 0, 0], "pad should be [0, 0, 0, 0], when padding is not AUTO"
     op_info_dict = {}
     op_info_dict["op_name"] = op_name
     op_info_dict["op_type"] = "Pool2d"

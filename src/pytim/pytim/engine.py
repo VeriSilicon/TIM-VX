@@ -2,6 +2,8 @@
 import numpy as np
 from .lib.timvx import *
 
+TimVxDataType = ["INT8", "UINT8", "INT16", "UINT16", "INT32", "UINT32", "FLOAT16", "FLOAT32", "BOOL8"]
+
 class Engine():
     def __init__(self, name:str):
         self.engine = timvx_engine(name)
@@ -58,14 +60,17 @@ class Engine():
 
     def create_tensor(self, tensor_name:str, tensor_dtype:str, tensor_attr:str, \
         tensor_shape:list, quant_info:dict={}, np_data:np.array=np.array([])):
+
+        assert tensor_dtype in TimVxDataType, "tim-vx not support {} datatype".format(tensor_dtype)
         tensor_info = {}
         tensor_info["shape"] = tensor_shape
         tensor_info["data_type"] = tensor_dtype
         tensor_info["attribute"] = tensor_attr
-        if quant_info != {}:
+        if len(quant_info.keys()) != 0:
             tensor_info["quant_info"] = quant_info
         if np_data.size != 0:
             tensor_info["data"] = np_data
+        print(tensor_info)
         return self.engine.create_tensor(tensor_name, tensor_info)
 
     def copy_data_from_tensor(self, tensor_name:str, np_data:np.array):

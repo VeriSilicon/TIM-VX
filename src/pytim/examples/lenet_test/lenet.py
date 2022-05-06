@@ -99,7 +99,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 0
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[425780:427780]
-    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [500,], quant_info), \
+    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [500,], quant_info, data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "fc3_output"
@@ -155,6 +155,7 @@ def construct_operations(engine):
     op_outputs = ["conv1_output", ]
     op_info = ConstructConv2dOpConfig(op_name=op_name, weights=20, padding="VALID", ksize=[5,5], 
         stride=[1,1], dilation=[1,1], op_inputs=op_inputs, op_outputs=op_outputs)
+    print(op_info)
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
     op_name = "pool1"
@@ -162,6 +163,7 @@ def construct_operations(engine):
     op_outputs = ["pool1_output", ]
     op_info = ConstructPool2dOpConfig(op_name=op_name, type="MAX", padding="NONE", ksize=[2,2], 
         stride=[2,2], op_inputs=op_inputs, op_outputs=op_outputs)
+    print(op_info)
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
     op_name = "conv2"
@@ -169,6 +171,7 @@ def construct_operations(engine):
     op_outputs = ["conv2_output", ]
     op_info = ConstructConv2dOpConfig(op_name=op_name, weights=50, padding="VALID", ksize=[5,5], 
         stride=[1,1], dilation=[1,1], op_inputs=op_inputs, op_outputs=op_outputs)
+    print(op_info)
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
     op_name = "pool2"
@@ -176,6 +179,7 @@ def construct_operations(engine):
     op_outputs = ["pool2_output", ]
     op_info = ConstructPool2dOpConfig(op_name=op_name, type="MAX", padding="NONE", ksize=[2,2], 
         stride=[2,2], op_inputs=op_inputs, op_outputs=op_outputs)
+    print(op_info)
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
     op_name = "fc3"
@@ -183,12 +187,15 @@ def construct_operations(engine):
     op_outputs = ["fc3_output", ]
     op_info = ConstructFullyConnectedOpConfig(op_name=op_name, axis=2, weights=500, 
         op_inputs=op_inputs, op_outputs=op_outputs)
+    print(op_info)
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
     op_name = "relu"
     op_inputs = ["fc3_output", ]
     op_outputs = ["relu_output", ]
-    op_info = ConstructActivationOpConfig(op_name=op_name, activation_type="Relu")
+    op_info = ConstructActivationOpConfig(op_name=op_name, activation_type="Relu", 
+        op_inputs=op_inputs, op_outputs=op_outputs)
+    print(op_info)
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
     op_name = "fc4"
@@ -196,6 +203,7 @@ def construct_operations(engine):
     op_outputs = ["fc4_output", ]
     op_info = ConstructFullyConnectedOpConfig(op_name=op_name, axis=0, weights=10, 
         op_inputs=op_inputs, op_outputs=op_outputs)
+    print(op_info)
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
     op_name = "softmax"
@@ -203,6 +211,7 @@ def construct_operations(engine):
     op_outputs = ["output", ]
     op_info = ConstructSoftmaxOpConfig(op_name=op_name, beta=1.0, axis=0, 
         op_inputs=op_inputs, op_outputs=op_outputs)
+    print(op_info)
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
 
