@@ -36,6 +36,12 @@ namespace TIMVXPY
             {
                 bool approximate = true;
             }gelu;
+            // hard sigmoid parameter
+            struct
+            {
+                float alpha;
+                float beta;
+            }hardsigmoid;
         };
 
         virtual Operation* on_create(std::shared_ptr<Graph> &graph, const py::dict &op_info) override;
@@ -45,6 +51,7 @@ namespace TIMVXPY
         bool parse_leakyrelu_attr(const py::dict &op_info, ActivationOpAttr &op_attr);
         bool parse_linear_attr(const py::dict &op_info, ActivationOpAttr &op_attr);
         bool parse_gelu_attr(const py::dict &op_info, ActivationOpAttr &op_attr);
+        bool parse_hardsigmoid_attr(const py::dict &op_info, ActivationOpAttr &op_attr);
         bool parse_op_attr(std::string op_type, const py::dict &op_info, ActivationOpAttr &op_attr);
     
     private:

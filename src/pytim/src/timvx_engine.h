@@ -54,6 +54,7 @@ namespace TIMVXPY
         bool bind_outputs(const std::string &op_name, const std::vector<std::string> &output_list);
         bool bind_input(const std::string &op_name, const std::string &input_name);
         bool bind_output(const std::string &op_name, const std::string &output_name);
+        // bool set_rounding_policy(const std::string &op_name, const py::dict &rounding_policy);
 
         // graph uitls
         bool create_graph();

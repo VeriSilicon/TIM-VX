@@ -34,6 +34,13 @@ namespace TIMVXPY
         return parse_value<py::bool_, bool>(op_info, full_op_name, "approximate", op_attr.gelu.approximate, false);
     }
 
+    bool ActivationCreator::parse_hardsigmoid_attr(const py::dict &op_info, ActivationOpAttr &op_attr)
+    {
+        std::string full_op_name = m_op_name + "_hardsigmoid";
+        return parse_value<py::float_, float>(op_info, full_op_name, "alpha", op_attr.hardsigmoid.alpha) &&
+            parse_value<py::float_, float>(op_info, full_op_name, "beta", op_attr.hardsigmoid.beta);
+    }
+
     bool ActivationCreator::parse_op_attr(std::string op_type, const py::dict &op_info, ActivationOpAttr &op_attr)
     {
         op_attr.gelu.approximate = true;
@@ -46,6 +53,8 @@ namespace TIMVXPY
             return parse_linear_attr(op_info, op_attr);
         else if ("gelu" == op_type)
             return parse_gelu_attr(op_info, op_attr);
+        else if ("hardsigmoid" == op_type)
+            return parse_hardsigmoid_attr(op_info, op_attr);
         else
             return true;
     }
@@ -84,7 +93,9 @@ namespace TIMVXPY
         }
         else if ("HardSigmoid" == activation_type)
         {
-            return graph->CreateOperation<ops::HardSigmoid>().get();
+            float alpha = op_attr.hardsigmoid.alpha;
+            float beta = op_attr.hardsigmoid.beta;
+            return graph->CreateOperation<ops::HardSigmoid>(alpha, beta).get();
         }
         else if ("SoftRelu" == activation_type)
         {

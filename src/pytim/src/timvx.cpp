@@ -35,6 +35,7 @@ PYBIND11_MODULE(timvx, m)
     .def("compile_graph",         &TimVXEngine::compile_graph)
     .def("run_graph",             &TimVXEngine::run_graph)
     .def("get_graph_name",        &TimVXEngine::get_graph_name);
+    // .def("set_rounding_policy",   &TimVXEngine::set_rounding_policy);
 
     // py::class_<TimVXQuantInfo>(m, "quant_info")
     // .def(py::init<int32_t, int32_t, std::vector<float> &, std::vector<int32_t> &>())

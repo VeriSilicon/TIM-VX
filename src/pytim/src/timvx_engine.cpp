@@ -217,6 +217,11 @@ namespace TIMVXPY
             std::cout << "op_attr item is not contained, or op_attr is not dict!" << std::endl;
             return false;
         }
+        if (op_info.contains("rounding_policy") && !py::isinstance<py::dict>(op_info["rounding_policy"]))
+        {
+            std::cout << "rounding_policy item is contained, but not dict!" << std::endl;
+            return false;
+        }
         auto op_name = std::string(py::str(op_info["op_name"]));
         if (m_operations.find(op_name) != m_operations.end())
         {
@@ -231,12 +236,25 @@ namespace TIMVXPY
             return false;
         }
         auto op_node = op_creator->on_create(m_graph, py::dict(op_info["op_attr"]));
-        if (op_node != nullptr)
+        if (nullptr != op_node && op_info.contains("rounding_policy"))
+        {
+            py::dict rounding_policy = py::dict(op_info["rounding_policy"]);
+            OverflowPolicy overflow_policy_type = OverflowPolicy::SATURATE;
+            RoundingPolicy rounding_policy_type = RoundingPolicy::RTNE;
+            RoundType      round_type           = RoundType::FLOOR;
+            uint32_t       accumulator_bits     = 0;
+            op_creator->parse_overflow_policy_type(rounding_policy, op_name, "overflow_policy", overflow_policy_type, false);
+            op_creator->parse_rounding_policy_type(rounding_policy, op_name, "rounding_policy", rounding_policy_type, false);
+            op_creator->parse_round_type(rounding_policy, op_name, "down_scale_size_rounding", round_type, false);
+            op_creator->parse_value<py::int_, uint>(rounding_policy, op_name, "accumulator_bits", accumulator_bits, false);
+            op_node->SetRoundingPolicy(overflow_policy_type, rounding_policy_type, round_type, accumulator_bits);
+        }
+        if (nullptr != op_node)
         {
             m_operations[op_name] = op_node;
             m_op_info[op_name] = op_info;
             return true;
-        }
+        }        
         return false;
     }
 
@@ -350,6 +368,22 @@ namespace TIMVXPY
         op_node->BindOutput(out_tensor);
         return true;
     }
+    
+    
+    // bool TimVXEngine::set_rounding_policy(const std::string &op_name, const py::dict &rounding_policy)
+    // {
+    //     if (m_graph.get() == nullptr)
+    //     {
+    //         std::cout << "graph is invalid, please create graph first!" << std::endl;
+    //         return false;
+    //     }
+    //     if (m_operations.find(op_name) == m_operations.end())
+    //     {
+    //         std::cout << "op " << op_name <<" not exists!" << std::endl;
+    //         return false;
+    //     }
+    //     return true;
+    // }
 
     py::dict TimVXEngine::get_op_info(const std::string &op_name)
     {

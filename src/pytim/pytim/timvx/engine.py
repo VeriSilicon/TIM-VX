@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from .lib.timvx import *
+from .lib import *
 
 TimVxDataType = ["INT8", "UINT8", "INT16", "UINT16", "INT32", "UINT32", "FLOAT16", "FLOAT32", "BOOL8"]
 
@@ -70,7 +70,6 @@ class Engine():
             tensor_info["quant_info"] = quant_info
         if np_data.size != 0:
             tensor_info["data"] = np_data
-        print(tensor_info)
         return self.engine.create_tensor(tensor_name, tensor_info)
 
     def copy_data_from_tensor(self, tensor_name:str, np_data:np.array):
@@ -105,9 +104,14 @@ class Engine():
     def bind_outputs(self, op_name:str, tensor_names:list):
         return self.engine.bind_outputs(op_name, tensor_names)
 
-    def set_rounding_policy(self, overflow_policy, rounding_policy,
-     down_scale_size_rounding, accumulator_bits):
-        pass
+    # def set_rounding_policy(self, op_name:str, overflow_policy:str="SATURATE", rounding_policy:str="RTNE",
+    #  down_scale_size_rounding:str="FLOOR", accumulator_bits:int=0):
+    #     rounding_policy_dict = {}
+    #     rounding_policy_dict["overflow_policy"] = overflow_policy
+    #     rounding_policy_dict["rounding_policy"] = rounding_policy
+    #     rounding_policy_dict["down_scale_size_rounding"] = down_scale_size_rounding
+    #     rounding_policy_dict["accumulator_bits"] = accumulator_bits
+    #     return self.engine.set_rounding_policy(op_name, rounding_policy_dict)
 
     def create_graph(self):
         return self.engine.create_graph()

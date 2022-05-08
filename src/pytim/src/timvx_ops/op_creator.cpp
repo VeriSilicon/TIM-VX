@@ -14,15 +14,20 @@ namespace TIMVXPY
     extern void FullyConnected_op_creator();
     extern void Softmax_op_creator();
     extern void Pool2d_op_creator();
+    extern void Reshape_op_creator();
+    extern void Resize_op_creator();
+    extern void Transpose_op_creator();
     void register_ops()
     {
-        std::cout << "register ops..." << std::endl;
         Activation_op_creator();
         Eltwise_op_creator();
         Conv2d_op_creator();
         FullyConnected_op_creator();
         Softmax_op_creator();
         Pool2d_op_creator();
+        Reshape_op_creator();
+        Resize_op_creator();
+        Transpose_op_creator();
     }
 
     bool OpCreator::parse_pool_type(const py::dict &op_info, const std::string &op_name, 
