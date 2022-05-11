@@ -71,7 +71,7 @@ def ConstructEltwiseOpConfig(op_name:str, eltwise_type:str, parameter:dict={},
     # Multiply/Div parameter
     # scale = 1.0
     valid_eltwise_type = ["Minimum", "Maximum", "Add", "Sub", "Pow", "FloorDiv", "Multiply", "Div"]
-    assert eltwise_type in valid_eltwise_type, "activation_type:{} is not in {}".format(eltwise_type, valid_eltwise_type)
+    assert eltwise_type in valid_eltwise_type, "eltwise_type:{} is not in {}".format(eltwise_type, valid_eltwise_type)
     op_info_dict = {}
     op_info_dict["op_name"] = op_name
     op_info_dict["op_type"] = "Eltwise"

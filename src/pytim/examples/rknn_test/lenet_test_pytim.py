@@ -17,7 +17,9 @@ if __name__ == "__main__":
     assert engine.compile_graph(), "compile graph fail...."
     
     # set engine's input
-    lenet_input_data = np.load("./examples/rknn_test/input.npy").reshape((28, 28, 1, 1))
+    lenet_input_data = np.load("./examples/rknn_test/lenet_input.npy").reshape((1, 28, 28, 1))
+    # lenet_input_data = np.load("./examples/rknn_test/lenet_random_input.npy").reshape((1, 28, 28, 1))
+    lenet_input_data = lenet_input_data.transpose((2,1,3,0)) # convert nhwc to whcn
     assert engine.copy_data_to_tensor("norm_tensor:1", lenet_input_data), "set input fail...."
     
     # run engine's graph
@@ -26,4 +28,4 @@ if __name__ == "__main__":
     # get output
     output_data = np.zeros((10,1)).astype(np.uint8)
     assert engine.copy_data_from_tensor("norm_tensor:0", output_data), "get output fail...."
-    print(output_data)    
+    print(output_data)

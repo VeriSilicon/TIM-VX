@@ -100,13 +100,13 @@ def convert_to_timvx_pool_type(pool_type:str):
 
 def convert_to_timvx_round_type(round_type:str):
     round_list = ["VSI_NN_ROUND_FLOOR", 
-        "VSI_NN_ROUND_CEILING", 
+        "VSI_NN_ROUND_CEIL", 
         "VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR",
         "VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_CEILING"]
     if round_type == "VSI_NN_ROUND_FLOOR" or \
         round_type == "VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR":
         return "FLOOR"
-    elif round_type == "VSI_NN_ROUND_CEILING" or \
+    elif round_type == "VSI_NN_ROUND_CEIL" or \
         round_type == "VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_CEILING":
         return "CEILING"
     else:
@@ -115,8 +115,10 @@ def convert_to_timvx_round_type(round_type:str):
 
 def convert_to_timvx_rounding_policy(rounding_policy:str):
     rounding_policy_list = ["VX_ROUND_POLICY_TO_RTNE", 
-        "VX_ROUND_POLICY_TO_ZERO"]
-    if rounding_policy == "VX_ROUND_POLICY_TO_RTNE":
+        "VX_ROUND_POLICY_TO_ZERO",
+        "VX_ROUND_POLICY_TO_NEAREST_EVEN"]
+    if rounding_policy == "VX_ROUND_POLICY_TO_RTNE" or \
+        rounding_policy == "VX_ROUND_POLICY_TO_NEAREST_EVEN":
         return "RTNE"
     elif rounding_policy == "VX_ROUND_POLICY_TO_ZERO":
         return "TO_ZERO"
@@ -135,6 +137,20 @@ def convert_to_timvx_overflow_policy(overflow_policy:str):
         assert False, "unsupported overflow policy {}".format(overflow_policy, overflow_policy_list)
 
 
+def convert_to_timvx_interpolation_type(interpolation_type:str):
+    interpolation_type_list = ["VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR", 
+        "VSI_NN_INTERPOLATION_BILINEAR",
+        "VSI_NN_INTERPOLATION_AREA"]    
+    if interpolation_type == "VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR":
+        return "NEAREST_NEIGHBOR"
+    elif interpolation_type == "VSI_NN_INTERPOLATION_BILINEAR":
+        return "BILINEAR"
+    elif interpolation_type == "VSI_NN_INTERPOLATION_AREA":
+        return "AREA"
+    else:
+        assert False, "unsupported interpolation type {}".format(interpolation_type, interpolation_type_list)
+
+
 def format_rounding_policy(rounding_policy_dict):
     if "overflow_policy" in rounding_policy_dict.keys():
         policy = rounding_policy_dict["overflow_policy"]
@@ -149,6 +165,21 @@ def format_rounding_policy(rounding_policy_dict):
     return rounding_policy_dict
 
 
+def format_resize_op_cfg(op_cfg:dict):
+    if "type" in op_cfg.keys():
+        op_cfg["type"] = convert_to_timvx_interpolation_type(op_cfg["type"])
+    if "size" in op_cfg.keys():
+        op_cfg["target_height"] = op_cfg["size"][1]
+        op_cfg["target_width"] = op_cfg["size"][0]
+        del op_cfg["size"]
+    if "align_corners" in op_cfg.keys():
+        op_cfg["align_corners"] = bool(op_cfg["align_corners"])
+    if "half_pixel_centers" in op_cfg.keys():
+        op_cfg["half_pixel_centers"] = bool(op_cfg["half_pixel_centers"])
+    if "layout" in op_cfg.keys():
+        op_cfg["layout"] = op_cfg["layout"]
+    return op_cfg
+
 
 def construct_activation_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
     node_info = rknn_model_info[node_index]
@@ -160,6 +191,8 @@ def construct_activation_op(rknn_op_name, rknn_model_info, node_index, engine, l
     assert len(op_outputs) == 1, "rknn {} op should have 1 output".format(rknn_op_name)
     if rknn_op_name == "RELU":
         activation_type = "Relu"
+    elif rknn_op_name == "SIGMOID":
+        activation_type = "Sigmoid"
     else:
         assert False, "unspppoted activation type {}".format(rknn_op_name)
     op_info = ConstructActivationOpConfig(op_name=op_name, activation_type=activation_type, parameter=parameter,
@@ -182,7 +215,7 @@ def construct_eltwise_op(rknn_op_name, rknn_model_info, node_index, engine, log_
     if rknn_op_name == "ADD":
         eltwise_type = "Add"
     elif rknn_op_name == "MULTIPLY":
-        eltwise_type = "Mul"
+        eltwise_type = "Multiply"
     else:
         assert False, "unspppoted eltwise type {}".format(rknn_op_name)
 
@@ -280,12 +313,12 @@ def construct_resize_op(rknn_op_name, rknn_model_info, node_index, engine, log_f
     assert "resize" in node_info["attribute"], "rknn resize op's attribute should have resize item"
     op_config = node_info["attribute"]["resize"]
 
-    op_info = ConstructResizeOpConfig(op_name=op_name, op_inputs=op_inputs, op_outputs=op_outputs, *op_config)
+    op_config = format_resize_op_cfg(op_config)
+    op_info = ConstructResizeOpConfig(op_name=op_name, op_inputs=op_inputs, op_outputs=op_outputs, **op_config)
     if "vx" in node_info["attribute"].keys():
         op_info["rounding_policy"] = format_rounding_policy(node_info["attribute"]["vx"])
     if log_flag:
-        print("construct {} op:".format(rknn_op_name))
-        print("op info:".format(op_info))
+        print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
 
 def construct_pool2d_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
