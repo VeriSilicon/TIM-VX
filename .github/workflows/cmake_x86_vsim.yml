@@ -315,19 +315,19 @@ jobs:
           chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
           ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
 
-  acuity-yolov3-608-quant:
-    runs-on: ubuntu-latest
-    needs: [vx-delegate-build, tim-vx-unit-test]
-    steps:
-      - name: download test binary
-        uses: actions/download-artifact@v3
-      - name: download model
-        run: |
-          curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/yolov3_608relu_quant.acuity.tflite
-      - name: benchmark-model
-        run: |
-          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
-          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/yolov3_608relu_quant.acuity.tflite
+  # acuity-yolov3-608-quant:
+  #   runs-on: ubuntu-latest
+  #   needs: [vx-delegate-build, tim-vx-unit-test]
+  #   steps:
+  #     - name: download test binary
+  #       uses: actions/download-artifact@v3
+  #     - name: download model
+  #       run: |
+  #         curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/yolov3_608relu_quant.acuity.tflite
+  #     - name: benchmark-model
+  #       run: |
+  #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+  #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/yolov3_608relu_quant.acuity.tflite
 
   # Graph compilation time is huge over 20mins
   # tfhub-efficientdet-lite4:
