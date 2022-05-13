@@ -56,8 +56,14 @@ class TransposeLayoutInfer : public OpLayoutInfer {
     IPermuteVectorPtr final_pv = input_pv->Reverse()->Add(perm_pv);
 
     if (final_pv->IsAligned()) {
-      //skip transpose op by treating its input as its output.
-      context_->UpdateTensorMap(op_->impl()->OutputsTensor()[0], infer_input);
+      //skip transpose op by insert a dummy reshape
+      // context_->UpdateTensorMap(op_->impl()->OutputsTensor()[0], infer_input);
+      auto reshape_op =
+          context_->infer_graph_->CreateOperation<tim::vx::ops::Reshape>(
+              op_->impl()->OutputsTensor()[0]->GetShape());
+      reshape_op->BindInput(infer_input);
+      auto reshape_out = CreateOutputsTensor(final_pv);
+      reshape_op->BindOutput(reshape_out[0]);
     } else {
       auto transpose_op =
           context_->infer_graph_->CreateOperation<tim::vx::ops::Transpose>(
