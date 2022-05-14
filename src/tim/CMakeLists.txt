@@ -91,6 +91,12 @@ if(${TIM_VX_USE_EXTERNAL_OVXLIB})
   target_link_libraries(${TARGET_NAME} PUBLIC tim_internal)
 endif()
 
+if(${TIM_VX_ENABLE_SYNAP})
+    add_subdirectory(vx/synap)
+    target_link_libraries(${TARGET_NAME} PRIVATE synap)
+    target_compile_definitions(${TARGET_NAME} PUBLIC TIM_VX_ENABLE_SYNAP=1)
+endif()
+
 if (NOT CMAKE_INSTALL_LIBDIR)
 	set(CMAKE_INSTALL_LIBDIR "lib")
 endif()

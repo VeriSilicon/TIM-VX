@@ -21,45 +21,29 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/context.h"
+#ifndef TIM_VX_GRAPH_SYNAP_H_
+#define TIM_VX_GRAPH_SYNAP_H_
+#include "../graph_private.h"
+#include "synap/network.hpp"
 
-#include "context_private.h"
-#include "graph_private.h"
-#if TIM_VX_ENABLE_SYNAP
-#include "synap/graph_synap.h"
-#endif
-#include "tim/vx/graph.h"
-#include "tim/vx/compile_option.h"
-#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
 
-ContextImpl::ContextImpl() : context_(vsi_nn_CreateContext()) {}
+class GraphSynap : public GraphImpl {
+ public:
+    GraphSynap(ContextImpl* context, const CompileOption& options = CompileOption::DefaultOptions):
+        GraphImpl(context, options) 
+    {}
 
-ContextImpl::~ContextImpl() {
-  if (context_) {
-    vsi_nn_ReleaseContext(&context_);
-  }
-}
+  bool Compile() override;
+  bool Run() override;
 
-vsi_nn_context_t ContextImpl::context() { return context_; }
-
-std::shared_ptr<Context> Context::Create() {
-  return std::make_shared<ContextImpl>();
-}
-
-std::shared_ptr<Graph> ContextImpl::CreateGraph() {
-#if TIM_VX_ENABLE_SYNAP
-    return std::make_shared<GraphSynap>(this);
-#else
-    return std::make_shared<GraphImpl>(this);
-#endif
-}
-
-std::shared_ptr<Graph> ContextImpl::CreateGraph(const CompileOption& options) {
-  return std::make_shared<GraphImpl>(this, options);
-}
+ private:
+  synaptics::synap::Network _network;
+};
 
 }  // namespace vx
 }  // namespace tim
+
+#endif /* TIM_VX_GRAPH_PRIVATE_H_ */

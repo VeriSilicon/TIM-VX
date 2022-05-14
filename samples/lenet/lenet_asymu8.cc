@@ -38,6 +38,7 @@
 #include "tim/vx/ops/softmax.h"
 #include "tim/vx/tensor.h"
 
+// This is a "0" when viewed as 28x28
 std::vector<uint8_t> input_data = {
     0,   0,   0,   0,   0,   0,   0,   0,   6,   0,   2,   0,   0,   8,   0,
     3,   0,   7,   0,   2,   0,   0,   0,   10,  0,   0,   0,   0,   0,   0,
