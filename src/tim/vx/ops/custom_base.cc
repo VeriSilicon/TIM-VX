@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-
+#ifdef TIM_VX_ENABLE_CUSTOM_OP
 #include <map>
 #include <assert.h>
 #include "tim/vx/ops.h"
@@ -251,3 +251,4 @@ vx_status derive_kernel_init(vx_node node, const vx_reference* param,
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+#endif
