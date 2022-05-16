@@ -70,6 +70,8 @@ class GraphImpl : public Graph {
                                        const void* data = nullptr) override;
   std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
                                        const DmaBufferDesc& dmafd) override;
+  std::shared_ptr<Tensor> CreateIOTensor(const TensorSpec& spec,
+                                       void* data = nullptr) override;
   std::shared_ptr<Tensor> CreateTensorPlaceHolder() override;
 
   bool Compile() override;

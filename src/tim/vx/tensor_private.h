@@ -34,9 +34,10 @@ class TensorImpl : public Tensor {
  public:
   TensorImpl(Graph* graph, const TensorSpec& spec, const void* data = nullptr);
   TensorImpl(Graph* graph, const TensorSpec& spec, const DmaBufferDesc& dmafd);
+  TensorImpl(Graph* graph, const TensorSpec& spec, void* data = nullptr);
   ~TensorImpl();
 
-  bool Init();
+  bool Init(void *external_cache = nullptr);
   bool IsWriteable();
   bool IsReadable();
 
@@ -47,6 +48,10 @@ class TensorImpl : public Tensor {
   uint32_t GetId();
   bool CopyDataToTensor(const void* data, uint32_t size = 0);
   bool CopyDataFromTensor(void* data);
+  bool FlushCacheForHandle();
+  bool InvalidateCacheForHandle();
+  void* map(bool invalidate_cpu_cache = false);
+  void unmap();
   bool IsPlaceHolder() { return false; }
   bool IsConstTensor() {
     return spec_.attr_ == tim::vx::TensorAttribute::CONSTANT;
@@ -56,7 +61,7 @@ class TensorImpl : public Tensor {
   GraphImpl* graph_;
   vsi_nn_tensor_id_t id_;
   TensorSpec spec_;
-  const void* data_;
+  void* data_;
   int64_t fd_{-1};
 };
 
@@ -78,6 +83,13 @@ class TensorPlaceholder : public Tensor {
     (void)data;
     return false;
   }
+  bool InvalidateCacheForHandle() { return false; }
+  bool FlushCacheForHandle() { return false; }
+  void* map(bool invalidate_cpu_cache = false) {
+    (void)invalidate_cpu_cache;
+    return nullptr;
+  }
+  void unmap() { return; }
   bool IsPlaceHolder() { return true; }
   bool IsConstTensor() {
     return spec_.attr_ == tim::vx::TensorAttribute::CONSTANT;

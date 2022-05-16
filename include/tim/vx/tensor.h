@@ -154,6 +154,10 @@ class Tensor {
   virtual uint32_t GetId() = 0;
   virtual bool CopyDataToTensor(const void* data, uint32_t size_in_bytes = 0) = 0;
   virtual bool CopyDataFromTensor(void* data) = 0;
+  virtual bool FlushCacheForHandle() = 0;
+  virtual bool InvalidateCacheForHandle() = 0;
+  virtual void* map(bool invalidate_cpu_cache = false) = 0;
+  virtual void unmap() = 0;
   virtual bool IsPlaceHolder() = 0;
   virtual bool IsConstTensor() = 0;
   virtual const void* GetDataRef() const = 0;
