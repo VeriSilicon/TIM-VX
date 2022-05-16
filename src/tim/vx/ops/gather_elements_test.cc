@@ -28,6 +28,8 @@
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
+#ifdef _VSI_NN_OP_GATHER_ELEMENTS_H
+
 TEST(Gather_elements, shape_3_2_1_int32_axis_0) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
@@ -168,3 +170,4 @@ TEST(Gather_elements, shape_3_2_1_float32_axis_2) {
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   EXPECT_EQ(golden, output);
 }
+#endif

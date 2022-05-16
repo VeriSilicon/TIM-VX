@@ -75,6 +75,7 @@ void DirectMapOpImpl::SetRoundingPolicy(OverflowPolicy overflow_policy,
   node_->vx_param.accumulator_bits = accumulator_bits;
 }
 
+#ifdef TIM_VX_ENABLE_CUSTOM_OP
 CustomOpBaseImpl::CustomOpBaseImpl(Graph* graph, uint32_t operation_id, const void* proc,
                    const char* kernel_name, DataLayout layout)
     : DirectMapOpImpl(graph, layout) {
@@ -85,6 +86,7 @@ CustomOpBaseImpl::CustomOpBaseImpl(Graph* graph, uint32_t operation_id, const vo
     SetNode(node);
     SetRoundingPolicy();
   };
+#endif
 
 }  // namespace vx
 }  // namespace tim

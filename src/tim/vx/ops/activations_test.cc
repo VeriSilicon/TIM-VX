@@ -331,6 +331,7 @@ TEST(Elu, shape_5_1_fp32_a) {
   EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
+#ifdef _VSI_NN_OP_SELU_H
 TEST(Selu, shape_2_2) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
@@ -363,7 +364,9 @@ TEST(Selu, shape_2_2) {
   EXPECT_TRUE(out_tensor->CopyDataFromTensor(output.data()));
   EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
+#endif
 
+#ifdef _VSI_NN_OP_CELU_H
 TEST(Celu, shape_2_2) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
@@ -396,3 +399,4 @@ TEST(Celu, shape_2_2) {
   EXPECT_TRUE(out_tensor->CopyDataFromTensor(output.data()));
   EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
+#endif
