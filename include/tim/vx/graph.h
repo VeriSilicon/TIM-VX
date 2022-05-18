@@ -45,6 +45,12 @@ class Graph {
 
   virtual std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
                                                const DmaBufferDesc& dmafd) = 0;
+
+  /// Create a tensor with given `TensorSpec`.
+  /// spec.attr_ must be TensorAttribute::Input or Output
+  virtual std::shared_ptr<Tensor> CreateIOTensor(const TensorSpec& spec,
+                                               void* data = nullptr) = 0;
+
   /// Create a placeholder tensor for optional inputs of operations
   virtual std::shared_ptr<Tensor> CreateTensorPlaceHolder() = 0;
 

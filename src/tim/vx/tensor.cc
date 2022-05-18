@@ -79,16 +79,33 @@ TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, const void* data)
     : graph_(reinterpret_cast<GraphImpl*>(graph)),
       id_(VSI_NN_TENSOR_ID_NA),
       spec_(spec),
-      data_(data) {
+      data_(const_cast<void *>(data)) {
   Init();
+  if (spec_.attr_ & (TensorAttribute::INPUT | TensorAttribute::OUTPUT)) {
+    data_ = nullptr; // it's not needed to reset it in a constant tensor
+  }
 }
 
 TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, const DmaBufferDesc& dmafd)
     : graph_(reinterpret_cast<GraphImpl*>(graph)),
       id_(VSI_NN_TENSOR_ID_NA),
       spec_(spec),
+      data_(nullptr),
       fd_(dmafd.fd) {
   Init();
+}
+
+TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, void* data)
+    : graph_(reinterpret_cast<GraphImpl*>(graph)),
+      id_(VSI_NN_TENSOR_ID_NA),
+      spec_(spec),
+      data_(nullptr) {
+  if (!(spec_.attr_ & (TensorAttribute::INPUT | TensorAttribute::OUTPUT))) {
+    VSILOGE("TensorImpl with an external data got unexpected attr");
+    return;
+  }
+  Init(data);
+  data_ = data;
 }
 
 TensorImpl::~TensorImpl() {}
@@ -167,7 +184,95 @@ bool TensorImpl::CopyDataFromTensor(void* data) {
   return retn;
 }
 
-bool TensorImpl::Init() {
+bool TensorImpl::FlushCacheForHandle() {
+  if (!(spec_.attr_ & TensorAttribute::INPUT)) {
+    return false;
+  }
+
+  bool retn = true;
+  if (VSI_NN_TENSOR_ID_NA != id_) {
+    retn = false;
+    vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+    if (tensor && tensor->attr.is_created_from_handle) {
+      retn = (VSI_SUCCESS == vsi_nn_FlushHandle(tensor));
+      if (!retn) {
+        VSILOGE("FlushHandle fail");
+      }
+    }
+  }
+  return retn;
+}
+
+bool TensorImpl::InvalidateCacheForHandle() {
+  if (!(spec_.attr_ & TensorAttribute::OUTPUT)) {
+    return false;
+  }
+
+  bool retn = true;
+  if (VSI_NN_TENSOR_ID_NA != id_) {
+    retn = false;
+    vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+    if (tensor && tensor->attr.is_created_from_handle) {
+      void* ptr = NULL;
+      retn = (VSI_SUCCESS == vsi_nn_GetTensorHandle(tensor, &ptr));
+      if (!retn) {
+        VSILOGE("GetTensorHandle fail");
+      }
+    }
+  }
+  return retn;
+}
+
+void* TensorImpl::map(bool invalidate_cpu_cache) {
+  if (!(spec_.attr_ & (TensorAttribute::INPUT | TensorAttribute::OUTPUT))) {
+    return nullptr;
+  }
+
+  void* cpu_ptr = nullptr;
+  if (VSI_NN_TENSOR_ID_NA != id_) {
+    vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+    if (tensor && tensor->attr.is_created_from_handle) {
+      // Here `cpu_cache` means L1/L2/... cache on a CPU chip.
+      // If data_ has been updated by other devices like NPU,
+      // then caches on CPU MUST be invalidated before reading.
+      if (data_ && !invalidate_cpu_cache) {
+        cpu_ptr = data_;
+      } else {
+        vsi_nn_GetTensorHandle(tensor, &cpu_ptr);
+        // TODO: what to do when fd_ != -1
+      }
+      if (!cpu_ptr) {
+        VSILOGE("GetTensorHandle fail");
+      }
+    }
+  }
+  return cpu_ptr;
+}
+
+void TensorImpl::unmap() {
+  if (!(spec_.attr_ & (TensorAttribute::INPUT | TensorAttribute::OUTPUT))) {
+    return;
+  }
+  if (VSI_NN_TENSOR_ID_NA == id_) {
+    return;
+  }
+  if (-1 == fd_) {
+    if (data_ && spec_.attr_ & TensorAttribute::INPUT) {
+      // Here data_ is an external buffer and may have been updated
+      vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+      if ( tensor && tensor->attr.is_created_from_handle) {
+        bool retn = (VSI_SUCCESS == vsi_nn_FlushHandle(tensor));
+        if (!retn) {
+          VSILOGE("FlushHandle fail");
+        }
+      }
+    }
+    return;
+  }
+  // TODO: unmap fd_
+}
+
+bool TensorImpl::Init(void *external_cache) {
   vsi_nn_tensor_attr_t attr;
 
   memset(&attr, 0x00, sizeof(attr));
@@ -198,11 +303,11 @@ bool TensorImpl::Init() {
         graph_->graph(),
         VSI_NN_TENSOR_ID_AUTO,  // DMABUF's fd is created by TensorFromHandle as input or output,
         &attr,
-        fd_ != -1 ? (uint8_t*)fd_ : nullptr);  // and cannot be set to const
+        fd_ != -1 ? (uint8_t*)fd_ : (uint8_t*)external_cache); // and cannot be set to const
 #else
     if (-1 == fd_) {
       id_ = vsi_nn_AddTensorFromHandle(graph_->graph(), VSI_NN_TENSOR_ID_AUTO,
-                                       &attr, nullptr);
+                                       &attr, (uint8_t*)external_cache);
     } else {
       id_ = 0xFFFFFFFF;
       VSILOGE("Create tensor fail: low-level driver doesn't support dmabuffer");
