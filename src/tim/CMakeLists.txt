@@ -122,6 +122,16 @@ if(TIM_VX_ENABLE_TEST)
     )
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+    add_executable(reshape_test "./vx/ops/reshape_test.cc")
+    target_link_libraries(reshape_test PRIVATE gtest gtest_main gmock gmock_main ${TARGET_NAME} ${OVXDRV_LIBRARIES})
+    target_include_directories(reshape_test PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/vx
+        ${OVXLIB_INCLUDE_DIR}
+        ${INC_DIRS}
+    )
+
+    install(TARGETS reshape_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()
 
 if(TIM_VX_ENABLE_PLATFORM)
