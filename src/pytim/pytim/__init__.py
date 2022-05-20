@@ -6,5 +6,5 @@ from .frontends import *
 __all__ = ['__version__', 'short_version', 'Rknn2TimVxEngine', 'Engine', 'ConstructConv2dOpConfig', 
     'ConstructActivationOpConfig', 'ConstructEltwiseOpConfig', 'ConstructFullyConnectedOpConfig', 
     'ConstructPool2dOpConfig', 'ConstructReshapeOpConfig', 'ConstructResizeOpConfig', 
-    'ConstructSoftmaxOpConfig', 'ConstructTransposeOpConfig'
+    'ConstructSoftmaxOpConfig', 'ConstructTransposeOpConfig', 'ConstructConcatOpConfig'
 ]

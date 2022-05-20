@@ -272,12 +272,52 @@ def construct_fullyconnected_op(rknn_op_name, rknn_model_info, node_index, engin
     op_outputs = node_info["outputs"]
     assert len(op_inputs) == 3, "rknn fcl op should have 3 input"
     assert len(op_outputs) == 1, "rknn fcl op should have 1 output"
-    assert "fcl" in node_info["attribute"], "rknn permute op's attribute should have permute item"
+    assert "fcl" in node_info["attribute"], "rknn fcl op's attribute should have fcl item"
     op_cfg = node_info["attribute"]["fcl"]
     if "axis" not in op_cfg.keys():
         op_cfg["axis"] = 0
     
     op_info = ConstructFullyConnectedOpConfig(op_name=op_name, op_inputs=op_inputs, op_outputs=op_outputs, **op_cfg)
+    if "vx" in node_info["attribute"].keys():
+        op_info["rounding_policy"] = format_rounding_policy(node_info["attribute"]["vx"])
+    if log_flag:
+        print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
+    assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+
+
+def construct_concat_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
+    node_info = rknn_model_info[node_index]
+    op_name = node_info["name"]
+    op_inputs = node_info["inputs"]
+    op_outputs = node_info["outputs"]
+    assert len(op_inputs) > 1, "rknn concat op input should greater than 1"
+    assert len(op_outputs) == 1, "rknn concat op should have 1 output"
+    assert "concat" in node_info["attribute"], "rknn permute op's attribute should have permute item"
+    op_cfg = node_info["attribute"]["concat"]
+    assert "axis" in node_info["attribute"]["concat"], "concat attr should have axis item"
+    op_info = ConstructConcatOpConfig(op_name=op_name, op_inputs=op_inputs, op_outputs=op_outputs, **op_cfg)
+
+    if "vx" in node_info["attribute"].keys():
+        op_info["rounding_policy"] = format_rounding_policy(node_info["attribute"]["vx"])
+    if log_flag:
+        print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
+    assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+
+
+def construct_softmax_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
+    node_info = rknn_model_info[node_index]
+    op_name = node_info["name"]
+    op_inputs = node_info["inputs"]
+    op_outputs = node_info["outputs"]
+    assert len(op_inputs) == 1, "rknn softmax op should have 1 input"
+    assert len(op_outputs) == 1, "rknn softmax op should have 1 output"
+    assert "softmax" in node_info["attribute"], "rknn softmax op's attribute should have softmax item"
+    assert "beta" in node_info["attribute"]["softmax"], "softmax attribute should have beta item"
+    assert "axis" in node_info["attribute"]["softmax"], "softmax attribute should have axis item"
+    beta = node_info["attribute"]["softmax"]["beta"]
+    axis = node_info["attribute"]["softmax"]["axis"]
+
+    op_info = ConstructSoftmaxOpConfig(op_name=op_name, beta=beta, axis=axis, op_inputs=op_inputs, op_outputs=op_outputs)
     if "vx" in node_info["attribute"].keys():
         op_info["rounding_policy"] = format_rounding_policy(node_info["attribute"]["vx"])
     if log_flag:
@@ -320,6 +360,7 @@ def construct_resize_op(rknn_op_name, rknn_model_info, node_index, engine, log_f
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+
 
 def construct_pool2d_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
     node_info = rknn_model_info[node_index]
@@ -386,6 +427,8 @@ class Rknn2TimVxEngine():
         self.constructor.register('RESIZE', 'Resize', construct_resize_op)
         self.constructor.register("POOL", "Pool2d", construct_pool2d_op)
         self.constructor.register("FCL", "FullyConnected", construct_fullyconnected_op)
+        self.constructor.register("CONCAT", "Concat", construct_concat_op)
+        self.constructor.register("SOFTMAX", "Softmax", construct_softmax_op)
 
     def format_rknn_model(self, rknn_model_info:dict):
         nodes_info = rknn_model_info["nodes"]
@@ -426,8 +469,8 @@ class Rknn2TimVxEngine():
             ori_shape = tensor_shape[::-1]
             np_dtype = convert_timvx_dtype_to_np_dtype(tensor_dtype)
             np_data = np.frombuffer(rk_tensor["raw_data"], dtype=np_dtype).reshape(ori_shape)
-            perm = [len(ori_shape) - i - 1 for i in range(len(ori_shape))]
-            np_data = np_data.transpose(perm)
+            # perm = [len(ori_shape) - i - 1 for i in range(len(ori_shape))]
+            # np_data = np_data.transpose(perm)
         if log_flag:
             print("********************************")
             print("construct tensor {} with:".format(tensor_name))

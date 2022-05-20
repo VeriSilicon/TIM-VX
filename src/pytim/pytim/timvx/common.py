@@ -212,3 +212,18 @@ def ConstructPool2dOpConfig(op_name:str, type:str, ksize:list=[], stride:list=[]
         op_info_dict["op_outputs"] = op_outputs
     return op_info_dict
 
+
+def ConstructConcatOpConfig(op_name:str, axis:int, op_inputs:list=[], op_outputs:list=[]):
+    assert axis >= 0, "axis should greater than zero"
+    op_info_dict = {}
+    op_info_dict["op_name"] = op_name
+    op_info_dict["op_type"] = "Concat"
+    op_attr = {}
+    op_attr["axis"] = axis
+    op_attr["input_cnt"] = len(op_inputs)
+    op_info_dict["op_attr"] = op_attr
+    if len(op_inputs) > 0:
+        op_info_dict["op_inputs"] = op_inputs
+    if len(op_outputs) > 0:
+        op_info_dict["op_outputs"] = op_outputs
+    return op_info_dict
