@@ -9,7 +9,7 @@ from pytim import *
 
 if __name__ == "__main__":
     # convert rknn to timvx engine
-    rknn_file_name = "./examples/rknn_test/lenet.rknn"
+    rknn_file_name = "./examples/lenet_test/lenet.rknn"
     convert = Rknn2TimVxEngine()
     engine = convert.convert_to_timvx(rknn_file_name, log_flag=True)
     
@@ -17,9 +17,7 @@ if __name__ == "__main__":
     assert engine.compile_graph(), "compile graph fail...."
     
     # set engine's input
-    lenet_input_data = np.load("./examples/rknn_test/lenet_input.npy").reshape((1, 28, 28, 1))
-    # lenet_input_data = np.load("./examples/rknn_test/lenet_random_input.npy").reshape((1, 28, 28, 1))
-    lenet_input_data = lenet_input_data.transpose((2,1,3,0)) # convert nhwc to whcn
+    lenet_input_data = np.load("./examples/lenet_test/lenet_input.npy").reshape((28, 28, 1, 1))
     assert engine.copy_data_to_tensor("norm_tensor:1", lenet_input_data), "set input fail...."
     
     # run engine's graph
