@@ -10,7 +10,7 @@ if __name__ == '__main__':
     
     # load rknn
     print('--> Load rknn model')
-    ret = rknn.load_rknn("./lenet.rknn")
+    ret = rknn.load_rknn("./examples/lenet_test/lenet.rknn")
     if ret != 0:
         print('Load rknn model failed')
         exit(ret)

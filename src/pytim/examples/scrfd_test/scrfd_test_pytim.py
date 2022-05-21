@@ -6,7 +6,7 @@ import numpy as np
 cwd_path = os.getcwd()
 sys.path.append(cwd_path)
 from pytim import *
-from example.scrfd_test.utils import letterbox, decode
+from examples.scrfd_test.utils import letterbox, decode
 
 if __name__ == "__main__":
     # convert rknn to timvx engine

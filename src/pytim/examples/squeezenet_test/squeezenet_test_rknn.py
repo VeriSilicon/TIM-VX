@@ -10,14 +10,14 @@ if __name__ == '__main__':
 
     # load rknn
     print('--> Load rknn model')
-    ret = rknn.load_rknn("./squeezenet.rknn")
+    ret = rknn.load_rknn("./examples/squeezenet_test/squeezenet.rknn")
     if ret != 0:
         print('Load rknn model failed')
         exit(ret)
     print('done')
 
     # Set inputs
-    input_data = cv2.imread("./examples/rknn_test/squeezenet_test.jpg")
+    input_data = cv2.imread("./examples/squeezenet_test/squeezenet_test.jpg")
     # Init runtime environment
     print('--> Init runtime environment')
     ret = rknn.init_runtime()
