@@ -62,6 +62,7 @@ class DirectMapOpImpl : public OpImpl {
   vsi_nn_node_t* node_{nullptr};
 };
 
+#ifdef TIM_VX_ENABLE_CUSTOM_OP
 class CustomOpBaseImpl : public DirectMapOpImpl {
  public:
   CustomOpBaseImpl(Graph* graph, uint32_t operation_id, const void* proc,
@@ -69,6 +70,7 @@ class CustomOpBaseImpl : public DirectMapOpImpl {
   protected:
   const void* op_proc_;
 };
+#endif
 
 }  // namespace vx
 }  // namespace tim

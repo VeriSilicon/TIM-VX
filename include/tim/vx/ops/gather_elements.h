@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,40 +21,37 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/ops/simple_operations.h"
-
-#include "vsi_nn_pub.h"
+#ifndef TIM_VX_OPS_GATHER_H_
+#define TIM_VX_OPS_GATHER_H_
+#include "tim/vx/direct_map_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-#define DEFINE_SIMPLE_OP(NAME, VSI_OP_CODE)                             \
-  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE) {}           \
-  std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
-      const {                                                           \
-    return graph->CreateOperation<NAME>();                              \
-  }
+/**
+ * ## Gather_elements
+ *
+ * Gather_elements slices from input, **axis** according to **indices**.
+ * out[i][j][k] = input[index[i][j][k]][j][k] if axis = 0,
+ * out[i][j][k] = input[i][index[i][j][k]][k] if axis = 1,
+ * out[i][j][k] = input[i][j][index[i][j][k]] if axis = 2,
+ * https://github.com/onnx/onnx/blob/main/docs/Operators.md#GatherElements
+ */
 
-DEFINE_SIMPLE_OP(DataConvert, VSI_NN_OP_DATACONVERT)
-DEFINE_SIMPLE_OP(Neg, VSI_NN_OP_NEG)
-DEFINE_SIMPLE_OP(Abs, VSI_NN_OP_ABS)
-DEFINE_SIMPLE_OP(Sin, VSI_NN_OP_SIN)
-// TODO(jiangbo): enable it when ovxlib supports `Cos`
-//DEFINE_SIMPLE_OP(Cos, VSI_NN_OP_COS)
-DEFINE_SIMPLE_OP(Exp, VSI_NN_OP_EXP)
-DEFINE_SIMPLE_OP(Log, VSI_NN_OP_LOG)
-DEFINE_SIMPLE_OP(Sqrt, VSI_NN_OP_SQRT)
-DEFINE_SIMPLE_OP(Rsqrt, VSI_NN_OP_RSQRT)
-DEFINE_SIMPLE_OP(Square, VSI_NN_OP_SQUARE)
-DEFINE_SIMPLE_OP(LogicalNot, VSI_NN_OP_LOGICAL_NOT)
-DEFINE_SIMPLE_OP(Floor, VSI_NN_OP_FLOOR)
-DEFINE_SIMPLE_OP(Ceil, VSI_NN_OP_CEIL)
-DEFINE_SIMPLE_OP(Round, VSI_NN_OP_ROUND)
-DEFINE_SIMPLE_OP(Cast, VSI_NN_OP_CAST)
+class Gather_elements : public DirectMapOp {
+ public:
+  Gather_elements(Graph* Graph, int axis);
 
-#undef DEFINE_SIMPLE_OP
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
+
+ protected:
+  int axis_;
+};
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+
+#endif /* TIM_VX_OPS_GATHER_H_ */

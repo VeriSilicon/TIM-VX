@@ -94,45 +94,25 @@ struct TensorSpec {
     this->quantization_ = quantization;
   }
 
-  TensorSpec(const TensorSpec& other) {
-	  this->datatype_ = other.datatype_;
-	  this->shape_ = other.shape_;
-	  this->attr_ = other.attr_;
-	  this->quantization_  = other.quantization_;
-  }
+  TensorSpec(const TensorSpec& other);
 
-  TensorSpec& operator =(const TensorSpec& other) {
-    this->datatype_ = other.datatype_;
-	  this->shape_ = other.shape_;
-	  this->attr_ = other.attr_;
-	  this->quantization_  = other.quantization_;
-    return *this;
-  }
+  TensorSpec& operator=(const TensorSpec& other);
 
-  TensorSpec& SetDataType(DataType datatype) {
-    this->datatype_ = datatype;
-    return *this;
-  }
+  TensorSpec& SetDataType(DataType datatype);
 
-  TensorSpec& SetShape(ShapeType& shape) {
-    this->shape_ = shape;
-    return *this;
-  }
+  TensorSpec& SetShape(ShapeType& shape);
 
-  TensorSpec& SetAttribute(TensorAttribute attr) {
-    this->attr_ = attr;
-    return *this;
-  }
+  TensorSpec& SetAttribute(TensorAttribute attr);
 
-  TensorSpec& SetQuantization(Quantization& quantization) {
-    this->quantization_ = quantization;
-    return *this;
-  }
+  TensorSpec& SetQuantization(Quantization& quantization);
 
-  TensorSpec AsTransientSpec() const {
-    return TensorSpec(this->datatype_, ShapeType({}),
-                      TensorAttribute::TRANSIENT, this->quantization_);
-  }
+  TensorSpec AsTransientSpec() const;
+
+  int64_t GetElementNum() const;
+
+  int64_t GetElementByteSize() const;
+
+  int64_t GetByteSize() const;
 
   DataType datatype_;
   ShapeType shape_;
@@ -154,6 +134,10 @@ class Tensor {
   virtual uint32_t GetId() = 0;
   virtual bool CopyDataToTensor(const void* data, uint32_t size_in_bytes = 0) = 0;
   virtual bool CopyDataFromTensor(void* data) = 0;
+  virtual bool FlushCacheForHandle() = 0;
+  virtual bool InvalidateCacheForHandle() = 0;
+  virtual void* map(bool invalidate_cpu_cache = false) = 0;
+  virtual void unmap() = 0;
   virtual bool IsPlaceHolder() = 0;
   virtual bool IsConstTensor() = 0;
   virtual const void* GetDataRef() const = 0;

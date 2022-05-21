@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,40 +21,35 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/ops/simple_operations.h"
+#ifndef TIM_VX_OPS_TOPK_H_
+#define TIM_VX_OPS_TOPK_H_
 
-#include "vsi_nn_pub.h"
+#include <array>
+
+#include "tim/vx/direct_map_op.h"
+#include "tim/vx/types.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-#define DEFINE_SIMPLE_OP(NAME, VSI_OP_CODE)                             \
-  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE) {}           \
-  std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
-      const {                                                           \
-    return graph->CreateOperation<NAME>();                              \
-  }
+/**
+ * ## Topk
+ *
+ * Finds values and indices of the k largest entries for the last dimension.
+ *
+ * - k : Number of top elements to look for along the last dimension.
+ */
 
-DEFINE_SIMPLE_OP(DataConvert, VSI_NN_OP_DATACONVERT)
-DEFINE_SIMPLE_OP(Neg, VSI_NN_OP_NEG)
-DEFINE_SIMPLE_OP(Abs, VSI_NN_OP_ABS)
-DEFINE_SIMPLE_OP(Sin, VSI_NN_OP_SIN)
-// TODO(jiangbo): enable it when ovxlib supports `Cos`
-//DEFINE_SIMPLE_OP(Cos, VSI_NN_OP_COS)
-DEFINE_SIMPLE_OP(Exp, VSI_NN_OP_EXP)
-DEFINE_SIMPLE_OP(Log, VSI_NN_OP_LOG)
-DEFINE_SIMPLE_OP(Sqrt, VSI_NN_OP_SQRT)
-DEFINE_SIMPLE_OP(Rsqrt, VSI_NN_OP_RSQRT)
-DEFINE_SIMPLE_OP(Square, VSI_NN_OP_SQUARE)
-DEFINE_SIMPLE_OP(LogicalNot, VSI_NN_OP_LOGICAL_NOT)
-DEFINE_SIMPLE_OP(Floor, VSI_NN_OP_FLOOR)
-DEFINE_SIMPLE_OP(Ceil, VSI_NN_OP_CEIL)
-DEFINE_SIMPLE_OP(Round, VSI_NN_OP_ROUND)
-DEFINE_SIMPLE_OP(Cast, VSI_NN_OP_CAST)
+class Topk : public DirectMapOp {
+ public:
+  Topk(Graph* graph, uint32_t k);
 
-#undef DEFINE_SIMPLE_OP
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+};
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+
+#endif /* TIM_VX_OPS_TOPK_H_ */

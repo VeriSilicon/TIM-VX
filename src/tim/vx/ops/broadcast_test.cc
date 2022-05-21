@@ -28,7 +28,9 @@
 
 #include "gtest/gtest.h"
 #include "test_utils.h"
+#include "vsi_nn_pub.h"
 
+#ifdef VSI_EXPAND_BROADCAST_ENABLE_DIMENSIONS
 static void CheckResult(std::shared_ptr<tim::vx::Graph>& graph,
                  std::vector<float>& golden,
                  std::shared_ptr<tim::vx::Tensor>& output_tensor) {
@@ -327,3 +329,4 @@ TEST(Broadcast, 2DTo3D_WithDims12) {
 
   CheckResult(graph, golden, output_tensor);
 }
+#endif
