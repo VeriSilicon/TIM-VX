@@ -11,7 +11,7 @@
 ## 编译so
 1. mkdir build && cd build && cmake ..
 2. make -j4
-3. cp libtimvx.so ../pytim/lib/timvx.so
+3. cp libtimvx.so ../pytim/timvx/lib/timvx.so
 
 ## 测试
 替换下面的localpath为本地真实路径  

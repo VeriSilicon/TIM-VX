@@ -6,11 +6,11 @@ import numpy as np
 cwd_path = os.getcwd()
 sys.path.append(cwd_path)
 from pytim import *
-from .utils import letterbox, decode
+from example.scrfd_test.utils import letterbox, decode
 
 if __name__ == "__main__":
     # convert rknn to timvx engine
-    rknn_file_name = "./examples/rknn_test/scrfd.rknn"
+    rknn_file_name = "./examples/scrfd_test/scrfd.rknn"
     convert = Rknn2TimVxEngine()
     engine = convert.convert_to_timvx(rknn_file_name, log_flag=False)
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     assert engine.compile_graph(), "compile graph fail...."
 
     # set engine's input
-    src_img = cv2.imread("./examples/rknn_test/scrfd_test.jpg")
+    src_img = cv2.imread("./examples/scrfd_test/scrfd_test.jpg")
     img,ratio,pad = letterbox(src_img)
     input_data = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).transpose(2,0,1)
     input_data = (input_data - 127.5) / 128.0

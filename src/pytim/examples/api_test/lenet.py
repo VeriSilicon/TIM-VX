@@ -7,7 +7,7 @@ sys.path.append(cwd_path)
 from pytim import *
 
 def construct_tensors(engine):
-    lenet_weight_data = np.load("./examples/lenet_test/lenet.npy")
+    lenet_weight_data = np.load("./examples/api_test/lenet.npy")
     tensor_name = "input"
     quant_info = {}
     quant_info["scale"] = 0.00390625
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     print("3 compile graph end....")
 
     print("4 set input begin....")
-    lenet_input_data = np.load("./examples/lenet_test/input.npy").reshape((28, 28, 1, 1))
+    lenet_input_data = np.load("./examples/api_test/input.npy").reshape((28, 28, 1, 1))
     assert engine.copy_data_to_tensor("input", lenet_input_data), "set input fail...."
     print("4 set input end....")
 
