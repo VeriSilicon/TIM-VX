@@ -35,6 +35,7 @@ def convert_to_timvx_dtype(datatype:str):
     else:
         assert False, "unsupported datatype {}, current only support {}".format(datatype, dtype_list)
 
+
 def convert_timvx_dtype_to_np_dtype(datatype:str):
     dtype_list = ["np.int8", 
         "np.int16",
@@ -430,6 +431,7 @@ class Rknn2TimVxEngine():
         self.constructor.register("CONCAT", "Concat", construct_concat_op)
         self.constructor.register("SOFTMAX", "Softmax", construct_softmax_op)
 
+
     def format_rknn_model(self, rknn_model_info:dict):
         nodes_info = rknn_model_info["nodes"]
         substitute_map = {}
@@ -512,6 +514,52 @@ class Rknn2TimVxEngine():
             self.constructor.construct_node(nodes_info, index, engine, log_flag)
 
 
+    def construct_engine_norm_info(self, rknn_model_info:dict, engine:Engine, log_flag=False):
+        assert "mean_value" in rknn_model_info.keys(), "rknn model info not contain mean value!"
+        assert "std_value" in rknn_model_info.keys(), "rknn model info not contain std value!"
+        assert "reorder" in rknn_model_info.keys(), "rknn model info not contain reorder!"
+        for index in range(len(rknn_model_info["inputs"])):
+            item = rknn_model_info["inputs"][index]
+            input_name = item["name"]
+            engine.set_mean_value(input_name, rknn_model_info["mean_value"])
+            engine.set_std_value(input_name, rknn_model_info["std_value"])
+            engine.set_reorder(input_name, rknn_model_info["reorder"])
+            if log_flag:
+                print("engie norm info as follows")
+                print("mean value: {}".format(rknn_model_info["mean_value"]))
+                print("std  value: {}".format(rknn_model_info["std_value"]))
+                print("reorder   : {}".format(rknn_model_info["reorder"]))
+
+
+    def construct_engine_inputs_outputs_info(self, rknn_model_info:dict, engine:Engine, log_flag=False):
+        assert "inputs" in rknn_model_info.keys(), "rknn model info not contain inputs!"
+        assert "outputs" in rknn_model_info.keys(), "rknn model info not contain outputs!"
+        for index in range(len(rknn_model_info["inputs"])):
+            item = rknn_model_info["inputs"][index]
+            tensor_info = {}
+            tensor_name = item["name"]
+            tensor_info["scale"] = item["dtype"]["scale"]
+            tensor_info["zero_point"] = item["dtype"]["zero_point"]
+            tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(item["dtype"]["vx_type"])
+            engine.add_inputs_info(tensor_name, tensor_info)
+            if log_flag:
+                print("add {}: {} to engine inptus".format(index, tensor_name))
+                print("tensor info: {}", tensor_info)
+
+
+        for index in range(len(rknn_model_info["outputs"])):
+            item = rknn_model_info["outputs"][index]
+            tensor_info = {}
+            tensor_name = item["name"]
+            tensor_info["scale"] = item["dtype"]["scale"]
+            tensor_info["zero_point"] = item["dtype"]["zero_point"]
+            tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(item["dtype"]["vx_type"])
+            engine.add_outputs_info(tensor_name, tensor_info)
+            if log_flag:
+                print("add {}: {} to engine outptus".format(index, tensor_name))
+                print("tensor info: {}", tensor_info)
+
+
     def convert_to_timvx(self, rknn_file:str, log_flag:bool=False):
         assert os.path.isfile(rknn_file), "{} not a valid file path!"
         with open(rknn_file, "rb") as f:
@@ -520,7 +568,8 @@ class Rknn2TimVxEngine():
         assert engine.create_graph(), "timvx engine create graph fail!"
         rknn_model_info = parse_rknn_model(rknn_model_data)
         self.format_rknn_model(rknn_model_info)
-        # print(rknn_model_info["tensors"])
         self.construct_engine_tensors(rknn_model_info, engine, log_flag)
         self.construct_engine_nodes(rknn_model_info, engine, log_flag)
+        self.construct_engine_norm_info(rknn_model_info, engine, log_flag)
+        self.construct_engine_inputs_outputs_info(rknn_model_info, engine, log_flag)
         return engine

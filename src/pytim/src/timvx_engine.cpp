@@ -173,12 +173,12 @@ namespace TIMVXPY
             return false;
         }
         auto tensor = m_tensors[tensor_name];
-        if (buf.ndim != tensor->GetShape().size())
-        {
-            std::cout << "tensor dim:" << tensor->GetShape().size() << " not equal to numpy data dim:" << 
-                buf.ndim << std::endl;
-            return false;
-        }
+        // if (buf.ndim != tensor->GetShape().size())
+        // {
+        //     std::cout << "tensor dim:" << tensor->GetShape().size() << " not equal to numpy data dim:" << 
+        //         buf.ndim << std::endl;
+        //     return false;
+        // }
         int total_np_size = buf.size * buf.itemsize;
         int total_tensor_size = get_tensor_size(tensor_name);
         if (total_tensor_size != total_np_size)
