@@ -12,23 +12,22 @@ if __name__ == "__main__":
     # convert rknn to timvx engine
     rknn_file_name = "./examples/squeezenet_test/squeezenet.rknn"
     convert = Rknn2TimVxEngine()
-    engine = convert.convert_to_timvx(rknn_file_name, log_flag=True)
+    engine = convert.convert_to_timvx(rknn_file_name, log_flag=False)
 
     # compile engine's graph
     assert engine.compile_graph(), "compile graph fail...."
 
-    # set engine's input
+
+    # prepare engine's input
     input_data = cv2.imread("./examples/squeezenet_test/squeezenet_test.jpg")
-    input_data = input_data.transpose((2,0,1)).reshape(224,224,3,1)
-    assert engine.copy_data_to_tensor("norm_tensor:1", input_data), "set input fail...."
+    input_dict = {}
+    input_dict["norm_tensor:1"] = input_data
 
-    # run engine's graph
-    assert engine.run_graph(), "run graph fail...."
+    # run engine's graph and returen infer result
+    outputs = engine.run_graph(input_dict)
 
-    # get output
-    output_data = np.zeros((1, 1, 1000, 1)).astype(np.float16)
-    assert engine.copy_data_from_tensor("norm_tensor:0", output_data), "get output fail...."
-    output_data = output_data.reshape((1000,)).astype(np.float32)
+    # post process get top 5 result
+    output_data = outputs[0].reshape((1000,))
     print("**********************")
     top_k=5
     top_k_idx=output_data.argsort()[::-1][0:top_k]

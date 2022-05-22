@@ -23,20 +23,26 @@ class Engine():
 
 
     def set_reorder(self, input_name:str, reorder:list):
+        if reorder != [0, 1, 2] and reorder != [2, 1, 0]:
+            assert False, "invaid channel reorder {}".format(reorder)
         self.reorder[input_name] = reorder
 
 
     def add_inputs_info(self, input_name:str, tensor_info:dict):
         assert input_name not in self.inputs_info, "tensor {} already exists!".format(input_name)
-        assert "shape" in tensor_info.keys(), "tensor info should contain shape item!"
-        assert "dtype" in tensor_info.keys(), "tensor info should contain dtype item!"
+        assert "shape" in tensor_info.keys(), "input tensor info should contain shape item!"
+        assert "dtype" in tensor_info.keys(), "input tensor info should contain dtype item!"
+        assert "scale" in tensor_info.keys(), "input tensor info should contain scale item!"
+        assert "zero_point" in tensor_info.keys(), "input tensor info should contain zero_point item!"
         self.inputs_info[input_name] = tensor_info
 
 
     def add_outputs_info(self, output_name:str, tensor_info:dict):
         assert output_name not in self.inputs_info, "tensor {} already exists!".format(output_name)
-        assert "shape" in tensor_info.keys(), "tensor info should contain shape item!"
-        assert "dtype" in tensor_info.keys(), "tensor info should contain dtype item!"
+        assert "shape" in tensor_info.keys(), "output tensor info should contain shape item!"
+        assert "dtype" in tensor_info.keys(), "output tensor info should contain dtype item!"
+        assert "scale" in tensor_info.keys(), "output tensor info should contain scale item!"
+        assert "zero_point" in tensor_info.keys(), "output tensor info should contain zero_point item!"        
         self.outputs_info[output_name] = tensor_info
 
 
@@ -168,18 +174,22 @@ class Engine():
 
 
     def run_graph(self, input_dict:dict):
-        for input_name in self.inputs_info.keys():
-            assert input_name in input_dict.keys(), "invalid input tensor name {}".format(input_name)
+        for input_name in input_dict.keys():
+            assert input_name in self.inputs_info.keys(), "invalid input tensor name {}".format(input_name)
             input_data = input_dict[input_name]
             assert len(input_data.shape) == 3, "need a hwc format input, please check!"
             h,w,c = input_data.shape
             assert c == 3 or c == 1, "input channel should be 1 or 3"
-            assert type(input_dict[input_name]) == np.array, "{} tensor data only support numpy array"
+            assert type(input_dict[input_name]) == np.ndarray, "{} tensor data only support numpy array"
             engine_input = (input_data.astype(np.float32) - self.mean_value[input_name]) / self.std_value[input_name]
-            engine_input = engine_input.transpose(self.reorder[input_name])
-            scale = self.inputs_info[output_name]["scale"]
-            zero_point = self.inputs_info[output_name]["zero_point"]
-            engine_input = engine_input / scale + zero_point
+            if self.reorder == [2, 1, 0]:
+                engine_input = engine_input[:,:,::-1]
+            engine_input = engine_input.transpose((2, 0, 1))
+            shape = self.inputs_info[input_name]["shape"]
+            dtype = self.inputs_info[input_name]["dtype"]
+            scale = self.inputs_info[input_name]["scale"]
+            zero_point = self.inputs_info[input_name]["zero_point"]
+            engine_input = (engine_input / scale + zero_point).reshape(shape).astype(dtype)
             input_bytes = engine_input.tobytes()
             assert self.engine.copy_data_to_tensor(input_name, input_bytes), "set input {} fail!".format(input_name)
 

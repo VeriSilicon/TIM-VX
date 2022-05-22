@@ -15,15 +15,13 @@ if __name__ == "__main__":
     
     # compile engine's graph
     assert engine.compile_graph(), "compile graph fail...."
-    
-    # set engine's input
-    lenet_input_data = np.load("./examples/lenet_test/lenet_input.npy").reshape((28, 28, 1, 1))
-    assert engine.copy_data_to_tensor("norm_tensor:1", lenet_input_data), "set input fail...."
-    
-    # run engine's graph
-    assert engine.run_graph(), "run graph fail...."
 
-    # get output
-    output_data = np.zeros((10,1)).astype(np.uint8)
-    assert engine.copy_data_from_tensor("norm_tensor:0", output_data), "get output fail...."
-    print(output_data)
+    # prepare engine's input
+    lenet_input_data = np.load("./examples/lenet_test/lenet_input.npy").reshape((28, 28, 1))
+    input_dict = {}
+    input_dict["norm_tensor:1"] = lenet_input_data
+
+    # run engine's graph and returen infer result
+    outputs = engine.run_graph(input_dict)
+    print(outputs[0])        
+

@@ -37,15 +37,15 @@ def convert_to_timvx_dtype(datatype:str):
 
 
 def convert_timvx_dtype_to_np_dtype(datatype:str):
-    dtype_list = ["np.int8", 
-        "np.int16",
-        "np.int32",
-        "np.uint8",
-        "np.uint16",
-        "np.uint32",
-        "np.float16",
-        "np.float32",
-        "np.bool8"]
+    dtype_list = ["INT8", 
+        "INT16",
+        "INT32",
+        "UINT8",
+        "UINT16",
+        "UINT32",
+        "FLOAT16",
+        "FLOAT32",
+        "BOOL8"]
     if datatype == "INT8":
         return np.int8
     elif datatype == "INT16":
@@ -536,28 +536,46 @@ class Rknn2TimVxEngine():
         assert "outputs" in rknn_model_info.keys(), "rknn model info not contain outputs!"
         for index in range(len(rknn_model_info["inputs"])):
             item = rknn_model_info["inputs"][index]
-            tensor_info = {}
+            timvx_tensor_info = {}
             tensor_name = item["name"]
-            tensor_info["scale"] = item["dtype"]["scale"]
-            tensor_info["zero_point"] = item["dtype"]["zero_point"]
-            tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(item["dtype"]["vx_type"])
-            engine.add_inputs_info(tensor_name, tensor_info)
+            rknn_tensor_info = item["tensor_info"]
+            if "scale" in rknn_tensor_info["dtype"].keys():
+                timvx_tensor_info["scale"] = rknn_tensor_info["dtype"]["scale"]
+            else:
+                timvx_tensor_info["scale"] = 1.0
+            if "zero_point" in rknn_tensor_info["dtype"].keys():
+                timvx_tensor_info["zero_point"] = rknn_tensor_info["dtype"]["zero_point"]
+            else:
+                timvx_tensor_info["zero_point"] = 0.0
+            tim_dtype = convert_to_timvx_dtype(rknn_tensor_info["dtype"]["vx_type"])
+            timvx_tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(tim_dtype)
+            timvx_tensor_info["shape"] = rknn_tensor_info["shape"]
+            engine.add_inputs_info(tensor_name, timvx_tensor_info)
             if log_flag:
                 print("add {}: {} to engine inptus".format(index, tensor_name))
-                print("tensor info: {}", tensor_info)
+                print("tensor info: {}".format(timvx_tensor_info))
 
 
         for index in range(len(rknn_model_info["outputs"])):
             item = rknn_model_info["outputs"][index]
-            tensor_info = {}
+            timvx_tensor_info = {}
             tensor_name = item["name"]
-            tensor_info["scale"] = item["dtype"]["scale"]
-            tensor_info["zero_point"] = item["dtype"]["zero_point"]
-            tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(item["dtype"]["vx_type"])
-            engine.add_outputs_info(tensor_name, tensor_info)
+            rknn_tensor_info = item["tensor_info"]
+            if "scale" in rknn_tensor_info["dtype"].keys():
+                timvx_tensor_info["scale"] = rknn_tensor_info["dtype"]["scale"]
+            else:
+                timvx_tensor_info["scale"] = 1.0
+            if "zero_point" in rknn_tensor_info["dtype"].keys():
+                timvx_tensor_info["zero_point"] = rknn_tensor_info["dtype"]["zero_point"]
+            else:
+                timvx_tensor_info["zero_point"] = 0.0
+            tim_dtype = convert_to_timvx_dtype(rknn_tensor_info["dtype"]["vx_type"])
+            timvx_tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(tim_dtype)
+            timvx_tensor_info["shape"] = rknn_tensor_info["shape"]
+            engine.add_outputs_info(tensor_name, timvx_tensor_info)
             if log_flag:
                 print("add {}: {} to engine outptus".format(index, tensor_name))
-                print("tensor info: {}", tensor_info)
+                print("tensor info: {}".fromat(timvx_tensor_info))
 
 
     def convert_to_timvx(self, rknn_file:str, log_flag:bool=False):
