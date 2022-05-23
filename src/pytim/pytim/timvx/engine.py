@@ -12,6 +12,8 @@ class Engine():
         self.reorder = {}
         self.inputs_info = {}
         self.outputs_info = {}
+        self.nodes_info = []
+        self.tensors_info = []
 
 
     def set_mean_value(self, input_name:str, mean_value:list):
@@ -30,20 +32,20 @@ class Engine():
 
     def add_inputs_info(self, input_name:str, tensor_info:dict):
         assert input_name not in self.inputs_info, "tensor {} already exists!".format(input_name)
-        assert "shape" in tensor_info.keys(), "input tensor info should contain shape item!"
-        assert "dtype" in tensor_info.keys(), "input tensor info should contain dtype item!"
-        assert "scale" in tensor_info.keys(), "input tensor info should contain scale item!"
-        assert "zero_point" in tensor_info.keys(), "input tensor info should contain zero_point item!"
         self.inputs_info[input_name] = tensor_info
 
 
     def add_outputs_info(self, output_name:str, tensor_info:dict):
-        assert output_name not in self.inputs_info, "tensor {} already exists!".format(output_name)
-        assert "shape" in tensor_info.keys(), "output tensor info should contain shape item!"
-        assert "dtype" in tensor_info.keys(), "output tensor info should contain dtype item!"
-        assert "scale" in tensor_info.keys(), "output tensor info should contain scale item!"
-        assert "zero_point" in tensor_info.keys(), "output tensor info should contain zero_point item!"        
+        assert output_name not in self.outputs_info, "tensor {} already exists!".format(output_name)
         self.outputs_info[output_name] = tensor_info
+
+
+    def add_nodes_info(self, node_info:dict):
+        self.nodes_info.append(node_info)
+
+
+    def add_tensors_info(self, tensor_info:dict):
+        self.tensors_info.append(tensor_info)
 
 
     def convert_np_dtype_to_tim_dtype(self, datatype):
@@ -187,8 +189,12 @@ class Engine():
             engine_input = engine_input.transpose((2, 0, 1))
             shape = self.inputs_info[input_name]["shape"]
             dtype = self.inputs_info[input_name]["dtype"]
-            scale = self.inputs_info[input_name]["scale"]
-            zero_point = self.inputs_info[input_name]["zero_point"]
+            scale = 1.0
+            zero_point = 0.0
+            if "scale" in self.inputs_info[input_name]["quant_info"]:
+                scale = self.inputs_info[input_name]["quant_info"]["scale"]
+            if "zero_point" in self.inputs_info[input_name]["quant_info"]:
+                zero_point = self.inputs_info[input_name]["quant_info"]["zero_point"]
             engine_input = (engine_input / scale + zero_point).reshape(shape).astype(dtype)
             input_bytes = engine_input.tobytes()
             assert self.engine.copy_data_to_tensor(input_name, input_bytes), "set input {} fail!".format(input_name)
@@ -199,8 +205,12 @@ class Engine():
         for output_name in self.outputs_info.keys():
             dtype = self.outputs_info[output_name]["dtype"]
             shape = self.outputs_info[output_name]["shape"]
-            scale = self.outputs_info[output_name]["scale"]
-            zero_point = self.outputs_info[output_name]["zero_point"]
+            scale = 1.0
+            zero_point = 0.0
+            if "scale" in self.outputs_info[output_name]["quant_info"]:
+                scale = self.outputs_info[output_name]["quant_info"]["scale"]
+            if "zero_point" in self.outputs_info[output_name]["quant_info"]:
+                zero_point = self.outputs_info[output_name]["quant_info"]["zero_point"]
             output_data = np.zeros(shape).astype(dtype)
             assert self.engine.copy_data_from_tensor(output_name, output_data), "get output {} fail!".format(output_name)
             output_data = output_data.astype(np.float32)

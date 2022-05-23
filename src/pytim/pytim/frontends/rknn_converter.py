@@ -203,6 +203,7 @@ def construct_activation_op(rknn_op_name, rknn_model_info, node_index, engine, l
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_eltwise_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -227,6 +228,7 @@ def construct_eltwise_op(rknn_op_name, rknn_model_info, node_index, engine, log_
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_conv2d_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -246,6 +248,7 @@ def construct_conv2d_op(rknn_op_name, rknn_model_info, node_index, engine, log_f
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_transpose_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -264,6 +267,7 @@ def construct_transpose_op(rknn_op_name, rknn_model_info, node_index, engine, lo
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_fullyconnected_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -284,6 +288,7 @@ def construct_fullyconnected_op(rknn_op_name, rknn_model_info, node_index, engin
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_concat_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -303,6 +308,7 @@ def construct_concat_op(rknn_op_name, rknn_model_info, node_index, engine, log_f
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_softmax_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -324,6 +330,7 @@ def construct_softmax_op(rknn_op_name, rknn_model_info, node_index, engine, log_
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_reshape_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -342,6 +349,7 @@ def construct_reshape_op(rknn_op_name, rknn_model_info, node_index, engine, log_
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_resize_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -361,6 +369,7 @@ def construct_resize_op(rknn_op_name, rknn_model_info, node_index, engine, log_f
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_pool2d_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
@@ -387,10 +396,11 @@ def construct_pool2d_op(rknn_op_name, rknn_model_info, node_index, engine, log_f
     if log_flag:
         print("construct {} op with info:\n{}".format(rknn_op_name, op_info))
     assert engine.create_operation(op_info), "construct operation {} fail!".format(op_name)
+    return op_info
 
 
 def construct_variable_op(rknn_op_name, rknn_model_info, node_index, engine, log_flag):
-    pass
+    return None
 
 
 class ConstructTimVxOpFromRknn():
@@ -407,11 +417,11 @@ class ConstructTimVxOpFromRknn():
         node_info = rknn_model_info[node_index]
         rknn_op_name = node_info['type']
         if rknn_op_name not in self.rknn_op_timvx_op_map.keys():
-            print("have not register {}".format(rknn_op_name))
-            return False
+            assert False, "have not register {}".format(rknn_op_name)
         else:
             timvx_op_name = self.rknn_op_timvx_op_map[rknn_op_name]
-            self.op_construct_funcs[timvx_op_name](rknn_op_name, rknn_model_info, node_index, engine, log_flag)
+            node_info = self.op_construct_funcs[timvx_op_name](rknn_op_name, rknn_model_info, node_index, engine, log_flag)
+            return node_info
 
 
 class Rknn2TimVxEngine():
@@ -471,8 +481,6 @@ class Rknn2TimVxEngine():
             ori_shape = tensor_shape[::-1]
             np_dtype = convert_timvx_dtype_to_np_dtype(tensor_dtype)
             np_data = np.frombuffer(rk_tensor["raw_data"], dtype=np_dtype).reshape(ori_shape)
-            # perm = [len(ori_shape) - i - 1 for i in range(len(ori_shape))]
-            # np_data = np_data.transpose(perm)
         if log_flag:
             print("********************************")
             print("construct tensor {} with:".format(tensor_name))
@@ -485,12 +493,22 @@ class Rknn2TimVxEngine():
         assert engine.create_tensor(tensor_name, tensor_dtype, 
             tensor_attr, tensor_shape, quant_info, np_data), "creat tensor {} fail!".format(tensor_name)
 
+        tensor_info = {}
+        tensor_info["name"] = tensor_name
+        tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(tensor_dtype)
+        tensor_info["attr"] = tensor_attr
+        tensor_info["shape"] = tensor_shape
+        tensor_info["quant_info"] = quant_info
+        tensor_info["data"] = np_data
+        return tensor_info
+
 
     def construct_engine_tensors(self, rknn_model_info:dict, engine:Engine, log_flag:bool=False):
         tensors_info = rknn_model_info["inputs"]
         for index in range(len(tensors_info)):
             tensor_name = tensors_info[index]["name"]
-            self.creat_tensor(engine, tensor_name, "INPUT", tensors_info[index]["tensor_info"], log_flag)
+            tensor_info = self.creat_tensor(engine, tensor_name, "INPUT", tensors_info[index]["tensor_info"], log_flag)
+            engine.add_inputs_info(tensor_name, tensor_info)
 
         tensors_info = rknn_model_info["tensors"]
         for tensor_name in tensors_info.keys():
@@ -500,18 +518,21 @@ class Rknn2TimVxEngine():
                 tensor_attr = "CONSTANT"
             else:
                 tensor_attr = "TRANSIENT"
-            self.creat_tensor(engine, tensor_name, tensor_attr, tensors_info[tensor_name], log_flag)
+            tensor_info = self.creat_tensor(engine, tensor_name, tensor_attr, tensors_info[tensor_name], log_flag)
+            engine.add_tensors_info(tensor_info)
 
         tensors_info = rknn_model_info["outputs"]
         for index in range(len(tensors_info)):
             tensor_name = tensors_info[index]["name"]
-            self.creat_tensor(engine, tensor_name, "OUTPUT", tensors_info[index]["tensor_info"], log_flag)
+            tensor_info = self.creat_tensor(engine, tensor_name, "OUTPUT", tensors_info[index]["tensor_info"], log_flag)
+            engine.add_outputs_info(tensor_name, tensor_info)
 
 
     def construct_engine_nodes(self, rknn_model_info:dict, engine:Engine, log_flag=False):
         nodes_info = rknn_model_info["nodes"]
         for index in range(len(nodes_info)):
-            self.constructor.construct_node(nodes_info, index, engine, log_flag)
+            node_info = self.constructor.construct_node(nodes_info, index, engine, log_flag)
+            engine.add_nodes_info(node_info)
 
 
     def construct_engine_norm_info(self, rknn_model_info:dict, engine:Engine, log_flag=False):
@@ -531,53 +552,6 @@ class Rknn2TimVxEngine():
                 print("reorder   : {}".format(rknn_model_info["reorder"]))
 
 
-    def construct_engine_inputs_outputs_info(self, rknn_model_info:dict, engine:Engine, log_flag=False):
-        assert "inputs" in rknn_model_info.keys(), "rknn model info not contain inputs!"
-        assert "outputs" in rknn_model_info.keys(), "rknn model info not contain outputs!"
-        for index in range(len(rknn_model_info["inputs"])):
-            item = rknn_model_info["inputs"][index]
-            timvx_tensor_info = {}
-            tensor_name = item["name"]
-            rknn_tensor_info = item["tensor_info"]
-            if "scale" in rknn_tensor_info["dtype"].keys():
-                timvx_tensor_info["scale"] = rknn_tensor_info["dtype"]["scale"]
-            else:
-                timvx_tensor_info["scale"] = 1.0
-            if "zero_point" in rknn_tensor_info["dtype"].keys():
-                timvx_tensor_info["zero_point"] = rknn_tensor_info["dtype"]["zero_point"]
-            else:
-                timvx_tensor_info["zero_point"] = 0.0
-            tim_dtype = convert_to_timvx_dtype(rknn_tensor_info["dtype"]["vx_type"])
-            timvx_tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(tim_dtype)
-            timvx_tensor_info["shape"] = rknn_tensor_info["shape"]
-            engine.add_inputs_info(tensor_name, timvx_tensor_info)
-            if log_flag:
-                print("add {}: {} to engine inptus".format(index, tensor_name))
-                print("tensor info: {}".format(timvx_tensor_info))
-
-
-        for index in range(len(rknn_model_info["outputs"])):
-            item = rknn_model_info["outputs"][index]
-            timvx_tensor_info = {}
-            tensor_name = item["name"]
-            rknn_tensor_info = item["tensor_info"]
-            if "scale" in rknn_tensor_info["dtype"].keys():
-                timvx_tensor_info["scale"] = rknn_tensor_info["dtype"]["scale"]
-            else:
-                timvx_tensor_info["scale"] = 1.0
-            if "zero_point" in rknn_tensor_info["dtype"].keys():
-                timvx_tensor_info["zero_point"] = rknn_tensor_info["dtype"]["zero_point"]
-            else:
-                timvx_tensor_info["zero_point"] = 0.0
-            tim_dtype = convert_to_timvx_dtype(rknn_tensor_info["dtype"]["vx_type"])
-            timvx_tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(tim_dtype)
-            timvx_tensor_info["shape"] = rknn_tensor_info["shape"]
-            engine.add_outputs_info(tensor_name, timvx_tensor_info)
-            if log_flag:
-                print("add {}: {} to engine outptus".format(index, tensor_name))
-                print("tensor info: {}".fromat(timvx_tensor_info))
-
-
     def convert_to_timvx(self, rknn_file:str, log_flag:bool=False):
         assert os.path.isfile(rknn_file), "{} not a valid file path!"
         with open(rknn_file, "rb") as f:
@@ -589,5 +563,4 @@ class Rknn2TimVxEngine():
         self.construct_engine_tensors(rknn_model_info, engine, log_flag)
         self.construct_engine_nodes(rknn_model_info, engine, log_flag)
         self.construct_engine_norm_info(rknn_model_info, engine, log_flag)
-        self.construct_engine_inputs_outputs_info(rknn_model_info, engine, log_flag)
         return engine
