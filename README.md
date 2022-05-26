@@ -70,7 +70,7 @@ All install files (both headers and *.so) is located in : `host_build/install`
 cmake options:
 
 | option name | Summary | Default |
-| ----- | ----- | ----- | 
+| ----- | ----- | ----- |
 |`TIM_VX_ENABLE_TEST`| Enable unit test case for public APIs and ops | OFF |
 |`TIM_VX_ENABLE_LAYOUT_INFER`| Build with tensor data layout inference support| ON |
 |`TIM_VX_USE_EXTERNAL_OVXLIB`| Replace internal with a prebuilt libovxlib library | OFF |
@@ -87,7 +87,7 @@ Run unit test:
 cd host_build/src/tim
 
 export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:<path to libgtest_main.so>:$LD_LIBRARY_PATH
-export VIVANTE_SDK_DIR=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib
+export VIVANTE_SDK_DIR=`pwd`/../../../prebuilt-sdk/x86_64_linux/
 export VSIMULATOR_CONFIG=<hardware name should get from chip vendor>
 # if you want to debug wit gdb, please set
 export DISABLE_IDE_DEBUG=1
@@ -109,7 +109,7 @@ export DISABLE_IDE_DEBUG=1
 1. prepare toolchain file follow cmake standard
 2. make sure cross build low-level driver with toolchain separately, we need the sdk from the low-level driver
 3. add ```-DEXTERNAL_VIV_SDK=<low-level-driver/out/sdk>``` to cmake definitions, also remember ```-DCMAKE_TOOLCHAIN_FILE=<Toolchain_Config>```
-4. or for using a buildroot toolchain with extrnal VIV-SDK add: 
+4. or for using a buildroot toolchain with extrnal VIV-SDK add:
    ```cmake
    -DCONFIG=BUILDROOT -DCMAKE_SYSROOT=${CMAKE_SYSROOT} -DEXTERNAL_VIV_SDK=${BUILDROOT_SYSROOT}
    ```
