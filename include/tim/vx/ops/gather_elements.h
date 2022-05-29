@@ -21,8 +21,8 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_GATHER_H_
-#define TIM_VX_OPS_GATHER_H_
+#ifndef TIM_VX_OPS_GATHER_ELEMENTS_H_
+#define TIM_VX_OPS_GATHER_ELEMENTS_H_
 #include "tim/vx/direct_map_op.h"
 
 namespace tim {
@@ -30,18 +30,18 @@ namespace vx {
 namespace ops {
 
 /**
- * ## Gather_elements
+ * ## GatherElements
  *
- * Gather_elements slices from input, **axis** according to **indices**.
+ * GatherElements slices from input, **axis** according to **indices**.
  * out[i][j][k] = input[index[i][j][k]][j][k] if axis = 0,
  * out[i][j][k] = input[i][index[i][j][k]][k] if axis = 1,
  * out[i][j][k] = input[i][j][index[i][j][k]] if axis = 2,
  * https://github.com/onnx/onnx/blob/main/docs/Operators.md#GatherElements
  */
 
-class Gather_elements : public DirectMapOp {
+class GatherElements : public DirectMapOp {
  public:
-  Gather_elements(Graph* Graph, int axis);
+  GatherElements(Graph* Graph, int axis);
 
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
@@ -54,4 +54,4 @@ class Gather_elements : public DirectMapOp {
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPS_GATHER_H_ */
+#endif /* TIM_VX_OPS_GATHER_ELEMENTS_H_ */

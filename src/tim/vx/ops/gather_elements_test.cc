@@ -28,9 +28,8 @@
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
-#ifdef _VSI_NN_OP_GATHER_ELEMENTS_H
 
-TEST(Gather_elements, shape_3_2_1_int32_axis_0) {
+TEST(GatherElements, shape_3_2_1_int32_axis_0) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
@@ -66,7 +65,7 @@ TEST(Gather_elements, shape_3_2_1_int32_axis_0) {
       input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * 4));
   EXPECT_TRUE(
       indices_tensor->CopyDataToTensor(indices.data(), indices.size() * 4));
-  auto op = graph->CreateOperation<tim::vx::ops::Gather_elements>(0);
+  auto op = graph->CreateOperation<tim::vx::ops::GatherElements>(0);
   (*op).BindInputs({input_tensor, indices_tensor}).BindOutputs({output_tensor});
 
   EXPECT_TRUE(graph->Compile());
@@ -77,7 +76,7 @@ TEST(Gather_elements, shape_3_2_1_int32_axis_0) {
   EXPECT_EQ(golden, output);
 }
 
-TEST(Gather_elements, shape_3_2_1_int32_axis_1) {
+TEST(GatherElements, shape_3_2_1_int32_axis_1) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
@@ -113,7 +112,7 @@ TEST(Gather_elements, shape_3_2_1_int32_axis_1) {
       input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * 4));
   EXPECT_TRUE(
       indices_tensor->CopyDataToTensor(indices.data(), indices.size() * 4));
-  auto op = graph->CreateOperation<tim::vx::ops::Gather_elements>(1);
+  auto op = graph->CreateOperation<tim::vx::ops::GatherElements>(1);
   (*op).BindInputs({input_tensor, indices_tensor}).BindOutputs({output_tensor});
 
   EXPECT_TRUE(graph->Compile());
@@ -124,7 +123,7 @@ TEST(Gather_elements, shape_3_2_1_int32_axis_1) {
   EXPECT_EQ(golden, output);
 }
 
-TEST(Gather_elements, shape_3_2_1_float32_axis_2) {
+TEST(GatherElements, shape_3_2_1_float32_axis_2) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
@@ -160,7 +159,7 @@ TEST(Gather_elements, shape_3_2_1_float32_axis_2) {
       input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * 4));
   EXPECT_TRUE(
       indices_tensor->CopyDataToTensor(indices.data(), indices.size() * 4));
-  auto op = graph->CreateOperation<tim::vx::ops::Gather_elements>(2);
+  auto op = graph->CreateOperation<tim::vx::ops::GatherElements>(2);
   (*op).BindInputs({input_tensor, indices_tensor}).BindOutputs({output_tensor});
 
   EXPECT_TRUE(graph->Compile());
@@ -170,4 +169,4 @@ TEST(Gather_elements, shape_3_2_1_float32_axis_2) {
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   EXPECT_EQ(golden, output);
 }
-#endif
+
