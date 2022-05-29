@@ -30,14 +30,14 @@ namespace tim {
 namespace vx {
 namespace ops {
 #ifdef _VSI_NN_OP_GATHER_ELEMENTS_H
-Gather_elements::Gather_elements(Graph* graph, int axis)
+GatherElements::GatherElements(Graph* graph, int axis)
     : DirectMapOp(graph, VSI_NN_OP_GATHER_ELEMENTS), axis_(axis) {
   this->impl()->node()->nn_param.gather_elements.axis = axis_;
 }
 
-std::shared_ptr<Operation> Gather_elements::Clone(
+std::shared_ptr<Operation> GatherElements::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<Gather_elements>(this->axis_);
+  return graph->CreateOperation<GatherElements>(this->axis_);
 }
 #endif
 
