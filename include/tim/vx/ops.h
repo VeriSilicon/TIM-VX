@@ -67,6 +67,8 @@
 #include "tim/vx/ops/resize.h"
 #include "tim/vx/ops/reverse.h"
 #include "tim/vx/ops/rnn_cell.h"
+#include "tim/vx/ops/roi_align.h"
+#include "tim/vx/ops/roi_pool.h"
 #include "tim/vx/ops/scatternd.h"
 #include "tim/vx/ops/select.h"
 #include "tim/vx/ops/shuffle_channel.h"
