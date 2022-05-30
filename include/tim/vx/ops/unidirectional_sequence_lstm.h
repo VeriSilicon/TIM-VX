@@ -47,7 +47,7 @@ namespace ops {
       UnidirectionalSequenceLstm(
           Graph* graph, float cell_clip, float proj_clip,
           ActivationType act_type, float forget_bias, bool time_major = false,
-          ActivationType recurrent_act_type = ActivationType::kNONE,
+          ActivationType recurrent_act_type = ActivationType::kSIGMOID,
           bool return_sequences = false /*False: only return last state*/
       );
 

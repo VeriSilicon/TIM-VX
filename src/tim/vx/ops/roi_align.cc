@@ -21,37 +21,41 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_GATHER_ELEMENTS_H_
-#define TIM_VX_OPS_GATHER_ELEMENTS_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/ops/roi_align.h"
+
+#include "direct_map_op_impl.h"
+#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-/**
- * ## GatherElements
- *
- * GatherElements slices from input, **axis** according to **indices**.
- * out[i][j][k] = input[index[i][j][k]][j][k] if axis = 0,
- * out[i][j][k] = input[i][index[i][j][k]][k] if axis = 1,
- * out[i][j][k] = input[i][j][index[i][j][k]] if axis = 2,
- * https://github.com/onnx/onnx/blob/main/docs/Operators.md#GatherElements
- */
+ROI_Align::ROI_Align(Graph* graph, int32_t output_height, int32_t output_width,
+          float height_ratio, float width_ratio, int32_t height_sample_num,
+          int32_t width_sample_num)
+    : DirectMapOp(graph, VSI_NN_OP_ROI_ALIGN),
+      output_height_(output_height),
+      output_width_(output_width),
+      height_ratio_(height_ratio),
+      width_ratio_(width_ratio),
+      height_sample_num_(height_sample_num),
+      width_sample_num_(width_sample_num) {
+  this->impl()->node()->nn_param.roi_align.output_height = output_height;
+  this->impl()->node()->nn_param.roi_align.output_width = output_width;
+  this->impl()->node()->nn_param.roi_align.height_ratio = height_ratio;
+  this->impl()->node()->nn_param.roi_align.width_ratio = width_ratio;
+  this->impl()->node()->nn_param.roi_align.height_sample_num =
+      height_sample_num;
+  this->impl()->node()->nn_param.roi_align.width_sample_num = width_sample_num;
+}
 
-class GatherElements : public DirectMapOp {
- public:
-  GatherElements(Graph* Graph, int axis);
-
-  std::shared_ptr<Operation> Clone(
-      std::shared_ptr<Graph>& graph) const override;
-
- protected:
-  int axis_;
-};
+std::shared_ptr<Operation> ROI_Align::Clone(
+    std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<ROI_Align>(
+      this->output_height_, this->output_width_, this->height_ratio_,
+      this->width_ratio_, this->height_sample_num_, this->width_sample_num_);
+}
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
-
-#endif /* TIM_VX_OPS_GATHER_ELEMENTS_H_ */

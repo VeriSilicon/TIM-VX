@@ -21,8 +21,8 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_GATHER_ELEMENTS_H_
-#define TIM_VX_OPS_GATHER_ELEMENTS_H_
+#ifndef TIM_VX_OPS_ROI_ALIGN_H_
+#define TIM_VX_OPS_ROI_ALIGN_H_
 #include "tim/vx/direct_map_op.h"
 
 namespace tim {
@@ -30,28 +30,43 @@ namespace vx {
 namespace ops {
 
 /**
- * ## GatherElements
+ * ## ROI_ALIGN
  *
- * GatherElements slices from input, **axis** according to **indices**.
- * out[i][j][k] = input[index[i][j][k]][j][k] if axis = 0,
- * out[i][j][k] = input[i][index[i][j][k]][k] if axis = 1,
- * out[i][j][k] = input[i][j][index[i][j][k]] if axis = 2,
- * https://github.com/onnx/onnx/blob/main/docs/Operators.md#GatherElements
+ * Select and scale the feature map of each region of interest to a unified output
+ * size by average pooling sampling points from bilinear interpolation.
+ *
+ * - output_height : specifying the output height of the output tensor.
+ * - output_width : specifying the output width of the output tensor.
+ * - height_ratio : specifying the ratio from the height of original image to the
+ *   height of feature map.
+ * - width_ratio : specifying the ratio from the width of original image to the
+ *   width of feature map.
+ * - height_sample_num :  specifying the number of sampling points in height dimension
+ *   used to compute the output.
+ * - width_sample_num :specifying the number of sampling points in width dimension
+ *   used to compute the output.
  */
 
-class GatherElements : public DirectMapOp {
+class ROI_Align : public DirectMapOp {
  public:
-  GatherElements(Graph* Graph, int axis);
+  ROI_Align(Graph* graph, int32_t output_height, int32_t output_width,
+            float height_ratio, float width_ratio, int32_t height_sample_num,
+            int32_t width_sample_num);
 
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
 
  protected:
-  int axis_;
+  int32_t output_height_;
+  int32_t output_width_;
+  float height_ratio_;
+  float width_ratio_;
+  int32_t height_sample_num_;
+  int32_t width_sample_num_;
 };
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPS_GATHER_ELEMENTS_H_ */
+#endif /* TIM_VX_OPS_ROI_ALIGN_H_ */
