@@ -42,6 +42,7 @@
 #include "tim/vx/ops/erf.h"
 #include "tim/vx/ops/fullyconnected.h"
 #include "tim/vx/ops/gather.h"
+#include "tim/vx/ops/gather_elements.h"
 #include "tim/vx/ops/gathernd.h"
 #include "tim/vx/ops/groupedconv2d.h"
 #include "tim/vx/ops/instancenormalization.h"
