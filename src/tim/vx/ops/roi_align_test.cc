@@ -48,7 +48,7 @@ TEST(ROI_Align, shape_4_2_1_1_float32) {
   int32_t width_sample_num = 4;
 
   tim::vx::ShapeType input_shape({width, height, channels, batch});  //whcn
-  tim::vx::ShapeType regions_shape({num_rois, 4});
+  tim::vx::ShapeType regions_shape({4, num_rois});
   tim::vx::ShapeType batch_index_shape({num_rois});
   tim::vx::ShapeType output_shape(
       {(uint32_t)out_width, (uint32_t)out_height, depth, num_rois});

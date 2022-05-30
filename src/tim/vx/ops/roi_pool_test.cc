@@ -46,7 +46,7 @@ TEST(ROI_Pool, shape_4_2_1_1_float32) {
 
 
   tim::vx::ShapeType input_shape({width, height, channels, batch});  //whcn
-  tim::vx::ShapeType regions_shape({num_rois, 5});
+  tim::vx::ShapeType regions_shape({5, num_rois});
   tim::vx::ShapeType output_shape(
       {(uint32_t)out_width, (uint32_t)out_height, depth, num_rois});
 
