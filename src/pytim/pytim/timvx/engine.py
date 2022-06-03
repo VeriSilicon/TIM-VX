@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import numpy as np
 from .lib import *
 
@@ -14,6 +15,8 @@ class Engine():
         self.outputs_info = {}
         self.nodes_info = []
         self.tensors_info = []
+        self.inputs_alias = {}
+        self.outputs_alias = {}
 
 
     def set_mean_value(self, input_name:str, mean_value:list):
@@ -33,12 +36,17 @@ class Engine():
     def add_inputs_info(self, input_name:str, tensor_info:dict):
         assert input_name not in self.inputs_info, "tensor {} already exists!".format(input_name)
         self.inputs_info[input_name] = tensor_info
+        if "alias" in tensor_info.keys():
+            alias_name = tensor_info["alias"]
+            self.inputs_alias[alias_name] = input_name
 
 
     def add_outputs_info(self, output_name:str, tensor_info:dict):
         assert output_name not in self.outputs_info, "tensor {} already exists!".format(output_name)
         self.outputs_info[output_name] = tensor_info
-
+        if "alias" in tensor_info.keys():
+            alias_name = tensor_info["alias"]
+            self.outputs_alias[alias_name] = output_name
 
     def add_nodes_info(self, node_info:dict):
         self.nodes_info.append(node_info)
@@ -175,46 +183,141 @@ class Engine():
         return self.engine.compile_graph()
 
 
-    def run_graph(self, input_dict:dict):
+    def run_graph(self, input_dict:dict, output_name_list:list=[]):
         for input_name in input_dict.keys():
-            assert input_name in self.inputs_info.keys(), "invalid input tensor name {}".format(input_name)
-            input_data = input_dict[input_name]
+            input_tensor_name = input_name
+            assert input_tensor_name in self.inputs_info.keys() or input_tensor_name in self.inputs_alias.keys(), \
+                "invalid input tensor name {}".format(input_tensor_name)
+            if input_tensor_name in self.inputs_alias.keys():
+                input_tensor_name = self.inputs_alias[input_tensor_name]
+            input_data = input_dict[input_tensor_name]
             assert len(input_data.shape) == 3, "need a hwc format input, please check!"
             h,w,c = input_data.shape
             assert c == 3 or c == 1, "input channel should be 1 or 3"
-            assert type(input_dict[input_name]) == np.ndarray, "{} tensor data only support numpy array"
-            engine_input = (input_data.astype(np.float32) - self.mean_value[input_name]) / self.std_value[input_name]
+            assert type(input_dict[input_tensor_name]) == np.ndarray, "{} tensor data only support numpy array"
+            engine_input = (input_data.astype(np.float32) - self.mean_value[input_tensor_name]) / self.std_value[input_tensor_name]
             if self.reorder == [2, 1, 0]:
                 engine_input = engine_input[:,:,::-1]
             engine_input = engine_input.transpose((2, 0, 1))
-            shape = self.inputs_info[input_name]["shape"]
-            dtype = self.inputs_info[input_name]["dtype"]
+            shape = self.inputs_info[input_tensor_name]["shape"]
+            dtype = self.inputs_info[input_tensor_name]["dtype"]
             scale = 1.0
             zero_point = 0.0
-            if "scale" in self.inputs_info[input_name]["quant_info"]:
-                scale = self.inputs_info[input_name]["quant_info"]["scale"]
-            if "zero_point" in self.inputs_info[input_name]["quant_info"]:
-                zero_point = self.inputs_info[input_name]["quant_info"]["zero_point"]
+            if "scale" in self.inputs_info[input_tensor_name]["quant_info"]:
+                scale = self.inputs_info[input_tensor_name]["quant_info"]["scale"]
+            if "zero_point" in self.inputs_info[input_tensor_name]["quant_info"]:
+                zero_point = self.inputs_info[input_tensor_name]["quant_info"]["zero_point"]
             engine_input = (engine_input / scale + zero_point).reshape(shape).astype(dtype)
             input_bytes = engine_input.tobytes()
-            assert self.engine.copy_data_to_tensor(input_name, input_bytes), "set input {} fail!".format(input_name)
+            assert self.engine.copy_data_to_tensor(input_tensor_name, input_bytes), \
+                "set input {} fail!".format(input_name)
 
         assert self.engine.run_graph(), "run graph fail!"
 
         outputs = []
-        for output_name in self.outputs_info.keys():
-            dtype = self.outputs_info[output_name]["dtype"]
-            shape = self.outputs_info[output_name]["shape"]
+        if output_name_list == []:
+            if self.outputs_alias != {}:
+                output_name_list = list(self.outputs_alias.keys())
+            else:
+                output_name_list = list(self.inputs_info.keys())
+        for output_index in range(len(output_name_list)):
+            output_name = output_name_list[output_index]
+            output_tensor_name = output_name
+            if output_tensor_name in self.outputs_alias.keys():
+                output_tensor_name = self.outputs_alias[output_tensor_name]
+            assert output_tensor_name in self.outputs_info.keys(), \
+                "{} not a valid output tensor".format(output_name)
+            dtype = self.outputs_info[output_tensor_name]["dtype"]
+            shape = self.outputs_info[output_tensor_name]["shape"]
             scale = 1.0
             zero_point = 0.0
-            if "scale" in self.outputs_info[output_name]["quant_info"]:
-                scale = self.outputs_info[output_name]["quant_info"]["scale"]
-            if "zero_point" in self.outputs_info[output_name]["quant_info"]:
-                zero_point = self.outputs_info[output_name]["quant_info"]["zero_point"]
+            if "scale" in self.outputs_info[output_tensor_name]["quant_info"]:
+                scale = self.outputs_info[output_tensor_name]["quant_info"]["scale"]
+            if "zero_point" in self.outputs_info[output_tensor_name]["quant_info"]:
+                zero_point = self.outputs_info[output_tensor_name]["quant_info"]["zero_point"]
             output_data = np.zeros(shape).astype(dtype)
-            assert self.engine.copy_data_from_tensor(output_name, output_data), "get output {} fail!".format(output_name)
+            assert self.engine.copy_data_from_tensor(output_tensor_name, output_data), \
+                "get output {} fail!".format(output_name)
             output_data = output_data.astype(np.float32)
             output_data = (output_data - zero_point) * scale
             output_data = output_data.reshape(shape[::-1])
             outputs.append(output_data)
         return outputs
+
+
+    def export_graph(self, graph_json_file:str, weight_bin_file:str):
+        graph_json_dict = {}
+        # init norm_info
+        print("prepare norm ...")
+        norm_info = {}
+        norm_info["mean"] = self.mean_value
+        norm_info["std"] = self.std_value
+        norm_info["reorder"] = self.reorder
+        graph_json_dict["norm"] = norm_info
+
+        # init inputs_info
+        print("prepare inputs ...")
+        inputs_info = []
+        for input_name in self.inputs_info.keys():
+            input_tensor = {}
+            tensor_info = self.inputs_info[input_name]
+            for item_key in tensor_info.keys():
+                item_value = tensor_info[item_key]
+                if item_key == "dtype":
+                    item_value = self.convert_np_dtype_to_tim_dtype(item_value)
+                input_tensor[item_key] = item_value
+            inputs_info.append(input_tensor)
+        graph_json_dict["inputs"] = inputs_info
+
+        # init outputs_info
+        print("prepare outputs ...")
+        outputs_info = []
+        for output_name in self.outputs_info.keys():
+            output_tensor = {}
+            tensor_info = self.outputs_info[output_name]
+            for item_key in tensor_info.keys():
+                item_value = tensor_info[item_key]
+                if item_key == "dtype":
+                    item_value = self.convert_np_dtype_to_tim_dtype(item_value)
+                output_tensor[item_key] = item_value
+            outputs_info.append(output_tensor)
+        graph_json_dict["outputs"] = outputs_info
+
+        # init tensors_info
+        print("prepare tensors ...")
+        weight_offset = 0
+        weight_bin_list = []
+        tensors_info = []
+        for index in range(len(self.tensors_info)):
+            new_tensor_info = {}
+            tensor_info = self.tensors_info[index]
+            for item_key in tensor_info.keys():
+                item_value = tensor_info[item_key]
+                if item_key == "dtype":
+                    item_value = self.convert_np_dtype_to_tim_dtype(item_value)
+                if item_key == "data":
+                    item_key = "offset"
+                    item_value = weight_offset
+                    weight_offset += len(tensor_info[item_key].tobytes())
+                    weight_bin_list.append(tensor_info[item_key].tobytes())
+                new_tensor_info[item_key] = item_value
+            tensors_info.append(new_tensor_info)
+        graph_json_dict["tensors"] = tensors_info
+
+        # init nodes_info/inputs_alias/outputs_alias
+        print("prepare nodes/inputs_alias/outputs_alias ...")
+        graph_json_dict["nodes"] = self.nodes_info
+        graph_json_dict["inputs_alias"] = self.inputs_alias
+        graph_json_dict["outputs_alias"] = self.outputs_alias
+
+        # dump to json file/bin file
+        print("write to file ...")
+        graph_json_obj = json.dumps(graph_json_dict)
+        with open(graph_json_file, "w") as f:
+            f.write(graph_json_obj)
+
+        with open(weight_bin_file, "wb") as f:
+            for index in range(len(weight_bin_list)):
+                f.write(weight_bin_list[index])
+
+        print("export success.")

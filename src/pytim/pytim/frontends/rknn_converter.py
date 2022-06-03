@@ -508,6 +508,8 @@ class Rknn2TimVxEngine():
         for index in range(len(tensors_info)):
             tensor_name = tensors_info[index]["name"]
             tensor_info = self.creat_tensor(engine, tensor_name, "INPUT", tensors_info[index]["tensor_info"], log_flag)
+            if "url" in tensors_info[index]["tensor_info"].keys():
+                tensor_info["alias"] = tensors_info[index]["tensor_info"]["url"]
             engine.add_inputs_info(tensor_name, tensor_info)
 
         tensors_info = rknn_model_info["tensors"]
@@ -525,6 +527,8 @@ class Rknn2TimVxEngine():
         for index in range(len(tensors_info)):
             tensor_name = tensors_info[index]["name"]
             tensor_info = self.creat_tensor(engine, tensor_name, "OUTPUT", tensors_info[index]["tensor_info"], log_flag)
+            if "url" in tensors_info[index]["tensor_info"].keys():
+                tensor_info["alias"] = tensors_info[index]["tensor_info"]["url"]
             engine.add_outputs_info(tensor_name, tensor_info)
 
 
