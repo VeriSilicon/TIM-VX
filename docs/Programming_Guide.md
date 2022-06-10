@@ -20,11 +20,17 @@ A set of nodes connected in a directed (only goes one-way) acyclic (does not loo
 
 An multidimensional data object.
 
-TIM-VX support the following tensor type:
+TIM-VX support the following tensor attributes:
 
-- Normal Tensor. The tensor which is allocated in host memory, which is managed by OpenVX driver. Normal Tensor is usually used for input/output tensors of the graph.
-- Viratul Tensor. The tensor which is allocated in target memory. Viratul Tensor is usually used for intermediate tensors of the graph. Viratul Tensor is faster than the Normal Tensor due to reduce the memory copy between host and target.
-- Handle Tensor. The tensor which is allocated in host memory, which is managed by user application. App usually use mmap() to allocate continuous memory for tensor usage. Handle Tensor is also usually used for input/output tensors of the graph. Sometimes the memory of Normal Tensor will be released/relocated by OpenVX driver, and this may be inefficient. You can use Handle Tensor to avoid release/relocate memory.
+- INPUT Tensor: A tensor object used as input for the graph. Contents can be updated by the host prior to each inference. INPUT Tensor can be mapped from a host allocated memory handle. 
+
+- OUTPUT Tensor: A tensor object used as output for the graph. Contents can be retribed by the host after each inference. Output Tensor can be mapped from a host allocated memory handle.  
+
+- VARIABLE Tensor: A tensor object which can be used as both input and output for the graph, typically used in recurrent networks to hold recurrent states. It's contents are accessible by the host. Variable Tensor can be mapped from a host allocated memory handle.  
+
+- CONSTANT Tensor: A tensor object that holds contents which will not change throughout the execution of the graph. The contents of these tensor objects must be populated prior to graph compilation, and shall not change afterwards. This type of tensors can be used to hold weights, bias or other types parameters.
+
+- TRANSIENT Tensor: A virtual tensor object which is only used to represent the connectivity between nodes, and its contents are not accessible by the host. The life cycle of these tensors are managed entirely by TIM-VX internally, and they are mostly used to represent intermediate activations of a graph. 
 
 ## Memory Layout
 
