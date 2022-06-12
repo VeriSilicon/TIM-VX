@@ -26,4 +26,4 @@ if __name__ == "__main__":
     print(outputs[0])
     
     # export engine's graph
-    assert engine.export_graph(), "export graph fail...."
+    assert engine.export_graph("./lenet.json", "./lenet.weight"), "export graph fail...."
