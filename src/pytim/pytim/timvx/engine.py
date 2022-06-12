@@ -245,7 +245,7 @@ class Engine():
         return outputs
 
 
-    def export_graph(self, graph_json_file:str, weight_bin_file:str):
+    def export_graph(self, graph_json_file:str, weight_bin_file:str, log_flag:bool=False):
         graph_json_dict = {}
         # init norm_info
         print("prepare norm ...")
@@ -254,8 +254,9 @@ class Engine():
         norm_info["std"] = self.std_value
         norm_info["reorder"] = self.reorder
         graph_json_dict["norm"] = norm_info
-        print(graph_json_dict["norm"])
-        
+        if log_flag:
+            print(graph_json_dict["norm"])
+
         # init inputs_info
         print("prepare inputs ...")
         inputs_info = []
@@ -267,7 +268,8 @@ class Engine():
                 if item_key == "dtype":
                     item_value = self.convert_np_dtype_to_tim_dtype(item_value)
                 input_tensor[item_key] = item_value
-            print(input_tensor)
+            if log_flag:
+                print(input_tensor)
             inputs_info.append(input_tensor)
         graph_json_dict["inputs"] = inputs_info
 
@@ -282,7 +284,8 @@ class Engine():
                 if item_key == "dtype":
                     item_value = self.convert_np_dtype_to_tim_dtype(item_value)
                 output_tensor[item_key] = item_value
-            print(output_tensor)
+            if log_flag:
+                print(output_tensor)
             outputs_info.append(output_tensor)
         graph_json_dict["outputs"] = outputs_info
 
@@ -304,7 +307,8 @@ class Engine():
                     weight_bin_list.append(tensor_info[item_key].tobytes())
                     item_key = "offset"
                 new_tensor_info[item_key] = item_value
-            print(new_tensor_info)
+            if log_flag:
+                print(new_tensor_info)
             tensors_info.append(new_tensor_info)
         graph_json_dict["tensors"] = tensors_info
 
@@ -313,7 +317,10 @@ class Engine():
         graph_json_dict["nodes"] = self.nodes_info
         graph_json_dict["inputs_alias"] = self.inputs_alias
         graph_json_dict["outputs_alias"] = self.outputs_alias
-
+        if log_flag:
+            print(graph_json_dict["nodes"])
+            print(graph_json_dict["inputs_alias"])
+            print(graph_json_dict["outputs_alias"])
         # dump to json file/bin file
         print("write to file ...")
         graph_json_obj = json.dumps(graph_json_dict)

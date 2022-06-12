@@ -32,3 +32,7 @@ if __name__ == "__main__":
     top_k=5
     top_k_idx=output_data.argsort()[::-1][0:top_k]
     print(output_data[top_k_idx])
+
+    # export engine's graph
+    assert engine.export_graph("./examples/squeezenet_test/squeezenet.json", 
+        "./examples/squeezenet_test/squeezenet.weight"), "export graph fail...."

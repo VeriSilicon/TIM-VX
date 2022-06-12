@@ -17,7 +17,6 @@ if __name__ == "__main__":
     # compile engine's graph
     assert engine.compile_graph(), "compile graph fail...."
 
-    
     # prepare engine's input
     src_img = cv2.imread("./examples/scrfd_test/scrfd_test.jpg")
     img,ratio,pad = letterbox(src_img)
@@ -32,3 +31,7 @@ if __name__ == "__main__":
     rknn_detect_faces = decode(ratio, pad, src_img, img, outputs, 0.4, 0.45)
     print("detect {} faces".format(len(rknn_detect_faces)))
     print("face location:{}".format(rknn_detect_faces))
+
+    # export engine's graph
+    assert engine.export_graph("./examples/scrfd_test/scrfd.json", 
+        "./examples/scrfd_test/scrfd.weight"), "export graph fail...."
