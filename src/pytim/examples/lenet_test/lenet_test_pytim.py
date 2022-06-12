@@ -23,5 +23,7 @@ if __name__ == "__main__":
 
     # run engine's graph and returen infer result
     outputs = engine.run_graph(input_dict)
-    print(outputs[0])        
-
+    print(outputs[0])
+    
+    # export engine's graph
+    assert engine.export_graph(), "export graph fail...."

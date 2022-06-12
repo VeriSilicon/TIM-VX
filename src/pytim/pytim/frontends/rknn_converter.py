@@ -499,7 +499,8 @@ class Rknn2TimVxEngine():
         tensor_info["attr"] = tensor_attr
         tensor_info["shape"] = tensor_shape
         tensor_info["quant_info"] = quant_info
-        tensor_info["data"] = np_data
+        if np_data.size != 0:
+            tensor_info["data"] = np_data
         return tensor_info
 
 
