@@ -296,10 +296,10 @@ class Engine():
                 if item_key == "dtype":
                     item_value = self.convert_np_dtype_to_tim_dtype(item_value)
                 if item_key == "data":
-                    item_key = "offset"
                     item_value = weight_offset
                     weight_offset += len(tensor_info[item_key].tobytes())
                     weight_bin_list.append(tensor_info[item_key].tobytes())
+                    item_key = "offset"
                 new_tensor_info[item_key] = item_value
             tensors_info.append(new_tensor_info)
         graph_json_dict["tensors"] = tensors_info

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""rknn frontend."""
 import json
 
 def get_model_signature(rknn_data, offset):
