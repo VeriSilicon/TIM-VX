@@ -53,6 +53,7 @@ static vsi_bool setup_op_shapes
     vsi_size_t num_units =  0;
     vsi_size_t output_size = 0;
     vsi_size_t batch_size = 0;
+    vsi_bool use_virtual_tensor = TRUE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     if( curr_param->time_major )
@@ -93,6 +94,28 @@ static vsi_bool setup_op_shapes
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         inputs[BI_RNN_BW_INPUT_H_STATE] = output_tensor->t;
     }
+    
+    if( !outputs[BI_RNN_FW_OUTPUT_H_STATE] )
+    {
+        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
+        attr.dim_num = VSI_NN_DIM_AUTO;
+        memcpy( &attr.dtype, &outputs[BI_RNN_FW_OUTPUT_OUTPUT]->attr.dtype, sizeof( attr.dtype ) );
+        attr.vtl = use_virtual_tensor;
+        attr.is_const = FALSE;
+        output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        outputs[BI_RNN_FW_OUTPUT_H_STATE] = output_tensor->t;
+    }
+
+    if( !outputs[BI_RNN_BW_OUTPUT_H_STATE] )
+    {
+        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
+        attr.dim_num = VSI_NN_DIM_AUTO;
+        memcpy( &attr.dtype, &outputs[BI_RNN_BW_OUTPUT_OUTPUT]->attr.dtype, sizeof( attr.dtype ) );
+        attr.vtl = use_virtual_tensor;
+        attr.is_const = FALSE;
+        output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        outputs[BI_RNN_BW_OUTPUT_H_STATE] = output_tensor->t;
+    }
 
     /* output */
     if( VSI_NN_DIM_AUTO == outputs[BI_RNN_FW_OUTPUT_OUTPUT]->attr.dim_num )
@@ -118,6 +141,26 @@ static vsi_bool setup_op_shapes
         }
     }
 
+    /* output_state_out */
+    if(VSI_NN_DIM_AUTO == outputs[BI_RNN_FW_OUTPUT_H_STATE]->attr.dim_num)
+    {
+        if( curr_param->merge_outputs )
+        {
+            outputs[BI_RNN_FW_OUTPUT_H_STATE]->attr.size[0] = output_size*2;
+            outputs[BI_RNN_FW_OUTPUT_H_STATE]->attr.size[1] = batch_size;
+            outputs[BI_RNN_FW_OUTPUT_H_STATE]->attr.dim_num = 2;
+        }
+        else
+        {
+            outputs[BI_RNN_FW_OUTPUT_H_STATE]->attr.size[0] = output_size;
+            outputs[BI_RNN_FW_OUTPUT_H_STATE]->attr.size[1] = batch_size;
+            outputs[BI_RNN_FW_OUTPUT_H_STATE]->attr.dim_num = 2;
+
+            outputs[BI_RNN_BW_OUTPUT_H_STATE]->attr.size[0] = output_size;
+            outputs[BI_RNN_BW_OUTPUT_H_STATE]->attr.size[1] = batch_size;
+            outputs[BI_RNN_BW_OUTPUT_H_STATE]->attr.dim_num = 2;
+        }
+    }
     return TRUE;
 }
 
@@ -292,7 +335,7 @@ static vsi_bool op_setup
 
         /* rnncell output h_state */
         vsi_nn_internal_init_tensor_attr(&attr,
-                &outputs[BI_RNN_FW_OUTPUT_OUTPUT]->attr.dtype, use_virtual_tensor);
+                &outputs[BI_RNN_FW_OUTPUT_H_STATE]->attr.dtype, use_virtual_tensor);
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         rnncell_out1 = output_tensor->t;
 
@@ -307,8 +350,8 @@ static vsi_bool op_setup
         curr->inputs[RNNCELL_INPUT_WEIGHT_I] = inputs[BI_RNN_FW_INPUT_WEIGHT_I];
         curr->inputs[RNNCELL_INPUT_WEIGHT_H] = inputs[BI_RNN_FW_INPUT_WEIGHT_H];
 
-        curr->inputs[RNNCELL_INPUT_BIAS] = inputs[BI_RNN_FW_INPUT_BIAS];
-
+        curr->inputs[RNNCELL_INPUT_BIAS_I] = inputs[BI_RNN_FW_INPUT_BIAS_I];
+        curr->inputs[RNNCELL_INPUT_BIAS_H] = inputs[BI_RNN_FW_INPUT_BIAS_H];
         if (has_aux_input)
         {
             curr->inputs[RNNCELL_INPUT_AUX_INPUT] = aux_reshape_output_tensors[i];
@@ -348,7 +391,7 @@ static vsi_bool op_setup
 
         /* rnncell output h_state */
         vsi_nn_internal_init_tensor_attr(&attr,
-                &outputs[BI_RNN_BW_OUTPUT_OUTPUT]->attr.dtype, use_virtual_tensor);
+                &outputs[BI_RNN_BW_OUTPUT_H_STATE]->attr.dtype, use_virtual_tensor);
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         rnncell_out1 = output_tensor->t;
 
@@ -363,8 +406,8 @@ static vsi_bool op_setup
         curr->inputs[RNNCELL_INPUT_WEIGHT_I] = inputs[BI_RNN_BW_INPUT_WEIGHT_I];
         curr->inputs[RNNCELL_INPUT_WEIGHT_H] = inputs[BI_RNN_BW_INPUT_WEIGHT_H];
 
-        curr->inputs[RNNCELL_INPUT_BIAS] = inputs[BI_RNN_BW_INPUT_BIAS];
-
+        curr->inputs[RNNCELL_INPUT_BIAS_I] = inputs[BI_RNN_BW_INPUT_BIAS_I];
+        curr->inputs[RNNCELL_INPUT_BIAS_H] = inputs[BI_RNN_BW_INPUT_BIAS_H];
         if(has_aux_input)
         {
             curr->inputs[RNNCELL_INPUT_AUX_INPUT] = aux_reshape_output_tensors[time_step - 1 - i];
@@ -454,6 +497,15 @@ static vsi_bool op_setup
             tensor = output_tensor->t;
         }
 
+        /* forward output state*/
+        if (outputs[BI_RNN_FW_OUTPUT_H_STATE] != NULL)
+        {
+            curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+            curr->inputs[0] = last_step_h_state_fw;
+            curr->outputs[0] = outputs[BI_RNN_FW_OUTPUT_H_STATE];
+            vsi_nn_internal_setup_node(self, curr);
+        }
+
         /* concat rnncell output, the rnn's output is 3-dims */
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, (uint32_t)time_step, 1 );
         curr->node->nn_param.concat.axis = 2;
@@ -480,6 +532,15 @@ static vsi_bool op_setup
             output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
 
             tensor = output_tensor->t;
+        }
+
+        /* backward output state*/
+        if (outputs[BI_RNN_BW_OUTPUT_H_STATE] != NULL)
+        {
+            curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+            curr->inputs[0] = last_step_h_state_bw;
+            curr->outputs[0] = outputs[BI_RNN_BW_OUTPUT_H_STATE];
+            vsi_nn_internal_setup_node(self, curr);
         }
 
         /* concat rnncell output, the rnn's output is 3-dims */

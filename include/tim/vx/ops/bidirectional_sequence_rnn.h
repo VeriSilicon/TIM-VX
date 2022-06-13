@@ -21,57 +21,44 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN_H
-#define _VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN_H
+#ifndef TIM_VX_OPS_BIDIRECTIONAL_SEQUENCE_RNN_H_
+#define TIM_VX_OPS_BIDIRECTIONAL_SEQUENCE_RNN_H_
+#include "tim/vx/direct_map_op.h"
 
-#include "vsi_nn_types.h"
-#include "vsi_nn_op_rnn.h"
+namespace tim {
+namespace vx {
+namespace ops {
+    /**
+     * ## bidirectional sequence rnn
+     *  how to bind input/output: take bidirectional_sequence_rnn_test.cc
+     */
+    class BidirectionalSequenceRnn: public DirectMapOp {
+     public:
+      enum ActivationType {
+        kNONE = 0,
+        kRELU = 1,
+        kRELU1 = 2,
+        kRELU6 = 3,
+        kTANH = 4,
+        kSIGMOID = 6,
+        kHARDSIGMOID = 31, /* temporary use 31 */
+      };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+      BidirectionalSequenceRnn(
+          Graph* graph, 
+          ActivationType act_type, 
+          bool time_major = false,
+          bool merge_outputs = false
+      );
 
-/* enum for inputs/outputs */
-enum
-{
-    BI_RNN_INPUT_INPUT           = 0,
+      std::shared_ptr<Operation> Clone(
+          std::shared_ptr<Graph>& graph) const override;
 
-    BI_RNN_FW_INPUT_WEIGHT_I     = 1,
-    BI_RNN_FW_INPUT_WEIGHT_H     = 2,
-    BI_RNN_FW_INPUT_BIAS_I       = 3,
-    BI_RNN_FW_INPUT_BIAS_H       = 4,
-    BI_RNN_FW_INPUT_H_STATE      = 5,
-
-    BI_RNN_BW_INPUT_WEIGHT_I     = 6,
-    BI_RNN_BW_INPUT_WEIGHT_H     = 7,
-    BI_RNN_BW_INPUT_BIAS_I       = 8,
-    BI_RNN_BW_INPUT_BIAS_H       = 9,
-    BI_RNN_BW_INPUT_H_STATE      = 10,
-
-    BI_RNN_AUX_INPUT             = 11,
-    BI_RNN_FW_AUX_INPUT_WEIGHT   = 12,
-    BI_RNN_BW_AUX_INPUT_WEIGHT   = 13,
-
-    BI_RNN_INPUT_CNT,
-
-    BI_RNN_FW_OUTPUT_H_STATE     = 0,
-    BI_RNN_BW_OUTPUT_H_STATE     = 1,
-    BI_RNN_FW_OUTPUT_OUTPUT      = 2,
-    BI_RNN_BW_OUTPUT_OUTPUT      = 3,
-    BI_RNN_OUTPUT_CNT
-};
-
-
-typedef struct _vsi_nn_bidirectional_sequence_rnn_param
-{
-    vsi_bool time_major;
-    vsi_bool merge_outputs;
-    vsi_nn_activation_e activation;
-    vsi_nn_dtype_t* internal_dtype;
-} vsi_nn_bidirectional_sequence_rnn_param;
-
-#ifdef __cplusplus
+     protected:
+      ActivationType act_type_;
+    };
 }
-#endif
+}  // namespace vx
+}  // namespace tim
 
 #endif

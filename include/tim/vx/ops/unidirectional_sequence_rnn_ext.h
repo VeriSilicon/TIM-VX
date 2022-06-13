@@ -21,57 +21,33 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN_H
-#define _VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN_H
-
-#include "vsi_nn_types.h"
-#include "vsi_nn_op_rnn.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* enum for inputs/outputs */
-enum
-{
-    BI_RNN_INPUT_INPUT           = 0,
-
-    BI_RNN_FW_INPUT_WEIGHT_I     = 1,
-    BI_RNN_FW_INPUT_WEIGHT_H     = 2,
-    BI_RNN_FW_INPUT_BIAS_I       = 3,
-    BI_RNN_FW_INPUT_BIAS_H       = 4,
-    BI_RNN_FW_INPUT_H_STATE      = 5,
-
-    BI_RNN_BW_INPUT_WEIGHT_I     = 6,
-    BI_RNN_BW_INPUT_WEIGHT_H     = 7,
-    BI_RNN_BW_INPUT_BIAS_I       = 8,
-    BI_RNN_BW_INPUT_BIAS_H       = 9,
-    BI_RNN_BW_INPUT_H_STATE      = 10,
-
-    BI_RNN_AUX_INPUT             = 11,
-    BI_RNN_FW_AUX_INPUT_WEIGHT   = 12,
-    BI_RNN_BW_AUX_INPUT_WEIGHT   = 13,
-
-    BI_RNN_INPUT_CNT,
-
-    BI_RNN_FW_OUTPUT_H_STATE     = 0,
-    BI_RNN_BW_OUTPUT_H_STATE     = 1,
-    BI_RNN_FW_OUTPUT_OUTPUT      = 2,
-    BI_RNN_BW_OUTPUT_OUTPUT      = 3,
-    BI_RNN_OUTPUT_CNT
-};
+#ifndef TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_RNN_EXT_H_
+#define TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_RNN_EXT_H_
+#include "tim/vx/operation.h"
 
 
-typedef struct _vsi_nn_bidirectional_sequence_rnn_param
-{
-    vsi_bool time_major;
-    vsi_bool merge_outputs;
-    vsi_nn_activation_e activation;
-    vsi_nn_dtype_t* internal_dtype;
-} vsi_nn_bidirectional_sequence_rnn_param;
+namespace tim {
+namespace vx {
+namespace ops {
+    /**
+     * ## Unidirectional sequence rnn for onnx
+     *  how to bind input/output: take unidirectional_sequence_rnn_ext_test.cc
+     */
+    class UnidirectionalSequenceRnnExt: public Operation {
+     public:
+      UnidirectionalSequenceRnnExt(
+          Graph* graph, 
+          tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type
+      );
 
-#ifdef __cplusplus
+      std::shared_ptr<Operation> Clone(
+          std::shared_ptr<Graph>& graph) const override;
+
+     protected:
+      tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type_;
+    };
 }
-#endif
+}  // namespace vx
+}  // namespace tim
 
 #endif
