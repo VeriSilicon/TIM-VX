@@ -161,14 +161,11 @@ static vsi_bool op_setup
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
-    p->local = (vsi_nn_rnncell_ovxlib_lcl_data_t*)
-        malloc(sizeof(vsi_nn_rnncell_ovxlib_lcl_data_t));
-    CHECK_PTR_FAIL_GOTO( p->local, "Create buffer fail.", final );
     ret = TRUE;
-
+    
     memset(p->local, 0x00, sizeof(vsi_nn_rnncell_ovxlib_lcl_data_t));
     memset(&attr, 0x00, sizeof(attr));
-    p->local->multi_batch = (vsi_bool)(inputs[RNNCELL_INPUT_INPUT]->attr.size[1]);
+    p->local->multi_batch = (inputs[RNNCELL_INPUT_INPUT]->attr.size[1]>1);
 
     if( inputs[RNNCELL_INPUT_INPUT]->attr.dtype.qnt_type
         != inputs[RNNCELL_INPUT_WEIGHT_I]->attr.dtype.qnt_type)
@@ -199,9 +196,6 @@ static vsi_bool op_setup
     {
         is_input_fc_on_tp = TRUE;
     }
-    /* TODO: now, all fc on tp because can't fetch the HW feature */
-    is_input_fc_on_tp = TRUE;
-    is_hstate_fc_on_tp = TRUE;
 
     setup_op_shapes(self, inputs, outputs);
 

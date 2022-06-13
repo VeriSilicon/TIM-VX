@@ -21,40 +21,43 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VSI_NN_OP_UNIDIRECTIONAL_SEQUENCE_RNN_H
-#define _VSI_NN_OP_UNIDIRECTIONAL_SEQUENCE_RNN_H
+#ifndef TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_RNN_H_
+#define TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_RNN_H_
+#include "tim/vx/direct_map_op.h"
 
-#include "vsi_nn_types.h"
-#include "vsi_nn_op_rnn.h"
+namespace tim {
+namespace vx {
+namespace ops {
+    /**
+     * ## Unidirectional sequence rnn
+     *  how to bind input/output: take unidirectional_sequence_rnn_test.cc
+     */
+    class UnidirectionalSequenceRnn: public DirectMapOp {
+     public:
+      enum ActivationType {
+        kNONE = 0,
+        kRELU = 1,
+        kRELU1 = 2,
+        kRELU6 = 3,
+        kTANH = 4,
+        kSIGMOID = 6,
+        kHARDSIGMOID = 31, /* temporary use 31 */
+      };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+      UnidirectionalSequenceRnn(
+          Graph* graph, 
+          ActivationType act_type, 
+          bool time_major = false
+      );
 
-/* enum for inputs/outputs */
-enum
-{
-    RNN_INPUT_INPUT        = 0,
-    RNN_INPUT_WEIGHT_I     = 1,
-    RNN_INPUT_WEIGHT_H     = 2,
-    RNN_INPUT_BIAS         = 3,
-    RNN_INPUT_H_STATE      = 4,
-    RNN_INPUT_CNT,
+      std::shared_ptr<Operation> Clone(
+          std::shared_ptr<Graph>& graph) const override;
 
-    RNN_OUTPUT_H_STATE      = 0,
-    RNN_OUTPUT_OUTPUT      = 1,
-    RNN_OUTPUT_CNT
-};
-
-typedef struct _vsi_nn_unidirectional_sequence_rnn_param
-{
-    vsi_bool time_major;
-    vsi_nn_activation_e activation;
-    vsi_nn_dtype_t internal_dtype[RNNCELL_QUANTIZE_PARAM_COUNT];
-} vsi_nn_unidirectional_sequence_rnn_param;
-
-#ifdef __cplusplus
+     protected:
+      ActivationType act_type_;
+    };
 }
-#endif
+}  // namespace vx
+}  // namespace tim
 
 #endif

@@ -53,6 +53,7 @@ static vsi_bool setup_op_shapes
     vsi_size_t num_units =  0;
     vsi_size_t output_size = 0;
     vsi_size_t batch_size = 0;
+    vsi_bool use_virtual_tensor = TRUE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
 
@@ -82,6 +83,17 @@ static vsi_bool setup_op_shapes
         inputs[RNN_INPUT_H_STATE] = output_tensor->t;
     }
 
+    if( !outputs[RNN_OUTPUT_H_STATE] )
+    {
+        memset( attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
+        attr.dim_num = VSI_NN_DIM_AUTO;
+        memcpy( &attr.dtype, &outputs[RNN_OUTPUT_OUTPUT]->attr.dtype, sizeof( attr.dtype ) );
+        attr.vtl = use_virtual_tensor;
+        attr.is_const = FALSE;
+        output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        outputs[RNN_OUTPUT_H_STATE] = output_tensor->t;
+    }
+
     /* output */
     if( VSI_NN_DIM_AUTO == outputs[RNN_OUTPUT_OUTPUT]->attr.dim_num )
     {
@@ -89,6 +101,14 @@ static vsi_bool setup_op_shapes
         outputs[RNN_OUTPUT_OUTPUT]->attr.size[1] = inputs[RNN_INPUT_INPUT]->attr.size[1];
         outputs[RNN_OUTPUT_OUTPUT]->attr.size[2] = inputs[RNN_INPUT_INPUT]->attr.size[2];
         outputs[RNN_OUTPUT_OUTPUT]->attr.dim_num = 3;
+    }
+
+    /* output_state_out */
+    if( VSI_NN_DIM_AUTO == outputs[RNN_OUTPUT_H_STATE]->attr.dim_num )
+    {
+        outputs[RNN_OUTPUT_H_STATE]->attr.size[0] = output_size;
+        outputs[RNN_OUTPUT_H_STATE]->attr.size[1] = batch_size;
+        outputs[RNN_OUTPUT_H_STATE]->attr.dim_num = 2;
     }
 
     return TRUE;
@@ -207,7 +227,7 @@ static vsi_bool op_setup
 
         /* rnncell output h_state */
         vsi_nn_internal_init_tensor_attr(&attr,
-            &outputs[RNNCELL_OUTPUT_H_STATE]->attr.dtype, use_virtual_tensor);
+            &outputs[RNN_OUTPUT_H_STATE]->attr.dtype, use_virtual_tensor);
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         rnncell_out1 = output_tensor->t;
 

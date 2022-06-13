@@ -87,6 +87,7 @@
 #include "tim/vx/ops/tile.h"
 #include "tim/vx/ops/transpose.h"
 #include "tim/vx/ops/unidirectional_sequence_lstm.h"
+#include "tim/vx/ops/unidirectional_sequence_rnn.h"
 #include "tim/vx/ops/unstack.h"
 #include "tim/vx/ops/conv3d.h"
 #include "tim/vx/ops/custom_base.h"
