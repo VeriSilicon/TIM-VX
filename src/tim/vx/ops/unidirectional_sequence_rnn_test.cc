@@ -60,13 +60,11 @@ TEST(UnidirectionalSequenceRnn, shape_3_2_4_float) {
         state_out_shape, tim::vx::TensorAttribute::OUTPUT,quant);
 
 
-    auto input_tensor = graph->CreateTensor(input_spec);
     auto weights_tensor = graph->CreateTensor(weights_spec);
     auto recurrent_weights_tensor = graph->CreateTensor(recurrent_weights_spec);
     auto bias_tensor = graph->CreateTensor(bias_spec);
     auto state_in_tensor = graph->CreateTensor(state_in_spec);
     auto output_tensor = graph->CreateTensor(output_spec);
-    auto state_out_tensor = graph->CreateTensor(state_out_spec);
 
     std::vector<float> in_data = {
         0.12609188,  0.46347019, 0.89598465,
@@ -219,5 +217,5 @@ TEST(UnidirectionalSequenceRnn, shape_2_3_4_float) {
     //EXPECT_TRUE(state_out_tensor->CopyDataFromTensor(state_out.data()));
 
     EXPECT_TRUE(ArraysMatch(output_golden, output,1e-3f));
-    //EXPECT_EQ(state_out_golden, state_out);
 }
+
