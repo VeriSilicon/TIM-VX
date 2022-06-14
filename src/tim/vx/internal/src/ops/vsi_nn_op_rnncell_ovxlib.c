@@ -157,12 +157,10 @@ static vsi_bool op_setup
     vsi_bool use_virtual_tensor = TRUE;
     uint32_t kernel_h = 1;
     uint32_t kernel_w = 1;
-    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
-    ret = TRUE;
-    
+
     memset(p->local, 0x00, sizeof(vsi_nn_rnncell_ovxlib_lcl_data_t));
     memset(&attr, 0x00, sizeof(attr));
     p->local->multi_batch = (inputs[RNNCELL_INPUT_INPUT]->attr.size[1]>1);
@@ -325,8 +323,7 @@ static vsi_bool op_setup
         vsi_nn_internal_setup_node(self, curr);
     }
 
-final:
-    return ret;
+    return TRUE;
 } /* op_setup() */
 
 static vsi_status op_deinit
