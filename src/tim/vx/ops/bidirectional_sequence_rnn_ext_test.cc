@@ -28,7 +28,7 @@
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
-
+/*
 TEST(BidirectionalSequenceRnnExt, shape_2_3_4_float_sigmoid) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
@@ -159,3 +159,4 @@ TEST(BidirectionalSequenceRnnExt, shape_2_3_4_float_sigmoid) {
     EXPECT_TRUE(ArraysMatch(output_golden, output,1e-3f));
     EXPECT_TRUE(ArraysMatch(state_out_golden, state_out,1e-3f));
 }
+*/
