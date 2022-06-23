@@ -27,6 +27,7 @@
 
 #include "tim/transform/layout_inference.h"
 #include "ops/conv2d_layout_inference.h"
+#include "ops/grouped_conv2d_layout_inference.h"
 #include "ops/reduce_layout_inference.h"
 #include "ops/elementwise_layout_inference.h"
 #include "ops/activation_layout_inference.h"
@@ -205,6 +206,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
   std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
   switch (op_id) {
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONV2D, Conv2d);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GROUPED_CONV2D, GroupedConv2d);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU, Relu);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU1, Relu1);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU6, Relu6);
