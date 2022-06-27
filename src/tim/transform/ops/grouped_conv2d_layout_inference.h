@@ -102,19 +102,8 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
       context_->UpdateTensorMap(in, infer_tensor);
       context_->SetPermuteVector(in, trans_pv);
     }
-    auto grouped_number = op_->impl()->node()->nn_param.conv2d.group;
-    auto pad_type = TranslatePadType(op_->impl()->node()->nn_param.conv2d.pad_type);
-    std::array<uint32_t, 2> stride = {
-      op_->impl()->node()->nn_param.conv2d.stride[0],
-      op_->impl()->node()->nn_param.conv2d.stride[1]
-    };
-    std::array<uint32_t, 2> dilation = {
-      op_->impl()->node()->nn_param.conv2d.dilation[0],
-      op_->impl()->node()->nn_param.conv2d.dilation[1]
-    };
-    auto conv2d = context_->infer_graph_->CreateOperation<vx::ops::GroupedConv2d>(
-        pad_type, stride, dilation, grouped_number,
-        vx::DataLayout::WHCN, vx::DataLayout::WHIcOc);
+
+    auto conv2d = op_->Clone(context_->infer_graph_);
     auto otensor_infer = CreateOutputsTensor(required_pv);
     for (const auto& i_src : input_tensors) {
       (*conv2d).BindInput(context_->GetMapedTensor(i_src));
