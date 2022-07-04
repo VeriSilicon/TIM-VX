@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(Stack, LayoutinferernceTest_1) {
+TEST(Stack, DISABLED_LayoutinferernceTest_1) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
