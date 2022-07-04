@@ -212,6 +212,7 @@ char* generate_op_io_types_desc
     int i = 0;
     int total_sz = 0;
     int used_sz = 0;
+    int left_sz = 0;
     char* desc = NULL;
 
     for(i = 0; i < inputs_num; i++) {
@@ -234,14 +235,14 @@ char* generate_op_io_types_desc
     memset(desc, 0x00, sizeof(char) * total_sz);
 
     for(i = 0; i < inputs_num; i++) {
-        if(inputs[i]) {
+        if(inputs[i] && total_sz >= used_sz) {
             used_sz += snprintf(desc + used_sz, total_sz - used_sz, "%s %s, ",
                     _get_qtype_name(inputs[i]->attr.dtype.qnt_type),
                     _get_dtype_name(inputs[i]->attr.dtype.vx_type));
         }
     }
     for(i = 0; i < outputs_num; i++) {
-        if(outputs[i]) {
+        if(outputs[i] && total_sz >= used_sz) {
             used_sz += snprintf(desc + used_sz, total_sz - used_sz, "%s %s, ",
                     _get_qtype_name(outputs[i]->attr.dtype.qnt_type),
                     _get_dtype_name(outputs[i]->attr.dtype.vx_type));

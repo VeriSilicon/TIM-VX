@@ -1243,6 +1243,11 @@ void vsi_nn_SaveTensorToTextByFp32
 
         count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
             "%f%s", write_data, seperator );
+        if ( count > _TENSOR_TMPBUF_SZ )
+        {
+            VSILOGW( "tensor buffer overflow!" );
+            break;
+        }
         if( ((float)count / _TENSOR_TMPBUF_SZ) > c_flush_th )
         {
             fwrite( buf, count, 1, fp );
@@ -1335,11 +1340,21 @@ void vsi_nn_SaveDataToText
         {
             count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
                 "%d%s", (int32_t)write_data, seperator );
+            if ( count > _TENSOR_TMPBUF_SZ )
+            {
+            VSILOGW( "tensor buffer overflow!" );
+            break;
+            }
         }
         else
         {
             count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
                 "%f%s", write_data, seperator );
+            if ( count > _TENSOR_TMPBUF_SZ )
+            {
+            VSILOGW( "tensor buffer overflow!" );
+            break;
+            }
         }
         if( ((float) count / _TENSOR_TMPBUF_SZ ) > c_flush_th )
         {

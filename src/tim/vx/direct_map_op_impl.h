@@ -49,7 +49,7 @@ class DirectMapOpImpl : public OpImpl {
       OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
       RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
       RoundType down_scale_size_rounding = RoundType::FLOOR,
-      uint32_t accumulator_bits = 0);
+      uint32_t accumulator_bits = 0) override;
 
   std::vector<std::shared_ptr<Tensor>> InputsTensor() override {
     return inputs_tensor_;

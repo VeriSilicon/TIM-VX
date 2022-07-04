@@ -252,7 +252,7 @@ static vsi_bool op_setup
             if (front + back + inputs[0]->attr.size[i] != outputs[0]->attr.size[i])
             {
                 VSILOGE("Error:output shape[%u] not equal front padding[%u] + input shape[%u] + back padding[%u]",
-                    outputs[0]->attr.size[i], front, back);
+                    outputs[0]->attr.size[i], front, inputs[0]->attr.size[i], back);
                 return FALSE;
             }
         }
