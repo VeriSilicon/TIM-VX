@@ -29,7 +29,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(AddN, shape_2_2_int32) {
+TEST(AddN, DISABLED_shape_2_2_int32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
