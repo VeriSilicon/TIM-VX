@@ -38,5 +38,14 @@ OpImpl::OpImpl(Graph* graph, DataLayout layout)
       : graph_(reinterpret_cast<GraphImpl*>(graph)),
       layout_(layout) {}
 
+void OpImpl::SetRoundingPolicy(OverflowPolicy overflow_policy,
+                               RoundingPolicy rounding_policy,
+                               RoundType down_scale_size_roundin,
+                               uint32_t accumulator_bits) {
+  (void)overflow_policy;
+  (void)rounding_policy;
+  (void)down_scale_size_roundin;
+  (void)accumulator_bits;
+}
 }  // namespace vx
 }  // namespace tim

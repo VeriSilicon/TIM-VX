@@ -43,6 +43,11 @@ class OpImpl {
   virtual std::vector<std::shared_ptr<Tensor>> InputsTensor() = 0;
   virtual std::vector<std::shared_ptr<Tensor>> OutputsTensor() = 0;
   virtual vsi_nn_node_t* node() = 0;
+  virtual void SetRoundingPolicy(
+      OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
+      RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
+      RoundType down_scale_size_rounding = RoundType::FLOOR,
+      uint32_t accumulator_bits = 0);
 
   GraphImpl* graph_{nullptr};
   uint32_t kind_{0};
