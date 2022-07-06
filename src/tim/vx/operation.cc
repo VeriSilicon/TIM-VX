@@ -54,9 +54,8 @@ Operation& Operation::BindOutput(const std::shared_ptr<Tensor>& tensor) {
 Operation& Operation::SetRoundingPolicy(
     OverflowPolicy overflow_policy, RoundingPolicy rounding_policy,
     RoundType down_scale_size_rounding, uint32_t accumulator_bits) {
-  // impl_->SetRoundingPolicy(overflow_policy, rounding_policy,
-  //                          down_scale_size_rounding, accumulator_bits);
-  (void) overflow_policy;(void) rounding_policy;(void) down_scale_size_rounding;(void) accumulator_bits;
+  impl_->SetRoundingPolicy(overflow_policy, rounding_policy,
+                           down_scale_size_rounding, accumulator_bits);
   return *this;
 }
 

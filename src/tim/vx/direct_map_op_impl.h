@@ -43,13 +43,13 @@ class DirectMapOpImpl : public OpImpl {
   DirectMapOpImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) override;
 
   vsi_nn_node_t* node() override { return this->node_; }
-  void SetNode(vsi_nn_node_t* node) {this->node_ = node; }
+  void SetNode(vsi_nn_node_t* node) { this->node_ = node; }
 
   void SetRoundingPolicy(
       OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
       RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
       RoundType down_scale_size_rounding = RoundType::FLOOR,
-      uint32_t accumulator_bits = 0);
+      uint32_t accumulator_bits = 0) override;
 
   std::vector<std::shared_ptr<Tensor>> InputsTensor() override {
     return inputs_tensor_;
