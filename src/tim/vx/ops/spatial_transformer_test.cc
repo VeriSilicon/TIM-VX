@@ -27,7 +27,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(SpatialTransformer, shape_1_3_3_1_u8) {
+TEST(SpatialTransformer, DISABLED_shape_1_3_3_1_u8) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
