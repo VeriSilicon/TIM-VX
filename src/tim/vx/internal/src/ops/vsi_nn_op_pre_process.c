@@ -295,9 +295,7 @@ static vsi_bool op_setup
         {
             uint32_t i = 0;
             uint32_t axis = 2;
-            uint32_t group = 3;
             vsi_bool is_input_sep = p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ? FALSE : TRUE;
-            vsi_nn_tensor_t ** input_tensor_group = &p->local->local_tensor[0];
             vsi_nn_internal_tensor_t * output_tensor_group[3] = {NULL};
             vsi_nn_internal_tensor_t* tmp_outputs[3] = { NULL };
             vsi_nn_tensor_attr_t attr;
@@ -305,17 +303,6 @@ static vsi_bool op_setup
             vsi_size_t size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
 
             memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
-
-            if (!is_input_sep)
-            {
-                ret = vsi_nn_CreateTensorGroup(self->graph, inputs[0], axis,
-                input_tensor_group, group);
-                if (ret == FALSE)
-                {
-                    goto final;
-                }
-            }
-
             memcpy(&attr, &outputs[0]->attr, sizeof(vsi_nn_tensor_attr_t));
             for(i = 0; i < p->output_attr.dim_num; i++)
             {
@@ -361,9 +348,9 @@ static vsi_bool op_setup
             }
             else
             {
-                curr->inputs[0] = input_tensor_group[0];
-                curr->inputs[1] = input_tensor_group[1];
-                curr->inputs[2] = input_tensor_group[2];
+                curr->inputs[0] = inputs[0];
+                curr->inputs[1] = NULL;
+                curr->inputs[2] = NULL;
             }
             curr->outputs[0] = output_tensor_group[0]->t;
             curr->outputs[1] = output_tensor_group[1]->t;
@@ -511,8 +498,6 @@ static vsi_bool op_setup
             vsi_nn_internal_setup_node( self, curr );
         }
     }
-
-final:
 
     return ret;
 } /* op_setup() */

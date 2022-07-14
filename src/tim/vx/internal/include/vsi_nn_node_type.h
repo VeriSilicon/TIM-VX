@@ -190,6 +190,12 @@
 #include "ops/vsi_nn_op_gather_elements.h"
 #include "ops/vsi_nn_op_selu.h"
 #include "ops/vsi_nn_op_celu.h"
+#include "ops/vsi_nn_op_max_pool3d.h"
+#include "ops/vsi_nn_op_rcp.h"
+#include "ops/vsi_nn_op_sign.h"
+#include "ops/vsi_nn_op_softsign.h"
+#include "ops/vsi_nn_op_cumsum.h"
+#include "ops/vsi_nn_op_mod.h"
 /* custom node head define define */
 #include "custom/vsi_nn_custom_node_type.h"
 
@@ -365,6 +371,12 @@ typedef union _vsi_nn_nn_param
     vsi_nn_gather_elements_param    gather_elements;
     vsi_nn_selu_param               selu;
     vsi_nn_celu_param               celu;
+    vsi_nn_max_pool3d_param         max_pool3d;
+    vsi_nn_rcp_param                rcp;
+    vsi_nn_sign_param               sign;
+    vsi_nn_softsign_param           softsign;
+    vsi_nn_cumsum_param             cumsum;
+    vsi_nn_mod_param                mod;
     void*                         client_param;
 
     /* custom node data struct define */

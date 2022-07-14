@@ -51,6 +51,15 @@ __BEGIN_DECLS
             "_"STR(UP_SCALE)"x_upsample_half_pixel_centers"), \
           "resize_bilinear_nhwc" }
 
+#define BILINEAR_NHWC_BOUND_HASH_KEY( IN_DTYPE, OUT_DTYPE, UP_SCALE ) \
+        (( IN_DTYPE ) | ( OUT_DTYPE << 8) | (UP_SCALE << 16))
+
+#define BILINEAR_NHWC_BOUND_KERNEL_MAP( IN_DTYPE, OUT_DTYPE, UP_SCALE ) \
+        { BILINEAR_NHWC_BOUND_HASH_KEY( IN_DTYPE, OUT_DTYPE, UP_SCALE ), \
+          CVIVANTE_NAMESPACE("evis.resize_bilinear_nhwc_bound_"STR(IN_DTYPE)"to"STR(OUT_DTYPE) \
+            "_"STR(UP_SCALE)"x"), \
+          "resize_bilinear_nhwc_bound" }
+
 typedef struct
 {
     uint32_t key;
@@ -65,6 +74,12 @@ static const _kernel_map_type _resize_bilinear_nhwc_kernel_map[] =
     BILINEAR_NHWC_PACK_KERNEL_MAP_UP_SCALE(U8, U8, 1, 0, 4),
 };
 
+static const _kernel_map_type _bilinear_nhwc_bound_kernel_map[] =
+{
+    BILINEAR_NHWC_BOUND_KERNEL_MAP(U8, U8, 2),
+    BILINEAR_NHWC_BOUND_KERNEL_MAP(U8, U8, 3),
+    BILINEAR_NHWC_BOUND_KERNEL_MAP(U8, U8, 4),
+};
 
 /*
  * Kernel params
@@ -80,6 +95,14 @@ static vx_param_description_t _resize_bilinear_nhwc_kernel_param_def[] =
 
 #define SCALAR_ALIGN_CORNERS         (2)
 #define SCALAR_HALF_PIXEL            (3)
+
+static vx_param_description_t _bilinear_nhwc_bound_kernel_param_def[] =
+{
+    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+};
+#define _BILINEAR_NHWC_BOUND_PARAM_NUM  _cnt_of_array( _bilinear_nhwc_bound_kernel_param_def )
 
 /*
  * Kernel initializer
@@ -382,50 +405,193 @@ final:
     return status;
 } /* _resize_bilinear_initializer() */
 
+DEF_KERNEL_INITIALIZER(_bilinear_nhwc_bound_initializer)
+    (
+    vsi_nn_kernel_node_t                node,
+    const vsi_nn_kernel_node_param_t  * param,
+    size_t                              param_size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t gpu_param = {
+        3,
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+        };
+    vsi_nn_kernel_tensor_attr_t * output_attr = NULL;
+    vsi_nn_kernel_tensor_attr_t * input_attr  = NULL;
+    vsi_size_array_t             * in_shape  = NULL;
+    vsi_size_array_t             * out_shape  = NULL;
+    uint32_t  x_coord[2] = {0};
+    uint32_t    in_width;
+    uint32_t    in_height;
+    uint32_t    out_width;
+    uint32_t    out_height;
+    vsi_bool    is_2x_up_kernel  = FALSE;
+    vsi_bool    is_3x_up_kernel  = FALSE;
+    vsi_bool    is_4x_up_kernel  = FALSE;
+
+
+    input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
+    output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
+
+    in_shape = input_attr->shape;
+    out_shape = output_attr->shape;
+
+    in_width          = (uint32_t)(in_shape->data[0]);
+    in_height         = (uint32_t)(in_shape->data[1]);
+    out_width         = (uint32_t)(out_shape->data[0]);
+    out_height        = (uint32_t)(out_shape->data[1]);
+
+    is_2x_up_kernel = (2 * in_width == out_width) && (2 * in_height == out_height);
+    is_3x_up_kernel = (3 * in_width == out_width) && (3 * in_height == out_height);
+    is_4x_up_kernel = (4 * in_width == out_width) && (4 * in_height == out_height);
+
+
+    if (is_2x_up_kernel)
+    {
+        gpu_dp_inst_t uniResize_x2_nhwc2_0_4x8 = {{
+            0x55555511, 0x55555555, // TCfg
+            0x46104000, 0x3a48829c, 0x4882acca, 0xc4acca3a, 0xbd4e5b50, // BinSelect
+            0x00000704, // AccumType, ConstantType, and PostShift
+            0x000c0004, 0x09030301, 0x03090103, 0x03090103,
+            0x09030301, 0x09030301, 0x03090103, 0x03090103 // Constant
+        }, GPU_DP_TYPE_16};
+
+        gpu_param.global_scale[0] = 2;
+        gpu_param.global_scale[1] = 1;
+        x_coord[1] = (uint32_t)(out_shape->data[0]) - 2;
+        x_coord[0] = (x_coord[1] * 2 - 1) >> 2;
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize_x2_nhwc2_0_4x8", &uniResize_x2_nhwc2_0_4x8);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else if (is_3x_up_kernel)
+    {
+        gpu_dp_inst_t uniResize_x3_nhwc2_l10_4x4 = {{
+            0x05055511, // TCfg
+            0x04045010, // ASelt
+            0x31310000, 0x00330022, // ABin
+            0x0a0aaa22, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x0000060f, // AccumType, ConstantType, and PostShift
+            0x00005556, 0x00002aab, 0x38e41c72, 0x1c720e39,
+            0x2aab5556, 0x00000000, 0x2aab5556, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
+
+        gpu_param.global_scale[0] = 3;
+        gpu_param.global_scale[1] = 1;
+        x_coord[1] = (uint32_t)(out_shape->data[0]) - 2;
+        x_coord[0] = (x_coord[1] - 1) / 6 * 2;
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize_x3_nhwc2_l10_4x4", &uniResize_x3_nhwc2_l10_4x4);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else if (is_4x_up_kernel)
+    {
+        gpu_dp_inst_t uniResize_x4_nhwc2_l00_4x8 = {{
+            0x55555511, 0x55555555, // TCfg
+            0x46104000, 0x1940409c, 0x48829c46, 0x82acca3a, 0xacca3a48, // BinSelect
+            0x00000706, // AccumType, ConstantType, and PostShift
+            0x00280018, 0x190f0f09, 0x23051503, 0x23051503,
+            0x05230315, 0x05230315, 0x0f19090f, 0x0f19090f // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize_x4_nhwc2_l10_4x8 = {{
+            0x55555511, 0x55555555, // TCfg
+            0x46104000, 0x1940409c, 0x48829c46, 0x82acca3a, 0xacca3a48, // BinSelect
+            0x00000706, // AccumType, ConstantType, and PostShift
+            0x00380008, 0x23150503, 0x31070701, 0x31070701,
+            0x07310107, 0x07310107, 0x15230305, 0x15230305 // Constant
+        }, GPU_DP_TYPE_16};
+
+
+        gpu_param.global_scale[0] = 4;
+        gpu_param.global_scale[1] = 1;
+        x_coord[1] = (uint32_t)(out_shape->data[0]) - 2;
+        x_coord[0] = ((x_coord[1] - 3) >> 3) * 2;
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize_x4_nhwc2_l00_4x8", &uniResize_x4_nhwc2_l00_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize_x4_nhwc2_l10_4x8", &uniResize_x4_nhwc2_l10_4x8);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else
+    {
+        VSILOGE("input or output's format is not support");
+        status = VSI_FAILURE;
+        goto final;
+    }
+
+    gpu_param.global_size[0]   = gpu_align_p2((out_height  + \
+        gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0], 4);
+    gpu_param.global_size[1]   = 1;
+    gpu_param.dim              = 2;
+
+    status |= vsi_nn_kernel_gpu_add_param( node, "x_coord", &x_coord);
+    CHECK_STATUS_FAIL_GOTO(status, final );
+
+    status = vsi_nn_kernel_gpu_config( node, &gpu_param );
+final:
+    if (input_attr) vsi_nn_kernel_tensor_attr_release( &input_attr );
+    if (output_attr) vsi_nn_kernel_tensor_attr_release( &output_attr );
+
+    return status;
+} /* _bilinear_nhwc_bound_initializer() */
+
 /*
  * Query kernel
  */
 static vsi_status _query_kernel
     (
     vsi_nn_kernel_t * kernel,
-    vsi_nn_tensor_t * const * const inputs,
-    vsi_nn_tensor_t * const * const outputs,
-    int32_t align_corners,
-    int32_t half_pixel_centers,
-    uint32_t  up_scale
+    const uint32_t hashkey,
+    uint32_t kernel_id
     )
 {
+    vx_kernel_initialize_f  initializer = NULL;
+    vx_param_description_t * param_def;
     vsi_status status = VSI_FAILURE;
-    vsi_nn_kernel_dtype_e in_dtype;
-    vsi_nn_kernel_dtype_e out_dtype;
-    const _kernel_map_type * kernel_map = _resize_bilinear_nhwc_kernel_map;
-    size_t kernel_map_size              = _cnt_of_array( _resize_bilinear_nhwc_kernel_map );
-    vx_param_description_t * param_def  = _resize_bilinear_nhwc_kernel_param_def;
-    size_t param_def_size               = _cnt_of_array( _resize_bilinear_nhwc_kernel_param_def );
-    vx_kernel_initialize_f  initializer = _resize_bilinear_nhwc_initializer;
-    uint32_t key;
-    uint32_t i;
+    const _kernel_map_type* kernel_map;
+    size_t kernel_map_size;
+    size_t param_size;
+    uint32_t i = 0;
 
-    in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
-    out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
-
-    in_dtype = in_dtype == I8 ? U8 : in_dtype;
-    out_dtype = out_dtype == I8 ? U8 : out_dtype;
-
-    key = RESIZE_BILINEAR_NHWC_HASH_KEY( in_dtype, out_dtype, half_pixel_centers, align_corners, up_scale );
-    for ( i = 0; i < (uint32_t)kernel_map_size; i ++ )
+    switch( kernel_id )
     {
-        if ( kernel_map[i].key == key )
+        case 0:
+            initializer = _resize_bilinear_nhwc_initializer;
+            kernel_map = _resize_bilinear_nhwc_kernel_map;
+            kernel_map_size = _cnt_of_array( _resize_bilinear_nhwc_kernel_map );
+            param_def = _resize_bilinear_nhwc_kernel_param_def;
+            param_size = _RESIZE_BILINEAR_NHWC_PARAM_NUM;
+            break;
+        case 1:
+            initializer = _bilinear_nhwc_bound_initializer;
+            kernel_map = _bilinear_nhwc_bound_kernel_map;
+            kernel_map_size = _cnt_of_array( _bilinear_nhwc_bound_kernel_map );
+            param_def = _bilinear_nhwc_bound_kernel_param_def;
+            param_size = _BILINEAR_NHWC_BOUND_PARAM_NUM;
+            break;
+        default:
+            VSI_ASSERT( FALSE );
+            return VSI_FAILURE;
+    }
+
+    for( i = 0; i < kernel_map_size; i ++ )
+    {
+        if( kernel_map[i].key == hashkey )
         {
             break;
         }
     }
-
-    if ( i < kernel_map_size )
+    if( i < kernel_map_size )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
         kernel->info.parameters  = param_def;
-        kernel->info.numParams   = (uint32_t)param_def_size;
+        kernel->info.numParams   = (uint32_t)param_size;
         kernel->info.initialize  = initializer;
         // Register code source
         vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 2,
@@ -453,7 +619,8 @@ static vsi_nn_kernel_node_t _setup
     )
 {
     vsi_status status = VSI_FAILURE;
-    vsi_nn_kernel_node_param_t node_params[_RESIZE_BILINEAR_NHWC_PARAM_NUM] = {NULL};
+    vsi_nn_kernel_node_param_t node0_params[_RESIZE_BILINEAR_NHWC_PARAM_NUM] = {NULL};
+    vsi_nn_kernel_node_param_t node1_params[_BILINEAR_NHWC_BOUND_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node   = NULL;
     int32_t align_corners       = vsi_nn_kernel_param_get_int32( params, "align_corners" );
     int32_t half_pixel_centers  = vsi_nn_kernel_param_get_int32( params, "half_pixel_centers" );
@@ -463,8 +630,14 @@ static vsi_nn_kernel_node_t _setup
     float scale_y               = (float)outputs[0]->attr.size[2] / (float)inputs[0]->attr.size[2];
     float up_scale              = scale_x == scale_y ? scale_x : 0;
     uint32_t rank               = inputs[0]->attr.dim_num;
-    vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
+    vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
     vsi_size_t  shapes[2][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
+    vsi_nn_kernel_t * ikernels[2] = { NULL };
+    uint32_t hashkeys[2] = {0};
+    uint32_t i = 0;
+    vsi_nn_tensor_attr_t attr;
+    vsi_nn_kernel_dtype_e in_dtype;
+    vsi_nn_kernel_dtype_e out_dtype;
 
     if (!is_same_type || depth != 2 || rank < 3 ||
         (up_scale != 2.0f && up_scale != 3.0f && up_scale != 4.0f))
@@ -472,8 +645,24 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    status = _query_kernel( kernel, inputs, outputs,
-                            align_corners, half_pixel_centers, (uint32_t)up_scale);
+    ikernels[0] = vsi_nn_kernel_create( VSI_NN_KERNEL_TYPE_EVIS );
+    // Assign unique_id
+    ikernels[0]->unique_id = kernel->unique_id;
+    ikernels[1] = vsi_nn_kernel_create( VSI_NN_KERNEL_TYPE_EVIS );
+    // Assign unique_id
+    ikernels[1]->unique_id = kernel->unique_id;
+
+    in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
+    out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    hashkeys[0] = RESIZE_BILINEAR_NHWC_HASH_KEY( in_dtype, out_dtype, half_pixel_centers,
+        align_corners, (vsi_size_t)up_scale );
+    hashkeys[1] = BILINEAR_NHWC_BOUND_HASH_KEY( in_dtype, out_dtype, (vsi_size_t)up_scale );
+
+    status = _query_kernel( ikernels[0], hashkeys[0], 0);
+    CHECK_STATUS_FAIL_GOTO(status, final );
+    status = _query_kernel( kernel, hashkeys[1], 1);
+    CHECK_STATUS_FAIL_GOTO(status, final );
 
     shapes[0][0] = depth * inputs[0]->attr.size[1];
     shapes[0][1] = inputs[0]->attr.size[2];
@@ -491,26 +680,41 @@ static vsi_nn_kernel_node_t _setup
     reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
         outputs[0], shapes[1], rank );
 
-    if ( VSI_SUCCESS == status)
-    {
-        node = vsi_nn_kernel_create_node( graph, kernel );
-        if ( node )
-        {
-            /* Set inputs and outputs */
-            vsi_nn_kernel_node_pack_io( node_params, _RESIZE_BILINEAR_NHWC_PARAM_NUM,
-                    reshape_tensors, input_num, &reshape_tensors[1], output_num );
-            node_params[SCALAR_ALIGN_CORNERS] = vsi_nn_kernel_scalar_create( graph, I32, &align_corners );
-            node_params[SCALAR_HALF_PIXEL] = vsi_nn_kernel_scalar_create( graph, I32, &half_pixel_centers );
+    // resize bilinear
+    node = vsi_nn_kernel_create_node( graph, ikernels[0] );
+    VSI_ASSERT( node != NULL );
+    vsi_nn_kernel_node_pack_io( node0_params, _RESIZE_BILINEAR_NHWC_PARAM_NUM,
+            reshape_tensors, input_num, &reshape_tensors[1], output_num );
+    node0_params[SCALAR_ALIGN_CORNERS] = vsi_nn_kernel_scalar_create( graph, I32, &align_corners );
+    node0_params[SCALAR_HALF_PIXEL] = vsi_nn_kernel_scalar_create( graph, I32, &half_pixel_centers );
+    status  = vsi_nn_kernel_node_pass_param( node, node0_params, _RESIZE_BILINEAR_NHWC_PARAM_NUM );
+    vsi_nn_kernel_scalar_release( &node0_params[SCALAR_ALIGN_CORNERS] );
+    vsi_nn_kernel_scalar_release( &node0_params[SCALAR_HALF_PIXEL] );
+    vsi_nn_kernel_node_release( &node );
 
-            /* Pass parameters to node. */
-            status  = vsi_nn_kernel_node_pass_param( node, node_params, _RESIZE_BILINEAR_NHWC_PARAM_NUM );
-            vsi_nn_kernel_scalar_release( &node_params[SCALAR_ALIGN_CORNERS] );
-            vsi_nn_kernel_scalar_release( &node_params[SCALAR_HALF_PIXEL] );
+    // update bound for output tensor
+    memcpy( &attr, &(reshape_tensors[1]->attr), sizeof(vsi_nn_tensor_attr_t) );
+    attr.size[0] = 1;
+    attr.size[1] = 1;
+    attr.dim_num = 2;
+    reshape_tensors[2] = vsi_nn_CreateTensor( graph, &attr );
+    node = vsi_nn_kernel_create_node( graph, kernel );
+    VSI_ASSERT( node != NULL );
+    vsi_nn_kernel_node_pack_io( node1_params, _BILINEAR_NHWC_BOUND_PARAM_NUM,
+            reshape_tensors, 2, &reshape_tensors[2], 1 );
+    status  = vsi_nn_kernel_node_pass_param( node, node1_params, _BILINEAR_NHWC_BOUND_PARAM_NUM );
+
+final:
+    for( i = 0; i < 2; i ++ )
+    {
+        if( ikernels[i] )
+        {
+            vsi_nn_kernel_release( &ikernels[i] );
         }
     }
-
     vsi_safe_release_tensor(reshape_tensors[0]);
     vsi_safe_release_tensor(reshape_tensors[1]);
+    vsi_safe_release_tensor(reshape_tensors[2]);
 
     return node;
 } /* _setup() */

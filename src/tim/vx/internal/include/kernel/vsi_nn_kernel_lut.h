@@ -46,6 +46,8 @@ typedef int32_t vsi_nn_kernel_lut_act_e; enum
     VSI_NN_KERNEL_LUT_CLIP             = 12,
     VSI_NN_KERNEL_LUT_SQUARE           = 13,
     VSI_NN_KERNEL_LUT_CELU             = 14,
+    VSI_NN_KERNEL_LUT_RCP              = 15,
+    VSI_NN_KERNEL_LUT_SOFTSIGN         = 16,
 };
 
 #define VSI_NN_KERNEL_LUT_MAX_SIZE  (1024)

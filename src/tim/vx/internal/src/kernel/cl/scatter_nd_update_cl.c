@@ -108,7 +108,7 @@ static vsi_status cal_scatter_nd_update_tensor_reshape_size
         return status;
     }
 
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     newDim[0] = 0;
     for(i = 0; i < dims_num; ++i)
@@ -373,4 +373,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( scatter_nd_update, _setup )
-

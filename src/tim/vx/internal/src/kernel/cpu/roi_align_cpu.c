@@ -209,16 +209,15 @@ DEF_KERNEL_EXECUTOR(_compute)
     for (n = 0; n < num_rois; n++)
     {
         uint32_t batchId = (uint32_t)f32_in_buffer[2][n];
-        float scale = (in_attr[1]->dtype == U16) ? 0.125f : 1.0f;
         float qx1 = f32_in_buffer[1][n * kRoiDim];
         float qy1 = f32_in_buffer[1][n * kRoiDim + 1];
         float qx2 = f32_in_buffer[1][n * kRoiDim + 2];
         float qy2 = f32_in_buffer[1][n * kRoiDim + 3];
 
-        float x1 = qx1 * scale;
-        float x2 = qx2 * scale;
-        float y1 = qy1 * scale;
-        float y2 = qy2 * scale;
+        float x1 = qx1;
+        float x2 = qx2;
+        float y1 = qy1;
+        float y2 = qy2;
         float roi_anchor_x = x1 * width_scale;
         float roi_anchor_y = y1 * height_scale;
         float roi_dims_x   = vsi_nn_max((x2 - x1) * width_scale, 1.0f);

@@ -189,6 +189,16 @@ static float celu_eval(float x, vsi_nn_kernel_lut_params *lut_param)
     return positive + negative;
 }
 
+static float rcp_eval(float x)
+{
+    return 1.0f / x;
+}
+
+static float softsign_eval(float x)
+{
+    return x / (1 + vsi_abs(x));
+}
+
 static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *lut_param)
 {
     float result = 0;
@@ -244,6 +254,12 @@ static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *
         break;
     case VSI_NN_KERNEL_LUT_CELU:
         result =  celu_eval(data, lut_param);
+        break;
+    case VSI_NN_KERNEL_LUT_RCP:
+        result =  rcp_eval(data);
+        break;
+    case VSI_NN_KERNEL_LUT_SOFTSIGN:
+        result = softsign_eval(data);
         break;
     default:
         VSILOGE( "unsupported activation function:%d", lut_param->act_type );

@@ -34,12 +34,12 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)
+#define VSI_NN_SUPPORT_AXIS (0)
 
 static vsi_status op_compute
     (
@@ -52,13 +52,12 @@ static vsi_status op_compute
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
     float eps = self->nn_param.layernorm.eps;
-
-    if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT16 &&
-        inputs[2]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
-        outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8 )
+#if VSI_NN_SUPPORT_AXIS
+    if ( 0 )
     {
         return vsi_nn_internal_compute_node( self );
     }
+#endif
 
     param = vsi_nn_kernel_param_create();
 
@@ -87,18 +86,18 @@ static vsi_bool op_setup
     )
 {
     vsi_bool ret = TRUE;
+#if VSI_NN_SUPPORT_AXIS
     vsi_nn_internal_node_t* curr = NULL;
+#endif
 
     if ( NULL == self )
     {
         return FALSE;
     }
-
+#if VSI_NN_SUPPORT_AXIS
     vsi_nn_internal_init_node_wksp( self );
 
-   if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT16 &&
-        inputs[2]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
-        outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8 )
+   if ( 0 )
     {
         vsi_nn_internal_tensor_t* mean_tensor = NULL;
         vsi_nn_internal_tensor_t* vari_tensor = NULL;
@@ -137,6 +136,7 @@ static vsi_bool op_setup
         vsi_nn_internal_setup_node( self, curr );
     }
     else
+#endif
     {
         ret = vsi_nn_op_common_setup(self, inputs, outputs);
     }
@@ -152,18 +152,52 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(LAYER_NORM, 3, 1)
-        IO_TYPE(D_F32,  D_F32,  D_F32,  D_F32)
-        IO_TYPE(D_F16,  D_F32,  D_F16,  D_F16)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F16)
-        IO_TYPE(D_F16,  D_F32,  D_F16,  D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_U8|Q_ASYM)
-        IO_TYPE(D_BF16, D_F32,  D_F32,  D_BF16)
+        IO_TYPE(D_F32,        D_F32,  D_F32,  D_F32)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_F16)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_I8|Q_SYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I8|Q_SYM)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_I16|Q_SYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I16|Q_SYM)
+        IO_TYPE(D_BF16,       D_F32,  D_F32,  D_BF16)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F16,  D_F16)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F16,  D_U8|Q_ASYM)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F16,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F16,  D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F16,  D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F16,  D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F16,  D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F16,  D_F16)
+        IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F16,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32,  D_F16,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_F32,  D_F16,  D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F16,  D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32,  D_F16,  D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_F32,  D_F16,  D_F16)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F32,  D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F32,  D_F16)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F32,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F32,  D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F32,  D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F32,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32,  D_F32,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_F32,  D_F32,  D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_F32,  D_F32,  D_F16)
     END_IO_TYPE_DECL(LAYER_NORM)
     if (!VALIDATE_OP_IO_TYPES(LAYER_NORM, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -182,18 +216,9 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    uint32_t i = 0;
-    for (i = 0; i < _VSI_NN_LAYERNORM_LOCAL_TENSOR_NUM; i++)
-    {
-        if (self->nn_param.layernorm.local.local_tensor[i] != NULL)
-        {
-            vxReleaseTensor(&(self->nn_param.layernorm.local.local_tensor[i]));
-            self->nn_param.layernorm.local.local_tensor[i] = NULL;
-        }
-    }
-
+#if VSI_NN_SUPPORT_AXIS
     vsi_nn_internal_deinit_node_wksp( self );
-
+#endif
     vsi_nn_op_common_deinit(self);
 
     return VSI_SUCCESS;

@@ -1416,31 +1416,42 @@ vsi_nn_kernel_tensor_attr_t * vsi_nn_kernel_tensor_attr_create
     switch( attr->quant )
     {
     case VSI_NN_KERNEL_QUANT_DFP:
-        {
+    {
         int8_t fl = 0;
         status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_FIXED_POINT_POS,
             &fl, sizeof(int8_t));
         CHECK_STATUS( status );
         attr->dfp.fl = (int32_t)fl;
+        if (fl >= 0) {
+            attr->scale = 1.0f / ((float)((int64_t)1 << fl));
+        } else {
+            attr->scale = (float)((int64_t)1 << -fl);
         }
-        break;
+    } break;
     case VSI_NN_KERNEL_QUANT_ASYMM:
-        {
-        status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_ZERO_POINT,
-            &(attr->asymm.zero_point), sizeof(int32_t));
-        CHECK_STATUS( status );
-        status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_SCALE,
-            &(attr->asymm.scale), sizeof(float));
-        CHECK_STATUS( status );
+    {
+        status = vxQueryTensor((vx_tensor)tensor,
+                               VX_TENSOR_ZERO_POINT,
+                               &(attr->asymm.zero_point),
+                               sizeof(int32_t));
+        CHECK_STATUS(status);
+        status = vxQueryTensor((vx_tensor)tensor,
+                               VX_TENSOR_SCALE,
+                               &(attr->asymm.scale),
+                               sizeof(float));
+        CHECK_STATUS(status);
         // Reset scale to 1e-8
-        if( (attr->asymm.scale - 0.f) < 1e-8 )
-            {
+        if ((attr->asymm.scale - 0.f) < 1e-8)
+        {
             attr->asymm.scale = (float)1e-8;
             attr->asymm.zero_point = 0;
-            }
         }
-        break;
+        attr->scale = attr->asymm.scale;
+        attr->zero_point = attr->asymm.zero_point;
+    }
+    break;
     default:
+        attr->scale = 1.0f;
         break;
     }
     return attr;

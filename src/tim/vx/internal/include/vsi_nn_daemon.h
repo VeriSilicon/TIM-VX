@@ -35,7 +35,7 @@
         struct f##_t_{ ~f##_t_(void) { f(); }}; static f##_t_ f##_; \
         static void f(void)
 
-#elif defined(_MSC_VER)
+#elif (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
     #pragma section(".CRT$XCU", read)
     #define _INITIALIZER2(f, p) \
         static void f(void); \

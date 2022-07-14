@@ -80,7 +80,7 @@ static vsi_bool caculate_reshape_size(uint32_t* dim_value,
                                       vsi_size_t* re_sizes, vsi_size_t* re_sizes2,
                                       vx_int32 *resolved_dim, vx_int32 resolved_dim_count)
 {
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
     vsi_bool enable_reshape = TRUE;
     vsi_size_t size_count = 1;
     uint32_t i = 0;
@@ -225,6 +225,21 @@ static vsi_status op_compute
         vsi_nn_tensor_t *mean_tmp_tensor = NULL;
         vsi_nn_tensor_t *reshaped_input1 = self->nn_param.reduce.local2->reshaped_input1;
         vsi_nn_tensor_t *reshaped_output1 = self->nn_param.reduce.local2->reshaped_output1;
+        char tensor_name[128];
+
+        memset(tensor_name, 0, sizeof(tensor_name));
+        snprintf(tensor_name,
+                 sizeof(tensor_name),
+                 "uid_%u_reshape_out_0",
+                 self->uid);
+        if (reshaped_output1 && vxSetReferenceName(
+                (vx_reference)reshaped_output1->t, tensor_name) == VSI_FAILURE)
+        {
+            VSILOGW("Set uid %u reduce reshaped output name fail",
+                    self->uid);
+            return VSI_FAILURE;
+        }
+
 
         resolved_dim_count = self->nn_param.reduce.local2->axes_num;
 

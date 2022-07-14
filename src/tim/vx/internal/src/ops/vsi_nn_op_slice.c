@@ -84,18 +84,28 @@ static vsi_bool op_check
     if (self->input.num > 1)
     {
         BEGIN_IO_TYPE_DECL(SLICE, 2, 1)
-            IO_TYPE(D_F16,       D_I32,  D_F16)
-            IO_TYPE(D_F16,       D_I32,  D_I8|Q_DFP)
-            IO_TYPE(D_F16,       D_I32,  D_I16|Q_DFP)
-            IO_TYPE(D_F16,       D_I32,  D_U8|Q_ASYM)
-            IO_TYPE(D_I8|Q_DFP,  D_I32,  D_F16)
-            IO_TYPE(D_I16|Q_DFP, D_I32,  D_F16)
-            IO_TYPE(D_U8|Q_ASYM, D_I32,  D_F16)
-            IO_TYPE(D_I8|Q_DFP,  D_I32,  D_I8|Q_DFP)
-            IO_TYPE(D_I16|Q_DFP, D_I32,  D_I16|Q_DFP)
-            IO_TYPE(D_U8|Q_ASYM, D_I32,  D_U8|Q_ASYM)
-            IO_TYPE(D_F32,       D_I32,  D_F32)
-            IO_TYPE(D_I32,       D_I32,  D_I32)
+            IO_TYPE(D_F16,        D_I32,  D_F16)
+            IO_TYPE(D_F16,        D_I32,  D_I8|Q_DFP)
+            IO_TYPE(D_F16,        D_I32,  D_I8|Q_ASYM)
+            IO_TYPE(D_F16,        D_I32,  D_I8|Q_SYM)
+            IO_TYPE(D_F16,        D_I32,  D_I16|Q_DFP)
+            IO_TYPE(D_F16,        D_I32,  D_I16|Q_ASYM)
+            IO_TYPE(D_F16,        D_I32,  D_I16|Q_SYM)
+            IO_TYPE(D_F16,        D_I32,  D_U8|Q_ASYM)
+            IO_TYPE(D_I8|Q_DFP,   D_I32,  D_F16)
+            IO_TYPE(D_I8|Q_ASYM,  D_I32,  D_F16)
+            IO_TYPE(D_I8|Q_SYM,   D_I32,  D_F16)
+            IO_TYPE(D_I16|Q_DFP,  D_I32,  D_F16)
+            IO_TYPE(D_U8|Q_ASYM,  D_I32,  D_F16)
+            IO_TYPE(D_I8|Q_DFP,   D_I32,  D_I8|Q_DFP)
+            IO_TYPE(D_I8|Q_ASYM,  D_I32,  D_I8|Q_ASYM)
+            IO_TYPE(D_I8|Q_SYM,   D_I32,  D_I8|Q_SYM)
+            IO_TYPE(D_I16|Q_DFP,  D_I32,  D_I16|Q_DFP)
+            IO_TYPE(D_I16|Q_ASYM, D_I32,  D_I16|Q_ASYM)
+            IO_TYPE(D_I16|Q_SYM,  D_I32,  D_I16|Q_SYM)
+            IO_TYPE(D_U8|Q_ASYM,  D_I32,  D_U8|Q_ASYM)
+            IO_TYPE(D_F32,        D_I32,  D_F32)
+            IO_TYPE(D_I32,        D_I32,  D_I32)
 
             /* HW 9.0 */
             IO_TYPE(D_BF16,     D_I32,    D_BF16)
@@ -211,7 +221,7 @@ static vsi_status op_init
     {
         return  VX_ERROR_NO_MEMORY;
     }
-    memset(p->lcl_data, 0, sizeof(vsi_nn_split_lcl_data));
+    memset(p->lcl_data, 0, sizeof(vsi_nn_slice_lcl_data));
 
     return status;
 }

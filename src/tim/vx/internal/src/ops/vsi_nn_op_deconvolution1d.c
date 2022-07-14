@@ -220,7 +220,7 @@ static vsi_bool op_check
 {
     vsi_bool ret = FALSE;
 
-    ret = vsi_nn_OpCheck(VSI_NN_OP_DECONVOLUTION, self, inputs, outputs);
+    ret = vsi_nn_OpCheck(VSI_NN_OP_CONV1D, self, inputs, outputs);
 
     return ret;
 } /* op_check() */

@@ -74,6 +74,7 @@ __kernel void gemm_##src0_type_name##src0_type_name##to##src0_type_name( \
     } \
     vxc_int4 tmpOut0, tmpOut1; \
     coord_b.y = get_global_id(1); \
+    coord_b.z = get_global_id(2); \
     _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0; \
     _viv_asm(MOV, coord_b.w, baseAddr); \

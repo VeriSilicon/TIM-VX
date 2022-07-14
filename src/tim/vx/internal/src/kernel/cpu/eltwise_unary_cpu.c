@@ -50,6 +50,9 @@ typedef enum
     UNARY_HGELU,
     UNARY_SELU,
     UNARY_CELU,
+    UNARY_RCP,
+    UNARY_SIGN,
+    UNARY_SOFTSIGN,
 } unary_type_e;
 
 
@@ -145,6 +148,21 @@ static float celu_eval(float x, float alpha)
     return positive + negative;
 }
 
+static float rcp_eval(float x)
+{
+    return 1 / x;
+}
+
+static float sign_eval(float x)
+{
+    return x > 0 ? 1.0f : x < 0 ? -1.0f : 0;
+}
+
+static float softsign_eval(float x)
+{
+    return x / (1.0f + vsi_abs(x));
+}
+
 DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
     (
     vsi_nn_kernel_node_t node,
@@ -226,6 +244,15 @@ DEF_KERNEL_EXECUTOR(_eltwise_unary_exec)
             break;
         case UNARY_CELU:
             data = celu_eval(data, alpha);
+            break;
+        case UNARY_RCP:
+            data = rcp_eval(data);
+            break;
+        case UNARY_SIGN:
+            data = sign_eval(data);
+            break;
+        case UNARY_SOFTSIGN:
+            data = softsign_eval(data);
             break;
         default:
             break;
@@ -361,3 +388,6 @@ REGISTER_ELTWISE_UNARY_BACKEND_CPU( gelu,         UNARY_GELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( hard_gelu,    UNARY_HGELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( selu,         UNARY_SELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CPU( celu,         UNARY_CELU )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( rcp,          UNARY_RCP )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( sign,         UNARY_SIGN )
+REGISTER_ELTWISE_UNARY_BACKEND_CPU( softsign,     UNARY_SOFTSIGN )

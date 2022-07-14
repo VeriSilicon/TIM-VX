@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,21 +43,20 @@ __BEGIN_DECLS
  */
 typedef enum
 {
-    INTERNAL_KERNEL_MEAN_VARI,
+    INTERNAL_KERNEL_SUMS,
     INTERNAL_KERNEL_NORM,
 } _internal_kernel_e;
 
 #define KERNEL_SOURCE_1    "instance_normalization_u8"
-#define KERNEL_SOURCE_2    "instance_normalization_f16"
+#define KERNEL_SOURCE_2    "instance_normalization_f32"
 #define KERNEL_SOURCE_3    "instance_normalization_i32"
-#define KERNEL_SOURCE_4    "instance_normalization_f32"
 
 // Add kernel hashtable here
-#define HASH_INSTANCENORM_MEAN_VARI_KERNEL_NAME(SRC0_TYPE) \
-    CVIVANTE_NAMESPACE("cl.instance_norm_meanvari_"#SRC0_TYPE)
+#define HASH_INSTANCENORM_SUMS_KERNEL_NAME(SRC0_TYPE) \
+    CVIVANTE_NAMESPACE("cl.instance_norm_sums_"#SRC0_TYPE)
 
-#define HASH_INSTANCENORM_MEAN_VARI_KERNEL_2D_NAME(SRC0_TYPE) \
-    CVIVANTE_NAMESPACE("cl.instance_norm_meanvari_"#SRC0_TYPE"_2D")
+#define HASH_INSTANCENORM_SUMS_KERNEL_2D_NAME(SRC0_TYPE) \
+    CVIVANTE_NAMESPACE("cl.instance_norm_sums_"#SRC0_TYPE"_2D")
 
 #define HASH_INSTANCENORM_KERNEL_NAME(SRC0_TYPE, DST_TYPE) \
     CVIVANTE_NAMESPACE("cl.instance_norm_"#SRC0_TYPE"to"#DST_TYPE)
@@ -68,17 +66,17 @@ typedef enum
 
 // Add kernel hashtable here
 // mean vari
-#define HASH_INSTANCENORM_MEAN_VARI_KEY(_input0_type, _output_type, _reshape_flag) \
+#define HASH_INSTANCENORM_SUMS_KEY(_input0_type, _output_type, _reshape_flag) \
     ((_input0_type << 24) | (_output_type << 16) | (_reshape_flag << 8))
 
-#define TENSOR_INSTANCENORM_MEAN_VARI_KERNELS(IN0_TYPE, OUT_TYPE, SOURCE) \
-    { HASH_INSTANCENORM_MEAN_VARI_KEY(IN0_TYPE, OUT_TYPE, 0), \
-        HASH_INSTANCENORM_MEAN_VARI_KERNEL_NAME(IN0_TYPE), \
+#define TENSOR_INSTANCENORM_SUMS_KERNELS(IN0_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_INSTANCENORM_SUMS_KEY(IN0_TYPE, OUT_TYPE, 0), \
+        HASH_INSTANCENORM_SUMS_KERNEL_NAME(IN0_TYPE), \
         SOURCE },
 
-#define TENSOR_INSTANCENORM_MEAN_VARI_KERNELS_2D(IN0_TYPE, OUT_TYPE, SOURCE) \
-    { HASH_INSTANCENORM_MEAN_VARI_KEY(IN0_TYPE, OUT_TYPE, 1), \
-        HASH_INSTANCENORM_MEAN_VARI_KERNEL_2D_NAME(IN0_TYPE), \
+#define TENSOR_INSTANCENORM_SUMS_KERNELS_2D(IN0_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_INSTANCENORM_SUMS_KEY(IN0_TYPE, OUT_TYPE, 1), \
+        HASH_INSTANCENORM_SUMS_KERNEL_2D_NAME(IN0_TYPE), \
         SOURCE },
 
 // normalization
@@ -102,17 +100,15 @@ typedef struct
     const char * source_name;
 } _kernel_map_type;
 
-static const _kernel_map_type _instancenorm_mean_vari_kernel_map[] =
+static const _kernel_map_type _instancenorm_sums_kernel_map[] =
 {
     // Register kernel here
-    TENSOR_INSTANCENORM_MEAN_VARI_KERNELS( U8, F32, KERNEL_SOURCE_1 )
-    TENSOR_INSTANCENORM_MEAN_VARI_KERNELS_2D( U8, F32, KERNEL_SOURCE_1 )
-    TENSOR_INSTANCENORM_MEAN_VARI_KERNELS( F16, F32, KERNEL_SOURCE_2 )
-    TENSOR_INSTANCENORM_MEAN_VARI_KERNELS_2D( F16, F32, KERNEL_SOURCE_2 )
-    TENSOR_INSTANCENORM_MEAN_VARI_KERNELS( I32, F32, KERNEL_SOURCE_3 )
-    TENSOR_INSTANCENORM_MEAN_VARI_KERNELS_2D( I32, F32, KERNEL_SOURCE_3 )
-    TENSOR_INSTANCENORM_MEAN_VARI_KERNELS( F32, F32, KERNEL_SOURCE_4 )
-    TENSOR_INSTANCENORM_MEAN_VARI_KERNELS_2D( F32, F32, KERNEL_SOURCE_4 )
+    TENSOR_INSTANCENORM_SUMS_KERNELS( U8, F32, KERNEL_SOURCE_1 )
+    TENSOR_INSTANCENORM_SUMS_KERNELS_2D( U8, F32, KERNEL_SOURCE_1 )
+    TENSOR_INSTANCENORM_SUMS_KERNELS( F32, F32, KERNEL_SOURCE_2 )
+    TENSOR_INSTANCENORM_SUMS_KERNELS_2D( F32, F32, KERNEL_SOURCE_2 )
+    TENSOR_INSTANCENORM_SUMS_KERNELS( I32, F32, KERNEL_SOURCE_3 )
+    TENSOR_INSTANCENORM_SUMS_KERNELS_2D( I32, F32, KERNEL_SOURCE_3 )
 };
 
 static const _kernel_map_type _instancenorm_kernel_map[] =
@@ -123,22 +119,19 @@ static const _kernel_map_type _instancenorm_kernel_map[] =
     TENSOR_INSTANCENORM_KERNELS( U8, F16, KERNEL_SOURCE_1 )
     TENSOR_INSTANCENORM_KERNELS_2D( U8, F16, KERNEL_SOURCE_1 )
 
-    TENSOR_INSTANCENORM_KERNELS( F16, F16, KERNEL_SOURCE_2 )
-    TENSOR_INSTANCENORM_KERNELS_2D( F16, F16, KERNEL_SOURCE_2 )
+    TENSOR_INSTANCENORM_KERNELS( F32, F32, KERNEL_SOURCE_2 )
+    TENSOR_INSTANCENORM_KERNELS_2D( F32, F32, KERNEL_SOURCE_2 )
 
     TENSOR_INSTANCENORM_KERNELS( I32, I32, KERNEL_SOURCE_3 )
     TENSOR_INSTANCENORM_KERNELS_2D( I32, I32, KERNEL_SOURCE_3 )
     TENSOR_INSTANCENORM_KERNELS( I32, F32, KERNEL_SOURCE_3 )
     TENSOR_INSTANCENORM_KERNELS_2D( I32, F32, KERNEL_SOURCE_3 )
-
-    TENSOR_INSTANCENORM_KERNELS( F32, F32, KERNEL_SOURCE_4 )
-    TENSOR_INSTANCENORM_KERNELS_2D( F32, F32, KERNEL_SOURCE_4 )
 };
 
 /*
  * Kernel params
  */
-static vx_param_description_t _instancenorm_mean_vari_kernel_param_def[] =
+static vx_param_description_t _instancenorm_sums_kernel_param_def[] =
 {
     {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
@@ -146,12 +139,9 @@ static vx_param_description_t _instancenorm_mean_vari_kernel_param_def[] =
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     // Add kererl parameters here
 };
-#define _INSTANCENORM_MEAN_VARI_PARAM_NUM  _cnt_of_array( _instancenorm_mean_vari_kernel_param_def )
+#define _INSTANCENORM_SUMS_PARAM_NUM  _cnt_of_array( _instancenorm_sums_kernel_param_def )
 
 static vx_param_description_t _instancenorm_kernel_param_def[] =
 {
@@ -168,10 +158,6 @@ static vx_param_description_t _instancenorm_kernel_param_def[] =
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     // Add kererl parameters here
 };
 #define _INSTANCENORM_PARAM_NUM  _cnt_of_array( _instancenorm_kernel_param_def )
@@ -179,7 +165,7 @@ static vx_param_description_t _instancenorm_kernel_param_def[] =
 /*
  * Kernel initializer
  */
-DEF_KERNEL_INITIALIZER(_instancenorm_mean_vari_initializer)
+DEF_KERNEL_INITIALIZER(_instancenorm_sums_initializer)
     (
     vsi_nn_kernel_node_t                node,
     const vsi_nn_kernel_node_param_t  * param,
@@ -244,7 +230,7 @@ final:
         attr[1] = NULL;
     }
     return status;
-} /* _instance_normalization_mean_vari_initializer() */
+} /* _instance_normalization_sums_initializer() */
 
 DEF_KERNEL_INITIALIZER(_instancenorm_initializer)
     (
@@ -334,12 +320,12 @@ static vsi_status _query_kernel
 
     switch( kernel_id )
     {
-        case INTERNAL_KERNEL_MEAN_VARI:
-            initializer = _instancenorm_mean_vari_initializer;
-            kernel_map = _instancenorm_mean_vari_kernel_map;
-            kernel_map_size = _cnt_of_array( _instancenorm_mean_vari_kernel_map );
-            param_def = _instancenorm_mean_vari_kernel_param_def;
-            param_size = _INSTANCENORM_MEAN_VARI_PARAM_NUM;
+        case INTERNAL_KERNEL_SUMS:
+            initializer = _instancenorm_sums_initializer;
+            kernel_map = _instancenorm_sums_kernel_map;
+            kernel_map_size = _cnt_of_array( _instancenorm_sums_kernel_map );
+            param_def = _instancenorm_sums_kernel_param_def;
+            param_size = _INSTANCENORM_SUMS_PARAM_NUM;
             break;
         case INTERNAL_KERNEL_NORM:
             initializer = _instancenorm_initializer;
@@ -392,9 +378,9 @@ static vsi_nn_kernel_node_t _setup
     )
 {
 #define INTERNAL_KERNEL_SIZE    (1)
-#define MEAN_VARI_INDEX  (0)
+#define SUMS_INDEX  (0)
     vsi_status status = VSI_FAILURE;
-    vsi_nn_kernel_node_param_t mean_vari_node_params[_INSTANCENORM_MEAN_VARI_PARAM_NUM] = { NULL };
+    vsi_nn_kernel_node_param_t sums_node_params[_INSTANCENORM_SUMS_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_param_t node_params[_INSTANCENORM_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_kernel_dtype_e in0_dtype = U8;
@@ -407,18 +393,17 @@ static vsi_nn_kernel_node_t _setup
     uint32_t hashkey = 0;
     int32_t i = 0;
     uint32_t rank = outputs[0]->attr.dim_num;
-    float eps  = vsi_nn_kernel_param_get_float32( params, "eps" );
+    float input_scale = vsi_nn_get_tensor_scale(inputs[0]);
+    float eps  = vsi_nn_kernel_param_get_float32( params, "eps" ) /
+                (input_scale * input_scale);
     size_t width = inputs[0]->attr.size[0];
     size_t height = inputs[0]->attr.size[1];
     int32_t reshape_flg  = outputs[0]->attr.size[1] * outputs[0]->attr.size[2] < GPU_TENSOR_MAX_WIDTH
             && rank > 2;
     int32_t group_num = (int32_t)(width + 15) / 16;
-    int32_t input_zp = vsi_nn_get_tensor_zero_point(inputs[0]);
-    float input_scale = vsi_nn_get_tensor_scale(inputs[0]);
     int32_t output_zp = vsi_nn_get_tensor_zero_point(outputs[0]);
     float output_scale = 1.0f / vsi_nn_get_tensor_scale(outputs[0]);
-    float in_fl_scale = 1.0f, out_fl_scale = 1.0;
-    float dim_ratio = (float)1.0 / (float)(width * height);
+    float inv_multiplier = (float)1.0 / (float)(width * height);
 
     if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
@@ -443,15 +428,21 @@ static vsi_nn_kernel_node_t _setup
     attr.size[2] = 1;
     attr.size[3] = inputs[0]->attr.dim_num > 3 ? inputs[0]->attr.size[3] : 1;
     attr.dim_num = 4;
-    tensors[MEAN_VARI_INDEX] = vsi_nn_CreateTensor( graph, &attr );
+    tensors[SUMS_INDEX] = vsi_nn_CreateTensor( graph, &attr );
 
     in0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+    in0_dtype = in0_dtype == F16 ? F32 : in0_dtype;
+    in0_dtype = in0_dtype == I8 ? I32 : in0_dtype;
+    in0_dtype = in0_dtype == I16 ? I32 : in0_dtype;
+    out_dtype = out_dtype == F16 ? F32 : out_dtype;
+    out_dtype = out_dtype == I8 ? I32 : out_dtype;
+    out_dtype = out_dtype == I16 ? I32 : out_dtype;
 
-    hashkeys[MEAN_VARI_INDEX]= HASH_INSTANCENORM_MEAN_VARI_KEY( in0_dtype, F32, reshape_flg );
+    hashkeys[SUMS_INDEX]= HASH_INSTANCENORM_SUMS_KEY( in0_dtype, F32, reshape_flg );
     hashkey = HASH_INSTANCENORM_KEY( in0_dtype, out_dtype, reshape_flg );
 
-    status = _query_kernel( ikernels[MEAN_VARI_INDEX], hashkeys[MEAN_VARI_INDEX], INTERNAL_KERNEL_MEAN_VARI );
+    status = _query_kernel( ikernels[SUMS_INDEX], hashkeys[SUMS_INDEX], INTERNAL_KERNEL_SUMS );
     if ( VSI_SUCCESS != status )
     {
         goto final;
@@ -497,37 +488,31 @@ static vsi_nn_kernel_node_t _setup
     }
     // Mean Vari
     {
-        node = vsi_nn_kernel_create_node( graph, ikernels[MEAN_VARI_INDEX] );
+        node = vsi_nn_kernel_create_node( graph, ikernels[SUMS_INDEX] );
         if (node)
         {
             uint32_t index = 0;
             if (reshape_flg)
             {
-                mean_vari_node_params[index++] = rs_input;
+                sums_node_params[index++] = rs_input;
             }
             else
             {
-                mean_vari_node_params[index++] = (vsi_nn_kernel_node_param_t)inputs[0]->t;
+                sums_node_params[index++] = (vsi_nn_kernel_node_param_t)inputs[0]->t;
             }
-            mean_vari_node_params[index++] = (vsi_nn_kernel_node_param_t)tensors[MEAN_VARI_INDEX]->t;
-            mean_vari_node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &eps );
-            mean_vari_node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &reshape_flg );
-            mean_vari_node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &input_zp );
-            mean_vari_node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &input_scale );
-            mean_vari_node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &in_fl_scale );
-            mean_vari_node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &width );
-            mean_vari_node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &height );
+            sums_node_params[index++] = (vsi_nn_kernel_node_param_t)tensors[SUMS_INDEX]->t;
+            sums_node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &eps );
+            sums_node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &reshape_flg );
+            sums_node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &width );
+            sums_node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &height );
 
-            status  = vsi_nn_kernel_node_pass_param( node, mean_vari_node_params,
-                        _INSTANCENORM_MEAN_VARI_PARAM_NUM );
+            status  = vsi_nn_kernel_node_pass_param( node, sums_node_params,
+                        _INSTANCENORM_SUMS_PARAM_NUM );
             CHECK_STATUS(status);
-            vsi_nn_kernel_scalar_release( &mean_vari_node_params[2] );
-            vsi_nn_kernel_scalar_release( &mean_vari_node_params[3] );
-            vsi_nn_kernel_scalar_release( &mean_vari_node_params[4] );
-            vsi_nn_kernel_scalar_release( &mean_vari_node_params[5] );
-            vsi_nn_kernel_scalar_release( &mean_vari_node_params[6] );
-            vsi_nn_kernel_scalar_release( &mean_vari_node_params[7] );
-            vsi_nn_kernel_scalar_release( &mean_vari_node_params[8] );
+            vsi_nn_kernel_scalar_release( &sums_node_params[2] );
+            vsi_nn_kernel_scalar_release( &sums_node_params[3] );
+            vsi_nn_kernel_scalar_release( &sums_node_params[4] );
+            vsi_nn_kernel_scalar_release( &sums_node_params[5] );
             vsi_nn_kernel_node_release( &node );
         }
     }
@@ -562,7 +547,7 @@ static vsi_nn_kernel_node_t _setup
             {
                 node_params[index++] = (vsi_nn_kernel_node_param_t)inputs[2]->t;
             }
-            node_params[index++] = (vsi_nn_kernel_node_param_t)tensors[MEAN_VARI_INDEX]->t;
+            node_params[index++] = (vsi_nn_kernel_node_param_t)tensors[SUMS_INDEX]->t;
             if (reshape_flg)
             {
                 node_params[index++] = rs_output;
@@ -573,15 +558,11 @@ static vsi_nn_kernel_node_t _setup
             }
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &eps );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &reshape_flg );
-            node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &input_zp );
-            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &input_scale );
-            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &in_fl_scale );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &output_zp );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &output_scale );
-            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &out_fl_scale );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &width );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &height );
-            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &dim_ratio );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &inv_multiplier );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &group_num );
 
             status  = vsi_nn_kernel_node_pass_param( node, node_params,
@@ -595,10 +576,6 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &node_params[10] );
             vsi_nn_kernel_scalar_release( &node_params[11] );
             vsi_nn_kernel_scalar_release( &node_params[12] );
-            vsi_nn_kernel_scalar_release( &node_params[13] );
-            vsi_nn_kernel_scalar_release( &node_params[14] );
-            vsi_nn_kernel_scalar_release( &node_params[15] );
-            vsi_nn_kernel_scalar_release( &node_params[16] );
         }
     }
 

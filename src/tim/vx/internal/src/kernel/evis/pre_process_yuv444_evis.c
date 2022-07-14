@@ -130,8 +130,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv444_copy_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
-    dstZP      = attr[0]->asymm.zero_point;
-    dstScale   = attr[0]->asymm.scale;
     width      = (uint32_t)(out_shape->data[0]);
     height     = (uint32_t)(out_shape->data[1]);
 
@@ -141,9 +139,22 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv444_copy_initializer)
         order1 = 0;
     }
 
-    if (attr[0]->dtype == U8)
+    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
-        dstScale = 1.0f / dstScale;
+        dstScale = 1.0f / attr[0]->asymm.scale;
+        dstZP = attr[0]->asymm.zero_point;
+    }
+    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
+    {
+        if (attr[0]->dfp.fl > 0)
+        {
+            dstScale = (float)((int64_t)1 << attr[0]->dfp.fl);
+        }
+        else
+        {
+            dstScale = (1.0f / (float)((int64_t)1 << -attr[0]->dfp.fl));
+        }
+        dstZP = 0;
     }
 
     shaderParam.global_scale[0]  = 16;

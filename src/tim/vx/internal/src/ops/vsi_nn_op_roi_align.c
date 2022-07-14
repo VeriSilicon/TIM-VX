@@ -83,9 +83,24 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    BEGIN_IO_TYPE_DECL(ROI_ALIGN, 3, 1)
+        IO_TYPE(D_F16,       D_F16,         D_I32, D_F16)
+        IO_TYPE(D_F16,       D_F16,         D_I32, D_F32)
+        IO_TYPE(D_F16,       D_F32,         D_I32, D_F16)
+        IO_TYPE(D_F32,       D_F32,         D_I32, D_F32)
+        IO_TYPE(D_U8|Q_ASYM, D_U16|Q_ASYM,  D_I32, D_U8|Q_ASYM)
+    END_IO_TYPE_DECL(ROI_ALIGN)
+    if (!VALIDATE_OP_IO_TYPES(ROI_ALIGN, self, inputs, self->input.num, outputs, self->output.num))
+    {
+        char* desc = generate_op_io_types_desc(inputs,
+                self->input.num, outputs, self->output.num);
+        VSILOGE("Inputs/Outputs data type not support: %s", desc);
+        destroy_op_io_types_desc(desc);
+        return FALSE;
+    }
+
     return TRUE;
 } /* op_check() */
-
 
 static vsi_bool op_setup
     (

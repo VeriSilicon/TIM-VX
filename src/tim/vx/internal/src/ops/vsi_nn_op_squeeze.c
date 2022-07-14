@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <string.h>
 #include <stdlib.h>
 
@@ -88,6 +87,8 @@ static vsi_bool op_check
             }
         }
     }
+
+    ret = vsi_nn_OpCheck(VSI_NN_OP_RSQRT, self, inputs, outputs);
 
     return ret;
 } /* op_check() */
@@ -191,4 +192,3 @@ DEF_OP_REG
     );
 
 __END_DECLS
-

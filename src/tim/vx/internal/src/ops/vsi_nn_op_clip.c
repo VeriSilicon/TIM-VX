@@ -151,6 +151,13 @@ static vsi_bool op_check
         IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
         IO_TYPE(D_I16|Q_SYM,    D_F16)
         IO_TYPE(D_BF16,         D_BF16)
+
+        /* HW 9.1.1 */
+        IO_TYPE(D_U4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_U4|Q_SYM,     D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,     D_I4|Q_SYM)
+
     END_IO_TYPE_DECL(CLIP)
     if (!VALIDATE_OP_IO_TYPES(CLIP, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -248,7 +255,6 @@ static vsi_bool op_setup
     }
     return ret;
 } /* op_init() */
-
 
 #ifdef __cplusplus
 extern "C" {

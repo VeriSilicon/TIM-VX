@@ -1,13 +1,10 @@
-__kernel void instance_norm_meanvari_I32(
-    __read_only image2d_array_t   input,
-    __write_only image2d_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int width,
-    int height
+__kernel void instance_norm_sums_I32(
+    __read_only  image2d_array_t input,
+    __write_only image2d_t       output,
+                 float           eps,
+                 int             rsFlg,
+                 int             width,
+                 int             height
     )
 {
     int gidx = get_global_id(0);
@@ -16,9 +13,8 @@ __kernel void instance_norm_meanvari_I32(
 
     int4 coord = (int4)(gidx, 0, gidz, 0);
     int4 data;
-    float sum = 0, sqr = 0;
-    int tmpSum = 0;
-    float e2InScale = input_fl * input_fl;
+    float2 sum_x_x2 = 0;
+    int2 _sum_x_x2 = 0;
 
     __local float lcl_sum[16];
     __local float lcl_sqr[16];
@@ -29,13 +25,13 @@ __kernel void instance_norm_meanvari_I32(
         {
             data = read_imagei(input, coord);
             coord.y++;
-            tmpSum += data.x;
-            sqr += (data.x * data.x * e2InScale);
+            _sum_x_x2.x = _sum_x_x2.x + data.x;
+            _sum_x_x2.y = _sum_x_x2.y + data.x * data.x;
         }
-        sum = tmpSum * input_fl;
+        sum_x_x2 = convert_float2(_sum_x_x2);
     }
-    lcl_sum[lidx] = sum;
-    lcl_sqr[lidx] = sqr;
+    lcl_sum[lidx] = sum_x_x2.x;
+    lcl_sqr[lidx] = sum_x_x2.y;
     barrier(CLK_LOCAL_MEM_FENCE);
 
     int4 coord_out = (int4)(get_group_id(0) << 2, gidz, 0, 0);
@@ -45,7 +41,7 @@ __kernel void instance_norm_meanvari_I32(
         __local float4* tmp_sum = (__local float4*)lcl_sum;
         __local float4* tmp_sqr = (__local float4*)lcl_sqr;
 
-        sum = 0; sqr = 0;
+        float sum = 0, sqr = 0;
         for(int i = 0; i < 4; i++)
         {
             sum += dot(tmp_sum[i], one);
@@ -61,16 +57,13 @@ __kernel void instance_norm_meanvari_I32(
     }
 }
 
-__kernel void instance_norm_meanvari_I32_2D(
-    __read_only image2d_t   input,
-    __write_only image2d_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int width,
-    int height
+__kernel void instance_norm_sums_I32_2D(
+    __read_only  image2d_t input,
+    __write_only image2d_t output,
+                 float     eps,
+                 int       rsFlg,
+                 int       width,
+                 int       height
     )
 {
     int gidx = get_global_id(0);
@@ -80,9 +73,8 @@ __kernel void instance_norm_meanvari_I32_2D(
 
     int2 coord = (int2)(gidx, gidy);
     int4 data;
-    float sum = 0, sqr = 0;
-    int tmpSum = 0;
-    float e2InScale = input_fl * input_fl;
+    float2 sum_x_x2 = 0;
+    int2 _sum_x_x2 = 0;
 
     __local float lcl_sum[16];
     __local float lcl_sqr[16];
@@ -94,13 +86,13 @@ __kernel void instance_norm_meanvari_I32_2D(
         {
             data = read_imagei(input, coord);
             coord.y++;
-            tmpSum += data.x;
-            sqr += (data.x * data.x * e2InScale);
+            _sum_x_x2.x = _sum_x_x2.x + data.x;
+            _sum_x_x2.y = _sum_x_x2.y + data.x * data.x;
         }
-        sum = tmpSum * input_fl;
+        sum_x_x2 = convert_float2(_sum_x_x2);
     }
-    lcl_sum[lidx] = sum;
-    lcl_sqr[lidx] = sqr;
+    lcl_sum[lidx] = sum_x_x2.x;
+    lcl_sqr[lidx] = sum_x_x2.y;
     barrier(CLK_LOCAL_MEM_FENCE);
 
     int4 coord_out = (int4)(get_group_id(0) << 2, gidz, 0, 0);
@@ -110,7 +102,7 @@ __kernel void instance_norm_meanvari_I32_2D(
         __local float4* tmp_sum = (__local float4*)lcl_sum;
         __local float4* tmp_sqr = (__local float4*)lcl_sqr;
 
-        sum = 0; sqr = 0;
+        float sum = 0, sqr = 0;
         for(int i = 0; i < 4; i++)
         {
             sum += dot(tmp_sum[i], one);
@@ -127,23 +119,19 @@ __kernel void instance_norm_meanvari_I32_2D(
 }
 
 __kernel void instance_norm_I32toI32(
-    __read_only image2d_array_t   input,
-    __read_only image2d_t   bias,
-    __read_only image2d_t   scale,
-    __read_only image2d_t   meanVari,
-    __write_only image2d_array_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int output_zp,
-    float output_scale,
-    float output_fl,
-    int width,
-    int height,
-    float dim_ratio,
-    int group_num
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       bias,
+    __read_only  image2d_t       scale,
+    __read_only  image2d_t       meanVari,
+    __write_only image2d_array_t output,
+                 float           eps,
+                 int             rsFlg,
+                 int             output_zp,
+                 float           output_scale,
+                 int             width,
+                 int             height,
+                 float           inv_multiplier,
+                 int             group_num
     )
 {
     int gidz = get_global_id(1);
@@ -162,13 +150,13 @@ __kernel void instance_norm_I32toI32(
         mean_vari.y += read_imagef(meanVari, coord_para.xy).x;
         coord_para.x+=3;
     }
-    mean_vari *= dim_ratio;
+    mean_vari *= inv_multiplier;
     mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
     mean_vari.s1 = rsqrt(mean_vari.s1);
 
     scale_vari = gamma.s0 * mean_vari.s1;
-    float alpha = input_fl * output_fl * scale_vari;
-    bias_val = (beta.s0 - scale_vari * mean_vari.s0) * output_fl;
+    float alpha = output_scale * scale_vari;
+    bias_val = (beta.s0 - scale_vari * mean_vari.s0) * output_scale + output_zp;
 
     int4 data, dst;
     for(coord.y = 0; coord.y < height;coord.y++)
@@ -183,23 +171,19 @@ __kernel void instance_norm_I32toI32(
 }
 
 __kernel void instance_norm_I32toI32_2D(
-    __read_only image2d_t   input,
-    __read_only image2d_t   bias,
-    __read_only image2d_t   scale,
-    __read_only image2d_t   meanVari,
-    __write_only image2d_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int output_zp,
-    float output_scale,
-    float output_fl,
-    int width,
-    int height,
-    float dim_ratio,
-    int group_num
+    __read_only  image2d_t input,
+    __read_only  image2d_t bias,
+    __read_only  image2d_t scale,
+    __read_only  image2d_t meanVari,
+    __write_only image2d_t output,
+                 float     eps,
+                 int       rsFlg,
+                 int       output_zp,
+                 float     output_scale,
+                 int       width,
+                 int       height,
+                 float     inv_multiplier,
+                 int       group_num
     )
 {
     int gidz = get_global_id(1);
@@ -220,13 +204,13 @@ __kernel void instance_norm_I32toI32_2D(
         mean_vari.y += read_imagef(meanVari, coord_para.xy).x;
         coord_para.x+=3;
     }
-    mean_vari *= dim_ratio;
+    mean_vari *= inv_multiplier;
     mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
     mean_vari.s1 = rsqrt(mean_vari.s1);
 
     scale_vari = gamma.s0 * mean_vari.s1;
-    float alpha = input_fl * output_fl * scale_vari;
-    bias_val = (beta.s0 - scale_vari * mean_vari.s0) * output_fl;
+    float alpha = output_scale * scale_vari;
+    bias_val = (beta.s0 - scale_vari * mean_vari.s0) * output_scale + output_zp;
 
     int4 data, dst;
     for(; coord.y < endH; coord.y++)
@@ -241,23 +225,19 @@ __kernel void instance_norm_I32toI32_2D(
 }
 
 __kernel void instance_norm_I32toF32(
-    __read_only image2d_array_t   input,
-    __read_only image2d_t   bias,
-    __read_only image2d_t   scale,
-    __read_only image2d_t   meanVari,
-    __write_only image2d_array_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int output_zp,
-    float output_scale,
-    float output_fl,
-    int width,
-    int height,
-    float dim_ratio,
-    int group_num
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       bias,
+    __read_only  image2d_t       scale,
+    __read_only  image2d_t       meanVari,
+    __write_only image2d_array_t output,
+                 float           eps,
+                 int             rsFlg,
+                 int             output_zp,
+                 float           output_scale,
+                 int             width,
+                 int             height,
+                 float           inv_multiplier,
+                 int             group_num
     )
 {
     int gidz = get_global_id(1);
@@ -276,12 +256,12 @@ __kernel void instance_norm_I32toF32(
         mean_vari.y += read_imagef(meanVari, coord_para.xy).x;
         coord_para.x+=3;
     }
-    mean_vari *= dim_ratio;
+    mean_vari *= inv_multiplier;
     mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
     mean_vari.s1 = rsqrt(mean_vari.s1);
 
     scale_vari = gamma.s0 * mean_vari.s1;
-    float alpha = input_fl * scale_vari;
+    float alpha = scale_vari;
     bias_val = (beta.s0 - scale_vari * mean_vari.s0);
 
     int4 data;
@@ -296,23 +276,19 @@ __kernel void instance_norm_I32toF32(
 }
 
 __kernel void instance_norm_I32toF32_2D(
-    __read_only image2d_t   input,
-    __read_only image2d_t   bias,
-    __read_only image2d_t   scale,
-    __read_only image2d_t   meanVari,
-    __write_only image2d_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int output_zp,
-    float output_scale,
-    float output_fl,
-    int width,
-    int height,
-    float dim_ratio,
-    int group_num
+    __read_only  image2d_t input,
+    __read_only  image2d_t bias,
+    __read_only  image2d_t scale,
+    __read_only  image2d_t meanVari,
+    __write_only image2d_t output,
+                 float     eps,
+                 int       rsFlg,
+                 int       output_zp,
+                 float     output_scale,
+                 int       width,
+                 int       height,
+                 float     inv_multiplier,
+                 int       group_num
     )
 {
     int gidz = get_global_id(1);
@@ -333,12 +309,12 @@ __kernel void instance_norm_I32toF32_2D(
         mean_vari.y += read_imagef(meanVari, coord_para.xy).x;
         coord_para.x+=3;
     }
-    mean_vari *= dim_ratio;
+    mean_vari *= inv_multiplier;
     mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
     mean_vari.s1 = rsqrt(mean_vari.s1);
 
     scale_vari = gamma.s0 * mean_vari.s1;
-    float alpha = input_fl * scale_vari;
+    float alpha = scale_vari;
     bias_val = beta.s0 - scale_vari * mean_vari.s0;
 
     int4 data;

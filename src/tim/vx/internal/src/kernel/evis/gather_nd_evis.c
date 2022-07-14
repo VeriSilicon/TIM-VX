@@ -136,7 +136,7 @@ static vsi_status get_gather_nd_tensor_reshape_size
     vsi_size_t *input_size = inputs[0]->attr.size;
     uint32_t i = 0;
     vsi_size_t elementCnt = 1;
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     newDim[0] = 0;
     for(i = 0; i < dims_num; ++i)

@@ -386,10 +386,18 @@ static vsi_bool op_setup
     if ( (self->nn_param.conv1d.ksize == 1024 && self->nn_param.conv1d.dilation == 1)
       || (self->nn_param.conv1d.ksize == 3 && self->nn_param.conv1d.dilation > 7) )
     {
-        if (self->nn_param.conv1d.stride == 1 && self->nn_param.conv1d.multiplier == 0)
+        int32_t ksize = self->nn_param.conv1d.ksize;
+        int32_t stride = self->nn_param.conv1d.stride;
+        int32_t dilation = self->nn_param.conv1d.dilation;
+        int32_t real_kernel = ((ksize - 1) * dilation + ksize + stride - 1) / stride;
+#define MAX_CONV1D_KERNEL_SIZE (255)
+
+        if (self->nn_param.conv1d.stride == 1 && self->nn_param.conv1d.multiplier == 0 &&
+            real_kernel > MAX_CONV1D_KERNEL_SIZE)
         {
+#undef MAX_CONV1D_KERNEL_SIZE
             self->nn_param.conv1d.local->use_ovxlib_kernel = TRUE;
-            if ((p->pad[0] || p->pad[1]) && (inputs[0]->attr.size[0] >= 65535))
+            if ((p->pad[0] || p->pad[1]) && (inputs[0]->attr.size[0] >= GPU_TENSOR_MAX_WIDTH))
             {
                 vsi_nn_tensor_attr_t attr;
                 vsi_nn_internal_node_t* curr = NULL;
