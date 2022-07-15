@@ -41,7 +41,8 @@ class GatherLayoutInfer : public OpLayoutInfer {
     ReverseInputsPermuteVector();
 
     auto gather = context_->infer_graph_->CreateOperation<vx::ops::Gather>(
-        op_->impl()->node()->nn_param.gather.axis);
+        op_->impl()->node()->nn_param.gather.axis,
+        op_->impl()->node()->nn_param.gather.batch_dims);
     int32_t output_rank = -1;
     for (const auto& i_src : op_->impl()->InputsTensor()) {
       (*gather).BindInput(context_->GetMapedTensor(i_src));
