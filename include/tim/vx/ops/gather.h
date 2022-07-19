@@ -37,12 +37,13 @@ namespace ops {
 
 class Gather : public DirectMapOp {
  public:
-  Gather(Graph* Graph, int axis);
+  Gather(Graph* Graph, int axis, int batch_dims = 0);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
  protected:
   int axis_;
+  int batch_dims_;
 };
 
 }  // namespace ops
