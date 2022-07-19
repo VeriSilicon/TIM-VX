@@ -963,6 +963,40 @@ VX_API_ENTRY vx_node VX_API_CALL vxBatchGemmNode(vx_graph graph,
                                                  vx_scalar trans_c,
                                                  vx_tensor output);
 
+typedef struct _vx_lut_params_s
+{
+    vx_enum         lut_function;     /*!< \brief Set VX_NN_ACTIVATION_NONE to disable lut table or set VX_NN_ACTIVATION_CUSTOM to customize lut table or set others to use fixed lut table */
+    vx_float32      float_values[4];  /*!< \brief Float parameters of fixed lut table */
+    vx_uint32       fvalues_count;    /*!< \brief Count of float_values */
+    vx_int32        int_values[4];    /*!< \brief Int parameters of fixed lut table */
+    vx_uint32       ivalues_count;    /*!< \brief Count of int_values */
+    vx_lut          in_lut;           /*!< \brief Only valid when lut_function is VX_NN_ACTIVATION_CUSTOM */
+    vx_lut          out_lut;          /*!< \brief Only valid when lut_function is VX_NN_ACTIVATION_CUSTOM */
+} vx_lut_params_s, * vx_lut_params;
+
+/*! \brief Create a stream processor node.
+ * \param [in] graph The reference to the graph.
+ * \param [in] input_list The input tensor list.
+ * \param [in] input_count The input tensor count.
+ * \param [in] output_list The output tensor list.
+ * \param [in] output_count The output tensor count.
+ * \param [in] spinst_obj The stream processor instrunction object. Use vxCreateSPINST() to create.
+ * \param [in] lut_params The lut parameters. Refer to vx_lut_params_s.
+ * \return <tt>\ref vx_node</tt>.
+ * \retval vx_node A node reference. Any possible errors preventing a successful creation
+ * should be checked using <tt>\ref vxGetStatus</tt>
+ * \ingroup group_vision_function_sp
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxStreamProcessorNode(
+    vx_graph                    graph,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor*                  output_list,
+    vx_uint32                   output_count,
+    vx_spinst                   spinst_obj,
+    vx_lut_params               lut_params
+    );
+
 #ifdef __cplusplus
 }
 #endif
