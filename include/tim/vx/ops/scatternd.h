@@ -34,7 +34,12 @@ namespace ops {
  *
  * Scatter updates into a new tensor according to indices.
  *
- * - shape : The shape of the resulting tensor. 
+ * - shape : The shape of the resulting tensor.
+ * 
+ * Inputs:
+ * 
+ * - 0 : indices tensor.
+ * - 1 : updates tensor.
  */
 
 class ScatterND : public DirectMapOp {

@@ -21,8 +21,8 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_MAXPOOLWITHARGMAX_H_
-#define TIM_VX_OPS_MAXPOOLWITHARGMAX_H_
+#ifndef TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_
+#define TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_
 
 #include <array>
 
@@ -34,9 +34,9 @@ namespace vx {
 namespace ops {
 
 /**
- * ## MaxpoolWithArgmax
+ * ## MaxpoolWithArgmax2
  *
- * Performs an 2-D Max pooling operation and return indices(which start at the beginning of the pool window).
+ * Performs an 2-D Max pooling operation and return indices(which start at the beginning of the input tensor).
  *
  * - padding : AUTO, VALID or SAME.
  * - ksize : filter size.
@@ -44,9 +44,9 @@ namespace ops {
  * - round_type : CEILING or FLOOR.
  */
 
-class MaxpoolWithArgmax : public DirectMapOp {
+class MaxpoolWithArgmax2 : public DirectMapOp {
  public:
-  MaxpoolWithArgmax(Graph* graph, PadType padding,
+  MaxpoolWithArgmax2(Graph* graph, PadType padding,
          const std::array<uint32_t, 2>& ksize,
          const std::array<uint32_t, 2>& stride,
          RoundType round_type = RoundType::FLOOR,
@@ -65,4 +65,4 @@ class MaxpoolWithArgmax : public DirectMapOp {
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPS_MAXPOOLWITHARGMAX_H_ */
+#endif /* TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_ */

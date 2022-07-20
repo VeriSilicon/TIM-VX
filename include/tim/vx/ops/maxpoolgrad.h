@@ -21,38 +21,40 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_MAXPOOLWITHARGMAX_H_
-#define TIM_VX_OPS_MAXPOOLWITHARGMAX_H_
+#ifndef TIM_VX_OPS_MAXPOOLGRAD_H_
+#define TIM_VX_OPS_MAXPOOLGRAD_H_
 
-#include <array>
-
-#include "tim/vx/direct_map_op.h"
-#include "tim/vx/types.h"
-
+#include "tim/vx/operation.h"
 namespace tim {
 namespace vx {
 namespace ops {
 
 /**
- * ## MaxpoolWithArgmax
+ * ## MaxpooGrad
  *
- * Performs an 2-D Max pooling operation and return indices(which start at the beginning of the pool window).
+ * Acquire the gradient of 2-D Max pooling operation's input tensor. \
+ * Like the tensorflow_XLA op SelectAndScatter, see https://tensorflow.google.cn/xla/operation_semantics?hl=en#selectandscatter.
  *
  * - padding : AUTO, VALID or SAME.
  * - ksize : filter size.
  * - stride : stride along each spatial axis.
  * - round_type : CEILING or FLOOR.
+ * 
+ *  * Inputs:
+ * 
+ * - 0 : input tensor of 2-D Max pooling.
+ * - 1 : gradient of 2-D Max pooling output tensor.
  */
 
-class MaxpoolWithArgmax : public DirectMapOp {
+class MaxpoolGrad: public Operation {
  public:
-  MaxpoolWithArgmax(Graph* graph, PadType padding,
-         const std::array<uint32_t, 2>& ksize,
-         const std::array<uint32_t, 2>& stride,
-         RoundType round_type = RoundType::FLOOR,
-         DataLayout layout = DataLayout::WHCN);
-
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  MaxpoolGrad(Graph* graph, PadType padding,
+              const std::array<uint32_t, 2>& ksize,
+              const std::array<uint32_t, 2>& stride,
+              RoundType round_type = RoundType::FLOOR,
+              DataLayout layout = DataLayout::WHCN);
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 
  protected:
   const PadType padding_;
@@ -65,4 +67,4 @@ class MaxpoolWithArgmax : public DirectMapOp {
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPS_MAXPOOLWITHARGMAX_H_ */
+#endif /*TIM_VX_OPS_MAXPOOLGRAD_H_*/

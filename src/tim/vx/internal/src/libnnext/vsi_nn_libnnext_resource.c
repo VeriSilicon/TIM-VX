@@ -56132,6 +56132,391 @@ __kernel void maximum_I32I32toI32_2D\n\
 }\n\
 "; /* end of maximum_cl*/
 
+static const char maxpoolwithargmax_cl[] = "#define FP32_MIN   -3.4e38\n\
+#define I32_MIN    -2147483647\n\
+\n\
+__kernel void maxpoolwithargmax_F32toF32_I32(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    __write_only image2d_array_t  argmax,\n\
+    int ksize_x, int ksize_y, int stride_x, int stride_y,\n\
+    int pad_left, int pad_top, int width, int height,\n\
+    float scale, float tail)\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int4 coord_out = (int4)(gidx, gidy, get_global_id(2), 0);\n\
+    int4 coord_in  = coord_out;\n\
+\n\
+    int hstart = gidy * stride_y - pad_top;\n\
+    int wstart = gidx * stride_x - pad_left;\n\
+    int hend = min(hstart + ksize_y, height);\n\
+    int wend = min(wstart + ksize_x, width);\n\
+    int h, w;\n\
+    int4 index_max = (int4)(0);\n\
+    float value_max = FP32_MIN;\n\
+    float4 dst = (float4)(0);\n\
+\n\
+    hstart = max(hstart, 0);\n\
+    wstart = max(wstart, 0);\n\
+    int2 coord_max = (int2)(wstart, hstart);\n\
+    for (h = hstart; h < hend; ++ h)\n\
+    {\n\
+        for (w = wstart; w < wend; ++ w)\n\
+        {\n\
+            coord_in.xy = (int2)(w, h);\n\
+            float4 data = read_imagef(input, coord_in);\n\
+\n\
+            if (data.x > value_max)\n\
+            {\n\
+                value_max = data.x;\n\
+                coord_max = coord_in.xy;\n\
+            }\n\
+        }\n\
+    }\n\
+\n\
+    index_max.x = coord_max.x + coord_max.y * width + get_global_id(2) * width * height;\n\
+    dst.x = value_max;\n\
+    write_imagef(output, coord_out, dst);\n\
+    write_imagei(argmax, coord_out, index_max);\n\
+}\n\
+\n\
+__kernel void maxpoolwithargmax_BF16toBF16_I32(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    __write_only image2d_array_t  argmax,\n\
+    int ksize_x, int ksize_y, int stride_x, int stride_y,\n\
+    int pad_left, int pad_top, int width, int height,\n\
+    float scale, float tail)\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int4 coord_out = (int4)(gidx, gidy, get_global_id(2), 0);\n\
+    int4 coord_in  = coord_out;\n\
+\n\
+    int hstart = gidy * stride_y - pad_top;\n\
+    int wstart = gidx * stride_x - pad_left;\n\
+    int hend = min(hstart + ksize_y, height);\n\
+    int wend = min(wstart + ksize_x, width);\n\
+    int h, w;\n\
+    int4 index_max = (int4)(0);\n\
+    float value_max = FP32_MIN;\n\
+    uint4 dst = (uint4)(0);\n\
+\n\
+    hstart = max(hstart, 0);\n\
+    wstart = max(wstart, 0);\n\
+    int2 coord_max = (int2)(wstart, hstart);\n\
+    for (h = hstart; h < hend; ++ h)\n\
+    {\n\
+        for (w = wstart; w < wend; ++ w)\n\
+        {\n\
+            coord_in.xy = (int2)(w, h);\n\
+            uint4 src = read_imageui(input, coord_in);\n\
+            src = src << 16;\n\
+            float4 data;\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            if (data.x > value_max)\n\
+            {\n\
+                value_max = data.x;\n\
+                coord_max = coord_in.xy;\n\
+            }\n\
+        }\n\
+    }\n\
+\n\
+    index_max.x = coord_max.x + coord_max.y * width + get_global_id(2) * width * height;\n\
+    _viv_asm(COPY, dst, value_max, 4);\n\
+    dst.x = dst.x >> 16;\n\
+    write_imageui(output, coord_out, dst);\n\
+    write_imagei(argmax, coord_out, index_max);\n\
+}\n\
+\n\
+__kernel void maxpoolwithargmax_U32toU32_I32(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    __write_only image2d_array_t  argmax,\n\
+    int ksize_x, int ksize_y, int stride_x, int stride_y,\n\
+    int pad_left, int pad_top, int width, int height,\n\
+    float scale, float tail)\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int4 coord_out = (int4)(gidx, gidy, get_global_id(2), 0);\n\
+    int4 coord_in  = coord_out;\n\
+\n\
+    int hstart = gidy * stride_y - pad_top;\n\
+    int wstart = gidx * stride_x - pad_left;\n\
+    int hend = min(hstart + ksize_y, height);\n\
+    int wend = min(wstart + ksize_x, width);\n\
+    int h, w;\n\
+    int4 index_max = (int4)(0);\n\
+    uint value_max = 0;\n\
+    uint4 dst = (uint4)(0);\n\
+\n\
+    hstart = max(hstart, 0);\n\
+    wstart = max(wstart, 0);\n\
+\n\
+    int2 coord_max = (int2)(wstart, hstart);\n\
+    for (h = hstart; h < hend; ++ h)\n\
+    {\n\
+        for (w = wstart; w < wend; ++ w)\n\
+        {\n\
+            coord_in.xy = (int2)(w, h);\n\
+            uint4 data = read_imageui(input, coord_in);\n\
+\n\
+            if (data.x > value_max)\n\
+            {\n\
+                value_max = data.x;\n\
+                coord_max = coord_in.xy;\n\
+            }\n\
+        }\n\
+    }\n\
+\n\
+    index_max.x = coord_max.x + coord_max.y * width + get_global_id(2) * width * height;\n\
+    dst.x = convert_uint(convert_float(value_max) * scale + tail);\n\
+    write_imageui(output, coord_out, dst);\n\
+    write_imagei(argmax, coord_out, index_max);\n\
+}\n\
+\n\
+__kernel void maxpoolwithargmax_I32toI32_I32(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    __write_only image2d_array_t  argmax,\n\
+    int ksize_x, int ksize_y, int stride_x, int stride_y,\n\
+    int pad_left, int pad_top, int width, int height,\n\
+    float scale, float tail)\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int4 coord_out = (int4)(gidx, gidy, get_global_id(2), 0);\n\
+    int4 coord_in  = coord_out;\n\
+\n\
+    int hstart = gidy * stride_y - pad_top;\n\
+    int wstart = gidx * stride_x - pad_left;\n\
+    int hend = min(hstart + ksize_y, height);\n\
+    int wend = min(wstart + ksize_x, width);\n\
+    int h, w;\n\
+    int4 index_max = (int4)(0);\n\
+    int value_max = I32_MIN;\n\
+    int4 dst = (int4)(0);\n\
+\n\
+    hstart = max(hstart, 0);\n\
+    wstart = max(wstart, 0);\n\
+    int2 coord_max = (int2)(wstart, hstart);\n\
+    for (h = hstart; h < hend; ++ h)\n\
+    {\n\
+        for (w = wstart; w < wend; ++ w)\n\
+        {\n\
+            coord_in.xy = (int2)(w, h);\n\
+            int4 data = read_imagei(input, coord_in);\n\
+\n\
+            if (data.x > value_max)\n\
+            {\n\
+                value_max = data.x;\n\
+                coord_max = coord_in.xy;\n\
+            }\n\
+        }\n\
+    }\n\
+\n\
+    index_max.x = coord_max.x + coord_max.y * width + get_global_id(2) * width * height;\n\
+    dst.x = convert_int(convert_float(value_max) * scale + tail);\n\
+    write_imagei(output, coord_out, dst);\n\
+    write_imagei(argmax, coord_out, index_max);\n\
+}\n\
+"; /* end of maxpoolwithargmax_cl*/
+
+static const char maxpoolwithargmax_2d_cl[] = "#define FP32_MIN   -3.4e38\n\
+#define I32_MIN    -2147483647\n\
+\n\
+__kernel void maxpoolwithargmax_F32toF32_I32_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    __write_only image2d_t  argmax,\n\
+    int ksize_x, int ksize_y, int stride_x, int stride_y,\n\
+    int pad_left, int pad_top, int width, int height,\n\
+    float scale, float tail)\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int2 coord_out = (int2)(gidx, gidy);\n\
+    int2 coord_in  = coord_out;\n\
+\n\
+    int hstart = gidy * stride_y - pad_top;\n\
+    int wstart = gidx * stride_x - pad_left;\n\
+    int hend = min(hstart + ksize_y, height);\n\
+    int wend = min(wstart + ksize_x, width);\n\
+    int h, w;\n\
+    int4 index_max = (int4)(0);\n\
+    float value_max = FP32_MIN;\n\
+    float4 dst = (float4)(0);\n\
+\n\
+    hstart = max(hstart, 0);\n\
+    wstart = max(wstart, 0);\n\
+    int2 coord_max = (int2)(wstart, hstart);\n\
+    for (h = hstart; h < hend; ++ h)\n\
+    {\n\
+        for (w = wstart; w < wend; ++ w)\n\
+        {\n\
+            coord_in.xy = (int2)(w, h);\n\
+            float4 data = read_imagef(input, coord_in);\n\
+\n\
+            if (data.x > value_max)\n\
+            {\n\
+                value_max = data.x;\n\
+                coord_max = coord_in;\n\
+            }\n\
+        }\n\
+    }\n\
+\n\
+    index_max.x = coord_max.x + coord_max.y * width;\n\
+    dst.x = value_max;\n\
+    write_imagef(output, coord_out, dst);\n\
+    write_imagei(argmax, coord_out, index_max);\n\
+}\n\
+\n\
+__kernel void maxpoolwithargmax_BF16toBF16_I32_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    __write_only image2d_t  argmax,\n\
+    int ksize_x, int ksize_y, int stride_x, int stride_y,\n\
+    int pad_left, int pad_top, int width, int height,\n\
+    float scale, float tail)\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int2 coord_out = (int2)(gidx, gidy);\n\
+    int2 coord_in  = coord_out;\n\
+\n\
+    int hstart = gidy * stride_y - pad_top;\n\
+    int wstart = gidx * stride_x - pad_left;\n\
+    int hend = min(hstart + ksize_y, height);\n\
+    int wend = min(wstart + ksize_x, width);\n\
+    int h, w;\n\
+    int4 index_max = (int4)(0);\n\
+    float value_max = FP32_MIN;\n\
+    uint4 dst = (uint4)(0);\n\
+\n\
+    hstart = max(hstart, 0);\n\
+    wstart = max(wstart, 0);\n\
+    int2 coord_max = (int2)(wstart, hstart);\n\
+    for (h = hstart; h < hend; ++ h)\n\
+    {\n\
+        for (w = wstart; w < wend; ++ w)\n\
+        {\n\
+            coord_in.xy = (int2)(w, h);\n\
+            uint4 src = read_imageui(input, coord_in);\n\
+            src = src << 16;\n\
+            float4 data;\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            if (data.x > value_max)\n\
+            {\n\
+                value_max = data.x;\n\
+                coord_max = coord_in;\n\
+            }\n\
+        }\n\
+    }\n\
+\n\
+    index_max.x = coord_max.x + coord_max.y * width;\n\
+    _viv_asm(COPY, dst, value_max, 4);\n\
+    dst.x = dst.x >> 16;\n\
+    write_imageui(output, coord_out, dst);\n\
+    write_imagei(argmax, coord_out, index_max);\n\
+}\n\
+\n\
+__kernel void maxpoolwithargmax_U32toU32_I32_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    __write_only image2d_t  argmax,\n\
+    int ksize_x, int ksize_y, int stride_x, int stride_y,\n\
+    int pad_left, int pad_top, int width, int height,\n\
+    float scale, float tail)\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int2 coord_out = (int2)(gidx, gidy);\n\
+    int2 coord_in  = coord_out;\n\
+\n\
+    int hstart = gidy * stride_y - pad_top;\n\
+    int wstart = gidx * stride_x - pad_left;\n\
+    int hend = min(hstart + ksize_y, height);\n\
+    int wend = min(wstart + ksize_x, width);\n\
+    int h, w;\n\
+    int4 index_max = (int4)(0);\n\
+    uint value_max = 0;\n\
+    uint4 dst = (uint4)(0);\n\
+\n\
+    hstart = max(hstart, 0);\n\
+    wstart = max(wstart, 0);\n\
+    int2 coord_max = (int2)(wstart, hstart);\n\
+    for (h = hstart; h < hend; ++ h)\n\
+    {\n\
+        for (w = wstart; w < wend; ++ w)\n\
+        {\n\
+            coord_in.xy = (int2)(w, h);\n\
+            uint4 data = read_imageui(input, coord_in);\n\
+\n\
+            if (data.x > value_max)\n\
+            {\n\
+                value_max = data.x;\n\
+                coord_max = coord_in;\n\
+            }\n\
+        }\n\
+    }\n\
+\n\
+    index_max.x = coord_max.x + coord_max.y * width;\n\
+    dst.x = convert_uint(convert_float(value_max) * scale + tail);\n\
+    write_imageui(output, coord_out, dst);\n\
+    write_imagei(argmax, coord_out, index_max);\n\
+}\n\
+\n\
+__kernel void maxpoolwithargmax_I32toI32_I32_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    __write_only image2d_t  argmax,\n\
+    int ksize_x, int ksize_y, int stride_x, int stride_y,\n\
+    int pad_left, int pad_top, int width, int height,\n\
+    float scale, float tail)\n\
+{\n\
+    int gidx = get_global_id(0);\n\
+    int gidy = get_global_id(1);\n\
+    int2 coord_out = (int2)(gidx, gidy);\n\
+    int2 coord_in  = coord_out;\n\
+\n\
+    int hstart = gidy * stride_y - pad_top;\n\
+    int wstart = gidx * stride_x - pad_left;\n\
+    int hend = min(hstart + ksize_y, height);\n\
+    int wend = min(wstart + ksize_x, width);\n\
+    int h, w;\n\
+    int4 index_max = (int4)(0);\n\
+    int value_max = I32_MIN;\n\
+    int4 dst = (int4)(0);\n\
+\n\
+    hstart = max(hstart, 0);\n\
+    wstart = max(wstart, 0);\n\
+    int2 coord_max = (int2)(wstart, hstart);\n\
+    for (h = hstart; h < hend; ++ h)\n\
+    {\n\
+        for (w = wstart; w < wend; ++ w)\n\
+        {\n\
+            coord_in.xy = (int2)(w, h);\n\
+            int4 data = read_imagei(input, coord_in);\n\
+\n\
+            if (data.x > value_max)\n\
+            {\n\
+                value_max = data.x;\n\
+                coord_max = coord_in;\n\
+            }\n\
+        }\n\
+    }\n\
+\n\
+    index_max.x = coord_max.x + coord_max.y * width;\n\
+    dst.x = convert_int(convert_float(value_max) * scale + tail);\n\
+    write_imagei(output, coord_out, dst);\n\
+    write_imagei(argmax, coord_out, index_max);\n\
+}\n\
+"; /* end of maxpoolwithargmax_2d_cl*/
+
 static const char minimum_cl[] = "__kernel void minimum_FP32FP32toFP32\n\
     (\n\
     __read_only  image2d_array_t    input0,\n\
@@ -61992,6 +62377,8 @@ static const source_map_t cl_resource[] =
     {"matrixmul_cl", matrixmul_cl},
     {"matrixmul_transA_cl", matrixmul_transA_cl},
     {"maximum_cl", maximum_cl},
+    {"maxpoolwithargmax_cl", maxpoolwithargmax_cl},
+    {"maxpoolwithargmax_2d_cl", maxpoolwithargmax_2d_cl},
     {"minimum_cl", minimum_cl},
     {"moments_axis0_cl", moments_axis0_cl},
     {"moments_axis01_cl", moments_axis01_cl},

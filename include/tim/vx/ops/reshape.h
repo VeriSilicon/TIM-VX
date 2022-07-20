@@ -34,7 +34,7 @@ namespace ops {
  *
  * Given tensor, this operation returns a tensor that has the same values as tensor, but with a newly specified shape.
  *
- * - size : defining the shape of the output tensor.
+ * - target_shape : defining the shape of the output tensor.
  */
 
 class Reshape : public Operation{
