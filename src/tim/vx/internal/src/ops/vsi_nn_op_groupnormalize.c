@@ -34,7 +34,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -202,26 +201,40 @@ static vsi_bool _op_check
     )
 {
     BEGIN_IO_TYPE_DECL(GROUP_NORM, 3, 1)
-        IO_TYPE(D_F16,  D_F32,  D_F16,  D_F16)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F16)
-        IO_TYPE(D_F16,  D_F32,  D_F16,  D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_U8|Q_ASYM)
-        IO_TYPE(D_F32,  D_F32,  D_F16,  D_F32)
-        IO_TYPE(D_F32,  D_F32,  D_F32,  D_F32)
-        IO_TYPE(D_I32,  D_F32,  D_F16,  D_I32)
-        IO_TYPE(D_I32,  D_F32,  D_F16,  D_F32)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_F16)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_F16,        D_F32,  D_F16,  D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_U8|Q_ASYM)
+        IO_TYPE(D_F32,        D_F32,  D_F16,  D_F32)
+        IO_TYPE(D_F32,        D_F32,  D_F32,  D_F32)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I8|Q_SYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_I16|Q_SYM)
+        IO_TYPE(D_I32,        D_F32,  D_F16,  D_I32)
+        IO_TYPE(D_I32,        D_F32,  D_F16,  D_F32)
         IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F16,  D_F16)
         IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_F32,  D_F32,  D_F16)
         IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F16,  D_I8|Q_DFP)
         IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F32,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32,  D_F32,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_F32,  D_F32,  D_I8|Q_SYM)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F16,  D_F16)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F32,  D_F16)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F16,  D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F32,  D_U8|Q_ASYM)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F16,  D_F16)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F32,  D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F32,  D_F16)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F16,  D_I16|Q_DFP)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F32,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F32,  D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F32,  D_I16|Q_SYM)
     END_IO_TYPE_DECL(GROUP_NORM)
     if (!VALIDATE_OP_IO_TYPES(GROUP_NORM, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -263,21 +276,11 @@ static vsi_status _op_deinit
     )
 {
     vsi_nn_groupnormalize_param *p = &(self->nn_param.groupnorm);
-    if (p->lcl_data->reshaped_input)
-    {
-        vsi_nn_ReleaseTensor(&(p->lcl_data->reshaped_input));
-        p->lcl_data->reshaped_input = NULL;
-    }
-    if (p->lcl_data->reshaped_output)
-    {
-        vsi_nn_ReleaseTensor(&(p->lcl_data->reshaped_output));
-        p->lcl_data->reshaped_output = NULL;
-    }
-    if (self->nn_param.groupnorm.lcl_data)
-    {
-        free(self->nn_param.groupnorm.lcl_data);
-        self->nn_param.groupnorm.lcl_data = NULL;
-    }
+
+    vsi_safe_release_tensor(p->lcl_data->reshaped_input);
+    vsi_safe_release_tensor(p->lcl_data->reshaped_output);
+    vsi_nn_safe_free(self->nn_param.groupnorm.lcl_data)
+
     vsi_nn_op_common_deinit(self);
 
     return VSI_SUCCESS;

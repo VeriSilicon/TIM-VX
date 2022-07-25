@@ -51,6 +51,7 @@ typedef enum
     UP_3X_HALF,
     UP_4X_HALF,
     UP_8X_HALF,
+    UP_8X_ALIGN,
 } _internal_scale_e;
 
 #define _RESIZE_BILINEAR_KERNEL_SOURCE(_input_type)      "resize_bilinear_"#_input_type
@@ -102,6 +103,12 @@ typedef enum
             "_SAME_3x_upsample_half_pixel_centers"), \
           _RESIZE_BILINEAR_KERNEL_SOURCE_UP_HPC1(IN_DTYPE) }
 
+#define PACK_KERNEL_MAP_UP_8X_ALIGN( IN_DTYPE, OUT_DTYPE ) \
+        { RESIZE_BILINEAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, UP_8X_ALIGN ), \
+          CVIVANTE_NAMESPACE("evis.resize_bilinear_"STR(IN_DTYPE)"to"STR(OUT_DTYPE) \
+            "_SAME_8x_upsample_align_corners"), \
+          "resize_bilinear_align_corners" }
+
 typedef struct
 {
     uint32_t key;
@@ -128,6 +135,7 @@ static const _kernel_map_type _resize_bilinear_kernel_map[] =
     PACK_KERNEL_MAP_UP_3X_HALF(U8, U8),
     PACK_KERNEL_MAP_UP_4X_HALF(U8, U8),
     PACK_KERNEL_MAP_UP_8X_HALF(U8, U8),
+    PACK_KERNEL_MAP_UP_8X_ALIGN(U8, U8),
 };
 
 
@@ -228,11 +236,6 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
     uint32_t    out_height;
     float       half_pixel_value = 0.0f;
     vsi_bool    is_use_scale_kernel = (vsi_bool)(_RESIZE_BILINEAR_PARAM_NUM == param_size);
-    vsi_bool    is_half_pixel_centers     = FALSE;
-    vsi_bool    is_2x_up_kernel  = FALSE;
-    vsi_bool    is_3x_up_kernel  = FALSE;
-    vsi_bool    is_4x_up_kernel  = FALSE;
-    vsi_bool    is_8x_up_kernel  = FALSE;
 
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
@@ -257,20 +260,20 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
 
     if (align_corners && out_width > 1)
     {
-        scale_factor[0] = ((vx_float32)(in_width - 1) * 1.0f) / (vx_float32)(out_width - 1);
+        scale_factor[0] = ((float)(in_width - 1) * 1.0f) / (float)(out_width - 1);
     }
     else
     {
-        scale_factor[0] = ((vx_float32)in_width * 1.0f) / (vx_float32)out_width;
+        scale_factor[0] = ((float)in_width * 1.0f) / (float)out_width;
     }
 
     if (align_corners && out_height > 1)
     {
-        scale_factor[1] = ((vx_float32)(in_height - 1) * 1.0f) / (vx_float32)(out_height - 1);
+        scale_factor[1] = ((float)(in_height - 1) * 1.0f) / (float)(out_height - 1);
     }
     else
     {
-        scale_factor[1] = ((vx_float32)in_height * 1.0f) / (vx_float32)out_height;
+        scale_factor[1] = ((float)in_height * 1.0f) / (float)out_height;
     }
 
     if (half_pixel_centers)
@@ -280,16 +283,6 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
     else
     {
         half_pixel_value = 0.0f;
-    }
-
-    is_half_pixel_centers = (!align_corners) && (half_pixel_centers);
-
-    if ((U8 == input_dtype) && (_is_same_quant(input_attr, output_attr)) && is_half_pixel_centers)
-    {
-        is_2x_up_kernel = (2 * in_width == out_width) && (2 * in_height == out_height);
-        is_3x_up_kernel = (3 * in_width == out_width) && (3 * in_height == out_height);
-        is_4x_up_kernel = (4 * in_width == out_width) && (4 * in_height == out_height);
-        is_8x_up_kernel = (8 * in_width == out_width) && (8 * in_height == out_height);
     }
 
     if (U8 == input_dtype && VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant )
@@ -302,11 +295,11 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         srcFixPointPos   = input_attr->dfp.fl;
         if (srcFixPointPos >= 0)
         {
-            input_scale = 1.0f / (vx_float32) ((int64_t)1 << srcFixPointPos);
+            input_scale = 1.0f / (float) ((int64_t)1 << srcFixPointPos);
         }
         else if (srcFixPointPos < 0)
         {
-            input_scale = (vx_float32)((int64_t)1 << -srcFixPointPos);
+            input_scale = (float)((int64_t)1 << -srcFixPointPos);
         }
         inputZP = 0;
     }
@@ -326,11 +319,11 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         dstFixPointPos = output_attr->dfp.fl;
         if (dstFixPointPos >= 0)
         {
-            output_scale = (vx_float32) ((int64_t)1 << dstFixPointPos);
+            output_scale = (float) ((int64_t)1 << dstFixPointPos);
         }
         else if (dstFixPointPos < 0)
         {
-            output_scale = 1.0f / (vx_float32) ((int64_t)1 << -dstFixPointPos);
+            output_scale = 1.0f / (float) ((int64_t)1 << -dstFixPointPos);
         }
         outputZP = 0;
     }
@@ -340,226 +333,11 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         outputZP     = 0;
     }
 
-    if (is_2x_up_kernel || is_4x_up_kernel || is_8x_up_kernel)
-    {
-        gpu_param.global_scale[0] = 16;
-        gpu_param.global_scale[1] = 1;
-    }
-    else if (is_3x_up_kernel)
-    {
-        gpu_param.global_scale[0] = 15;
-        gpu_param.global_scale[1] = 6;
-        gpu_param.global_scale[2] = 1;
-    }
-    else
-    {
-        gpu_param.global_scale[0] = 4;
-        gpu_param.global_scale[1] = 1;
-        gpu_param.global_scale[2] = 1;
-    }
+    gpu_param.global_scale[0] = 4;
+    gpu_param.global_scale[1] = 1;
+    gpu_param.global_scale[2] = 1;
 
-    if (is_2x_up_kernel)
-    {
-        gpu_dp_inst_t uniResize2xUp_0_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x4418c020, 0x29444194, 0xc8629c86, 0x83a4c839, 0xad0a4a4c, // BinSelect
-            0x00000704, // AccumType, ConstantType, and PostShift
-            0x09030301, 0x03090103, 0x09030301, 0x03090103,
-            0x09030301, 0x03090103, 0x09030301, 0x03090103 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize2xUp_1_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x4c5ad0a4, 0x6b54c5b5, 0xd8e6bd8e, 0x07c5d07b, 0xce128c5d, // BinSelect
-            0x00000704, // AccumType, ConstantType, and PostShift
-            0x09030301, 0x03090103, 0x09030301, 0x03090103,
-            0x09030301, 0x03090103, 0x09030301, 0x03090103 // Constant
-        }, GPU_DP_TYPE_16};
-
-        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize2xUp_0_4x8", &uniResize2xUp_0_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize2xUp_1_4x8", &uniResize2xUp_1_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "out_height", &out_height);
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else if (is_3x_up_kernel)
-    {
-        gpu_dp_inst_t uniResize3xUp_l00_2x8 = {{
-            0x15515515, // TCfg
-            0x00000000, // ASelt
-            0x21210110, 0x03323202, // ABin
-            0x2aa2aa2a, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000610, // AccumType, ConstantType, and PostShift
-            0xaaaa5555, 0x0000ffff, 0x5555aaaa, 0xaaaa5555,
-            0x0000ffff, 0x5555aaaa, 0xaaaa5555, 0x0000ffff // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize3xUp_l01_2x8 = {{
-            0x05155155, // TCfg
-            0x00000000, // ASelt
-            0x54044343, 0x00650554, // ABin
-            0x0a2aa2aa, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000610, // AccumType, ConstantType, and PostShift
-            0x5555aaaa, 0xaaaa5555, 0x0000ffff, 0x5555aaaa,
-            0xaaaa5555, 0x0000ffff, 0x5555aaaa, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize3xUp_l10_4x4 = {{
-            0x55551155, // TCfg
-            0x50501050, // ASelt
-            0x01011010, 0x21212121, // ABin
-            0xaaaa22aa, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x0000060f, // AccumType, ConstantType, and PostShift
-            0x38e41c72, 0x1c720e39, 0x00005556, 0x00002aab,
-            0x1c7238e4, 0x0e391c72, 0x38e41c72, 0x1c720e39 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize3xUp_l11_4x4 = {{
-            0x11555511, // TCfg
-            0x10505010, // ASelt
-            0x32320202, 0x03033232, // ABin
-            0x22aaaa22, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x0000060f, // AccumType, ConstantType, and PostShift
-            0x00005556, 0x00002aab, 0x1c7238e4, 0x0e391c72,
-            0x38e41c72, 0x1c720e39, 0x00005556, 0x00002aab // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize3xUp_l12_4x4 = {{
-            0x55115555, // TCfg
-            0x50105050, // ASelt
-            0x43434343, 0x54540404, // ABin
-            0xaa22aaaa, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x0000060f, // AccumType, ConstantType, and PostShift
-            0x1c7238e4, 0x0e391c72, 0x38e41c72, 0x1c720e39,
-            0x00005556, 0x00002aab, 0x1c7238e4, 0x0e391c72 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize3xUp_l13_4x4 = {{
-            0x00551155, // TCfg
-            0x00501050, // ASelt
-            0x05055454, 0x00006565, // ABin
-            0x00aa22aa, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x0000060f, // AccumType, ConstantType, and PostShift
-            0x38e41c72, 0x1c720e39, 0x00005556, 0x00002aab,
-            0x1c7238e4, 0x0e391c72, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-
-        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l00_2x8", &uniResize3xUp_l00_2x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l01_2x8", &uniResize3xUp_l01_2x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l10_4x4", &uniResize3xUp_l10_4x4);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l11_4x4", &uniResize3xUp_l11_4x4);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l12_4x4", &uniResize3xUp_l12_4x4);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l13_4x4", &uniResize3xUp_l13_4x4);
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else if (is_4x_up_kernel)
-    {
-        gpu_dp_inst_t uniResize4xUp_l00_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x0208c020, 0x1944418c, 0x44419444, 0x62944419, 0x9c8629c8, // BinSelect
-            0x00000406, // AccumType, ConstantType, and PostShift
-            0x190f0f09, 0x23051503, 0x05230315, 0x0f19090f,
-            0x190f0f09, 0x23051503, 0x05230315, 0x0f19090f // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize4xUp_l01_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x8629c862, 0x3a4c839c, 0x4c83a4c8, 0xa4a4c83a, 0xad0a4ad0, // BinSelect
-            0x00000406, // AccumType, ConstantType, and PostShift
-            0x190f0f09, 0x23051503, 0x05230315, 0x0f19090f,
-            0x190f0f09, 0x23051503, 0x05230315, 0x0f19090f // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize4xUp_l10_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x0208c020, 0x1944418c, 0x44419444, 0x62944419, 0x9c8629c8, // BinSelect
-            0x00000406, // AccumType, ConstantType, and PostShift
-            0x23150503, 0x31070701, 0x07310107, 0x15230305,
-            0x23150503, 0x31070701, 0x07310107, 0x15230305 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize4xUp_l11_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x8629c862, 0x3a4c839c, 0x4c83a4c8, 0xa4a4c83a, 0xad0a4ad0, // BinSelect
-            0x00000406, // AccumType, ConstantType, and PostShift
-            0x23150503, 0x31070701, 0x07310107, 0x15230305,
-            0x23150503, 0x31070701, 0x07310107, 0x15230305 // Constant
-        }, GPU_DP_TYPE_16};
-
-        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l00_4x8", &uniResize4xUp_l00_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l01_4x8", &uniResize4xUp_l01_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l10_4x8", &uniResize4xUp_l10_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l11_4x8", &uniResize4xUp_l11_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "out_height", &out_height);
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else if (is_8x_up_kernel)
-    {
-        gpu_dp_inst_t uniResize8xUp_l00_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
-            0x00000708, // AccumType, ConstantType, and PostShift
-            0x513f3f31, 0x632d4d23, 0x751b5b15, 0x87096907,
-            0x09870769, 0x1b75155b, 0x2d63234d, 0x3f51313f // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize8xUp_l01_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
-            0x00000708, // AccumType, ConstantType, and PostShift
-            0x513f3f31, 0x632d4d23, 0x751b5b15, 0x87096907,
-            0x09870769, 0x1b75155b, 0x2d63234d, 0x3f51313f // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize8xUp_l10_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
-            0x00000708, // AccumType, ConstantType, and PostShift
-            0x634d2d23, 0x79373719, 0x8f21410f, 0xa50b4b05,
-            0x0ba5054b, 0x218f0f41, 0x37791937, 0x4d63232d // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize8xUp_l11_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
-            0x00000708, // AccumType, ConstantType, and PostShift
-            0x634d2d23, 0x79373719, 0x8f21410f, 0xa50b4b05,
-            0x0ba5054b, 0x218f0f41, 0x37791937, 0x4d63232d // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize8xUp_l20_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
-            0x00000708, // AccumType, ConstantType, and PostShift
-            0x755b1b15, 0x8f41210f, 0xa9272709, 0xc30d2d03,
-            0x0dc3032d, 0x27a90927, 0x418f0f21, 0x5b75151b // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize8xUp_l21_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
-            0x00000708, // AccumType, ConstantType, and PostShift
-            0x755b1b15, 0x8f41210f, 0xa9272709, 0xc30d2d03,
-            0x0dc3032d, 0x27a90927, 0x418f0f21, 0x5b75151b // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize8xUp_l30_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
-            0x00000708, // AccumType, ConstantType, and PostShift
-            0x87690907, 0xa54b0b05, 0xc32d0d03, 0xe10f0f01,
-            0x0fe1010f, 0x2dc3030d, 0x4ba5050b, 0x69870709 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniResize8xUp_l31_4x8 = {{
-            0x55555555, 0x55555555, // TCfg
-            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
-            0x00000708, // AccumType, ConstantType, and PostShift
-            0x87690907, 0xa54b0b05, 0xc32d0d03, 0xe10f0f01,
-            0x0fe1010f, 0x2dc3030d, 0x4ba5050b, 0x69870709 // Constant
-        }, GPU_DP_TYPE_16};
-
-        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l00_4x8", &uniResize8xUp_l00_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l01_4x8", &uniResize8xUp_l01_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l10_4x8", &uniResize8xUp_l10_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l11_4x8", &uniResize8xUp_l11_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l20_4x8", &uniResize8xUp_l20_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l21_4x8", &uniResize8xUp_l21_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l30_4x8", &uniResize8xUp_l30_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l31_4x8", &uniResize8xUp_l31_4x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "out_height", &out_height);
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
+    if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
     {
         float dfpScale = input_scale * output_scale;
         gpu_dp_inst_t uniConvertDFP2FP32_4x4 = {{
@@ -840,7 +618,7 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
     else if (F16 == input_dtype && (U8 == output_dtype || F16 == output_dtype))
     {
         float   uint8Scale             = 1.0f / output_scale;
-        float   uint8ZP_out            = (vx_float32)outputZP;
+        float   uint8ZP_out            = (float)outputZP;
         gpu_dp_inst_t uniExtact8Bit_2x8 = {{
             0x33333333, // TCfg
             0x11110000, // ASelt
@@ -1045,10 +823,298 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         goto final;
     }
 
-    if (!is_2x_up_kernel && !is_3x_up_kernel && !is_4x_up_kernel&& !is_8x_up_kernel)
+    status  = vsi_nn_kernel_gpu_add_param( node, "half_pixel_value", &half_pixel_value);
+    CHECK_STATUS_FAIL_GOTO(status, final );
+
+    gpu_param.global_size[0] = gpu_align_p2((out_width  + \
+        gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0], 4);
+    gpu_param.global_size[1] = (out_height + gpu_param.global_scale[1] - 1) / gpu_param.global_scale[1];
+    gpu_param.global_size[2] = depth / gpu_param.global_scale[2];
+
+    status = vsi_nn_kernel_gpu_config( node, &gpu_param );
+final:
+    if (input_attr) vsi_nn_kernel_tensor_attr_release( &input_attr );
+    if (output_attr) vsi_nn_kernel_tensor_attr_release( &output_attr );
+    return status;
+} /* _resize_bilinear_initializer() */
+
+DEF_KERNEL_INITIALIZER(_bilinear_half_pixel_centers_opt_initializer)
+    (
+    vsi_nn_kernel_node_t                node,
+    const vsi_nn_kernel_node_param_t  * param,
+    size_t                              param_size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t gpu_param = {
+        3,
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+        };
+    vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
+    vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
+    vsi_size_array_t             * out_shape     = NULL;
+    vsi_size_array_t             * in_shape      = NULL;
+    vsi_nn_kernel_dtype_e         input_dtype   = F16;
+    uint32_t    depth = 0;
+    uint32_t    in_width = 0;
+    uint32_t    in_height = 0;
+    uint32_t    out_width = 0;
+    uint32_t    out_height = 0;
+    vsi_bool    is_2x_up_kernel  = FALSE;
+    vsi_bool    is_3x_up_kernel  = FALSE;
+    vsi_bool    is_4x_up_kernel  = FALSE;
+    vsi_bool    is_8x_up_kernel  = FALSE;
+
+    input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
+    output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
+
+    out_shape     = output_attr->shape;
+    in_shape      = input_attr->shape;
+    input_dtype   = input_attr->dtype;
+
+    in_width          = (uint32_t)(in_shape->data[0]);
+    in_height         = (uint32_t)(in_shape->data[1]);
+    depth             = (uint32_t)(in_shape->data[2]);
+    out_width         = (uint32_t)(out_shape->data[0]);
+    out_height        = (uint32_t)(out_shape->data[1]);
+
+    if ((U8 == input_dtype) && (_is_same_quant(input_attr, output_attr)))
     {
-        status  = vsi_nn_kernel_gpu_add_param( node, "half_pixel_value", &half_pixel_value);
+        is_2x_up_kernel = (2 * in_width == out_width) && (2 * in_height == out_height);
+        is_3x_up_kernel = (3 * in_width == out_width) && (3 * in_height == out_height);
+        is_4x_up_kernel = (4 * in_width == out_width) && (4 * in_height == out_height);
+        is_8x_up_kernel = (8 * in_width == out_width) && (8 * in_height == out_height);
+    }
+
+    if (is_2x_up_kernel || is_4x_up_kernel || is_8x_up_kernel)
+    {
+        gpu_param.global_scale[0] = 16;
+        gpu_param.global_scale[1] = 1;
+    }
+    else if (is_3x_up_kernel)
+    {
+        gpu_param.global_scale[0] = 15;
+        gpu_param.global_scale[1] = 6;
+        gpu_param.global_scale[2] = 1;
+    }
+    else
+    {
+        gpu_param.global_scale[0] = 4;
+        gpu_param.global_scale[1] = 1;
+        gpu_param.global_scale[2] = 1;
+    }
+
+    if (is_2x_up_kernel)
+    {
+        gpu_dp_inst_t uniResize2xUp_0_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x4418c020, 0x29444194, 0xc8629c86, 0x83a4c839, 0xad0a4a4c, // BinSelect
+            0x00000704, // AccumType, ConstantType, and PostShift
+            0x09030301, 0x03090103, 0x09030301, 0x03090103,
+            0x09030301, 0x03090103, 0x09030301, 0x03090103 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize2xUp_1_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x4c5ad0a4, 0x6b54c5b5, 0xd8e6bd8e, 0x07c5d07b, 0xce128c5d, // BinSelect
+            0x00000704, // AccumType, ConstantType, and PostShift
+            0x09030301, 0x03090103, 0x09030301, 0x03090103,
+            0x09030301, 0x03090103, 0x09030301, 0x03090103 // Constant
+        }, GPU_DP_TYPE_16};
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize2xUp_0_4x8", &uniResize2xUp_0_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize2xUp_1_4x8", &uniResize2xUp_1_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "out_height", &out_height);
         CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else if (is_3x_up_kernel)
+    {
+        gpu_dp_inst_t uniResize3xUp_l00_2x8 = {{
+            0x15515515, // TCfg
+            0x00000000, // ASelt
+            0x21210110, 0x03323202, // ABin
+            0x2aa2aa2a, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000610, // AccumType, ConstantType, and PostShift
+            0xaaaa5555, 0x0000ffff, 0x5555aaaa, 0xaaaa5555,
+            0x0000ffff, 0x5555aaaa, 0xaaaa5555, 0x0000ffff // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize3xUp_l01_2x8 = {{
+            0x05155155, // TCfg
+            0x00000000, // ASelt
+            0x54044343, 0x00650554, // ABin
+            0x0a2aa2aa, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000610, // AccumType, ConstantType, and PostShift
+            0x5555aaaa, 0xaaaa5555, 0x0000ffff, 0x5555aaaa,
+            0xaaaa5555, 0x0000ffff, 0x5555aaaa, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize3xUp_l10_4x4 = {{
+            0x55551155, // TCfg
+            0x50501050, // ASelt
+            0x01011010, 0x21212121, // ABin
+            0xaaaa22aa, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x0000060f, // AccumType, ConstantType, and PostShift
+            0x38e41c72, 0x1c720e39, 0x00005556, 0x00002aab,
+            0x1c7238e4, 0x0e391c72, 0x38e41c72, 0x1c720e39 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize3xUp_l11_4x4 = {{
+            0x11555511, // TCfg
+            0x10505010, // ASelt
+            0x32320202, 0x03033232, // ABin
+            0x22aaaa22, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x0000060f, // AccumType, ConstantType, and PostShift
+            0x00005556, 0x00002aab, 0x1c7238e4, 0x0e391c72,
+            0x38e41c72, 0x1c720e39, 0x00005556, 0x00002aab // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize3xUp_l12_4x4 = {{
+            0x55115555, // TCfg
+            0x50105050, // ASelt
+            0x43434343, 0x54540404, // ABin
+            0xaa22aaaa, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x0000060f, // AccumType, ConstantType, and PostShift
+            0x1c7238e4, 0x0e391c72, 0x38e41c72, 0x1c720e39,
+            0x00005556, 0x00002aab, 0x1c7238e4, 0x0e391c72 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize3xUp_l13_4x4 = {{
+            0x00551155, // TCfg
+            0x00501050, // ASelt
+            0x05055454, 0x00006565, // ABin
+            0x00aa22aa, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x0000060f, // AccumType, ConstantType, and PostShift
+            0x38e41c72, 0x1c720e39, 0x00005556, 0x00002aab,
+            0x1c7238e4, 0x0e391c72, 0x00000000, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l00_2x8", &uniResize3xUp_l00_2x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l01_2x8", &uniResize3xUp_l01_2x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l10_4x4", &uniResize3xUp_l10_4x4);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l11_4x4", &uniResize3xUp_l11_4x4);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l12_4x4", &uniResize3xUp_l12_4x4);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize3xUp_l13_4x4", &uniResize3xUp_l13_4x4);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else if (is_4x_up_kernel)
+    {
+        gpu_dp_inst_t uniResize4xUp_l00_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x1944418c, 0x44419444, 0x62944419, 0x9c8629c8, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x190f0f09, 0x23051503, 0x05230315, 0x0f19090f,
+            0x190f0f09, 0x23051503, 0x05230315, 0x0f19090f // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize4xUp_l01_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x8629c862, 0x3a4c839c, 0x4c83a4c8, 0xa4a4c83a, 0xad0a4ad0, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x190f0f09, 0x23051503, 0x05230315, 0x0f19090f,
+            0x190f0f09, 0x23051503, 0x05230315, 0x0f19090f // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize4xUp_l10_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x1944418c, 0x44419444, 0x62944419, 0x9c8629c8, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x23150503, 0x31070701, 0x07310107, 0x15230305,
+            0x23150503, 0x31070701, 0x07310107, 0x15230305 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize4xUp_l11_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x8629c862, 0x3a4c839c, 0x4c83a4c8, 0xa4a4c83a, 0xad0a4ad0, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x23150503, 0x31070701, 0x07310107, 0x15230305,
+            0x23150503, 0x31070701, 0x07310107, 0x15230305 // Constant
+        }, GPU_DP_TYPE_16};
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l00_4x8", &uniResize4xUp_l00_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l01_4x8", &uniResize4xUp_l01_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l10_4x8", &uniResize4xUp_l10_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize4xUp_l11_4x8", &uniResize4xUp_l11_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "out_height", &out_height);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else if (is_8x_up_kernel)
+    {
+        gpu_dp_inst_t uniResize8xUp_l00_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x513f3f31, 0x632d4d23, 0x751b5b15, 0x87096907,
+            0x09870769, 0x1b75155b, 0x2d63234d, 0x3f51313f // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l01_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x513f3f31, 0x632d4d23, 0x751b5b15, 0x87096907,
+            0x09870769, 0x1b75155b, 0x2d63234d, 0x3f51313f // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l10_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x634d2d23, 0x79373719, 0x8f21410f, 0xa50b4b05,
+            0x0ba5054b, 0x218f0f41, 0x37791937, 0x4d63232d // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l11_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x634d2d23, 0x79373719, 0x8f21410f, 0xa50b4b05,
+            0x0ba5054b, 0x218f0f41, 0x37791937, 0x4d63232d // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l20_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x755b1b15, 0x8f41210f, 0xa9272709, 0xc30d2d03,
+            0x0dc3032d, 0x27a90927, 0x418f0f21, 0x5b75151b // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l21_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x755b1b15, 0x8f41210f, 0xa9272709, 0xc30d2d03,
+            0x0dc3032d, 0x27a90927, 0x418f0f21, 0x5b75151b // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l30_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x0208c020, 0x08c0208c, 0x44418c02, 0x41944419, 0x94441944, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x87690907, 0xa54b0b05, 0xc32d0d03, 0xe10f0f01,
+            0x0fe1010f, 0x2dc3030d, 0x4ba5050b, 0x69870709 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniResize8xUp_l31_4x8 = {{
+            0x55555555, 0x55555555, // TCfg
+            0x44194441, 0x19444194, 0xc8629444, 0x629c8629, 0x9c8629c8, // BinSelect
+            0x00000708, // AccumType, ConstantType, and PostShift
+            0x87690907, 0xa54b0b05, 0xc32d0d03, 0xe10f0f01,
+            0x0fe1010f, 0x2dc3030d, 0x4ba5050b, 0x69870709 // Constant
+        }, GPU_DP_TYPE_16};
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l00_4x8", &uniResize8xUp_l00_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l01_4x8", &uniResize8xUp_l01_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l10_4x8", &uniResize8xUp_l10_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l11_4x8", &uniResize8xUp_l11_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l20_4x8", &uniResize8xUp_l20_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l21_4x8", &uniResize8xUp_l21_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l30_4x8", &uniResize8xUp_l30_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniResize8xUp_l31_4x8", &uniResize8xUp_l31_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "out_height", &out_height);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else
+    {
+        VSILOGE("input or output's format is not support");
+        status = VSI_FAILURE;
+        goto final;
     }
 
     if (is_2x_up_kernel || is_4x_up_kernel || is_8x_up_kernel)
@@ -1071,7 +1137,168 @@ final:
     if (input_attr) vsi_nn_kernel_tensor_attr_release( &input_attr );
     if (output_attr) vsi_nn_kernel_tensor_attr_release( &output_attr );
     return status;
-} /* _resize_bilinear_initializer() */
+} /* _bilinear_half_pixel_centers_opt_initializer() */
+
+DEF_KERNEL_INITIALIZER(_bilinear_align_corners_opt_initializer)
+    (
+    vsi_nn_kernel_node_t                node,
+    const vsi_nn_kernel_node_param_t  * param,
+    size_t                              param_size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t gpu_param = {
+        3,
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+        };
+    vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
+    vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
+    vsi_size_array_t             * out_shape     = NULL;
+    vsi_size_array_t             * in_shape      = NULL;
+    vsi_nn_kernel_dtype_e         input_dtype   = F16;
+    uint32_t    depth = 0;
+    float       scale_factor[2] = {0};
+    uint32_t    in_width = 0;
+    uint32_t    in_height = 0;
+    uint32_t    out_width = 0;
+    uint32_t    out_height = 0;
+    vsi_bool    is_8x_align_corners  = FALSE;
+
+    input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
+    output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
+
+    out_shape     = output_attr->shape;
+    in_shape      = input_attr->shape;
+    input_dtype   = input_attr->dtype;
+
+    in_width          = (uint32_t)(in_shape->data[0]);
+    in_height         = (uint32_t)(in_shape->data[1]);
+    depth             = (uint32_t)(in_shape->data[2]);
+    out_width         = (uint32_t)(out_shape->data[0]);
+    out_height        = (uint32_t)(out_shape->data[1]);
+
+    if (out_width > 1)
+    {
+        scale_factor[0] = ((float)(in_width - 1) * 1.0f) / (float)(out_width - 1);
+    }
+    else
+    {
+        scale_factor[0] = ((float)in_width * 1.0f) / (float)out_width;
+    }
+
+    if (out_height > 1)
+    {
+        scale_factor[1] = ((float)(in_height - 1) * 1.0f) / (float)(out_height - 1);
+    }
+    else
+    {
+        scale_factor[1] = ((float)in_height * 1.0f) / (float)out_height;
+    }
+
+    if ((U8 == input_dtype) && (_is_same_quant(input_attr, output_attr)))
+    {
+        is_8x_align_corners = (scale_factor[0] == scale_factor[1]) && (scale_factor[0] = 0.125f);
+    }
+
+    if (is_8x_align_corners)
+    {
+        gpu_param.global_scale[0] = 2;
+        gpu_param.global_scale[1] = 1;
+        gpu_param.global_scale[2] = 1;
+    }
+
+    if (is_8x_align_corners)
+    {
+        gpu_dp_inst_t uniBilinear_8x_l10_4x8 = {{
+            0x55555505, 0x55555555, // TCfg
+            0x02000200, 0x08c0208c, 0xc0208c02, 0x208c0208, 0x8c0208c0, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x00000838, 0x01070731, 0x02060e2a, 0x03051523,
+            0x04041c1c, 0x05032315, 0x06022a0e, 0x07013107 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniBilinear_8x_l11_4x8 = {{
+            0x55555505, 0x55555555, // TCfg
+            0x44100221, 0x19444194, 0x44419444, 0x41944419, 0x94441944, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x00000838, 0x01070731, 0x02060e2a, 0x03051523,
+            0x04041c1c, 0x05032315, 0x06022a0e, 0x07013107 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniBilinear_8x_l20_4x8 = {{
+            0x55555505, 0x55555555, // TCfg
+            0x02000200, 0x08c0208c, 0xc0208c02, 0x208c0208, 0x8c0208c0, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x00001030, 0x020e062a, 0x040c0c24, 0x060a121e,
+            0x08081818, 0x0a061e12, 0x0c04240c, 0x0e022a06 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniBilinear_8x_l21_4x8 = {{
+            0x55555505, 0x55555555, // TCfg
+            0x44100221, 0x19444194, 0x44419444, 0x41944419, 0x94441944, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x00001030, 0x020e062a, 0x040c0c24, 0x060a121e,
+            0x08081818, 0x0a061e12, 0x0c04240c, 0x0e022a06 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniBilinear_8x_l30_4x8 = {{
+            0x55555505, 0x55555555, // TCfg
+            0x02000200, 0x08c0208c, 0xc0208c02, 0x208c0208, 0x8c0208c0, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x00001828, 0x03150523, 0x06120a1e, 0x090f0f19,
+            0x0c0c1414, 0x0f09190f, 0x12061e0a, 0x15032305 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniBilinear_8x_l31_4x8 = {{
+            0x55555505, 0x55555555, // TCfg
+            0x44100221, 0x19444194, 0x44419444, 0x41944419, 0x94441944, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x00001828, 0x03150523, 0x06120a1e, 0x090f0f19,
+            0x0c0c1414, 0x0f09190f, 0x12061e0a, 0x15032305 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniBilinear_8x_l40_4x8 = {{
+            0x55555505, 0x55555555, // TCfg
+            0x02000200, 0x08c0208c, 0xc0208c02, 0x208c0208, 0x8c0208c0, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x00002020, 0x041c041c, 0x08180818, 0x0c140c14,
+            0x10101010, 0x140c140c, 0x18081808, 0x1c041c04 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniBilinear_8x_l41_4x8 = {{
+            0x55555505, 0x55555555, // TCfg
+            0x44100221, 0x19444194, 0x44419444, 0x41944419, 0x94441944, // BinSelect
+            0x00000406, // AccumType, ConstantType, and PostShift
+            0x00002020, 0x041c041c, 0x08180818, 0x0c140c14,
+            0x10101010, 0x140c140c, 0x18081808, 0x1c041c04 // Constant
+        }, GPU_DP_TYPE_16};
+
+        status  = vsi_nn_kernel_gpu_add_param( node, "uniBilinear_8x_l10_4x8", &uniBilinear_8x_l10_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniBilinear_8x_l11_4x8", &uniBilinear_8x_l11_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniBilinear_8x_l20_4x8", &uniBilinear_8x_l20_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniBilinear_8x_l21_4x8", &uniBilinear_8x_l21_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniBilinear_8x_l30_4x8", &uniBilinear_8x_l30_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniBilinear_8x_l31_4x8", &uniBilinear_8x_l31_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniBilinear_8x_l40_4x8", &uniBilinear_8x_l40_4x8);
+        status |= vsi_nn_kernel_gpu_add_param( node, "uniBilinear_8x_l41_4x8", &uniBilinear_8x_l41_4x8);
+        CHECK_STATUS_FAIL_GOTO(status, final );
+    }
+    else
+    {
+        VSILOGE("input or output's format is not support");
+        status = VSI_FAILURE;
+        goto final;
+    }
+
+    gpu_param.global_size[0] = gpu_align_p2((in_width  + \
+                               gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0], 4);
+    gpu_param.global_size[1] = (in_height + gpu_param.global_scale[1] - 1) / gpu_param.global_scale[1];
+    gpu_param.global_size[2] = depth / gpu_param.global_scale[2];
+
+    status = vsi_nn_kernel_gpu_config( node, &gpu_param );
+final:
+    if (input_attr) vsi_nn_kernel_tensor_attr_release( &input_attr );
+    if (output_attr) vsi_nn_kernel_tensor_attr_release( &output_attr );
+    return status;
+} /* _bilinear_align_corners_opt_initializer() */
 
 /*
  * Query kernel
@@ -1098,18 +1325,45 @@ static vsi_status _query_kernel
     vx_kernel_initialize_f  initializer = _resize_bilinear_initializer;
     uint32_t key;
     uint32_t i;
-    vsi_bool is_2x_upsample =(2 * inputs[0]->attr.size[0] == outputs[0]->attr.size[0]) \
-                    && (2 * inputs[0]->attr.size[1] == outputs[0]->attr.size[1]);
-    vsi_bool is_3x_upsample =(3 * inputs[0]->attr.size[0] == outputs[0]->attr.size[0]) \
-                    && (3 * inputs[0]->attr.size[1] == outputs[0]->attr.size[1]);
-    vsi_bool is_4x_upsample =(4 * inputs[0]->attr.size[0] == outputs[0]->attr.size[0]) \
-                    && (4 * inputs[0]->attr.size[1] == outputs[0]->attr.size[1]);
-    vsi_bool is_8x_upsample =(8 * inputs[0]->attr.size[0] == outputs[0]->attr.size[0]) \
-                    && (8 * inputs[0]->attr.size[1] == outputs[0]->attr.size[1]);
+    float width_scale = 0;
+    float height_scale = 0;
+    vsi_size_t input_width = inputs[0]->attr.size[0];
+    vsi_size_t input_height = inputs[0]->attr.size[1];
+    vsi_size_t output_width = outputs[0]->attr.size[0];
+    vsi_size_t output_height = outputs[0]->attr.size[1];
+    vsi_bool is_2x_upsample =(2 * input_width == output_width) \
+                    && (2 * input_height == output_height);
+    vsi_bool is_3x_upsample =(3 * input_width == output_width) \
+                    && (3 * input_height == output_height);
+    vsi_bool is_4x_upsample =(4 * input_width == output_width) \
+                    && (4 * input_height == output_height);
+    vsi_bool is_8x_upsample =(8 * input_width == output_width) \
+                    && (8 * input_height == output_height);
+    vsi_bool is_8x_align_corners = FALSE;
     _internal_scale_e scale_flag = UP;
+
+    if (align_corners && outputs[0]->attr.size[0] > 1)
+    {
+        width_scale = ((float)(input_width - 1) * 1.0f) / (float)(output_width - 1);
+    }
+    else
+    {
+        width_scale = ((float)input_width * 1.0f) / (float)output_width;
+    }
+
+    if (align_corners && output_height > 1)
+    {
+        height_scale = ((float)(input_height - 1) * 1.0f) / (float)(output_height - 1);
+    }
+    else
+    {
+        height_scale = ((float)input_height * 1.0f) / (float)output_height;
+    }
 
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    is_8x_align_corners = (vsi_bool)( width_scale == 0.125f && height_scale == 0.125f && in_dtype == U8 );
 
     is_2x_upsample &= (in_dtype == U8);
     is_3x_upsample &= (in_dtype == U8);
@@ -1121,18 +1375,27 @@ static vsi_status _query_kernel
         if (is_same_type && (!align_corners) && (half_pixel_centers) && is_2x_upsample)
         {
             scale_flag = UP_2X_HALF;
+            initializer = _bilinear_half_pixel_centers_opt_initializer;
         }
         else if (is_same_type && (!align_corners) && (half_pixel_centers) && is_3x_upsample)
         {
             scale_flag = UP_3X_HALF;
+            initializer = _bilinear_half_pixel_centers_opt_initializer;
         }
         else if (is_same_type && (!align_corners) && (half_pixel_centers) && is_4x_upsample)
         {
             scale_flag = UP_4X_HALF;
+            initializer = _bilinear_half_pixel_centers_opt_initializer;
         }
         else if (is_same_type && (!align_corners) && (half_pixel_centers) && is_8x_upsample)
         {
             scale_flag = UP_8X_HALF;
+            initializer = _bilinear_half_pixel_centers_opt_initializer;
+        }
+        else if (is_same_type && (align_corners) && (!half_pixel_centers) && is_8x_align_corners)
+        {
+            scale_flag = UP_8X_ALIGN;
+            initializer = _bilinear_align_corners_opt_initializer;
         }
         else if (is_same_type && is_evis2)
         {
@@ -1240,20 +1503,20 @@ static vsi_nn_tensor_t* _create_scale_tensor
 
     if (align_corners && width > 1)
     {
-        width_scale = ((vx_float32)(input_width - 1) * 1.0f) / (vx_float32)(width - 1);
+        width_scale = ((float)(input_width - 1) * 1.0f) / (float)(width - 1);
     }
     else
     {
-        width_scale = ((vx_float32)input_width * 1.0f) / (vx_float32)width;
+        width_scale = ((float)input_width * 1.0f) / (float)width;
     }
 
     if (align_corners && height > 1)
     {
-        height_scale = ((vx_float32)(input_height - 1) * 1.0f) / (vx_float32)(height - 1);
+        height_scale = ((float)(input_height - 1) * 1.0f) / (float)(height - 1);
     }
     else
     {
-        height_scale = ((vx_float32)input_height * 1.0f) / (vx_float32)height;
+        height_scale = ((float)input_height * 1.0f) / (float)height;
     }
 
 
@@ -1273,7 +1536,7 @@ static vsi_nn_tensor_t* _create_scale_tensor
             int32_t  h0      = 0;
             if (half_pixel_centers)
             {
-                input_h = ((vx_float32)y + 0.5f) * height_scale - 0.5f;
+                input_h = ((float)y + 0.5f) * height_scale - 0.5f;
             }
             else
             {
@@ -1291,7 +1554,7 @@ static vsi_nn_tensor_t* _create_scale_tensor
                 float     br      = 0.0f;
                 if (half_pixel_centers)
                 {
-                    input_w = ((vx_float32)x + 0.5f) * width_scale - 0.5f;
+                    input_w = ((float)x + 0.5f) * width_scale - 0.5f;
                 }
                 else
                 {

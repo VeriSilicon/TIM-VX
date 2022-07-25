@@ -1,13 +1,10 @@
-__kernel void instance_norm_meanvari_F32(
-    __read_only image2d_array_t   input,
-    __write_only image2d_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int width,
-    int height
+__kernel void instance_norm_sums_F32(
+    __read_only  image2d_array_t input,
+    __write_only image2d_t       output,
+                 float           eps,
+                 int             rsFlg,
+                 int             width,
+                 int             height
     )
 {
     int gidx = get_global_id(0);
@@ -27,8 +24,8 @@ __kernel void instance_norm_meanvari_F32(
         {
             data = read_imagef(input, coord);
             coord.y++;
-            sum += data.x;
-            sqr += data.x * data.x;
+            sum = sum + data.x;
+            sqr = sqr + data.x * data.x;
         }
     }
     lcl_sum[lidx] = sum;
@@ -58,16 +55,13 @@ __kernel void instance_norm_meanvari_F32(
     }
 }
 
-__kernel void instance_norm_meanvari_F32_2D(
-    __read_only image2d_t   input,
-    __write_only image2d_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int width,
-    int height
+__kernel void instance_norm_sums_F32_2D(
+    __read_only  image2d_t input,
+    __write_only image2d_t output,
+                 float     eps,
+                 int       rsFlg,
+                 int       width,
+                 int       height
     )
 {
     int gidx = get_global_id(0);
@@ -89,8 +83,8 @@ __kernel void instance_norm_meanvari_F32_2D(
         {
             data = read_imagef(input, coord);
             coord.y++;
-            sum += data.x;
-            sqr += data.x * data.x;
+            sum = sum + data.x;
+            sqr = sqr + data.x * data.x;
         }
     }
     lcl_sum[lidx] = sum;
@@ -121,23 +115,19 @@ __kernel void instance_norm_meanvari_F32_2D(
 }
 
 __kernel void instance_norm_F32toF32(
-    __read_only image2d_array_t   input,
-    __read_only image2d_t   bias,
-    __read_only image2d_t   scale,
-    __read_only image2d_t   meanVari,
-    __write_only image2d_array_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int output_zp,
-    float output_scale,
-    float output_fl,
-    int width,
-    int height,
-    float dim_ratio,
-    int group_num
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       bias,
+    __read_only  image2d_t       scale,
+    __read_only  image2d_t       meanVari,
+    __write_only image2d_array_t output,
+                 float           eps,
+                 int             rsFlg,
+                 int             output_zp,
+                 float           output_scale,
+                 int             width,
+                 int             height,
+                 float           inv_multiplier,
+                 int             group_num
     )
 {
     int gidz = get_global_id(1);
@@ -156,7 +146,7 @@ __kernel void instance_norm_F32toF32(
         mean_vari.y += read_imagef(meanVari, coord_para.xy).x;
         coord_para.x+=3;
     }
-    mean_vari *= dim_ratio;
+    mean_vari *= inv_multiplier;
     mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
     mean_vari.s1 = rsqrt(mean_vari.s1);
 
@@ -174,23 +164,19 @@ __kernel void instance_norm_F32toF32(
 }
 
 __kernel void instance_norm_F32toF32_2D(
-    __read_only image2d_t   input,
-    __read_only image2d_t   bias,
-    __read_only image2d_t   scale,
-    __read_only image2d_t   meanVari,
-    __write_only image2d_t  output,
-    float eps,
-    int rsFlg,
-    int input_zp,
-    float input_scale,
-    float input_fl,
-    int output_zp,
-    float output_scale,
-    float output_fl,
-    int width,
-    int height,
-    float dim_ratio,
-    int group_num
+    __read_only  image2d_t input,
+    __read_only  image2d_t bias,
+    __read_only  image2d_t scale,
+    __read_only  image2d_t meanVari,
+    __write_only image2d_t output,
+                 float     eps,
+                 int       rsFlg,
+                 int       output_zp,
+                 float     output_scale,
+                 int       width,
+                 int       height,
+                 float     inv_multiplier,
+                 int       group_num
     )
 {
     int gidz = get_global_id(1);
@@ -211,12 +197,12 @@ __kernel void instance_norm_F32toF32_2D(
         mean_vari.y += read_imagef(meanVari, coord_para.xy).x;
         coord_para.x+=3;
     }
-    mean_vari *= dim_ratio;
+    mean_vari *= inv_multiplier;
     mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
     mean_vari.s1 = rsqrt(mean_vari.s1);
 
     scale_vari = gamma.s0 * mean_vari.s1;
-    bias_val = beta.s0 - scale_vari * mean_vari.s0;
+    bias_val = (beta.s0 - scale_vari * mean_vari.s0);
 
     float4 data, dst;
     for(; coord.y < endH; coord.y++)

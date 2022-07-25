@@ -79,6 +79,7 @@ __kernel void gemm_F16##src1_type_name##toI16(image2d_array_t inputA, \
     } \
     vxc_int4 tmpOut0, tmpOut1; \
     coord_b.y = gidy; \
+    coord_b.z = get_global_id(2); \
     _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0; \
     _viv_asm(MOV, coord_b.w, baseAddr); \
@@ -167,6 +168,7 @@ __kernel void gemm_F16##src1_type_name##toI16(image2d_array_t inputA, \
     } \
     vxc_int4 tmpOut0, tmpOut1; \
     coord_b.y = gidy; \
+    coord_b.z = get_global_id(2); \
     _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0; \
     _viv_asm(MOV, coord_b.w, baseAddr); \

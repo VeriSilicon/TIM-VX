@@ -185,7 +185,8 @@ static vsi_bool op_check
         /* TP Support */
         if (!ret ) {
             uint32_t valid_dtypes[] = {
-                D_F16, D_BF16, D_F32, D_I16|Q_DFP, D_I8|Q_DFP, D_I8|Q_ASYM, D_U8|Q_DFP, D_U8|Q_ASYM
+                D_F16, D_BF16, D_F32, D_I16|Q_DFP, D_I16|Q_SYM, D_I16|Q_ASYM, D_I8|Q_DFP, D_I8|Q_SYM,
+                D_I8|Q_ASYM, D_U8|Q_DFP, D_U8|Q_ASYM
             };
 
             uint32_t weight_type = inputs[1]->attr.dtype.vx_type | inputs[1]->attr.dtype.qnt_type << Q_SHIFT;
@@ -331,7 +332,6 @@ static vsi_bool op_setup
             vxReleaseScalar( &p.pad_const );
         }
     }
-
 
     if( NULL == inputs[1]->wb )
     {

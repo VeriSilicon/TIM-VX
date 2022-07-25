@@ -428,7 +428,7 @@ static vsi_bool _init_tensor
     if ( TRUE == tensor->attr.is_dummy )
     {
         tensor->t = vxCreateDummyTensor( graph->ctx->c,
-            (vsi_size_t)tensor->attr.dim_num, tensor->attr.size, (vsi_enum)tensor->attr.dtype.vx_type );
+            (vsi_size_t)tensor->attr.dim_num, size_vxsize, (vsi_enum)tensor->attr.dtype.vx_type );
     } else
 #endif
     if( TRUE == tensor->attr.is_created_from_handle )

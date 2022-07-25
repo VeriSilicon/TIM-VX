@@ -910,6 +910,7 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
                 status |= vsi_nn_kernel_gpu_add_param( node,
                         "uniGemmU8U8MulZptoFp32_8x4", &uniGemmU8U8MulZptoFp32_8x4 );
                 status |= vsi_nn_kernel_gpu_add_param( node, "input01Scale", &inScaleMul );
+                status |= vsi_nn_kernel_gpu_add_param( node, "mulKIn0In1Zp", &mulKIn0In1Zp );
                 CHECK_STATUS_FAIL_GOTO(status, OnError );
             }
             break;

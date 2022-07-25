@@ -178,15 +178,19 @@ static vsi_bool op_check
     vsi_nn_repeat_param * p = NULL;
 
     BEGIN_IO_TYPE_DECL(REPEAT, 2, 1)
-        IO_TYPE(D_F16,  D_I32,  D_F16)
-        IO_TYPE(D_F32,  D_I32,  D_F32)
-        IO_TYPE(D_I32,  D_I32,  D_I32)
-        IO_TYPE(D_I8,   D_I32,  D_I8)
-        IO_TYPE(D_U8,   D_I32,  D_U8)
-        IO_TYPE(D_I16,  D_I32,  D_I16)
-        IO_TYPE(D_I8|Q_DFP,  D_I32,  D_I8|Q_DFP)
-        IO_TYPE(D_U8|Q_ASYM, D_I32,  D_U8|Q_ASYM)
-        IO_TYPE(D_I16|Q_DFP, D_I32,  D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_I32,  D_F16)
+        IO_TYPE(D_F32,        D_I32,  D_F32)
+        IO_TYPE(D_I32,        D_I32,  D_I32)
+        IO_TYPE(D_I8,         D_I32,  D_I8)
+        IO_TYPE(D_U8,         D_I32,  D_U8)
+        IO_TYPE(D_I16,        D_I32,  D_I16)
+        IO_TYPE(D_I8|Q_DFP,   D_I32,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,  D_I32,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_I32,  D_I8|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_I32,  D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP,  D_I32,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM, D_I32,  D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,  D_I32,  D_I16|Q_SYM)
     END_IO_TYPE_DECL(REPEAT)
     if (!VALIDATE_OP_IO_TYPES(REPEAT, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -337,4 +341,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

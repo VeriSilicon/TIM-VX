@@ -148,8 +148,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
-    dstZP      = attr[0]->asymm.zero_point;
-    dstScale   = attr[0]->asymm.scale;
     width      = (uint32_t)(out_shape->data[0]);
     height     = (uint32_t)(out_shape->data[1]);
 
@@ -161,7 +159,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
 
     if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
-        dstScale = 1.0f / dstScale;
+        dstScale = 1.0f / attr[0]->asymm.scale;
+        dstZP = attr[0]->asymm.zero_point;
     }
     else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
     {

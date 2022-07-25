@@ -69,7 +69,7 @@ static vsi_status _comparisons_op_compute
             inputs[1]->attr.size, inputs[1]->attr.dim_num,
             outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes[0], shapes[1], shapes[2], &new_rank );
-    if( ret )
+    if ( ret )
     {
         // Add params
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
@@ -117,7 +117,7 @@ static vsi_status _comparisons_op_compute
 
         vsi_nn_kernel_param_release( &param );
     }
-    if( self->n )
+    if ( self->n )
     {
         status = VSI_SUCCESS;
     }
@@ -133,37 +133,61 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(RELATIONAL_OPS, 2, 1)
-        IO_TYPE(D_F16,  D_F16, D_BOOL8)
-        IO_TYPE(D_F16,  D_I16|Q_DFP, D_BOOL8)
-        IO_TYPE(D_F16,  D_I8|Q_DFP, D_BOOL8)
-        IO_TYPE(D_F16,  D_U8|Q_ASYM, D_BOOL8)
-        IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP, D_BOOL8)
-        IO_TYPE(D_I16|Q_DFP,  D_F16, D_BOOL8)
-        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP, D_BOOL8)
-        IO_TYPE(D_I8|Q_DFP,  D_F16, D_BOOL8)
-        IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM, D_BOOL8)
-        IO_TYPE(D_U8|Q_ASYM,  D_F16, D_BOOL8)
-        IO_TYPE(D_BF16,  D_BF16,  D_BOOL8)
-        IO_TYPE(D_BOOL8, D_BOOL8, D_BOOL8)
-        IO_TYPE(D_F32, D_F32, D_BOOL8)
-        IO_TYPE(D_I32, D_I32, D_BOOL8)
+        IO_TYPE(D_F16,          D_F16,          D_BOOL8)
+        IO_TYPE(D_F16,          D_I16|Q_DFP,    D_BOOL8)
+        IO_TYPE(D_F16,          D_I16|Q_ASYM,   D_BOOL8)
+        IO_TYPE(D_F16,          D_I16|Q_SYM,    D_BOOL8)
+        IO_TYPE(D_F16,          D_I8|Q_DFP,     D_BOOL8)
+        IO_TYPE(D_F16,          D_I8|Q_ASYM,    D_BOOL8)
+        IO_TYPE(D_F16,          D_I8|Q_SYM,     D_BOOL8)
+        IO_TYPE(D_F16,          D_U8|Q_ASYM,    D_BOOL8)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP,    D_BOOL8)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM,   D_BOOL8)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM,    D_BOOL8)
+        IO_TYPE(D_I16|Q_DFP,    D_F16,          D_BOOL8)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16,          D_BOOL8)
+        IO_TYPE(D_I16|Q_SYM,    D_F16,          D_BOOL8)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP,     D_BOOL8)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM,    D_BOOL8)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM,     D_BOOL8)
+        IO_TYPE(D_I8|Q_DFP,     D_F16,          D_BOOL8)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16,          D_BOOL8)
+        IO_TYPE(D_I8|Q_SYM,     D_F16,          D_BOOL8)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM,    D_BOOL8)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16,          D_BOOL8)
+        IO_TYPE(D_BF16,         D_BF16,         D_BOOL8)
+        IO_TYPE(D_BOOL8,        D_BOOL8,        D_BOOL8)
+        IO_TYPE(D_F32,          D_F32,          D_BOOL8)
+        IO_TYPE(D_I32,          D_I32,          D_BOOL8)
 
-        IO_TYPE(D_F16,  D_F16, D_I8)
-        IO_TYPE(D_F16,  D_I16|Q_DFP, D_I8)
-        IO_TYPE(D_F16,  D_I8|Q_DFP, D_I8)
-        IO_TYPE(D_F16,  D_U8|Q_ASYM, D_I8)
-        IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP, D_I8)
-        IO_TYPE(D_I16|Q_DFP,  D_F16, D_I8)
-        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP, D_I8)
-        IO_TYPE(D_I8|Q_DFP,  D_F16, D_I8)
-        IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM, D_I8)
-        IO_TYPE(D_U8|Q_ASYM,  D_F16, D_I8)
-        IO_TYPE(D_BF16,  D_BF16,  D_I8)
-        IO_TYPE(D_BOOL8, D_BOOL8, D_I8)
-        IO_TYPE(D_F32, D_F32, D_I8)
-        IO_TYPE(D_I32, D_I32, D_I8)
+        IO_TYPE(D_F16,          D_F16,          D_I8)
+        IO_TYPE(D_F16,          D_I16|Q_DFP,    D_I8)
+        IO_TYPE(D_F16,          D_I16|Q_ASYM,   D_I8)
+        IO_TYPE(D_F16,          D_I16|Q_SYM,    D_I8)
+        IO_TYPE(D_F16,          D_I8|Q_DFP,     D_I8)
+        IO_TYPE(D_F16,          D_I8|Q_ASYM,    D_I8)
+        IO_TYPE(D_F16,          D_I8|Q_SYM,     D_I8)
+        IO_TYPE(D_F16,          D_U8|Q_ASYM,    D_I8)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP,    D_I8)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM,   D_I8)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM,    D_I8)
+        IO_TYPE(D_I16|Q_DFP,    D_F16,          D_I8)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16,          D_I8)
+        IO_TYPE(D_I16|Q_SYM,    D_F16,          D_I8)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP,     D_I8)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM,    D_I8)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM,     D_I8)
+        IO_TYPE(D_I8|Q_DFP,     D_F16,          D_I8)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16,          D_I8)
+        IO_TYPE(D_I8|Q_SYM,     D_F16,          D_I8)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM,    D_I8)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16,          D_I8)
+        IO_TYPE(D_BF16,         D_BF16,         D_I8)
+        IO_TYPE(D_BOOL8,        D_BOOL8,        D_I8)
+        IO_TYPE(D_F32,          D_F32,          D_I8)
+        IO_TYPE(D_I32,          D_I32,          D_I8)
     END_IO_TYPE_DECL(RELATIONAL_OPS)
-    if(!VALIDATE_OP_IO_TYPES(RELATIONAL_OPS, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(RELATIONAL_OPS, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -173,7 +197,6 @@ static vsi_bool op_check
 
     return TRUE;
 } /* op_check() */
-
 
 static vsi_bool op_setup
     (
@@ -190,14 +213,14 @@ static vsi_bool op_setup
     in2_rank = inputs[1]->attr.dim_num;
     out_rank = vsi_nn_max( in1_rank, in2_rank );
 
-    for(i = 0; i < out_rank; i++)
+    for (i = 0; i < out_rank; i++)
     {
         vsi_size_t sz0, sz1;
         sz0 = i < in1_rank ? inputs[0]->attr.size[i] : 1;
         sz1 = i < in2_rank ? inputs[1]->attr.size[i] : 1;
         shape[i] = vsi_nn_max( sz0, sz1 );
     }
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = (uint32_t)out_rank;
         memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(vsi_size_t) );
@@ -209,7 +232,7 @@ static vsi_bool op_setup
         total_size_expected = vsi_nn_ShapeProduct( shape, out_rank );
         total_size_got = vsi_nn_ShapeProduct( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num );
-        if( total_size_expected != total_size_got )
+        if ( total_size_expected != total_size_got )
         {
             VSILOGW("Output size mismatch, expect %"VSI_SIZE_T_SPECIFIER", but got %"VSI_SIZE_T_SPECIFIER"",
                     total_size_expected, total_size_got);
@@ -237,7 +260,6 @@ extern "C" {
 DEF_OP_REG(name, NULL, op_compute_##kernel_name, vsi_nn_op_common_deinit, op_check, op_setup, NULL, 2, 1)
 
 DEF_COMPARISONS_OP( RELATIONAL_OPS, relational_ops );
-
 
 #undef DEF_COMPARISONS_OP
 

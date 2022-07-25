@@ -19,7 +19,7 @@ __kernel void gemm_transb_U8U8toF16(image2d_array_t inputA,
                                     int adjointB,
                         uint M, uint K, uint N)
 {
-    int4 coord_out = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coord_out = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2));
     int4 coord_a = (int4)(0, coord_out.y, (ac2zero ? 0 : get_global_id(2)), 0);
     int4 coord_b = (int4)(0, coord_out.x, (bc2zero ? 0 : get_global_id(2)), 0);
 
@@ -154,7 +154,7 @@ __kernel void gemm_transb_U8U8toU8(image2d_array_t inputA,
                                     int adjointB,
                         uint M, uint K, uint N)
 {
-    int4 coord_out = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coord_out = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2));
     int4 coord_a = (int4)(0, coord_out.y, (ac2zero ? 0 : get_global_id(2)), 0);
     int4 coord_b = (int4)(0, coord_out.x, (bc2zero ? 0 : get_global_id(2)), 0);
 

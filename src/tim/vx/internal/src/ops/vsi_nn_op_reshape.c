@@ -54,8 +54,29 @@ static vsi_status op_compute
         self->nn_param.reshape.local.initialized == FALSE)
     {
         vsi_status status = VSI_SUCCESS;
-        vsi_nn_tensor_t *tmp_tensor = NULL;
+#ifdef VX_REMOVE_RESHAPE_SUPPORT
+        vsi_nn_tensor_attr_t attr;
+        vsi_nn_tensor_t *dims_tensor = NULL;
+        vx_nn_reshape_params_t reshape_param;
 
+        memset(&attr, 0, sizeof(attr));
+        attr.size[0] = self->nn_param.reshape.dim_num;
+        attr.dim_num = 1;
+        attr.is_const = TRUE;
+        attr.dtype.vx_type = VSI_NN_TYPE_INT32;
+        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+        dims_tensor = vsi_nn_CreateTensorFromData(
+            self->graph,
+            (uint8_t *)self->nn_param.reshape.size,
+            &attr);
+
+        reshape_param.dims = REQUIRED_IO(dims_tensor);
+
+        self->n = vxTensorReshapeNode(self->graph->g,
+            inputs[0]->t, &reshape_param, sizeof(reshape_param), outputs[0]->t);
+        vsi_safe_release_tensor(dims_tensor);
+#else
+        vsi_nn_tensor_t *tmp_tensor = NULL;
         tmp_tensor = vsi_nn_reshape_tensor( self->graph,
             outputs[0], inputs[0]->attr.size, inputs[0]->attr.dim_num );
 
@@ -69,6 +90,7 @@ static vsi_status op_compute
         VSILOGD("Create a copy node for reshape");
 
         vsi_safe_release_tensor(tmp_tensor);
+#endif
 
         return status;
     }
@@ -122,7 +144,9 @@ static vsi_status op_optimize
     vsi_status status;
 
     status = VSI_SUCCESS;
-
+#ifdef VX_REMOVE_RESHAPE_SUPPORT
+    self->nn_param.reshape.local.initialized = FALSE;
+#else
     if ( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
     {
         return status;
@@ -162,7 +186,7 @@ static vsi_status op_optimize
             self->nn_param.reshape.local.initialized = TRUE;
         }
     }
-
+#endif
     return status;
 } /* op_optimize() */
 

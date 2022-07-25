@@ -188,7 +188,7 @@ static vsi_status _query_kernel
     input_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    if (input_dtype == I8)
+    if (input_dtype == I8 || input_dtype == I16)
     {
         input_dtype = I32;
     }
@@ -269,7 +269,6 @@ static vsi_nn_kernel_node_t _setup
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _CL_PARAM_NUM );
             CHECK_STATUS_FAIL_GOTO( status, OnError );
-
         }
     }
 
@@ -285,4 +284,3 @@ OnError:
 __END_DECLS
 
 REGISTER_BACKEND_CL( argmax, _setup )
-

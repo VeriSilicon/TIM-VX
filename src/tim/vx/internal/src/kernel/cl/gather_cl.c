@@ -123,7 +123,7 @@ static vsi_status cal_gather_tensor_reshape_size
     uint32_t i = 0;
     vsi_size_t elementCnt = 1;
     vsi_size_t outerCnt = 1;
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     for (i = 0; i < dims_num - batch_dims; ++i)
     {
@@ -365,4 +365,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( gather, _setup )
-

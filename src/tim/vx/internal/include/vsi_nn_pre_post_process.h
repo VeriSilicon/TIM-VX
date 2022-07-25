@@ -243,6 +243,18 @@ OVXLIB_API vsi_status vsi_nn_AddBinaryGraphInputsWithCropParam
         uint32_t enable_nodes_count
     );
 
+OVXLIB_API vsi_status vsi_nn_UpdateCropParamsForBinaryGraph
+    (
+        vsi_nn_graph_t* graph,
+        uint32_t enabled_crop_input_idx,
+        uint32_t start_x,
+        uint32_t start_y,
+        uint32_t crop_w,
+        uint32_t crop_h,
+        uint32_t dst_w,
+        uint32_t dst_h
+    );
+
 #ifdef __cplusplus
 }
 #endif

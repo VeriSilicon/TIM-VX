@@ -94,6 +94,7 @@ _viv_uniform float zpSqrt16x;
 _viv_uniform VXC_512Bits uniSumAll_16x1;
 _viv_uniform int inputZP;
 
+
 #define L2NORMSCALE_MUL_AXIS0_PROCESS(dst_type, convert_type, output_type, copy_type) \
     vxc_float4 rsqrt0;\
     Image dst_img = create_image_from_image2d(output, 1); \
@@ -143,31 +144,31 @@ _viv_uniform int inputZP;
                     dst_ptr[0] = dst.s0; \
                 break; \
                 case 2: \
-                    VXC_Vstore2(dst_ptr, 0, dst); \
+                    VXC_Vstore2(dst_ptr, 0, dst.s01); \
                 break; \
                 case 3: \
-                    VXC_Vstore3(dst_ptr, 0, dst); \
+                    VXC_Vstore3(dst_ptr, 0, dst.s012); \
                 break; \
                 case 4: \
-                    VXC_Vstore4(dst_ptr, 0, dst); \
+                    VXC_Vstore4(dst_ptr, 0, dst.0123); \
                 break; \
                 case 5: \
-                    VXC_Vstore2(dst_ptr, 0, dst); \
+                    VXC_Vstore2(dst_ptr, 0, dst.s01); \
                     dst.s012 = dst.s234; \
                     dst_ptr += 2; \
-                    VXC_Vstore3(dst_ptr, 0, dst); \
+                    VXC_Vstore3(dst_ptr, 0, dst.s012); \
                 break; \
                 case 6: \
-                    VXC_Vstore3(dst_ptr, 0, dst); \
+                    VXC_Vstore3(dst_ptr, 0, dst.s012); \
                     dst.s012 = dst.s345; \
                     dst_ptr += 3; \
-                    VXC_Vstore3(dst_ptr, 0, dst); \
+                    VXC_Vstore3(dst_ptr, 0, dst.s012); \
                 break; \
                 case 7: \
-                    VXC_Vstore4(dst_ptr, 0, dst); \
+                    VXC_Vstore4(dst_ptr, 0, dst.0123); \
                      dst.s012 = dst.s456; \
                     dst_ptr += 4; \
-                    VXC_Vstore3(dst_ptr, 0, dst); \
+                    VXC_Vstore3(dst_ptr, 0, dst.s012); \
                 break; \
                 default: \
                     VXC_Vstore8(dst_ptr, 0, dst); \
@@ -177,16 +178,13 @@ _viv_uniform int inputZP;
     } \
 
 
-#define L2NORMSCALE_AXIS0_2D(in0_name, in1_name, out_name, read_type, read_type2, src_type, INPUTSCALE, \
+#define L2NORMSCALE_AXIS0(in0_name, in1_name, out_name, read_type, read_type2, src_type, INPUTSCALE, \
                             dst_type, convert_type, output_type, copy_type) \
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) \
-     void l2normalizescale_axis0_##in0_name##_##in1_name##to##out_name##_2D \
+     void l2normalizescale_axis0_##in0_name##_##in1_name##to##out_name \
     (\
-    __read_only  image2d_t input,\
-    __read_only  image2d_t scale,\
-    __write_only image2d_t output,\
-    int axis\
-    )\
+    __read_only  image2d_t input, __read_only  image2d_t scale, __write_only image2d_t output,\
+    int axis )\
 { \
     int lidx = get_local_id(0); \
     int offset  = get_global_id(0); \
@@ -236,19 +234,15 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) \
     L2NORMSCALE_MUL_AXIS0_PROCESS(dst_type, convert_type, output_type, copy_type) \
 }
 
-L2NORMSCALE_AXIS0_2D(F16, F16, F16, ushort, vxc_ushort8, vxc_half8, 1, \
+L2NORMSCALE_AXIS0(F16, F16, F16, ushort, vxc_ushort8, vxc_half8, 1, \
                      ushort, half4, vxc_half8, vxc_ushort8)
 
-#define L2NORMSCALE_AXIS0_QNT_2D(in0_name, in1_name, out_name,\
+#define L2NORMSCALE_AXIS0_QNT(in0_name, in1_name, out_name,\
                     src_type, src_scalar_type, dst_type, convert_type, output_type, copy_type) \
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) \
-void l2normalizescale_axis0_##in0_name##_##in1_name##to##out_name##_2D \
+void l2normalizescale_axis0_##in0_name##_##in1_name##to##out_name \
     (\
-    __read_only  image2d_t input,\
-    __read_only  image2d_t scale,\
-    __write_only image2d_t output,\
-    int axis\
-    )\
+    __read_only image2d_t input, __read_only image2d_t scale, __write_only image2d_t output, int axis)\
 { \
     int lidx = get_local_id(0); \
     int offset  = get_global_id(0); \
@@ -302,9 +296,9 @@ void l2normalizescale_axis0_##in0_name##_##in1_name##to##out_name##_2D \
     L2NORMSCALE_MUL_AXIS0_PROCESS(dst_type, convert_type, output_type, copy_type) \
 }
 
-L2NORMSCALE_AXIS0_QNT_2D(U8,  F16, F16, vxc_uchar8, uchar, ushort, half4, vxc_half8,  vxc_ushort8)
-L2NORMSCALE_AXIS0_QNT_2D(U8,  F16, U8,  vxc_uchar8, uchar, uchar,  int4,  vxc_uchar8, vxc_uchar8)
-L2NORMSCALE_AXIS0_QNT_2D(I8,  F16, F16, vxc_char8,  char,  ushort, half4, vxc_half8,  vxc_ushort8)
-L2NORMSCALE_AXIS0_QNT_2D(I8,  F16, I8,  vxc_char8,  char,  char,   int4,  vxc_char8,  vxc_char8)
-L2NORMSCALE_AXIS0_QNT_2D(I16, F16, F16, vxc_short8, short, ushort, half4, vxc_half8,  vxc_ushort8)
-L2NORMSCALE_AXIS0_QNT_2D(I16, F16, I16, vxc_short8, short, short,  int4,  vxc_short8, vxc_short8)
+L2NORMSCALE_AXIS0_QNT(U8,  F16, F16, vxc_uchar8, uchar, ushort, half4, vxc_half8,  vxc_ushort8)
+L2NORMSCALE_AXIS0_QNT(U8,  F16, U8,  vxc_uchar8, uchar, uchar,  int4,  vxc_uchar8, vxc_uchar8)
+L2NORMSCALE_AXIS0_QNT(I8,  F16, F16, vxc_char8,  char,  ushort, half4, vxc_half8,  vxc_ushort8)
+L2NORMSCALE_AXIS0_QNT(I8,  F16, I8,  vxc_char8,  char,  char,   int4,  vxc_char8,  vxc_char8)
+L2NORMSCALE_AXIS0_QNT(I16, F16, F16, vxc_short8, short, ushort, half4, vxc_half8,  vxc_ushort8)
+L2NORMSCALE_AXIS0_QNT(I16, F16, I16, vxc_short8, short, short,  int4,  vxc_short8, vxc_short8)

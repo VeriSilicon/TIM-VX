@@ -154,7 +154,10 @@ static vsi_bool op_setup
             attr.dim_num = VSI_NN_DIM_AUTO;
             attr.vtl = TRUE;
             attr.is_const = FALSE;
-            if (_is_float32_data_format(self, inputs, outputs))
+            if (VSI_NN_TYPE_INT32 == outputs[0]->attr.dtype.vx_type){
+                attr.dtype.vx_type = VSI_NN_TYPE_INT32;
+            }
+            else if(_is_float32_data_format( self, inputs, outputs ))
             {
                 attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
             }

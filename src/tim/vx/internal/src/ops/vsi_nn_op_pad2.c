@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <string.h>
 #include <stdlib.h>
 
@@ -71,6 +70,48 @@ static int32_t _get_vx_pad_mode(vx_enum mode)
     return pad_mode;
 }
 
+static int32_t _check_mirror_pad_size
+    (
+    vx_enum mode,
+    const uint32_t * front_size,
+    const uint32_t * back_size,
+    uint32_t pad_dim,
+    vsi_size_t *input_size,
+    uint32_t tensor_dim
+    )
+{
+    uint32_t dim = pad_dim > tensor_dim ? tensor_dim : pad_dim;
+    uint32_t i = 0;
+
+    for (i = 0; i < dim; i++)
+    {
+        uint32_t front = front_size[i];
+        uint32_t end = back_size[i];
+        uint32_t sz = (uint32_t)input_size[i];
+
+        if (mode == VSI_NN_PAD_MODE_SYMMETRIC)
+        {
+            if (front > sz || end > sz)
+            {
+                VSILOGE("MIRROR SYMMETRIC PAD:each padding value must be less than \
+                    or equal to the corresponding dimension");
+                return FALSE;
+            }
+        }
+        else if (mode == VSI_NN_PAD_MODE_REFLECT)
+        {
+            if (front >= sz || end >= sz)
+            {
+                VSILOGE("MIRROR REFLECT PAD:each padding value must be less than \
+                    the corresponding dimension");
+                return FALSE;
+            }
+        }
+    }
+
+    return TRUE;
+}
+
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -110,6 +151,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    vsi_bool ret = FALSE;
+    vsi_nn_pad2_param *p = &self->nn_param.pad2;
+
     BEGIN_IO_TYPE_DECL(PAD2, 1, 1)
         IO_TYPE(D_F32,          D_F32)
         IO_TYPE(D_F32,          D_BF16)
@@ -118,7 +162,19 @@ static vsi_bool op_check
         IO_TYPE(D_F16,          D_F16)
         IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
         IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
         IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
+        IO_TYPE(D_I32,          D_I32)
+
+        /* HW 9.1.1 */
+        IO_TYPE(D_U4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_U4|Q_SYM,     D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,     D_I4|Q_SYM)
+
     END_IO_TYPE_DECL(PAD2)
     if (!VALIDATE_OP_IO_TYPES(PAD2, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -136,7 +192,10 @@ static vsi_bool op_check
         return FALSE;
     }
 
-    return TRUE;
+    ret = _check_mirror_pad_size(p->mode, p->front_size, p->back_size, p->dim_num,
+        inputs[0]->attr.size, inputs[0]->attr.dim_num);
+
+    return ret;
 } /* op_check() */
 
 static vsi_bool op_setup

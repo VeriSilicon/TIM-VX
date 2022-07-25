@@ -62,6 +62,8 @@ static vsi_status query_hardware_caps
                 sizeof(vx_hardware_caps_params_ext2_t));
     context->config.support_stream_processor = paramExt.supportStreamProcessor;
     context->config.sp_exec_count = paramExt2.streamProcessorExecCount;
+    context->config.sp_vector_depth = paramExt2.streamProcessorVectorSize;
+    context->config.sp_per_core_vector_depth = context->config.sp_vector_depth / context->config.sp_exec_count;
 #endif
 
 #endif

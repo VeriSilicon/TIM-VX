@@ -43,18 +43,32 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(FLOOR, 1, 1)
-        IO_TYPE(D_BF16, D_BF16)
-        IO_TYPE(D_F32,  D_F32)
-        IO_TYPE(D_F16,  D_F16)
-        IO_TYPE(D_F16,  D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_I16|Q_DFP)
-        IO_TYPE(D_F16,  D_I8|Q_DFP)
-        IO_TYPE(D_U8|Q_ASYM,  D_F16)
-        IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
-        IO_TYPE(D_I16|Q_DFP,  D_F16)
-        IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,  D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP)
+        IO_TYPE(D_BF16,         D_BF16)
+        IO_TYPE(D_F32,          D_F32)
+        IO_TYPE(D_F32,          D_F16)
+        IO_TYPE(D_F16,          D_F32)
+        IO_TYPE(D_F16,          D_F16)
+        IO_TYPE(D_F16,          D_U8|Q_ASYM)
+        IO_TYPE(D_F16,          D_I16|Q_DFP)
+        IO_TYPE(D_F16,          D_I16|Q_ASYM)
+        IO_TYPE(D_F16,          D_I16|Q_SYM)
+        IO_TYPE(D_F16,          D_I8|Q_DFP)
+        IO_TYPE(D_F16,          D_I8|Q_ASYM)
+        IO_TYPE(D_F16,          D_I8|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP,    D_F16)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16)
+        IO_TYPE(D_I16|Q_SYM,    D_F16)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
+        IO_TYPE(D_I8|Q_DFP,     D_F16)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_SYM,     D_F16)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
     END_IO_TYPE_DECL(FLOOR)
     if (!VALIDATE_OP_IO_TYPES(FLOOR, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -80,7 +94,7 @@ static vsi_status op_compute
     memset(&p, 0, sizeof(p));
     p.mode = VX_NN_DS_SIZE_ROUNDING_FLOOR;
     self->n = vxTensorRoundingNode(self->graph->g, inputs[0]->t, &p, sizeof(p), outputs[0]->t);
-    if( !self->n )
+    if ( !self->n )
     {
         status = VSI_FAILURE;
     }
