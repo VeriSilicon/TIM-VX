@@ -31,7 +31,7 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-ROI_Pool::ROI_Pool(Graph* graph, PoolType type, float scale,
+RoiPool::RoiPool(Graph* graph, PoolType type, float scale,
                    const std::array<uint32_t, 2>& size)
     : DirectMapOp(graph, VSI_NN_OP_ROI_POOL),
       type_(type),
@@ -43,9 +43,9 @@ ROI_Pool::ROI_Pool(Graph* graph, PoolType type, float scale,
   this->impl()->node()->nn_param.roi_pool.size[1] = size[1];
 }
 
-std::shared_ptr<Operation> ROI_Pool::Clone(
+std::shared_ptr<Operation> RoiPool::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<ROI_Pool>(
+  return graph->CreateOperation<RoiPool>(
       this->type_, this->scale_, this->size_);
 }
 

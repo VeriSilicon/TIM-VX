@@ -29,7 +29,7 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/types.h"
 
-TEST(ROI_Pool, shape_4_2_1_1_float32) {
+TEST(RoiPool, shape_4_2_1_1_float32) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
@@ -81,7 +81,7 @@ TEST(ROI_Pool, shape_4_2_1_1_float32) {
    std::array<uint32_t, 2> size;
    size[0] = out_height;
    size[1] = out_width;
-  auto roi_pool = graph->CreateOperation<tim::vx::ops::ROI_Pool>(tim::vx::PoolType::MAX, scale, size);
+  auto roi_pool = graph->CreateOperation<tim::vx::ops::RoiPool>(tim::vx::PoolType::MAX, scale, size);
   (*roi_pool)
       .BindInput(input_tensor)
       .BindInput(regions_tensor)

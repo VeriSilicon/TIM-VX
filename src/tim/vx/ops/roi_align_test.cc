@@ -29,7 +29,7 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/types.h"
 
-TEST(ROI_Align, shape_4_2_1_1_float32) {
+TEST(RoiAlign, shape_4_2_1_1_float32) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
@@ -83,7 +83,7 @@ TEST(ROI_Align, shape_4_2_1_1_float32) {
       graph->CreateTensor(batch_index_spec, batch_index_data.data());
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  auto roi_align = graph->CreateOperation<tim::vx::ops::ROI_Align>(
+  auto roi_align = graph->CreateOperation<tim::vx::ops::RoiAlign>(
       out_height, out_width, height_ratio, width_ratio, height_sample_num,
       width_sample_num);
   (*roi_align)
