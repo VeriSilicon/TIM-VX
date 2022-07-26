@@ -33,7 +33,7 @@ namespace vx {
 namespace ops {
 
 /**
- * ## ROI_POOL
+ * ## RoiPool
  *
  * Select and scale the feature map of each region of interest to a unified output
  * size by max-pooling.
@@ -44,9 +44,9 @@ namespace ops {
  *
  */
 
-class ROI_Pool : public DirectMapOp {
+class RoiPool : public DirectMapOp {
  public:
-  ROI_Pool(Graph* graph, PoolType type, float scale,
+  RoiPool(Graph* graph, PoolType type, float scale,
             const std::array<uint32_t, 2>& size);
 
   std::shared_ptr<Operation> Clone(

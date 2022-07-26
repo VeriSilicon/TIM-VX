@@ -30,7 +30,7 @@ namespace vx {
 namespace ops {
 
 /**
- * ## ROI_ALIGN
+ * ## RoiAlign
  *
  * Select and scale the feature map of each region of interest to a unified output
  * size by average pooling sampling points from bilinear interpolation.
@@ -47,9 +47,9 @@ namespace ops {
  *   used to compute the output.
  */
 
-class ROI_Align : public DirectMapOp {
+class RoiAlign : public DirectMapOp {
  public:
-  ROI_Align(Graph* graph, int32_t output_height, int32_t output_width,
+  RoiAlign(Graph* graph, int32_t output_height, int32_t output_width,
             float height_ratio, float width_ratio, int32_t height_sample_num,
             int32_t width_sample_num);
 
