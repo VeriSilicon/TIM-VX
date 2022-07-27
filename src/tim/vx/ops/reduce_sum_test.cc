@@ -33,13 +33,15 @@ TEST(Reduce_sum, NotKeepDims) {
 
   tim::vx::ShapeType input_shape({2, 3, 1});
   tim::vx::ShapeType output_shape({2, 1});
-  tim::vx::Quantization quant(tim::vx::QuantType::ASYMMETRIC, 0.00784313772,
+  tim::vx::Quantization quant_in(tim::vx::QuantType::ASYMMETRIC, 0.00784313772,
+                              127);
+  tim::vx::Quantization quant_out(tim::vx::QuantType::ASYMMETRIC, 0.01568627544,
                               127);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
   tim::vx::TensorSpec dc_spec1(tim::vx::DataType::UINT8, {0, 0, 0},
-                               tim::vx::TensorAttribute::TRANSIENT, quant);
+                               tim::vx::TensorAttribute::TRANSIENT, quant_in);
   auto input_tensor = graph->CreateTensor(input_spec);
   auto dc_tensor1 = graph->CreateTensor(dc_spec1);
   auto dc1_op = graph->CreateOperation<tim::vx::ops::DataConvert>();
@@ -47,7 +49,7 @@ TEST(Reduce_sum, NotKeepDims) {
 
   tim::vx::TensorSpec reduce_sum_spec(tim::vx::DataType::UINT8, {0, 0, 0},
                                       tim::vx::TensorAttribute::TRANSIENT,
-                                      quant);
+                                      quant_out);
   auto reduce_sum_out = graph->CreateTensor(reduce_sum_spec);
   std::vector<int32_t> axis = {1};
   auto reduce_sum =
@@ -62,8 +64,8 @@ TEST(Reduce_sum, NotKeepDims) {
 
   std::vector<float> in_data = {0.4, 0.2, 0.3, 0.4, 0.5, 0.6};
   std::vector<float> golden = {
-      1.003922,
-      1.003922,
+      1.2078431,
+      1.2078431,
   };
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
@@ -82,13 +84,15 @@ TEST(Reduce_sum, KeepDims) {
 
   tim::vx::ShapeType input_shape({2, 3});
   tim::vx::ShapeType output_shape({1, 3});
-  tim::vx::Quantization quant(tim::vx::QuantType::ASYMMETRIC, 0.00784313772,
+  tim::vx::Quantization quant_in(tim::vx::QuantType::ASYMMETRIC, 0.00784313772,
+                              127);
+  tim::vx::Quantization quant_out(tim::vx::QuantType::ASYMMETRIC, 0.01568627544,
                               127);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
   tim::vx::TensorSpec dc_spec1(tim::vx::DataType::UINT8, {0, 0, 0},
-                               tim::vx::TensorAttribute::TRANSIENT, quant);
+                               tim::vx::TensorAttribute::TRANSIENT, quant_in);
   auto input_tensor = graph->CreateTensor(input_spec);
   auto dc_tensor1 = graph->CreateTensor(dc_spec1);
   auto dc1_op = graph->CreateOperation<tim::vx::ops::DataConvert>();
@@ -96,7 +100,7 @@ TEST(Reduce_sum, KeepDims) {
 
   tim::vx::TensorSpec reduce_sum_spec(tim::vx::DataType::UINT8, {0, 0, 0},
                                       tim::vx::TensorAttribute::TRANSIENT,
-                                      quant);
+                                      quant_out);
   auto reduce_sum_out = graph->CreateTensor(reduce_sum_spec);
   std::vector<int32_t> axis = {0};
   auto reduce_sum = graph->CreateOperation<tim::vx::ops::ReduceSum>(axis, true);
@@ -111,8 +115,8 @@ TEST(Reduce_sum, KeepDims) {
   std::vector<float> in_data = {0.4, 0.2, 0.3, 0.4, 0.5, 0.6};
   std::vector<float> golden = {
       0.596078,
-      0.698039,
-      1.003922,
+      0.705882,
+      1.113725,
   };
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
