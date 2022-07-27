@@ -185,9 +185,12 @@ static vsi_bool op_setup
     {
         ret = vsi_nn_OpSetup( VSI_NN_OP_POOL, self, inputs, outputs );
 
-        outputs[1]->attr.dim_num = outputs[0]->attr.dim_num;
-        memcpy( outputs[1]->attr.size, outputs[0]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
+    }
+    if ( VSI_NN_DIM_AUTO == outputs[1]->attr.dim_num )
+    {
+    outputs[1]->attr.dim_num = outputs[0]->attr.dim_num;
+    memcpy( outputs[1]->attr.size, outputs[0]->attr.size,
+        VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
 
     return ret;
