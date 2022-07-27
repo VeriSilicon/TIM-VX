@@ -53,6 +53,8 @@
 #include "tim/vx/ops/logsoftmax.h"
 #include "tim/vx/ops/matmul.h"
 #include "tim/vx/ops/maxpoolwithargmax.h"
+#include "tim/vx/ops/maxpoolwithargmax2.h"
+#include "tim/vx/ops/maxpoolgrad.h"
 #include "tim/vx/ops/maxunpool2d.h"
 #include "tim/vx/ops/moments.h"
 #include "tim/vx/ops/nbg.h"
