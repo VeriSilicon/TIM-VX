@@ -30,7 +30,7 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-ROI_Align::ROI_Align(Graph* graph, int32_t output_height, int32_t output_width,
+RoiAlign::RoiAlign(Graph* graph, int32_t output_height, int32_t output_width,
           float height_ratio, float width_ratio, int32_t height_sample_num,
           int32_t width_sample_num)
     : DirectMapOp(graph, VSI_NN_OP_ROI_ALIGN),
@@ -49,9 +49,9 @@ ROI_Align::ROI_Align(Graph* graph, int32_t output_height, int32_t output_width,
   this->impl()->node()->nn_param.roi_align.width_sample_num = width_sample_num;
 }
 
-std::shared_ptr<Operation> ROI_Align::Clone(
+std::shared_ptr<Operation> RoiAlign::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<ROI_Align>(
+  return graph->CreateOperation<RoiAlign>(
       this->output_height_, this->output_width_, this->height_ratio_,
       this->width_ratio_, this->height_sample_num_, this->width_sample_num_);
 }
