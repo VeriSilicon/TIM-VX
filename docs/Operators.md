@@ -27,6 +27,7 @@
     - [Erf](#erf)
     - [FullyConnected](#fullyconnected)
     - [Gather](#gather)
+    - [GatherElements](#gatherelements)
     - [GatherNd](#gathernd)
     - [GroupedConv1d](#groupedconv1d)
     - [GroupedConv2d](#groupedconv2d)
@@ -36,7 +37,9 @@
     - [Or](#or)
     - [LogSoftmax](#logsoftmax)
     - [Matmul](#matmul)
+    - [MaxpooGrad](#maxpoograd)
     - [MaxpoolWithArgmax](#maxpoolwithargmax)
+    - [MaxpoolWithArgmax2](#maxpoolwithargmax2)
     - [MaxUnpool2d](#maxunpool2d)
     - [Moments](#moments)
     - [NBG](#nbg)
@@ -64,6 +67,8 @@
     - [Resize](#resize)
     - [Resize1d](#resize1d)
     - [Reverse](#reverse)
+    - [RoiAlign](#roialign)
+    - [RoiPool](#roipool)
     - [ScatterND](#scatternd)
     - [Select](#select)
     - [DataConvert](#dataconvert)
@@ -77,6 +82,7 @@
     - [Square](#square)
     - [LogicalNot](#logicalnot)
     - [Floor](#floor)
+    - [Ceil](#ceil)
     - [Cast](#cast)
     - [Slice](#slice)
     - [Softmax](#softmax)
@@ -88,6 +94,7 @@
     - [StridedSlice](#stridedslice)
     - [Svdf](#svdf)
     - [Tile](#tile)
+    - [Topk](#topk)
     - [Transpose](#transpose)
     - [Unidirectional sequence lstm](#unidirectional-sequence-lstm)
     - [Unstack](#unstack)
@@ -131,6 +138,10 @@ Prelu(x)               : alpha * x if x <= 0; x if x > 0. alpha is a tensor.
 Linear(x, a, b)        : a*x + b.
 
 Gelu(x)                : x * P(X <= x), where P(x) ~ N(0, 1). https://tensorflow.google.cn/api_docs/python/tf/nn/gelu
+
+Selu(x, alpha, gamma)  : gamma * x if(x>=0), gamma * alpha * (exp(x)-1) x<0
+
+Celu(x, alpha)         : x if x >= 0; alpha * (exp(x/alpha) - 1)
 ```
 
 <a class="mk-toclify" id="addn"></a>
@@ -359,6 +370,15 @@ input tensor with each element in the output tensor.
 
 Gather slices from input, **axis** according to **indices**.
 
+<a class="mk-toclify" id="gatherelements"></a>
+## GatherElements
+
+GatherElements slices from input, **axis** according to **indices**.
+out[i][j][k] = input[index[i][j][k]][j][k] if axis = 0,
+out[i][j][k] = input[i][index[i][j][k]][k] if axis = 1,
+out[i][j][k] = input[i][j][index[i][j][k]] if axis = 2,
+https://github.com/onnx/onnx/blob/main/docs/Operators.md#GatherElements
+
 <a class="mk-toclify" id="gathernd"></a>
 ## GatherNd
 
@@ -455,10 +475,36 @@ Multiplies matrix a by matrix b, producing a * b.
 - adjoint_a: If True, a is conjugated and transposed before multiplication.
 - adjoint_b: If True, b is conjugated and transposed before multiplication.
 
+<a class="mk-toclify" id="maxpoograd"></a>
+## MaxpooGrad
+
+Acquire the gradient of 2-D Max pooling operation's input tensor. \
+Like the tensorflow_XLA op SelectAndScatter, see https://tensorflow.google.cn/xla/operation_semantics?hl=en#selectandscatter.
+
+- padding : AUTO, VALID or SAME.
+- ksize : filter size.
+- stride : stride along each spatial axis.
+- round_type : CEILING or FLOOR.
+
+* Inputs:
+
+- 0 : input tensor of 2-D Max pooling.
+- 1 : gradient of 2-D Max pooling output tensor.
+
 <a class="mk-toclify" id="maxpoolwithargmax"></a>
 ## MaxpoolWithArgmax
 
 Performs an 2-D Max pooling operation and return indices
+
+- padding : AUTO, VALID or SAME.
+- ksize : filter size.
+- stride : stride along each spatial axis.
+- round_type : CEILING or FLOOR.
+
+<a class="mk-toclify" id="maxpoolwithargmax2"></a>
+## MaxpoolWithArgmax2
+
+Performs an 2-D Max pooling operation and return indices(which start at the beginning of the input tensor).
 
 - padding : AUTO, VALID or SAME.
 - ksize : filter size.
@@ -688,6 +734,34 @@ Reverses specific dimensions of a tensor.
 
 - axis : The indices of the dimensions to reverse. 
 
+<a class="mk-toclify" id="roialign"></a>
+## RoiAlign
+
+Select and scale the feature map of each region of interest to a unified output
+size by average pooling sampling points from bilinear interpolation.
+
+- output_height : specifying the output height of the output tensor.
+- output_width : specifying the output width of the output tensor.
+- height_ratio : specifying the ratio from the height of original image to the
+height of feature map.
+- width_ratio : specifying the ratio from the width of original image to the
+width of feature map.
+- height_sample_num :  specifying the number of sampling points in height dimension
+used to compute the output.
+- width_sample_num :specifying the number of sampling points in width dimension
+used to compute the output.
+
+<a class="mk-toclify" id="roipool"></a>
+## RoiPool
+
+Select and scale the feature map of each region of interest to a unified output
+size by max-pooling.
+
+pool_type : only support max-pooling  (MAX)
+scale : The ratio of image to feature map (Range: 0 < scale <= 1) 
+size : The size of roi pooling (height/width)
+
+
 <a class="mk-toclify" id="scatternd"></a>
 ## ScatterND
 
@@ -755,6 +829,11 @@ LogicalNot(x) : NOT x
 ## Floor
 
 returns the largest integer less than or equal to a given number.
+
+<a class="mk-toclify" id="ceil"></a>
+## Ceil
+
+returns the largest integer more than or equal to a given number.
 
 <a class="mk-toclify" id="cast"></a>
 ## Cast
@@ -862,6 +941,13 @@ Performs an 2-D pooling operation.
 Constructs a tensor by tiling a given tensor.
 - multiples :  Must be one of the following types: int32, int64.
 Length must be the same as the number of dimensions in input.
+
+<a class="mk-toclify" id="topk"></a>
+## Topk
+
+Finds values and indices of the k largest entries for the last dimension.
+
+- k : Number of top elements to look for along the last dimension.
 
 <a class="mk-toclify" id="transpose"></a>
 ## Transpose
