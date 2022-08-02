@@ -63,6 +63,7 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
+  # default unit-test
   tim-vx-unit-test:
     needs: tim-vx-build
     runs-on: ubuntu-latest
@@ -79,7 +80,7 @@ jobs:
       run: |
         cd ${{github.workspace}}/tim-vx.install.dir/bin
         chmod u+x ./unit_test
-        ./unit_test
+        ./unit_test --gtest_also_run_disabled_tests
     - name: tim-vx.samples
       run: |
         cd ${{github.workspace}}/tim-vx.install.dir/bin
@@ -87,6 +88,26 @@ jobs:
         chmod u+x lenet_multi_device
         ./multi_thread_test
         ./lenet_multi_device
+
+  # cl-only test
+  tim-vx-unit-test-cl:
+    needs: tim-vx-build
+    runs-on: ubuntu-latest
+    env:
+      LD_LIBRARY_PATH: ${{github.workspace}}/prebuilt-sdk/x86_64_linux/lib:${{github.workspace}}/build/lib:${{github.workspace}}/tim-vx.install.dir/lib
+      VIVANTE_SDK_DIR: ${{github.workspace}}/prebuilt-sdk/x86_64_linux/
+      VIV_VX_DISABLE_TP_NN_EVIS: 1
+    steps:
+    - name: download tim-vx build output
+      uses: actions/download-artifact@v3
+      with:
+        name: tim-vx-install
+
+    - name: tim-vx.unit-test.x86.vsim
+      run: |
+        cd ${{github.workspace}}/tim-vx.install.dir/bin
+        chmod u+x ./unit_test
+        ./unit_test
 
   vx-delegate-build:
     runs-on: ubuntu-latest
