@@ -80,8 +80,9 @@ TEST(Reduce_sum, NotKeepDims) {
 
 TEST(Reduce_sum, KeepDims) {
   auto ctx = tim::vx::Context::Create();
-  auto graph = ctx->CreateGraph();
+  if (ctx->isClOnly()) GTEST_SKIP();
 
+  auto graph = ctx->CreateGraph();
   tim::vx::ShapeType input_shape({2, 3});
   tim::vx::ShapeType output_shape({1, 3});
   tim::vx::Quantization quant_in(tim::vx::QuantType::ASYMMETRIC, 0.00784313772,
