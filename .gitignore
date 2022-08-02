@@ -337,3 +337,4 @@ ASALocalRun/
 .settings/
 build/
 *_build/
+.DS_Store
