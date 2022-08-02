@@ -24,12 +24,14 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/gather.h"
-#include <iostream>
+
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
 TEST(Gather, shape_5_3_2_2_int32_axis_1_batchdims_1) {
   auto ctx = tim::vx::Context::Create();
+
+  if (ctx->isClOnly()) GTEST_SKIP();
   auto graph = ctx->CreateGraph();
 
   tim::vx::ShapeType in_shape({5, 3, 2, 2});
