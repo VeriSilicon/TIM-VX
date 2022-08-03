@@ -34,6 +34,11 @@
  * sqr_sum[a, b, c, d] = sum(
  *     pow(input[a, b, c, d - depth_radius : d + depth_radius + 1], 2))
  * output = input / pow((bias + alpha * sqr_sum), beta)
+ * output = input / pow((bias + alpha * sqr_sum), beta)
+ * size : width of the 1-D normalization window.
+ * bias : An offset (usually positive to avoid dividing by 0).
+ * alpha : A scale factor.
+ * beta : An exponent.
  * ```
  */
 

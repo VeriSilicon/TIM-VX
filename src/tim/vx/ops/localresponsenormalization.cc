@@ -39,7 +39,7 @@ LocalResponseNormalization::LocalResponseNormalization(Graph* graph,
       beta_(beta),
       bias_(bias),
       axis_(axis) {
-  this->impl()->node()->nn_param.lrn.size = size_ * 2 + 1;
+  this->impl()->node()->nn_param.lrn.size = size_;
   this->impl()->node()->nn_param.lrn.alpha = alpha_;
   this->impl()->node()->nn_param.lrn.beta = beta_;
   this->impl()->node()->nn_param.lrn.bias = bias_;
