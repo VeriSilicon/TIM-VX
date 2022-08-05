@@ -50,7 +50,7 @@ class NativeExecutable : public IExecutable{
   void GetOutput(const std::vector<std::shared_ptr<ITensorHandle>>& th) override;
   bool Submit(const std::shared_ptr<IExecutable>& ref, bool after = true) override;
   bool Trigger(bool async = false) override;
-  std::shared_ptr<ITensorHandle> AllocateTensor(const TensorSpec& tensor_spec);
+  std::shared_ptr<ITensorHandle> AllocateTensor(const TensorSpec& tensor_spec) override;
   bool Verify() override;
 
  protected:
