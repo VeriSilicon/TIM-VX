@@ -282,3 +282,91 @@ TEST(Div, Div_uint8) {
 
   EXPECT_TRUE(ArraysMatch(golden, output_data, (uint8_t)1));
 }
+
+TEST(Div, Div_int32) {
+  auto context = tim::vx::Context::Create();
+  auto graph = context->CreateGraph();
+
+  tim::vx::ShapeType input_shape({1, 2, 2, 1});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::INT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  int32_t data1[] = {-2, 2, -15, 8};
+  int32_t data2[] = {5, -2, -3, 5};
+  auto input1 = graph->CreateTensor(input_spec, data1);
+  auto input2 = graph->CreateTensor(input_spec, data2);
+
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::INT32, input_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+  auto output = graph->CreateTensor(output_spec);
+
+  auto op = graph->CreateOperation<tim::vx::ops::Div>();
+  (*op).BindInputs({input1, input2}).BindOutputs({output});
+
+  if (!graph->Compile()) {
+    std::cout << "Compile graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  graph->PrintGraph();
+
+  if (!graph->Run()) {
+    std::cout << "Run graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  std::vector<int32_t> output_data;
+  std::vector<int32_t> golden = {0, -1, 5, 1};
+  output_data.resize(golden.size());
+  if (!output->CopyDataFromTensor(output_data.data())) {
+    std::cout << "Copy output data fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+  // div can have an error of 1 according to different rounding rules
+  EXPECT_TRUE(ArraysMatch(golden, output_data, 1));
+}
+
+TEST(Div, Div_int32_broadcast) {
+  auto context = tim::vx::Context::Create();
+  auto graph = context->CreateGraph();
+
+  tim::vx::ShapeType input1_shape({2,2,1,2,1});
+  tim::vx::ShapeType input2_shape({1});
+  tim::vx::TensorSpec input1_spec(tim::vx::DataType::INT32, input1_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec input2_spec(tim::vx::DataType::INT32, input2_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  int32_t data1[] = {-20, 21, 7, 8, 11, -123, -42, -48};
+  int32_t data2[] = {3};
+  auto input1 = graph->CreateTensor(input1_spec, data1);
+  auto input2 = graph->CreateTensor(input2_spec, data2);
+
+  tim::vx::ShapeType output_shape({2,2,1,2,1});
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::INT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+  auto output = graph->CreateTensor(output_spec);
+
+  auto op = graph->CreateOperation<tim::vx::ops::Div>();
+  (*op).BindInputs({input1, input2}).BindOutputs({output});
+
+  if (!graph->Compile()) {
+    std::cout << "Compile graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  graph->PrintGraph();
+
+  if (!graph->Run()) {
+    std::cout << "Run graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  std::vector<int32_t> output_data;
+  std::vector<int32_t> golden = {-6, 7, 2, 2, 3, -41, -14, -16};
+  output_data.resize(golden.size());
+  if (!output->CopyDataFromTensor(output_data.data())) {
+    std::cout << "Copy output data fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+  // div can have an error of 1 according to different rounding rules
+  EXPECT_TRUE(ArraysMatch(golden, output_data, 1));
+}
