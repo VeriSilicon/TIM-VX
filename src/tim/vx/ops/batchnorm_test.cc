@@ -166,3 +166,77 @@ TEST(BatchNorm, shape_3_3_2_1_fp32_whcn) {
       EXPECT_TRUE(std::abs(golden[idx] - output[idx]) < 0.01);
     }
 }
+
+TEST(BatchNorm, shape_3_3_2_1_fp32_whcn_dynmic) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType in_shape({3, 3, 2, 1});
+    tim::vx::ShapeType out_shape({3, 3, 2, 1});
+
+    // in dynmic mode, mean shape MUST be as same rank as input shape.
+    // var, gamma and bata also follow this rule.
+    tim::vx::ShapeType mean_shape({1, 1, 2, 1});
+    tim::vx::ShapeType var_shape({1, 1, 2, 1});
+    tim::vx::ShapeType gamma_shape({1, 1, 2, 1});
+    tim::vx::ShapeType beta_shape({1, 1, 2, 1});
+
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            in_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec mean_spec(tim::vx::DataType::FLOAT32, mean_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec var_spec(tim::vx::DataType::FLOAT32, var_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec gamma_spec(tim::vx::DataType::FLOAT32, gamma_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec beta_spec(tim::vx::DataType::FLOAT32, beta_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    std::vector<float> in_data = {
+        0.598858, 0.630112, 0.647724, 0.302165, 0.325454, 0.339678,
+        0.094799, 0.467356, 0.516191, 0.626629, 0.825694, 0.428954,
+        0.013516, 0.036067, 0.180925, 0.522581, 0.956891, 0.826857};
+    std::vector<float> golden = {
+        0.922275,  1.099068,  1.198692,  -0.756014, -0.624271, -0.543815,
+        -1.929007, 0.178418,  0.454656,  0.406123,  1.001768,  -0.185360,
+        -1.428434, -1.360957, -0.927513, 0.094791,  1.394335,  1.005247};
+
+    std::vector<float> mean_data = {
+        0.43581513, 0.49090168
+    };
+    std::vector<float> var_data = {
+        0.03025229, 0.11069085
+    };
+    std::vector<float> gamma_data = {
+        1,1
+    };
+    std::vector<float> beta_data = {
+        0, 0
+    };
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+    auto mean = graph->CreateTensor(mean_spec);
+    auto var = graph->CreateTensor(var_spec);
+    auto gamma = graph->CreateTensor(gamma_spec);
+    auto beta = graph->CreateTensor(beta_spec);
+
+    float epsilon = 0.001;
+    
+    auto op = graph->CreateOperation<tim::vx::ops::BatchNorm>(epsilon);
+    (*op).BindInputs({input_tensor, mean, var,gamma, beta}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    input_tensor->CopyDataToTensor(in_data.data(),
+                                   in_data.size() * sizeof(float));
+    mean->CopyDataToTensor(mean_data.data(), mean_data.size() * sizeof(float));
+    var->CopyDataToTensor(var_data.data(), var_data.size() * sizeof(float));
+    gamma->CopyDataToTensor(gamma_data.data(), gamma_data.size() * sizeof(float));
+    beta->CopyDataToTensor(beta_data.data(), beta_data.size() * sizeof(float));
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(golden.size());
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+
+    for (uint32_t idx = 0; idx < golden.size(); idx++) {
+      EXPECT_TRUE(std::abs(golden[idx] - output[idx]) < 0.01);
+    }
+}
