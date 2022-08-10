@@ -122,3 +122,115 @@ TEST(ScatterND, DISABLED_shape_9) {
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     EXPECT_EQ(golden, output);
 }
+
+TEST(ScatterND, shape_12_12_6_96) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    const int kBatch = 96;
+    const int kIndexNums = kBatch * 6 * 6 * 6;
+    tim::vx::ShapeType indices_shape({3, kIndexNums});
+    tim::vx::ShapeType updates_shape({kIndexNums});
+    tim::vx::ShapeType out_shape({144, 6, kBatch});
+    tim::vx::TensorSpec indices_spec(tim::vx::DataType::INT32,
+                            indices_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec updates_spec(tim::vx::DataType::FLOAT32,
+                            updates_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto indices_tensor = graph->CreateTensor(indices_spec);
+    auto updates_tensor = graph->CreateTensor(updates_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<int32_t> indices_data(3*kIndexNums);
+    std::vector<float> updates_data(kIndexNums);
+    std::vector<float> golden(12*12*6*kBatch, 0);
+
+    int vector_index = 0;
+    for (int n = 0; n < kBatch; ++n)
+    {
+      for (int c = 0; c < 6; ++c)
+      {
+        int row = 0;
+        int col = 0;
+        for (int i = 0; i < 6; ++i)
+        {
+          vector_index = n*6*36 + c*36 + i*6;
+          std::fill(updates_data.begin() + vector_index, 
+                    updates_data.begin() + vector_index + 6,
+                    i + 1);
+          /* source: 
+          1, 1, 1, 1, 1, 1,
+          2, 2, 2, 2, 2, 2,
+          3, 3, 3, 3, 3, 3,
+          4, 4, 4, 4, 4, 4,
+          5, 5, 5, 5, 5, 5,
+          6, 6, 6, 6, 6, 6
+          */
+          for (int j = 0; j < 6; ++j)
+          {
+            col = (i % 2) ? (2*j + 1) : (2*j);
+            row = i*2*12;
+            indices_data [(vector_index + j)*3] = n;
+            indices_data [(vector_index + j)*3 + 1] = c;
+            indices_data [(vector_index + j)*3 + 2] = row + col;            
+          }
+          /* index value:
+          0, 2, 4, 6, 8, 10
+          25, 27, 29, 31, 33, 35
+          48, 50, 52, 54, 56, 58
+          73, 75, 77, 79, 81, 83
+          96, 98, 100, 102, 104, 106
+          121, 123, 125, 127, 129, 131
+          */
+        }
+      }
+    }
+    // for (int i = 0; i < 36; ++i)
+    // {
+    //   std::cout << std::endl;
+    //   std::cout << i << ": ";
+    //   for (int j = 0; j < 3; ++j)
+    //   {
+    //     std::cout << indices_data[i*3 + j] << ", ";
+    //   }
+    // }
+    /* golden
+    1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    3, 0, 3, 0, 3, 0, 3, 0, 3, 0, 3, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    5, 0, 5, 0, 5, 0, 5, 0, 5, 0, 5, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 6, 0, 6, 0, 6, 0, 6, 0, 6, 0, 6, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    
+    */
+
+    EXPECT_TRUE(indices_tensor->CopyDataToTensor(
+        indices_data.data(), indices_data.size()*sizeof(int32_t)));
+    EXPECT_TRUE(updates_tensor->CopyDataToTensor(
+        updates_data.data(), updates_data.size()*sizeof(int32_t)));
+    // std::vector<uint32_t> shape = {16, 2, 2};
+    auto op = graph->CreateOperation<tim::vx::ops::ScatterND>(out_shape);
+    (*op).BindInputs({indices_tensor, updates_tensor}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+    std::vector<float> output(golden.size());
+
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    // EXPECT_EQ(golden, output);
+    for (int i = 0; i < 12; ++i)
+    {
+      std:: cout << std::endl;
+      for (int j = 0; j < 12; ++j)
+      {
+        std::cout << output[kBatch*6*12*11 + i*12 + j] << ", ";
+      }
+    }
+}
