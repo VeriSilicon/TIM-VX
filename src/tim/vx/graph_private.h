@@ -93,6 +93,9 @@ class GraphImpl : public Graph {
   std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>> tensor_producer_;
 
   CompileOption options_;
+ private:
+ /// Setup graph
+  bool Setup();
 };
 
 }  // namespace vx
