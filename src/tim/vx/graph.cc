@@ -154,7 +154,7 @@ std::shared_ptr<Tensor> GraphImpl::CreateTensorPlaceHolder() {
   return tensor_placeholder_;
 }
 
-bool GraphImpl::Compile() {
+bool GraphImpl::Setup() {
   bool status = true;
 
   auto major = vsi_nn_GetVersionMajor();
@@ -180,7 +180,13 @@ bool GraphImpl::Compile() {
   std::call_once(setup_once_, [&status, this]() {
     status = (VSI_SUCCESS == vsi_nn_SetupGraph(this->graph_, true));
   });
+  return status;
+}
 
+bool GraphImpl::Compile() {
+  bool status = true;
+
+  status = Setup();
   std::call_once(verify_graph_once_, [&status, this]() {
     status = (VSI_SUCCESS == vsi_nn_VerifyGraph(this->graph_));
   });
@@ -189,19 +195,7 @@ bool GraphImpl::Compile() {
 }
 
 bool GraphImpl::CompileToBinary(void* buf, size_t* size) {
-  bool status = true;
-  std::call_once(setio_once_, [&status, this]() {
-    status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(),
-                                    this->inputs_.size()) &&
-              vsi_nn_SetGraphOutputs(this->graph_, this->outputs_.data(),
-                                     this->outputs_.size()));
-  });
-
-  std::call_once(setup_once_, [&status, this]() {
-    status = (VSI_SUCCESS == vsi_nn_SetupGraph(this->graph_, true));
-  });
-
-  return ((status) && (VSI_SUCCESS == vsi_nn_GenerateNBG(graph_, buf, size)));
+  return ((Setup()) && (VSI_SUCCESS == vsi_nn_GenerateNBG(graph_, buf, size)));
 }
 
 bool GraphImpl::Run() {
