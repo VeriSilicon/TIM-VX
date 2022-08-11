@@ -33,6 +33,8 @@
 #include "tim/vx/context.h"
 #include "tim/vx/ops/nbg.h"
 
+#define MULTI_DEVICE_FEATURE_MODE 1
+
 namespace tim {
 namespace vx {
 
