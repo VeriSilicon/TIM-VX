@@ -143,6 +143,9 @@ bazel build //samples/lenet:lenet_asymu8_cc
 bazel run //samples/lenet:lenet_asymu8_cc
 ```
 
+## Debug with gdb
+Before use gdb debug 
+
 ## Other
 
 To build and run Tensorflow-Lite with TIM-VX, please see [README](https://github.com/VeriSilicon/tflite-vx-delegate#readme)
