@@ -315,7 +315,7 @@ TEST(Div, Div_int32) {
   }
 
   std::vector<int32_t> output_data;
-  std::vector<int32_t> golden = {0, -1, 5, 1};
+  std::vector<int32_t> golden = {0, -1, 5, 2};
   output_data.resize(golden.size());
   if (!output->CopyDataFromTensor(output_data.data())) {
     std::cout << "Copy output data fail." << std::endl;
@@ -361,7 +361,7 @@ TEST(Div, Div_int32_broadcast) {
   }
 
   std::vector<int32_t> output_data;
-  std::vector<int32_t> golden = {-6, 7, 2, 2, 3, -41, -14, -16};
+  std::vector<int32_t> golden = {-7, 7, 2, 3, 4, -41, -14, -16};
   output_data.resize(golden.size());
   if (!output->CopyDataFromTensor(output_data.data())) {
     std::cout << "Copy output data fail." << std::endl;
