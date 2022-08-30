@@ -296,6 +296,6 @@ TEST(Bidirectional_LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
     fw_output_tensor->CopyDataFromTensor(fw_output.data());
     bw_output_tensor->CopyDataFromTensor(bw_output.data());
 
-    EXPECT_TRUE(ArraysMatch(lstm_fw_golden_output, fw_output, 1e-4f));
-    EXPECT_TRUE(ArraysMatch(lstm_bw_golden_output, bw_output, 1e-4f));
+    EXPECT_TRUE(ArraysMatch(lstm_fw_golden_output, fw_output, 1e-3f));
+    EXPECT_TRUE(ArraysMatch(lstm_bw_golden_output, bw_output, 1e-3f));
 }
