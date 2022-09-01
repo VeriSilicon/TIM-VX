@@ -21,6 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+#if VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/maxpoolwithargmax2.h"
@@ -368,3 +369,5 @@ TEST(MaxpoolGrad, with_overlay_multi_channel_multi_batch) {
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output_values.data()));
     EXPECT_EQ(golden, output_values);
 }
+
+#endif //(VSI_FEAT_OP_MAXPOOLWITHARGMAX)

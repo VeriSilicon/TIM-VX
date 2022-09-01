@@ -21,6 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+#if VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #ifndef TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_
 #define TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_
 
@@ -66,3 +67,5 @@ class MaxpoolWithArgmax2 : public DirectMapOp {
 }  // namespace tim
 
 #endif /* TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_ */
+
+#endif //(VSI_FEAT_OP_MAXPOOLWITHARGMAX)

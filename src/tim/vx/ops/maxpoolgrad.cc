@@ -21,6 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+#if VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #include "tim/vx/ops.h"
 #include "vsi_nn_pub.h"
 #include "op_impl.h"
@@ -160,3 +161,5 @@ std::shared_ptr<Operation> MaxpoolGrad::Clone(
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+
+#endif //(VSI_FEAT_OP_MAXPOOLWITHARGMAX)

@@ -21,6 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+#if VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #include "tim/vx/ops/maxpoolwithargmax2.h"
 
 #include "direct_map_op_impl.h"
@@ -62,3 +63,5 @@ std::shared_ptr<Operation> MaxpoolWithArgmax2::Clone(
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+
+#endif //(FEAT_OP_MAXPOOLWITHARGMAX)
