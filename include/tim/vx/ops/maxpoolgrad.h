@@ -21,6 +21,8 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+#if VSI_FEAT_OP_MAXPOOLWITHARGMAX
+
 #ifndef TIM_VX_OPS_MAXPOOLGRAD_H_
 #define TIM_VX_OPS_MAXPOOLGRAD_H_
 
@@ -68,3 +70,4 @@ class MaxpoolGrad: public Operation {
 }  // namespace tim
 
 #endif /*TIM_VX_OPS_MAXPOOLGRAD_H_*/
+#endif

@@ -81,6 +81,19 @@ if(${TIM_VX_ENABLE_VIPLITE})
     )
 endif()
 
+# convert op list as compile flags so that we can implement compile compatable easier
+if(${TIM_VX_USE_EXTERNAL_OVXLIB})
+    file(STRINGS "${OVXLIB_INC}/interface/ops.def" ops_file_content)
+else()
+    file(STRINGS "./vx/internal/include/interface/ops.def" ops_file_content)
+endif()
+string(LENGTH "/*;   Add new ops to the end.;*_/" comment_len)
+string(SUBSTRING "${ops_file_content}" ${comment_len} -1 op_list_only)
+string(REGEX REPLACE "DEF_OP\\(" "-DVSI_FEAT_OP_" op_list_tmp ${op_list_only})
+string(REGEX REPLACE "\\)" " " op_as_flags ${op_list_tmp})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${op_as_flags}")
+
 add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
 target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
 target_link_libraries(${TARGET_NAME} PUBLIC
