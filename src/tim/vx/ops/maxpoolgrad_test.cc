@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#if VSI_FEAT_OP_MAXPOOLWITHARGMAX
+#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/maxpoolgrad.h"
