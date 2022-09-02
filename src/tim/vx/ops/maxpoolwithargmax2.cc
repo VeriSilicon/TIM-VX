@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#if VSI_FEAT_OP_MAXPOOLWITHARGMAX
+#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #include "tim/vx/ops/maxpoolwithargmax2.h"
 
 #include "direct_map_op_impl.h"
