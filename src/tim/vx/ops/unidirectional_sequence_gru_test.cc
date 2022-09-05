@@ -37,7 +37,7 @@ TEST(UnidirectionalSequenceGRU, unit_3) {
   auto graph = ctx->CreateGraph();
 
   const int timesteps = 1;
-  const int batchs = 2;
+  const int batchs = 1;
   const int feature = 4;
   const int num_units = 2;
   tim::vx::ShapeType in_shape({feature, batchs, timesteps});
@@ -97,9 +97,9 @@ TEST(UnidirectionalSequenceGRU, unit_3) {
   auto kernel_r2h_tensor =
       graph->CreateTensor(kernel_r_spec, kernel_r2h.data());
 
-  std::vector<float> in_data = {1, 2, 3, 4, 1, 2, 3, 4};
+  std::vector<float> in_data = {1, 2, 3, 4};
   std::vector<float> hstate = {0, 0};
-  std::vector<float> golden = {-0.2719525, -0.5766771, -0.2719525, -0.5766771};
+  std::vector<float> golden = {-0.2719525, -0.5766771};
 
   EXPECT_TRUE(
       input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * 4));
