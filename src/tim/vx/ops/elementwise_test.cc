@@ -283,7 +283,7 @@ TEST(Div, Div_uint8) {
   EXPECT_TRUE(ArraysMatch(golden, output_data, (uint8_t)1));
 }
 
-TEST(Div, DISABLE_Div_int32) {
+TEST(Div, Div_int32) {
   auto context = tim::vx::Context::Create();
   auto graph = context->CreateGraph();
 
@@ -325,7 +325,7 @@ TEST(Div, DISABLE_Div_int32) {
   EXPECT_TRUE(ArraysMatch(golden, output_data, 1));
 }
 
-TEST(Div, DISABLE_Div_int32_broadcast) {
+TEST(Div, Div_int32_broadcast) {
   auto context = tim::vx::Context::Create();
   auto graph = context->CreateGraph();
 
