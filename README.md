@@ -34,7 +34,7 @@ Main Features
 - [Tengine](https://github.com/OAID/Tengine) (Official)
 - [TVM](https://github.com/VeriSilicon/tvm) (Fork)
 - [Paddle-Lite](https://github.com/PaddlePaddle/Paddle-Lite) (Official)
-- [OpenCV](https://github.com/opencv/opencv/pull/21036) (Offical)
+- [OpenCV](https://github.com/opencv/opencv/wiki/TIM-VX-Backend-For-Running-OpenCV-On-NPU) (Offical)
 - MLIR Dialect (In development)
 
 Feel free to raise a github issue if you wish to add TIM-VX for other frameworks.
