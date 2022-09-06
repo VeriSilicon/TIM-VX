@@ -10,7 +10,7 @@ env:
   LD_LIBRARY_PATH: ${{github.workspace}}/tim-vx-install/prebuilt-sdk/x86_64_linux/lib:${{github.workspace}}/tim-vx-install/build/lib:${{github.workspace}}/tim-vx-install/tim-vx.install.dir/lib
   VIVANTE_SDK_DIR: ${{github.workspace}}/tim-vx-install/prebuilt-sdk/x86_64_linux/
   VSI_NN_LOG_LEVEL: 5
-  VIV_VX_DEBUG_LEVL: 1
+  VIV_VX_DEBUG_LEVEL: 1
 
 jobs:
   tim-vx-build:
