@@ -3,7 +3,9 @@ name: cmake_x86_vsim
 on:
   pull_request:
     branches: [ main ]
-
+  workflow_dispatch:
+    branches: [ main ]
+    
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
