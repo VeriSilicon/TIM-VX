@@ -47,7 +47,9 @@ class Quantization {
         channel_dim_(channel_dim),
         scales_(std::move(scales)),
         zero_points_(std::move(zero_points)) {}
-
+  Quantization(QuantType type, int8_t fl)
+      : type_(type),
+        fl_(fl){}
   QuantType& Type() { return type_; }
   const QuantType& Type() const { return type_; }
   Quantization& SetType(QuantType type) {
@@ -76,11 +78,14 @@ class Quantization {
     return *this;
   }
 
+  const std::int8_t& Fl() const{ return this->fl_; }
+
  protected:
   QuantType type_{QuantType::NONE};
   int32_t channel_dim_{-1};
   std::vector<float> scales_;
   std::vector<int32_t> zero_points_;
+  int8_t fl_ = 0;
 };
 
 struct TensorSpec {
