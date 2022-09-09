@@ -35,12 +35,13 @@ enum class DataType {
   UINT16,
   INT32,
   UINT32,
+  INT64,
   FLOAT16,
   FLOAT32,
   BOOL8
 };
 
-enum class QuantType { NONE, ASYMMETRIC, SYMMETRIC_PER_CHANNEL };
+enum class QuantType { NONE, ASYMMETRIC, SYMMETRIC_PER_CHANNEL, DYNAMIC_FIXED_POINT };
 
 enum TensorAttribute {
   CONSTANT = 1 << 0,
