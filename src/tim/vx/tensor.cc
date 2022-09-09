@@ -66,6 +66,10 @@ void PackTensorDtype(tim::vx::TensorSpec& spec, vsi_nn_dtype_t* dtype) {
       dtype->channel_dim = spec.quantization_.ChannelDim();
       break;
     }
+
+    case tim::vx::QuantType::DYNAMIC_FIXED_POINT:
+      dtype->fl = spec.quantization_.Fl();
+      break;
     default:
       break;
   }
