@@ -135,7 +135,7 @@ TEST(Conv3d, shape_1_1_2_3_3_float32_simple_cwhdn) {
   }
 }
 
-TEST(Conv3d, shape_4_2_2_2_1_float32_simple_whdcn) {
+TEST(Conv3d, DISABLED_shape_4_2_2_2_1_float32_simple_whdcn) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
