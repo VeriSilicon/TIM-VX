@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_TILE_H_
 #define TIM_VX_OPS_TILE_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,7 +37,7 @@ namespace ops {
  *                Length must be the same as the number of dimensions in input.
  */
 
-class Tile : public DirectMapOp {
+class Tile : public BuiltinOp {
  public:
   Tile(Graph* graph, const std::vector<int32_t>& multiples);
 

@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/nbg.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 NBG::NBG(Graph* graph, const char* binary, size_t input_count,
          size_t output_count)
-    : DirectMapOp(graph, VSI_NN_OP_NBG, input_count, output_count) {
+    : BuiltinOp(graph, VSI_NN_OP_NBG, input_count, output_count) {
   this->impl()->node()->nn_param.nbg.url = binary;
   this->impl()->node()->nn_param.nbg.type = VSI_NN_NBG_POINTER;
 }

@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef OVXLIBXX_OPERATIONS_CLIP_H_
 #define OVXLIBXX_OPERATIONS_CLIP_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 
 namespace tim {
@@ -36,7 +36,7 @@ namespace ops {
  * Clip(x) : min if x <= min; x if min < x < max; max if x >= max
  */
 
-class Clip : public DirectMapOp {
+class Clip : public BuiltinOp {
   public:
     Clip(Graph* graph, float min, float max);
 

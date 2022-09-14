@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/stridedslice.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -35,7 +35,7 @@ StridedSlice::StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
                            const std::vector<int32_t> stride_dims,
                            int32_t begin_mask, int32_t end_mask,
                            int32_t shrink_axis_mask)
-    : DirectMapOp(graph, VSI_NN_OP_STRIDED_SLICE),
+    : BuiltinOp(graph, VSI_NN_OP_STRIDED_SLICE),
       begin_dims_(std::move(begin_dims)),
       end_dims_(std::move(end_dims)),
       stride_dims_(std::move(stride_dims)),

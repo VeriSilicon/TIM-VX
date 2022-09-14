@@ -21,17 +21,17 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_DIRECTMAPOP_H
-#define TIM_VX_DIRECTMAPOP_H
+#ifndef TIM_VX_BUILTIN_OP_H_
+#define TIM_VX_BUILTIN_OP_H_
 
 #include "tim/vx/operation.h"
-
+#define DirectMapOp BuiltinOp
 namespace tim {
 namespace vx {
 // interface
-class DirectMapOp : public Operation {
+class BuiltinOp : public Operation {
   public:
-  DirectMapOp(Graph* graph, uint32_t kind, int in_cnt = 0, int out_cnt = 0,
+  BuiltinOp(Graph* graph, uint32_t kind, int in_cnt = 0, int out_cnt = 0,
               DataLayout layout = DataLayout::ANY);
 };
 

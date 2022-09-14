@@ -22,7 +22,7 @@
 *
 *****************************************************************************/
 #include "tim/vx/ops/grucell.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 GRUCell::GRUCell(Graph* graph, uint32_t num_units, ActivationType activation,
                  ActivationType recurrent_activation, vsi_bool reset_after)
-    : DirectMapOp(graph, VSI_NN_OP_GRUCELL),
+    : BuiltinOp(graph, VSI_NN_OP_GRUCELL),
       num_units_(num_units),
       activation_(activation),
       recurrent_activation_(recurrent_activation),

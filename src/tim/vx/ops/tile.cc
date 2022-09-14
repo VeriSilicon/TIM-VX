@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/tile.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Tile::Tile(Graph* graph, const std::vector<int32_t>& multiples)
-    : DirectMapOp(graph, VSI_NN_OP_TILE, 1, 1), multiples_(multiples) {
+    : BuiltinOp(graph, VSI_NN_OP_TILE, 1, 1), multiples_(multiples) {
   this->impl()->node()->nn_param.tile.multiples = multiples_.data();
   this->impl()->node()->nn_param.tile.multiples_num = multiples_.size();
 }

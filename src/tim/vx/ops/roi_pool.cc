@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/roi_pool.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -33,7 +33,7 @@ namespace ops {
 
 RoiPool::RoiPool(Graph* graph, PoolType type, float scale,
                    const std::array<uint32_t, 2>& size)
-    : DirectMapOp(graph, VSI_NN_OP_ROI_POOL),
+    : BuiltinOp(graph, VSI_NN_OP_ROI_POOL),
       type_(type),
       scale_(scale),
       size_(size) {

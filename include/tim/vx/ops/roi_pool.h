@@ -25,7 +25,7 @@
 #define TIM_VX_OPS_ROI_POOL_H_
 
 #include <array>
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 #include "tim/vx/types.h"
 
 namespace tim {
@@ -44,7 +44,7 @@ namespace ops {
  *
  */
 
-class RoiPool : public DirectMapOp {
+class RoiPool : public BuiltinOp {
  public:
   RoiPool(Graph* graph, PoolType type, float scale,
             const std::array<uint32_t, 2>& size);

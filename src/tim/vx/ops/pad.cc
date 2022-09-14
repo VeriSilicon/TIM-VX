@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/pad.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -37,7 +37,7 @@ Pad::Pad(Graph* graph, const std::vector<uint32_t>& front_size,
 Pad::Pad(Graph* graph, const std::vector<uint32_t>& front_size,
          const std::vector<uint32_t>& back_size, int32_t const_val,
          pad_mode_type pad_mode)
-    : DirectMapOp(graph, VSI_NN_OP_PAD),
+    : BuiltinOp(graph, VSI_NN_OP_PAD),
       front_size_(front_size),
       back_size_(back_size),
       const_val_(const_val),

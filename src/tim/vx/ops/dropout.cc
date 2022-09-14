@@ -25,7 +25,7 @@
 
 #include "vsi_nn_pub.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 namespace tim {
 namespace vx {
@@ -33,7 +33,7 @@ namespace ops {
 
 
 Dropout::Dropout(Graph* graph, float ratio)
-  : DirectMapOp(graph, VSI_NN_OP_DROPOUT),
+  : BuiltinOp(graph, VSI_NN_OP_DROPOUT),
     ratio_(ratio) {
   this->impl()->node()->nn_param.dropout.ratio = ratio_;
 }

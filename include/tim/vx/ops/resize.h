@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_RESIZE_H_
 #define TIM_VX_OPS_RESIZE_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -44,7 +44,7 @@ namespace ops {
  * - target_height / target_width : output height / width. DO NOT use it with factor together.
  */
 
-class Resize : public DirectMapOp {
+class Resize : public BuiltinOp {
  public:
   Resize(Graph* graph, ResizeType type, float factor, bool align_corners,
          bool half_pixel_centers, int target_height, int target_width,

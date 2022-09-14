@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/logical.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 #define DEFINE_LOGICAL_OP(NAME, VSI_OP_CODE)           \
   Logical##NAME::Logical##NAME(Graph* graph)           \
-      : DirectMapOp(graph, VSI_NN_OP_LOGICAL_OPS) {      \
+      : BuiltinOp(graph, VSI_NN_OP_LOGICAL_OPS) {      \
     this->impl()->node()->nn_param.relational_ops.op = \
         VSI_NN_LOGICAL_##VSI_OP_CODE;                  \
   }                                                    \

@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 #include "tim/vx/types.h"
 
 namespace tim {
@@ -64,7 +64,7 @@ namespace ops {
  *
  */
 
-class Pool2d : public DirectMapOp {
+class Pool2d : public BuiltinOp {
  public:
   /* for Classic Pool2d, pool does not support auto-completion of pad value,
   you need to specify pad size explicitly, it is recommended to use the second api.*/

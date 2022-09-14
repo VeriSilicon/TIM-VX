@@ -26,13 +26,13 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-class Conv1d : public DirectMapOp {
+class Conv1d : public BuiltinOp {
  public:
   Conv1d(Graph* graph, PadType padding, uint32_t stride,
          uint32_t dilation, int32_t multiplier = 0,

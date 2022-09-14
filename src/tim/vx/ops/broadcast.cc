@@ -24,7 +24,7 @@
 #include "tim/vx/ops/broadcast.h"
 
 #include <cassert>
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace vx {
 namespace ops {
 Broadcast::Broadcast(Graph* graph, const std::vector<int32_t>& shape,
                      const std::vector<int32_t>& dimensions)
-    : DirectMapOp(graph, VSI_NN_OP_EXPAND_BROADCAST),
+    : BuiltinOp(graph, VSI_NN_OP_EXPAND_BROADCAST),
       shape_(shape),
       dimensions_(dimensions) {
   this->impl()->node()->nn_param.expand_broadcast.dim_num = shape_.size();

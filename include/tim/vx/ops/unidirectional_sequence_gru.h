@@ -25,7 +25,7 @@
 #define TIM_VX_OPS_UNIDIRECTIONAL_SEQUENCE_GRU_H_
 
 #include <array>
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -46,7 +46,7 @@ namespace ops {
  *   in the False case, it will be [feature, timesteps, batch].
  */
 
-class UnidirectionalSequenceGRU : public DirectMapOp {
+class UnidirectionalSequenceGRU : public BuiltinOp {
  public:
   enum ActivationType {
     kNONE = 0,

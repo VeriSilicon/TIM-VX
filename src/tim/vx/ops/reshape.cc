@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/reshape.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 #include <algorithm>
@@ -31,10 +31,10 @@
 namespace tim {
 namespace vx {
 namespace ops {
-class ReshapeImpl : public DirectMapOpImpl {
+class ReshapeImpl : public BuiltinOpImpl {
   public:
    ReshapeImpl(Graph* graph, const std::vector<vsi_size_t>& shape)
-       : DirectMapOpImpl(graph, 
+       : BuiltinOpImpl(graph, 
        #ifdef _VSI_NN_OP_RESHAPE2_H
        VSI_NN_OP_RESHAPE2
        #else

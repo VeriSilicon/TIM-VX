@@ -25,7 +25,7 @@
 
 #include "vsi_nn_pub.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 namespace tim {
 namespace vx {
@@ -33,7 +33,7 @@ namespace ops {
 
 
 Clip::Clip(Graph* graph, float min, float max)
-  : DirectMapOp(graph, VSI_NN_OP_CLIP),
+  : BuiltinOp(graph, VSI_NN_OP_CLIP),
     min_(min),
     max_(max) {
   this->impl()->node()->nn_param.clip.min = min_;

@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_RELATIONAL_H_
 #define TIM_VX_OPS_RELATIONAL_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -56,7 +56,7 @@ namespace ops {
  */
 
 #define DECLARE_RELATIONAL_OP(NAME)                    \
-  class NAME : public DirectMapOp {                      \
+  class NAME : public BuiltinOp {                      \
    public:                                             \
     NAME(Graph* graph);                                \
     std::shared_ptr<Operation> Clone(                  \

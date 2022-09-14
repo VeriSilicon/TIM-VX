@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/resize1d.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -33,7 +33,7 @@ namespace ops {
 
 Resize1d::Resize1d(Graph* graph, ResizeType type, float factor, bool align_corners,
                bool half_pixel_centers, int target_size, DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_RESIZE_1D, 0, 0, layout),
+    : BuiltinOp(graph, VSI_NN_OP_RESIZE_1D, 0, 0, layout),
       type_(type),
       factor_(factor),
       align_corners_(align_corners),

@@ -25,7 +25,7 @@
 #define TIM_VX_OPS_CONV3D_H_
 
 #include <array>
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -54,7 +54,7 @@ namespace ops {
  * - kernel_layout : WHDIcOc
  */
 
-class Conv3d : public DirectMapOp {
+class Conv3d : public BuiltinOp {
  public:
   Conv3d(Graph* graph, PadType padding,
          const std::array<int32_t, 3>& stride,

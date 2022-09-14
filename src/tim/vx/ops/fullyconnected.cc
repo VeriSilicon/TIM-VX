@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/fullyconnected.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -35,7 +35,7 @@ FullyConnected::FullyConnected(Graph* graph, uint32_t axis)
 }
 
 FullyConnected::FullyConnected(Graph* graph, uint32_t axis, uint32_t weights)
-    : DirectMapOp(graph, VSI_NN_OP_FCL2), axis_(axis), weights_(weights) {
+    : BuiltinOp(graph, VSI_NN_OP_FCL2), axis_(axis), weights_(weights) {
   this->impl()->node()->nn_param.fcl.axis = axis;
   this->impl()->node()->nn_param.fcl.weights = weights;
 }

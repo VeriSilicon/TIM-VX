@@ -25,7 +25,7 @@
 #define TIM_LAYOUT_INFER_ADDN_LAYOUT_INFERENCE_H_
 
 #include "ops/op_layout_inference.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "tim/vx/ops/addn.h"
 
 namespace tim {

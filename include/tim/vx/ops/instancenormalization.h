@@ -23,12 +23,12 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_INSTANCENOMALIZATION_H_
 #define TIM_VX_OPS_INSTANCENOMALIZATION_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
-class InstanceNormalization : public DirectMapOp {
+class InstanceNormalization : public BuiltinOp {
  public:
   InstanceNormalization(Graph* graph, float eps = 1e-5f);
 

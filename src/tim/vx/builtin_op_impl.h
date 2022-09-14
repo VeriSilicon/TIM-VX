@@ -21,8 +21,8 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_DIRECT_MAP_OP_IMPL_H_
-#define TIM_VX_DIRECT_MAP_OP_IMPL_H_
+#ifndef TIM_VX_BUILTIN_OP_IMPL_H_
+#define TIM_VX_BUILTIN_OP_IMPL_H_
 
 #include "vsi_nn_pub.h"
 #include "graph_private.h"
@@ -32,15 +32,15 @@
 namespace tim {
 namespace vx {
 
-class DirectMapOpImpl : public OpImpl {
+class BuiltinOpImpl : public OpImpl {
  public:
-  DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt = 0,
+  BuiltinOpImpl(Graph* graph, uint32_t kind, int input_cnt = 0,
                   int output_cnt = 0, DataLayout layout = DataLayout::ANY);
-  DirectMapOpImpl(Graph* graph,DataLayout layout = DataLayout::ANY);
-  ~DirectMapOpImpl() {}
+  BuiltinOpImpl(Graph* graph,DataLayout layout = DataLayout::ANY);
+  ~BuiltinOpImpl() {}
 
-  DirectMapOpImpl& BindInput(const std::shared_ptr<Tensor>& tensor) override;
-  DirectMapOpImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) override;
+  BuiltinOpImpl& BindInput(const std::shared_ptr<Tensor>& tensor) override;
+  BuiltinOpImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) override;
 
   vsi_nn_node_t* node() override { return this->node_; }
   void SetNode(vsi_nn_node_t* node) { this->node_ = node; }
@@ -63,7 +63,7 @@ class DirectMapOpImpl : public OpImpl {
 };
 
 #ifdef TIM_VX_ENABLE_CUSTOM_OP
-class CustomOpBaseImpl : public DirectMapOpImpl {
+class CustomOpBaseImpl : public BuiltinOpImpl {
  public:
   CustomOpBaseImpl(Graph* graph, uint32_t operation_id, const void* proc,
                    const char* kernel_name, DataLayout layout = DataLayout::ANY);
@@ -75,4 +75,4 @@ class CustomOpBaseImpl : public DirectMapOpImpl {
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_DIRECT_MAP_OP_IMPL_H_ */
+#endif /* TIM_VX_BUILTIN_OP_IMPL_H_ */

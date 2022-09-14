@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SPACE2DEPTH_H_
 #define TIM_VX_OPS_SPACE2DEPTH_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -38,7 +38,7 @@ namespace ops {
  * transformation of DepthToSpace.
  */
 
-class SpaceToDepth : public DirectMapOp {
+class SpaceToDepth : public BuiltinOp {
  public:
   SpaceToDepth(Graph* graph, std::vector<int> block_size,
                DataLayout layout = DataLayout::WHCN);
