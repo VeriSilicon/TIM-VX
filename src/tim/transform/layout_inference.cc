@@ -282,10 +282,12 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
 }  // namespace layout_inference_impl
 
 std::pair<std::shared_ptr<vx::Graph>,
-          std::map<std::shared_ptr<vx::Tensor>,
-                   std::shared_ptr<vx::Tensor>>> LayoutInference(
+          std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>>
+LayoutInference(
     const std::shared_ptr<vx::Graph>& src_graph,
-    std::shared_ptr<vx::Context>& ctx) {
+    std::shared_ptr<vx::Context>& ctx,
+    std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<IPermuteVector>>
+        tensor_pv_map) {
   std::shared_ptr<vx::Graph> infer_graph = ctx->CreateGraph();
   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
       graph_io_map;
@@ -300,8 +302,10 @@ std::pair<std::shared_ptr<vx::Graph>,
     layout_infer_ctx->UpdateTensorMap(t_src, input);
     layout_infer_ctx->UpdateGraphInputMap(t_src, input);
     tensor_queue.push_back(t_src);
-    layout_infer_ctx->SetPermuteVector(t_src,
-                                       MakeShared(t_src->GetShape().size()));
+    layout_infer_ctx->SetPermuteVector(
+        t_src, tensor_pv_map.find(t_src) != tensor_pv_map.end()
+                   ? tensor_pv_map[t_src]
+                   : MakeShared(t_src->GetShape().size()));
   }
 
   auto const_inputs = src_graph->GetConstantInputs();
@@ -310,8 +314,10 @@ std::pair<std::shared_ptr<vx::Graph>,
         infer_graph->CreateTensor(const_in->GetSpec(), const_in->GetDataRef());
     layout_infer_ctx->UpdateTensorMap(const_in, input);
     tensor_queue.push_back(const_in);
-    layout_infer_ctx->SetPermuteVector(const_in,
-                                       MakeShared(const_in->GetShape().size()));
+    layout_infer_ctx->SetPermuteVector(
+        const_in, tensor_pv_map.find(const_in) != tensor_pv_map.end()
+                   ? tensor_pv_map[const_in]
+                   : MakeShared(const_in->GetShape().size()));
   }
 
   while (!tensor_queue.empty()) {
@@ -319,7 +325,7 @@ std::pair<std::shared_ptr<vx::Graph>,
     tensor_queue.pop_front();
     const auto& consumers = src_graph->GetConsumersOp(tensor);
     for (const auto& op : consumers) {
-      if (!layout_infer_ctx->IsVisited(op) &&
+      if (!layout_infer_ctx->IsVisited(op) && op->impl()->kind_ !=-1 &&
           layout_infer_ctx->IsReadyForInfer(op)) {
         auto next_tensors =
             layout_inference_impl::HandleLayoutInfer(layout_infer_ctx, op);
