@@ -27,7 +27,7 @@
 namespace tim {
 namespace vx {
 
-BuiltinOpImpl::BuiltinOpImpl(Graph* graph, uint32_t kind, int input_cnt,
+BuiltinOpImpl::BuiltinOpImpl(Graph* graph, int32_t kind, int input_cnt,
                                  int output_cnt, DataLayout layout)
     : OpImpl(graph, kind, input_cnt, output_cnt, layout),
       node_(vsi_nn_AddNode(graph_->graph(), kind_, input_cnt_, output_cnt_,
