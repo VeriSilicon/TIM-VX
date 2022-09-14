@@ -27,6 +27,7 @@
 #define TIM_VX_OPS_MAXPOOLGRAD_H_
 
 #include "tim/vx/operation.h"
+#include <array>
 namespace tim {
 namespace vx {
 namespace ops {
