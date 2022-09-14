@@ -64,7 +64,7 @@ if(TIM_VX_ENABLE_TEST)
     FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.10.0
+    GIT_TAG release-1.12.0
     )
 
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
