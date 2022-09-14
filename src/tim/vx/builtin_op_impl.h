@@ -34,7 +34,7 @@ namespace vx {
 
 class BuiltinOpImpl : public OpImpl {
  public:
-  BuiltinOpImpl(Graph* graph, uint32_t kind, int input_cnt = 0,
+  BuiltinOpImpl(Graph* graph, int32_t kind, int input_cnt = 0,
                   int output_cnt = 0, DataLayout layout = DataLayout::ANY);
   BuiltinOpImpl(Graph* graph,DataLayout layout = DataLayout::ANY);
   ~BuiltinOpImpl() {}

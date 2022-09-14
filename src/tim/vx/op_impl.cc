@@ -26,7 +26,7 @@
 namespace tim {
 namespace vx {
 
-OpImpl::OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
+OpImpl::OpImpl(Graph* graph, int32_t kind, int input_cnt, int output_cnt,
                DataLayout layout)
     : graph_(reinterpret_cast<GraphImpl*>(graph)),
       kind_(kind),

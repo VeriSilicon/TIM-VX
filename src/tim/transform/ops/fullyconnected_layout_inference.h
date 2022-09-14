@@ -41,8 +41,12 @@ class FullyConnectedLayoutInfer : public OpLayoutInfer {
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-
+    /* vx_delegate has reshaped the input to two-dimensional when mapping,
+       The axis of 2-dimensional fc can only be 0. */
     auto input_tensors = op_->impl()->InputsTensor();
+    if(!context_->GetPermuteVector(input_tensors[0])->IsAligned()){
+      ReverseInputsPermuteVector();
+    }
     for (const auto& in : input_tensors) {
       if (in->IsConstTensor()) {
         auto infer_tensor = context_->infer_graph_->CreateTensor(in->GetSpec(),
@@ -58,7 +62,7 @@ class FullyConnectedLayoutInfer : public OpLayoutInfer {
     auto required_pv =
         MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
     auto out_infer = CreateOutputsTensor(required_pv);
-    for (auto in : op_->impl()->InputsTensor()) {
+    for (const auto in : op_->impl()->InputsTensor()) {
       (*fcl).BindInput(context_->GetMapedTensor(in));
     }
     (*fcl).BindOutput(out_infer[0]);

@@ -24,6 +24,7 @@
 #ifndef TIM_LAYOUT_INFERENCE_H_
 #define TIM_LAYOUT_INFERENCE_H_
 
+#include "permute_vector.h"
 #include <map>
 #include <vector>
 
@@ -42,12 +43,13 @@ std::pair<
     /*graph after layout inference*/
     std::shared_ptr<vx::Graph>,
     /* tensor mapping between original graph and graph after layout infer*/
-   std::map<
-        std::shared_ptr<vx::Tensor>,
-        std::shared_ptr<vx::Tensor>>
-    >
-LayoutInference(const std::shared_ptr<vx::Graph>& src_graph,
-                std::shared_ptr<vx::Context>& ctx);
+    std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>>
+LayoutInference(
+    const std::shared_ptr<vx::Graph>& src_graph,
+    std::shared_ptr<vx::Context>& ctx,
+    std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<IPermuteVector>>
+        tensor_pv_map = std::map<std::shared_ptr<vx::Tensor>,
+                                 std::shared_ptr<IPermuteVector>>());
 
 }  // namespace transform
 }  // namespace tim

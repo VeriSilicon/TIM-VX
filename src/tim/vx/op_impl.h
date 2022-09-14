@@ -33,7 +33,7 @@ namespace vx {
 
 class OpImpl {
  public:
-  OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
+  OpImpl(Graph* graph, int32_t kind, int input_cnt, int output_cnt,
          DataLayout layout);
   OpImpl(Graph* graph, DataLayout layout);
 
@@ -50,7 +50,7 @@ class OpImpl {
       uint32_t accumulator_bits = 0);
 
   GraphImpl* graph_{nullptr};
-  uint32_t kind_{0};
+  int32_t kind_{0};
   int32_t input_cnt_{0};
   int32_t output_cnt_{0};
   DataLayout layout_{DataLayout::ANY};

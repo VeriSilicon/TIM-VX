@@ -98,10 +98,9 @@ class RNNCellImpl : public OpImpl {
 
   RNNCellImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) override {
     out_tensors_[output_tensor_index] = tensor;
-
-    tanh_->BindOutput(out_tensors_[OUT]);
-    data_convert_->BindInput(out_tensors_[OUT]);
     if (this->output_tensor_index == OUT_CNT - 1) {
+      tanh_->BindOutput(out_tensors_[OUT]);
+      data_convert_->BindInput(out_tensors_[OUT]);
       data_convert_->BindOutput(out_tensors_[STATE_OUT]);
     }
     this->output_tensor_index++;
