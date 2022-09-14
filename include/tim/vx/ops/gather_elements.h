@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_GATHER_ELEMENTS_H_
 #define TIM_VX_OPS_GATHER_ELEMENTS_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -39,7 +39,7 @@ namespace ops {
  * https://github.com/onnx/onnx/blob/main/docs/Operators.md#GatherElements
  */
 
-class GatherElements : public DirectMapOp {
+class GatherElements : public BuiltinOp {
  public:
   GatherElements(Graph* Graph, int axis);
 

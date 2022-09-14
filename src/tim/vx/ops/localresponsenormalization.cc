@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/localresponsenormalization.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -33,7 +33,7 @@ LocalResponseNormalization::LocalResponseNormalization(Graph* graph,
                                                        uint32_t size,
                                                        float alpha, float beta,
                                                        float bias, int32_t axis)
-    : DirectMapOp(graph, VSI_NN_OP_LRN2),
+    : BuiltinOp(graph, VSI_NN_OP_LRN2),
       size_(size),
       alpha_(alpha),
       beta_(beta),

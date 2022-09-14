@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SHUFFLE_H_
 #define TIM_VX_OPS_SHUFFLE_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -38,7 +38,7 @@ namespace ops {
  * ```
  */
 
-class ShuffleChannel : public DirectMapOp {
+class ShuffleChannel : public BuiltinOp {
   public:
    explicit ShuffleChannel(Graph* graph, int32_t num_groups, int32_t index_axis);
    std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;

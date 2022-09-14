@@ -21,15 +21,15 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 namespace tim {
 namespace vx {
-DirectMapOp::DirectMapOp(Graph* graph, uint32_t kind, int in_cnt, int out_cnt,
+BuiltinOp::BuiltinOp(Graph* graph, uint32_t kind, int in_cnt, int out_cnt,
                          DataLayout layout) {
-  impl_ = std::make_unique<DirectMapOpImpl>(graph, kind, in_cnt, out_cnt, layout);
+  impl_ = std::make_unique<BuiltinOpImpl>(graph, kind, in_cnt, out_cnt, layout);
 }
 
 }  // namespace vx

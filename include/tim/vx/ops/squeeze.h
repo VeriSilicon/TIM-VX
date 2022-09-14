@@ -24,7 +24,7 @@
 #ifndef TIM_VX_OPS_SQUEEZE_H_
 #define TIM_VX_OPS_SQUEEZE_H_
 #include <vector>
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -38,7 +38,7 @@ namespace ops {
  * - axis : the dimensions to squeeze.
  */
 
-class Squeeze : public DirectMapOp {
+class Squeeze : public BuiltinOp {
  public:
   Squeeze(Graph* graph, std::vector<uint32_t> axis);
 

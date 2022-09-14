@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPERATION_PAD_H_
 #define TIM_VX_OPERATION_PAD_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -40,7 +40,7 @@ namespace ops {
  * - back_size : Add pad values to the right and bottom.
  */
 
-class Pad : public DirectMapOp {
+class Pad : public BuiltinOp {
  public:
   typedef enum {
     // signature

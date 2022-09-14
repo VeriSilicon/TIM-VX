@@ -22,7 +22,7 @@
 *
 *****************************************************************************/
 #include "tim/vx/ops/conv3d.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -57,7 +57,7 @@ Conv3d::Conv3d(Graph* graph, int32_t weights, PadType padding,
                const std::array<int32_t, 3>& dilation,
                const std::array<int32_t, 6>& pad, int32_t multiplier,
                DataLayout input_layout, DataLayout kernel_layout)
-    : DirectMapOp(graph, VSI_NN_OP_CONV3D, 0, 0, input_layout),
+    : BuiltinOp(graph, VSI_NN_OP_CONV3D, 0, 0, input_layout),
       weights_(weights),
       padding_(padding),
       ksize_(ksize),

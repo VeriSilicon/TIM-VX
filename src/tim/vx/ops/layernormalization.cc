@@ -24,14 +24,14 @@
 #include "tim/vx/ops/layernormalization.h"
 
 #include <cassert>
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 LayerNormalization::LayerNormalization(Graph* graph, int32_t axis, float eps)
-    : DirectMapOp(graph, VSI_NN_OP_LAYER_NORM), axis_(axis), eps_(eps) {
+    : BuiltinOp(graph, VSI_NN_OP_LAYER_NORM), axis_(axis), eps_(eps) {
   // Layer normalization shares the parameters of instance normalization.
   if (axis != 0) {
     VSILOGE("Layer norm only support axis 0.");

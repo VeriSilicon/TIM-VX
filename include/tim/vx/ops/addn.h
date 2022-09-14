@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_ADDN_H_
 #define TIM_VX_OPS_ADDN_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,7 +37,7 @@ namespace ops {
  * ```
  */
 
-class AddN : public DirectMapOp {
+class AddN : public BuiltinOp {
  public:
   AddN(Graph* graph, uint32_t num_inputs);
 

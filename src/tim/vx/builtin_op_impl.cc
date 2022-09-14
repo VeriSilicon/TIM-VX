@@ -21,13 +21,13 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 
 namespace tim {
 namespace vx {
 
-DirectMapOpImpl::DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt,
+BuiltinOpImpl::BuiltinOpImpl(Graph* graph, uint32_t kind, int input_cnt,
                                  int output_cnt, DataLayout layout)
     : OpImpl(graph, kind, input_cnt, output_cnt, layout),
       node_(vsi_nn_AddNode(graph_->graph(), kind_, input_cnt_, output_cnt_,
@@ -36,11 +36,11 @@ DirectMapOpImpl::DirectMapOpImpl(Graph* graph, uint32_t kind, int input_cnt,
   node_->uid = graph_->graph()->cur_nid;
 }
 
-DirectMapOpImpl::DirectMapOpImpl(Graph* graph,DataLayout layout)
+BuiltinOpImpl::BuiltinOpImpl(Graph* graph,DataLayout layout)
     : OpImpl(graph, layout){}
 
 
-DirectMapOpImpl& DirectMapOpImpl::BindInput(
+BuiltinOpImpl& BuiltinOpImpl::BindInput(
     const std::shared_ptr<Tensor>& tensor) {
   inputs_tensor_.push_back(tensor);
   uint32_t tensor_id = tensor->GetId();
@@ -52,7 +52,7 @@ DirectMapOpImpl& DirectMapOpImpl::BindInput(
   return *this;
 }
 
-DirectMapOpImpl& DirectMapOpImpl::BindOutput(
+BuiltinOpImpl& BuiltinOpImpl::BindOutput(
     const std::shared_ptr<Tensor>& tensor) {
   outputs_tensor_.push_back(tensor);
   uint32_t tensor_id = tensor->GetId();
@@ -64,7 +64,7 @@ DirectMapOpImpl& DirectMapOpImpl::BindOutput(
   return *this;
 }
 
-void DirectMapOpImpl::SetRoundingPolicy(OverflowPolicy overflow_policy,
+void BuiltinOpImpl::SetRoundingPolicy(OverflowPolicy overflow_policy,
                                         RoundingPolicy rounding_policy,
                                         RoundType down_scale_size_rounding,
                                         uint32_t accumulator_bits) {
@@ -78,7 +78,7 @@ void DirectMapOpImpl::SetRoundingPolicy(OverflowPolicy overflow_policy,
 #ifdef TIM_VX_ENABLE_CUSTOM_OP
 CustomOpBaseImpl::CustomOpBaseImpl(Graph* graph, uint32_t operation_id, const void* proc,
                    const char* kernel_name, DataLayout layout)
-    : DirectMapOpImpl(graph, layout) {
+    : BuiltinOpImpl(graph, layout) {
     op_proc_ = proc;
     vsi_nn_node_t* node = vsi_nn_AddExternalNode(graph_->graph(), operation_id,
                                                  proc, NULL, kernel_name);

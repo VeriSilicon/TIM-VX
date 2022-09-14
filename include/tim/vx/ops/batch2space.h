@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -43,7 +43,7 @@ namespace ops {
  * - crop : corp the output tensor for ROI usage.
  */
 
-class Batch2Space : public DirectMapOp {
+class Batch2Space : public BuiltinOp {
  public:
   Batch2Space(Graph* graph, const std::vector<int>& block_size,
                const std::vector<int>& crop,

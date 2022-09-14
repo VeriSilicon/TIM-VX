@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -46,7 +46,7 @@ namespace ops {
  * - pad : the paddings for each spatial dimension of the input tensor.
  */
 
-class Space2Batch : public DirectMapOp {
+class Space2Batch : public BuiltinOp {
  public:
   Space2Batch(Graph* graph, const std::vector<int>& block_size,
                const std::vector<int>& pad,

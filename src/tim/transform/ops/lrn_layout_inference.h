@@ -27,7 +27,7 @@
 #include "tim/vx/ops/localresponsenormalization.h"
 
 #include "ops/op_layout_inference.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 namespace tim {
 namespace transform {

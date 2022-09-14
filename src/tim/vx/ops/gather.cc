@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/gather.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Gather::Gather(Graph* graph, int axis, int batch_dims)
-    : DirectMapOp(graph, VSI_NN_OP_GATHER), axis_(axis), batch_dims_(batch_dims) {
+    : BuiltinOp(graph, VSI_NN_OP_GATHER), axis_(axis), batch_dims_(batch_dims) {
   this->impl()->node()->nn_param.gather.axis = axis_;
   this->impl()->node()->nn_param.gather.batch_dims = batch_dims_;
 }

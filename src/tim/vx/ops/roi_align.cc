@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/roi_align.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -33,7 +33,7 @@ namespace ops {
 RoiAlign::RoiAlign(Graph* graph, int32_t output_height, int32_t output_width,
           float height_ratio, float width_ratio, int32_t height_sample_num,
           int32_t width_sample_num)
-    : DirectMapOp(graph, VSI_NN_OP_ROI_ALIGN),
+    : BuiltinOp(graph, VSI_NN_OP_ROI_ALIGN),
       output_height_(output_height),
       output_width_(output_width),
       height_ratio_(height_ratio),

@@ -24,7 +24,7 @@
 
 #include "op_layout_inference.h"
 #include "permute_vector.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "tim/vx/ops/transpose.h"
 #include "type_utils.h"
 

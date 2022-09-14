@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef OVXLIBXX_OPERATIONS_BATCHNORM_H_
 #define OVXLIBXX_OPERATIONS_BATCHNORM_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -40,7 +40,7 @@ namespace ops {
  * $$y_i=\gamma\hat x_i+\beta\equiv BN_{\gamma,\beta}(x_i)$$
  */
 
-class BatchNorm : public DirectMapOp {
+class BatchNorm : public BuiltinOp {
   public:
     BatchNorm(Graph* graph, float eps, DataLayout input_layout = DataLayout::WHCN);
 

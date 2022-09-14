@@ -26,7 +26,7 @@
 
 #include "tim/vx/ops/softmax.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "permute_vector.h"
 #include "ops/op_layout_inference.h"
 

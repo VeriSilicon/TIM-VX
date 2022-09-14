@@ -24,7 +24,7 @@
 #ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #include "tim/vx/ops/maxpoolwithargmax2.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -37,7 +37,7 @@ MaxpoolWithArgmax2::MaxpoolWithArgmax2(Graph* graph, PadType padding,
                                    const std::array<uint32_t, 2>& stride,
                                    RoundType round_type,
                                    DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_MAXPOOLWITHARGMAX, 1, 2, layout),
+    : BuiltinOp(graph, VSI_NN_OP_MAXPOOLWITHARGMAX, 1, 2, layout),
       padding_(padding),
       ksize_(ksize),
       stride_(stride),
