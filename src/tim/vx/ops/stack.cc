@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/stack.h"
 
-#include "direct_map_op_impl.h"
+#include "native_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Stack::Stack(Graph* graph, uint32_t axis, int input_cnt)
-    : DirectMapOp(graph, VSI_NN_OP_STACK, input_cnt, 1), axis_(axis) {
+    : NativeOp(graph, VSI_NN_OP_STACK, input_cnt, 1), axis_(axis) {
   this->impl()->node()->nn_param.stack.axis = axis_;
 }
 

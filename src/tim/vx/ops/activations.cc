@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/activations.h"
 
-#include "direct_map_op_impl.h"
+#include "native_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 #define DEFINE_NO_PARAMETER_ACTIVATION(NAME, VSI_OP_CODE)               \
-  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE) {}         \
+  NAME::NAME(Graph* graph) : NativeOp(graph, VSI_OP_CODE) {}         \
   std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
       const {                                                           \
     return graph->CreateOperation<NAME>();                              \
@@ -49,7 +49,7 @@ DEFINE_NO_PARAMETER_ACTIVATION(SoftRelu, VSI_NN_OP_SOFTRELU)
 Elu::Elu(Graph* graph) : Elu(graph, 1) {}
 
 Elu::Elu(Graph* graph, float alpha)
-    : DirectMapOp(graph, VSI_NN_OP_ELU), alpha_(alpha) {
+    : NativeOp(graph, VSI_NN_OP_ELU), alpha_(alpha) {
   this->impl()->node()->nn_param.elu.alpha = alpha_;
 }
 
@@ -57,7 +57,7 @@ std::shared_ptr<Operation> Elu::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Elu>(this->alpha_);
 }
 
-HardSwish::HardSwish(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_SWISH) {
+HardSwish::HardSwish(Graph* graph) : NativeOp(graph, VSI_NN_OP_SWISH) {
   this->impl()->node()->nn_param.swish.type = VSI_NN_HSWISH;
   this->impl()->node()->nn_param.swish.beta = 1.0f;
 }
@@ -67,7 +67,7 @@ std::shared_ptr<Operation> HardSwish::Clone(
   return graph->CreateOperation<HardSwish>();
 }
 
-Swish::Swish(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_SWISH) {
+Swish::Swish(Graph* graph) : NativeOp(graph, VSI_NN_OP_SWISH) {
   this->impl()->node()->nn_param.swish.type = VSI_NN_SWISH;
   this->impl()->node()->nn_param.swish.beta = 1.0f;
 }
@@ -77,7 +77,7 @@ std::shared_ptr<Operation> Swish::Clone(std::shared_ptr<Graph>& graph) const {
 }
 
 Prelu::Prelu(Graph* graph, int axis)
-    : DirectMapOp(graph, VSI_NN_OP_PRELU), axis_(axis) {
+    : NativeOp(graph, VSI_NN_OP_PRELU), axis_(axis) {
   this->impl()->node()->nn_param.prelu.axis = axis_;
 }
 
@@ -86,7 +86,7 @@ std::shared_ptr<Operation> Prelu::Clone(std::shared_ptr<Graph>& graph) const {
 }
 
 HardSigmoid::HardSigmoid(Graph* graph, float alpha, float beta)
-    : DirectMapOp(graph, VSI_NN_OP_HARD_SIGMOID), alpha_(alpha), beta_(beta) {
+    : NativeOp(graph, VSI_NN_OP_HARD_SIGMOID), alpha_(alpha), beta_(beta) {
   this->impl()->node()->nn_param.hard_sigmoid.alpha = alpha_;
   this->impl()->node()->nn_param.hard_sigmoid.beta = beta_;
 }
@@ -96,7 +96,7 @@ std::shared_ptr<Operation> HardSigmoid::Clone(
   return graph->CreateOperation<HardSigmoid>(this->alpha_, this->beta_);
 }
 
-Tanh::Tanh(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_TANH) {
+Tanh::Tanh(Graph* graph) : NativeOp(graph, VSI_NN_OP_TANH) {
   this->impl()->node()->nn_param.tanh.scale_a = 1.0;
   this->impl()->node()->nn_param.tanh.scale_b = 1.0;
 }
@@ -106,7 +106,7 @@ std::shared_ptr<Operation> Tanh::Clone(std::shared_ptr<Graph>& graph) const {
 }
 
 LeakyRelu::LeakyRelu(Graph* graph, float alpha)
-    : DirectMapOp(graph, VSI_NN_OP_LEAKY_RELU), alpha_(alpha) {
+    : NativeOp(graph, VSI_NN_OP_LEAKY_RELU), alpha_(alpha) {
   this->impl()->node()->nn_param.activation.leaky_ratio = alpha_;
 }
 
@@ -116,7 +116,7 @@ std::shared_ptr<Operation> LeakyRelu::Clone(
 }
 
 Linear::Linear(Graph* graph, float a, float b)
-    : DirectMapOp(graph, VSI_NN_OP_LINEAR), a_(a), b_(b) {
+    : NativeOp(graph, VSI_NN_OP_LINEAR), a_(a), b_(b) {
   this->impl()->node()->nn_param.linear.a = a_;
   this->impl()->node()->nn_param.linear.b = b_;
 }
@@ -126,7 +126,7 @@ std::shared_ptr<Operation> Linear::Clone(std::shared_ptr<Graph>& graph) const {
 }
 
 Gelu::Gelu(Graph* graph, bool approximate)
-    : DirectMapOp(graph, VSI_NN_OP_GELU) {
+    : NativeOp(graph, VSI_NN_OP_GELU) {
   this->impl()->node()->nn_param.gelu.approximate = approximate;
 }
 
@@ -137,7 +137,7 @@ std::shared_ptr<Operation> Gelu::Clone(std::shared_ptr<Graph>& graph) const {
 
 #ifdef _VSI_NN_OP_SELU_H
 Selu::Selu(Graph* graph, float alpha, float gamma)
-    : DirectMapOp(graph, VSI_NN_OP_SELU), alpha_(alpha), gamma_(gamma) {
+    : NativeOp(graph, VSI_NN_OP_SELU), alpha_(alpha), gamma_(gamma) {
   this->impl()->node()->nn_param.selu.alpha = alpha;
   this->impl()->node()->nn_param.selu.gamma = gamma;
 }
@@ -149,7 +149,7 @@ std::shared_ptr<Operation> Selu::Clone(std::shared_ptr<Graph>& graph) const {
 
 #ifdef _VSI_NN_OP_CELU_H
 Celu::Celu(Graph* graph, float alpha)
-    : DirectMapOp(graph, VSI_NN_OP_CELU), alpha_(alpha) {
+    : NativeOp(graph, VSI_NN_OP_CELU), alpha_(alpha) {
   this->impl()->node()->nn_param.selu.alpha = alpha;
 }
 

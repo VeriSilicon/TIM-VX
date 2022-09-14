@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_DEPTH2SPACE_H_
 #define TIM_VX_OPS_DEPTH2SPACE_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/native_op.h"
 
 namespace tim {
 namespace vx {
@@ -45,7 +45,7 @@ namespace ops {
  * - crop : corp the output tensor for ROI usage.
  */
 
-class DepthToSpace : public DirectMapOp {
+class DepthToSpace : public NativeOp {
  public:
   enum depth2space_mode {
     CRD_mode = 0,

@@ -27,7 +27,7 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/native_op.h"
 #include "tim/vx/types.h"
 
 namespace tim {
@@ -45,7 +45,7 @@ namespace ops {
  * - round_type : CEILING or FLOOR.
  */
 
-class MaxpoolWithArgmax2 : public DirectMapOp {
+class MaxpoolWithArgmax2 : public NativeOp {
  public:
   MaxpoolWithArgmax2(Graph* graph, PadType padding,
          const std::array<uint32_t, 2>& ksize,

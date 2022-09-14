@@ -25,7 +25,7 @@
 #define TIM_VX_OPS_GRUCELL_H_
 
 #include <array>
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/native_op.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -42,7 +42,7 @@ namespace ops {
  *   False = "before", True = "after".
  */
 
-class GRUCell : public DirectMapOp {
+class GRUCell : public NativeOp {
  public:
   enum ActivationType {
     kNONE = 0,

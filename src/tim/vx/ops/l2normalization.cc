@@ -23,14 +23,14 @@
 *****************************************************************************/
 #include "tim/vx/ops/l2normalization.h"
 
-#include "direct_map_op_impl.h"
+#include "native_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 L2Normalization::L2Normalization(Graph* graph, int32_t axis)
-    : DirectMapOp(graph, VSI_NN_OP_L2_NORMALIZE), axis_(axis) {
+    : NativeOp(graph, VSI_NN_OP_L2_NORMALIZE), axis_(axis) {
   this->impl()->node()->nn_param.l2_normalize.axis = axis_;
 }
 

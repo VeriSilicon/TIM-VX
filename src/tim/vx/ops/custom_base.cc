@@ -25,7 +25,7 @@
 #include <map>
 #include <assert.h>
 #include "tim/vx/ops.h"
-#include "direct_map_op_impl.h"
+#include "native_op_impl.h"
 #include "vsi_nn_pub.h"
 
 #include "kernel/vsi_nn_kernel.h"

@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/native_op.h"
 
 namespace tim {
 namespace vx {
@@ -53,7 +53,7 @@ namespace ops {
  * - kernel_layout: Layout for kernel, WHIO by default.
  */
 
-class DeConv2d : public DirectMapOp {
+class DeConv2d : public NativeOp {
   public:
     DeConv2d(Graph* graph, int32_t oc_count_, PadType pad_type,
         const std::array<uint32_t, 2>& ksize,

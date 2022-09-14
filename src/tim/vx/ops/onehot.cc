@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/onehot.h"
 
-#include "direct_map_op_impl.h"
+#include "native_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 OneHot::OneHot(Graph* graph, int32_t depth, float on_value, float off_value,
                int32_t axis)
-    : DirectMapOp(graph, VSI_NN_OP_ONE_HOT),
+    : NativeOp(graph, VSI_NN_OP_ONE_HOT),
       depth_(depth),
       on_value_(on_value),
       off_value_(off_value),

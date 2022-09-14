@@ -27,7 +27,7 @@
 #include "tim/vx/ops/stack.h"
 #include "tim/vx/ops/transpose.h"
 
-#include "direct_map_op_impl.h"
+#include "native_op_impl.h"
 #include "permute_vector.h"
 #include "ops/op_layout_inference.h"
 

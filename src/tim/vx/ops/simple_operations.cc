@@ -30,7 +30,7 @@ namespace vx {
 namespace ops {
 
 #define DEFINE_SIMPLE_OP(NAME, VSI_OP_CODE)                             \
-  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE) {}           \
+  NAME::NAME(Graph* graph) : NativeOp(graph, VSI_OP_CODE) {}           \
   std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
       const {                                                           \
     return graph->CreateOperation<NAME>();                              \
