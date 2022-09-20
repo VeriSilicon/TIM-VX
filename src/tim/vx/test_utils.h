@@ -115,7 +115,11 @@ template<typename T>
                                        const std::vector<T>& actual,
                                        T abs_error){
     for (size_t i = 0; i < expected.size(); ++i){
-        EXPECT_NEAR(expected[i], actual[i], abs_error) << "at index:" << i;
+      // If expected and actual are INF, "==" operation will return true while EXPEC_NEAR return false
+        if (expected[i] == actual[i]) continue;
+        else {
+          EXPECT_NEAR(expected[i], actual[i], abs_error) << "at index:" << i;
+        }
     }
 
     return ::testing::AssertionSuccess();

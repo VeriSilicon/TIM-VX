@@ -90,6 +90,9 @@ namespace ops {
  *
  * Change the format from input tensor to output tensor. This operation ignores
  * the scale and zeroPoint of quanized tensors.
+ * 
+ * ## Rcp
+ * Computes the reciprocal of input element-wise.
  */
 
 DECLARE_SIMPLE_OP(DataConvert)
@@ -108,6 +111,7 @@ DECLARE_SIMPLE_OP(Floor)
 DECLARE_SIMPLE_OP(Ceil)
 DECLARE_SIMPLE_OP(Round)
 DECLARE_SIMPLE_OP(Cast)
+DECLARE_SIMPLE_OP(Rcp)
 
 #undef DECLARE_SIMPLE_OP
 
