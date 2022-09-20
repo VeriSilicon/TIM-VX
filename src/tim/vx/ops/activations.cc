@@ -43,6 +43,8 @@ DEFINE_NO_PARAMETER_ACTIVATION(Relu6, VSI_NN_OP_RELU6)
 DEFINE_NO_PARAMETER_ACTIVATION(Sigmoid, VSI_NN_OP_SIGMOID)
 DEFINE_NO_PARAMETER_ACTIVATION(Mish, VSI_NN_OP_MISH)
 DEFINE_NO_PARAMETER_ACTIVATION(SoftRelu, VSI_NN_OP_SOFTRELU)
+DEFINE_NO_PARAMETER_ACTIVATION(Sign,VSI_NN_OP_SIGN)
+DEFINE_NO_PARAMETER_ACTIVATION(SoftSign,VSI_NN_OP_SOFTSIGN)
 
 #undef DEFINE_NO_PARAMETER_ACTIVATION
 
@@ -154,7 +156,7 @@ Celu::Celu(Graph* graph, float alpha)
 }
 
 std::shared_ptr<Operation> Celu::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<Selu>(this->alpha_);
+  return graph->CreateOperation<Celu>(this->alpha_);
 }
 #endif
 
