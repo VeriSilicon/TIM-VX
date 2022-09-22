@@ -42,7 +42,7 @@ const std::unique_ptr<OpImpl>& Operation::impl() const { return impl_; }
 Operation& Operation::BindInput(const std::shared_ptr<Tensor>& tensor) {
   impl_->BindInput(tensor);
   impl_->graph_->UpdateTensorConsumersMap(tensor, this);
-  HandleAfterBindInput(tensor, impl_->input_tensor_index - 1);
+  OnBindInputPostProc(tensor, impl_->input_tensor_index - 1);
   return *this;
 }
 
@@ -90,7 +90,7 @@ const std::vector<std::shared_ptr<Tensor>> Operation::ConstantInputsTensor() con
     return {};
   }
 }
-void Operation::HandleAfterBindInput(const std::shared_ptr<Tensor>& tensor, int32_t input_idx){
+void Operation::OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor, int32_t input_idx){
   (void) tensor;
   (void) input_idx;
 }
