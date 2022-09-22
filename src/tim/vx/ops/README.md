@@ -119,6 +119,7 @@ Celu|CELU|Mapped|[Onnx.celu](https://github.com/onnx/onnx/blob/main/docs/Operato
 Rcp|RCP|Mapped|[tf.math.reciprocal](https://www.tensorflow.org/api_docs/python/tf/math/reciprocal)
 MaxPool3d|MAX_POOL3D|Mapped|[Onnx.MaxPool](https://github.com/onnx/onnx/blob/main/docs/Operators.md#MaxPool)
 |UnidirectionalSequenceRNN|UNIDIRECTIONAL_SEQUENCE_RNN|Planned 22Q3|[ANEURALNETWORKS_UNIDIRECTIONAL_SEQUENCE_RNN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0ae11aa1d461d2abaa117f6ee2cb503dd8)
+CumSum|CUMSUM|Mapped|[tf.math.cumsum](https://www.tensorflow.org/api_docs/python/tf/math/cumsum)
 |BidirectionalSequenceRNN|BIDIRECTIONAL_SEQUENCE_RNN|Planned 22Q3|[ANEURALNETWORKS_BIDIRECTIONAL_SEQUENCE_RNN](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a487fc5ae247de828f13e62b99f259f3c)
 |BidirectionalSequenceLSTM|BIDIRECTIONAL_SEQUENCE_LSTM|Mapped|[ANEURALNETWORKS_BIDIRECTIONAL_SEQUENCE_LSTM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a492a71cb7aa50b9a1a834a3cb269d778)
 |UnidirectionalSequenceLSTM|LSTM_OVXLIB|Mapped|[ANEURALNETWORKS_UNIDIRECTIONAL_SEQUENCE_LSTM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0aaf30e491ad0b1fc7602cbde695b2c859)

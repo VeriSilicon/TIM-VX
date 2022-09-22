@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,41 +21,36 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPERATION_H_
-#define TIM_VX_OPERATION_H_
+#ifdef VSI_FEAT_OP_CUMSUM
+#include "tim/vx/ops/cumsum.h"
 
-#include "tim/vx/graph.h"
-#include "tim/vx/tensor.h"
-
+#include "builtin_op_impl.h"
+#include "vsi_nn_pub.h"
 namespace tim {
 namespace vx {
+namespace ops {
 
-class OpImpl;
+CumSum::CumSum(Graph* graph, int32_t axis, int32_t exclusive, int32_t reverse)
+    : BuiltinOp(graph, VSI_NN_OP_CUMSUM),  axis_(axis), exclusive_(exclusive), reverse_(reverse){
+  this->impl()->node()->nn_param.cumsum.axis = axis_;
+  this->impl()->node()->nn_param.cumsum.exclusive = exclusive_;
+  this->impl()->node()->nn_param.cumsum.reverse = reverse_;
+}
 
-class Operation {
- public:
-  Operation();
-  virtual ~Operation();
-  virtual std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const = 0;
-  Operation& BindInput(const std::shared_ptr<Tensor>& tensor);
-  Operation& BindOutput(const std::shared_ptr<Tensor>& tensor);
-  Operation& BindInputs(const std::vector<std::shared_ptr<Tensor>>& tensors);
-  Operation& BindOutputs(const std::vector<std::shared_ptr<Tensor>>& tensors);
-  Operation& SetRoundingPolicy(
-      OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
-      RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
-      RoundType down_scale_size_rounding = RoundType::FLOOR,
-      uint32_t accumulator_bits = 0);
-  std::unique_ptr<OpImpl>& impl();
-  const std::unique_ptr<OpImpl>& impl() const;
-  virtual const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor() const;
-  virtual void HandleAfterBindInput(const std::shared_ptr<Tensor>& tensor, int32_t input_idx);
- protected:
-  bool IsAllInputsConst() const;
-  std::unique_ptr<OpImpl> impl_;
-};
+void CumSum::HandleAfterBindInput(const std::shared_ptr<Tensor>& tensor, int32_t input_idx){
+  if (axis_ < 0){
+    axis_ += tensor->GetShape().size();
+    (void) input_idx;
+    this->impl()->node()->nn_param.cumsum.axis = axis_;
+  }
+}
 
+std::shared_ptr<Operation> CumSum::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<CumSum>(this->axis_, this->exclusive_, this->reverse_);
+}
+
+}  // namespace ops
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPERATION_H_ */
+#endif //(VSI_FEAT_OP_CUMSUM)

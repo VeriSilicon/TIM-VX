@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,41 +21,41 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPERATION_H_
-#define TIM_VX_OPERATION_H_
+#ifdef VSI_FEAT_OP_CUMSUM
+#ifndef TIM_VX_OPS_CUMSUM_H_
+#define TIM_VX_OPS_CUMSUM_H_
 
-#include "tim/vx/graph.h"
-#include "tim/vx/tensor.h"
-
+#include "tim/vx/builtin_op.h"
 namespace tim {
 namespace vx {
+namespace ops {
 
-class OpImpl;
+/**
+ * ## Cumsum
+ *
+ * Compute the cumulative sum of the tensor along the giveb axis. By default, it 
+ * will do the sum inclusively meaning the first element is copied as is. Through 
+ * an exclusive attribute, this behavior can change to exclude the first element. 
+ * It can also perform summation in the opposite direction of the axis by setting 
+ * reverse atrribution to 1.
+ * All the attributes can be combined.
+ * - axis : Specify the cumsum eperforming along which axis.Default = 0.
+ * - exclusive : If exclusive = 1, perform exclusive cumsum.
+ * - reverse : If reverse = 1, the cumsum is performed in the opposite direction.
+ */
 
-class Operation {
+class CumSum : public BuiltinOp {
  public:
-  Operation();
-  virtual ~Operation();
-  virtual std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const = 0;
-  Operation& BindInput(const std::shared_ptr<Tensor>& tensor);
-  Operation& BindOutput(const std::shared_ptr<Tensor>& tensor);
-  Operation& BindInputs(const std::vector<std::shared_ptr<Tensor>>& tensors);
-  Operation& BindOutputs(const std::vector<std::shared_ptr<Tensor>>& tensors);
-  Operation& SetRoundingPolicy(
-      OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
-      RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
-      RoundType down_scale_size_rounding = RoundType::FLOOR,
-      uint32_t accumulator_bits = 0);
-  std::unique_ptr<OpImpl>& impl();
-  const std::unique_ptr<OpImpl>& impl() const;
-  virtual const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor() const;
-  virtual void HandleAfterBindInput(const std::shared_ptr<Tensor>& tensor, int32_t input_idx);
+  CumSum(Graph* Graph, int32_t axis=0, int32_t exclusive=0, int32_t reverse=0);
+  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  void HandleAfterBindInput(const std::shared_ptr<Tensor>& tensor, int32_t input_idx) override;
+  
  protected:
-  bool IsAllInputsConst() const;
-  std::unique_ptr<OpImpl> impl_;
+  int32_t axis_, exclusive_, reverse_;
 };
 
+}  // namespace ops
 }  // namespace vx
 }  // namespace tim
-
-#endif /* TIM_VX_OPERATION_H_ */
+#endif /* TIM_VX_OPS_CUMSUM_H_ */
+#endif //(VSI_FEAT_OP_CUMSUM)
