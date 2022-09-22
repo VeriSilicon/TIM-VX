@@ -47,11 +47,14 @@ namespace ops {
 class CumSum : public BuiltinOp {
  public:
   CumSum(Graph* Graph, int32_t axis=0, int32_t exclusive=0, int32_t reverse=0);
+  
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
-  void HandleAfterBindInput(const std::shared_ptr<Tensor>& tensor, int32_t input_idx) override;
   
  protected:
   int32_t axis_, exclusive_, reverse_;
+  
+ private:
+  void OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor, int32_t input_idx) override;
 };
 
 }  // namespace ops

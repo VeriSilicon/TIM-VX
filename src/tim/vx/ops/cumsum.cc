@@ -37,7 +37,7 @@ CumSum::CumSum(Graph* graph, int32_t axis, int32_t exclusive, int32_t reverse)
   this->impl()->node()->nn_param.cumsum.reverse = reverse_;
 }
 
-void CumSum::HandleAfterBindInput(const std::shared_ptr<Tensor>& tensor, int32_t input_idx){
+void CumSum::OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor, int32_t input_idx){
   if (axis_ < 0){
     axis_ += tensor->GetShape().size();
     (void) input_idx;
