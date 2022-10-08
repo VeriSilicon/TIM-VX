@@ -36,10 +36,10 @@ namespace ops {
  *
  * Input:
  * - input.
- * 
+ *
  * Attribute:
  * - shape: the shape which broadcast to.
- * - dimensions(optional): Which dimension in the target shape each dimension 
+ * - dimensions(optional): Which dimension in the target shape each dimension
  *   of the operand shape corresponds to. For BroadcastInDim.
  */
 
@@ -51,7 +51,7 @@ class Broadcast : public BuiltinOp {
 
    protected:
     const std::vector<int32_t> shape_;
-    const std::vector<int32_t> dimensions_;
+    std::vector<int32_t> dimensions_;
 };
 
 }  // namespace ops

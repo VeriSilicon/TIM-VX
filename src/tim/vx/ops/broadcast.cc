@@ -41,6 +41,10 @@ Broadcast::Broadcast(Graph* graph, const std::vector<int32_t>& shape,
   this->impl()->node()->nn_param.expand_broadcast.dimensions_num = dimensions_.size();
   if (dimensions.size() > 0)
   {
+    int dim_num = shape.size();
+    for (uint32_t i = 0; i < dimensions.size(); ++i) {
+      dimensions_[i] += (dimensions[i] < 0 ? dim_num : 0U);
+    }
     this->impl()->node()->nn_param.expand_broadcast.dimensions = (uint32_t*)dimensions_.data();
   } else {
     this->impl()->node()->nn_param.expand_broadcast.dimensions = nullptr;
