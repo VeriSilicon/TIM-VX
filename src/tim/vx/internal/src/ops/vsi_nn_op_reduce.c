@@ -158,7 +158,7 @@ static vsi_bool _check_is_sp_supported_type
 {
     int32_t * axes = self->nn_param.reduce.local2->axes;
     int32_t axes_num = self->nn_param.reduce.local2->axes_num;
-    vsi_size_t shapes[4][VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t shapes[4][VSI_NN_MAX_DIM_NUM] = { {0} };
     int32_t axis_in[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t new_axis[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t i = 0;

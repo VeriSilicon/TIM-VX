@@ -34,6 +34,7 @@
 #include "vsi_nn_log.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "kernel/vsi_nn_kernel.h"
 
 static vsi_status op_compute
     (
@@ -42,22 +43,16 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status;
-    status = VSI_FAILURE;
+    vsi_status status = VSI_SUCCESS;
+    vsi_nn_kernel_node_t n = NULL;
 
-    self->n = vxActivationLayer(
-        self->graph->g,
-        inputs[0]->t,
-        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_RSQRT,
-        0,
-        0,
-        outputs[0]->t
-        );
-
-    if( NULL != self->n )
+    n = vsi_nn_kernel_selector( self->graph, "rsqrt", inputs, 1, outputs, 1, NULL );
+    if ( n == NULL )
     {
-        status = VSI_SUCCESS;
+        status = VSI_FAILURE;
     }
+    self->n = (vx_node)n;
+
     return status;
 } /* op_compute() */
 

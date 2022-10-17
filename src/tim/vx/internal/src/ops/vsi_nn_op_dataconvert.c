@@ -92,6 +92,11 @@ static vsi_status op_optimize
 
     status = VSI_SUCCESS;
 
+    if( !self->graph->ctx->options.enable_dataconvert_optimize )
+    {
+        return status;
+    }
+
     if ( _is_same_quant(self, inputs, outputs) == FALSE ||
         (inputs[0]->t != NULL && outputs[0]->t != NULL))
     {

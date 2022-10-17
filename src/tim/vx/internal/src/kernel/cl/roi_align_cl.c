@@ -87,6 +87,7 @@ static vx_param_description_t _roi_align_kernel_param_def[] =
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
 };
 #define _ROI_ALIGN_PARAM_NUM  _cnt_of_array( _roi_align_kernel_param_def )
 
@@ -103,8 +104,9 @@ static vx_param_description_t _roi_align_kernel_param_def[] =
 #define SCALAR_SAMPLING_X_RATIO         (14)
 #define SCALAR_SAMPLING_Y_RATIO         (15)
 #define SCALAR_DEPTH                    (16)
+#define SCALAR_FORMAT                   (17)
 
-#define ROI_ALIGN_PARAM_NUM         17
+#define ROI_ALIGN_PARAM_NUM         18
 #define ROI_ALIGN_QUANT_PARAM_NUM   _cnt_of_array( _roi_align_kernel_param_def )
 
 /*
@@ -143,12 +145,8 @@ DEF_KERNEL_INITIALIZER(_roi_align_initializer)
     gpu_param.global_scale[2]  = 1;
 
     gpu_param.dim = 3;
-    gpu_param.global_size[0] = gpu_align_p2(
-            (out_shape->data[0] + gpu_param.global_scale[0] - 1)
-            / gpu_param.global_scale[0], 4);
-    gpu_param.global_size[1] = (
-            (out_shape->data[1] + gpu_param.global_scale[1] - 1)
-            / gpu_param.global_scale[1]);
+    gpu_param.global_size[0] = out_shape->data[0];
+    gpu_param.global_size[1] = out_shape->data[1];
     gpu_param.global_size[2] = rois_shape->data[1];
     status = vsi_nn_kernel_gpu_config( node, &gpu_param );
 
@@ -213,7 +211,8 @@ static vsi_status _query_kernel
         kernel->info.numParams   = (uint32_t)param_def_size;
         kernel->info.initialize  = initializer;
         // Register code source
-        vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 1,
+        vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 2,
+                "eltwise_ops_helper",
                 kernel_map[i].source_name );
         // Register binary source
         vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_EXECUTABLE, 1,
@@ -259,8 +258,8 @@ static vsi_nn_kernel_node_t _setup
     float   output_zp = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
     float   width_scale         = roi_scale / width_ratio;
     float   height_scale        = roi_scale / height_ratio;
-    float   in_width            = (float)(inputs[0]->attr.size[0]);
-    float   in_height           = (float)(inputs[0]->attr.size[1]);
+    int32_t in_width            = (int32_t)(inputs[0]->attr.size[0]);
+    int32_t in_height           = (int32_t)(inputs[0]->attr.size[1]);
     float   rcp_of_out_width    = 1.0f / (float)(outputs[0]->attr.size[0]);
     float   rcp_of_out_height   = 1.0f / (float)(outputs[0]->attr.size[1]);
     float   sampling_x_ratio    = width_sample_num > 0 ? (float)width_sample_num : 0;
@@ -294,6 +293,8 @@ static vsi_nn_kernel_node_t _setup
 
     if ( VSI_SUCCESS == status )
     {
+        int32_t out_dtype = (int32_t)vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+        int32_t dtype = out_dtype == F16 ? 1 : out_dtype == F32 ? 2 : 0;
         size_t node_params_num = ROI_ALIGN_PARAM_NUM;
 
         node = vsi_nn_kernel_create_node( graph, kernel );
@@ -309,13 +310,14 @@ static vsi_nn_kernel_node_t _setup
             node_params[SCALAR_OUTPUT_ZP]            = vsi_nn_kernel_scalar_create( graph, F32, &output_zp );
             node_params[SCALAR_SPATIAL_X_SCALE]      = vsi_nn_kernel_scalar_create( graph, F32, &width_scale );
             node_params[SCALAR_SPATIAL_Y_SCALE]      = vsi_nn_kernel_scalar_create( graph, F32, &height_scale );
-            node_params[SCALAR_INPUT_WIDTH]          = vsi_nn_kernel_scalar_create( graph, F32, &in_width );
-            node_params[SCALAR_INPUT_HEIGHT]         = vsi_nn_kernel_scalar_create( graph, F32, &in_height );
+            node_params[SCALAR_INPUT_WIDTH]          = vsi_nn_kernel_scalar_create( graph, I32, &in_width );
+            node_params[SCALAR_INPUT_HEIGHT]         = vsi_nn_kernel_scalar_create( graph, I32, &in_height );
             node_params[SCALAR_RCP_OF_OUTPUT_WIDTH]  = vsi_nn_kernel_scalar_create( graph, F32, &rcp_of_out_width );
             node_params[SCALAR_RCP_OF_OUTPUT_HEIGHT] = vsi_nn_kernel_scalar_create( graph, F32, &rcp_of_out_height );
             node_params[SCALAR_SAMPLING_X_RATIO]     = vsi_nn_kernel_scalar_create( graph, F32, &sampling_x_ratio );
             node_params[SCALAR_SAMPLING_Y_RATIO]     = vsi_nn_kernel_scalar_create( graph, F32, &sampling_y_ratio );
             node_params[SCALAR_DEPTH]                = vsi_nn_kernel_scalar_create( graph, I32, &depth );
+            node_params[SCALAR_FORMAT]               = vsi_nn_kernel_scalar_create( graph, I32, &dtype );
 
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, node_params_num );
@@ -332,6 +334,8 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_SAMPLING_X_RATIO] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_SAMPLING_Y_RATIO] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_DEPTH] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_DEPTH] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_FORMAT] );
         }
     }
 

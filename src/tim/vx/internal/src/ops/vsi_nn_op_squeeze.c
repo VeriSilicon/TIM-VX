@@ -88,7 +88,7 @@ static vsi_bool op_check
         }
     }
 
-    ret = vsi_nn_OpCheck(VSI_NN_OP_RSQRT, self, inputs, outputs);
+    ret = vsi_nn_OpCheck(VSI_NN_OP_DATACONVERT, self, inputs, outputs);
 
     return ret;
 } /* op_check() */

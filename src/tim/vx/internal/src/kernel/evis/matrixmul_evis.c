@@ -121,6 +121,7 @@ static const struct {
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(F16, U8,  U8,     KERNEL_SOURCE_4)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(U8,  U8,  F16,    KERNEL_SOURCE_5)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(U8,  U8,  U8,     KERNEL_SOURCE_5)
+    TENSOR_MATRIX_MUL_TRANSB_KERNELS(I16, I16, I16,    KERNEL_SOURCE_13)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(BF16,BF16,BF16,   KERNEL_SOURCE_15)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(U8,  U8,  U8,     KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(I8,  I8,  I8,     KERNEL_SOURCE_7)
@@ -622,11 +623,33 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
             0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
         }, GPU_DP_TYPE_16};
 
+        gpu_dp_inst_t uniI16MulI16SumtoI32_16x1 = {{
+            0xaaaa5555, // TCfg
+            0x00000000, // ASelt
+            0x76543210, 0x76543210, // ABin
+            0xaaaa5555, // BSelt
+            0x76543210, 0x00000000, // BBin
+            0x00000300, // AccumType, ConstantType, and PostShift
+            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+            0x00020001, 0x00040003, 0x00060005, 0x00080007 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniI16MulI16SumtoI32B_16x1 = {{
+            0x0002aaab, // TCfg
+            0x00015554, // ASelt
+            0x65432100, 0x00000007, // ABin
+            0x0002aaa8, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00002300, // AccumType, ConstantType, and PostShift
+            0x00010000, 0x00030002, 0x00050004, 0x00070006,
+            0x00000008, 0x00000000, 0x00000000, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16};
+
         float scaleIn0divOut = src0Scale / dstScale;
         float scaleIn1divOut = src1Scale / dstScale;
         float inScaleMul = src0Scale * src1Scale;
         float reScaleOut = 1 / dstScale;
         float inScaledivOut = inScaleMul / dstScale;
+        float inout_beta = src0ZP * src1ZP * 8 * inScaledivOut + dstZP;
         uint32_t multiplierA = (M0 << 16) | M0;
         uint32_t multiplierB = (M1 << 16) | M1;
         uint32_t multiplierZpA = (src0ZP << 16) | src0ZP;
@@ -646,6 +669,14 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
             uniGemmU8U8MulZptoFp32_8x4.data[i] = multiplierU8ZpAB;
             uniGemmFp16U8MulZptoFp32_4x4.data[i] = multiplierZpB;
             uniGemmFp16I16MulZptoFp32_4x4.data[i] = multiplierZpB;
+        }
+        for( i = 8; i < 12; i++)
+        {
+            uniI16MulI16SumtoI32B_16x1.data[i] = multiplierZpA;
+        }
+        for( i = 12; i < 16; i++)
+        {
+            uniI16MulI16SumtoI32_16x1.data[i] = multiplierZpB;
         }
 
         switch( pack_key )
@@ -746,6 +777,8 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
             break;
         case _PACK_SELECT_KEY( I16, I16, I16, 0, 0, 0 ):
         case _PACK_SELECT_KEY( I16, I16, I16, 0, 0, 1 ):
+        case _PACK_SELECT_KEY( I16, I16, I16, 0, 1, 0 ):
+        case _PACK_SELECT_KEY( I16, I16, I16, 0, 1, 1 ):
             {
                 status = vsi_nn_kernel_gpu_add_param( node,
                         "uniConvertInt32toUint8_2x8", &uniConvertInt32toUint8_2x8 );
@@ -753,10 +786,16 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
                         "uniConvertUint8SubZpToFp32_4x4", &uniConvertUint8SubZpToFp32_4x4 );
                 status |= vsi_nn_kernel_gpu_add_param( node,
                         "uniConvertUint8SubZpToFp32B_4x4", &uniConvertUint8SubZpToFp32B_4x4 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                        "uniI16MulI16SumtoI32_16x1", &uniI16MulI16SumtoI32_16x1 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                        "uniI16MulI16SumtoI32B_16x1", &uniI16MulI16SumtoI32B_16x1 );
                 status |= vsi_nn_kernel_gpu_add_param( node, "input0_ZP", &src0ZP );
                 status |= vsi_nn_kernel_gpu_add_param( node, "input1_ZP", &src1ZP );
                 status |= vsi_nn_kernel_gpu_add_param( node, "output_ZP", &dstZP );
                 status |= vsi_nn_kernel_gpu_add_param( node, "outputScale", &reScaleOut );
+                status |= vsi_nn_kernel_gpu_add_param( node, "inout_scale", &inScaledivOut );
+                status |= vsi_nn_kernel_gpu_add_param( node, "inout_beta", &inout_beta );
             }
             break;
         case _PACK_SELECT_KEY( F16, U8,  F16, 0, 0, 0 ):

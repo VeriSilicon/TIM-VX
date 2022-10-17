@@ -35,11 +35,11 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "vsi_nn_internal_node.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "utils/vsi_nn_dtype_util.h"
 
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (1)
@@ -65,14 +65,24 @@ static vsi_status op_compute
         vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
         vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
         vsi_size_t new_rank = 0;
-        vsi_bool ret;
+        vsi_bool ret = TRUE;
         vsi_nn_kernel_param_t * param = NULL;
 
         param = vsi_nn_kernel_param_create();
 
-        ret = vsi_nn_kernel_optimize_element_shape(
-                inputs[0]->attr.size, inputs[0]->attr.dim_num,
-                shape, &new_rank );
+        if ( vsi_nn_TypeGetBits(inputs[0]->attr.dtype.vx_type) == 4 ||
+             vsi_nn_TypeGetBits(outputs[0]->attr.dtype.vx_type) == 4 )
+        {
+            new_rank = inputs[0]->attr.dim_num;
+            memcpy(shape, inputs[0]->attr.size, sizeof(inputs[0]->attr.size));
+        }
+        else
+        {
+            ret = vsi_nn_kernel_optimize_element_shape(
+                    inputs[0]->attr.size, inputs[0]->attr.dim_num,
+                    shape, &new_rank );
+        }
+
 
         vsi_nn_kernel_param_add_float32( param, "min_value",  min_value );
         vsi_nn_kernel_param_add_float32( param, "max_value",  max_value );
@@ -154,8 +164,11 @@ static vsi_bool op_check
 
         /* HW 9.1.1 */
         IO_TYPE(D_U4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_U4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_U4|Q_ASYM,    D_I4|Q_SYM)
         IO_TYPE(D_U4|Q_SYM,     D_U4|Q_SYM)
         IO_TYPE(D_I4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_U4|Q_ASYM)
         IO_TYPE(D_I4|Q_SYM,     D_I4|Q_SYM)
 
     END_IO_TYPE_DECL(CLIP)

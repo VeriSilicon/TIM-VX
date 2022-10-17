@@ -124,7 +124,7 @@ __kernel void maximum_I32I32toI32
     float4 data0 = convert_float4(src0) * input0Scale - input0Tail;
     float4 data1 = convert_float4(src1) * input1Scale - input1Tail;
     float4 data = data0 > data1 ? data0 : data1;
-    int4 dst = convert_int4(data * outputScale + outputZP);
+    int4 dst = convert_int4_rte(data * outputScale + outputZP);
 
     write_imagei(output, coord, dst);
 }
@@ -150,7 +150,7 @@ __kernel void maximum_I32I32toI32_2D
     float4 data0 = convert_float4(src0) * input0Scale - input0Tail;
     float4 data1 = convert_float4(src1) * input1Scale - input1Tail;
     float4 data = data0 > data1 ? data0 : data1;
-    int4 dst = convert_int4(data * outputScale + outputZP);
+    int4 dst = convert_int4_rte(data * outputScale + outputZP);
 
     write_imagei(output, coord, dst);
 }

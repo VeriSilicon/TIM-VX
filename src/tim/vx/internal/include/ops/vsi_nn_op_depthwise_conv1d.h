@@ -36,6 +36,7 @@ typedef struct _vsi_nn_depthwise_conv1d_param
     uint32_t     pad[2];
     uint32_t     dilation;
     int32_t      multiplier;
+    vsi_nn_pad_mode_e pad_mode;
 } vsi_nn_depthwise_conv1d_param;
 
 __END_DECLS

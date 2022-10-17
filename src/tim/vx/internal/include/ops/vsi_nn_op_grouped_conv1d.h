@@ -51,6 +51,7 @@ typedef struct _vsi_nn_grouped_conv1d_param
     uint32_t     group;
     uint32_t     dilation;
     int32_t      multiplier;
+    vsi_nn_pad_mode_e pad_mode;
 } vsi_nn_grouped_conv1d_param;
 
 #ifdef __cplusplus

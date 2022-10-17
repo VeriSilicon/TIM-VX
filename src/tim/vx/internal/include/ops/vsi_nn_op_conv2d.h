@@ -30,6 +30,20 @@
 extern "C" {
 #endif
 
+typedef struct _vsi_nn_conv2d_param_deprecate
+{
+    uint32_t     ksize[2];
+    uint32_t     stride[2];
+    /* Pad left, right, top, bottom */
+    uint32_t     pad[4];
+    /* Pad type default value shall be AUTO */
+    vsi_nn_pad_e pad_type;
+    uint32_t     weights;
+    uint32_t     group;
+    uint32_t     dilation[2];
+    int32_t      multiplier;
+} vsi_nn_conv2d_param_deprecate;
+
 typedef struct _vsi_nn_conv2d_param
 {
     uint32_t     ksize[2];
@@ -42,6 +56,7 @@ typedef struct _vsi_nn_conv2d_param
     uint32_t     group;
     uint32_t     dilation[2];
     int32_t      multiplier;
+    vsi_nn_pad_mode_e pad_mode;
 } vsi_nn_conv2d_param;
 
 #ifdef __cplusplus
