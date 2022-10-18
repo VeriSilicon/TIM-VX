@@ -43,13 +43,13 @@ __BEGIN_DECLS
 #define VX_KERNEL_NAME_PRE_PROCESS_YUV420_SCALE_U8TOU8     CVIVANTE_NAMESPACE("evis.pre_process_yuv420_scale_U8toU8")
 #define VX_KERNEL_NAME_PRE_PROCESS_YUV420_SCALE_U8TOI8     CVIVANTE_NAMESPACE("evis.pre_process_yuv420_scale_U8toI8")
 #define VX_KERNEL_NAME_PRE_PROCESS_YUV420_COPY_U8TOU8      CVIVANTE_NAMESPACE("evis.pre_process_yuv420_copy_U8toU8")
+#define VX_KERNEL_NAME_PRE_PROCESS_YUV420_COPY_U8TOI8      CVIVANTE_NAMESPACE("evis.pre_process_yuv420_copy_U8toI8")
+#define VX_KERNEL_NAME_PRE_PROCESS_YUV420_COPY_U8TOI16     CVIVANTE_NAMESPACE("evis.pre_process_yuv420_copy_U8toI16")
 #define VX_KERNEL_NAME_PRE_PROCESS_YUV420_COPY_U8TOF16     CVIVANTE_NAMESPACE("evis.pre_process_yuv420_copy_U8toF16")
 
-#define KERNEL_SOURCE_1    "pre_process_yuv420_scale_u8",
-#define KERNEL_SOURCE_2    "pre_process_yuv420_copy_u8",
-#define KERNEL_SOURCE_3    "pre_process_yuv420_scale_fp16",
-#define KERNEL_SOURCE_4    "pre_process_yuv420_scale_i16",
-#define KERNEL_SOURCE_5    "pre_process_yuv420_scale_i8",
+#define KERNEL_SOURCE_0    "pre_process_yuv420_copy",
+#define KERNEL_SOURCE_1    "pre_process_yuv420_scale_0",
+#define KERNEL_SOURCE_2    "pre_process_yuv420_scale_1",
 
 typedef enum
 {
@@ -73,12 +73,14 @@ static const struct {
         const char* source_name;
     } pre_process_yuv420_map[] =
 {
-    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, F16, SCALE,        KERNEL_SOURCE_3)
-    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, I16, SCALE,        KERNEL_SOURCE_4)
+    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, F16, SCALE,        KERNEL_SOURCE_2)
+    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, I16, SCALE,        KERNEL_SOURCE_2)
     TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, U8,  SCALE,        KERNEL_SOURCE_1)
-    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, I8,  SCALE,        KERNEL_SOURCE_5)
-    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, U8,  COPY,         KERNEL_SOURCE_2)
-    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, F16, COPY,         KERNEL_SOURCE_2)
+    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, I8,  SCALE,        KERNEL_SOURCE_1)
+    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, U8,  COPY,         KERNEL_SOURCE_0)
+    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, F16, COPY,         KERNEL_SOURCE_0)
+    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, I8,  COPY,         KERNEL_SOURCE_0)
+    TENSOR_PRE_PROCESS_YUV420_KERNELS(U8, I16, COPY,         KERNEL_SOURCE_0)
 };
 
 static vx_param_description_t vxPreProcessYuv420Kernel_param_def[] =
@@ -115,13 +117,13 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_copy_initializer)
         {0, 0, 0},  // localWorkSize: local group size in thread
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
-    int32_t     dstZP      = 0;
-    float       dstScale   = 1;
-    int32_t     reorder    = 0;
-    int32_t     trans      = 0;
-    int32_t     order1     = 2;
-    uint32_t    width      = 0;
-    uint32_t    height     = 0;
+    float       output_zp       = 0;
+    float       output_scale    = 1;
+    int32_t     reorder         = 0;
+    int32_t     trans           = 0;
+    int32_t     order1          = 2;
+    uint32_t    width           = 0;
+    uint32_t    height          = 0;
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     vsi_size_array_t * out_shape = NULL;
@@ -149,23 +151,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_copy_initializer)
         width = width / 3;
     }
 
-    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        dstScale = 1.0f / attr[0]->asymm.scale;
-        dstZP = attr[0]->asymm.zero_point;
-    }
-    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            dstScale = (float)((int64_t)1 << attr[0]->dfp.fl);
-        }
-        else
-        {
-            dstScale = (1.0f / (float)((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        dstZP = 0;
-    }
+    output_scale = 1.0f / attr[0]->scale;
+    output_zp = (float)attr[0]->zero_point;
 
     shaderParam.global_scale[0]  = 16;
     shaderParam.global_scale[1]  = 1;
@@ -426,8 +413,10 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_copy_initializer)
         }, GPU_DP_TYPE_16 };
         switch( attr[0]->dtype )
         {
+        case I8:
         case U8:
         case F16:
+        case I16:
             {
                 // R
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniCalculateTmpR1st_4x4", &uniCalculateTmpR1st_4x4);
@@ -461,8 +450,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_copy_initializer)
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniQuantU8toU8LoR_2x8", &uniQuantU8toU8LoR_2x8);
                 status |= vsi_nn_kernel_gpu_add_param(node, "uniQuantU8toU8HiR_2x8", &uniQuantU8toU8HiR_2x8);
 
-                status |= vsi_nn_kernel_gpu_add_param(node, "zp", &dstZP);
-                status |= vsi_nn_kernel_gpu_add_param(node, "outputScale", &dstScale);
+                status |= vsi_nn_kernel_gpu_add_param(node, "output_zp", &output_zp);
+                status |= vsi_nn_kernel_gpu_add_param(node, "output_scale", &output_scale);
                 status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);
                 status |= vsi_nn_kernel_gpu_add_param(node, "bOrder", &order1);
                 CHECK_STATUS_FAIL_GOTO(status, OnError );
@@ -497,8 +486,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_initializer)
         {0, 0, 0},  // localWorkSize: local group size in thread
         {0, 0, 0}}; // globalWorkSize: image size in thread
 
-    int32_t     dstZP      = 0;
-    float       dstScale   = 1;
+    float       output_zp      = 0;
+    float       output_scale   = 1;
     int32_t     reorder    = 0;
     int32_t     order1     = 2;
     uint32_t    width      = 0;
@@ -513,38 +502,16 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[12], &reorder);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    out_shape  = attr[0]->shape;
-    dstZP      = attr[0]->asymm.zero_point;
-    dstScale   = attr[0]->asymm.scale;
-    width      = (uint32_t)(out_shape->data[0]);
-    height     = (uint32_t)(out_shape->data[1]);
+    out_shape    = attr[0]->shape;
+    output_zp    = (float)attr[0]->zero_point;
+    output_scale = 1.0f / attr[0]->scale;
+    width        = (uint32_t)(out_shape->data[0]);
+    height       = (uint32_t)(out_shape->data[1]);
 
     if (reorder != 0)
     {
         reorder = 2;
         order1 = 0;
-    }
-
-    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            dstScale = (vx_float32)((int64_t)1 << attr[0]->dfp.fl);
-        }
-        else
-        {
-            dstScale = (1.0f / (vx_float32)((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        dstZP = 0;
-    }
-    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        dstScale = 1.0f / dstScale;
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        dstScale = 1;
-        dstZP = 0;
     }
 
     shaderParam.global_scale[0]  = 4;
@@ -822,24 +789,20 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv420_initializer)
         switch( attr[0]->dtype )
         {
         case U8:
-            {
-                status = vsi_nn_kernel_gpu_add_param(node, "uniConvertInt32toUint8_2x8", &uniConvertInt32toUint8_2x8);
-                status |= vsi_nn_kernel_gpu_add_param(node, "outputScale", &dstScale);
-                status |= vsi_nn_kernel_gpu_add_param(node, "zp", &dstZP);
-                CHECK_STATUS_FAIL_GOTO(status, OnError );
-            }
-            break;
+        case F16:
         case I8:
         case I16:
             {
-                status = vsi_nn_kernel_gpu_add_param(node, "uniConvertInt32toUint8_2x8", &uniConvertInt32toUint8_2x8);
-                status |= vsi_nn_kernel_gpu_add_param(node, "outputScale", &dstScale);
-                CHECK_STATUS_FAIL_GOTO(status, OnError );
-            }
-            break;
-        case F16:
-            {
-                status = vsi_nn_kernel_gpu_add_param(node, "uniConvertHalftoFp16_2x8", &uniConvertHalftoFp16_2x8);
+                if (attr[0]->dtype == F16)
+                {
+                    status = vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniConvertHalftoFp16_2x8);
+                }
+                else
+                {
+                    status = vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniConvertInt32toUint8_2x8);
+                }
+                status |= vsi_nn_kernel_gpu_add_param(node, "output_scale", &output_scale);
+                status |= vsi_nn_kernel_gpu_add_param(node, "output_zp", &output_zp);
                 CHECK_STATUS_FAIL_GOTO(status, OnError );
             }
             break;
@@ -876,12 +839,14 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    if (enable_copy && (output_dtype == U8 || output_dtype == F16))
+    if (enable_copy && (output_dtype == I8 || output_dtype == U8 || output_dtype == F16 || output_dtype == I16))
     {
         convert_type = COPY;
+        enable_copy = TRUE;
     }
     else
     {
+        enable_copy = FALSE;
         convert_type = SCALE;
     }
 
@@ -900,7 +865,7 @@ static vsi_status _query_kernel
         kernel->info.parameters = vxPreProcessYuv420Kernel_param_def;
         kernel->info.numParams = _cnt_of_array( vxPreProcessYuv420Kernel_param_def );
 
-        if (enable_copy && (output_dtype == U8 || output_dtype == F16))
+        if (enable_copy)
         {
             kernel->info.initialize = _pre_process_yuv420_copy_initializer;
         }

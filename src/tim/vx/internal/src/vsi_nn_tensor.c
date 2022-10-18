@@ -433,7 +433,7 @@ static vsi_bool _init_tensor
 #endif
     if( TRUE == tensor->attr.is_created_from_handle )
     {
-        vx_tensor_addressing addr;
+        vx_tensor_addressing addr = NULL;
         vsi_size_t stride_size[VSI_NN_MAX_DIM_NUM];
         vsi_size_t buf_sz;
 
@@ -529,7 +529,16 @@ static vsi_bool _init_tensor
 
 #endif
                 //memset(data, 0x5A, buf_sz);
-                vxReleaseTensorAddressing( &addr );
+                if (addr)
+                {
+                    vxReleaseTensorAddressing( &addr );
+                }
+
+                if ( NULL == tensor->t )
+                {
+                    ret = FALSE;
+                    goto final;
+                }
                 vxFlushHandle( (vx_reference)tensor->t );
             }
         }
@@ -544,10 +553,11 @@ static vsi_bool _init_tensor
         tensor->t = vxCreateVirtualTensor2( graph->g,
             &params, sizeof( vx_tensor_create_params_t ) );
     }
-    if( NULL == tensor->t )
+    if ( NULL == tensor->t )
     {
         VSILOGE( "Create vx tensor fail." );
         ret = FALSE;
+        goto final;
     }
 
     if( !tensor->attr.vtl && !tensor->attr.is_const )
@@ -565,6 +575,7 @@ static vsi_bool _init_tensor
 
     ret = _try_set_const_tensor( tensor );
 
+final:
     if( scales )
     {
         free(scales);
@@ -1243,6 +1254,11 @@ void vsi_nn_SaveTensorToTextByFp32
 
         count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
             "%f%s", write_data, seperator );
+        if ( count > _TENSOR_TMPBUF_SZ )
+        {
+            VSILOGW( "tensor buffer overflow!" );
+            break;
+        }
         if( ((float)count / _TENSOR_TMPBUF_SZ) > c_flush_th )
         {
             fwrite( buf, count, 1, fp );
@@ -1335,11 +1351,21 @@ void vsi_nn_SaveDataToText
         {
             count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
                 "%d%s", (int32_t)write_data, seperator );
+            if ( count > _TENSOR_TMPBUF_SZ )
+            {
+            VSILOGW( "tensor buffer overflow!" );
+            break;
+            }
         }
         else
         {
             count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
                 "%f%s", write_data, seperator );
+            if ( count > _TENSOR_TMPBUF_SZ )
+            {
+            VSILOGW( "tensor buffer overflow!" );
+            break;
+            }
         }
         if( ((float) count / _TENSOR_TMPBUF_SZ ) > c_flush_th )
         {
@@ -1358,8 +1384,8 @@ void vsi_nn_SaveTensorToBinary
     const char       * filename
     )
 {
-    uint8_t        * data;
-    FILE            * fp;
+    uint8_t        * data = NULL;
+    FILE            * fp = NULL;
     vsi_size_t         sz;
     uint32_t         i;
     uint8_t        * packed_data = NULL;
@@ -1391,6 +1417,12 @@ void vsi_nn_SaveTensorToBinary
         packed_size = vsi_nn_GetTensorSize( tensor->attr.size, tensor->attr.dim_num,
                                                          tensor->attr.dtype.vx_type);
         packed_data = (uint8_t*)malloc(packed_size);
+        if ( NULL == packed_data )
+        {
+            VSILOGW( "malloc packed data failed" );
+            goto final;
+        }
+
         vsi_nn_Pack4bitData(tensor, data, packed_data);
         fwrite( packed_data, packed_size, 1, fp );
         if( packed_data )
@@ -1407,9 +1439,14 @@ void vsi_nn_SaveTensorToBinary
         }
         fwrite( data, sz, 1, fp );
     }
-    fclose( fp );
+
 final:
+    if (fp)
+    {
+        fclose( fp );
+    }
     vsi_nn_safe_free( data );
+    vsi_nn_safe_free( packed_data );
 } /* vsi_nn_SaveTensorToBinary() */
 
 vsi_nn_tensor_t * vsi_nn_CreateTensorFromData

@@ -141,7 +141,7 @@ static vsi_status op_optimize
     char tensor_name[128];
 
     dim = inputs[0]->attr.dim_num;
-    if(FALSE == _is_pool1d(self, inputs))
+    if (FALSE == _is_pool1d(self, inputs))
     {
         return VSI_SUCCESS;
     }
@@ -155,9 +155,9 @@ static vsi_status op_optimize
     {
         /* reshape 3d input (xcn) --> 4d input (whcn) */
         shape[0] = inputs[0]->attr.size[0];//width
-        shape[1] = 1;//height
-        shape[2] = inputs[0]->attr.size[1];
-        shape[3] = inputs[0]->attr.size[2];
+        shape[1] = inputs[0]->attr.size[1];
+        shape[2] = inputs[0]->attr.size[2];
+        shape[3] = 1;//batch
         dim = 4;
         local->reshaped_input = vsi_nn_reshape_tensor(self->graph, inputs[0], shape, dim);
     }
@@ -165,9 +165,9 @@ static vsi_status op_optimize
     {
         /* reshape 3d output(xcn) --> 4d output(whcn) */
         shape[0] = outputs[0]->attr.size[0];//width
-        shape[1] = 1;//height
-        shape[2] = outputs[0]->attr.size[1];
-        shape[3] = outputs[0]->attr.size[2];
+        shape[1] = outputs[0]->attr.size[1];
+        shape[2] = outputs[0]->attr.size[2];
+        shape[3] = 1;//batch
         dim = 4;
         local->reshaped_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shape, dim);
         if (local->reshaped_output && local->reshaped_output->t)

@@ -39,7 +39,6 @@
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)
-#define VSI_NN_SUPPORT_AXIS (0)
 
 static vsi_status op_compute
     (
@@ -52,16 +51,17 @@ static vsi_status op_compute
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
     float eps = self->nn_param.layernorm.eps;
-#if VSI_NN_SUPPORT_AXIS
-    if ( 0 )
+    int32_t axis = self->nn_param.layernorm.axis;
+
+    if ( self->nn_param.layernorm.local->use_internal_node )
     {
         return vsi_nn_internal_compute_node( self );
     }
-#endif
 
     param = vsi_nn_kernel_param_create();
 
     vsi_nn_kernel_param_add_float32( param, "eps", eps );
+    vsi_nn_kernel_param_add_int32( param, "axis", axis );
     n = vsi_nn_kernel_selector( self->graph, "layer_norm",
                     inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
     if ( n != NULL )
@@ -86,39 +86,43 @@ static vsi_bool op_setup
     )
 {
     vsi_bool ret = TRUE;
-#if VSI_NN_SUPPORT_AXIS
+    int32_t axis = 0;
     vsi_nn_internal_node_t* curr = NULL;
-#endif
 
     if ( NULL == self )
     {
         return FALSE;
     }
-#if VSI_NN_SUPPORT_AXIS
+
+    axis = self->nn_param.layernorm.axis;
+
     vsi_nn_internal_init_node_wksp( self );
 
-   if ( 0 )
+    if ( axis != 0 && !self->graph->ctx->config.support_stream_processor)
     {
         vsi_nn_internal_tensor_t* mean_tensor = NULL;
         vsi_nn_internal_tensor_t* vari_tensor = NULL;
         vsi_nn_tensor_attr_t attr;
-        int32_t *axis = NULL;
+        int32_t *axis_array = NULL;
+
+        self->nn_param.layernorm.local->use_internal_node = TRUE;
 
         memcpy( &attr, &inputs[0]->attr, sizeof( attr ) );
-        attr.size[0] = 1;
+        attr.size[axis] = 1;
         attr.vtl = TRUE;
         attr.is_const = FALSE;
         attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+
         mean_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         vari_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
 
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_MOMENTS, 0, 0);
-        axis = (int32_t*)\
-                    vsi_nn_internal_new_node_param(curr, sizeof(int32_t) * 4);
-        axis[0] = 0;
+        axis_array = (int32_t*)\
+            vsi_nn_internal_new_node_param(curr, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+        axis_array[0] = axis;
 
-        curr->node->nn_param.moments.axis = axis;
+        curr->node->nn_param.moments.axis = axis_array;
         curr->node->nn_param.moments.axis_num = 1;
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = mean_tensor->t;
@@ -136,7 +140,6 @@ static vsi_bool op_setup
         vsi_nn_internal_setup_node( self, curr );
     }
     else
-#endif
     {
         ret = vsi_nn_op_common_setup(self, inputs, outputs);
     }
@@ -211,14 +214,31 @@ static vsi_bool op_check
     return TRUE;
 } /* op_check() */
 
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+
+    self->nn_param.layernorm.axis = 0;
+
+    self->nn_param.layernorm.local = (vsi_nn_layernorm_lcl_data *)malloc(sizeof(vsi_nn_layernorm_lcl_data));
+    memset(self->nn_param.layernorm.local, 0x00, sizeof(vsi_nn_layernorm_lcl_data));
+    self->nn_param.layernorm.local->use_internal_node = FALSE;
+
+    return status;
+}
+
 static vsi_status op_deinit
     (
     vsi_nn_node_t * self
     )
 {
-#if VSI_NN_SUPPORT_AXIS
+    vsi_nn_safe_free(self->nn_param.layernorm.local);
+
     vsi_nn_internal_deinit_node_wksp( self );
-#endif
+
     vsi_nn_op_common_deinit(self);
 
     return VSI_SUCCESS;
@@ -231,7 +251,7 @@ extern "C" {
 DEF_OP_REG
     (
     /* op_name    */ LAYER_NORM,
-    /* init       */ NULL,
+    /* init       */ op_init,
     /* compute    */ op_compute,
     /* deinit     */ op_deinit,
     /* check      */ op_check,

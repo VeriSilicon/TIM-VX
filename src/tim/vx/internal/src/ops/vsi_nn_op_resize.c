@@ -135,6 +135,16 @@ static vsi_status op_optimize
     }
     else
     {
+        int32_t half_pixel_centers = self->nn_param.resize.half_pixel_centers;
+        vsi_size_t * input_size = inputs[0]->attr.size;
+        vsi_size_t * output_size = outputs[0]->attr.size;
+
+        if ( (output_size[0] % input_size[0] == 0) && (output_size[1] % input_size[1] == 0) &&
+            half_pixel_centers == TRUE && self->nn_param.resize.type == VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR )
+        {
+            self->nn_param.resize.half_pixel_centers = FALSE;
+        }
+
         return VSI_SUCCESS;
     }
 } /* op_optimize() */

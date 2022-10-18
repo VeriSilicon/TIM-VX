@@ -253,11 +253,11 @@ static VSI_INLINE_API int32_t fp32_to_dfp
     type_get_range( type, &max_range, &min_range );
     if( fl > 0 )
     {
-        data = (int32_t)vsi_rint( in * (float)( (int64_t)1 << fl ) );
+        data = (int32_t)vsi_rint( in * (double)( (int64_t)1 << fl ) );
     }
     else
     {
-        data = (int32_t)vsi_rint( in * ( 1.0f / (float)( (int64_t)1 << -fl ) ) );
+        data = (int32_t)vsi_rint( in * ( 1.0f / (double)( (int64_t)1 << -fl ) ) );
     }
     data = vsi_nn_min( data, (int32_t)max_range );
     data = vsi_nn_max( data, (int32_t)min_range );

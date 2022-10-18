@@ -94,8 +94,11 @@ static vsi_bool op_setup
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB           ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_BGRA          ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_GRAY          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ||
-         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422       ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422
         )
     {
         uint32_t i = 0;
@@ -160,7 +163,14 @@ static vsi_bool op_setup
             curr->node->nn_param.pre_process_gray.output_attr.dim_num = p->output_attr.dim_num;
 
             curr->inputs[0] = inputs[PRE_PROCESS_INPUT0];
-            curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
+            if (layout == VSI_NN_DEST_LAYOUT_NHWC)
+            {
+                curr->outputs[0] = preprocess_tensor->t;
+            }
+            else
+            {
+                curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
+            }
 
             vsi_nn_internal_setup_node(self, curr);
         }
@@ -470,6 +480,57 @@ static vsi_bool op_setup
             vsi_nn_internal_setup_node(self, curr);
         }
         break;
+    case VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422:
+    case VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422:
+        {
+            curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_YUV422, 0, 0 );
+
+            if (p->reverse_channel)
+            {
+                curr->node->nn_param.pre_process_yuv422.r_mean = p->norm.mean[2];
+                curr->node->nn_param.pre_process_yuv422.g_mean = p->norm.mean[1];
+                curr->node->nn_param.pre_process_yuv422.b_mean = p->norm.mean[0];
+            }
+            else
+            {
+                curr->node->nn_param.pre_process_yuv422.r_mean = p->norm.mean[0];
+                curr->node->nn_param.pre_process_yuv422.g_mean = p->norm.mean[1];
+                curr->node->nn_param.pre_process_yuv422.b_mean = p->norm.mean[2];
+            }
+
+            if (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422)
+            {
+                curr->node->nn_param.pre_process_yuv422.yuv422_type = 0;
+            }
+            else
+            {
+                curr->node->nn_param.pre_process_yuv422.yuv422_type = 1;
+            }
+
+            curr->node->nn_param.pre_process_yuv422.rgb_scale = p->norm.scale;
+            curr->node->nn_param.pre_process_yuv422.reverse_channel = p->reverse_channel;
+            curr->node->nn_param.pre_process_yuv422.rect.left = p->rect.left;
+            curr->node->nn_param.pre_process_yuv422.rect.top = p->rect.top;
+            curr->node->nn_param.pre_process_yuv422.rect.width = p->rect.width;
+            curr->node->nn_param.pre_process_yuv422.rect.height = p->rect.height;
+            curr->node->nn_param.pre_process_yuv422.output_attr.size = p->output_attr.size;
+            curr->node->nn_param.pre_process_yuv422.output_attr.dim_num = p->output_attr.dim_num;
+            curr->node->nn_param.pre_process_yuv422.perm = p->perm;
+            curr->node->nn_param.pre_process_yuv422.dim_num = p->dim_num;
+
+            curr->inputs[0] = inputs[PRE_PROCESS_INPUT0];
+            if (layout == VSI_NN_DEST_LAYOUT_NHWC)
+            {
+                curr->outputs[0] = preprocess_tensor->t;
+            }
+            else
+            {
+                curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
+            }
+
+            vsi_nn_internal_setup_node(self, curr);
+        }
+        break;
     default:
         {
             VSILOGE( "Not support this type!(PRE_PROCESS)\n");
@@ -479,10 +540,13 @@ static vsi_bool op_setup
     }
 
     if ( p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420        ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422       ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422       ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444        ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB           ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_BGRA          ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_GRAY          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP
         )

@@ -1,8 +1,207 @@
+# to make ovxlib can compile both IDE and SKD
+# if you want to use IDE to compile : export USE_IDE_LIB=1
+# and VIVANTE_SDK_DIR=..../VeriSilicon/VivanteIDE5.4.0/cmdtools/vsimulator
+
+###################################################################################
+#common parts
+# OBJECTS.
+
+OBJECTS =   $(OBJ_DIR)/vsi_nn_context.o \
+            $(OBJ_DIR)/vsi_nn_client_op.o \
+            $(OBJ_DIR)/vsi_nn_graph.o  \
+            $(OBJ_DIR)/vsi_nn_node_attr_template.o  \
+            $(OBJ_DIR)/vsi_nn_node.o  \
+            $(OBJ_DIR)/vsi_nn_ops.o  \
+            $(OBJ_DIR)/vsi_nn_daemon.o  \
+            $(OBJ_DIR)/vsi_nn_tensor.o \
+            $(OBJ_DIR)/vsi_nn_version.o \
+            $(OBJ_DIR)/vsi_nn_rnn.o \
+            $(OBJ_DIR)/vsi_nn_rnn_helper.o \
+            $(OBJ_DIR)/vsi_nn_internal_node.o \
+            $(OBJ_DIR)/vsi_nn_log.o \
+            $(OBJ_DIR)/vsi_nn_graph_optimization.o \
+            $(OBJ_DIR)/vsi_nn_pre_post_process.o
+
+vpath %.c utils
+OBJECTS +=   $(OBJ_DIR)/vsi_nn_code_generator.o   \
+             $(OBJ_DIR)/vsi_nn_binary_tree.o   \
+             $(OBJ_DIR)/vsi_nn_map.o   \
+             $(OBJ_DIR)/vsi_nn_link_list.o   \
+             $(OBJ_DIR)/vsi_nn_math.o   \
+             $(OBJ_DIR)/vsi_nn_dtype_util.o   \
+             $(OBJ_DIR)/vsi_nn_shape_util.o   \
+             $(OBJ_DIR)/vsi_nn_dtype.o   \
+             $(OBJ_DIR)/vsi_nn_limits.o   \
+             $(OBJ_DIR)/vsi_nn_vdata.o   \
+             $(OBJ_DIR)/vsi_nn_util.o    \
+             $(OBJ_DIR)/vsi_nn_dlfcn.o    \
+             $(OBJ_DIR)/vsi_nn_constraint_check.o    \
+             $(OBJ_DIR)/vsi_nn_hashmap.o   \
+             $(OBJ_DIR)/vsi_nn_tensor_op.o
+
+vpath %.c quantization
+OBJECTS +=   $(OBJ_DIR)/vsi_nn_dynamic_fixed_point.o   \
+             $(OBJ_DIR)/vsi_nn_asymmetric_affine.o   \
+             $(OBJ_DIR)/vsi_nn_perchannel_symmetric_affine.o
+
+vpath %.c pycc
+OBJECTS +=      $(OBJ_DIR)/vsi_pycc_interface.o
+
+vpath %.c post
+OBJECTS +=      $(OBJ_DIR)/vsi_nn_post_fasterrcnn.o \
+                $(OBJ_DIR)/vsi_nn_post_cmupose.o
+
+vpath %.c libnnext
+OBJECTS += $(OBJ_DIR)/vsi_nn_libnnext_resource.o \
+			$(OBJ_DIR)/vsi_nn_vxkernel.o
+
+vpath %.c cpu_backend
+SRCS += ${notdir ${wildcard cpu_backend/*.c}}
+
+vpath %.c libnnext/ops/kernel
+SRCS += ${notdir ${wildcard libnnext/ops/kernel/*.c}}
+
+vpath %.c ops
+SRCS += ${notdir ${wildcard ops/*.c}}
+
+vpath %.c kernel
+SRCS += ${notdir ${wildcard kernel/*.c}}
+
+vpath %.c kernel/cl
+SRCS += ${notdir ${wildcard kernel/cl/*.c}}
+
+vpath %.c kernel/cpu
+SRCS += ${notdir ${wildcard kernel/cpu/*.c}}
+
+vpath %.c kernel/evis
+SRCS += ${notdir ${wildcard kernel/evis/*.c}}
+
+vpath %.c kernel/vx
+SRCS += ${notdir ${wildcard kernel/vx/*.c}}
+
+vpath %.c kernel/sp
+SRCS += ${notdir ${wildcard kernel/sp/*.c}}
+
+vpath %.c custom/ops
+SRCS += ${notdir ${wildcard custom/ops/*.c}}
+
+vpath %.c custom/ops/kernel/evis
+SRCS += ${notdir ${wildcard custom/ops/kernel/evis/*.c}}
+
+vpath %.c custom/ops/kernel/cl
+SRCS += ${notdir ${wildcard custom/ops/kernel/cl/*.c}}
+
+vpath %.c custom/ops/kernel/cpu
+SRCS += ${notdir ${wildcard custom/ops/kernel/cpu/*.c}}
+
+vpath %.c custom/ops/kernel/sp
+SRCS += ${notdir ${wildcard custom/ops/kernel/sp/*.c}}
+
+OBJECTS +=  ${patsubst %.c, $(OBJ_DIR)/%.o, $(SRCS)}
+
+ifeq ($(USE_VIP_DEVICE),1)
+vpath %.cpp vip
+OBJECTS += $(OBJ_DIR)/virtual_device.o
+endif
+
+################################################################################
+ifeq ($(USE_IDE_LIB),1)
+# IDE.
+
+CC=$(CROSS_COMPILE)gcc
+
+INCLUDES=-I. -I$(VIVANTE_SDK_DIR)/include/ \
+ -I$(VIVANTE_SDK_DIR)/include/CL \
+ -I$(VIVANTE_SDK_DIR)/include/VX \
+ -I../include/ops -I../include/utils -I../include/inference \
+ -I../include/client -I../include -I../include/libnnext \
+ -I../include/cpu_backend
+
+ifeq (1,$(DEBUG))
+CFLAGS+=-g
+LFLAGS+=-g
+else
+CFLAGS+=-O3
+LFLAGS+=-O3
+endif
+CFLAGS += $(INCLUDES)
+CFLAGS += -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Werror -Wno-strict-aliasing -Wno-maybe-uninitialized
+CFLAGS += -fvisibility=hidden -D'OVXLIB_API=__attribute__((visibility("default")))'
+
+LIBS+= -L$(VIVANTE_SDK_DIR)/lib \
+ -lOpenVX -lOpenVXU -lCLC -lVSC -lGAL -lEmulator -lvdtproxy -lArchModelSw -lNNArchPerf
+LIBS+= -L$(VIVANTE_SDK_DIR)/lib/vsim \
+ -lOpenVX -lOpenVXU -lCLC -lVSC -lGAL  -lEmulator -lvdtproxy
+LIBS+= -L$(VIVANTE_SDK_DIR)/lib/x64_linux \
+ -lOpenVX -lOpenVXU -lCLC -lVSC -lGAL  -lEmulator -lvdtproxy
+LIBS+= -L$(VIVANTE_SDK_DIR)/lib/x64_linux/vsim \
+ -lOpenVX -lOpenVXU -lCLC -lVSC -lGAL -lEmulator -lvdtproxy
+LIBS+= -L$(VIVANTE_SDK_DIR)/lib/x64_linux/vsim \
+ -lOpenVX -lOpenVXU -lCLC -lVSC -lGAL -lEmulator -lvdtproxy
+LIBS+= -L$(VIVANTE_SDK_DIR)/../common/lib/ \
+ -lvdtproxy
+LIBS += -lm -ldl
+
+File = $(VIVANTE_SDK_DIR)/lib/libjpeg.a
+File2 = $(VIVANTE_SDK_DIR)/lib/x64_linux/libjpeg.a
+File3 = $(VIVANTE_SDK_DIR)/../common/lib/libjpeg.a
+ifeq ($(File),$(wildcard $(File)))
+LIBS+= $(File)
+else ifeq ($(File2),$(wildcard $(File2)))
+LIBS+= $(File2)
+else
+LIBS+= $(File3)
+endif
+
+###################################################################################
+# Macros.
+CFLAGS += -fPIC
+DYNAMIC      := 1
+TARGET_NAME  = libovxlib.so
+OBJ_DIR=bin_r
+TARGET_OUTPUT = $(OBJ_DIR)/$(TARGET_NAME)
+
+all: $(TARGET_OUTPUT)
+clean:
+	@rm -rf $(OBJ_DIR)/* $(OBJ_DIR)
+
+install: $(TARGET_OUTPUT)
+
+################################################################################
+
+LDFLAGS += -Wall -shared -Wl,-soname,$(TARGET_NAME) -Wl,-z,defs -fPIC
+
+ifeq ($(USE_VIP_DEVICE),1)
+LDFLAGS += -pthread
+LIBS += -lstdc++
+INCLUDE += -I../include/vip
+$(OBJ_DIR)/virtual_device.o: virtual_device.cpp
+	@echo "  COMPILE $(abspath $<)"
+	@mkdir -p $(OBJ_DIR)
+	@$(CXX) -c -std=c++14 -pthread $(CFLAGS) -o $@ $<
+endif
+
+$(TARGET_OUTPUT): $(OBJECTS)
+	@echo "  LINK    \033[1m$(notdir $@)\033[0m"
+	@$(CC) $(LDFLAGS) $(OBJECTS) -o $(TARGET_OUTPUT) $(LIBS)
+
+$(OBJ_DIR)/%.o: %.c
+	@echo "  COMPILE $(abspath $<)"
+	@mkdir -p $(OBJ_DIR)
+	@$(CC) -c $(CFLAGS) -o $@ $<
+
+else
+##################################################################################
+#SDK.
+
+# include common definition.
 include $(AQROOT)/makefile.linux.def
 
+#################################################################################
 INCLUDE += -I$(VIVANTE_SDK_INC) -I$(VIVANTE_SDK_INC)/HAL -I$(AQROOT)/sdk/inc
 INCLUDE += -I../include/ops -I../include/utils -I../include/inference
 INCLUDE += -I../include/client -I../include -I../include/libnnext
+INCLUDE += -I../include/cpu_backend
 
 CFLAGS += $(INCLUDE)
 CFLAGS += -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Werror
@@ -43,89 +242,6 @@ ifneq ($(gcdSTATIC_LINK), 1)
     endif
 endif
 #############################################################################
-# Objects.
-OBJECTS =   $(OBJ_DIR)/vsi_nn_context.o \
-            $(OBJ_DIR)/vsi_nn_client_op.o \
-            $(OBJ_DIR)/vsi_nn_graph.o  \
-            $(OBJ_DIR)/vsi_nn_node_attr_template.o  \
-            $(OBJ_DIR)/vsi_nn_node.o  \
-            $(OBJ_DIR)/vsi_nn_ops.o  \
-            $(OBJ_DIR)/vsi_nn_daemon.o  \
-            $(OBJ_DIR)/vsi_nn_tensor.o \
-            $(OBJ_DIR)/vsi_nn_version.o \
-            $(OBJ_DIR)/vsi_nn_rnn.o \
-            $(OBJ_DIR)/vsi_nn_rnn_helper.o \
-            $(OBJ_DIR)/vsi_nn_internal_node.o \
-            $(OBJ_DIR)/vsi_nn_log.o \
-            $(OBJ_DIR)/vsi_nn_graph_optimization.o \
-            $(OBJ_DIR)/vsi_nn_pre_post_process.o
-
-vpath %.c utils
-OBJECTS +=   $(OBJ_DIR)/vsi_nn_code_generator.o   \
-             $(OBJ_DIR)/vsi_nn_binary_tree.o   \
-             $(OBJ_DIR)/vsi_nn_map.o   \
-             $(OBJ_DIR)/vsi_nn_link_list.o   \
-             $(OBJ_DIR)/vsi_nn_math.o   \
-             $(OBJ_DIR)/vsi_nn_dtype_util.o   \
-             $(OBJ_DIR)/vsi_nn_shape_util.o   \
-             $(OBJ_DIR)/vsi_nn_dtype.o   \
-             $(OBJ_DIR)/vsi_nn_limits.o   \
-             $(OBJ_DIR)/vsi_nn_vdata.o   \
-             $(OBJ_DIR)/vsi_nn_util.o    \
-             $(OBJ_DIR)/vsi_nn_constraint_check.o    \
-             $(OBJ_DIR)/vsi_nn_hashmap.o   \
-             $(OBJ_DIR)/vsi_nn_tensor_op.o
-
-vpath %.c quantization
-OBJECTS +=   $(OBJ_DIR)/vsi_nn_dynamic_fixed_point.o   \
-             $(OBJ_DIR)/vsi_nn_asymmetric_affine.o   \
-             $(OBJ_DIR)/vsi_nn_perchannel_symmetric_affine.o
-
-vpath %.c pycc
-OBJECTS +=      $(OBJ_DIR)/vsi_pycc_interface.o
-
-vpath %.c post
-OBJECTS +=      $(OBJ_DIR)/vsi_nn_post_fasterrcnn.o \
-                $(OBJ_DIR)/vsi_nn_post_cmupose.o
-
-vpath %.c libnnext
-OBJECTS += $(OBJ_DIR)/vsi_nn_libnnext_resource.o \
-			$(OBJ_DIR)/vsi_nn_vxkernel.o
-
-vpath %.c libnnext/ops/kernel
-SRCS += ${notdir ${wildcard libnnext/ops/kernel/*.c}}
-
-vpath %.c ops
-SRCS += ${notdir ${wildcard ops/*.c}}
-
-vpath %.c kernel
-SRCS += ${notdir ${wildcard kernel/*.c}}
-
-vpath %.c kernel/cl
-SRCS += ${notdir ${wildcard kernel/cl/*.c}}
-
-vpath %.c kernel/cpu
-SRCS += ${notdir ${wildcard kernel/cpu/*.c}}
-
-vpath %.c kernel/evis
-SRCS += ${notdir ${wildcard kernel/evis/*.c}}
-
-vpath %.c kernel/vx
-SRCS += ${notdir ${wildcard kernel/vx/*.c}}
-
-vpath %.c custom/ops
-SRCS += ${notdir ${wildcard custom/ops/*.c}}
-
-vpath %.c custom/ops/kernel/evis
-SRCS += ${notdir ${wildcard custom/ops/kernel/evis/*.c}}
-
-vpath %.c custom/ops/kernel/cl
-SRCS += ${notdir ${wildcard custom/ops/kernel/cl/*.c}}
-
-vpath %.c custom/ops/kernel/cpu
-SRCS += ${notdir ${wildcard custom/ops/kernel/cpu/*.c}}
-
-OBJECTS +=  ${patsubst %.c, $(OBJ_DIR)/%.o, $(SRCS)}
 
 # installation directory
 INSTALL_DIR := $(VIVANTE_SDK_LIB)
@@ -133,4 +249,15 @@ INSTALL_DIR := $(VIVANTE_SDK_LIB)
 ################################################################################
 # Include the common makefile.
 
+ifeq ($(USE_VIP_DEVICE),1)
+LDFLAGS += -pthread
+LIBS += -lstdc++
+INCLUDE += -I../include/vip
+$(OBJ_DIR)/virtual_device.o: virtual_device.cpp
+	@echo "  COMPILE $(abspath $<)"
+	@mkdir -p $(OBJ_DIR)
+	@$(CXX) -c -std=c++14 -pthread $(CFLAGS) -o $@ $<
+endif
+
 include $(AQROOT)/common.target
+endif

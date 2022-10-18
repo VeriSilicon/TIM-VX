@@ -326,9 +326,20 @@ const void * vsi_nn_kernel_param_get_const_buffer
             } \
     static vsi_status NAME##_impl
 
+#define DEF_SP_KERNEL_BASE_CALLBACK( NAME )  \
+    static vsi_status NAME##_impl( vsi_nn_kernel_node_t node); \
+    static vx_status VX_CALLBACK NAME( \
+            vx_node node) {\
+                return (vx_status)NAME##_impl( \
+                        (vsi_nn_kernel_node_t)node); \
+            } \
+    static vsi_status NAME##_impl
+
+
 #define DEF_KERNEL_INITIALIZER( NAME )          DEF_KERNEL_BASE_CALLBACK( NAME )
 #define DEF_KERNEL_EXECUTOR( NAME )             DEF_KERNEL_BASE_CALLBACK( NAME )
 #define DEF_KERNEL_DEINITIALIZER( NAME )        DEF_KERNEL_BASE_CALLBACK( NAME )
+#define DEF_SP_KERNEL_QUERY( NAME )             DEF_SP_KERNEL_BASE_CALLBACK( NAME )
 
 void vsi_nn_kernel_backend_register
     (

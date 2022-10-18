@@ -76,6 +76,7 @@ typedef struct _vsi_nn_runtime_option_t
     int32_t enable_opcheck;
     int32_t enable_concat_optimize;
     int32_t enable_asymi8_to_u8;
+    int32_t enable_dataconvert_optimize;
 } vsi_nn_runtime_option_t;
 
 /**

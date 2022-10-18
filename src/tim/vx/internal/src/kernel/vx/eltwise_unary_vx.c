@@ -269,4 +269,84 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( tanh )
     return (vsi_nn_kernel_node_t)node;
 } /* tanh() */
 
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( relu1 )
+{
+    vx_node node = NULL;
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_RELU1,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* relu1() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( relu6 )
+{
+    vx_node node = NULL;
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_RELU6,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* relu6() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( rsqrt )
+{
+    vx_node node = NULL;
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_RSQRT,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* rsqrt() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( sqrt )
+{
+    vx_node node = NULL;
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_SQRT,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* sqrt() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( softrelu )
+{
+    vx_node node = NULL;
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_SOFTRELU,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* softrelu() */
+
 #undef REGISTER_ELTWISE_UNARY_OPENVX_KERNEL

@@ -150,7 +150,7 @@ _viv_uniform int inputZP;
                     VXC_Vstore3(dst_ptr, 0, dst.s012); \
                 break; \
                 case 4: \
-                    VXC_Vstore4(dst_ptr, 0, dst.0123); \
+                    VXC_Vstore4(dst_ptr, 0, dst.s0123); \
                 break; \
                 case 5: \
                     VXC_Vstore2(dst_ptr, 0, dst.s01); \
@@ -165,7 +165,7 @@ _viv_uniform int inputZP;
                     VXC_Vstore3(dst_ptr, 0, dst.s012); \
                 break; \
                 case 7: \
-                    VXC_Vstore4(dst_ptr, 0, dst.0123); \
+                    VXC_Vstore4(dst_ptr, 0, dst.s0123); \
                      dst.s012 = dst.s456; \
                     dst_ptr += 4; \
                     VXC_Vstore3(dst_ptr, 0, dst.s012); \

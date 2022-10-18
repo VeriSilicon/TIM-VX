@@ -43,6 +43,7 @@ typedef struct _vsi_nn_deconv3d_param
     uint32_t   weights;
     uint32_t   group;
     uint32_t   output_padding[3];
+    vsi_nn_pad_mode_e pad_mode;
 } vsi_nn_deconv3d_param;
 _compiler_assert(offsetof(vsi_nn_deconv3d_param, local) == 0, \
     vsi_nn_deconv3d_h );

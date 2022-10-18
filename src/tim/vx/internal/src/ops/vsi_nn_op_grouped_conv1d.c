@@ -149,6 +149,7 @@ static vsi_bool op_setup
     curr->node->nn_param.grouped_conv2d.multiplier = p->multiplier;
     curr->node->nn_param.grouped_conv2d.weights = p->weights;
     curr->node->nn_param.grouped_conv2d.pad_type = p->pad_type;
+    curr->node->nn_param.grouped_conv2d.pad_mode = p->pad_mode;
 
     vsi_nn_internal_setup_node(self, curr);
 

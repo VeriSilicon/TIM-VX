@@ -1,15 +1,13 @@
 #include "cl_viv_vx_ext.h"
 
 _viv_uniform int width;
-_viv_uniform int height;
-_viv_uniform float inv_multiplier;
-_viv_uniform int group_num;
+
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
 _viv_uniform VXC_512Bits uniExtractOddData_2x8;
 
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_sums_BF16(
-    image2d_array_t input, image2d_array_t output, float eps, int rsFlg)
+    image2d_array_t input, image2d_array_t output, float eps, int height)
 {
     int gidx = get_global_id(0) << 3;
     int lidx = get_local_id(0);
@@ -70,7 +68,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_sums
 }
 
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_sums_BF16_2D(
-    image2d_array_t input, image2d_array_t output, float eps, int rsFlg)
+    image2d_array_t input, image2d_array_t output, float eps, int height)
 {
     int gidx = get_global_id(0) << 3;
     int lidx = get_local_id(0);
@@ -129,36 +127,21 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_sums
     }
 }
 
-__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_BF16_F32toBF16(
-    image2d_array_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,
-    image2d_array_t output, float eps, int rsFlg)
+__kernel void instance_norm_BF16_F32toBF16(
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       means,
+    __write_only image2d_array_t output,
+                 int height)
 {
     int gidz = get_global_id(1);
     int4 coord = (int4)(get_global_id(0), 0, gidz, gidz);
     int4 coord_in = (int4)(get_global_id(0), 0, gidz, gidz);
     vxc_short8 src0, src1, src2;
-    float scale_vari, bias_val;
-    float4 mean_vari = (float4)(0);
+    float4 coef;
 
-    Image img3 = create_image_from_image2d(meanVari, 4);
-    __global uchar* sumVari_ptr = (__global uchar*)get_image_ptr_from_coord(img3, (int2)(0, gidz));
-    __global float4* vari_ptr = (__global float4*)sumVari_ptr;
+    coef = read_imagef(means, coord.yz);
 
-    float sval = read_imagef(scale, coord.yz).x;
-    float bval = read_imagef(bias, coord.yz).x;
-
-    for(int i = 0; i < group_num; i++)
-    {
-        mean_vari += vari_ptr[i];
-    }
-
-    mean_vari *= inv_multiplier;
-    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
-    mean_vari.s1 = rsqrt(mean_vari.s1);
-
-    scale_vari = sval * mean_vari.s1;
     float4  tmpData0, tmpData1;
-    bias_val = (bval - scale_vari * mean_vari.s0);
 
     int8 input_desc, output_desc;
     _viv_asm(COPY, input_desc, input, sizeof(input_desc));
@@ -171,6 +154,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_BF16
 
     for(coord.y = 0; coord.y < height; coord.y++)
     {
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
     VXC_OP4(img_load_3d, src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0), \
                     VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
     coord_in.y ++;
@@ -182,9 +166,9 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_BF16
     _viv_asm(COPY, tmpData1, src2, 16);
 
     float4 norm;
-    norm = scale_vari * tmpData0 + bias_val;
+    norm = tmpData0 * coef.x + coef.y;
     _viv_asm(COPY, src0, norm, 16);
-    norm = scale_vari * tmpData1 + bias_val;
+    norm = tmpData1 * coef.x + coef.y;
     _viv_asm(COPY, src1, norm, 16);
     VXC_DP2x8(src2, src0, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
     VXC_OP4_NoDest(img_store_3d, output, coord, src2, \
@@ -192,41 +176,27 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_BF16
     }
 }
 
-__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_BF16F32toBF16_2D(
-    image2d_array_t input, image2d_t bias, image2d_t scale, image2d_t meanVari,
-    image2d_array_t output, float eps, int rsFlg)
+__kernel void instance_norm_BF16_F32toBF16_2D(
+    __read_only  image2d_array_t input,
+    __read_only  image2d_t       means,
+    __write_only image2d_array_t output,
+                 int height)
 {
     int gidz = get_global_id(1);
     int gidy = gidz * height;
     int2 coord = (int2)(get_global_id(0), gidy);
-    int2 coord_para = (int2)(gidz, 0);
+    int2 coord_para = (int2)(0, gidz);
     int endH = gidy + height;
     vxc_short8 src0, src1, src2;
-    float scale_vari, bias_val;
-    float4 mean_vari = (float4)(0);
+    float4 coef;
 
-    Image img3 = create_image_from_image2d(meanVari, 4);
-    __global uchar* sumVari_ptr = (__global uchar*)get_image_ptr_from_coord(img3, coord_para.yx);
-    __global float4* vari_ptr = (__global float4*)sumVari_ptr;
+    coef = read_imagef(means, coord_para);
 
-    float sval = read_imagef(scale, coord_para.yx).x;
-    float bval = read_imagef(bias, coord_para.yx).x;
-
-    for(int i = 0; i < group_num; i++)
-    {
-        mean_vari += vari_ptr[i];
-    }
-
-    mean_vari *= inv_multiplier;
-    mean_vari.s1 = mean_vari.s1 - mean_vari.s0 * mean_vari.s0 + eps;
-    mean_vari.s1 = rsqrt(mean_vari.s1);
-
-    scale_vari = sval * mean_vari.s1;
     float4  tmpData0, tmpData1;
-    bias_val = (bval - scale_vari * mean_vari.s0);
 
     for(; coord.y < endH; coord.y++)
     {
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
     VXC_ReadImage(src0, input, coord.xy, VXC_5BITOFFSET_XY(0, 0),\
         VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
     VXC_DP2x8(src1, src0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
@@ -237,9 +207,9 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_BF16
     _viv_asm(COPY, tmpData1, src2, 16);
 
     float4 norm;
-    norm = scale_vari * tmpData0 + bias_val;
+    norm = tmpData0 * coef.x + coef.y;
     _viv_asm(COPY, src0, norm, 16);
-    norm = scale_vari * tmpData1 + bias_val;
+    norm = tmpData1 * coef.x + coef.y;
     _viv_asm(COPY, src1, norm, 16);
     VXC_DP2x8(src2, src0, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
     VXC_WriteImage(output, coord.xy, src2, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
