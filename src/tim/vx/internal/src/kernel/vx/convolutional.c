@@ -43,7 +43,8 @@ static vsi_bool _build_vx_conv2d_param
     int32_t dilation_h, int32_t dilation_w,
     int32_t multiplier,
     vsi_enum overflow_policy, vsi_enum rounding_policy,
-    vsi_enum down_scale_size_rounding
+    vsi_enum down_scale_size_rounding,
+    vsi_enum pad_mode
     )
 {
     vx_nn_convolution_params_ext_t * p1 = NULL;
@@ -78,6 +79,7 @@ static vsi_bool _build_vx_conv2d_param
     p1->khr.down_scale_size_rounding = (vx_enum)down_scale_size_rounding;
     p1->padding_x_right = (uint32_t)pad_w_end;
     p1->padding_y_bottom = (uint32_t)pad_h_end;
+    p1->pad_mode = (vx_enum)pad_mode;
     param->depth_multiplier = multiplier;
     param->stride_x = (uint32_t)stride_w;
     param->stride_y = (uint32_t)stride_h;
@@ -131,7 +133,8 @@ static vsi_bool _build_vx_conv3d_param
     int32_t dilation_d, int32_t dilation_h, int32_t dilation_w,
     int32_t multiplier,
     vsi_enum overflow_policy, vsi_enum rounding_policy,
-    vsi_enum down_scale_size_rounding
+    vsi_enum down_scale_size_rounding,
+    vsi_enum pad_mode
     )
 {
     VSI_ASSERT( stride_d > 0 );
@@ -176,6 +179,7 @@ static vsi_bool _build_vx_conv3d_param
     param->stride_w = (uint32_t)stride_w;
     param->stride_h = (uint32_t)stride_h;
     param->stride_d = (uint32_t)stride_d;
+    param->pad_mode = (vx_enum)pad_mode;
 
     return TRUE;
 } /* _build_vx_conv2d_param() */
@@ -299,7 +303,8 @@ REGISTER_CONV_OPENVX_KERNEL( conv1d )
             0,
             vsi_nn_kernel_param_get_int32(params, "overflow_policy"),
             vsi_nn_kernel_param_get_int32(params, "rounding_policy"),
-            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding")
+            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding"),
+            vsi_nn_kernel_param_get_int32(params, "pad_mode")
             );
 
     temp_tensors[0] = _expand_tensor_dim( inputs[0]->t,
@@ -374,7 +379,8 @@ REGISTER_CONV_OPENVX_KERNEL( depthwise_conv1d )
             vsi_nn_kernel_param_get_int32(params, "multiplier"),
             vsi_nn_kernel_param_get_int32(params, "overflow_policy"),
             vsi_nn_kernel_param_get_int32(params, "rounding_policy"),
-            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding")
+            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding"),
+            vsi_nn_kernel_param_get_int32(params, "pad_mode")
             );
 
     temp_tensors[0] = _expand_tensor_dim( inputs[0]->t,
@@ -493,7 +499,8 @@ REGISTER_CONV_OPENVX_KERNEL( conv2d )
             0,
             vsi_nn_kernel_param_get_int32(params, "overflow_policy"),
             vsi_nn_kernel_param_get_int32(params, "rounding_policy"),
-            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding")
+            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding"),
+            vsi_nn_kernel_param_get_int32(params, "pad_mode")
             );
 
     node = vxConvolutionLayer( graph->g,
@@ -524,7 +531,8 @@ REGISTER_CONV_OPENVX_KERNEL( depthwise_conv2d )
             vsi_nn_kernel_param_get_int32(params, "multiplier"),
             vsi_nn_kernel_param_get_int32(params, "overflow_policy"),
             vsi_nn_kernel_param_get_int32(params, "rounding_policy"),
-            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding")
+            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding"),
+            vsi_nn_kernel_param_get_int32(params, "pad_mode")
             );
 
     node = vxConvolutionLayer( graph->g,
@@ -606,7 +614,8 @@ REGISTER_CONV_OPENVX_KERNEL( conv3d )
             vsi_nn_kernel_param_get_int32(params, "depth_multiplier"),
             vsi_nn_kernel_param_get_int32(params, "overflow_policy"),
             vsi_nn_kernel_param_get_int32(params, "rounding_policy"),
-            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding")
+            vsi_nn_kernel_param_get_int32(params, "down_scale_size_rounding"),
+            vsi_nn_kernel_param_get_int32(params, "pad_mode")
             );
 
     node = vxConv3dLayer( graph->g,

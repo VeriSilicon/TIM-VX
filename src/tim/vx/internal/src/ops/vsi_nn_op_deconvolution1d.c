@@ -35,6 +35,7 @@
 #include "vsi_nn_log.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "kernel/vsi_nn_kernel.h"
+#include "vsi_nn_error.h"
 
 #define COMPUTE_DECONV_SZ( in, ksize, pad_1, pad_2, stride, output_padding )\
     (( in - 1 ) * stride + ksize - pad_1 - pad_2 + output_padding)
@@ -66,20 +67,18 @@ static vsi_status op_compute
     if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
     {
         weight_tensor = vsi_nn_reshape_tensor( self->graph, inputs[1], weight_attr.size, 4 );
+        CHECK_PTR_FAIL_GOTO( weight_tensor, "create tensor fail.", final );
     }
     else
     {
         uint8_t * data = NULL;
         data = vsi_nn_ConvertTensorToData( self->graph, inputs[1] );
-        if (NULL == data)
-        {
-            VSILOGE("Convert data fail.\n");
-            status = VSI_FAILURE;
-            return status;
-        }
+        CHECK_PTR_FAIL_GOTO( data, "Convert data fail.", final );
+
         weight_attr.dtype.channel_dim = inputs[1]->attr.dtype.channel_dim + 1;
         weight_tensor = vsi_nn_CreateTensorFromData(self->graph, data, &weight_attr);
         vsi_nn_safe_free( data );
+        CHECK_PTR_FAIL_GOTO( weight_tensor, "create tensor fail.", final );
     }
 
 #ifdef VX_DECONVOLUTION_WEIGHT_LAYOUT_COMPATIBLE_KHRONOS

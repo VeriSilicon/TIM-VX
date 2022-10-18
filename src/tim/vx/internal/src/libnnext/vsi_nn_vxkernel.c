@@ -478,7 +478,7 @@ vsi_status vsi_nn_ClientNodePassParameters
     )
 {
     vsi_status status;
-    uint8_t i;
+    uint32_t i;
 
     status = VSI_FAILURE;
     for( i = 0; i < num; i++ )

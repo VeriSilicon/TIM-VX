@@ -34,7 +34,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -53,6 +53,7 @@ static vsi_status _create_local_tensor
     vsi_nn_repeat_lcl_data *local = self->nn_param.repeat.local;
     vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {1, 1, 1, 1};
     uint32_t i = 0;
+    vsi_status status = VSI_FAILURE;
 
     if (axis == -1)
     {
@@ -63,6 +64,7 @@ static vsi_status _create_local_tensor
         }
 
         local->reshaped_input = vsi_nn_reshape_tensor(self->graph, inputs[0], shape, 1);
+        CHECK_PTR_FAIL_GOTO( local->reshaped_input, "create tensor fail.", final );
 
         shape[0] = 1;
         for(i = 0; i < outputs[0]->attr.dim_num; i++)
@@ -70,6 +72,7 @@ static vsi_status _create_local_tensor
             shape[0] *= outputs[0]->attr.size[i];
         }
         local->reshaped_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shape, 1);
+        CHECK_PTR_FAIL_GOTO( local->reshaped_output, "create tensor fail.", final );
     }
 
     if (repeat_host)
@@ -103,9 +106,12 @@ static vsi_status _create_local_tensor
         attr.dim_num = 2;
 
         local->repeat_tensor = vsi_nn_CreateTensorFromData(self->graph, (uint8_t*)repeat_host, &attr);
+        CHECK_PTR_FAIL_GOTO( local->repeat_tensor, "create tensor fail.", final );
     }
 
-    return VSI_SUCCESS;
+    status = VSI_SUCCESS;
+final:
+    return status;
 }
 
 static vsi_status op_compute

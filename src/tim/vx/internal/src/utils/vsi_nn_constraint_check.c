@@ -45,6 +45,8 @@ static const char* _get_dtype_name(vsi_nn_type_e type)
     switch(type)
     {
         case D_NONE: return "Optional";
+        case D_I4: return "INT4";
+        case D_U4: return "UINT4";
         case D_I8: return "INT8";
         case D_I16: return "INT16";
         case D_I32: return "INT32";
@@ -73,6 +75,7 @@ static const char* _get_qtype_name(vsi_nn_qnt_type_e type)
         case VSI_NN_QNT_TYPE_NONE: return "";
         case VSI_NN_QNT_TYPE_DFP: return "DFP";
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC: return "ASYM";
+        case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC: return "SYM";
         case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC: return "SYMM PC";
         default:
             VSILOGE("Unknown quant type: %d\n", type);
@@ -234,14 +237,14 @@ char* generate_op_io_types_desc
     memset(desc, 0x00, sizeof(char) * total_sz);
 
     for(i = 0; i < inputs_num; i++) {
-        if(inputs[i]) {
+        if(inputs[i] && total_sz >= used_sz) {
             used_sz += snprintf(desc + used_sz, total_sz - used_sz, "%s %s, ",
                     _get_qtype_name(inputs[i]->attr.dtype.qnt_type),
                     _get_dtype_name(inputs[i]->attr.dtype.vx_type));
         }
     }
     for(i = 0; i < outputs_num; i++) {
-        if(outputs[i]) {
+        if(outputs[i] && total_sz >= used_sz) {
             used_sz += snprintf(desc + used_sz, total_sz - used_sz, "%s %s, ",
                     _get_qtype_name(outputs[i]->attr.dtype.qnt_type),
                     _get_dtype_name(outputs[i]->attr.dtype.vx_type));

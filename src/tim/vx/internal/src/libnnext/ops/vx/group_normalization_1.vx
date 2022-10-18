@@ -98,7 +98,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_##name#
     vxc_float4  tmpData0, tmpData1, tmpData2, tmpData3, norm; \
     half4 tmpVal0, tmpVal1; \
     float alpha = scale_vari; \
-    float alpha = scale_vari * input_scale; \
+    alpha = scale_vari * input_scale; \
     bias_val = (bias_f.s0 - scale_vari * mean_vari.s0); \
     bias_val = bias_val - input_zp * alpha; \
  \

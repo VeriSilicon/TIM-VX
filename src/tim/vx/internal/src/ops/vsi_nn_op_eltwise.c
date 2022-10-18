@@ -38,6 +38,14 @@
 #include "kernel/vsi_nn_kernel_eltwise.h"
 #include "utils/vsi_nn_constraint_check.h"
 
+vsi_bool vsi_nn_kernel_is_supported_types
+    (
+    vsi_nn_tensor_t** inputs,
+    size_t input_num,
+    vsi_nn_tensor_t** outputs,
+    size_t output_num
+    );
+
 static vsi_status _eltwise_op_compute
     (
     const char * kernel_name,
@@ -54,8 +62,9 @@ static vsi_status _eltwise_op_compute
     vx_bool doShapeOptimized = TRUE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_context_t   ctx = NULL;
+    vsi_bool is_executed_on_sh = FALSE;
 
-    if( NULL == self )
+    if ( NULL == self )
     {
         return VSI_FAILURE;
     }
@@ -63,11 +72,15 @@ static vsi_status _eltwise_op_compute
 
     ctx = self->graph->ctx;
 
+    is_executed_on_sh = vsi_nn_kernel_is_supported_types(inputs, 2, outputs, 1) &&
+        !ctx->config.support_stream_processor;
+
     if ( strcmp(kernel_name, "sub") == 0
       || strcmp(kernel_name, "add") == 0
       || strcmp(kernel_name, "mul") == 0
-      || (strcmp(kernel_name, "maximum") == 0 && ctx->config.support_stream_processor)
-      || (strcmp(kernel_name, "minimum") == 0 && ctx->config.support_stream_processor))
+      || (strcmp(kernel_name, "maximum") == 0 && !is_executed_on_sh)
+      || (strcmp(kernel_name, "minimum") == 0 && !is_executed_on_sh)
+      || (strcmp(kernel_name, "div") == 0 && !is_executed_on_sh))
     {
         doShapeOptimized = FALSE;
 

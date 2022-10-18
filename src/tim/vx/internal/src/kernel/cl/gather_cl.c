@@ -252,6 +252,16 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
+    if (input0_dtype == I8)
+    {
+        input0_dtype = I32;
+    }
+
+    if (output_dtype == I8)
+    {
+        output_dtype = I32;
+    }
+
     key = HASH_GATHER_KEY( input0_dtype, I32, output_dtype, 0, is_batch );
 
     for ( i = 0; i < _cnt_of_array(gather_map); i ++ )

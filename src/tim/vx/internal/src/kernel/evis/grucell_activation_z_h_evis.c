@@ -158,7 +158,7 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_z_h_initializer)
         if (srcFixPointPos >= 0)
             output_scale *= (vx_float32)((int64_t)1 << srcFixPointPos);
         else if (srcFixPointPos < 0)
-            output_scale *= 1.0f / (vx_float32) ((int64_t)1 << -srcFixPointPos);
+            output_scale *= 1.0f / (vx_float32) ((int64_t)1 << - srcFixPointPos);
     }
     else if ( VSI_NN_KERNEL_QUANT_ASYMM == output_attr[0]->quant )
     {

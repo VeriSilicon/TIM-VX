@@ -63,7 +63,11 @@ static vsi_status query_hardware_caps
     context->config.support_stream_processor = paramExt.supportStreamProcessor;
     context->config.sp_exec_count = paramExt2.streamProcessorExecCount;
     context->config.sp_vector_depth = paramExt2.streamProcessorVectorSize;
-    context->config.sp_per_core_vector_depth = context->config.sp_vector_depth / context->config.sp_exec_count;
+    if (context->config.sp_exec_count > 0)
+    {
+        context->config.sp_per_core_vector_depth =
+            context->config.sp_vector_depth / context->config.sp_exec_count;
+    }
 #endif
 
 #endif
@@ -128,6 +132,13 @@ static vsi_status vsi_nn_initOptions
     if (vsi_nn_getEnv("VSI_NN_ENABLE_I8TOU8", &env_s) && env_s)
     {
         options->enable_asymi8_to_u8 = atoi(env_s);
+    }
+
+    env_s = NULL;
+    options->enable_dataconvert_optimize = 1;
+    if (vsi_nn_getEnv("VSI_NN_ENABLE_DATACONVERT_OPTIMIZE", &env_s) && env_s)
+    {
+        options->enable_dataconvert_optimize = atoi(env_s);
     }
 
     return VSI_SUCCESS;
