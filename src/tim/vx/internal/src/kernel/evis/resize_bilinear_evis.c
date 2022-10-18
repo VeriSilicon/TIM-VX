@@ -1202,7 +1202,7 @@ DEF_KERNEL_INITIALIZER(_bilinear_align_corners_opt_initializer)
 
     if ((U8 == input_dtype) && (_is_same_quant(input_attr, output_attr)))
     {
-        is_8x_align_corners = (scale_factor[0] == scale_factor[1]) && (scale_factor[0] = 0.125f);
+        is_8x_align_corners = (scale_factor[0] == scale_factor[1]) && (scale_factor[0] == 0.125f);
     }
 
     if (is_8x_align_corners)
@@ -1595,6 +1595,37 @@ OnError:
     return scale;
 }
 
+static vsi_bool _is_image_width_lt16
+    (
+    vsi_nn_graph_t              * graph,
+    vsi_nn_tensor_t               *input,
+    int32_t                       pad_left,
+    int32_t                       pad_right
+    )
+{
+    vsi_nn_kernel_dtype_e in_dtype = vsi_nn_kernel_map_dtype( input->attr.dtype.vx_type );
+    vsi_size_t width = input->attr.size[0];
+    size_t bytes = vsi_nn_kernel_dtype_get_bytes(in_dtype);
+    vsi_size_t max_cross_read_img_width = bytes == 1 ? 16 : 8;
+
+    if (VSI_NN_HW_EVIS_2 == graph->ctx->config.evis.ver)
+    {
+        return FALSE;
+    }
+
+    if (pad_left <= 0 || pad_right <= 0)
+    {
+        return FALSE;
+    }
+
+    if (width + pad_left + pad_right > max_cross_read_img_width )
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 static vsi_nn_kernel_node_t _setup
     (
     vsi_nn_graph_t              * graph,
@@ -1615,6 +1646,13 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool is_evis2           = (vsi_bool)(graph->ctx->config.evis.ver == VSI_NN_HW_EVIS_2);
     vsi_bool is_run_opt_kernel  = FALSE;
     vsi_nn_tensor_t*  scale     = NULL;
+    int32_t pad_left = half_pixel_centers ? 1 : 0;
+    int32_t pad_right = half_pixel_centers ? 1 : 0;
+
+    if (_is_image_width_lt16(graph, inputs[0], pad_left, pad_right))
+    {
+        return NULL;
+    }
 
     status = _query_kernel( kernel, inputs, outputs, is_same_type, is_evis2,
                             align_corners, half_pixel_centers, &is_run_opt_kernel);

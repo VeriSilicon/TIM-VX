@@ -751,6 +751,20 @@ OVXLIB_API vsi_bool vsi_nn_IsGraphFastMode
     (
     const vsi_nn_graph_t* graph
     );
+
+OVXLIB_API vsi_status vsi_nn_CopyTensorViaGraphs
+    (
+    vsi_nn_graph_t *src_graph,
+    vsi_nn_tensor_id_t src_tensor_id,
+    vsi_nn_graph_t *dst_graph,
+    vsi_nn_tensor_id_t dst_tensor_id
+    );
+
+OVXLIB_API vsi_status vsi_nn_ExecuteGraphLoop
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t *max_iteration_tensor
+    );
 #ifdef __cplusplus
 }
 #endif

@@ -27,6 +27,8 @@
 #include <memory>
 #include <functional>
 
+#include "vsi_nn_pub.h"
+
 struct _vsi_nn_graph;
 typedef struct _vsi_nn_graph vsi_nn_graph_t;
 
@@ -38,13 +40,13 @@ using data_t = const void*;
 
 class IDevice {
     public:
-        IDevice(uint32_t id);
-        ~IDevice();
-        uint32_t Id() const;
-        bool GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data);
-        bool GraphRemove(const vsi_nn_graph_t* graph);
-        bool ThreadExit();
-        void WaitThreadIdle();
+        OVXLIB_API IDevice(uint32_t id);
+        OVXLIB_API ~IDevice();
+        OVXLIB_API uint32_t Id() const;
+        OVXLIB_API bool GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data);
+        OVXLIB_API bool GraphRemove(const vsi_nn_graph_t* graph);
+        OVXLIB_API bool ThreadExit();
+        OVXLIB_API void WaitThreadIdle();
 
     protected:
         Device* device_;

@@ -199,6 +199,31 @@ static float softsign_eval(float x)
     return x / (1 + vsi_abs(x));
 }
 
+static float linear_exp_eval(float x, vsi_nn_kernel_lut_params *lut_param)
+{
+    float a = lut_param->params[0];
+    float b = lut_param->params[1];
+
+    return expf(x * a + b);
+}
+
+static float linear_rsqrt_eval(float x, vsi_nn_kernel_lut_params *lut_param)
+{
+    float a = lut_param->params[0];
+    float b = lut_param->params[1];
+    float scale = lut_param->params[2];
+
+    return scale / sqrtf(a * x + b);
+}
+
+static float linear_sigmoid_eval(float x, vsi_nn_kernel_lut_params *lut_param)
+{
+    float a = lut_param->params[0];
+    float b = lut_param->params[1];
+
+    return 1.0f / (1 + expf(a * x + b));;
+}
+
 static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *lut_param)
 {
     float result = 0;
@@ -260,6 +285,15 @@ static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *
         break;
     case VSI_NN_KERNEL_LUT_SOFTSIGN:
         result = softsign_eval(data);
+        break;
+    case VSI_NN_KERNEL_LUT_LINEAR_EXP:
+        result = linear_exp_eval(data, lut_param);
+        break;
+    case VSI_NN_KERNEL_LUT_LINEAR_RSQRT:
+        result = linear_rsqrt_eval(data, lut_param);
+        break;
+    case VSI_NN_KERNEL_LUT_LINEAR_SIGMOID:
+        result = linear_sigmoid_eval(data, lut_param);
         break;
     default:
         VSILOGE( "unsupported activation function:%d", lut_param->act_type );

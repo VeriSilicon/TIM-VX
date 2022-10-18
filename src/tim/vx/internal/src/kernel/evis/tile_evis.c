@@ -544,6 +544,8 @@ static vsi_nn_kernel_node_t _setup
             vsi_size_t depthOut = new_rank > 2 ? reshape_tensors[1]->attr.size[2] : 1;
             vsi_size_t batchIn = new_rank > 3 ? reshape_tensors[0]->attr.size[3] : 1;
 
+            shapes[1][2] = shapes[1][2] == 0 ? 1 : shapes[1][2];
+            shapes[1][3] = shapes[1][3] == 0 ? 1 : shapes[1][3];
 
             vsi_nn_kernel_node_pack_io( node_params, _EVIS_PARAM_NUM,
                     &reshape_tensors[0], 1, &reshape_tensors[1], 1 );

@@ -1,0 +1,176 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniDataConvert_0_4x4;
+_viv_uniform VXC_512Bits uniDataConvert_1_4x4;
+_viv_uniform int boundaries_size_x8;
+_viv_uniform int boundaries_size;
+
+#define BUCKETIZE_16BITS_SH_IMPL(name, copy_type) \
+__kernel void bucketize_right_##name \
+    ( \
+    __read_only  image2d_t input, \
+    __read_only  image2d_t boundaries, \
+    __write_only image2d_t output \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \
+ \
+    vxc_short8 data0, data1; \
+    copy_type src0, src1, dst0, dst1; \
+    vxc_ushort8 v0, v1, v2, v3, result = 0; \
+    VXC_ReadImage(data0, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, src0, data0, 16); \
+ \
+    for (; coord.z < boundaries_size_x8; ) \
+    { \
+        VXC_ReadImage(data1, boundaries, coord.zw, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src1, data1.s00000000, 16); \
+        coord.z += 8; \
+ \
+        VXC_Clamp(dst0, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v0, dst0, 16); \
+        v2 = sub_sat(v0, 0xFFFE); \
+        _viv_asm(COPY, src1, data1.s11111111, 16); \
+        VXC_Clamp(dst1, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v1, dst1, 16); \
+        v3 = sub_sat(v1, 0xFFFE); \
+ \
+        result = result + v2 + v3; \
+ \
+        _viv_asm(COPY, src1, data1.s22222222, 16); \
+        VXC_Clamp(dst0, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v0, dst0, 16); \
+        v2 = sub_sat(v0, 0xFFFE); \
+        _viv_asm(COPY, src1, data1.s33333333, 16); \
+        VXC_Clamp(dst1, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v1, dst1, 16); \
+        v3 = sub_sat(v1, 0xFFFE); \
+ \
+        result = result + v2 + v3; \
+ \
+        _viv_asm(COPY, src1, data1.s44444444, 16); \
+        VXC_Clamp(dst0, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v0, dst0, 16); \
+        v2 = sub_sat(v0, 0xFFFE); \
+        _viv_asm(COPY, src1, data1.s55555555, 16); \
+        VXC_Clamp(dst1, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v1, dst1, 16); \
+        v3 = sub_sat(v1, 0xFFFE); \
+ \
+        result = result + v2 + v3; \
+ \
+        _viv_asm(COPY, src1, data1.s66666666, 16); \
+        VXC_Clamp(dst0, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v0, dst0, 16); \
+        v2 = sub_sat(v0, 0xFFFE); \
+        _viv_asm(COPY, src1, data1.s77777777, 16); \
+        VXC_Clamp(dst1, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v1, dst1, 16); \
+        v3 = sub_sat(v1, 0xFFFE); \
+ \
+        result = result + v2 + v3; \
+    } \
+ \
+    for (; coord.z < boundaries_size; ) \
+    { \
+        VXC_ReadImage(data1, boundaries, coord.zw, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src1, data1.s00000000, 16); \
+        coord.z ++; \
+ \
+        VXC_Clamp(dst0, src0, src1, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, v0, dst0, 16); \
+        v2 = sub_sat(v0, 0xFFFE); \
+ \
+        result = result + v2; \
+    } \
+ \
+    int4 d0, d1; \
+    VXC_DP4x4(d0, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniDataConvert_0_4x4); \
+    VXC_DP4x4(d1, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniDataConvert_1_4x4); \
+    coord.z = coord.x + 4; \
+ \
+    write_imagei(output, coord.xy, d0); \
+    write_imagei(output, coord.zy, d1); \
+}
+BUCKETIZE_16BITS_SH_IMPL(F16_F16toI32_2D, vxc_half8)
+BUCKETIZE_16BITS_SH_IMPL(I16_I16toI32_2D, vxc_short8)
+
+#define BUCKETIZE_8BITS_SH_IMPL(name, src_type) \
+__kernel void bucketize_right_##name \
+    ( \
+    __read_only  image2d_t input, \
+    __read_only  image2d_t boundaries, \
+    __write_only image2d_t output \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \
+ \
+    src_type src0, src1, src2; \
+    vxc_uchar8 dst0, dst1, result = 0; \
+    VXC_ReadImage(src0, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(src1, boundaries, coord.zw, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    for (; coord.z < boundaries_size_x8; ) \
+    { \
+        VXC_ReadImage(src1, boundaries, coord.zw, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        coord.z += 8; \
+ \
+        VXC_Clamp(src2, src0, src1.s00000000, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst0, src2, 8); \
+        dst0 = sub_sat(dst0, 0xFE); \
+        VXC_Clamp(src2, src0, src1.s11111111, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst1, src2, 8); \
+        dst1 = sub_sat(dst1, 0xFE); \
+ \
+        result = result + dst0 + dst1; \
+ \
+        VXC_Clamp(src2, src0, src1.s22222222, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst0, src2, 8); \
+        dst0 = sub_sat(dst0, 0xFE); \
+        VXC_Clamp(src2, src0, src1.s33333333, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst1, src2, 8); \
+        dst1 = sub_sat(dst1, 0xFE); \
+ \
+        result = result + dst0 + dst1; \
+ \
+        VXC_Clamp(src2, src0, src1.s44444444, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst0, src2, 8); \
+        dst0 = sub_sat(dst0, 0xFE); \
+        VXC_Clamp(src2, src0, src1.s55555555, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst1, src2, 8); \
+        dst1 = sub_sat(dst1, 0xFE); \
+ \
+        result = result + dst0 + dst1; \
+ \
+        VXC_Clamp(src2, src0, src1.s66666666, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst0, src2, 8); \
+        dst0 = sub_sat(dst0, 0xFE); \
+        VXC_Clamp(src2, src0, src1.s77777777, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst1, src2, 8); \
+        dst1 = sub_sat(dst1, 0xFE); \
+ \
+        result = result + dst0 + dst1; \
+    } \
+ \
+    for (; coord.z < boundaries_size; ) \
+    { \
+        VXC_ReadImage(src1, boundaries, coord.zw, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        coord.z ++; \
+ \
+        VXC_Clamp(src2, src0, src1.s00000000, src0, VXC_MODIFIER_CLAMP(0, 7, 0, 1)); \
+        _viv_asm(COPY, dst0, src2, 8); \
+        dst0 = sub_sat(dst0, 0xFE); \
+ \
+        result = result + dst0; \
+    } \
+ \
+    int4 d0, d1; \
+    VXC_DP4x4(d0, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniDataConvert_0_4x4); \
+    VXC_DP4x4(d1, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniDataConvert_1_4x4); \
+    coord.z = coord.x + 4; \
+ \
+    write_imagei(output, coord.xy, d0); \
+    write_imagei(output, coord.zy, d1); \
+}
+BUCKETIZE_8BITS_SH_IMPL(U8_U8toI32_2D, vxc_uchar8)
+BUCKETIZE_8BITS_SH_IMPL(I8_I8toI32_2D, vxc_char8)

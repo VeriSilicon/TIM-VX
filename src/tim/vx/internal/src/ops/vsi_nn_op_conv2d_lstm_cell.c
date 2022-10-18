@@ -106,6 +106,7 @@ static vsi_nn_internal_tensor_t * create_input_conv
     input_conv->node->vx_param.overflow_policy = self->vx_param.overflow_policy;
     input_conv->node->vx_param.rounding_policy = self->vx_param.rounding_policy;
     input_conv->node->vx_param.down_scale_size_rounding = self->vx_param.down_scale_size_rounding;
+    input_conv->node->nn_param.conv2d.pad_mode = p->conv2d.pad_mode;
 
     input_conv->inputs[0] = input;
     input_conv->inputs[1] = weight;
@@ -167,6 +168,7 @@ static vsi_nn_internal_tensor_t * create_recurrent_conv
     recurrent_conv->node->vx_param.overflow_policy = self->vx_param.overflow_policy;
     recurrent_conv->node->vx_param.rounding_policy = self->vx_param.rounding_policy;
     recurrent_conv->node->vx_param.down_scale_size_rounding = self->vx_param.down_scale_size_rounding;
+    recurrent_conv->node->nn_param.conv2d.pad_mode = p->conv2d.pad_mode;
 
     recurrent_conv->inputs[0] = input;
     recurrent_conv->inputs[1] = weight;

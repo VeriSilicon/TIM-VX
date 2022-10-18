@@ -111,6 +111,22 @@ typedef enum
     VSI_NN_PAD_SAME
 } vsi_nn_pad_e;
 
+/** reduce type enum */
+typedef enum
+{
+    VSI_NN_REDUCTION_TYPE_NONE,
+    VSI_NN_REDUCTION_TYPE_ADD,
+    VSI_NN_REDUCTION_TYPE_MUL
+} vsi_nn_reduction_type_e;
+
+/** Pad mode enum */
+typedef enum {
+    VSI_NN_PAD_MODE_CONSTANT,
+    VSI_NN_PAD_MODE_REPLICATE,
+    VSI_NN_PAD_MODE_SYMMETRIC,
+    VSI_NN_PAD_MODE_REFLECT,
+} vsi_nn_pad_mode_e;
+
 /**
  * @deprecated  Platform enum
  * @see vsi_nn_dim_fmt_e
@@ -234,6 +250,12 @@ typedef enum _vsi_nn_con2d_lstm_dataformat
     CONV2D_LSTM_CHANNELS_LAST,
     CONV2D_LSTM_CHANNELS_FIRST
 } vsi_nn_con2d_lstm_dataformat;
+
+typedef enum _vsi_nn_yuv_type
+{
+    VSI_NN_YUV_TYPE_YUYV422,
+    VSI_NN_YUV_TYPE_UYUV422
+}vsi_nn_yuv_type;
 
 /** Deprecated */
 typedef uint32_t vsi_nn_size_t;

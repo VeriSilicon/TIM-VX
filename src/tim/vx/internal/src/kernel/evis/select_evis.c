@@ -34,7 +34,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -82,6 +81,15 @@ static const _kernel_map_type _select_kernel_map[] =
     PACK_KERNEL_MAP(I8, F16, I16, F16),
     PACK_KERNEL_MAP(I8, I16, F16, F16),
     PACK_KERNEL_MAP(I8, F16, F16, U8),
+    PACK_KERNEL_MAP(I8, U8,  F16, U8),
+    PACK_KERNEL_MAP(I8, F16, U8,  U8),
+    PACK_KERNEL_MAP(I8, I8,  F16, I8),
+    PACK_KERNEL_MAP(I8, F16, I8,  I8),
+    PACK_KERNEL_MAP(I8, I16, F16, I16),
+    PACK_KERNEL_MAP(I8, F16, I16, I16),
+    PACK_KERNEL_MAP(I8, I8,  I8,  F16),
+    PACK_KERNEL_MAP(I8, U8,  U8,  F16),
+    PACK_KERNEL_MAP(I8, I16, I16, F16),
     PACK_KERNEL_MAP_2D(I8, I8,  I8,  I8),
     PACK_KERNEL_MAP_2D(I8, U8,  U8,  U8),
     PACK_KERNEL_MAP_2D(I8, I16, I16, I16),
@@ -93,6 +101,15 @@ static const _kernel_map_type _select_kernel_map[] =
     PACK_KERNEL_MAP_2D(I8, F16, I16, F16),
     PACK_KERNEL_MAP_2D(I8, I16, F16, F16),
     PACK_KERNEL_MAP_2D(I8, F16, F16, U8),
+    PACK_KERNEL_MAP_2D(I8, U8,  F16, U8),
+    PACK_KERNEL_MAP_2D(I8, F16, U8,  U8),
+    PACK_KERNEL_MAP_2D(I8, I8,  F16, I8),
+    PACK_KERNEL_MAP_2D(I8, F16, I8,  I8),
+    PACK_KERNEL_MAP_2D(I8, I16, F16, I16),
+    PACK_KERNEL_MAP_2D(I8, F16, I16, I16),
+    PACK_KERNEL_MAP_2D(I8, I8,  I8,  F16),
+    PACK_KERNEL_MAP_2D(I8, U8,  U8,  F16),
+    PACK_KERNEL_MAP_2D(I8, I16, I16, F16),
 };
 
 /*
@@ -248,16 +265,26 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
-        case _PACK_SELECT_KEY( I8,  I8,  I8 ):
-        case _PACK_SELECT_KEY( I16, I16, I16 ):
-        case _PACK_SELECT_KEY( U8,  U8,  U8 ):
-        case _PACK_SELECT_KEY( I8,  F16, F16 ):
-        case _PACK_SELECT_KEY( U8,  F16, F16 ):
-        case _PACK_SELECT_KEY( I16, F16, F16 ):
-        case _PACK_SELECT_KEY( F16, U8,  F16 ):
-        case _PACK_SELECT_KEY( F16, I8,  F16 ):
-        case _PACK_SELECT_KEY( F16, I16, F16 ):
-        case _PACK_SELECT_KEY( F16, F16, U8 ):
+        case _PACK_SELECT_KEY( I8,   I8,   I8 ):
+        case _PACK_SELECT_KEY( I16,  I16,  I16 ):
+        case _PACK_SELECT_KEY( U8,   U8,   U8 ):
+        case _PACK_SELECT_KEY( I8,   F16,  F16 ):
+        case _PACK_SELECT_KEY( U8,   F16,  F16 ):
+        case _PACK_SELECT_KEY( I16,  F16,  F16 ):
+        case _PACK_SELECT_KEY( F16,  U8,   F16 ):
+        case _PACK_SELECT_KEY( F16,  I8,   F16 ):
+        case _PACK_SELECT_KEY( F16,  I16,  F16 ):
+        case _PACK_SELECT_KEY( F16,  F16,  U8 ):
+        case _PACK_SELECT_KEY( U8,   F16,  U8 ):
+        case _PACK_SELECT_KEY( F16,  U8,   U8 ):
+        case _PACK_SELECT_KEY( I8,   F16,  I8 ):
+        case _PACK_SELECT_KEY( F16,  I8,   I8 ):
+        case _PACK_SELECT_KEY( I16,  F16,  I16 ):
+        case _PACK_SELECT_KEY( F16,  I16,  I16 ):
+        case _PACK_SELECT_KEY( I8,   I8,   F16 ):
+        case _PACK_SELECT_KEY( I16,  I16,  F16 ):
+        case _PACK_SELECT_KEY( U8,   U8,   F16 ):
+        case _PACK_SELECT_KEY( BF16, BF16, BF16 ):
         {
             uint32_t multAndoutZP0[2] = {0};
             uint32_t multAndoutZP1[2] = {0};
@@ -367,9 +394,12 @@ static vsi_status _query_kernel
     out_dtype   = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
     cond_dtype  = (BOOL8 == cond_dtype || U8 == cond_dtype) ? I8 : cond_dtype;
-    in0_dtype   = (BOOL8 == in0_dtype)  ? I8 : in0_dtype;
-    in1_dtype   = (BOOL8 == in1_dtype)  ? I8 : in1_dtype;
-    out_dtype   = (BOOL8 == out_dtype)  ? I8 : out_dtype;
+    in0_dtype   = (BOOL8 == in0_dtype) ? I8 : in0_dtype;
+    in0_dtype   = (BF16 == in0_dtype)  ? I16 : in0_dtype;
+    in1_dtype   = (BOOL8 == in1_dtype) ? I8 : in1_dtype;
+    in1_dtype   = (BF16 == in1_dtype) ? I16 : in1_dtype;
+    out_dtype   = (BOOL8 == out_dtype) ? I8 : out_dtype;
+    out_dtype   = (BF16 == out_dtype) ? I16 : out_dtype;
 
     key = SELECT_HASH_KEY(cond_dtype, in0_dtype, in1_dtype, out_dtype, image_2d);
 
@@ -415,7 +445,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
 
-    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -424,10 +454,10 @@ static vsi_nn_kernel_node_t _setup
     image_2d = (outputs[0]->attr.dim_num == 2);
     status = _query_kernel( kernel, inputs, outputs, image_2d);
 
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             /* Set inputs and outputs */
             vsi_nn_kernel_node_pack_io( node_params, _SELECT_PARAM_NUM,

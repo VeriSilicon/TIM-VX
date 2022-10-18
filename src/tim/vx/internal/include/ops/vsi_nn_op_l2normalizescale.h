@@ -86,7 +86,7 @@ typedef struct _vsi_nn_l2normalizescale_lcl_data
 {
     vx_tensor   local_tensor[_VSI_NN_L2NORMALIZESCALE_LOCAL_TENSOR_NUM];
     uint32_t    hash_idx;
-    vsi_bool    execute_on_sw;
+    vsi_bool    use_internal_node;
 } vsi_nn_l2normalizescale_lcl_data;
 
 typedef struct _vsi_nn_l2normalizescale_param

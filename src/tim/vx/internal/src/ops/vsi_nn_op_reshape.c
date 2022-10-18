@@ -36,6 +36,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
+#include "vsi_nn_error.h"
 
 VSI_NN_SUPPRESS_DEPRECATED_BEGIN
 
@@ -79,6 +80,7 @@ static vsi_status op_compute
         vsi_nn_tensor_t *tmp_tensor = NULL;
         tmp_tensor = vsi_nn_reshape_tensor( self->graph,
             outputs[0], inputs[0]->attr.size, inputs[0]->attr.dim_num );
+        CHECK_PTR_FAIL_GOTO( tmp_tensor, "create tensor fail.", final );
 
         self->n = vxTensorCopyNode(self->graph->g,
             inputs[0]->t, tmp_tensor->t);
@@ -88,7 +90,7 @@ static vsi_status op_compute
             status = VSI_FAILURE;
         }
         VSILOGD("Create a copy node for reshape");
-
+final:
         vsi_safe_release_tensor(tmp_tensor);
 #endif
 

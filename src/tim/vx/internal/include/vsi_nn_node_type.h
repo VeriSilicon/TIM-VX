@@ -196,6 +196,10 @@
 #include "ops/vsi_nn_op_softsign.h"
 #include "ops/vsi_nn_op_cumsum.h"
 #include "ops/vsi_nn_op_mod.h"
+#include "ops/vsi_nn_op_lppool.h"
+#include "ops/vsi_nn_op_scatter_elements.h"
+#include "ops/vsi_nn_op_pre_process_yuv422.h"
+#include "ops/vsi_nn_op_bucketize.h"
 /* custom node head define define */
 #include "custom/vsi_nn_custom_node_type.h"
 
@@ -206,9 +210,10 @@ extern "C"{
 /** Operation attributes */
 typedef union _vsi_nn_nn_param
 {
+    vsi_nn_conv2d_param        conv2d;
     struct
     {
-        vsi_nn_conv2d_param         conv2d;
+        vsi_nn_conv2d_param_deprecate         conv2d_deprecate;
         vsi_nn_pool_param           pool;
     };
     vsi_nn_fcl_param                fcl;
@@ -377,6 +382,10 @@ typedef union _vsi_nn_nn_param
     vsi_nn_softsign_param           softsign;
     vsi_nn_cumsum_param             cumsum;
     vsi_nn_mod_param                mod;
+    vsi_nn_lppool_param             lppool;
+    vsi_nn_scatter_elements_param   scatter_elements;
+    vsi_nn_pre_process_yuv422_param pre_process_yuv422;
+    vsi_nn_bucketize_param          bucketize;
     void*                         client_param;
 
     /* custom node data struct define */

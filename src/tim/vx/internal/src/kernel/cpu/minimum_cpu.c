@@ -52,14 +52,26 @@ static vsi_ssize_t _expand_offset
     vsi_size_t i;
     vsi_ssize_t offset = 0;
 
-    for( i = 0; i < rank && index; i ++ )
+    for  ( i = 0; i < rank && index; i ++ )
     {
-        if( shape[i] == out_shape[i] )
+        if (strides[0] == 0)
+        {
+            if (i == 0)
+            {
+                offset += (index % out_shape[0]);
+            }
+            else
+            {
+                offset += (vsi_ssize_t)strides[i] * 2 * ( index % out_shape[i] );
+            }
+        }
+        else if ( shape[i] == out_shape[i] )
         {
             offset += (vsi_ssize_t)strides[i] * ( index % out_shape[i] );
         }
         index /= out_shape[i];
     }
+
     return offset;
 }
 

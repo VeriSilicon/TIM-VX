@@ -338,20 +338,21 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_symm_perchannel
     void * out_buffer
     )
 {
+    vsi_bool status;
     switch( dtype )
     {
         case I8:
-            vsi_nn_dtype_convert_float_to_quantize_symm8_perchannel(
-                    buffer, size, shape, rank,
-                    scale, scale_size, zero_point, zero_point_size,
-                    channel_dim, (int8_t*)out_buffer );
+            status = vsi_nn_dtype_convert_float_to_quantize_symm8_perchannel(
+                            buffer, size, shape, rank,
+                            scale, scale_size, zero_point, zero_point_size,
+                            channel_dim, (int8_t*)out_buffer );
             break;
         default:
             VSILOGE("Don't support convert float to symm perchannel quant %d.",
                     dtype);
-            return FALSE;
+            status = FALSE;
     }
-    return TRUE;
+    return status;
 } /* vsi_nn_dtype_convert_float_to_quantize_symm_perchannel() */
 
 vsi_bool vsi_nn_dtype_convert_dtype_to_float
@@ -496,17 +497,18 @@ vsi_bool vsi_nn_dtype_convert_quantize_symm_perchannel_to_float
     float * out_buffer
     )
 {
+    vsi_bool status;
     switch( dtype )
     {
         case I8:
-            vsi_nn_dtype_convert_quantize_symm8_perchannel_to_float(
-                    (const int8_t*)buffer, size, shape, rank,
-                    scale, scale_size, zero_point, zero_point_size,
-                    channel_dim, out_buffer );
+            status = vsi_nn_dtype_convert_quantize_symm8_perchannel_to_float(
+                            (const int8_t*)buffer, size, shape, rank,
+                            scale, scale_size, zero_point, zero_point_size,
+                            channel_dim, out_buffer );
             break;
         default:
             VSILOGE("Don't support convert symm perchannel quant %d to float.", dtype);
-            return FALSE;
+            status = FALSE;
     }
-    return TRUE;
+    return status;
 } /* vsi_nn_dtype_convert_quantize_symm_perchannel_to_float() */
