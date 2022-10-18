@@ -123,7 +123,7 @@ jobs:
         run: |
           git config --global user.email "xiang.zhang@verisilicon.com"
           git config --global user.name "xiang.zhang"
-          git clone https://github.com/tensorflow/tensorflow.git ${{github.workspace}}/3rd-party/tensorflow && cd ${{github.workspace}}/3rd-party/tensorflow/ && git checkout v2.9.0
+          git clone https://github.com/tensorflow/tensorflow.git ${{github.workspace}}/3rd-party/tensorflow && cd ${{github.workspace}}/3rd-party/tensorflow/ && git checkout v2.10.0
           git clone https://github.com/VeriSilicon/tflite-vx-delegate.git ${{github.workspace}}/vx-delegate
           cmake -B ${{github.workspace}}/vx-delegate/build -S ${{github.workspace}}/vx-delegate -DFETCHCONTENT_SOURCE_DIR_TENSORFLOW=${{github.workspace}}/3rd-party/tensorflow -DTIM_VX_INSTALL=${{github.workspace}}/tim-vx.install.dir/ -DTFLITE_ENABLE_NNAPI=OFF -DTFLITE_ENABLE_XNNPACK=OFF
           cmake --build ${{github.workspace}}/vx-delegate/build --config ${{env.BUILD_TYPE}}
