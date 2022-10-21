@@ -91,7 +91,7 @@ static void print_tensor
     char *ext_str
     )
 {
-#define _SHAPE_BUF_SZ   (64)
+#define _SHAPE_BUF_SZ   (128)
 #define _EXT_ATTR_BUF_SZ   (64)
 #define _ATTR_BUF_SZ   (64)
     int count;

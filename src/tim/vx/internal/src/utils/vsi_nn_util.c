@@ -755,7 +755,7 @@ uint32_t vsi_nn_ShapeToString
 #define _NOT_PRINT_FMT (1)
     vsi_size_t s;
     uint32_t count;
-    const char * all_fmt[] = {" %d,", "%d_" };
+    const char * all_fmt[] = {" %"VSI_SIZE_T_SPECIFIER",", "%"VSI_SIZE_T_SPECIFIER"_" };
     const char * fmt;
     if( NULL == shape || NULL == buf
         || dim_num == 0 || buf_sz == 0 )
