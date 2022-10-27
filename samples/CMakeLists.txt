@@ -1,6 +1,7 @@
 add_subdirectory("benchmark_test")
 if(${TIM_VX_ENABLE_CUSTOM_OP})
     add_subdirectory("custom_op_test")
+    add_subdirectory("custom_lenet")
 endif()
 
 add_subdirectory("lenet")
