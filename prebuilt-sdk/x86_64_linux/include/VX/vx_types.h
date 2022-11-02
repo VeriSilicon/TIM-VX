@@ -1986,9 +1986,11 @@ enum vx_map_flag_e {
 
 enum vx_const_tensor_cache_mode
 {
-    VX_PRELOAD_NULL = 0,
+    VX_PRELOAD_NULL                 = 0,
     VX_PRELOAD_CONST_TENSOR_VIPSRAM = 1,
     VX_PRELOAD_CONST_TENSOR_AXISRAM = 2,
+    VX_KERNEL_CACHE_PARTIAL_MODE    = 3,
+    VX_KERNEL_CACHE_STREAM_MODE     = 4,
     VX_PRELOAD_TYPE_COUNT
 };
 #endif

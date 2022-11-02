@@ -228,6 +228,14 @@ typedef struct _vx_nn_convolution_relu_pooling_params_ext5_t
     vx_spinst       spinst_obj;
 } vx_nn_convolution_relu_pooling_params_ext5_t, * vx_nn_convolution_relu_pooling_params_ext5;
 
+typedef struct _vx_nn_convolution_relu_pooling_params_ext6_t
+{
+    vx_nn_convolution_relu_pooling_params_ext5_t ext5;  /*!< \brief convolution relu pooling params <tt>\ref vx_nn_convolution_relu_pooling_params_ext_t</tt> */
+    vx_uint32       depth2space_block_x; /*!< \brief hw limitation: value between 2 and 16. 2, 16 included. */
+    vx_uint32       depth2space_block_y; /*!< \brief hw limitation: equals value of depth2space_block_x. */
+
+} vx_nn_convolution_relu_pooling_params_ext6_t, * vx_nn_convolution_relu_pooling_params_ext6;;
+
 /*! \brief [Graph] Creates a Convolutional Network Convolution and Activation(Relu) and Pooling Layer Node, this fucntion match kronos NN Extension 1.2 verion.
  * \details This function implement Convolutional Network Convolution and Activation(Relu) and Pooling layer.
  *  For fixed-point data types, a fixed point calculation is performed with round and saturate according to the number of accumulator bits. The number of the accumulator bits are implementation defined,
