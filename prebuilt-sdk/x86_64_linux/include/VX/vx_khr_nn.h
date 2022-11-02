@@ -63,6 +63,8 @@ enum vx_graph_attribute_internal_type_e
     VX_GRAPH_DATA_COMPRESSION_RATIO               = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x7,
     VX_GRAPH_ISP_EMULATION_PARAMETER              = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x8,
     VX_GRAPH_PROCESS_FPS                          = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x9,
+    /*This parameter.come from customer, not used by unify driver but lite driver*/
+    VX_GRAPH_CUSTOMER_PARAMETER_FOR_NBG           = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0xA,
 };
 
 /*! \brief Size Alignment of User Memory
