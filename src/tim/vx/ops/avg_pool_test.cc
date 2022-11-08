@@ -301,6 +301,55 @@ TEST(AVG_ANDROID, shape_60_52_3_5_fp32_kernel_35_stride_5) {
     ArraysMatch(golden, output, 1e-5f);
 }
 
+TEST(AVG_ANDROID, shape_60_52_3_5_fp32_kernel_50_stride_5) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType in_shape({60, 52, 3, 5});  //WHCN
+    tim::vx::ShapeType out_shape({13, 11, 3, 5});
+
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            in_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+    std::vector<float> in_data;
+    for(int i = 0; i < 5; i++){
+        for(int j = 0; j < 3; j++){
+            for(int k = 0; k < 52; k++){
+                for(int m = 0; m < 60; m++){
+                    in_data.push_back(1);
+                }
+            }
+        }
+    }
+    std::vector<float> golden;
+    for(int i = 0; i < 5; i++){
+        for(int j = 0; j < 3; j++){
+            for(int k = 0; k < 11; k++){
+                for(int k = 0; k < 13; k++){
+                    golden.push_back(1);
+                }
+            }
+        }
+    }
+    std::array<uint32_t, 4> pad = {50, 50, 50, 50};
+    std::array<uint32_t, 2> ksize = {100, 100};
+    std::array<uint32_t, 2> stride = {5, 5};
+    auto op = graph->CreateOperation<tim::vx::ops::Pool2d>(tim::vx::PoolType::AVG_ANDROID,
+        pad, ksize, stride, tim::vx::RoundType::FLOOR, tim::vx::DataLayout::WHCN);
+    (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+    std::vector<float> output(golden.size());
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
+    EXPECT_TRUE(graph->Run());
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+
+    ArraysMatch(golden, output, 1e-5f);
+}
+
 TEST(AVG_ANDROID, shape_60_52_3_5_uint8_kernel_35_stride_5) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
