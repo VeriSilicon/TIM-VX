@@ -102,5 +102,5 @@ TEST(RoiAlign, shape_4_2_1_1_float32) {
 
   std::vector<float> output(num_rois * out_height * out_width * depth);
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  EXPECT_EQ(golden, output);
+  ArraysMatch(golden, output, 1e-5f);
 }
