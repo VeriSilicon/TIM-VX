@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -369,4 +369,39 @@ TEST(Div, DISABLED_Div_int32_broadcast) {
   }
   // div can have an error of 1 according to different rounding rules
   EXPECT_TRUE(ArraysMatch(golden, output_data, 1));
+}
+
+TEST(Minimum, shape_1_1_2_1_1_3_broadcast_int32) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType in_shape_x({1, 1, 2, 1, 3});
+    tim::vx::ShapeType in_shape_y({1});
+    tim::vx::ShapeType out_shape({1, 1, 2, 1, 3});
+    tim::vx::TensorSpec input_spec_x(tim::vx::DataType::INT32,
+                            in_shape_x, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec input_spec_y(tim::vx::DataType::INT32,
+                            in_shape_y, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::INT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor_x = graph->CreateTensor(input_spec_x);
+    auto input_tensor_y = graph->CreateTensor(input_spec_y);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<int> in_data_x = { 1, 0, -1, -2, 3, 11 };
+    std::vector<int> in_data_y = { 2 };
+    std::vector<int> golden = { 1, 0, -1, -2, 2, 2 };
+
+    EXPECT_TRUE(input_tensor_x->CopyDataToTensor(in_data_x.data(), in_data_x.size()*4));
+    EXPECT_TRUE(input_tensor_y->CopyDataToTensor(in_data_y.data(), in_data_y.size()*4));
+    auto op = graph->CreateOperation<tim::vx::ops::Minimum>();
+    (*op).BindInputs({input_tensor_x, input_tensor_y}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+    std::vector<int> output(golden.size());
+
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(golden, output);
 }
