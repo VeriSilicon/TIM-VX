@@ -55,11 +55,14 @@ class Pool2dLayoutInfer : public OpLayoutInfer {
       context_->SetPermuteVector(input_tensors[0], required_pv);
     }
 
+    std::shared_ptr<tim::vx::Operation> pool2d;
+    std::array<uint32_t, 4> pad;
     auto pool_type = TranslatePoolType(op_->impl()->node()->nn_param.pool.type);
     auto round_type =
         TranslateRoundType(op_->impl()->node()->nn_param.pool.round_type);
     auto pad_type =
         TranslatePadType(op_->impl()->node()->nn_param.pool.pad_type);
+
     std::array<uint32_t, 2> ksize = {
         op_->impl()->node()->nn_param.pool.ksize[0],
         op_->impl()->node()->nn_param.pool.ksize[1]};
@@ -67,8 +70,17 @@ class Pool2dLayoutInfer : public OpLayoutInfer {
         op_->impl()->node()->nn_param.pool.stride[0],
         op_->impl()->node()->nn_param.pool.stride[1]};
 
-    auto pool2d = context_->infer_graph_->CreateOperation<vx::ops::Pool2d>(
-        pool_type, pad_type, ksize, stride, round_type, vx::DataLayout::WHCN);
+    if (pad_type == tim::vx::PadType::AUTO) {
+      pad = {op_->impl()->node()->nn_param.pool.pad[0],
+             op_->impl()->node()->nn_param.pool.pad[1],
+             op_->impl()->node()->nn_param.pool.pad[2],
+             op_->impl()->node()->nn_param.pool.pad[3]};
+      pool2d = context_->infer_graph_->CreateOperation<vx::ops::Pool2d>(
+          pool_type, pad, ksize, stride, round_type, vx::DataLayout::WHCN);
+    } else {
+        pool2d = context_->infer_graph_->CreateOperation<vx::ops::Pool2d>(
+          pool_type, pad_type, ksize, stride, round_type, vx::DataLayout::WHCN);
+    }
     auto otensor_infer = CreateOutputsTensor(required_pv);
     (*pool2d).BindInput(context_->GetMapedTensor(input_tensors[0]));
     (*pool2d).BindOutput(otensor_infer[0]);
