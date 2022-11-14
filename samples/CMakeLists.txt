@@ -13,6 +13,8 @@ if(NOT ANDROID_TOOLCHAIN)
     add_subdirectory("multi_thread_test")
 endif()
 
+
+add_subdirectory("metax_343")
 if(TIM_VX_ENABLE_NBG_PARSER)
     add_subdirectory("nbg_runner")
 endif()
