@@ -233,15 +233,18 @@ static vsi_bool op_setup
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RNNCELL_OVXLIB, 0, 0 );
         curr->node->nn_param.rnncell_ovxlib.activation = curr_param->activation;
-        if (reshape_output->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
-            reshape_output->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32) {
+        if ( reshape_output->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+             reshape_output->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+        {
             int32_t k = 0;
-            for (k = 0; k < _cnt_of_array(curr_param->internal_dtype); k++) {
-                if (curr_param->internal_dtype[k].vx_type == VSI_NN_TYPE_NONE) {
+            for (k = 0; k < _cnt_of_array( curr_param->internal_dtype ); k++)
+            {
+                if (curr_param->internal_dtype[k].vx_type == VSI_NN_TYPE_NONE)
+                {
                     curr_param->internal_dtype[k] = reshape_output->attr.dtype;
                 }
             }
-        }
+        }        
         memcpy( curr->node->nn_param.rnncell_ovxlib.internal_dtype,
             curr_param->internal_dtype, sizeof( curr_param->internal_dtype ) );
         curr->inputs[RNNCELL_INPUT_INPUT] = reshape_output;
