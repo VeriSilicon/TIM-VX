@@ -93,5 +93,6 @@
 #include "tim/vx/ops/conv3d.h"
 #include "tim/vx/ops/custom_base.h"
 #include "tim/vx/ops/topk.h"
+#include "tim/vx/ops/bidirectional_sequence_lstm.h"
 
 #endif /* TIM_VX_OPS_H_ */

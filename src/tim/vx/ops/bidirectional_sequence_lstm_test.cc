@@ -288,9 +288,9 @@ TEST(Bidirectional_LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
       -0.03716109, 0.12507336, 0.41193449, -0.20860538,
       -0.15053082, 0.09120187, 0.24278517, -0.12222792};
     std::vector<float> lstm_bw_golden_output = {
-      -0.02973187, 0.1229473,  0.20885126, -0.15358765,
-      -0.03716109, 0.12507336, 0.41193449, -0.20860538,
-      -0.15053082, 0.09120187, 0.24278517, -0.12222792};
+      -0.0806187, 0.139077, 0.400476,   -0.197842, 
+      -0.0332076, 0.123838, 0.309777,   -0.17621, 
+      -0.0490733, 0.0739237, 0.067706,   -0.0208124};
     std::vector<float> fw_output(lstm_fw_golden_output.size());
     std::vector<float> bw_output(lstm_bw_golden_output.size());
     fw_output_tensor->CopyDataFromTensor(fw_output.data());
