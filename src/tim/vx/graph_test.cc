@@ -82,7 +82,7 @@ TEST(graph, gen_binary_graph_with_simple_add) {
     auto nbg_node = nbg_graph->CreateOperation<tim::vx::ops::NBG>(
         (nbg_buf.data()), /*num_of_input*/ 2,
         /*num_of_output*/ 1);
-    (*nbg_node).BindInputs({nbg_in0, nbg_in1}).BindOutputs({output_t});
+    (*nbg_node).BindInputs({nbg_in0, nbg_in1}).BindOutputs({nbg_out});
     EXPECT_TRUE(nbg_graph->Compile());
     EXPECT_TRUE(nbg_graph->Run());
 
