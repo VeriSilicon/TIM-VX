@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -29,19 +29,19 @@
 #include "test_utils.h"
 
 
-TEST(BidirectionalSequenceRnn, shape_2_3_4_float_sigmoid) {
+TEST(BidirectionalSequenceRnn, shape_2_3_2_float_sigmoid) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
-    uint32_t input_size = 2, batch_size = 3, num_units = 4;
+    uint32_t input_size = 2, batch_size = 3, time_step = 2, num_units = 4;
 
-    tim::vx::ShapeType input_shape({input_size, batch_size, 2});
+    tim::vx::ShapeType input_shape({input_size, batch_size, time_step});
     tim::vx::ShapeType weights_shape({input_size, num_units});
     tim::vx::ShapeType recurrent_weights_shape({num_units, num_units});
     tim::vx::ShapeType bias_shape({num_units});
     tim::vx::ShapeType recurrent_bias_shape({num_units});
     tim::vx::ShapeType state_in_shape({num_units, batch_size});
-    tim::vx::ShapeType output_shape({num_units, batch_size, 2});
+    tim::vx::ShapeType output_shape({num_units, batch_size, time_step});
     tim::vx::ShapeType state_out_shape({num_units, batch_size});
 
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -123,12 +123,12 @@ TEST(BidirectionalSequenceRnn, shape_2_3_4_float_sigmoid) {
         0.9374, 0.9374, 0.9374, 0.9374,
     };
     std::vector<float> bw_output_golden = {
-        0.8320, 0.8320, 0.8320, 0.8320,
-        0.8807, 0.8807, 0.8807, 0.8807,
-        0.9168, 0.9168, 0.9168, 0.9168,
         0.6754, 0.6754, 0.6754, 0.6754,
         0.7599, 0.7599, 0.7599, 0.7599,
-        0.8273, 0.8273, 0.8273, 0.8273
+        0.8273, 0.8273, 0.8273, 0.8273,
+        0.8320, 0.8320, 0.8320, 0.8320,
+        0.8807, 0.8807, 0.8807, 0.8807,
+        0.9168, 0.9168, 0.9168, 0.9168,  
     };
     std::vector<float> bw_state_out_golden = {
         0.6754, 0.6754, 0.6754, 0.6754,
@@ -183,19 +183,19 @@ TEST(BidirectionalSequenceRnn, shape_2_3_4_float_sigmoid) {
     EXPECT_TRUE(ArraysMatch(bw_state_out_golden, bw_state_out,1e-3f));
 }
 
-TEST(BidirectionalSequenceRnn, shape_2_3_4_float_relu) {
+TEST(BidirectionalSequenceRnn, shape_2_3_2_float_relu) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
-    uint32_t input_size = 2, batch_size = 3, num_units = 4;
+    uint32_t input_size = 2, batch_size = 3, num_units = 4, time_step = 2;
 
-    tim::vx::ShapeType input_shape({input_size, batch_size, 2});
+    tim::vx::ShapeType input_shape({input_size, batch_size, time_step});
     tim::vx::ShapeType weights_shape({input_size, num_units});
     tim::vx::ShapeType recurrent_weights_shape({num_units, num_units});
     tim::vx::ShapeType bias_shape({num_units});
     tim::vx::ShapeType recurrent_bias_shape({num_units});
     tim::vx::ShapeType state_in_shape({num_units, batch_size});
-    tim::vx::ShapeType output_shape({num_units, batch_size, 2});
+    tim::vx::ShapeType output_shape({num_units, batch_size, time_step});
     tim::vx::ShapeType state_out_shape({num_units, batch_size});
 
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -277,12 +277,12 @@ TEST(BidirectionalSequenceRnn, shape_2_3_4_float_relu) {
         2.88, 2.88, 2.88, 2.88,
     };
     std::vector<float> bw_output_golden = {
-        1.6, 1.6, 1.6, 1.6,
-        2.0, 2.0, 2.0, 2.0,
-        2.4, 2.4, 2.4, 2.4,
         1.04, 1.04, 1.04, 1.04,
         1.6, 1.6, 1.6, 1.6,
         2.16, 2.16, 2.16, 2.16,
+        1.6, 1.6, 1.6, 1.6,
+        2.0, 2.0, 2.0, 2.0,
+        2.4, 2.4, 2.4, 2.4, 
     };
     std::vector<float> bw_state_out_golden = {
         1.04, 1.04, 1.04, 1.04,

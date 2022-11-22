@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -45,7 +45,7 @@ vsi_nn_activation_e downcast_act_type(BidirectionalSequenceRnn::ActivationType a
         case BidirectionalSequenceRnn::ActivationType::kHARDSIGMOID:
             return VSI_NN_ACT_HARD_SIGMOID;
         default: {
-            VSILOGW("Not supported activition type for RNN = %d", static_cast<int32_t>(act));
+            VSILOGW("Not supported activition type for BidirectionalSequenceRNN = %d", static_cast<int32_t>(act));
             return VSI_NN_ACT_NONE;
         }
     }
