@@ -65,6 +65,7 @@
 #include "ops/unidirectional_lstm_layout_inference.h"
 #include "ops/broadcast_layout_inference.h"
 #include "ops/unidirectional_rnn_layout_inference.h"
+#include "ops/bidirectional_rnn_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -269,6 +270,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LSTM_OVXLIB, UnidirectionalLstm);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_EXPAND_BROADCAST, Broadcast);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_UNIDIRECTIONAL_SEQUENCE_RNN, UnidirectionalRnn);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN, BidirectionalRnn);
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     // use default layout inference

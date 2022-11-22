@@ -339,8 +339,8 @@ static vsi_bool op_setup
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         rnncell_out1 = output_tensor->t;
 
-        if (reshape_output_tensors[time_step - 1 - i]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
-            inputs[BI_RNN_BW_INPUT_WEIGHT_I]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
+        if (reshape_output_tensors[i]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
+            inputs[BI_RNN_FW_INPUT_WEIGHT_I]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_I].qnt_type == VSI_NN_QNT_TYPE_NONE &&
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_I].vx_type == VSI_NN_TYPE_NONE)
         {
@@ -349,16 +349,16 @@ static vsi_bool op_setup
 
         if (last_step_h_state_fw &&
             last_step_h_state_fw->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
-            inputs[BI_RNN_BW_INPUT_WEIGHT_H]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
+            inputs[BI_RNN_FW_INPUT_WEIGHT_H]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_H].qnt_type == VSI_NN_QNT_TYPE_NONE &&
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_H].vx_type == VSI_NN_TYPE_NONE)
         {
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_H].vx_type = VSI_NN_TYPE_FLOAT32;
         }
 
-        if (has_aux_input&&
-            aux_reshape_output_tensors[time_step - 1 - i]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
-            inputs[BI_RNN_BW_AUX_INPUT_WEIGHT]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
+        if (has_aux_input &&
+            aux_reshape_output_tensors[i]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
+            inputs[BI_RNN_FW_AUX_INPUT_WEIGHT]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_AUX].qnt_type == VSI_NN_QNT_TYPE_NONE &&
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_AUX].vx_type == VSI_NN_TYPE_NONE)
         {
@@ -410,8 +410,17 @@ static vsi_bool op_setup
         vsi_nn_tensor_t* rnncell_out1 = NULL;
 
         /* rnncell output */
-        vsi_nn_internal_init_tensor_attr(&attr,
+
+        if(curr_param->merge_outputs)
+        {
+            vsi_nn_internal_init_tensor_attr(&attr,
+            &outputs[BI_RNN_FW_OUTPUT_OUTPUT]->attr.dtype, use_virtual_tensor);
+        }
+        else
+        {
+            vsi_nn_internal_init_tensor_attr(&attr,
             &outputs[BI_RNN_BW_OUTPUT_OUTPUT]->attr.dtype, use_virtual_tensor);
+        }
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
         rnncell_out0 = output_tensor->t;
 
@@ -438,7 +447,7 @@ static vsi_bool op_setup
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_H].vx_type = VSI_NN_TYPE_FLOAT32;
         }
 
-        if (has_aux_input&&
+        if (has_aux_input &&
             aux_reshape_output_tensors[time_step - 1 - i]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
             inputs[BI_RNN_BW_AUX_INPUT_WEIGHT]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 &&
             curr_param->internal_dtype[RNNCELL_QUANTIZE_PARAM_AUX].qnt_type == VSI_NN_QNT_TYPE_NONE &&
@@ -481,7 +490,7 @@ static vsi_bool op_setup
         /* reshape output to 3-dims */
         output_tensor = vsi_nn_rnn_reshape_cell_output(self,
             rnncell_out0, (uint32_t)batch_size, use_virtual_tensor);
-        rnncell_reshape_output_tensors_bw[i] = output_tensor->t;
+        rnncell_reshape_output_tensors_bw[time_step - 1 - i] = output_tensor->t;
     }
 
     if(curr_param->merge_outputs)
