@@ -21,11 +21,13 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MOD
 #include "tim/vx/ops/mod.h"
 
 #include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
+
+#ifdef VSI_FEAT_OP_MOD
+
 namespace tim {
 namespace vx {
 namespace ops {

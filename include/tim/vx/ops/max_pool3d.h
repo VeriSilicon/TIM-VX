@@ -21,13 +21,15 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MAX_POOL3D
 #ifndef TIM_VX_OPS_MAX_POOL3D_H_
 #define TIM_VX_OPS_MAX_POOL3D_H_
 
 #include "tim/vx/builtin_op.h"
 #include "tim/vx/types.h"
 #include <array>
+
+#ifdef VSI_FEAT_OP_MAX_POOL3D
+
 namespace tim {
 namespace vx {
 namespace ops {
@@ -73,5 +75,5 @@ class MaxPool3d : public BuiltinOp {
 }  // namespace vx
 }  // namespace tim
 
+#endif //(VSI_FEAT_OP_MAX_POOL3D)
 #endif /* TIM_VX_OPS_MAX_POOL3D_H_ */
-#endif  //(VSI_FEAT_OP_MAX_POOL3D) 

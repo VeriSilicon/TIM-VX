@@ -21,13 +21,14 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
-
 #ifndef TIM_VX_OPS_MAXPOOLGRAD_H_
 #define TIM_VX_OPS_MAXPOOLGRAD_H_
 
 #include "tim/vx/operation.h"
 #include <array>
+
+#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
+
 namespace tim {
 namespace vx {
 namespace ops {
@@ -70,5 +71,5 @@ class MaxpoolGrad: public Operation {
 }  // namespace vx
 }  // namespace tim
 
-#endif /*TIM_VX_OPS_MAXPOOLGRAD_H_*/
-#endif
+#endif //(VSI_FEAT_OP_MAXPOOLWITHARGMAX)
+#endif /* TIM_VX_OPS_MAXPOOLGRAD_H_ */

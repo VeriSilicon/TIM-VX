@@ -21,12 +21,13 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_CUMSUM
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/cumsum.h"
 
 #include "gtest/gtest.h"
+
+#ifdef VSI_FEAT_OP_CUMSUM
 
 TEST(CumSum, shape_4_2_fp32_axis_0_exclusive_0_reverse_0) {
   auto ctx = tim::vx::Context::Create();

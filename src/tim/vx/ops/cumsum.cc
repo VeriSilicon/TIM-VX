@@ -21,11 +21,13 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_CUMSUM
 #include "tim/vx/ops/cumsum.h"
 
 #include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
+
+#ifdef VSI_FEAT_OP_CUMSUM
+
 namespace tim {
 namespace vx {
 namespace ops {

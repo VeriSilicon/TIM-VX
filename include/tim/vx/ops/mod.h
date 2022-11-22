@@ -21,11 +21,13 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MOD
 #ifndef TIM_VX_OPS_MOD_H_
 #define TIM_VX_OPS_MOD_H_
 
 #include "tim/vx/builtin_op.h"
+
+#ifdef VSI_FEAT_OP_MOD
+
 namespace tim {
 namespace vx {
 namespace ops {
@@ -57,5 +59,5 @@ class Mod : public BuiltinOp {
 }  // namespace vx
 }  // namespace tim
 
+#endif //(VSI_FEAT_OP_MOD) 
 #endif /* TIM_VX_OPS_MOD_H_ */
-#endif  //(VSI_FEAT_OP_MOD) 

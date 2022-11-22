@@ -21,7 +21,6 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MOD
 #include "tim/vx/ops/mod.h"
 
 #include "tim/vx/context.h"
@@ -29,6 +28,9 @@
 #include "tim/vx/types.h"
 #include "test_utils.h"
 #include "gtest/gtest.h"
+
+#ifdef VSI_FEAT_OP_MOD
+
 TEST(Mod, shape_2_2_3_1_fp32_fmod_0) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
@@ -137,4 +139,4 @@ TEST(Mod, shape_2_2_3_1_fp32_Broadcast) {
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     EXPECT_EQ(golden, output);
 }
-#endif  //(VSI_FEAT_OP_MOD) 
+#endif  //(VSI_FEAT_OP_MOD)
