@@ -639,7 +639,7 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedValidTest) {
   EXPECT_EQ(golden, output);
 }
 
-TEST(Conv2d, shape_4_2_2_2_float32_DisabledPointwiseMultifilterTest) {
+TEST(Conv2d, DISABLED_shape_4_2_2_2_float32_DisabledPointwiseMultifilterTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
@@ -1717,7 +1717,7 @@ TEST(Conv2d, shape_4_2_2_2_int16_DFPQuantizedTest){
   auto padding = tim::vx::PadType::SAME;
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
-  
+
   auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
       padding, stride, dilation);
   (*conv2d)
@@ -1742,7 +1742,7 @@ TEST(Conv2d, shape_4_2_2_2_int16_DFPQuantizedTest){
   for(const auto& q : output){
     f.push_back( q / (float)((int64_t)1 << fl_output));
   }
-  EXPECT_EQ(golden, f); 
+  EXPECT_EQ(golden, f);
 }
 TEST(Conv2d, shape_4_2_1_1_int16_DFPQuantizedTest) {
   auto ctx = tim::vx::Context::Create();
@@ -1790,7 +1790,7 @@ TEST(Conv2d, shape_4_2_1_1_int16_DFPQuantizedTest) {
 
   // nchw
   std::vector<float> golden = {// first channel
-                               18, 22, 21, 8,  7, 9, 8, 3, 
+                               18, 22, 21, 8,  7, 9, 8, 3,
                                // second channel
                                2,  3,  1,  -1, 2, 3, 1, 0,
                                // third channel
