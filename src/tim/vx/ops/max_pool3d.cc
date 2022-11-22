@@ -21,11 +21,12 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MAX_POOL3D
 #include "tim/vx/ops/max_pool3d.h"
 #include "type_utils.h"
 #include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
+
+#ifdef VSI_FEAT_OP_MAX_POOL3D
 
 namespace tim {
 namespace vx {
@@ -62,4 +63,4 @@ std::shared_ptr<Operation> MaxPool3d::Clone(std::shared_ptr<Graph>& graph) const
 }  // namespace vx
 }  // namespace tim
 
-#endif  //(VSI_FEAT_OP_MAX_POOL3D) 
+#endif //(VSI_FEAT_OP_MAX_POOL3D)

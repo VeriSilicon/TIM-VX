@@ -21,11 +21,13 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_CUMSUM
 #ifndef TIM_VX_OPS_CUMSUM_H_
 #define TIM_VX_OPS_CUMSUM_H_
 
 #include "tim/vx/builtin_op.h"
+
+#ifdef VSI_FEAT_OP_CUMSUM
+
 namespace tim {
 namespace vx {
 namespace ops {
@@ -60,5 +62,5 @@ class CumSum : public BuiltinOp {
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
-#endif /* TIM_VX_OPS_CUMSUM_H_ */
 #endif //(VSI_FEAT_OP_CUMSUM)
+#endif /* TIM_VX_OPS_CUMSUM_H_ */

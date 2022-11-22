@@ -21,12 +21,14 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #include "tim/vx/ops.h"
 #include "vsi_nn_pub.h"
 #include "op_impl.h"
 
 #include <array>
+
+#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
+
 namespace tim {
 namespace vx {
 namespace ops {

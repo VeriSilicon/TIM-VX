@@ -18,8 +18,22 @@ cc_library(
     strip_include_prefix = "include"
 )
 
+genrule(
+    name = "gen_vsi_feat_ops_def",
+    srcs = ["//src/tim/vx/internal:include/interface/ops.def"],
+    outs = ["vsi_feat_ops_def.h"],
+    cmd = "./$(location gen_vsi_feat_ops_def.sh) $(SRCS) > \"$(OUTS)\"",
+    tools = ["gen_vsi_feat_ops_def.sh"]
+)
+
+cc_library(
+    name = "vsi_feat_ops_def",
+    hdrs = [":gen_vsi_feat_ops_def"]
+)
+
 cc_library(
     name = "tim-vx_interface",
+    defines = ["BUILD_WITH_BAZEL"],
     copts = ["-std=c++14", "-Werror", "-fvisibility=default", "-pthread"],
     includes = [
         "include",
@@ -64,6 +78,7 @@ cc_library(
         ], exclude = ["src/tim/vx/ops/*_test.cc"]
     ) + glob(["src/tim/transform/ops/*.*"]),
     deps = [
+        ":vsi_feat_ops_def",
         "//src/tim/vx/internal:ovxlibimpl",
     ],
     linkstatic = True,

@@ -21,12 +21,12 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MAX_POOL3D
-
 #include "tim/vx/ops/max_pool3d.h"
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "gtest/gtest.h"
+
+#ifdef VSI_FEAT_OP_MAX_POOL3D
 
 TEST(MaxPool3d, shape_3_2_2_2_1_fp32_kernel_2_2_2_stride_1_1_1_VALID) {
   auto ctx = tim::vx::Context::Create();

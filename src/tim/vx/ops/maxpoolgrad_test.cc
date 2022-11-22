@@ -21,7 +21,6 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/maxpoolgrad.h"
@@ -29,6 +28,8 @@
 #include "tim/vx/ops/reshape.h"
 
 #include "gtest/gtest.h"
+
+#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
 
 TEST(Fuse_MaxpoolGrad, without_overlay) {
     auto ctx = tim::vx::Context::Create();

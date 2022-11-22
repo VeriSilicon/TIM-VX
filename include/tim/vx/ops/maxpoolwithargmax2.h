@@ -21,7 +21,6 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
 #ifndef TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_
 #define TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_
 
@@ -29,6 +28,8 @@
 
 #include "tim/vx/builtin_op.h"
 #include "tim/vx/types.h"
+
+#ifdef VSI_FEAT_OP_MAXPOOLWITHARGMAX
 
 namespace tim {
 namespace vx {
@@ -66,6 +67,5 @@ class MaxpoolWithArgmax2 : public BuiltinOp {
 }  // namespace vx
 }  // namespace tim
 
-#endif /* TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_ */
-
 #endif //(VSI_FEAT_OP_MAXPOOLWITHARGMAX)
+#endif /* TIM_VX_OPS_MAXPOOLWITHARGMAX2_H_ */
