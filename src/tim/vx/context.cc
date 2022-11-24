@@ -54,5 +54,9 @@ std::shared_ptr<Graph> ContextImpl::CreateGraph(const CompileOption& options) {
   return std::make_shared<GraphImpl>(this, options);
 }
 
+bool ContextImpl::isClOnly() {
+    return VSI_NN_HW_EVIS_NONE == context_->config.evis.ver;
+}
+
 }  // namespace vx
 }  // namespace tim

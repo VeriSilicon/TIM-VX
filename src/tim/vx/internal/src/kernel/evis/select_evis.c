@@ -34,7 +34,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -75,10 +74,42 @@ static const _kernel_map_type _select_kernel_map[] =
     PACK_KERNEL_MAP(I8, U8,  U8,  U8),
     PACK_KERNEL_MAP(I8, I16, I16, I16),
     PACK_KERNEL_MAP(I8, F16, F16, F16),
+    PACK_KERNEL_MAP(I8, F16, U8,  F16),
+    PACK_KERNEL_MAP(I8, U8,  F16, F16),
+    PACK_KERNEL_MAP(I8, F16, I8,  F16),
+    PACK_KERNEL_MAP(I8, I8,  F16, F16),
+    PACK_KERNEL_MAP(I8, F16, I16, F16),
+    PACK_KERNEL_MAP(I8, I16, F16, F16),
+    PACK_KERNEL_MAP(I8, F16, F16, U8),
+    PACK_KERNEL_MAP(I8, U8,  F16, U8),
+    PACK_KERNEL_MAP(I8, F16, U8,  U8),
+    PACK_KERNEL_MAP(I8, I8,  F16, I8),
+    PACK_KERNEL_MAP(I8, F16, I8,  I8),
+    PACK_KERNEL_MAP(I8, I16, F16, I16),
+    PACK_KERNEL_MAP(I8, F16, I16, I16),
+    PACK_KERNEL_MAP(I8, I8,  I8,  F16),
+    PACK_KERNEL_MAP(I8, U8,  U8,  F16),
+    PACK_KERNEL_MAP(I8, I16, I16, F16),
     PACK_KERNEL_MAP_2D(I8, I8,  I8,  I8),
     PACK_KERNEL_MAP_2D(I8, U8,  U8,  U8),
     PACK_KERNEL_MAP_2D(I8, I16, I16, I16),
     PACK_KERNEL_MAP_2D(I8, F16, F16, F16),
+    PACK_KERNEL_MAP_2D(I8, U8,  F16, F16),
+    PACK_KERNEL_MAP_2D(I8, F16, U8,  F16),
+    PACK_KERNEL_MAP_2D(I8, F16, I8,  F16),
+    PACK_KERNEL_MAP_2D(I8, I8,  F16, F16),
+    PACK_KERNEL_MAP_2D(I8, F16, I16, F16),
+    PACK_KERNEL_MAP_2D(I8, I16, F16, F16),
+    PACK_KERNEL_MAP_2D(I8, F16, F16, U8),
+    PACK_KERNEL_MAP_2D(I8, U8,  F16, U8),
+    PACK_KERNEL_MAP_2D(I8, F16, U8,  U8),
+    PACK_KERNEL_MAP_2D(I8, I8,  F16, I8),
+    PACK_KERNEL_MAP_2D(I8, F16, I8,  I8),
+    PACK_KERNEL_MAP_2D(I8, I16, F16, I16),
+    PACK_KERNEL_MAP_2D(I8, F16, I16, I16),
+    PACK_KERNEL_MAP_2D(I8, I8,  I8,  F16),
+    PACK_KERNEL_MAP_2D(I8, U8,  U8,  F16),
+    PACK_KERNEL_MAP_2D(I8, I16, I16, F16),
 };
 
 /*
@@ -142,7 +173,7 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
     output_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output);
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
 
-    if( input0_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
+    if ( input0_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         input0_fl = input0_attr->dfp.fl;
         if (input0_fl > 0)
@@ -154,13 +185,13 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
             input0Scale = (float)((int64_t)1 << -input0_fl);
         }
     }
-    else if( input0_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
+    else if ( input0_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
         input0Scale = input0_attr->asymm.scale;
         input0Zp    = input0_attr->asymm.zero_point;
     }
 
-    if( input1_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
+    if ( input1_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         input1_fl = input1_attr->dfp.fl;
         if (input1_fl > 0)
@@ -172,13 +203,13 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
             input1Scale = (float)((int64_t)1 << -input1_fl);
         }
     }
-    else if( input1_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
+    else if ( input1_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
         input1Scale = input1_attr->asymm.scale;
         input1Zp    = input1_attr->asymm.zero_point;
     }
 
-    if( output_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
+    if ( output_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         output_fl = output_attr->dfp.fl;
         if (output_fl > 0)
@@ -190,7 +221,7 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
             outputScale = (float)((int64_t)1 << -output_fl);
         }
     }
-    else if( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
+    else if ( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
         outputScale = output_attr->asymm.scale;
         outputZP    = output_attr->asymm.zero_point;
@@ -203,13 +234,10 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
 
     output_shape  = output_attr->shape;
     gpu_param.dim = output_shape->size < 3 ? 2 : 3;
-    gpu_param.global_offset[0] = 0;
-    gpu_param.global_offset[1] = 0;
-    gpu_param.global_offset[2] = 0;
+
     gpu_param.global_scale[0]  = 8;
     gpu_param.global_scale[1]  = 1;
     gpu_param.global_scale[2]  = 1;
-
     gpu_param.global_size[0]   = gpu_align_p2((output_shape->data[0] + gpu_param.global_scale[0] - 1)
                                              / gpu_param.global_scale[0], 4);
     gpu_param.global_size[1]   = (output_shape->data[1] + gpu_param.global_scale[1] - 1)
@@ -218,83 +246,8 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
                                  (output_shape->data[2] + gpu_param.global_scale[2] - 1)
                                              / gpu_param.global_scale[2] : 1;
 
-
     switch( pack_key )
     {
-        case _PACK_SELECT_KEY( I8,  I8,  I8 ):
-        case _PACK_SELECT_KEY( I16, I16, I16 ):
-        {
-            gpu_dp_inst_t uniConvConditiontoDst_2x8 = {{
-                0x11111111, // TCfg
-                0x00000000, // ASelt
-                0x03020100, 0x07060504, // ABin
-                0x22222222, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00000600, // AccumType, ConstantType, and PostShift
-                0x00000001, 0x00000001, 0x00000001, 0x00000001,
-                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
-            }, GPU_DP_TYPE_16 };
-            gpu_dp_inst_t uniConvIntIn0toDst_2x8 = {{
-                0x11111111, // TCfg
-                0x00000000, // ASelt
-                0x03020100, 0x07060504, // ABin
-                0x22222222, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00000600, // AccumType, ConstantType, and PostShift
-                0x00000001, 0x00000001, 0x00000001, 0x00000001,
-                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
-            }, GPU_DP_TYPE_16 };
-            gpu_dp_inst_t uniConvIntIn1toDst_2x8 = {{
-                0x11111111, // TCfg
-                0x00000000, // ASelt
-                0x03020100, 0x07060504, // ABin
-                0x22222222, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00000600, // AccumType, ConstantType, and PostShift
-                0x00000001, 0x00000001, 0x00000001, 0x00000001,
-                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
-            }, GPU_DP_TYPE_16 };
-
-            if (input0_fl >= output_fl)
-            {
-                uint8_t  postshift      = (uint8_t)gpu_min(input0_fl - output_fl, MAX_POST_SHIFT_BITS);
-                uniConvIntIn0toDst_2x8.data[7]    = uniConvIntIn0toDst_2x8.data[7] | (postshift & 0x1F);
-            }
-            else
-            {
-                uint32_t idx = 0;
-                uint32_t multiplier = gpu_min((int64_t)1 << (output_fl - input0_fl), MAX_MULTIPLIER_NUM);
-                for (idx = 8; idx < 16; idx ++)
-                {
-                    uniConvIntIn0toDst_2x8.data[idx] = (uint32_t)(multiplier << 16) | (multiplier & 0xffff);
-                }
-            }
-
-
-            if (input1_fl >= output_fl)
-            {
-                uint8_t  postshift      = (uint8_t)gpu_min(input1_fl - output_fl, MAX_POST_SHIFT_BITS);
-                uniConvIntIn1toDst_2x8.data[7]    = uniConvIntIn1toDst_2x8.data[7] | (postshift & 0x1F);
-            }
-            else
-            {
-                uint32_t idx = 0;
-                uint32_t multiplier = gpu_min((int64_t)1 << (output_fl - input1_fl), MAX_MULTIPLIER_NUM);
-                for (idx = 8; idx < 16; idx ++)
-                {
-                    uniConvIntIn1toDst_2x8.data[idx] = (uint32_t)(multiplier << 16) | (multiplier & 0xffff);
-                }
-            }
-
-            status = vsi_nn_kernel_gpu_add_param( node,
-                    "uniConvIntIn0toDst_2x8", &uniConvIntIn0toDst_2x8 );
-            status |= vsi_nn_kernel_gpu_add_param( node,
-                    "uniConvIntIn1toDst_2x8", &uniConvIntIn1toDst_2x8 );
-            status |= vsi_nn_kernel_gpu_add_param( node,
-                    "uniConvConditiontoDst_2x8", &uniConvConditiontoDst_2x8 );
-            CHECK_STATUS_FAIL_GOTO(status, final );
-        }
-        break;
         case _PACK_SELECT_KEY( F16,  F16,  F16 ):
         {
             gpu_dp_inst_t uniConvConditiontoDst_2x8 = {{
@@ -312,61 +265,76 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
-        case _PACK_SELECT_KEY( U8,  U8,  U8 ):
+        case _PACK_SELECT_KEY( I8,   I8,   I8 ):
+        case _PACK_SELECT_KEY( I16,  I16,  I16 ):
+        case _PACK_SELECT_KEY( U8,   U8,   U8 ):
+        case _PACK_SELECT_KEY( I8,   F16,  F16 ):
+        case _PACK_SELECT_KEY( U8,   F16,  F16 ):
+        case _PACK_SELECT_KEY( I16,  F16,  F16 ):
+        case _PACK_SELECT_KEY( F16,  U8,   F16 ):
+        case _PACK_SELECT_KEY( F16,  I8,   F16 ):
+        case _PACK_SELECT_KEY( F16,  I16,  F16 ):
+        case _PACK_SELECT_KEY( F16,  F16,  U8 ):
+        case _PACK_SELECT_KEY( U8,   F16,  U8 ):
+        case _PACK_SELECT_KEY( F16,  U8,   U8 ):
+        case _PACK_SELECT_KEY( I8,   F16,  I8 ):
+        case _PACK_SELECT_KEY( F16,  I8,   I8 ):
+        case _PACK_SELECT_KEY( I16,  F16,  I16 ):
+        case _PACK_SELECT_KEY( F16,  I16,  I16 ):
+        case _PACK_SELECT_KEY( I8,   I8,   F16 ):
+        case _PACK_SELECT_KEY( I16,  I16,  F16 ):
+        case _PACK_SELECT_KEY( U8,   U8,   F16 ):
+        case _PACK_SELECT_KEY( BF16, BF16, BF16 ):
         {
-            uint32_t idx = 0;
-            gpu_dp_inst_t uniU8SubZP_MulM_PStoF16In0_2x8 = {{
-                0x99999999, // TCfg
-                0x44444444, // ASelt
+            uint32_t multAndoutZP0[2] = {0};
+            uint32_t multAndoutZP1[2] = {0};
+            gpu_dp_inst_t uniConvConditiontoDst_2x8 = {{
+                0x11111111, // TCfg
+                0x00000000, // ASelt
                 0x03020100, 0x07060504, // ABin
-                0xaaaaaaaa, // BSelt
+                0x22222222, // BSelt
                 0x00000000, 0x00000000, // BBin
                 0x00000600, // AccumType, ConstantType, and PostShift
-                0x00010001, 0x00010001, 0x00010001, 0x00010001,
-                0x00010001, 0x00010001, 0x00010001, 0x00010001 // Constant
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
             }, GPU_DP_TYPE_16 };
-            gpu_dp_inst_t uniU8SubZP_MulM_PStoF16In1_2x8 = {{
-                0x99999999, // TCfg
+            gpu_dp_inst_t uniU8MulAndPostShift0_Lo_2x8 = {{
+                0xdddddddd, // TCfg
                 0x44444444, // ASelt
-                0x03020100, 0x07060504, // ABin
-                0xaaaaaaaa, // BSelt
+                0x13121110, 0x17161514, // ABin
+                0x11111111, // BSelt
                 0x00000000, 0x00000000, // BBin
-                0x00000600, // AccumType, ConstantType, and PostShift
-                0x00010001, 0x00010001, 0x00010001, 0x00010001,
-                0x00010001, 0x00010001, 0x00010001, 0x00010001 // Constant
+                0x00002600, // AccumType, ConstantType, and PostShift
+                0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
             }, GPU_DP_TYPE_16 };
-            gpu_dp_inst_t uniU8AddZP_2x8 = {{
-                0x55555555, // TCfg
+            gpu_dp_inst_t uniU8MulAndPostShift1_Lo_2x8 = {{
+                0xdddddddd, // TCfg
                 0x44444444, // ASelt
-                0x03020100, 0x07060504, // ABin
-                0xaaaaaaaa, // BSelt
+                0x13121110, 0x17161514, // ABin
+                0x11111111, // BSelt
                 0x00000000, 0x00000000, // BBin
-                0x00000400, // AccumType, ConstantType, and PostShift
-                0x00010001, 0x00010001, 0x00010001, 0x00010001,
-                0x00010001, 0x00010001, 0x00010001, 0x00010001 // Constant
+                0x00002600, // AccumType, ConstantType, and PostShift
+                0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
             }, GPU_DP_TYPE_16 };
 
-            uniU8SubZP_MulM_PStoF16In0_2x8.data[7] |= (in0_postShift & 0x1F);
-            uniU8SubZP_MulM_PStoF16In1_2x8.data[7] |= (in1_postShift & 0x1F);
+            multAndoutZP0[0] = (uint32_t)(in0_M0);
+            multAndoutZP0[1] = (uint32_t)((outputZP << in0_postShift) - input0Zp * in0_M0);
+            multAndoutZP1[0] = (uint32_t)(in1_M0);
+            multAndoutZP1[1] = (uint32_t)((outputZP << in1_postShift) - input1Zp * in1_M0);
 
-            for (idx = 8; idx < 16; idx ++)
-            {
-                uniU8SubZP_MulM_PStoF16In0_2x8.data[idx] = (vx_uint32)(in0_M0 << 16) | in0_M0;
-                uniU8SubZP_MulM_PStoF16In1_2x8.data[idx] = (vx_uint32)(in1_M0 << 16) | in1_M0;
-            }
+            gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift0_Lo_2x8, in0_postShift );
+            gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift1_Lo_2x8, in1_postShift );
 
-            status = vsi_nn_kernel_gpu_add_param( node,
-                    "uniU8SubZP_MulM_PStoF16In0_2x8", &uniU8SubZP_MulM_PStoF16In0_2x8 );
+            status  = vsi_nn_kernel_gpu_add_param( node, "multAndoutZP1", &multAndoutZP1 );
+            status |= vsi_nn_kernel_gpu_add_param( node, "multAndoutZP0", &multAndoutZP0 );
             status |= vsi_nn_kernel_gpu_add_param( node,
-                    "uniU8SubZP_MulM_PStoF16In1_2x8", &uniU8SubZP_MulM_PStoF16In1_2x8 );
+                "uniConvConditiontoDst_2x8",  &uniConvConditiontoDst_2x8 );
             status |= vsi_nn_kernel_gpu_add_param( node,
-                    "uniU8AddZP_2x8", &uniU8AddZP_2x8 );
+                "uniU8MulAndPostShift0_Lo_2x8",  &uniU8MulAndPostShift0_Lo_2x8 );
             status |= vsi_nn_kernel_gpu_add_param( node,
-                    "input0Zp", &input0Zp );
-            status |= vsi_nn_kernel_gpu_add_param( node,
-                    "input1Zp", &input1Zp );
-            status |= vsi_nn_kernel_gpu_add_param( node,
-                    "outputZP", &outputZP );
+                "uniU8MulAndPostShift1_Lo_2x8",  &uniU8MulAndPostShift1_Lo_2x8 );
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
@@ -426,9 +394,12 @@ static vsi_status _query_kernel
     out_dtype   = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
     cond_dtype  = (BOOL8 == cond_dtype || U8 == cond_dtype) ? I8 : cond_dtype;
-    in0_dtype   = (BOOL8 == in0_dtype)  ? I8 : in0_dtype;
-    in1_dtype   = (BOOL8 == in1_dtype)  ? I8 : in1_dtype;
-    out_dtype   = (BOOL8 == out_dtype)  ? I8 : out_dtype;
+    in0_dtype   = (BOOL8 == in0_dtype) ? I8 : in0_dtype;
+    in0_dtype   = (BF16 == in0_dtype)  ? I16 : in0_dtype;
+    in1_dtype   = (BOOL8 == in1_dtype) ? I8 : in1_dtype;
+    in1_dtype   = (BF16 == in1_dtype) ? I16 : in1_dtype;
+    out_dtype   = (BOOL8 == out_dtype) ? I8 : out_dtype;
+    out_dtype   = (BF16 == out_dtype) ? I16 : out_dtype;
 
     key = SELECT_HASH_KEY(cond_dtype, in0_dtype, in1_dtype, out_dtype, image_2d);
 
@@ -474,7 +445,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
 
-    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -483,10 +454,10 @@ static vsi_nn_kernel_node_t _setup
     image_2d = (outputs[0]->attr.dim_num == 2);
     status = _query_kernel( kernel, inputs, outputs, image_2d);
 
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             /* Set inputs and outputs */
             vsi_nn_kernel_node_pack_io( node_params, _SELECT_PARAM_NUM,
@@ -501,4 +472,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( select, _setup )
-

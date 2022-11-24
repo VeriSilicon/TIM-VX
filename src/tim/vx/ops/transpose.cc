@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/transpose.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Transpose::Transpose(Graph* graph, const std::vector<uint32_t>& perm)
-    : DirectMapOp(graph, VSI_NN_OP_PERMUTE), perm_(std::move(perm)) {
+    : BuiltinOp(graph, VSI_NN_OP_PERMUTE), perm_(std::move(perm)) {
   this->impl()->node()->nn_param.permute.perm = perm_.data();
   this->impl()->node()->nn_param.permute.dim_num = perm_.size();
 }

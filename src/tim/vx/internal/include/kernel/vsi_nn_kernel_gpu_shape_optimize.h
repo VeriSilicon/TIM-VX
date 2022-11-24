@@ -85,4 +85,10 @@ vsi_bool vsi_nn_kernel_optimize_group_norm_shape
     int32_t is_sp_kernel, vsi_size_t* out_shape
     );
 
+vsi_bool vsi_nn_kernel_optimize_scatter_elements_shape
+    (
+    const vsi_size_t* shape_x, const vsi_size_t rank_x, const int32_t axis,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x, int32_t* out_axis, vsi_size_t max_size
+    );
+
 #endif

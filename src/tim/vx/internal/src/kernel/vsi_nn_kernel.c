@@ -35,6 +35,7 @@
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_math.h"
 #include "vsi_nn_tensor_util.h"
+#include "utils/vsi_nn_dtype_util.h"
 
 #include "libnnext/vsi_nn_libnnext_resource.h"
 #if VSI_USE_VXC_BINARY
@@ -118,7 +119,14 @@ static void _kernel_clear_source
 
 static vsi_bool _check_shader_support(vsi_nn_graph_t* graph);
 
-static vsi_bool vsi_nn_kernel_is_asymmtric_int8
+static vsi_bool _check_stream_process_support
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t** inputs,
+    size_t input_num
+    );
+
+vsi_bool vsi_nn_kernel_is_supported_types
     (
     vsi_nn_tensor_t** inputs,
     size_t input_num,
@@ -1222,7 +1230,7 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
             /* Skip evis and cl when disable shader */
             if ( (type == VSI_NN_KERNEL_TYPE_EVIS || type == VSI_NN_KERNEL_TYPE_CL)
                 && ( _check_shader_support(graph) == FALSE ||
-                vsi_nn_kernel_is_asymmtric_int8(inputs, input_num, outputs, output_num) ) )
+                vsi_nn_kernel_is_supported_types(inputs, input_num, outputs, output_num) == FALSE ) )
             {
                 continue;
             }
@@ -1234,8 +1242,8 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
             }
 
             /* Skip StreamProcesor if not support */
-            if( type == VSI_NN_KERNEL_TYPE_SP
-                && !graph->ctx->config.support_stream_processor )
+            if( type == VSI_NN_KERNEL_TYPE_SP &&
+                _check_stream_process_support(graph, inputs, input_num) == FALSE )
             {
                 continue;
             }
@@ -1416,31 +1424,42 @@ vsi_nn_kernel_tensor_attr_t * vsi_nn_kernel_tensor_attr_create
     switch( attr->quant )
     {
     case VSI_NN_KERNEL_QUANT_DFP:
-        {
+    {
         int8_t fl = 0;
         status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_FIXED_POINT_POS,
             &fl, sizeof(int8_t));
         CHECK_STATUS( status );
         attr->dfp.fl = (int32_t)fl;
+        if (fl >= 0) {
+            attr->scale = 1.0f / ((float)((int64_t)1 << fl));
+        } else {
+            attr->scale = (float)((int64_t)1 << -fl);
         }
-        break;
+    } break;
     case VSI_NN_KERNEL_QUANT_ASYMM:
-        {
-        status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_ZERO_POINT,
-            &(attr->asymm.zero_point), sizeof(int32_t));
-        CHECK_STATUS( status );
-        status = vxQueryTensor( (vx_tensor)tensor, VX_TENSOR_SCALE,
-            &(attr->asymm.scale), sizeof(float));
-        CHECK_STATUS( status );
+    {
+        status = vxQueryTensor((vx_tensor)tensor,
+                               VX_TENSOR_ZERO_POINT,
+                               &(attr->asymm.zero_point),
+                               sizeof(int32_t));
+        CHECK_STATUS(status);
+        status = vxQueryTensor((vx_tensor)tensor,
+                               VX_TENSOR_SCALE,
+                               &(attr->asymm.scale),
+                               sizeof(float));
+        CHECK_STATUS(status);
         // Reset scale to 1e-8
-        if( (attr->asymm.scale - 0.f) < 1e-8 )
-            {
+        if ((attr->asymm.scale - 0.f) < 1e-8)
+        {
             attr->asymm.scale = (float)1e-8;
             attr->asymm.zero_point = 0;
-            }
         }
-        break;
+        attr->scale = attr->asymm.scale;
+        attr->zero_point = attr->asymm.zero_point;
+    }
+    break;
     default:
+        attr->scale = 1.0f;
         break;
     }
     return attr;
@@ -1650,7 +1669,7 @@ static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
     return FALSE;
 }
 
-static vsi_bool vsi_nn_kernel_is_asymmtric_int8
+vsi_bool vsi_nn_kernel_is_supported_types
     (
     vsi_nn_tensor_t** inputs,
     size_t input_num,
@@ -1662,25 +1681,45 @@ static vsi_bool vsi_nn_kernel_is_asymmtric_int8
 
     for (i = 0; i < input_num; i++)
     {
-        if ( inputs[i] &&
-             inputs[i]->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
-             inputs[i]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC
-           )
+        if ( inputs[i] && vsi_nn_TypeGetBits(inputs[i]->attr.dtype.vx_type) == 4 )
         {
-            return TRUE;
+            return FALSE;
         }
     }
 
     for (i = 0; i < output_num; i++)
     {
-        if ( outputs[i] &&
-             outputs[i]->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
-             outputs[i]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC
-           )
+        if ( outputs[i] && vsi_nn_TypeGetBits(outputs[i]->attr.dtype.vx_type) == 4 )
         {
-            return TRUE;
+            return FALSE;
         }
     }
 
-    return FALSE;
+    return TRUE;
+}
+
+static vsi_bool _check_stream_process_support
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t** inputs,
+    size_t input_num
+    )
+{
+    if ( graph->ctx->config.support_stream_processor == 0 )
+    {
+        return FALSE;
+    }
+
+    if ( graph->ctx->config.sp_exec_count == 0 )
+    {
+        return FALSE;
+    }
+
+    if (inputs && input_num > 0 &&
+        inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
 }

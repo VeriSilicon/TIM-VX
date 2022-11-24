@@ -371,7 +371,7 @@ DEF_KERNEL_INITIALIZER(_resize_nearest_initializer)
             0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
 
-        gpu_quantize_multiplier_16bit(input_scale * output_scale, &M0, &postShift);
+        gpu_quantize_multiplier_16bit((double)input_scale * (double)output_scale, &M0, &postShift);
 
         multAndoutZP[0] = (uint32_t)(M0);
         multAndoutZP[1] = (uint32_t)((outputZP << postShift) - inputZP * M0);

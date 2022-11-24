@@ -39,7 +39,6 @@
 
 __BEGIN_DECLS
 
-#define _SLICE_KERNEL_SOURCE      "slice"
 #define _SLICE_KERNEL_NAME        CVIVANTE_NAMESPACE("evis.slice")
 
     // Add kernel hashtable here
@@ -50,30 +49,30 @@ __BEGIN_DECLS
 #define SLICE_HASH_KEY( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE , _IMAGE_2D, _SAMEFL) \
     (( IN1_DTYPE << 18 ) | ( IN0_DTYPE << 10 ) | ( OUT_DTYPE << 2 ) | (_IMAGE_2D << 1) | (_SAMEFL))
 
-#define PACK_KERNEL_MAP( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, SOURCE ) \
+#define PACK_KERNEL_MAP_3D( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ) \
 {   SLICE_HASH_KEY( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 0, 0 ), \
-    SLICE_SH_KERNEL_NAME( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ), SOURCE }
+    SLICE_SH_KERNEL_NAME( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ), "slice" }
 
 #define SLICE_SH_KERNEL_2D_NAME(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE) \
     CVIVANTE_NAMESPACE("evis.slice_"#IN0_DTYPE"_"#IN1_DTYPE"to"#OUT_DTYPE"_2D")
 
-#define PACK_KERNEL_MAP_2D( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, SOURCE ) \
+#define PACK_KERNEL_MAP_2D( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ) \
 {   SLICE_HASH_KEY( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 1, 0 ), \
-    SLICE_SH_KERNEL_2D_NAME( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ), SOURCE }
+    SLICE_SH_KERNEL_2D_NAME( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ), "slice" }
 
 #define SLICE_SH_KERNEL_SAMEFL_NAME(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE) \
     CVIVANTE_NAMESPACE("evis.slice_"#IN0_DTYPE"_"#IN1_DTYPE"to"#OUT_DTYPE"_SAMEFL")
 
-#define PACK_KERNEL_MAP_SAMEFL( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, SOURCE ) \
+#define PACK_KERNEL_MAP_SAMEFL( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ) \
 {   SLICE_HASH_KEY( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 0, 1 ), \
-    SLICE_SH_KERNEL_SAMEFL_NAME( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ), SOURCE }
+    SLICE_SH_KERNEL_SAMEFL_NAME( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ), "slice" }
 
 #define SLICE_SH_KERNEL_SAMEFL_2D_NAME(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE) \
     CVIVANTE_NAMESPACE("evis.slice_"#IN0_DTYPE"_"#IN1_DTYPE"to"#OUT_DTYPE"_SAMEFL_2D")
 
-#define PACK_KERNEL_MAP_SAMEFL_2D( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, SOURCE ) \
+#define PACK_KERNEL_MAP_SAMEFL_2D( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ) \
 {   SLICE_HASH_KEY( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 1, 1 ), \
-    SLICE_SH_KERNEL_SAMEFL_2D_NAME( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ), SOURCE }
+    SLICE_SH_KERNEL_SAMEFL_2D_NAME( IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ), "slice" }
 
     typedef struct
 {
@@ -85,21 +84,33 @@ __BEGIN_DECLS
 static const _kernel_map_type _slice_kernel_map[] =
 {
     // Register kernel here
-    PACK_KERNEL_MAP( F16, I32, F16, _SLICE_KERNEL_SOURCE ),
-    PACK_KERNEL_MAP( I16, I32, I16, _SLICE_KERNEL_SOURCE ),
-    PACK_KERNEL_MAP( U8, I32,  U8,  _SLICE_KERNEL_SOURCE ),
-    PACK_KERNEL_MAP( I8, I32,  I8,  _SLICE_KERNEL_SOURCE ),
+    PACK_KERNEL_MAP_3D( F16, I32, F16 ),
+    PACK_KERNEL_MAP_3D( F16, I32, I8 ),
+    PACK_KERNEL_MAP_3D( F16, I32, U8 ),
+    PACK_KERNEL_MAP_3D( F16, I32, I16 ),
+    PACK_KERNEL_MAP_3D( I8,  I32, F16 ),
+    PACK_KERNEL_MAP_3D( U8,  I32, F16 ),
+    PACK_KERNEL_MAP_3D( I16, I32, F16 ),
+    PACK_KERNEL_MAP_3D( I16, I32, I16 ),
+    PACK_KERNEL_MAP_3D( U8,  I32,  U8 ),
+    PACK_KERNEL_MAP_3D( I8,  I32,  I8 ),
 
-    PACK_KERNEL_MAP_2D( F16, I32, F16, _SLICE_KERNEL_SOURCE ),
-    PACK_KERNEL_MAP_2D( I16, I32, I16, _SLICE_KERNEL_SOURCE ),
-    PACK_KERNEL_MAP_2D( U8, I32,  U8,  _SLICE_KERNEL_SOURCE ),
-    PACK_KERNEL_MAP_2D( I8, I32,  I8,  _SLICE_KERNEL_SOURCE ),
+    PACK_KERNEL_MAP_2D( F16, I32, F16 ),
+    PACK_KERNEL_MAP_2D( I16, I32, I16 ),
+    PACK_KERNEL_MAP_2D( F16, I32, I8 ),
+    PACK_KERNEL_MAP_2D( F16, I32, U8 ),
+    PACK_KERNEL_MAP_2D( F16, I32, I16 ),
+    PACK_KERNEL_MAP_2D( I8,  I32, F16 ),
+    PACK_KERNEL_MAP_2D( U8,  I32, F16 ),
+    PACK_KERNEL_MAP_2D( I16, I32, F16 ),
+    PACK_KERNEL_MAP_2D( U8, I32,  U8 ),
+    PACK_KERNEL_MAP_2D( I8, I32,  I8 ),
 
-    PACK_KERNEL_MAP_SAMEFL( I16, I32, I16, _SLICE_KERNEL_SOURCE ),
-    PACK_KERNEL_MAP_SAMEFL( U8,  I32, U8, _SLICE_KERNEL_SOURCE ),
+    PACK_KERNEL_MAP_SAMEFL( I16, I32, I16 ),
+    PACK_KERNEL_MAP_SAMEFL( U8,  I32, U8 ),
 
-    PACK_KERNEL_MAP_SAMEFL_2D( I16, I32, I16, _SLICE_KERNEL_SOURCE ),
-    PACK_KERNEL_MAP_SAMEFL_2D( U8, I32,  U8,  _SLICE_KERNEL_SOURCE ),
+    PACK_KERNEL_MAP_SAMEFL_2D( I16, I32, I16 ),
+    PACK_KERNEL_MAP_SAMEFL_2D( U8, I32,  U8 ),
 };
 
 #define _INPUT_NUM          (2)
@@ -201,18 +212,16 @@ DEF_KERNEL_INITIALIZER(_slice_initializer)
         scaleOut         = output_attr->asymm.scale;
     }
 
-    if ((F16 == input_dtype)
-        || (I16 == input_dtype)
-        || (BF16 == input_dtype)
-        )
+    if ((I8 == input_dtype && input_dtype == output_dtype ) ||
+        (U8 == input_dtype && input_dtype == output_dtype ) )
     {
-        gpu_param.global_scale[0]  = 8;
+        gpu_param.global_scale[0]  = 16;
         gpu_param.global_scale[1]  = 1;
         gpu_param.global_scale[2]  = 1;
     }
     else
     {
-        gpu_param.global_scale[0]  = 16;
+        gpu_param.global_scale[0]  = 8;
         gpu_param.global_scale[1]  = 1;
         gpu_param.global_scale[2]  = 1;
     }

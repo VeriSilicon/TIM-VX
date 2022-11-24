@@ -31,7 +31,7 @@
 extern "C"{
 #endif
 
-#ifdef _MSC_VER
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
 #define snprintf(buffer, count, format, ...) \
     _snprintf_s(buffer, count, _TRUNCATE, format, ##__VA_ARGS__)
 #define vsnprintf(buffer, count, format, args) \

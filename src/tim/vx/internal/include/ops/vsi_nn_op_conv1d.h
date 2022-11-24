@@ -54,6 +54,7 @@ typedef struct _vsi_nn_conv1d_param
     uint32_t     group;
     uint32_t     dilation;
     int32_t      multiplier;
+    vsi_nn_pad_mode_e pad_mode;
 } vsi_nn_conv1d_param;
 _compiler_assert(offsetof(vsi_nn_conv1d_param, local) == 0, \
     vsi_nn_vsi_nn_conv1d_h );

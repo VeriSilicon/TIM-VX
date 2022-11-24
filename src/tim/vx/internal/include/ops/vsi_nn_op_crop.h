@@ -30,11 +30,20 @@
 extern "C" {
 #endif
 
+typedef struct _vsi_nn_crop_lcl_data
+{
+    vx_int32 begin_dims[VSI_NN_MAX_DIM_NUM];
+    vx_int32 end_dims[VSI_NN_MAX_DIM_NUM];
+    vx_int32 stride_dims[VSI_NN_MAX_DIM_NUM];
+} vsi_nn_crop_lcl_data;
+
 typedef struct _vsi_nn_crop_param
 {
     int32_t  axis;
     uint32_t dims;
     uint32_t offset[VSI_NN_MAX_DIM_NUM];
+
+    vsi_nn_crop_lcl_data  *lcl_data;
 } vsi_nn_crop_param;
 
 #ifdef __cplusplus

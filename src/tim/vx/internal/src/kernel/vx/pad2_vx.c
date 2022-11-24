@@ -65,6 +65,7 @@ REGISTER_PAD2_OPENVX_KERNEL( pad2 )
     int32_t pad_front_array[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t pad_back_array[VSI_NN_MAX_DIM_NUM] = {0};
     vsi_nn_tensor_t *convert_tensor = NULL;
+    vsi_bool release_intermediate_tensor = TRUE;
     float const_val = vsi_nn_kernel_param_get_float32(params, "const_val");
 
     memset(&param, 0, sizeof(param));
@@ -98,14 +99,18 @@ REGISTER_PAD2_OPENVX_KERNEL( pad2 )
     }
     else
     {
-        convert_tensor = vsi_nn_reshape_tensor( graph,
-            inputs[0], inputs[0]->attr.size, inputs[0]->attr.dim_num );
+        convert_tensor = inputs[0];
+        release_intermediate_tensor = FALSE;
     }
 
     node = vxTensorPadNode( graph->g, convert_tensor->t, outputs[0]->t, &param, sizeof(param) );
 
     vxReleaseScalar( &param.pad_const );
-    vsi_safe_release_tensor(convert_tensor);
+
+    if (release_intermediate_tensor)
+    {
+        vsi_safe_release_tensor(convert_tensor);
+    }
 
     return (vsi_nn_kernel_node_t)node;
 } /* pad2() */

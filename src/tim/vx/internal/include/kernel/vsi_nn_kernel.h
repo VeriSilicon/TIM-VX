@@ -156,6 +156,8 @@ typedef struct
         vsi_nn_kernel_quant_asymm_t asymm;
         vsi_nn_kernel_quant_asymm_perchannel_t asymm_v;
     };
+    float scale;
+    int32_t zero_point;
 } vsi_nn_kernel_tensor_attr_t;
 
 typedef struct
@@ -324,9 +326,20 @@ const void * vsi_nn_kernel_param_get_const_buffer
             } \
     static vsi_status NAME##_impl
 
+#define DEF_SP_KERNEL_BASE_CALLBACK( NAME )  \
+    static vsi_status NAME##_impl( vsi_nn_kernel_node_t node); \
+    static vx_status VX_CALLBACK NAME( \
+            vx_node node) {\
+                return (vx_status)NAME##_impl( \
+                        (vsi_nn_kernel_node_t)node); \
+            } \
+    static vsi_status NAME##_impl
+
+
 #define DEF_KERNEL_INITIALIZER( NAME )          DEF_KERNEL_BASE_CALLBACK( NAME )
 #define DEF_KERNEL_EXECUTOR( NAME )             DEF_KERNEL_BASE_CALLBACK( NAME )
 #define DEF_KERNEL_DEINITIALIZER( NAME )        DEF_KERNEL_BASE_CALLBACK( NAME )
+#define DEF_SP_KERNEL_QUERY( NAME )             DEF_SP_KERNEL_BASE_CALLBACK( NAME )
 
 void vsi_nn_kernel_backend_register
     (
@@ -411,7 +424,7 @@ vsi_status vsi_nn_kernel_node_pass_param
     size_t num
     );
 
-static inline void vsi_nn_kernel_node_release
+static VSI_INLINE_API void vsi_nn_kernel_node_release
     (
     vsi_nn_kernel_node_t * node
     )
@@ -422,7 +435,7 @@ static inline void vsi_nn_kernel_node_release
     }
 }
 
-static inline void vsi_nn_kernel_node_pack_io
+static VSI_INLINE_API void vsi_nn_kernel_node_pack_io
     (
     vsi_nn_kernel_node_param_t * params,
     size_t param_num,
@@ -476,7 +489,7 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
     );
 
 /** Map data type to gpu internal dtype. */
-static inline vsi_nn_kernel_dtype_e vsi_nn_kernel_map_dtype
+static VSI_INLINE_API vsi_nn_kernel_dtype_e vsi_nn_kernel_map_dtype
     (
     vsi_nn_type_e dtype
     )
@@ -516,7 +529,7 @@ static inline vsi_nn_kernel_dtype_e vsi_nn_kernel_map_dtype
     return I8;
 } /* vsi_nn_kernel_map_dtype() */
 
-static inline  vsi_nn_type_e vsi_nn_dtype_map_kernel
+static VSI_INLINE_API  vsi_nn_type_e vsi_nn_dtype_map_kernel
     (
     vsi_nn_kernel_dtype_e dtype
     )
@@ -556,7 +569,7 @@ static inline  vsi_nn_type_e vsi_nn_dtype_map_kernel
     return VSI_NN_TYPE_INT8;
 } /* vsi_nn_kernel_map_dtype() */
 
-static inline size_t vsi_nn_kernel_dtype_get_bytes
+static VSI_INLINE_API size_t vsi_nn_kernel_dtype_get_bytes
     (
     vsi_nn_kernel_dtype_e dtype
     )
@@ -585,7 +598,7 @@ static inline size_t vsi_nn_kernel_dtype_get_bytes
     return 0;
 } /* vsi_nn_kernel_dtype_get_bytes() */
 
-static inline vsi_size_t vsi_nn_kernel_dtype_get_bits
+static VSI_INLINE_API vsi_size_t vsi_nn_kernel_dtype_get_bits
     (
     vsi_nn_kernel_dtype_e dtype
     )
@@ -617,7 +630,7 @@ static inline vsi_size_t vsi_nn_kernel_dtype_get_bits
     return 0;
 } /* vsi_nn_kernel_dtype_get_bits() */
 
-static inline vsi_nn_kernel_quant_type_e vsi_nn_kernel_map_quant_type
+static VSI_INLINE_API vsi_nn_kernel_quant_type_e vsi_nn_kernel_map_quant_type
     ( vsi_nn_qnt_type_e quant_type )
 {
     switch( quant_type )
@@ -658,7 +671,7 @@ vsi_nn_kernel_scalar_t vsi_nn_kernel_scalar_create
     const void * data
     );
 
-static inline void vsi_nn_kernel_scalar_release
+static VSI_INLINE_API void vsi_nn_kernel_scalar_release
     ( vsi_nn_kernel_scalar_t * scalar )
 {
     if( scalar && *scalar )
@@ -803,7 +816,7 @@ vsi_status vsi_nn_kernel_tensor_write
     size_t size
     );
 
-static inline vsi_size_t vsi_nn_kernel_tensor_attr_get_size
+static VSI_INLINE_API vsi_size_t vsi_nn_kernel_tensor_attr_get_size
     ( const vsi_nn_kernel_tensor_attr_t * attr )
 {
     if( !attr )
@@ -813,7 +826,7 @@ static inline vsi_size_t vsi_nn_kernel_tensor_attr_get_size
     return vsi_nn_shape_get_size( attr->shape->data, (vsi_size_t)attr->shape->size );
 } /* vsi_nn_kernel_tensor_attr_get_size() */
 
-static inline vsi_size_t vsi_nn_kernel_tensor_attr_get_bytes
+static VSI_INLINE_API vsi_size_t vsi_nn_kernel_tensor_attr_get_bytes
     ( const vsi_nn_kernel_tensor_attr_t * attr )
 {
     vsi_size_t i = 0;
@@ -851,7 +864,7 @@ static inline vsi_size_t vsi_nn_kernel_tensor_attr_get_bytes
     return bytes;
 } /* vsi_nn_kernel_tensor_attr_get_bytes() */
 
-static inline void vsi_nn_kernel_tensor_attr_get_stride
+static VSI_INLINE_API void vsi_nn_kernel_tensor_attr_get_stride
     ( const vsi_nn_kernel_tensor_attr_t * attr, vsi_size_t * out_stride)
 {
     vsi_size_t type_bits;
@@ -902,7 +915,7 @@ static inline void vsi_nn_kernel_tensor_attr_get_stride
     }
 } /* vsi_nn_kernel_tensor_attr_get_size() */
 
-static inline vsi_bool vsi_nn_kernel_tensor_attr_is_quantized
+static VSI_INLINE_API vsi_bool vsi_nn_kernel_tensor_attr_is_quantized
     ( const vsi_nn_kernel_tensor_attr_t * attr )
 {
     return ( attr && attr->quant > VSI_NN_KERNEL_QUANT_NONE
@@ -1072,7 +1085,7 @@ OVXLIB_API vsi_status vsi_nn_KernelGpuConfig
     const gpu_param_t * gpu_param
     );
 
-static inline const char* vsi_nn_kernel_type_str
+static VSI_INLINE_API const char* vsi_nn_kernel_type_str
     (
     vsi_nn_kernel_type_e type
     )
@@ -1095,7 +1108,7 @@ static inline const char* vsi_nn_kernel_type_str
     return "None";
 } /* vsi_nn_kernel_type_str() */
 
-static inline vsi_status vsi_nn_kernel_unpack_4bit_data
+static VSI_INLINE_API vsi_status vsi_nn_kernel_unpack_4bit_data
     (
     const vsi_nn_kernel_tensor_attr_t * attr,
     uint8_t * src,
@@ -1162,7 +1175,7 @@ static inline vsi_status vsi_nn_kernel_unpack_4bit_data
     return status;
 }
 
-static inline vsi_status vsi_nn_kernel_pack_4bit_data
+static VSI_INLINE_API vsi_status vsi_nn_kernel_pack_4bit_data
     (
     const vsi_nn_kernel_tensor_attr_t * attr,
     uint8_t * src,

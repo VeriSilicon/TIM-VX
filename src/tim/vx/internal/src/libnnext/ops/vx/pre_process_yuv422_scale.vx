@@ -1,0 +1,132 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int bOrder;
+_viv_uniform int rOrder;
+
+_viv_uniform float outputScaleVar;
+_viv_uniform float bMeanScaleVarZp;
+_viv_uniform float gMeanScaleVarZp;
+_viv_uniform float rMeanScaleVarZp;
+
+_viv_uniform uint  xrIntFloat_16;
+_viv_uniform uint  yrIntFloat_16;
+
+_viv_uniform VXC_512Bits uniConvertYUV422toB_4x4;
+_viv_uniform VXC_512Bits uniConvertYUV422toG_4x4;
+_viv_uniform VXC_512Bits uniConvertYUV422toR_4x4;
+
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform VXC_512Bits uniExtractUVtoCharSub128_2x8;
+
+#define uyvy422 1
+
+#define YUV422_SH_IMPL(name, dst_type, conv_type, save_type, copy_bytes) \
+__kernel void pre_process_yuv422_scale_##name \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    global       int*            xRatio, \
+    global       int*            yRatio, \
+    global       int*            xOffset, \
+    global       int*            yOffset, \
+                 float           rMean, \
+                 float           gMean, \
+                 float           bMean, \
+                 float           var, \
+                 int             reverse_channel, \
+                 int             trans, \
+                 int             yuv422_type \
+    ) \
+{ \
+    int4 gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    gidx += (int4)(0, 1, 2, 3); \
+ \
+    uint dy = (convert_uint(gidy) * yrIntFloat_16) >> 16; \
+    uint4 dx = (convert_uint4(gidx) * xrIntFloat_16) >> 16; \
+    int sy = convert_int(dy) + (*yOffset); \
+    int4 sx = convert_int4(dx)+ (*xOffset * 2); \
+ \
+    vxc_uchar4 Y; \
+    vxc_uchar8 UV; \
+    vxc_char8 tmpUV; \
+    short tmpVal = 128; \
+    int y_offset = 0; \
+    int u_offset = 1; \
+    int v_offset = 3; \
+\
+    if (yuv422_type == uyvy422) \
+    { \
+        y_offset = 1; \
+        u_offset = 0; \
+        v_offset = 2; \
+    } \
+\
+    int4 coord_Y = (int4)(sx.x * 2 + y_offset, sy, 0, 0); \
+    int4 coord_U = (int4)((sx.x >> 1) * 4 + u_offset, sy, 0, 0); \
+    int4 coord_V = (int4)((sx.x >> 1) * 4 + v_offset, sy, 0, 0); \
+\
+    VXC_ReadImage2DArray(Y, input, coord_Y, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+    coord_Y.x = sx.y * 2 + y_offset; \
+    VXC_ReadImage2DArray(Y, input, coord_Y, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0)); \
+    coord_Y.x = sx.z * 2 + y_offset; \
+    VXC_ReadImage2DArray(Y, input, coord_Y, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0)); \
+    coord_Y.x = sx.w * 2 + y_offset; \
+    VXC_ReadImage2DArray(Y, input, coord_Y, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0)); \
+ \
+    sx = (sx >> 1) * 4 + u_offset; \
+    VXC_ReadImage2DArray(UV, input, coord_U, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+    coord_U.x = sx.y; \
+    VXC_ReadImage2DArray(UV, input, coord_U, 0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0)); \
+    coord_U.x = sx.z; \
+    VXC_ReadImage2DArray(UV, input, coord_U, 0, VXC_MODIFIER(2, 2, 0, VXC_RM_TowardZero, 0)); \
+    coord_U.x = sx.w; \
+    VXC_ReadImage2DArray(UV, input, coord_U, 0, VXC_MODIFIER(3, 3, 0, VXC_RM_TowardZero, 0)); \
+\
+    sx = sx - u_offset + v_offset; \
+    VXC_ReadImage2DArray(UV, input, coord_V, 0, VXC_MODIFIER(4, 4, 0, VXC_RM_TowardZero, 0)); \
+    coord_V.x = sx.y; \
+    VXC_ReadImage2DArray(UV, input, coord_V, 0, VXC_MODIFIER(5, 5, 0, VXC_RM_TowardZero, 0)); \
+    coord_V.x = sx.z; \
+    VXC_ReadImage2DArray(UV, input, coord_V, 0, VXC_MODIFIER(6, 6, 0, VXC_RM_TowardZero, 0)); \
+    coord_V.x = sx.w; \
+    VXC_ReadImage2DArray(UV, input, coord_V, 0, VXC_MODIFIER(7, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(tmpUV, UV, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractUVtoCharSub128_2x8); \
+    vxc_uchar4 dst_test; \
+    VXC_DP2x8(dst_test, dx, dx, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniExtract8Data_2x8); \
+\
+    float4 tmpDstB, tmpDstG, tmpDstR; \
+    VXC_DP4x4(tmpDstB, Y, tmpUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toB_4x4); \
+    VXC_DP4x4(tmpDstG, Y, tmpUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toG_4x4); \
+    VXC_DP4x4(tmpDstR, Y, tmpUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toR_4x4); \
+ \
+    conv_type result; \
+    dst_type dst0; \
+    save_type dst; \
+    int4 dstPos = (int4)(gidx.x, gidy, 0, 0); \
+    tmpDstB = tmpDstB * outputScaleVar + bMeanScaleVarZp; \
+    _viv_asm(CONV_RTE, result, tmpDstB); \
+    dstPos.z = bOrder; \
+    VXC_DP2x8(dst0, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniExtract8Data_2x8); \
+    _viv_asm(COPY, dst, dst0, copy_bytes); \
+    VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+ \
+    tmpDstG = tmpDstG * outputScaleVar + gMeanScaleVarZp; \
+    _viv_asm(CONV_RTE, result, tmpDstG); \
+    dstPos.z = 1; \
+    VXC_DP2x8(dst0, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniExtract8Data_2x8); \
+    _viv_asm(COPY, dst, dst0, copy_bytes); \
+    VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+ \
+    tmpDstR = tmpDstR * outputScaleVar + rMeanScaleVarZp; \
+    _viv_asm(CONV_RTE, result, tmpDstR); \
+    dstPos.z = rOrder; \
+    VXC_DP2x8(dst0, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniExtract8Data_2x8); \
+    _viv_asm(COPY, dst, dst0, copy_bytes); \
+    VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+
+YUV422_SH_IMPL(U8toU8,  vxc_uchar4, int4,  vxc_uchar4, 4)
+YUV422_SH_IMPL(U8toI8,  vxc_char4,  int4,  vxc_char4,  4)
+YUV422_SH_IMPL(U8toI16, vxc_short4, int4,  vxc_short4, 8)
+YUV422_SH_IMPL(U8toF16, vxc_half4,  half4, vxc_short4, 8)

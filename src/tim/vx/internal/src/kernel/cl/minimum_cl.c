@@ -250,7 +250,7 @@ static vsi_nn_kernel_node_t _setup
     float input1Scale = vsi_nn_get_tensor_scale(inputs[1]);
     float input1Tail = (float)vsi_nn_get_tensor_zero_point(inputs[1]) * input1Scale;
     float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
-    float outputZP = (float)vsi_nn_get_tensor_zero_point(outputs[0]) + 0.5f;
+    float outputZP = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
 
     outputScale = vsi_abs(outputScale) < 1e-5 ? 0.0f : 1.0f / outputScale;
 

@@ -1,0 +1,153 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniResize_x2_nhwc2_0_4x8;
+_viv_uniform int2 x_coord;
+
+__kernel void resize_bilinear_nhwc_bound_U8toU8_2x
+    (
+    __read_only  image2d_array_t   input,
+                 image2d_array_t   output,
+    __write_only image2d_array_t   output1
+    )
+{
+    int4 coord_out =  (int4)(1, get_global_id(0), get_global_id(0), get_global_id(0));
+    int2 coord_in  = (int2)(1, get_global_id(0));
+    coord_in.y = ((coord_out.y * 2 - 1) >> 2);
+    coord_in.y  = coord_out.y == 0 ? -1 : coord_in.y;
+
+    vxc_uchar16 in0, in1, in2, in3, result;
+
+    VXC_ReadImage(in0, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in1, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in2, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord_out.z = coord_out.y + 1;
+
+    VXC_DP4x8(result, in0, in1, VXC_MODIFIER(0, 0, 0, VXC_RM_ToNearestEven, 1), uniResize_x2_nhwc2_0_4x8);
+    VXC_WriteImage(output, coord_out.xy, result, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+    VXC_DP4x8(result, in2, in1, VXC_MODIFIER(0, 0, 0, VXC_RM_ToNearestEven, 1), uniResize_x2_nhwc2_0_4x8);
+    VXC_WriteImage(output, coord_out.xz, result, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+
+    coord_in.x = x_coord.x;
+
+    VXC_ReadImage(in0, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in1, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in2, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord_out.x = x_coord.y;
+
+    VXC_DP4x8(result, in0, in1, VXC_MODIFIER(0, 0, 0, VXC_RM_ToNearestEven, 1), uniResize_x2_nhwc2_0_4x8);
+    VXC_WriteImage(output, coord_out.xy, result, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+    VXC_DP4x8(result, in2, in1, VXC_MODIFIER(0, 0, 0, VXC_RM_ToNearestEven, 1), uniResize_x2_nhwc2_0_4x8);
+    VXC_WriteImage(output, coord_out.xz, result, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+}
+
+_viv_uniform VXC_512Bits uniResize_x3_nhwc2_l10_4x4;
+__kernel void resize_bilinear_nhwc_bound_U8toU8_3x
+    (
+    __read_only  image2d_array_t   input,
+                 image2d_array_t   output,
+    __write_only image2d_array_t   output1
+    )
+{
+    int4 coord_out =  (int4)(1, get_global_id(0), get_global_id(0), get_global_id(0));
+    int2 coord_in  = (int2)(1, get_global_id(0));
+    coord_in.y = (short)(coord_out.y * 2 - 1) / (short)6;
+    coord_in.y  = coord_out.y == 0 ? -1 : coord_in.y;
+
+    vxc_uchar16 in0, in1, in2, in3, result;
+
+    VXC_ReadImage(in0, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in1, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in2, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord_out.zw = coord_out.yy + (int2)(1, 2);
+
+    VXC_DP4x4(result, in1, in0, VXC_MODIFIER(0,   3, 0, VXC_RM_ToNearestEven, 1), uniResize_x3_nhwc2_l10_4x4);
+    VXC_WriteImage(output, coord_out.xy, result, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xz, in1, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+    VXC_DP4x4(result, in1, in2, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniResize_x3_nhwc2_l10_4x4);
+    VXC_WriteImage(output, coord_out.xw, result, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+
+    coord_in.x = x_coord.x;
+
+    VXC_ReadImage(in0, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in1, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in2, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord_out.x = x_coord.y;
+
+    VXC_DP4x4(result, in1, in0, VXC_MODIFIER(0,   3, 0, VXC_RM_ToNearestEven, 1), uniResize_x3_nhwc2_l10_4x4);
+    VXC_WriteImage(output, coord_out.xy, result, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xz, in1, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+    VXC_DP4x4(result, in1, in2, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniResize_x3_nhwc2_l10_4x4);
+    VXC_WriteImage(output, coord_out.xw, result, VXC_MODIFIER(0, 0, 0,VXC_RM_TowardZero, 0));
+}
+
+_viv_uniform VXC_512Bits uniResize_x4_nhwc2_l00_4x8;
+_viv_uniform VXC_512Bits uniResize_x4_nhwc2_l10_4x8;
+__kernel void resize_bilinear_nhwc_bound_U8toU8_4x
+    (
+    __read_only  image2d_array_t   input,
+                 image2d_array_t   output,
+    __write_only image2d_array_t   output1
+    )
+{
+    int4 coord_out =  (int4)(1, get_global_id(0), get_global_id(0), get_global_id(0));
+    int2 coord_in  = (int2)(1, get_global_id(0));
+    coord_in.y = (coord_out.y * 2 - 3) >> 3;
+    coord_in.y  = coord_out.y == 0 ? -1 : coord_in.y;
+
+    vxc_uchar16 in0, in1, in2, in3, dst0, dst1;
+
+    VXC_ReadImage(in0, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in1, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in2, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord_out.z = coord_out.y + 1;
+
+    VXC_DP4x8(dst0, in0, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResize_x4_nhwc2_l00_4x8);
+    VXC_DP4x8(dst1, in0, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResize_x4_nhwc2_l10_4x8);
+    VXC_WriteImage(output, coord_out.xy, dst0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xz, dst1, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_out.x += 2;
+    VXC_WriteImage(output, coord_out.xy, dst0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xz, dst1, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_out.x -= 2;
+
+    coord_out.zw = coord_out.zz + (int2)(1, 2);
+    VXC_DP4x8(dst0, in2, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResize_x4_nhwc2_l10_4x8);
+    VXC_DP4x8(dst1, in2, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResize_x4_nhwc2_l00_4x8);
+    VXC_WriteImage(output, coord_out.xz, dst0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xw, dst1, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_out.x += 2;
+    VXC_WriteImage(output, coord_out.xz, dst0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xw, dst1, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    coord_in.x = x_coord.x;
+
+    VXC_ReadImage(in0, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in1, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(in2, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord_out.x = x_coord.y;
+    coord_out.z = coord_out.y + 1;
+
+    VXC_DP4x8(dst0, in0, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResize_x4_nhwc2_l00_4x8);
+    VXC_DP4x8(dst1, in0, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResize_x4_nhwc2_l10_4x8);
+    VXC_WriteImage(output, coord_out.xy, dst0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xz, dst1, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_out.x -= 2;
+    VXC_WriteImage(output, coord_out.xy, dst0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xz, dst1, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_out.x += 2;
+
+    coord_out.zw = coord_out.zz + (int2)(1, 2);
+    VXC_DP4x8(dst0, in2, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResize_x4_nhwc2_l10_4x8);
+    VXC_DP4x8(dst1, in2, in1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniResize_x4_nhwc2_l00_4x8);
+    VXC_WriteImage(output, coord_out.xz, dst0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xw, dst1, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    coord_out.x -= 2;
+    VXC_WriteImage(output, coord_out.xz, dst0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_out.xw, dst1, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}

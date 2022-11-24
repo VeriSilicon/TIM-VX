@@ -77,6 +77,7 @@ static vsi_status op_compute
     MAP_PARAM("overflow_policy",self->vx_param.overflow_policy);
     MAP_PARAM("rounding_policy",self->vx_param.rounding_policy);
     MAP_PARAM("down_scale_size_rounding",self->vx_param.down_scale_size_rounding);
+    MAP_PARAM("pad_mode", vsi_nn_get_vx_pad_mode( self->nn_param.conv3d.pad_mode ) );
 
     if ( self->nn_param.conv3d.dilation[0] *
          self->nn_param.conv3d.dilation[1] *

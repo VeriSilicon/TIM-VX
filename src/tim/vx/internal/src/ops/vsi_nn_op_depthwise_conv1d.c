@@ -68,6 +68,8 @@ static vsi_status op_compute
             self->vx_param.rounding_policy );
     vsi_nn_kernel_param_add_int32( param, "down_scale_size_rounding",
             self->vx_param.down_scale_size_rounding );
+    vsi_nn_kernel_param_add_int32( param, "pad_mode",
+            vsi_nn_get_vx_pad_mode( self->nn_param.depthwise_conv1d.pad_mode ) );
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "depthwise_conv1d",
             inputs, 3, outputs, 1, param );
     if( self->n )

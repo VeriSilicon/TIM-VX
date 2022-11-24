@@ -47,6 +47,7 @@ typedef struct _vsi_nn_conv3d_param
     int32_t     weights;
 
     int32_t      multiplier;
+    vsi_nn_pad_mode_e pad_mode;
 } vsi_nn_conv3d_param;
 _compiler_assert(offsetof(vsi_nn_conv3d_param, local) == 0, \
     vsi_nn_conv3d_h );

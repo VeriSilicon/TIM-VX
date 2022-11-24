@@ -55,8 +55,8 @@ __BEGIN_DECLS
 static vx_param_description_t _pre_process_rgb888_planar_kernel_param_def[] =
 {
     {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
-    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_OPTIONAL},
+    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_OPTIONAL},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
@@ -90,12 +90,16 @@ DEF_KERNEL_EXECUTOR(_compute)
     uint32_t i = 0;
     int32_t xRatio = 0, yRatio = 0, xOffset = 0, yOffset = 0;
     float mean[3] = {0}, scale = 1;
+    vsi_bool is_rgb888 = tensors[1] == NULL;
 
     for (i = 0; i < _CPU_IO_NUM; i++)
     {
         tensors[i] = (vsi_nn_kernel_tensor_t)param[i];
-        attr[i] = vsi_nn_kernel_tensor_attr_create( tensors[i] );
-        CHECK_PTR_FAIL_GOTO( attr[i], "Create tensor attr buffer fail.", final );
+        if (tensors[i])
+        {
+            attr[i] = vsi_nn_kernel_tensor_attr_create( tensors[i] );
+            CHECK_PTR_FAIL_GOTO( attr[i], "Create tensor attr buffer fail.", final );
+        }
     }
 
     out_elements = vsi_nn_kernel_tensor_attr_get_size( attr[3] );
@@ -113,8 +117,11 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     for (i = 0; i < 3; i++)
     {
-        buffer[i] = (float*)vsi_nn_kernel_tensor_create_buffer( tensors[i], attr[i], TRUE );
-        CHECK_PTR_FAIL_GOTO( buffer[i], "Create input0 buffer fail.", final );
+        if (tensors[i])
+        {
+            buffer[i] = (float*)vsi_nn_kernel_tensor_create_buffer( tensors[i], attr[i], TRUE );
+            CHECK_PTR_FAIL_GOTO( buffer[i], "Create input0 buffer fail.", final );
+        }
 
         buffer[i + 3] = (float *)malloc( out_elements * sizeof(float) );
         CHECK_PTR_FAIL_GOTO( buffer[i + 3], "Create output buffer fail.", final );
@@ -125,12 +132,17 @@ DEF_KERNEL_EXECUTOR(_compute)
         int32_t line1[2], line2[2];
         int32_t dx = 0, dy = 0, idx = 0;
         int32_t src_width = (int32_t)attr[0]->shape->data[0];
+        int32_t src_height = (int32_t)attr[0]->shape->data[1];
         int32_t dst_width = (int32_t)attr[3]->shape->data[0];
         int32_t dst_height = (int32_t)attr[3]->shape->data[1];
         uint8_t result = 0;
+        int32_t offset = 0;
+        int32_t index = 0;
 
         for ( idx = 0; idx < 3; idx ++)
         {
+            offset = is_rgb888 ? idx * src_width * src_height : 0;
+            index = is_rgb888 ? 0 : idx;
             for ( dy = 0; dy < (int32_t)dst_height; dy ++)
             {
                 for ( dx = 0; dx < (int32_t)dst_width; dx ++)
@@ -170,10 +182,10 @@ DEF_KERNEL_EXECUTOR(_compute)
                         sy += yOffset;
                         source_index = (sx + sy * src_width);
 
-                        line1[0] = (int32_t)buffer[idx][source_index];
-                        line1[1] = (int32_t)buffer[idx][source_index + 1];
-                        line2[0] = (int32_t)buffer[idx][source_index + src_width];
-                        line2[1] = (int32_t)buffer[idx][source_index + src_width + 1];
+                        line1[0] = (int32_t)buffer[index][source_index + offset];
+                        line1[1] = (int32_t)buffer[index][source_index + 1 + offset];
+                        line2[0] = (int32_t)buffer[index][source_index + src_width + offset];
+                        line2[1] = (int32_t)buffer[index][source_index + src_width + 1 + offset];
 
                         temp1 = fx * (line1[1] - line1[0]) + (line1[0] << 10);
                         temp2 = fx * (line2[1] - line2[0]) + (line2[0] << 10);
@@ -184,10 +196,10 @@ DEF_KERNEL_EXECUTOR(_compute)
                     }
                     else
                     {
-                        int32_t offset = xOffset + yOffset * src_width;
-                        source_index = dx + dy * src_width + offset;
-                        finalVal = (buffer[0][source_index] - mean[idx]) * scale;
-                        buffer[1][output_index] = finalVal;
+                        int32_t ofset = xOffset + yOffset * src_width;
+                        source_index = dx + dy * src_width + ofset + offset;
+                        finalVal = (buffer[index][source_index] - mean[idx]) * scale;
+                        buffer[idx + 3][output_index] = finalVal;
                     }
                 }
             }

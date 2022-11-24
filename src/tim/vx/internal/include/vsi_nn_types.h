@@ -33,11 +33,13 @@
 extern "C"{
 #endif
 
-#ifdef _WIN32
-#define inline __inline
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
+#define VSI_INLINE_API __inline
+#else
+#define VSI_INLINE_API inline
 #endif
 
-#if (defined(_MSC_VER) || defined(__MINGW32))
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
     #define SIZE_T_SPECIFIER "Iu"
     #define SSIZE_T_SPECIFIER "Id"
     #ifdef VSI_40BIT_VA_SUPPORT
@@ -59,7 +61,7 @@ extern "C"{
     #endif
 #endif
 
-#if defined(_MSC_VER)
+#if (defined(_MSC_VER))
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 #else
@@ -108,6 +110,22 @@ typedef enum
     VSI_NN_PAD_VALID,
     VSI_NN_PAD_SAME
 } vsi_nn_pad_e;
+
+/** reduce type enum */
+typedef enum
+{
+    VSI_NN_REDUCTION_TYPE_NONE,
+    VSI_NN_REDUCTION_TYPE_ADD,
+    VSI_NN_REDUCTION_TYPE_MUL
+} vsi_nn_reduction_type_e;
+
+/** Pad mode enum */
+typedef enum {
+    VSI_NN_PAD_MODE_CONSTANT,
+    VSI_NN_PAD_MODE_REPLICATE,
+    VSI_NN_PAD_MODE_SYMMETRIC,
+    VSI_NN_PAD_MODE_REFLECT,
+} vsi_nn_pad_mode_e;
 
 /**
  * @deprecated  Platform enum
@@ -232,6 +250,12 @@ typedef enum _vsi_nn_con2d_lstm_dataformat
     CONV2D_LSTM_CHANNELS_LAST,
     CONV2D_LSTM_CHANNELS_FIRST
 } vsi_nn_con2d_lstm_dataformat;
+
+typedef enum _vsi_nn_yuv_type
+{
+    VSI_NN_YUV_TYPE_YUYV422,
+    VSI_NN_YUV_TYPE_UYUV422
+}vsi_nn_yuv_type;
 
 /** Deprecated */
 typedef uint32_t vsi_nn_size_t;

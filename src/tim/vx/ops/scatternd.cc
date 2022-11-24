@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/scatternd.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 ScatterND::ScatterND(Graph* graph, const std::vector<uint32_t>& shape)
-    : DirectMapOp(graph, VSI_NN_OP_SCATTER_ND), shape_(shape) {
+    : BuiltinOp(graph, VSI_NN_OP_SCATTER_ND), shape_(shape) {
   this->impl()->node()->nn_param.scatter_nd.dim_num = shape_.size();
   this->impl()->node()->nn_param.scatter_nd.shape = shape_.data();
 }

@@ -101,6 +101,7 @@ static vsi_bool op_check
         IO_TYPE(D_F32,  D_F32, D_F16)
         IO_TYPE(D_F32,  D_F32, D_F32)
         IO_TYPE(D_BF16, D_BF16, D_F32)
+        IO_TYPE(D_BF16, D_BF16, D_BF16)
         IO_TYPE(D_F32,  D_F32,  D_BF16)
 
         /* HW 9.0 */

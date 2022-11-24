@@ -24,6 +24,10 @@
 #ifndef TIM_VX_GRAPH_H_
 #define TIM_VX_GRAPH_H_
 
+#ifdef BUILD_WITH_BAZEL
+#include "vsi_feat_ops_def.h"
+#endif
+
 #include <memory>
 #include <vector>
 

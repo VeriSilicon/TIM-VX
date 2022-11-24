@@ -35,13 +35,15 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
-#define KERNEL_SOURCE_0    "pre_process_rgb888_planar_0",
-#define KERNEL_SOURCE_1    "pre_process_rgb888_planar_1",
-#define KERNEL_SOURCE_2    "pre_process_rgb888_planar_2",
+#define RGB888_SEP_SOURCE_0     "pre_process_rgb888_planar_sep_0",
+#define RGB888_SEP_SOURCE_1     "pre_process_rgb888_planar_sep_1",
+#define RGB888_SEP_SOURCE_2     "pre_process_rgb888_planar_sep_2",
+#define RGB888_SOURCE_0         "pre_process_rgb888_planar_0",
+#define RGB888_SOURCE_1         "pre_process_rgb888_planar_1",
+#define RGB888_SOURCE_2         "pre_process_rgb888_planar_2",
 
 #define STR(a) #a
 
@@ -53,28 +55,48 @@ typedef enum
     HALF
 } _internal_scale_e;
 // Add kernel hashtable here
-#define PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, SCALE_FLAG ) \
-        (( IN_DTYPE << 16 ) | ( OUT_DTYPE << 8 ) | (SCALE_FLAG))
+#define PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, SEP, SCALE_FLAG ) \
+        (( IN_DTYPE << 16 ) | ( OUT_DTYPE << 8 ) | ( SEP << 4 ) | (SCALE_FLAG))
 
 #define PACK_KERNEL_SCALE_MAP( IN_DTYPE, OUT_DTYPE ) \
-        { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, SCALE ), \
-          CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_scale_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
-          KERNEL_SOURCE_0 }
+   { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, 0, SCALE ), \
+     CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_scale_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+     RGB888_SOURCE_0 }
+
+#define PACK_KERNEL_SEP_SCALE_MAP( IN_DTYPE, OUT_DTYPE ) \
+  { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, 1, SCALE ), \
+    CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_sep_scale_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+    RGB888_SEP_SOURCE_0 }
 
 #define PACK_KERNEL_COPY_MAP( IN_DTYPE, OUT_DTYPE ) \
-        { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, COPY ), \
-          CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_copy_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
-          KERNEL_SOURCE_1 }
+   { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, 0, COPY ), \
+     CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_copy_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+     RGB888_SOURCE_1 }
+
+#define PACK_KERNEL_SEP_COPY_MAP( IN_DTYPE, OUT_DTYPE ) \
+   { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, 1, COPY ), \
+     CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_sep_copy_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+     RGB888_SEP_SOURCE_1 }
 
 #define PACK_KERNEL_4_OVER_3_MAP( IN_DTYPE, OUT_DTYPE ) \
-        { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, FOUR_OVER_THREE ), \
-          CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_4over3_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
-          KERNEL_SOURCE_2 }
+   { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, 0, FOUR_OVER_THREE ), \
+     CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_4over3_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+     RGB888_SOURCE_2 }
+
+#define PACK_KERNEL_SEP_4_OVER_3_MAP( IN_DTYPE, OUT_DTYPE ) \
+   { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, 1, FOUR_OVER_THREE ), \
+     CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_sep_4over3_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+     RGB888_SEP_SOURCE_2 }
 
 #define PACK_KERNEL_HALF_MAP( IN_DTYPE, OUT_DTYPE ) \
-        { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, HALF ), \
-          CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_half_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
-          KERNEL_SOURCE_2 }
+   { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, 0, HALF ), \
+     CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_half_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+     RGB888_SOURCE_2 }
+
+#define PACK_KERNEL_SEP_HALF_MAP( IN_DTYPE, OUT_DTYPE ) \
+   { PRE_PROCESS_RGB888_PLANAR_HASH_KEY( IN_DTYPE, OUT_DTYPE, 1, HALF ), \
+     CVIVANTE_NAMESPACE("evis.pre_process_rgb888_planar_sep_half_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+     RGB888_SEP_SOURCE_2 }
 
 typedef struct
 {
@@ -98,6 +120,19 @@ static const _kernel_map_type pre_process_rgb888_planar_kernel_map[] =
 
     PACK_KERNEL_4_OVER_3_MAP( U8, U8 ),
     PACK_KERNEL_HALF_MAP( U8, U8 ),
+
+    PACK_KERNEL_SEP_SCALE_MAP( U8, F16 ),
+    PACK_KERNEL_SEP_SCALE_MAP( U8, I16 ),
+    PACK_KERNEL_SEP_SCALE_MAP( U8, I8 ),
+    PACK_KERNEL_SEP_SCALE_MAP( U8, U8 ),
+
+    PACK_KERNEL_SEP_COPY_MAP( U8, F16 ),
+    PACK_KERNEL_SEP_COPY_MAP( U8, I16 ),
+    PACK_KERNEL_SEP_COPY_MAP( U8, I8 ),
+    PACK_KERNEL_SEP_COPY_MAP( U8, U8 ),
+
+    PACK_KERNEL_SEP_4_OVER_3_MAP( U8, U8 ),
+    PACK_KERNEL_SEP_HALF_MAP( U8, U8 ),
 };
 
 
@@ -105,6 +140,23 @@ static const _kernel_map_type pre_process_rgb888_planar_kernel_map[] =
  * Kernel params
  */
 static vx_param_description_t _pre_process_rgb888_planar_kernel_param_def[] =
+{
+    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+};
+#define _PRE_PROCESS_RGB888_PLANAR_PARAM_NUM  _cnt_of_array( _pre_process_rgb888_planar_kernel_param_def )
+
+static vx_param_description_t _pre_process_rgb888_planar_sep_kernel_param_def[] =
 {
     {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
@@ -121,7 +173,7 @@ static vx_param_description_t _pre_process_rgb888_planar_kernel_param_def[] =
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
 };
-#define _PRE_PROCESS_RGB888_PLANAR_PARAM_NUM  _cnt_of_array( _pre_process_rgb888_planar_kernel_param_def )
+#define _PRE_PROCESS_RGB888_PLANAR_SEP_PARAM_NUM  _cnt_of_array( _pre_process_rgb888_planar_sep_kernel_param_def )
 
 /*
  * Kernel initializer
@@ -149,9 +201,16 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb888_planar_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     vsi_size_array_t * out_shape = NULL;
 
-    attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
+    if (param_size == _cnt_of_array( _pre_process_rgb888_planar_sep_kernel_param_def ))
+    {
+        attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
+    }
+    else
+    {
+        attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    }
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
-    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[13], &output_scale);
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[param_size - 1], &output_scale);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
@@ -310,9 +369,16 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb888_planar_copy_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     vsi_size_array_t * out_shape = NULL;
 
-    attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
+    if (param_size == _cnt_of_array( _pre_process_rgb888_planar_sep_kernel_param_def ))
+    {
+        attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
+    }
+    else
+    {
+        attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    }
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
-    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[13], &output_scale);
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[param_size - 1], &output_scale);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
@@ -406,7 +472,14 @@ DEF_KERNEL_INITIALIZER(_resize_rgb888_planar_initializer)
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
-    attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
+    if (param_size == _cnt_of_array( _pre_process_rgb888_planar_sep_kernel_param_def ))
+    {
+        attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
+    }
+    else
+    {
+        attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    }
     CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", OnError );
 
     out_shape  = attr[1]->shape;
@@ -540,6 +613,7 @@ static vsi_status _query_kernel
     vsi_bool is_4_over_3 = FALSE;
     vsi_bool is_half_scale = FALSE;
     vsi_bool enable_copy = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
+    vsi_bool is_rgb888_sep = (vsi_bool)(inputs[1] != NULL);
 
     is_4_over_3 = (width * 3 == (int32_t)outputs[0]->attr.size[0] * 4) &&
                   (height * 3 == (int32_t)outputs[0]->attr.size[1] * 4);
@@ -568,7 +642,7 @@ static vsi_status _query_kernel
         }
     }
 
-    key = PRE_PROCESS_RGB888_PLANAR_HASH_KEY( input0_dtype, output_dtype, scale_type);
+    key = PRE_PROCESS_RGB888_PLANAR_HASH_KEY( input0_dtype, output_dtype, is_rgb888_sep, scale_type);
 
     for ( i = 0; i < _cnt_of_array(pre_process_rgb888_planar_kernel_map); i ++ )
     {
@@ -581,8 +655,17 @@ static vsi_status _query_kernel
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",
             pre_process_rgb888_planar_kernel_map[i].function_name );
-        kernel->info.parameters = _pre_process_rgb888_planar_kernel_param_def;
-        kernel->info.numParams = _cnt_of_array( _pre_process_rgb888_planar_kernel_param_def );
+
+        if (is_rgb888_sep)
+        {
+            kernel->info.parameters = _pre_process_rgb888_planar_sep_kernel_param_def;
+            kernel->info.numParams = _cnt_of_array( _pre_process_rgb888_planar_sep_kernel_param_def );
+        }
+        else
+        {
+            kernel->info.parameters = _pre_process_rgb888_planar_kernel_param_def;
+            kernel->info.numParams = _cnt_of_array( _pre_process_rgb888_planar_kernel_param_def );
+        }
 
         if (enable_copy)
         {
@@ -620,8 +703,9 @@ static vsi_nn_kernel_node_t _setup
     )
 {
     vsi_status status = VSI_FAILURE;
-    vsi_nn_kernel_node_param_t node_params[_PRE_PROCESS_RGB888_PLANAR_PARAM_NUM];
+    vsi_nn_kernel_node_param_t* node_params = NULL;
     vsi_nn_kernel_node_t node = NULL;
+    int32_t param_count = _PRE_PROCESS_RGB888_PLANAR_SEP_PARAM_NUM;
     int32_t width  = vsi_nn_kernel_param_get_int32( params, "width" );
     int32_t height = vsi_nn_kernel_param_get_int32( params, "height" );
     float r_mean = vsi_nn_kernel_param_get_float32( params, "r_mean" );
@@ -630,7 +714,10 @@ static vsi_nn_kernel_node_t _setup
     float scale = vsi_nn_kernel_param_get_float32( params, "scale" );
     vsi_bool is_no_range_change = FALSE;
 
-    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
+    input_num = inputs[1] == NULL ? 1 : input_num;
+    param_count = inputs[1] == NULL ? _PRE_PROCESS_RGB888_PLANAR_PARAM_NUM : param_count;
+
+    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
         return NULL;
@@ -648,17 +735,19 @@ static vsi_nn_kernel_node_t _setup
     status = _query_kernel( inputs, outputs, kernel, params, is_no_range_change, width, height );
     if ( VSI_SUCCESS == status)
     {
+        node_params = (vsi_nn_kernel_node_param_t *)malloc(sizeof(vsi_nn_kernel_node_param_t) * param_count);
         node = vsi_nn_kernel_create_node( graph, kernel );
         if ( node )
         {
-            uint32_t index = 6;
+            uint32_t index = inputs[1] == NULL ? 4 : 6;
+            uint32_t scalar_index = index;
             int32_t scale_x = vsi_nn_kernel_param_get_int32( params, "scale_x" );
             int32_t scale_y = vsi_nn_kernel_param_get_int32( params, "scale_y" );
             int32_t left    = vsi_nn_kernel_param_get_int32( params, "left" );
             int32_t top     = vsi_nn_kernel_param_get_int32( params, "top" );
 
             /* Set inputs and outputs */
-            vsi_nn_kernel_node_pack_io( node_params, _PRE_PROCESS_RGB888_PLANAR_PARAM_NUM,
+            vsi_nn_kernel_node_pack_io( node_params, param_count,
                     inputs, input_num, outputs, output_num );
 
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &scale_x );
@@ -670,17 +759,21 @@ static vsi_nn_kernel_node_t _setup
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &b_mean );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &scale );
             /* Pass parameters to node. */
-            status  = vsi_nn_kernel_node_pass_param( node, node_params, _PRE_PROCESS_RGB888_PLANAR_PARAM_NUM );
-            vsi_nn_kernel_scalar_release( &node_params[6] );
-            vsi_nn_kernel_scalar_release( &node_params[7] );
-            vsi_nn_kernel_scalar_release( &node_params[8] );
-            vsi_nn_kernel_scalar_release( &node_params[9] );
-            vsi_nn_kernel_scalar_release( &node_params[10] );
-            vsi_nn_kernel_scalar_release( &node_params[11] );
-            vsi_nn_kernel_scalar_release( &node_params[12] );
-            vsi_nn_kernel_scalar_release( &node_params[13] );
+            status  = vsi_nn_kernel_node_pass_param( node, node_params, param_count );
+            index = scalar_index;
+            vsi_nn_kernel_scalar_release( &node_params[index++] );
+            vsi_nn_kernel_scalar_release( &node_params[index++] );
+            vsi_nn_kernel_scalar_release( &node_params[index++] );
+            vsi_nn_kernel_scalar_release( &node_params[index++] );
+            vsi_nn_kernel_scalar_release( &node_params[index++] );
+            vsi_nn_kernel_scalar_release( &node_params[index++] );
+            vsi_nn_kernel_scalar_release( &node_params[index++] );
+            vsi_nn_kernel_scalar_release( &node_params[index++] );
         }
     }
+
+    vsi_nn_safe_free(node_params);
+
     return node;
 } /* _setup() */
 

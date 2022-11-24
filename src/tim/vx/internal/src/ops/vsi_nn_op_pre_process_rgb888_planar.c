@@ -72,6 +72,7 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_float32( param, "b_mean", self->nn_param.pre_process_rgb888_planar.b_mean );
     vsi_nn_kernel_param_add_float32( param, "scale", self->nn_param.pre_process_rgb888_planar.scale );
     vsi_nn_kernel_param_add_int32( param, "enable_copy", self->nn_param.pre_process_rgb888_planar.local->enable_copy );
+
     n = vsi_nn_kernel_selector( self->graph, "pre_process_rgb888_planar", inputs, 3, outputs, 3, param );
     if ( n != NULL )
     {
@@ -94,18 +95,41 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
-    BEGIN_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR, 3, 3)
-        IO_TYPE(D_U8, D_U8, D_U8, D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM)
-        IO_TYPE(D_U8, D_U8, D_U8, D_I8|Q_DFP,  D_I8|Q_DFP,  D_I8|Q_DFP)
-        IO_TYPE(D_U8, D_U8, D_U8, D_I16|Q_DFP, D_I16|Q_DFP, D_I16|Q_DFP)
-        IO_TYPE(D_U8, D_U8, D_U8, D_F16,       D_F16,       D_F16)
-    END_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR)
-    if(!VALIDATE_OP_IO_TYPES(PRE_PROCESS_RGB888_PLANAR, self, inputs, self->input.num, outputs, self->output.num)) {
-        char* desc = generate_op_io_types_desc(inputs,
-                self->input.num, outputs, self->output.num);
-        VSILOGE("Inputs/Outputs data type not support: %s", desc);
-        destroy_op_io_types_desc(desc);
-        return FALSE;
+    if (inputs[1] == NULL)
+    {
+        BEGIN_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR, 1, 3)
+            IO_TYPE(D_U8, D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM)
+            IO_TYPE(D_U8, D_I8|Q_DFP,  D_I8|Q_DFP,  D_I8|Q_DFP)
+            IO_TYPE(D_U8, D_I16|Q_DFP, D_I16|Q_DFP, D_I16|Q_DFP)
+            IO_TYPE(D_U8, D_F16,       D_F16,       D_F16)
+        END_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR)
+
+        if (!VALIDATE_OP_IO_TYPES(PRE_PROCESS_RGB888_PLANAR, self, inputs, 1,
+            outputs, self->output.num)) {
+            char* desc = generate_op_io_types_desc(inputs,
+                    self->input.num, outputs, self->output.num);
+            VSILOGE("Inputs/Outputs data type not support: %s", desc);
+            destroy_op_io_types_desc(desc);
+            return FALSE;
+        }
+    }
+    else
+    {
+        BEGIN_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR, 3, 3)
+            IO_TYPE(D_U8, D_U8, D_U8, D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM)
+            IO_TYPE(D_U8, D_U8, D_U8, D_I8|Q_DFP,  D_I8|Q_DFP,  D_I8|Q_DFP)
+            IO_TYPE(D_U8, D_U8, D_U8, D_I16|Q_DFP, D_I16|Q_DFP, D_I16|Q_DFP)
+            IO_TYPE(D_U8, D_U8, D_U8, D_F16,       D_F16,       D_F16)
+        END_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR)
+
+        if (!VALIDATE_OP_IO_TYPES(PRE_PROCESS_RGB888_PLANAR, self, inputs, self->input.num,
+            outputs, self->output.num)) {
+            char* desc = generate_op_io_types_desc(inputs,
+                    self->input.num, outputs, self->output.num);
+            VSILOGE("Inputs/Outputs data type not support: %s", desc);
+            destroy_op_io_types_desc(desc);
+            return FALSE;
+        }
     }
 
     return TRUE;
@@ -192,11 +216,7 @@ static vsi_status op_deinit
 {
     vsi_status status = VSI_SUCCESS;
 
-    if (self->nn_param.pre_process_rgb888_planar.local != NULL)
-    {
-        free(self->nn_param.pre_process_rgb888_planar.local);
-        self->nn_param.pre_process_rgb888_planar.local = NULL;
-    }
+    vsi_nn_safe_free(self->nn_param.pre_process_rgb888_planar.local);
     vsi_nn_op_common_deinit(self);
 
     return status;

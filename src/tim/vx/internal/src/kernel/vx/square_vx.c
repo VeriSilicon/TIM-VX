@@ -32,7 +32,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_error.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "kernel/vsi_nn_kernel_lut.h"
 
 static vsi_nn_kernel_node_t _setup
     (
@@ -46,57 +45,7 @@ static vsi_nn_kernel_node_t _setup
     )
 {
     vx_node node = NULL;
-#ifdef VX_USER_LOOKUP_TABLE_SUPPORT
-    vx_lut lut1 = NULL;
-    vx_lut lut2 = NULL;
-    vsi_status status = VSI_FAILURE;
-    vsi_nn_kernel_lut_params lut_param;
 
-    if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32   ||
-         outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32 )
-    {
-        return NULL;
-    }
-
-    lut_param.act_type = VSI_NN_KERNEL_LUT_SQUARE;
-
-    lut1 = vxCreateLUT( graph->ctx->c, VX_TYPE_FLOAT32, VSI_NN_KERNEL_LUT_MAX_SIZE);
-    lut2 = vxCreateLUT( graph->ctx->c, VX_TYPE_FLOAT32, VSI_NN_KERNEL_LUT_MAX_SIZE);
-    if( NULL == lut1 || NULL == lut2 )
-    {
-        VSILOGE("create lut object fail.");
-        goto final;
-    }
-
-    status = vsi_nn_kernel_lut(lut1, lut2, &lut_param);
-    CHECK_STATUS_FAIL_GOTO(status, final);
-
-    node = vxTensorTableLookupLayer( graph->g, inputs[0]->t, lut1, lut2, outputs[0]->t);
-    if ( NULL == node )
-    {
-        node = vxActivationLayer(
-            graph->g,
-            inputs[0]->t,
-            VX_NN_ACTIVATION_SQUARE,
-            0,
-            0,
-            outputs[0]->t
-            );
-    }
-
-final:
-    if (lut1)
-    {
-        vxReleaseLUT(&lut1);
-        lut1 = NULL;
-    }
-    if (lut2)
-    {
-        vxReleaseLUT(&lut2);
-        lut2 = NULL;
-    }
-    return (vsi_nn_kernel_node_t)node;
-#else
     node = vxActivationLayer(
         graph->g,
         inputs[0]->t,
@@ -107,7 +56,6 @@ final:
         );
 
     return (vsi_nn_kernel_node_t)node;
-#endif
 } /* _setup() */
 
 #define REGISTER_SQUARE_OPENVX_KERNEL(KERNEL_NAME) \

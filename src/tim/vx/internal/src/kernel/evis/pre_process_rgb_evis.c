@@ -150,8 +150,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
-    outputZP   = (float)attr[0]->asymm.zero_point;
-    outputScale   = attr[0]->asymm.scale;
     width      = (uint32_t)(out_shape->data[0]);
     height     = (uint32_t)(out_shape->data[1]);
 
@@ -176,7 +174,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
     }
     else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
-        outputScale = 1.0f / outputScale;
+        outputScale = 1.0f / attr[0]->asymm.scale;
+        outputZP = (float)attr[0]->asymm.zero_point;
     }
     else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
     {

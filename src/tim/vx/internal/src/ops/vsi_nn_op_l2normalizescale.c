@@ -181,10 +181,7 @@ static vsi_status op_compute
     p = &(self->nn_param.l2normalizescale);
     axis = p->axis;
 
-    if ( (inputs[1]->attr.is_const == TRUE && _check_value_is_equal_to_one(self->graph, inputs[1])) ||
-        ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 &&
-          outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 )
-        )
+    if ( self->nn_param.l2normalizescale.local.use_internal_node )
     {
         return vsi_nn_internal_compute_node( self );
     }
@@ -350,20 +347,24 @@ static vsi_bool op_setup
 
     if ( inputs[1]->attr.is_const == TRUE && _check_value_is_equal_to_one( self->graph, inputs[1] ) )
     {
+        self->nn_param.l2normalizescale.local.use_internal_node = TRUE;
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_L2_NORMALIZE, 0, 0);
         curr->node->nn_param.l2_normalize.axis = self->nn_param.l2normalizescale.axis;
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
         vsi_nn_internal_setup_node( self, curr );
     }
-    else if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 &&
-        outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 )
+    else if ( ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 &&
+                outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ) ||
+              self->graph->ctx->config.support_stream_processor )
     {
         vsi_nn_internal_tensor_t* output_tensor = NULL;
         vsi_nn_internal_tensor_t* reshape_tensor = NULL;
         vsi_nn_tensor_attr_t attr;
         int32_t dim_num = inputs[0]->attr.dim_num;
         int32_t i = 0;
+
+        self->nn_param.l2normalizescale.local.use_internal_node = TRUE;
 
         memcpy( &attr, &outputs[0]->attr, sizeof( attr ) );
         attr.vtl = TRUE;
@@ -382,7 +383,7 @@ static vsi_bool op_setup
             attr.size[i] = i == self->nn_param.l2normalizescale.axis ? inputs[0]->attr.size[i] : 1;
         }
         attr.dim_num = dim_num;
-        if (attr.dtype.vx_type != VSI_NN_TYPE_BFLOAT16)
+        if (attr.dtype.vx_type != VSI_NN_TYPE_BFLOAT16 && inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16)
         {
             attr.dtype.vx_type = VSI_NN_TYPE_BFLOAT16;
             attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
@@ -414,6 +415,8 @@ static vsi_status op_init
 {
     vsi_status status = VSI_SUCCESS;
     uint32_t  i = 0;
+
+    self->nn_param.l2normalizescale.local.use_internal_node = FALSE;
 
     if (vsi_nn_compareVersion(self->graph, 1, 1, 13) == -1)
     {

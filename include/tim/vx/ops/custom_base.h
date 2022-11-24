@@ -24,7 +24,7 @@
 #ifndef TIM_VX_OPS_CUSTOM_BASE_H_
 #define TIM_VX_OPS_CUSTOM_BASE_H_
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 #include <typeinfo>
 #include <tuple>
 

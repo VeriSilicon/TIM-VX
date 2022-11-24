@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/topk.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -32,7 +32,7 @@ namespace vx {
 namespace ops {
 
 Topk::Topk(Graph* graph, uint32_t k)
-    : DirectMapOp(graph, VSI_NN_OP_TOPK) {
+    : BuiltinOp(graph, VSI_NN_OP_TOPK) {
   this->impl()->node()->nn_param.topk.k = k;
 }
 

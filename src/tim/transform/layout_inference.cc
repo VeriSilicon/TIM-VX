@@ -27,6 +27,7 @@
 
 #include "tim/transform/layout_inference.h"
 #include "ops/conv2d_layout_inference.h"
+#include "ops/grouped_conv2d_layout_inference.h"
 #include "ops/reduce_layout_inference.h"
 #include "ops/elementwise_layout_inference.h"
 #include "ops/activation_layout_inference.h"
@@ -62,6 +63,8 @@
 #include "ops/default_layout_inference.h"
 #include "ops/transpose_layout_inference.h"
 #include "ops/unidirectional_lstm_layout_inference.h"
+#include "ops/broadcast_layout_inference.h"
+#include "ops/unidirectional_rnn_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -205,6 +208,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
   std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
   switch (op_id) {
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONV2D, Conv2d);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GROUPED_CONV2D, GroupedConv2d);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU, Relu);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU1, Relu1);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU6, Relu6);
@@ -263,6 +267,8 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PERMUTE, Transpose);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONV3D, Conv3d);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LSTM_OVXLIB, UnidirectionalLstm);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_EXPAND_BROADCAST, Broadcast);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_UNIDIRECTIONAL_SEQUENCE_RNN, UnidirectionalRnn);
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     // use default layout inference
@@ -278,10 +284,12 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
 }  // namespace layout_inference_impl
 
 std::pair<std::shared_ptr<vx::Graph>,
-          std::map<std::shared_ptr<vx::Tensor>,
-                   std::shared_ptr<vx::Tensor>>> LayoutInference(
+          std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>>
+LayoutInference(
     const std::shared_ptr<vx::Graph>& src_graph,
-    std::shared_ptr<vx::Context>& ctx) {
+    std::shared_ptr<vx::Context>& ctx,
+    std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<IPermuteVector>>
+        tensor_pv_map) {
   std::shared_ptr<vx::Graph> infer_graph = ctx->CreateGraph();
   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
       graph_io_map;
@@ -296,8 +304,10 @@ std::pair<std::shared_ptr<vx::Graph>,
     layout_infer_ctx->UpdateTensorMap(t_src, input);
     layout_infer_ctx->UpdateGraphInputMap(t_src, input);
     tensor_queue.push_back(t_src);
-    layout_infer_ctx->SetPermuteVector(t_src,
-                                       MakeShared(t_src->GetShape().size()));
+    layout_infer_ctx->SetPermuteVector(
+        t_src, tensor_pv_map.find(t_src) != tensor_pv_map.end()
+                   ? tensor_pv_map[t_src]
+                   : MakeShared(t_src->GetShape().size()));
   }
 
   auto const_inputs = src_graph->GetConstantInputs();
@@ -306,8 +316,10 @@ std::pair<std::shared_ptr<vx::Graph>,
         infer_graph->CreateTensor(const_in->GetSpec(), const_in->GetDataRef());
     layout_infer_ctx->UpdateTensorMap(const_in, input);
     tensor_queue.push_back(const_in);
-    layout_infer_ctx->SetPermuteVector(const_in,
-                                       MakeShared(const_in->GetShape().size()));
+    layout_infer_ctx->SetPermuteVector(
+        const_in, tensor_pv_map.find(const_in) != tensor_pv_map.end()
+                   ? tensor_pv_map[const_in]
+                   : MakeShared(const_in->GetShape().size()));
   }
 
   while (!tensor_queue.empty()) {
@@ -315,7 +327,7 @@ std::pair<std::shared_ptr<vx::Graph>,
     tensor_queue.pop_front();
     const auto& consumers = src_graph->GetConsumersOp(tensor);
     for (const auto& op : consumers) {
-      if (!layout_infer_ctx->IsVisited(op) &&
+      if (!layout_infer_ctx->IsVisited(op) && op->impl()->kind_ !=-1 &&
           layout_infer_ctx->IsReadyForInfer(op)) {
         auto next_tensors =
             layout_inference_impl::HandleLayoutInfer(layout_infer_ctx, op);

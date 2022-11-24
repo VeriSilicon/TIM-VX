@@ -336,3 +336,5 @@ ASALocalRun/
 # IDE
 .settings/
 build/
+*_build/
+.DS_Store

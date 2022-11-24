@@ -27,7 +27,7 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_prv.h"
 
-static inline vsi_bool vsi_nn_feature_conv_max_kernel_size()
+static VSI_INLINE_API vsi_bool vsi_nn_feature_conv_max_kernel_size()
 {
     return 11;
 }

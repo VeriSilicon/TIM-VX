@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_GATHER_H_
 #define TIM_VX_OPS_GATHER_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -35,14 +35,15 @@ namespace ops {
  * Gather slices from input, **axis** according to **indices**.
  */
 
-class Gather : public DirectMapOp {
+class Gather : public BuiltinOp {
  public:
-  Gather(Graph* Graph, int axis);
+  Gather(Graph* Graph, int axis, int batch_dims = 0);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
  protected:
   int axis_;
+  int batch_dims_;
 };
 
 }  // namespace ops

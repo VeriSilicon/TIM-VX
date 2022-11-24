@@ -44,7 +44,7 @@ __BEGIN_DECLS
 typedef enum _grucell_nn_activation_type_e
 {
     SIGMOID = VSI_NN_ACT_SIGMOID,
-    HARD_SIGMOID = VSI_NN_ACT_HARD_SIGMOID,
+    HSIGMOID = VSI_NN_ACT_HARD_SIGMOID,
 }grucell_nn_activation_type_e;
 
 #define _GRUCELL_ACTIVATION_Z_H_KERNEL_SOURCE      "grucell_activation_z_h"
@@ -72,6 +72,10 @@ static const _kernel_map_type _grucell_activation_z_h_kernel_map[] =
     PACK_KERNEL_MAP( I8,  F16, I8,  SIGMOID ),
     PACK_KERNEL_MAP( I16, F16, I16, SIGMOID ),
     PACK_KERNEL_MAP( F16, F16, F16, SIGMOID ),
+    PACK_KERNEL_MAP( U8,  F16, U8,  HSIGMOID ),
+    PACK_KERNEL_MAP( I8,  F16, I8,  HSIGMOID ),
+    PACK_KERNEL_MAP( I16, F16, I16, HSIGMOID ),
+    PACK_KERNEL_MAP( F16, F16, F16, HSIGMOID ),
 };
 
 /*
@@ -154,7 +158,7 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_z_h_initializer)
         if (srcFixPointPos >= 0)
             output_scale *= (vx_float32)((int64_t)1 << srcFixPointPos);
         else if (srcFixPointPos < 0)
-            output_scale *= 1.0f / (vx_float32) ((int64_t)1 << -srcFixPointPos);
+            output_scale *= 1.0f / (vx_float32) ((int64_t)1 << - srcFixPointPos);
     }
     else if ( VSI_NN_KERNEL_QUANT_ASYMM == output_attr[0]->quant )
     {

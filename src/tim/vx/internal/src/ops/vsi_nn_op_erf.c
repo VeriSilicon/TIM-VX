@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <string.h>
 #include <stdlib.h>
 
@@ -93,6 +92,13 @@ static vsi_bool op_check
         IO_TYPE(D_I8|Q_DFP,     D_F16)
         IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
         IO_TYPE(D_I16|Q_DFP,    D_F16)
+
+        /* HW 9.1.1 */
+        IO_TYPE(D_U4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_U4|Q_SYM,     D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,     D_I4|Q_SYM)
+
     END_IO_TYPE_DECL(ERF)
     if (!VALIDATE_OP_IO_TYPES(ERF, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -105,7 +111,6 @@ static vsi_bool op_check
 
     return TRUE;
 } /* op_check() */
-
 
 __BEGIN_DECLS
 

@@ -172,6 +172,7 @@ static vsi_status op_compute
 
         p_ext->padding_x_right = self->nn_param.conv2d.pad[1];
         p_ext->padding_y_bottom = self->nn_param.conv2d.pad[3];
+        p_ext->pad_mode = vsi_nn_get_vx_pad_mode(nn_param->pad_mode);
 
         //set ext2 relative parameters
         p_ext2->depth_multiplier = self->nn_param.conv2d.multiplier;

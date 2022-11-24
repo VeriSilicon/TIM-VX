@@ -342,6 +342,10 @@ typedef struct _vx_tensorpatch_addressing_t * vx_trensor_addressing;
  */
 typedef struct _vx_weights_biases_parameter_s *     vx_weights_biases_parameter;
 
+/*! \brief The object for stream processor
+ * \ingroup group_spinst
+ */
+typedef struct _vx_spinst_s *     vx_spinst;
 
 /*! \brief A Boolean value.
  * This allows 0 to be FALSE, as it is in C, and any non-zero to be TRUE.
@@ -470,6 +474,7 @@ enum vx_type_e {
     /* \todo add new object types here */
     VX_TYPE_BFLOAT16        = 0x81A,/*!< \brief A <tt>\ref vx_bfloat16</tt>. */
 
+    VX_TYPE_SPINST          = 0x81B,/*!< \brief A <tt>\ref vx_spinst</tt>. */
     VX_TYPE_INT4            = 0x81C,/*!< \brief A <tt>\ref signed 4bits tensor.</tt>. */
     VX_TYPE_UINT4           = 0x81D,/*!< \brief A <tt>\ref unsigned 4bits tensor.</tt>. */
 };
@@ -1021,6 +1026,8 @@ enum vx_node_attribute_e {
 
     VX_NODE_ATTRIBUTE_CONST_TENSOR_CACHE = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0x9,
 
+    VX_NODE_ATTRIBUTE_FOR_HW_QUALITY     = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0xA,
+
 };
 
 /*! \brief The parameter attributes list
@@ -1290,6 +1297,9 @@ enum vx_tensor_attribute_e
     VX_TENSOR_LIFETIME = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_TENSOR) + 0x5,
     /*! \brief the value status of tensor. */
     VX_TENSOR_VALUE = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_TENSOR) + 0x6,
+    /*XiaoMi project*/
+    VX_TENSOR_INPUT_FOR_REFERENCE = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_TENSOR) + 0x7,
+    VX_TENSOR_MEMORY_ATTRIBUTE = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_TENSOR) + 0x8,
 };
 
 /*! \brief The meta valid rectangle attributes.
@@ -1976,9 +1986,11 @@ enum vx_map_flag_e {
 
 enum vx_const_tensor_cache_mode
 {
-    VX_PRELOAD_NULL = 0,
+    VX_PRELOAD_NULL                 = 0,
     VX_PRELOAD_CONST_TENSOR_VIPSRAM = 1,
     VX_PRELOAD_CONST_TENSOR_AXISRAM = 2,
+    VX_KERNEL_CACHE_PARTIAL_MODE    = 3,
+    VX_KERNEL_CACHE_STREAM_MODE     = 4,
     VX_PRELOAD_TYPE_COUNT
 };
 #endif

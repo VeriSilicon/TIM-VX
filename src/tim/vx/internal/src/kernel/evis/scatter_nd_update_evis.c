@@ -207,7 +207,7 @@ static vsi_status get_scatter_nd_update_tensor_reshape_size
         return status;
     }
 
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     newDim[0] = 0;
     for(i = 0; i < dims_num; ++i)

@@ -654,3 +654,60 @@ vsi_bool vsi_nn_kernel_optimize_group_norm_shape
 
     return status;
 }
+
+vsi_bool vsi_nn_kernel_optimize_scatter_elements_shape
+    (
+    const vsi_size_t* shape_x, const vsi_size_t rank_x, const int32_t axis,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x, int32_t* out_axis, vsi_size_t max_size
+    )
+{
+    vsi_bool ret                        = TRUE;
+    vsi_size_t   i                          = 0;
+    vsi_size_t   rank_in                    = 0;
+    vsi_size_t   dims                       = 0;
+    vsi_size_t  innerSize                  = 1;
+    vsi_size_t  outerSize                  = 1;
+    vsi_size_t  axisSize                   = shape_x[axis];
+
+    for (i = 0; i < (size_t)axis; i++)
+    {
+        innerSize *= shape_x[i];
+    }
+
+    for (i = axis + 1; i < rank_x; i++)
+    {
+        outerSize *= shape_x[i];
+    }
+
+    rank_in += element_fill_dim(out_shape_x, rank_in, max_size, innerSize);
+    dims = element_fill_dim(out_shape_x, rank_in, max_size, axisSize);
+    if (dims == 0)
+    {
+        *out_axis = (int32_t)rank_in;
+        out_shape_x[rank_in ++] = 1;
+    }
+    else
+    {
+        *out_axis = (int32_t)rank_in;
+    }
+
+    rank_in += dims;
+
+    rank_in += element_fill_dim(out_shape_x, rank_in, max_size, outerSize);
+
+    if ( 0 == rank_in )
+    {
+        out_shape_x[0] = 1;
+        out_shape_x[1] = 1;
+        rank_in = 2;
+    }
+    else if ( 1 == rank_in )
+    {
+        out_shape_x[1] = 1;
+        rank_in = 2;
+    }
+
+    *out_rank_x = (uint32_t)rank_in;
+
+    return ret;
+} /* vsi_nn_kernel_optimize_scatter_elements_shape() */

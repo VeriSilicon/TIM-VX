@@ -57,7 +57,7 @@ static vsi_status op_compute
     int32_t * axis = self->nn_param.reduce_mean_internal.axis;
     int32_t axis_num = self->nn_param.reduce_mean_internal.axis_num;
     float scale = self->nn_param.reduce_mean_internal.scale;
-    vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = { {0} };
     int32_t new_axis[VSI_NN_MAX_DIM_NUM] = {0};
     vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
     uint32_t axis_size = 0;

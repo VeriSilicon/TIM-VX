@@ -49,9 +49,16 @@ class Operation {
   std::unique_ptr<OpImpl>& impl();
   const std::unique_ptr<OpImpl>& impl() const;
   virtual const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor() const;
+  
  protected:
   bool IsAllInputsConst() const;
   std::unique_ptr<OpImpl> impl_;
+
+ private:
+// Post processing at the final step on BindInput func
+// - tensor : input tensor  
+// - input_idx: the index of input tensor
+   virtual void OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor, int32_t input_idx); 
 };
 
 }  // namespace vx

@@ -400,3 +400,61 @@ TEST(Celu, shape_2_2) {
   EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 #endif
+
+TEST(Sign, shape_5_1_fp32) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType io_shape({5, 1});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, io_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, io_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<float> in_data = {-3.7, -1, 0, 0.5, 12};
+  std::vector<float> golden = {-1, -1, 0, 1, 1};
+
+  EXPECT_TRUE(
+      input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * 4));
+
+  auto op = graph->CreateOperation<tim::vx::ops::Sign>();
+  (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+  std::vector<float> output(5, 0);
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
+
+TEST(SoftSign, shape_5_1_fp32) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType io_shape({5, 1});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, io_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, io_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<float> in_data = {-3.7, -1, 0, 0.5, 12};
+  std::vector<float> golden = {-0.78723, -0.5, 0, 0.33333, 0.92308};
+
+  EXPECT_TRUE(
+      input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * 4));
+
+  auto op = graph->CreateOperation<tim::vx::ops::SoftSign>();
+  (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+  std::vector<float> output(5, 0);
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}

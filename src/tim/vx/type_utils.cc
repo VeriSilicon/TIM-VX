@@ -39,6 +39,8 @@ vsi_nn_type_e TranslateDataType(DataType dtype) {
       return VSI_NN_TYPE_INT32;
     case DataType::UINT32:
       return VSI_NN_TYPE_UINT32;
+    case DataType::INT64:
+      return VSI_NN_TYPE_INT64;
     case DataType::FLOAT16:
       return VSI_NN_TYPE_FLOAT16;
     case DataType::FLOAT32:
@@ -59,6 +61,8 @@ vsi_nn_qnt_type_e TranslateQuantType(QuantType qtype) {
       return VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     case QuantType::SYMMETRIC_PER_CHANNEL:
       return VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC;
+    case QuantType::DYNAMIC_FIXED_POINT:
+      return VSI_NN_QNT_TYPE_DFP;
     default:
       break;
   }

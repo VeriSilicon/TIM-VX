@@ -57,6 +57,14 @@ enum vx_graph_attribute_internal_type_e
     VX_GRAPH_AXI_SRAM_PRE_LOAD                    =  VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x2,
     /*! \brief Queries a graph for its running priority (read-write. Use a <tt>\ref vx_uint32</tt> parameter. */
     VX_GRAPH_PRIORITY_VALUE_VIV                   =  VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x3,
+    VX_GRAPH_PSI_EXTRATOR_PARAMETER               = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x4,
+    VX_GRAPH_PSI_FILLER_PARAMETER                 = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x5,
+    VX_GRAPH_DENOISE_POSTPROCESS_PARAMETER        = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x6,
+    VX_GRAPH_DATA_COMPRESSION_RATIO               = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x7,
+    VX_GRAPH_ISP_EMULATION_PARAMETER              = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x8,
+    VX_GRAPH_PROCESS_FPS                          = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x9,
+    /*This parameter.come from customer, not used by unify driver but lite driver*/
+    VX_GRAPH_CUSTOMER_PARAMETER_FOR_NBG           = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0xA,
 };
 
 /*! \brief Size Alignment of User Memory
@@ -209,7 +217,8 @@ enum vx_nn_activation_function_e
     VX_NN_ACTIVATION_LEAKYRELU_MAX_POOLING = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x4,
     VX_NN_ACTIVATION_SWISH = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x5,
     VX_NN_ACTIVATION_HSWISH = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x6,
-    VX_NN_ACTIVATION_NONE = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x7,
+    VX_NN_ACTIVATION_CUSTOM = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x7,
+    VX_NN_ACTIVATION_NONE = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x8,
 };
 
 /*! \brief  The Convolutional network type
@@ -284,6 +293,59 @@ enum vx_tensor_rank_type_e
     /*! \brief  rank with size, batch */
     VX_TENSOR_RANK_SN,
 };
+
+/*! \brief The attribute of tensor.
+ * \ingroup group_tensor
+ * \version 0.4
+ */
+enum vx_tensor_priority_e
+{
+    /*! \brief no special requirement */
+    VX_TENSOR_DEFAULT = 0,
+
+    /*! \brief  2nd input(reference) */
+    /*VX_TENSOR_2ND_INPUT_FOR       = 1,*/
+    VX_TENSOR_FOR_GRAPH_REFERENCE = 1,
+};
+
+
+/*! \brief The attribute of tensor memory.
+ * \ingroup group_tensor
+ * \version 0.4
+ */
+enum vx_tensor_memory_attribute_e
+{
+    /*! \brief no special requirement */
+    VX_TENSOR_MEMORY_DEFAULT = 0,
+
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_0 = (0x1 << 0),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_1 = (0x1 << 1),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_2 = (0x1 << 2),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_3 = (0x1 << 3),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_4 = (0x1 << 4),
+    /*
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_5 = (0x1 << VX_DMA5_IN_ISP_OCM_PSI),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_6 = (0x1 << VX_DMA6_DDR_DECOMPRESS),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_7 = (0x1 << VX_DMA7_POSTOUT_OCM_ISP),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_8 = (0x1 << VX_DMA8_COMPRESS_DDR),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_9 = (0x1 << VX_DMA9_ISP_PATTERN_GENERATOR),
+    VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL_10 = (0x1 << VX_DMA10_ISP_CHECKSUM_GENERATOR),
+    */
+    /*! \brief DMA transfer data to VIP and enable circular buffer */
+#if !VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL
+    VX_TENSOR_MEMORY_ENABLE_CIRCULAR_BY_DMA = 0xFFFFFFFF,
+#endif
+};
+
+enum vx_dma_extrator_pad_mode_e
+{
+    /*! \brief no special requirement */
+    VX_DMA_EXTRATOR_PAD_CONST = 0,
+
+    /*! \brief DMA extrator pad with nearest edge */
+    VX_DMA_EXTRATOR_PAD_WITH_NEAREAST_EDGE = 1,
+};
+
 
 /*! \brief The precision of tensor.
  * \ingroup group_tensor
@@ -600,6 +662,19 @@ VX_API_ENTRY vx_tensor VX_API_CALL vxReshapeTensor(vx_tensor tensor, vx_int32* n
  * \ingroup group_tensor
  */
 VX_API_ENTRY vx_status VX_API_CALL vxSetTensorAttribute(vx_tensor tensor, vx_enum attribute, const void *ptr, vx_size size);
+
+/*! \brief Creates an opaque reference to a tensor data buffer.
+ * \details The tensor is a dummy tensor which will not allocate any memory. And it cannot reshape or view.
+ * Not guaranteed to exist until the <tt>vx_graph</tt> containing it has been verified.
+ * \param [in] context The reference to the implementation context.
+ * \param [in] number_of_dims The number of dimensions.
+ * \param [in] dims Dimensions sizes in elements.
+ * \param [in] data_format The <tt>\ref vx_type_e</tt> that represents the data format of the tensor data elements.
+ * \return A tensor data reference or zero when an error is encountered.
+ * \ingroup group_tensor
+ * \version 0.3
+ */
+VX_API_ENTRY vx_tensor VX_API_CALL vxCreateDummyTensor(vx_context context, vx_size number_of_dims, const vx_size *dims, vx_enum data_format);
 
 
 /*! \brief The type enumeration lists all NN extension types.
@@ -1316,6 +1391,13 @@ typedef struct _vx_nn_scale_params_t
 {
     vx_enum type;             /*!< \brief  The interpolation type, only support VX_INTERPOLATION_BILINEAR.  */
 } vx_nn_scale_params_t, * vx_nn_scale_params;
+
+typedef struct _vx_nn_scale_params_ext_t
+{
+    vx_nn_scale_params_t base;
+    vx_bool align_corners;
+    vx_bool half_pixel_centers;
+} vx_nn_scale_params_ext_t, * vx_nn_scale_params_ext;
 
 /*! \brief [Graph] Creates a scale Layer Node.
  * \param [in] graph The reference to the parent graph.
@@ -2054,7 +2136,14 @@ typedef struct _vx_hardware_caps_params_ext_t
     vx_hardware_caps_params_t base;
     vx_uint32 subGroupSize;        /*!< \brief  shader sub-group size.*/
     vx_bool   supportVA40;         /*!< \brief  support 40bit virtual address.*/
+    vx_uint32 supportStreamProcessor; /*!< \brief  support stream processor.*/
 } vx_hardware_caps_params_ext_t;
+
+typedef struct _vx_hardware_caps_params_ext2_t
+{
+    vx_hardware_caps_params_ext_t base;
+    vx_uint32 streamProcessorExecCount;     /*!< \brief  streamprocess execution count.  */
+} vx_hardware_caps_params_ext2_t;
 
 /*! \brief Queries hardware caps information.
  * \param [in] context The reference to the context.

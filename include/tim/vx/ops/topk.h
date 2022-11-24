@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 #include "tim/vx/types.h"
 
 namespace tim {
@@ -41,7 +41,7 @@ namespace ops {
  * - k : Number of top elements to look for along the last dimension.
  */
 
-class Topk : public DirectMapOp {
+class Topk : public BuiltinOp {
  public:
   Topk(Graph* graph, uint32_t k);
 

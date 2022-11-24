@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_STRIDEDSLICE_H_
 #define TIM_VX_OPS_STRIDEDSLICE_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -52,7 +52,7 @@ namespace ops {
  * e.g. begin[i] = x, end[i] = x + 1.
  */
 
-class StridedSlice : public DirectMapOp {
+class StridedSlice : public BuiltinOp {
  public:
   StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
                const std::vector<int32_t> end_dims,

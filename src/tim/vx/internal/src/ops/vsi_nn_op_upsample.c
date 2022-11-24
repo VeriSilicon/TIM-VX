@@ -53,7 +53,7 @@ static vsi_bool vsi_nn_upsample_optimize_shape
     )
 {
     vsi_bool   enable_image_2d = FALSE;
-    vsi_ssize_t    hwLitimLen      = 65536;
+    vsi_ssize_t    hwLitimLen      = GPU_TENSOR_MAX_WIDTH;
 
     if ((2 == self->nn_param.upsample.scale[0])
        && (2 == self->nn_param.upsample.scale[1]))
@@ -166,7 +166,6 @@ static vsi_status op_compute
 
     if( ret )
     {
-
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
                 inputs[0],  shapes[0], new_rank );
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
@@ -311,4 +310,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

@@ -202,7 +202,7 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
 
     if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
-        int32_t fl = (uint8_t)attr[2]->dfp.fl;
+        int32_t fl = attr[2]->dfp.fl;
         if (fl > 0)
         {
             output_scale = (float) ((int64_t)1 << fl);

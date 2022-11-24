@@ -123,7 +123,7 @@ static vsi_status cal_gather_tensor_reshape_size
     uint32_t i = 0;
     vsi_size_t elementCnt = 1;
     vsi_size_t outerCnt = 1;
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     for (i = 0; i < dims_num - batch_dims; ++i)
     {
@@ -252,6 +252,16 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
+    if (input0_dtype == I8)
+    {
+        input0_dtype = I32;
+    }
+
+    if (output_dtype == I8)
+    {
+        output_dtype = I32;
+    }
+
     key = HASH_GATHER_KEY( input0_dtype, I32, output_dtype, 0, is_batch );
 
     for ( i = 0; i < _cnt_of_array(gather_map); i ++ )
@@ -365,4 +375,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( gather, _setup )
-

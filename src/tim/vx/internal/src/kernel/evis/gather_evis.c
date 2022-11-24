@@ -222,7 +222,7 @@ static vsi_status get_gather_tensor_reshape_size
     uint32_t i = 0;
     vsi_size_t elementCnt = 1;
     vsi_size_t outerCnt = 1;
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     for(i = 0; i < dims_num - batch_dims; ++i)
     {
@@ -751,7 +751,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_t             * kernel
     )
 {
-#define VSI_NN_MAX_BLOCK_SIZE  (65536)
+#define VSI_NN_MAX_BLOCK_SIZE  GPU_TENSOR_MAX_WIDTH
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t tmp_params[_GATHER_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
@@ -794,12 +794,6 @@ static vsi_nn_kernel_node_t _setup
         inputs[1], shapes[1], 2 );
     reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
         outputs[0], shapes[2], rs_dim );
-
-    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
-                outputs[0]->attr.dim_num ) )
-    {
-        return NULL;
-    }
 
     status = _query_kernel( inputs, outputs, kernel, params, axis0_flg, is_array, is_batch);
     if ( VSI_SUCCESS == status)

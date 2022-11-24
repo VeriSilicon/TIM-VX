@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/groupedconv2d.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -37,7 +37,7 @@ GroupedConv2d::GroupedConv2d(Graph* graph,
                const std::array<uint32_t, 2>& dilation,
                int32_t group_number,
                DataLayout input_layout, DataLayout kernel_layout)
-    : DirectMapOp(graph, VSI_NN_OP_GROUPED_CONV2D, 3, 1, input_layout),
+    : BuiltinOp(graph, VSI_NN_OP_GROUPED_CONV2D, 3, 1, input_layout),
       padding_(padding), strides_(strides), dilation_(dilation),
       pad_({0,0,0,0}), group_number_(group_number),
       kernel_layout_(kernel_layout) {
@@ -55,7 +55,7 @@ GroupedConv2d::GroupedConv2d(Graph* graph,
                const std::array<uint32_t, 2>& dilation,
                int32_t group_number,
                DataLayout input_layout, DataLayout kernel_layout)
-    : DirectMapOp(graph, VSI_NN_OP_GROUPED_CONV2D, 3, 1, input_layout),
+    : BuiltinOp(graph, VSI_NN_OP_GROUPED_CONV2D, 3, 1, input_layout),
       padding_(PadType::AUTO), strides_(strides), dilation_(dilation), pad_(pad),
       group_number_(group_number), kernel_layout_(kernel_layout) {
   this->impl()->node()->nn_param.grouped_conv2d.stride[0] = strides_[0];

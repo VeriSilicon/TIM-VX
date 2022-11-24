@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/unstack.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Unstack::Unstack(Graph* graph, int32_t axis, uint32_t output_num)
-    : DirectMapOp(graph, VSI_NN_OP_UNSTACK, 1, output_num), axis_(axis) {
+    : BuiltinOp(graph, VSI_NN_OP_UNSTACK, 1, output_num), axis_(axis) {
   this->impl()->node()->nn_param.unstack.axis = axis_;
 }
 

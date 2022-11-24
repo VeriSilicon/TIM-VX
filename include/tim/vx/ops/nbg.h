@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_NBG_H_
 #define TIM_VX_OPS_NBG_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -36,7 +36,7 @@ namespace ops {
  * a bianry file.
  */
 
-class NBG : public DirectMapOp {
+class NBG : public BuiltinOp {
  public:
   NBG(Graph* graph, const char* binary, size_t input_count, size_t output_count);
 

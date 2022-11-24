@@ -65,7 +65,7 @@ extern "C" {
 #define VSI_NN_DO_JOIN(X, Y) VSI_NN_DO_JOIN2(X,Y)
 #define VSI_NN_DO_JOIN2(X, Y) X##Y
 
-#if defined(_MSC_VER)
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
     #define VSI_NN_DEPRECATED(symbol, hints) \
        __declspec(deprecated(VSI_NN_STRINGIZE(hints))) symbol
 
@@ -381,7 +381,7 @@ int32_t vsi_nn_partition
  * @param[in]  num Number of tensors.
  * @param[out] out_tensors Ordered tensors
  * */
-static inline void vsi_nn_reorder_tensor
+static VSI_INLINE_API void vsi_nn_reorder_tensor
     (
     vsi_nn_tensor_t** tensors,
     const int32_t* order,
@@ -415,6 +415,15 @@ vsi_bool vsi_nn_is_broadcast_operaton
     vsi_nn_tensor_t            ** inputs,
     size_t                        input_num,
     vsi_nn_tensor_t            *  output
+    );
+
+vsi_bool vsi_nn_is_broadcast_axes_operaton
+    (
+    vsi_nn_tensor_t            ** inputs,
+    size_t                        input_num,
+    vsi_nn_tensor_t            *  output,
+    int32_t                    *  axis,
+    int32_t                       axis_num
     );
 
 float vsi_nn_get_tensor_scale
@@ -457,6 +466,16 @@ FILE* vsi_nn_fopen
     (
     const char * file_name,
     const char * mode
+    );
+
+int32_t vsi_nn_get_vx_pad_mode
+    (
+    vsi_nn_pad_mode_e mode
+    );
+
+vsi_bool vsi_nn_is_3d_tensor
+    (
+    vsi_nn_tensor_t * tensor
     );
 
 #ifdef __cplusplus

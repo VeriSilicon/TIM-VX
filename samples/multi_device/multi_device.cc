@@ -83,7 +83,7 @@ std::vector<std::vector<char>> load_input_data(std::vector<std::string> filename
         fin.close();
         input_data.assign(buffer, buffer + input_size_bytes[i]);
         Data.push_back(input_data);
-        free(buffer);
+        delete []buffer;
     }
    }
     return Data;

@@ -136,6 +136,21 @@ float eltwise_unary_celu(float val, float alpha, float rcp_alpha)
     return val < 0 ? x : val;
 }
 
+float eltwise_unary_rcp(float val, float alpha, float rcp_alpha)
+{
+    return 1.0f / val;
+}
+
+float eltwise_unary_sign(float val, float alpha, float rcp_alpha)
+{
+    return sign(val);
+}
+
+float eltwise_unary_softsign(float val, float alpha, float rcp_alpha)
+{
+    return val / (1.0f + fabs(val));
+}
+
 #define ELTWISE_UNARY_F32(func_name) \
 __kernel void func_name##_F32toF32 \
     ( \
@@ -170,6 +185,9 @@ ELTWISE_UNARY_F32(gelu)
 ELTWISE_UNARY_F32(hard_gelu)
 ELTWISE_UNARY_F32(selu)
 ELTWISE_UNARY_F32(celu)
+ELTWISE_UNARY_F32(rcp)
+ELTWISE_UNARY_F32(sign)
+ELTWISE_UNARY_F32(softsign)
 
 #define ELTWISE_UNARY_U8(func_name) \
 __kernel void func_name##_U8toU8 \
@@ -206,6 +224,9 @@ ELTWISE_UNARY_U8(gelu)
 ELTWISE_UNARY_U8(hard_gelu)
 ELTWISE_UNARY_U8(selu)
 ELTWISE_UNARY_U8(celu)
+ELTWISE_UNARY_U8(rcp)
+ELTWISE_UNARY_U8(sign)
+ELTWISE_UNARY_U8(softsign)
 
 __kernel void neg_I32toI32
     (

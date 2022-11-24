@@ -54,25 +54,37 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(EXPAND_BROADCAST, 1, 1)
-        IO_TYPE(D_BF16, D_BF16)
-        IO_TYPE(D_F32,  D_F32)
-        IO_TYPE(D_F32,  D_F16)
-        IO_TYPE(D_F16,  D_F32)
-        IO_TYPE(D_F16,  D_F16)
-        IO_TYPE(D_F16,  D_I16|Q_DFP)
-        IO_TYPE(D_F16,  D_I8|Q_DFP)
-        IO_TYPE(D_F16,  D_U8|Q_ASYM)
-        IO_TYPE(D_I16|Q_DFP,  D_F16)
-        IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP,  D_U8|Q_ASYM)
-        IO_TYPE(D_I8|Q_DFP,  D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_I8|Q_DFP)
-        IO_TYPE(D_U8|Q_ASYM,  D_F16)
-        IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
-        IO_TYPE(D_F32,  D_BF16)
-        IO_TYPE(D_BF16, D_F32)
-        IO_TYPE(D_I32|Q_DFP,  D_I32|Q_DFP)
-        IO_TYPE(D_I32|Q_ASYM,  D_I32|Q_ASYM)
+        IO_TYPE(D_BF16,         D_BF16)
+        IO_TYPE(D_F32,          D_F32)
+        IO_TYPE(D_F32,          D_F16)
+        IO_TYPE(D_F16,          D_F32)
+        IO_TYPE(D_F16,          D_F16)
+        IO_TYPE(D_F16,          D_I16|Q_DFP)
+        IO_TYPE(D_F16,          D_I16|Q_ASYM)
+        IO_TYPE(D_F16,          D_I16|Q_SYM)
+        IO_TYPE(D_F16,          D_I8|Q_DFP)
+        IO_TYPE(D_F16,          D_I8|Q_ASYM)
+        IO_TYPE(D_F16,          D_I8|Q_SYM)
+        IO_TYPE(D_F16,          D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP,    D_F16)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16)
+        IO_TYPE(D_I16|Q_SYM,    D_F16)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_DFP,    D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,     D_F16)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_SYM,     D_F16)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_F32,          D_BF16)
+        IO_TYPE(D_BF16,         D_F32)
+        IO_TYPE(D_I32|Q_DFP,    D_I32|Q_DFP)
+        IO_TYPE(D_I32|Q_ASYM,   D_I32|Q_ASYM)
     END_IO_TYPE_DECL(EXPAND_BROADCAST)
     if (!VALIDATE_OP_IO_TYPES(EXPAND_BROADCAST, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -106,7 +118,11 @@ static vsi_bool op_setup
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     attr.dim_num = p->dim_num;
-    attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32) {
+        attr.dtype.vx_type = VSI_NN_TYPE_INT32;
+    } else {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
     attr.is_const = TRUE;
     for(i = 0; i < p->dim_num; i++)

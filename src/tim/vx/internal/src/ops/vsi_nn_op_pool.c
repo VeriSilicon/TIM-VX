@@ -78,7 +78,7 @@ static vsi_status op_compute
     status = VSI_FAILURE;
 
     memset( &params, 0, sizeof( params ) );
-    if(_is_pool1d(self, inputs))
+    if (_is_pool1d(self, inputs))
     {
         // pool1d
         tmp_inputs[0]  = local->reshaped_input;
@@ -120,7 +120,7 @@ static vsi_status op_compute
         tmp_outputs[0]->t
         );
 
-    if( NULL != self->n )
+    if ( NULL != self->n )
     {
         status = VSI_SUCCESS;
     }
@@ -141,7 +141,7 @@ static vsi_status op_optimize
     char tensor_name[128];
 
     dim = inputs[0]->attr.dim_num;
-    if(FALSE == _is_pool1d(self, inputs))
+    if (FALSE == _is_pool1d(self, inputs))
     {
         return VSI_SUCCESS;
     }
@@ -155,9 +155,9 @@ static vsi_status op_optimize
     {
         /* reshape 3d input (xcn) --> 4d input (whcn) */
         shape[0] = inputs[0]->attr.size[0];//width
-        shape[1] = 1;//height
-        shape[2] = inputs[0]->attr.size[1];
-        shape[3] = inputs[0]->attr.size[2];
+        shape[1] = inputs[0]->attr.size[1];
+        shape[2] = inputs[0]->attr.size[2];
+        shape[3] = 1;//batch
         dim = 4;
         local->reshaped_input = vsi_nn_reshape_tensor(self->graph, inputs[0], shape, dim);
     }
@@ -165,16 +165,16 @@ static vsi_status op_optimize
     {
         /* reshape 3d output(xcn) --> 4d output(whcn) */
         shape[0] = outputs[0]->attr.size[0];//width
-        shape[1] = 1;//height
-        shape[2] = outputs[0]->attr.size[1];
-        shape[3] = outputs[0]->attr.size[2];
+        shape[1] = outputs[0]->attr.size[1];
+        shape[2] = outputs[0]->attr.size[2];
+        shape[3] = 1;//batch
         dim = 4;
         local->reshaped_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shape, dim);
-        if(local->reshaped_output && local->reshaped_output->t)
+        if (local->reshaped_output && local->reshaped_output->t)
         {
             memset(tensor_name, 0, sizeof(tensor_name));
             snprintf(tensor_name, sizeof(tensor_name), "uid_%u_reshape_out_0", self->uid);
-            if(vxSetReferenceName((vx_reference)local->reshaped_output->t, tensor_name) == VSI_FAILURE)
+            if (vxSetReferenceName((vx_reference)local->reshaped_output->t, tensor_name) == VSI_FAILURE)
             {
                 VSILOGW("Set uid %u pool1d reshaped output name fail", self->uid);
                 return VSI_FAILURE;
@@ -184,7 +184,6 @@ static vsi_status op_optimize
 
     return VSI_SUCCESS;
 } /* op_optimize() */
-
 
 static vsi_bool op_check
     (
@@ -196,32 +195,51 @@ static vsi_bool op_check
     /* check inputs outputs data type */
     BEGIN_IO_TYPE_DECL(POOL, 1, 1)
         /* IO_TYPE(INPUT, OUTPUT) */
-        IO_TYPE(D_F32, D_F32)
-        IO_TYPE(D_F32, D_F16)
-        IO_TYPE(D_F32, D_BF16)
+        IO_TYPE(D_F32,          D_F32)
+        IO_TYPE(D_F32,          D_F16)
+        IO_TYPE(D_F16,          D_F32)
+        IO_TYPE(D_F16,          D_F16)
+        IO_TYPE(D_F16,          D_U8|Q_ASYM)
+        IO_TYPE(D_F16,          D_I8|Q_DFP)
+        IO_TYPE(D_F16,          D_I8|Q_ASYM)
+        IO_TYPE(D_F16,          D_I8|Q_SYM)
+        IO_TYPE(D_F16,          D_I16|Q_DFP)
+        IO_TYPE(D_F16,          D_I16|Q_ASYM)
+        IO_TYPE(D_F16,          D_I16|Q_SYM)
+        IO_TYPE(D_BF16,         D_BF16)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_SYM,     D_F16)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,     D_F16)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_DFP,    D_F16)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16)
+        IO_TYPE(D_I16|Q_SYM,    D_F16)
 
-        IO_TYPE(D_F16, D_F32)
-        IO_TYPE(D_F16, D_F16)
-        IO_TYPE(D_F16, D_U8|Q_ASYM)
-        IO_TYPE(D_F16, D_I8|Q_DFP)
-        IO_TYPE(D_F16, D_I16|Q_DFP)
-
-        IO_TYPE(D_BF16, D_BF16)
-        IO_TYPE(D_BF16, D_F32)
-
-        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F16)
-
-        IO_TYPE(D_I8|Q_ASYM, D_I8|Q_ASYM)
-        IO_TYPE(D_I8|Q_ASYM, D_F16)
-
-        IO_TYPE(D_I8|Q_DFP, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP, D_F16)
-
-        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_F16)
+        /* HW 9.0 */
+        IO_TYPE(D_U8|Q_ASYM,    D_I16|Q_DFP)
+        IO_TYPE(D_U8|Q_ASYM,    D_BF16)
+        IO_TYPE(D_U8|Q_ASYM,    D_F32)
+        IO_TYPE(D_U8|Q_ASYM,    D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,     D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_DFP,     D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,     D_BF16)
+        IO_TYPE(D_I8|Q_DFP,     D_F32)
+        IO_TYPE(D_I16|Q_DFP,    D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP,    D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,    D_BF16)
+        IO_TYPE(D_I16|Q_DFP,    D_F32)
+        IO_TYPE(D_F32,          D_BF16)
+        IO_TYPE(D_BF16,         D_F32)
+        IO_TYPE(D_F16,          D_BF16)
     END_IO_TYPE_DECL(POOL)
-    if(!VALIDATE_OP_IO_TYPES(POOL, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(POOL, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -260,21 +278,11 @@ static vsi_status op_deinit
     )
 {
     vsi_nn_pool_param *p = &(self->nn_param.pool);
-    if(p->local->reshaped_input)
-    {
-        vsi_nn_ReleaseTensor(&(p->local->reshaped_input));
-        p->local->reshaped_input = NULL;
-    }
-    if(p->local->reshaped_output)
-    {
-        vsi_nn_ReleaseTensor(&(p->local->reshaped_output));
-        p->local->reshaped_output = NULL;
-    }
-    if(self->nn_param.pool.local)
-    {
-        free(self->nn_param.pool.local);
-        self->nn_param.pool.local = NULL;
-    }
+
+    vsi_safe_release_tensor(p->local->reshaped_input);
+    vsi_safe_release_tensor(p->local->reshaped_output);
+    vsi_nn_safe_free(self->nn_param.pool.local);
+
     vsi_nn_op_common_deinit(self);
 
     return VSI_SUCCESS;
@@ -288,20 +296,20 @@ static vsi_bool op_setup
     )
 {
     vsi_bool ret;
-    vsi_size_t ksize[_cnt_of_array(self->nn_param.pool.ksize)], i;
+    vsi_size_t ksize[_cnt_of_array(self->nn_param.pool.ksize)] = {0}, i = 0;
     vsi_size_t pad[_cnt_of_array(self->nn_param.pool.pad)] = {0};
 
     ret = TRUE;
 
-    for(i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
+    for (i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
     {
         ksize[i] = self->nn_param.pool.ksize[i];
     }
-    for(i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
+    for (i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
     {
         pad[i] = self->nn_param.pool.pad[i];
     }
-    if(_is_pool1d(self, inputs))
+    if (_is_pool1d(self, inputs))
     {
         vsi_nn_compute_padding_conv1d(
             inputs[0]->attr.size,
@@ -311,11 +319,11 @@ static vsi_bool op_setup
             self->nn_param.pool.pad_type,
             pad
         );
-        for(i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
+        for (i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
         {
             self->nn_param.pool.ksize[i] = (uint32_t)ksize[i];
         }
-        for(i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
+        for (i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
         {
             self->nn_param.pool.pad[i] = (uint32_t)pad[i];
         }
@@ -344,11 +352,11 @@ static vsi_bool op_setup
             self->nn_param.pool.pad_type,
             pad
         );
-        for(i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
+        for (i = 0; i < _cnt_of_array(self->nn_param.pool.ksize); i++)
         {
             self->nn_param.pool.ksize[i] = (uint32_t)ksize[i];
         }
-        for(i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
+        for (i = 0; i < _cnt_of_array(self->nn_param.pool.pad); i++)
         {
             self->nn_param.pool.pad[i] = (uint32_t)pad[i];
         }
@@ -374,17 +382,13 @@ static vsi_bool op_setup
             self->nn_param.pool.round_type
             );
 
-        outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
-        outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+        for (i = 2; i < inputs[0]->attr.dim_num; i++)
+        {
+            outputs[0]->attr.size[i] = inputs[0]->attr.size[i];
+        }
     }
 
     outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
-    if( NULL != outputs[1] )
-    {
-        outputs[1]->attr.dim_num = outputs[0]->attr.dim_num;
-        memcpy( outputs[1]->attr.size, outputs[0]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
-    }
 
     return ret;
 } /* op_setup() */
@@ -408,4 +412,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

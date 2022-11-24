@@ -196,4 +196,45 @@ VX_DECONV_3D_API_SUPPORT is used to declare that vsi openvx driver can support d
 #define VX_TENSOR_STRIDE_X_BITS_SUPPORT 1
 #endif
 
+/*
+VX_REMOVE_RESHAPE_SUPPORT is used to declare if graph opt support to remove reshape op, if support, it's not need to remove reshape in ovxlib.
+ 0: not support
+ 1: support
+*/
+/*
+#ifndef VX_REMOVE_RESHAPE_SUPPORT
+#define VX_REMOVE_RESHAPE_SUPPORT 0
+#endif
+*/
+
+/*
+VX_STREAM_PROCESSOR_SUPPORT is used to declare that vsi openvx driver can support vxStreamProcessorNode API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_STREAM_PROCESSOR_SUPPORT
+#define VX_STREAM_PROCESSOR_SUPPORT 0
+#endif
+
+/*
+ VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL is used to declare that this tensor connect to fixed DMA channel.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL
+#define VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL 1
+#endif
+
+/*
+ VX_SCALE_EXTRA_PARAMETER_SUPPORT is used to declare that RESIZE can support align_cornor and half_pixel_center parameter
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_SCALE_EXTRA_PARAMETER_SUPPORT
+#define VX_SCALE_EXTRA_PARAMETER_SUPPORT 1
+#endif
+
 #endif /* __VX_KHR_COMPATIBLE_H__ */

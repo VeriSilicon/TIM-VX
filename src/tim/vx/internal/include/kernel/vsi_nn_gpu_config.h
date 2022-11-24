@@ -25,10 +25,13 @@
 #ifndef _VSI_NN_GPU_CONFIG_H
 #define _VSI_NN_GPU_CONFIG_H
 
-#define GPU_TENSOR_MAX_WIDTH    (65536)
+#ifdef VSI_40BIT_VA_SUPPORT
+#define GPU_TENSOR_MAX_WIDTH    (1 << 30)
+#else
+#define GPU_TENSOR_MAX_WIDTH    (1 << 16)
+#endif
 #define GPU_MAX_MULTIPLIER_NUM  (65535)
 #define GPU_MAX_POST_SHIFT_BITS (31)
 #define GPU_TENSOR_DIM_2        (2)
 
 #endif
-

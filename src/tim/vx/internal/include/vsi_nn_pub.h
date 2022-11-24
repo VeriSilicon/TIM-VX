@@ -26,7 +26,7 @@
 #define _VSI_NN_PUB_H
 
 #if !defined(OVXLIB_API)
-    #if defined(_WIN32)
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         #define OVXLIB_API __declspec(dllimport)
     #else
         #define OVXLIB_API __attribute__((visibility("default")))

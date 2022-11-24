@@ -34,7 +34,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_math.h"
-#include "vsi_nn_test.h"
+#include "vsi_nn_error.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 static vsi_status op_compute
@@ -48,9 +48,39 @@ static vsi_status op_compute
     vx_nn_reorg_params_ext_t param;
     vsi_nn_tensor_t *block_size_tensor = NULL;
     vsi_nn_tensor_t *pad_tensor = NULL;
+    vsi_nn_tensor_t *input_tensor = NULL;
+    vsi_nn_tensor_t *output_tensor = NULL;
     vsi_nn_tensor_attr_t attr;
-    memset(&param, 0, sizeof(vx_nn_reorg_params_ext_t));
+    int32_t block_size[2] = {1, 1};
+    vsi_bool need_release_tensor = TRUE;
 
+    block_size[0] = self->nn_param.batch2space.block_size[0];
+    if (vsi_nn_is_3d_tensor(inputs[0]))
+    {
+        vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = {{1}};
+        memcpy(shape[0], inputs[0]->attr.size, sizeof(shape[0]));
+        memcpy(shape[1], outputs[0]->attr.size, sizeof(shape[1]));
+        shape[0][3] = shape[0][2];
+        shape[0][2] = shape[0][1];
+        shape[0][1] = 1;
+        shape[1][3] = shape[1][2];
+        shape[1][2] = shape[1][1];
+        shape[1][1] = 1;
+
+        input_tensor = vsi_nn_reshape_tensor(self->graph, inputs[0], shape[0], 4);
+        CHECK_PTR_FAIL_GOTO( input_tensor, "craete tensor fail.", final );
+        output_tensor = vsi_nn_reshape_tensor(self->graph, outputs[0], shape[1], 4);
+        CHECK_PTR_FAIL_GOTO( output_tensor, "craete tensor fail.", final );
+    }
+    else
+    {
+        block_size[1] = self->nn_param.batch2space.block_size[1];
+        need_release_tensor = FALSE;
+        input_tensor = inputs[0];
+        output_tensor = outputs[0];
+    }
+
+    memset(&param, 0, sizeof(vx_nn_reorg_params_ext_t));
     memset(&attr, 0, sizeof(attr));
     attr.size[0] = 2;
     attr.dim_num = 1;
@@ -59,9 +89,9 @@ static vsi_status op_compute
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
     block_size_tensor = vsi_nn_CreateTensorFromData(
         self->graph,
-        (uint8_t *)self->nn_param.batch2space.block_size,
+        (uint8_t *)block_size,
         &attr);
-    TEST_CHECK_PTR(block_size_tensor, final);
+    CHECK_PTR_FAIL_GOTO( block_size_tensor, "craete tensor fail.", final );
 
     memset(&attr, 0, sizeof(attr));
     attr.size[0] = 4;
@@ -73,16 +103,16 @@ static vsi_status op_compute
         self->graph,
         (uint8_t *)self->nn_param.batch2space.crop,
         &attr);
-    TEST_CHECK_PTR(pad_tensor, final);
+    CHECK_PTR_FAIL_GOTO( pad_tensor, "craete tensor fail.", final );
 
     param.base.block_size = REQUIRED_IO(block_size_tensor);
     param.pad = OPTIONAL_IO(pad_tensor);
     param.base.type = VX_REORG_BATCH_TO_SPACE_ND;
     self->n = vxReorgLayer2( self->graph->g,
-        inputs[0]->t,
+        input_tensor->t,
         (vx_nn_reorg_params_t *)&param,
         sizeof(vx_nn_reorg_params_ext_t),
-        outputs[0]->t);
+        output_tensor->t);
 
     if( NULL != self->n )
     {
@@ -90,8 +120,13 @@ static vsi_status op_compute
     }
 
 final:
-    if (block_size_tensor) vsi_nn_ReleaseTensor(&block_size_tensor);
-    if (pad_tensor) vsi_nn_ReleaseTensor(&pad_tensor);
+    if (need_release_tensor)
+    {
+        vsi_safe_release_tensor(input_tensor);
+        vsi_safe_release_tensor(output_tensor);
+    }
+    vsi_safe_release_tensor(block_size_tensor);
+    vsi_safe_release_tensor(pad_tensor);
 
     return status;
 } /* op_compute() */
@@ -105,14 +140,13 @@ static vsi_bool op_check
 {
     vsi_bool ret = FALSE;
 
-    if (inputs[0]->attr.dim_num != 4)
+    if (inputs[0]->attr.dim_num < 3)
     {
-        VSILOGE("batch2space only support 4D");
+        VSILOGE("The input tensor shape must be 3D or 4D!");
         return FALSE;
     }
 
-    if (self->nn_param.batch2space.block_size[0] < 0
-        || self->nn_param.batch2space.block_size[1] < 0)
+    if (self->nn_param.batch2space.block_size[0] < 0)
     {
         VSILOGE("Block size can't be less than zero in batch to space");
         return FALSE;
@@ -131,18 +165,33 @@ static vsi_bool op_setup
     )
 {
     vsi_nn_batch2space_param * p;
+
     p = (vsi_nn_batch2space_param *)&(self->nn_param.batch2space);
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        outputs[0]->attr.size[3] =
-            inputs[0]->attr.size[3] / p->block_size[0] / p->block_size[1];
-        outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
-        outputs[0]->attr.size[1] =
-            inputs[0]->attr.size[1] * p->block_size[1] - p->crop[2] - p->crop[3];
-        outputs[0]->attr.size[0] =
-            inputs[0]->attr.size[0] * p->block_size[0] - p->crop[0] - p->crop[1];
-        outputs[0]->attr.dim_num = 4;
+        outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
+
+        if (vsi_nn_is_3d_tensor(inputs[0]))
+        {
+            outputs[0]->attr.size[2] =
+                inputs[0]->attr.size[2] / p->block_size[0];
+            outputs[0]->attr.size[1] = inputs[0]->attr.size[1];
+            outputs[0]->attr.size[0] =
+                inputs[0]->attr.size[0] * p->block_size[0] - p->crop[0] - p->crop[1];
+        }
+        else
+        {
+            outputs[0]->attr.size[3] =
+                inputs[0]->attr.size[3] / p->block_size[0] / p->block_size[1];
+            outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
+            outputs[0]->attr.size[1] =
+                inputs[0]->attr.size[1] * p->block_size[1] - p->crop[2] - p->crop[3];
+            outputs[0]->attr.size[0] =
+                inputs[0]->attr.size[0] * p->block_size[0] - p->crop[0] - p->crop[1];
+        }
+
+
     }
 
     return TRUE;

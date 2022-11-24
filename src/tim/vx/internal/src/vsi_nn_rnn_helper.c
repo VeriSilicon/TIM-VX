@@ -60,7 +60,7 @@ vsi_bool vsi_nn_rnn_find_best_kernel_size
         /* try NxN */
         if( !multi_batch )
         {
-            #if( !defined( _WIN32 ) )
+            #if( !(defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32)) )
             /* try NxN conv */
             kernel_h = 8;
             while( input_size % (kernel_h * kernel_h) != 0 )
@@ -958,12 +958,16 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_permute
 {
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_internal_tensor_t* tensor0 = NULL;
-    uint32_t* permute_in_perm = NULL;
+    uint32_t i = 0, * permute_in_perm = NULL;
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_PERMUTE, 0, 0);
     permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(curr,
         dim_num * sizeof(uint32_t));
-    memcpy(permute_in_perm, perm, dim_num * sizeof(uint32_t));
+
+    for (i = 0; i < dim_num; i++)
+    {
+        permute_in_perm[i] = (uint32_t)perm[i];
+    }
     curr->node->nn_param.permute.perm = permute_in_perm;
     curr->node->nn_param.permute.dim_num = (uint32_t)dim_num;
     curr->inputs[0] = input_tensor;

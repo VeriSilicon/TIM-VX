@@ -25,7 +25,7 @@
 #define TIM_LAYOUT_INFER_GATHER_ND_LAYOUT_INFERENCE_H_
 
 #include "ops/op_layout_inference.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "tim/vx/ops/gathernd.h"
 
 namespace tim {

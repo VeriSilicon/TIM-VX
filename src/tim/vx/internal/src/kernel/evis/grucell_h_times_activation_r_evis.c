@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +44,7 @@ __BEGIN_DECLS
 typedef enum _grucell_nn_activation_type_e
 {
     SIGMOID = VSI_NN_ACT_SIGMOID,
-    HARD_SIGMOID = VSI_NN_ACT_HARD_SIGMOID,
+    HSIGMOID = VSI_NN_ACT_HARD_SIGMOID,
 }grucell_nn_activation_type_e;
 
 #define _GRUCELL_H_TIMES_ACTIVATION_R_KERNEL_SOURCE      "grucell_h_times_activation_r"
@@ -72,8 +71,11 @@ static const _kernel_map_type _grucell_h_times_activation_r_kernel_map[] =
     PACK_KERNEL_MAP( I8,  F16, F16, SIGMOID ),
     PACK_KERNEL_MAP( I16, F16, F16, SIGMOID ),
     PACK_KERNEL_MAP( F16, F16, F16, SIGMOID ),
+    PACK_KERNEL_MAP( U8,  F16, F16, HSIGMOID ),
+    PACK_KERNEL_MAP( I8,  F16, F16, HSIGMOID ),
+    PACK_KERNEL_MAP( I16, F16, F16, HSIGMOID ),
+    PACK_KERNEL_MAP( F16, F16, F16, HSIGMOID ),
 };
-
 
 /*
  * Kernel params
@@ -256,8 +258,6 @@ final:
     return status;
 } /* _grucell_h_times_activation_r_initializer() */
 
-
-
 /*
  * Query kernel
  */
@@ -312,7 +312,6 @@ static vsi_status _query_kernel
 
     return status;
 } /* _query_kernel() */
-
 
 static vsi_nn_kernel_node_t _setup
     (

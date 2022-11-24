@@ -28,7 +28,7 @@
 #include <math.h>
 #include <fcntl.h>
 
-#ifdef _WIN32
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
 #include <io.h>
 #include <direct.h>
 #else
@@ -112,7 +112,7 @@ char* vsi_nn_strncpy
     )
 {
     char* ret = NULL;
-    #ifdef _MSC_VER
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         strncpy_s(dest, count, source, _TRUNCATE);
     #else
         strncpy(dest, source, count);
@@ -128,7 +128,7 @@ char* vsi_nn_strncat
     )
 {
     char* ret = NULL;
-    #ifdef _MSC_VER
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         strncat_s(dest, count, source, _TRUNCATE);
         ret = dest;
     #else
@@ -143,7 +143,7 @@ char* vsi_nn_getenv
     )
 {
     char* var = NULL;
-    #ifdef _MSC_VER
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         size_t var_size = 0;
         _dupenv_s(&var, &var_size, var_name);
     #else
@@ -159,7 +159,7 @@ FILE* vsi_nn_fopen
     )
 {
     FILE * file = NULL;
-    #ifdef _MSC_VER
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         fopen_s(&file, file_name, mode);
     #else
         file = fopen(file_name, mode);
@@ -200,6 +200,33 @@ static vsi_size_t _compute_padding
     padding = (out_size - 1) * stride + effective_ksize - in_size;
     return vsi_nn_max(padding, 0);
 } /* _compute_padding() */
+
+int32_t vsi_nn_get_vx_pad_mode
+    (
+    vsi_nn_pad_mode_e mode
+    )
+{
+    int32_t pad_mode = 0;
+    switch (mode) {
+        case VSI_NN_PAD_MODE_CONSTANT:
+            pad_mode = VX_PAD_CONSTANT;
+            break;
+        case VSI_NN_PAD_MODE_REPLICATE:
+            pad_mode = VX_PAD_REPLICATE;
+            break;
+        case VSI_NN_PAD_MODE_SYMMETRIC:
+            pad_mode = VX_PAD_MIRROR_SYMMETRIC;
+            break;
+        case VSI_NN_PAD_MODE_REFLECT:
+            pad_mode = VX_PAD_MIRROR_REFLECT;
+            break;
+        default:
+            VSILOGE("Wrong pad_mode value");
+            break;
+    }
+
+    return pad_mode;
+}
 
 uint8_t * vsi_nn_LoadBinaryData
     (
@@ -795,7 +822,7 @@ int32_t vsi_nn_Access
         return -1;
     }
 
-#ifdef _WIN32
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
     return _access(path, mode);
 #else
     return access(path, mode);
@@ -813,7 +840,7 @@ int32_t vsi_nn_Mkdir
         return -1;
     }
 
-#ifdef _WIN32
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
     return _mkdir(path);
 #else
     return mkdir(path, mode);
@@ -1128,59 +1155,67 @@ vsi_bool vsi_nn_is_same_quant_type(
     vsi_nn_tensor_t * dst
     )
 {
-    vx_bool result = FALSE;
+    vsi_nn_dtype_t *src_dtype = NULL, *dst_dtype = NULL;
 
-    if (src->attr.dtype.vx_type == dst->attr.dtype.vx_type)
+    src_dtype = &src->attr.dtype;
+    dst_dtype = &dst->attr.dtype;
+
+    if (src_dtype->qnt_type != dst_dtype->qnt_type)
     {
-        switch (src->attr.dtype.qnt_type)
-        {
-        case VSI_NN_QNT_TYPE_NONE:
-            result = TRUE;
-            break;
+        return FALSE;
+    }
 
+    switch (src_dtype->qnt_type)
+    {
         case VSI_NN_QNT_TYPE_DFP:
-            if (src->attr.dtype.fl == dst->attr.dtype.fl)
+            if (src_dtype->fl != dst_dtype->fl)
             {
-                result = TRUE;
+                return FALSE;
             }
             break;
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
-            if (src->attr.dtype.scale == dst->attr.dtype.scale &&
-                src->attr.dtype.zero_point == dst->attr.dtype.zero_point)
+        {
+            const float diff = (float)1e-5;
+            if (src_dtype->zero_point != dst_dtype->zero_point)
             {
-                result = TRUE;
+                return FALSE;
+            }
+            if (vsi_nn_float_compare(src_dtype->scale, dst_dtype->scale, diff)
+                == FALSE)
+            {
+                return FALSE;
             }
             break;
-
+        }
         case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC:
+        case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC:
+        {
+            const float diff = (float)1e-5;
+            int32_t i = 0;
+            int32_t scale_cnt0 = src_dtype->scale_dim;
+            int32_t scale_cnt1 = dst_dtype->scale_dim;
+
+            if (scale_cnt0 == scale_cnt1)
             {
-                int32_t i = 0;
-                int32_t scale_cnt0 = src->attr.dtype.scale_dim;
-                int32_t scale_cnt1 = dst->attr.dtype.scale_dim;
-
-                if (scale_cnt0 == scale_cnt1)
+                const float* src_scale_ptr = src_dtype->scales;
+                const float* dst_scale_ptr = dst_dtype->scales;
+                for (i = 0; i < scale_cnt0; i++)
                 {
-                    const float *src_scale_ptr = src->attr.dtype.scales;
-                    const float *dst_scale_ptr = dst->attr.dtype.scales;
-                    for (i = 0; i < scale_cnt0; i++)
+                    if (vsi_nn_float_compare(
+                            src_scale_ptr[i], dst_scale_ptr[i], diff) == FALSE)
                     {
-                        if (src_scale_ptr[i] != dst_scale_ptr[i])
-                            break;
+                        return FALSE;
                     }
-
-                    if (i == scale_cnt0)
-                        result = TRUE;
                 }
             }
             break;
-
+        }
         default:
             break;
-        }
     }
 
-    return result;
+    return TRUE;
 }
 
 vsi_bool vsi_nn_is_same_type
@@ -1218,6 +1253,67 @@ vsi_bool vsi_nn_is_broadcast_operaton
         }
     }
     return FALSE;
+}
+
+vsi_bool vsi_nn_is_broadcast_axes_operaton
+    (
+    vsi_nn_tensor_t            ** inputs,
+    size_t                        input_num,
+    vsi_nn_tensor_t            *  output,
+    int32_t                    *  axis,
+    int32_t                       axis_num
+    )
+{
+    vsi_size_t out_rank = output->attr.dim_num;
+    vsi_size_t i = 0;
+
+    if (vsi_nn_is_broadcast_operaton(inputs, input_num, output) == FALSE)
+    {
+        return FALSE;
+    }
+
+    for (i = 0; i < out_rank; i++)
+    {
+        size_t j = 0;
+        int32_t k = 0;
+        vsi_size_t src0_size = i < inputs[0]->attr.dim_num  ?
+                        inputs[0]->attr.size[i] : 1;
+
+        for (k = 0; k < axis_num; k++)
+        {
+            if (axis[k] == (int32_t)i)
+            {
+                for (j = 1; j < input_num; j++)
+                {
+                    vsi_size_t src_size = i < inputs[j]->attr.dim_num  ?
+                        inputs[j]->attr.size[i] : 1;
+
+                    if (src0_size == src_size)
+                    {
+                        return FALSE;
+                    }
+                }
+
+                break;
+            }
+        }
+
+        if (axis[k] == (int32_t)i)
+        {
+            continue;
+        }
+
+        for (j = 1; j < input_num; j++)
+        {
+            vsi_size_t src_size = i < inputs[j]->attr.dim_num  ? inputs[j]->attr.size[i] : 1;
+
+            if (src0_size != src_size)
+            {
+                return FALSE;
+            }
+        }
+    }
+    return TRUE;
 }
 
 float vsi_nn_get_tensor_scale
@@ -1417,3 +1513,18 @@ vsi_status vsi_nn_Unpack4bitData
     }
     return status;
 } /* vsi_nn_Unpack4bitData() */
+
+vsi_bool vsi_nn_is_3d_tensor
+    (
+    vsi_nn_tensor_t * tensor
+    )
+{
+    if (3 == tensor->attr.dim_num)
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}

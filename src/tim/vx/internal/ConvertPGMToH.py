@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 
-import subprocess
 import sys
 import os
-import platform
-import datetime
 import re
-import string
+
 
 def checkFile(path):
     return os.path.isfile(path)
@@ -77,9 +74,7 @@ def main():
     args = sys.argv
     argc = len(args)
     target_path = "."
-    tool = ""
     source = ""
-    tool_opt = ["-s", "-V"]
     if argc <= 1:
         usage()
         return

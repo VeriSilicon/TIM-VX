@@ -76,6 +76,7 @@ __kernel void gemm_BF16BF16toBF16(image2d_array_t inputA,
         sum3 += (tempA3.x * tempB0 + tempA3.y * tempB1 + tempA3.z * tempB2 + tempA3.w * tempB3);
     }
     coord_b.y = gidy;
+    coord_b.z = get_global_id(2);
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord_b.w, baseAddr);
@@ -153,6 +154,7 @@ __kernel void gemm_transa_BF16BF16toBF16(
         sum3 = (sum3 + tempA0.w * tempB0);
     }
     coord_b.y = gidy;
+    coord_b.z = get_global_id(2);
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord_b.w, baseAddr);
@@ -187,7 +189,7 @@ __kernel void gemm_transb_BF16BF16toBF16(image2d_array_t inputA,
                                     int adjointB,
                         uint M, uint K, uint N)
 {
-    int4 coord_out = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+    int4 coord_out = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2));
     int4 coord_a = (int4)(0, coord_out.y, (ac2zero ? 0 : get_global_id(2)), 0);
     int4 coord_b = (int4)(0, coord_out.x, (bc2zero ? 0 : get_global_id(2)), 0);
 

@@ -54,7 +54,8 @@ __kernel void grucell_h_times_activation_r_F16_F16toF16_##act_name( \
     _viv_asm(COPY, dst, dst1, 8); \
     VXC_WriteImage(output, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
 }
-GRUCELL_F16_F16TOF16(SIGMOID, sigmoid_func)
+GRUCELL_F16_F16TOF16(SIGMOID,  sigmoid_func)
+GRUCELL_F16_F16TOF16(HSIGMOID, hard_sigmoid)
 
 _viv_uniform float hstate_in_scale;
 _viv_uniform float hstate_in_tail;
@@ -91,6 +92,9 @@ __kernel void grucell_h_times_activation_r_##name0##_F16toF16_##act_name( \
     _viv_asm(COPY, dst, dst1, 8); \
     VXC_WriteImage(output, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
 }
-GRUCELL_QNT_F16TO_F16(U8,  SIGMOID, sigmoid_func, vxc_uchar8)
-GRUCELL_QNT_F16TO_F16(I8,  SIGMOID, sigmoid_func, vxc_char8)
-GRUCELL_QNT_F16TO_F16(I16, SIGMOID, sigmoid_func, vxc_short8)
+GRUCELL_QNT_F16TO_F16(U8,  SIGMOID,  sigmoid_func, vxc_uchar8)
+GRUCELL_QNT_F16TO_F16(I8,  SIGMOID,  sigmoid_func, vxc_char8)
+GRUCELL_QNT_F16TO_F16(I16, SIGMOID,  sigmoid_func, vxc_short8)
+GRUCELL_QNT_F16TO_F16(U8,  HSIGMOID, hard_sigmoid, vxc_uchar8)
+GRUCELL_QNT_F16TO_F16(I8,  HSIGMOID, hard_sigmoid, vxc_char8)
+GRUCELL_QNT_F16TO_F16(I16, HSIGMOID, hard_sigmoid, vxc_short8)

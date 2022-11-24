@@ -51,7 +51,7 @@ static vsi_bool vsi_nn_poolwithargmax_optimize_shape
     )
 {
     vsi_bool   enable_image_2d = FALSE;
-    int32_t    hwLitimLen      = 65536;
+    int32_t    hwLitimLen      = GPU_TENSOR_MAX_WIDTH;
 
     if ((2 == self->nn_param.pool.ksize[1])
        && (2 == self->nn_param.pool.stride[1])
@@ -166,7 +166,6 @@ static vsi_status op_compute
 
     if( ret )
     {
-
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
                 inputs[0], shapes[0], new_rank );
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
@@ -189,7 +188,6 @@ static vsi_status op_compute
     vsi_nn_kernel_param_release( &param );
 
     return status;
-
 } /* op_compute() */
 
 static vsi_bool op_check
@@ -233,7 +231,6 @@ static vsi_bool op_check
     }
 
     return TRUE;
-
 } /* op_check() */
 
 static vsi_bool op_setup
@@ -276,6 +273,10 @@ static vsi_bool op_setup
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         ret = vsi_nn_OpSetup( VSI_NN_OP_POOL, self, inputs, outputs );
+
+        outputs[1]->attr.dim_num = outputs[0]->attr.dim_num;
+        memcpy( outputs[1]->attr.size, outputs[0]->attr.size,
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
 
     return ret;
@@ -310,4 +311,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

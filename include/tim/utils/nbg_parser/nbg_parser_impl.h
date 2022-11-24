@@ -33,7 +33,7 @@ extern "C"{
 
 
 /* NBG format version */
-#define NBG_FORMAT_VERSION         0x0001000E
+#define NBG_FORMAT_VERSION         0x00010014
 
 enum nbg_nn_command_size_e
 {
