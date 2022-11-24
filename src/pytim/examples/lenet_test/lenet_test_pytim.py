@@ -11,7 +11,7 @@ if __name__ == "__main__":
     # convert rknn to timvx engine
     rknn_file_name = "./examples/lenet_test/lenet.rknn"
     convert = Rknn2TimVxEngine()
-    engine = convert.convert_to_timvx(rknn_file_name, log_flag=True)
+    engine = convert.convert_to_timvx(rknn_file_name, log_flag=False)
     
     # compile engine's graph
     assert engine.compile_graph(), "compile graph fail...."

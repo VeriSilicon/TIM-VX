@@ -4,6 +4,16 @@ import numpy as np
 from .lib import *
 
 TimVxDataType = ["INT8", "UINT8", "INT16", "UINT16", "INT32", "UINT32", "FLOAT16", "FLOAT32", "BOOL8"]
+TimVxDataTypeToNpDataTypeMap = {
+    "INT8"    :  np.int8,
+    "INT16"   :  np.int16,
+    "INT32"   :  np.int32,
+    "UINT8"   :  np.uint8,
+    "UINT16"  :  np.uint16,
+    "UINT32"  :  np.uint32,
+    "FLOAT16" :  np.float16,
+    "FLOAT32" :  np.float32,
+}
 
 class Engine():
     def __init__(self, name:str):
@@ -33,27 +43,34 @@ class Engine():
         self.reorder[input_name] = reorder
 
 
-    def add_inputs_info(self, input_name:str, tensor_info:dict):
+    def add_inputs_info(self, tensor_info:dict):
+        input_name = tensor_info["name"]
         assert input_name not in self.inputs_info, "tensor {} already exists!".format(input_name)
         self.inputs_info[input_name] = tensor_info
         if "alias" in tensor_info.keys():
             alias_name = tensor_info["alias"]
             self.inputs_alias[alias_name] = input_name
+        print("add input tensor {}:\n{}".format(input_name, tensor_info))
 
 
-    def add_outputs_info(self, output_name:str, tensor_info:dict):
+    def add_outputs_info(self, tensor_info:dict):
+        output_name = tensor_info["name"]
         assert output_name not in self.outputs_info, "tensor {} already exists!".format(output_name)
         self.outputs_info[output_name] = tensor_info
         if "alias" in tensor_info.keys():
             alias_name = tensor_info["alias"]
             self.outputs_alias[alias_name] = output_name
+        print("add output tensor {}:\n{}".format(output_name, tensor_info))
+
 
     def add_nodes_info(self, node_info:dict):
         self.nodes_info.append(node_info)
 
 
     def add_tensors_info(self, tensor_info:dict):
+        tensor_name = tensor_info["name"]
         self.tensors_info.append(tensor_info)
+        print("add tensor {}:\n{}".format(tensor_name, tensor_info))
 
 
     def convert_np_dtype_to_tim_dtype(self, datatype):
@@ -111,7 +128,7 @@ class Engine():
 
 
     def create_tensor(self, tensor_name:str, tensor_dtype:str, tensor_attr:str, \
-        tensor_shape:list, quant_info:dict={}, np_data:np.array=np.array([])):
+        tensor_shape:list, alias_name:str="", quant_info:dict={}, np_data:np.array=np.array([])):
 
         assert tensor_dtype in TimVxDataType, "tim-vx not support {} datatype".format(tensor_dtype)
         tensor_info = {}
@@ -122,7 +139,25 @@ class Engine():
             tensor_info["quant_info"] = quant_info
         if np_data.size != 0:
             tensor_info["data"] = np_data
-        return self.engine.create_tensor(tensor_name, tensor_info)
+        assert self.engine.create_tensor(tensor_name, tensor_info), "creat tensor {} fail!".format(tensor_name)
+        # add engine tensor_info stat
+        tensor_stat_info = {}
+        tensor_stat_info["name"] = tensor_name
+        tensor_stat_info["dtype"] = TimVxDataTypeToNpDataTypeMap[tensor_dtype]
+        tensor_stat_info["attr"] = tensor_attr
+        tensor_stat_info["shape"] = tensor_shape
+        tensor_stat_info["quant_info"] = quant_info
+        if np_data.size != 0:
+            tensor_stat_info["data"] = np_data
+        if "alias" in tensor_info.keys():
+            tensor_stat_info["alias"] = tensor_info["alias"]
+        if tensor_attr == "INPUT":
+            self.add_inputs_info(tensor_stat_info)
+        elif tensor_attr == "OUTPUT":
+            self.add_outputs_info(tensor_stat_info)
+        else:
+            self.add_tensors_info(tensor_stat_info)
+        return tensor_stat_info
 
 
     def copy_data_from_tensor(self, tensor_name:str, np_data:np.array):
@@ -195,7 +230,13 @@ class Engine():
             h,w,c = input_data.shape
             assert c == 3 or c == 1, "input channel should be 1 or 3"
             assert type(input_dict[input_tensor_name]) == np.ndarray, "{} tensor data only support numpy array"
-            engine_input = (input_data.astype(np.float32) - self.mean_value[input_tensor_name]) / self.std_value[input_tensor_name]
+            mean_value = [0.0, ]
+            std_value = [1.0, ]
+            if input_tensor_name in self.mean_value.keys():
+                mean_value = self.mean_value[input_tensor_name]
+            if input_tensor_name in self.std_value.keys():
+                std_value = self.std_value[input_tensor_name]
+            engine_input = (input_data.astype(np.float32) - mean_value) / std_value
             if self.reorder == [2, 1, 0]:
                 engine_input = engine_input[:,:,::-1]
             engine_input = engine_input.transpose((2, 0, 1))
@@ -219,7 +260,7 @@ class Engine():
             if self.outputs_alias != {}:
                 output_name_list = list(self.outputs_alias.keys())
             else:
-                output_name_list = list(self.inputs_info.keys())
+                output_name_list = list(self.outputs_info.keys())
         for output_index in range(len(output_name_list)):
             output_name = output_name_list[output_index]
             output_tensor_name = output_name

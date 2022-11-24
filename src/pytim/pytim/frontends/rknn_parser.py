@@ -245,9 +245,8 @@ def parse_rknn_model(rknn_data):
         assert False, "rknn model file is not valid"
     model_data = rknn_data[offset: offset+model_size]
     model_json = json.loads(str(model_data, 'utf-8'))
-    with open("model.json", "w") as f:
-        json.dump(model_json, f)
-    
+    # with open("model.json", "w") as f:
+    #     json.dump(model_json, f)
     model_info = parse_model_json(model_json, weights_data)
     # check_model_info(model_info)
     return model_info

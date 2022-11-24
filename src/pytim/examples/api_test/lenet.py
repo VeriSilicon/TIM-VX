@@ -13,7 +13,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.00390625
     quant_info["zero_point"] = 0
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "INPUT", [28, 28, 1, 1], quant_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "INPUT", [28, 28, 1, 1], quant_info=quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "conv1_weight"
@@ -22,7 +22,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 119
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[0:500]
-    assert engine.create_tensor(tensor_name, "UINT8", "CONSTANT", [5, 5, 1, 20], quant_info, data), \
+    assert engine.create_tensor(tensor_name, "UINT8", "CONSTANT", [5, 5, 1, 20], quant_info=quant_info, np_data=data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "conv1_bias"
@@ -31,7 +31,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 0
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[500:580]
-    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [20,], quant_info, data), \
+    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [20,], quant_info=quant_info, np_data=data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "conv1_output"
@@ -39,7 +39,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.01928069
     quant_info["zero_point"] = 140
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info=quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "pool1_output"
@@ -47,7 +47,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.01928069
     quant_info["zero_point"] = 140
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info=quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "conv2_weight"
@@ -56,7 +56,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 128
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[580:25580]
-    assert engine.create_tensor(tensor_name, "UINT8", "CONSTANT", [5, 5, 20, 50], quant_info, data), \
+    assert engine.create_tensor(tensor_name, "UINT8", "CONSTANT", [5, 5, 20, 50], quant_info=quant_info, np_data=data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "conv2_bias"
@@ -65,7 +65,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 0
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[25580:25780]
-    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [50,], quant_info, data), \
+    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [50,], quant_info=quant_info, np_data=data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "conv2_output"
@@ -73,7 +73,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.04075872
     quant_info["zero_point"] = 141
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info=quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "pool2_output"
@@ -81,7 +81,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.04075872
     quant_info["zero_point"] = 141
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info=quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "fc3_weight"
@@ -90,7 +90,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 130
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[25780:425780]
-    assert engine.create_tensor(tensor_name, "UINT8", "CONSTANT", [800, 500], quant_info, data), \
+    assert engine.create_tensor(tensor_name, "UINT8", "CONSTANT", [800, 500], quant_info=quant_info, np_data=data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "fc3_bias"
@@ -99,7 +99,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 0
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[425780:427780]
-    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [500,], quant_info, data), \
+    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [500,], quant_info=quant_info, np_data=data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "fc3_output"
@@ -107,7 +107,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.01992089
     quant_info["zero_point"] = 0
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info=quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "relu_output"
@@ -115,7 +115,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.01992089
     quant_info["zero_point"] = 0
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info=quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "fc4_weight"
@@ -124,7 +124,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 135
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[427780:432780]
-    assert engine.create_tensor(tensor_name, "UINT8", "CONSTANT", [500, 10], quant_info, data), \
+    assert engine.create_tensor(tensor_name, "UINT8", "CONSTANT", [500, 10], quant_info=quant_info, np_data=data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "fc4_bias"
@@ -133,7 +133,7 @@ def construct_tensors(engine):
     quant_info["zero_point"] = 0
     quant_info["quant_type"] = "ASYMMETRIC"
     data = lenet_weight_data[432780:432820]
-    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [10,], quant_info, data), \
+    assert engine.create_tensor(tensor_name, "INT32", "CONSTANT", [10,], quant_info=quant_info, np_data=data), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "fc4_output"
@@ -141,7 +141,7 @@ def construct_tensors(engine):
     quant_info["scale"] = 0.06251489
     quant_info["zero_point"] = 80
     quant_info["quant_type"] = "ASYMMETRIC"
-    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info), \
+    assert engine.create_tensor(tensor_name, "UINT8", "TRANSIENT", [], quant_info=quant_info), \
         "construct tensor {} fail!".format(tensor_name)
 
     tensor_name = "output"
@@ -231,16 +231,12 @@ if __name__ == "__main__":
     print("3 compile graph end....")
 
     print("4 set input begin....")
-    lenet_input_data = np.load("./examples/api_test/input.npy").reshape((28, 28, 1, 1))
-    assert engine.copy_data_to_tensor("input", lenet_input_data), "set input fail...."
+    lenet_input_data = np.load("./examples/api_test/input.npy").reshape((28, 28, 1))
+    input_dict = {}
+    input_dict["input"] = lenet_input_data
     print("4 set input end....")
 
     print("5 run graph begin....")
-    assert engine.run_graph(), "run graph fail...."
+    outputs = engine.run_graph(input_dict)
     print("5 run graph end....")
-
-    print("6 get output begin....")
-    output_data = np.zeros((10,1)).astype(np.float32)
-    assert engine.copy_data_from_tensor("output", output_data), "get output fail...."
-    print("6 get output end....")
-    print(output_data)
+    print(outputs)

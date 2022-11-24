@@ -489,19 +489,10 @@ class Rknn2TimVxEngine():
             print("tensor shape   : {}".format(tensor_shape))
             print("tensor qnt info: {}".format(quant_info))
             print("tensor data    : {}".format(np_data))
-        
-        assert engine.create_tensor(tensor_name, tensor_dtype, 
-            tensor_attr, tensor_shape, quant_info, np_data), "creat tensor {} fail!".format(tensor_name)
-
-        tensor_info = {}
-        tensor_info["name"] = tensor_name
-        tensor_info["dtype"] = convert_timvx_dtype_to_np_dtype(tensor_dtype)
-        tensor_info["attr"] = tensor_attr
-        tensor_info["shape"] = tensor_shape
-        tensor_info["quant_info"] = quant_info
-        if np_data.size != 0:
-            tensor_info["data"] = np_data
-        return tensor_info
+        alias_name = ""
+        if "url" in rk_tensor.keys():
+            alias_name = rk_tensor["url"]
+        return engine.create_tensor(tensor_name, tensor_dtype, tensor_attr, tensor_shape, alias_name, quant_info, np_data)
 
 
     def construct_engine_tensors(self, rknn_model_info:dict, engine:Engine, log_flag:bool=False):
@@ -509,9 +500,6 @@ class Rknn2TimVxEngine():
         for index in range(len(tensors_info)):
             tensor_name = tensors_info[index]["name"]
             tensor_info = self.creat_tensor(engine, tensor_name, "INPUT", tensors_info[index]["tensor_info"], log_flag)
-            if "url" in tensors_info[index]["tensor_info"].keys():
-                tensor_info["alias"] = tensors_info[index]["tensor_info"]["url"]
-            engine.add_inputs_info(tensor_name, tensor_info)
 
         tensors_info = rknn_model_info["tensors"]
         for tensor_name in tensors_info.keys():
@@ -522,15 +510,11 @@ class Rknn2TimVxEngine():
             else:
                 tensor_attr = "TRANSIENT"
             tensor_info = self.creat_tensor(engine, tensor_name, tensor_attr, tensors_info[tensor_name], log_flag)
-            engine.add_tensors_info(tensor_info)
 
         tensors_info = rknn_model_info["outputs"]
         for index in range(len(tensors_info)):
             tensor_name = tensors_info[index]["name"]
             tensor_info = self.creat_tensor(engine, tensor_name, "OUTPUT", tensors_info[index]["tensor_info"], log_flag)
-            if "url" in tensors_info[index]["tensor_info"].keys():
-                tensor_info["alias"] = tensors_info[index]["tensor_info"]["url"]
-            engine.add_outputs_info(tensor_name, tensor_info)
 
 
     def construct_engine_nodes(self, rknn_model_info:dict, engine:Engine, log_flag=False):
