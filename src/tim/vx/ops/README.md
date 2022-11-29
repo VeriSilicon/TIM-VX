@@ -128,8 +128,7 @@ MaxPool3d|MAX_POOL3D|Mapped|[Onnx.MaxPool](https://github.com/onnx/onnx/blob/mai
 |LSTMCell|LSTMUNIT_OVXLIB|replace with UnidirectionalSequenceLSTM by set n_step = 1 |[ANEURALNETWORKS_LSTM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0ad0377e8c305e596fb7f64ff896671fc5)
 ||PRE_PROCESS|TBD |Image Preprocessing (YUV2RGB, Input Normalization, Resizing, etc)
 |HashtableLookup|HASHTABLE_LOOKUP|Mapped|[ANEURALNETWORKS_HASHTABLE_LOOKUP](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0aca92716c8c73c1f0fa7f0757916fee26)
-||EMBEDDING_LOOKUP|Planned 22Q4|[ANEURALNETWORKS_EMBEDDING_LOOKUP](developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a8d2ada77adb74357fc0770405bca0e3)
-||LSH_PROJECTION|Planned 22Q4|[ANEURALNETWORKS_LSH_PROJECTION](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a800cdcec5d7ba776789cb2d1ef669965)
+|EmbeddingLookup|EMBEDDING_LOOKUP|Mapped|[ANEURALNETWORKS_EMBEDDING_LOOKUP](developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a8d2ada77adb74357fc0770405bca0e3)
 ||HEATMAP_MAX_KEYPOINT|TBD|[ANEURALNETWORKS_HEATMAP_MAX_KEYPOINT](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a5ffccf92d127766a741225ff7ad6f743)
 ||AXIS_ALIGNED_BBOX_TRANSFORM|TBD|[ANEURALNETWORKS_AXIS_ALIGNED_BBOX_TRANSFORM](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0afd7603dd54060e6a52f5861674448528)
 ||BOX_WITH_NMS_LIMIT|TBD|[ANEURALNETWORKS_BOX_WITH_NMX_LIMIT](https://developer.android.com/ndk/reference/group/neural-networks#group___neural_networks_1ggaabbe492c60331b13038e39d4207940e0a2d81e878c19e15700dad111ba6c0be89)
@@ -145,6 +144,7 @@ MaxPool3d|MAX_POOL3D|Mapped|[Onnx.MaxPool](https://github.com/onnx/onnx/blob/mai
 OneHot|ONE_HOT|Mapped|[tf.one_hot](https://tensorflow.google.cn/api_docs/python/tf/one_hot)
 ||NMS| TBD |[tf.image.non_max_suppression](https://tensorflow.google.cn/api_docs/python/tf/image/non_max_suppression)
 ||SCATTER_ND_UPDATE|Planned 21Q4|[tf.compat.v1.scatter_nd_update](https://tensorflow.google.cn/api_docs/python/tf/compat/v1/scatter_nd_update)
+||LSH_PROJECTION|Deprecated
 ||CONV_RELU|Deprecated
 ||CONV_RELU_POOL|Deprecated
 ||FCL|Deprecated
