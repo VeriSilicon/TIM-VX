@@ -29,7 +29,7 @@
 #include "test_utils.h"
 
 
-TEST(BidirectionalSequenceRnnExt, shape_2_3_4_float_sigmoid) {
+TEST(BidirectionalSequenceRnnExt, shape_2_3_2_float_sigmoid) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -98,7 +98,7 @@ TEST(BidirectionalSequenceRnnExt, shape_2_3_4_float_sigmoid) {
     std::vector<float> bias_data = {
         0.1, 0.1, 0.1, 0.1, 
         0.0, 0.0, 0.0, 0.0,
-        0.1, 0.1, 0.1, 0.1, //bug 不能被获取到 
+        0.1, 0.1, 0.1, 0.1,
         0.0, 0.0, 0.0, 0.0,
     };
     std::vector<float> state_in_data = {
@@ -113,15 +113,15 @@ TEST(BidirectionalSequenceRnnExt, shape_2_3_4_float_sigmoid) {
         0.5986, 0.5986, 0.5986, 0.5986,
         0.6899, 0.6899, 0.6899, 0.6899,
         0.7685, 0.7685, 0.7685, 0.7685,
-        0.8320, 0.8320, 0.8320, 0.8320,
-        0.8807, 0.8807, 0.8807, 0.8807,
-        0.9168, 0.9168, 0.9168, 0.9168,
+        0.6754, 0.6754, 0.6754, 0.6754,
+        0.7599, 0.7599, 0.7599, 0.7599,
+        0.8273, 0.8273, 0.8273, 0.8273, 
         0.8628, 0.8628, 0.8628, 0.8628,
         0.9068, 0.9068, 0.9068, 0.9068,
         0.9374, 0.9374, 0.9374, 0.9374,
-        0.6754, 0.6754, 0.6754, 0.6754,
-        0.7599, 0.7599, 0.7599, 0.7599,
-        0.8273, 0.8273, 0.8273, 0.8273
+        0.8320, 0.8320, 0.8320, 0.8320,
+        0.8807, 0.8807, 0.8807, 0.8807,
+        0.9168, 0.9168, 0.9168, 0.9168,
     };
     std::vector<float> state_out_golden = {
         0.8628, 0.8628, 0.8628, 0.8628,
