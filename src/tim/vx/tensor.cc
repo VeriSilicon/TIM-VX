@@ -172,6 +172,9 @@ bool TensorImpl::CopyDataFromTensor(void* data) {
       if (tensor->attr.is_created_from_handle) {
         void* ptr = NULL;
         vsi_nn_GetTensorHandle(tensor, &ptr);
+        #ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+            vsi_nn_InvalidateHandle(tensor);
+        #endif
         if (ptr) {
           memcpy(data, ptr, tensor_bytes);
           retn = true;
