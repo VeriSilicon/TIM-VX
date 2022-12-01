@@ -40,93 +40,91 @@ class Conv2dLayoutInfer : public OpLayoutInfer {
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+    auto src_conv2d = std::static_pointer_cast<vx::ops::Conv2d>(op_);
     vx::DataLayout layout = op_->impl()->layout_;
-    auto required_pv = MakeShared(4);
-    if (layout == vx::DataLayout::CWHN) {
-      required_pv = std::make_shared<PermuteVector<4>>(kCWHN2WHCN);
+    auto kernel_layout = src_conv2d->KernelDataLayout();
+    std::shared_ptr<IPermuteVector> required_pv, weight_required_pv;
+    switch (layout)
+    { // kernel layout must be IWHO in tflite & nnapi
+      case vx::DataLayout::CWHN:
+        required_pv = std::make_shared<PermuteVector<4>>(kCWHN2WHCN);
+        break;
+      case vx::DataLayout::WHCN:
+        required_pv = MakeShared(4);
+        break;
+      default:
+        VSILOGE("The layout of input is not support.");
+        required_pv = MakeShared(4);
+        break;
     }
+    switch (kernel_layout) {
+      case vx::DataLayout::OcIcWH:  // Support TVM Kernel Layout
+        weight_required_pv = std::make_shared<PermuteVector<4>>(kOcIcWH2WHIcOc);
+        break;
+      case vx::DataLayout::IcOcWH:
+        weight_required_pv = std::make_shared<PermuteVector<4>>(kIcOcWH2WHIcOc);
+        break;
+      case vx::DataLayout::IcWHOc:  // Support nnapi & tflite Kernel Layout
+        weight_required_pv = std::make_shared<PermuteVector<4>>(kIcWHOc2WHIcOc);
+        break;
+      default: // Default set to IWHO for compatibility with previous APIs
+        weight_required_pv = std::make_shared<PermuteVector<4>>(kIcWHOc2WHIcOc);
+        break;
+    }
+
     auto input_tensors = op_->impl()->InputsTensor();
+    std::shared_ptr<vx::Tensor> infer_input, infer_weight, infer_bias;
+    // For input
+    auto input_pv = context_->GetPermuteVector(input_tensors[0]);
+    auto final_pv = input_pv->Reverse()->Add(required_pv);
+    if (!final_pv->IsAligned()) {
+      infer_input =
+          InsertPermute(context_->GetMapedTensor(input_tensors[0]), final_pv);
+      context_->SetPermuteVector(input_tensors[0], required_pv);
+    } else {
+      infer_input = context_->GetMapedTensor(input_tensors[0]);
+      context_->SetPermuteVector(input_tensors[0], input_pv);
+    }
+    context_->UpdateTensorMap(input_tensors[0], infer_input);
 
-    for (const auto& in : input_tensors) {
-      std::shared_ptr<vx::Tensor> infer_tensor;
-      std::shared_ptr<IPermuteVector> trans_pv;
-      if (in->IsConstTensor() &&
-          !(in->GetSpec().attr_ & vx::TensorAttribute::INPUT)) {
-            // For bias
-            if (in->GetShape().size() == 1) {
-              infer_tensor = context_->infer_graph_->CreateTensor(
-                  in->GetSpec(), in->GetDataRef());
-              trans_pv = MakeShared(1);
-            } else {
-              // For input/weight
-              if (!required_pv->IsAligned()) {
-                auto src_conv2d = std::static_pointer_cast<vx::ops::Conv2d>(op_);
-                // Support TVM Kernel Layout
-                if (src_conv2d->KernelDataLayout() == vx::DataLayout::OcIcWH) {
-                  trans_pv = std::make_shared<PermuteVector<4>>(kOcIcWH2WHIcOc);
-                  infer_tensor = PermuteConstTensor(
-                      in, trans_pv);
-                } else if (src_conv2d->KernelDataLayout() == vx::DataLayout::IcOcWH) {
-                  trans_pv = std::make_shared<PermuteVector<4>>(kIcOcWH2WHIcOc);
-                  infer_tensor = PermuteConstTensor(
-                      in, trans_pv);
-                } else {
-                  infer_tensor = PermuteConstTensor(in, required_pv);
-                  trans_pv = required_pv;
-                }
-              } else {
-                infer_tensor = context_->infer_graph_->CreateTensor(
-                    in->GetSpec(), in->GetDataRef());
-                trans_pv = MakeShared(required_pv->Rank());
-              }
-            }
+    // For weight
+    if (input_tensors[1]->IsConstTensor()) {
+      if (!weight_required_pv->IsAligned()) {
+        infer_weight = PermuteConstTensor(input_tensors[1], weight_required_pv);
       } else {
-        // For bias
-        if (in->GetShape().size() == 1) {
-          infer_tensor = context_->GetMapedTensor(in);
-          trans_pv = MakeShared(1);
-        } else {
-          // For input/weight
-          auto pv = context_->GetPermuteVector(in);
-          auto final_pv = pv->Reverse()->Add(required_pv);
-          if (!final_pv->IsAligned()) {
-            infer_tensor =
-                InsertPermute(context_->GetMapedTensor(in), final_pv);
-            trans_pv = required_pv;
-          } else {
-            infer_tensor = context_->GetMapedTensor(in);
-            trans_pv = pv;
-          }
-        }
+        infer_weight = context_->infer_graph_->CreateTensor(
+            input_tensors[1]->GetSpec(), input_tensors[1]->GetDataRef());
       }
-      context_->UpdateTensorMap(in, infer_tensor);
-      context_->SetPermuteVector(in, trans_pv);
+      context_->SetPermuteVector(input_tensors[1], weight_required_pv);
+      context_->UpdateTensorMap(input_tensors[1], infer_weight);
+    } else {
+      auto weight_pv = context_->GetPermuteVector(input_tensors[1]);
+      auto final_pv = weight_pv->Reverse()->Add(weight_required_pv);
+      if (!final_pv->IsAligned()) {
+        infer_weight =
+            InsertPermute(context_->GetMapedTensor(input_tensors[1]), final_pv);
+        context_->SetPermuteVector(input_tensors[1], weight_required_pv);
+      } else {
+        infer_weight = context_->GetMapedTensor(input_tensors[1]);
+        context_->SetPermuteVector(input_tensors[1], weight_pv);
+      }
+      context_->UpdateTensorMap(input_tensors[1], infer_weight);
     }
 
-    auto pad_type = TranslatePadType(op_->impl()->node()->nn_param.conv2d.pad_type);
-    std::array<uint32_t, 2> ksize = {
-      op_->impl()->node()->nn_param.conv2d.ksize[0],
-          op_->impl()->node()->nn_param.conv2d.ksize[1]
-    };
-    std::array<uint32_t, 2> stride = {
-      op_->impl()->node()->nn_param.conv2d.stride[0],
-      op_->impl()->node()->nn_param.conv2d.stride[1]
-    };
-    std::array<uint32_t, 2> dilation = {
-      op_->impl()->node()->nn_param.conv2d.dilation[0],
-      op_->impl()->node()->nn_param.conv2d.dilation[1]
-    };
-    std::array<uint32_t, 4> pad = {
-      op_->impl()->node()->nn_param.conv2d.pad[0],
-      op_->impl()->node()->nn_param.conv2d.pad[1],
-      op_->impl()->node()->nn_param.conv2d.pad[2],
-      op_->impl()->node()->nn_param.conv2d.pad[3]
-    };
-    int32_t multiplier = op_->impl()->node()->nn_param.conv2d.multiplier;
-    int32_t out_channels = op_->impl()->node()->nn_param.conv2d.weights;
-    auto conv2d = context_->infer_graph_->CreateOperation<vx::ops::Conv2d>(
-        out_channels, pad_type, ksize, stride, dilation, pad, multiplier,
-        vx::DataLayout::WHCN, vx::DataLayout::WHIcOc);
+    // For bias
+    if (input_tensors.size() == 3) {
+      if (input_tensors[2]->IsConstTensor()) {
+        infer_bias = context_->infer_graph_->CreateTensor(
+            input_tensors[2]->GetSpec(), input_tensors[2]->GetDataRef());
+      } else {
+        infer_bias = context_->GetMapedTensor(input_tensors[2]);
+      }
+      auto bias_pv = MakeShared(1);
+      context_->UpdateTensorMap(input_tensors[2], infer_bias);
+      context_->SetPermuteVector(input_tensors[2], bias_pv);
+    }
+
+    auto conv2d = op_->Clone(context_->infer_graph_);
     auto otensor_infer = CreateOutputsTensor(required_pv);
     for (const auto& i_src : input_tensors) {
       (*conv2d).BindInput(context_->GetMapedTensor(i_src));
