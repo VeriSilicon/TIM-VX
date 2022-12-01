@@ -37,7 +37,8 @@ namespace ops {
  * ## MaxpooGrad
  *
  * Acquire the gradient of 2-D Max pooling operation's input tensor. \
- * Like the tensorflow_XLA op SelectAndScatter, see https://tensorflow.google.cn/xla/operation_semantics?hl=en#selectandscatter.
+ * Like the tensorflow_XLA op SelectAndScatter, see \
+ * https://tensorflow.google.cn/xla/operation_semantics?hl=en#selectandscatter.
  *
  * - padding : AUTO, VALID or SAME.
  * - ksize : filter size.
@@ -48,6 +49,10 @@ namespace ops {
  * 
  * - 0 : input tensor of 2-D Max pooling.
  * - 1 : gradient of 2-D Max pooling output tensor.
+ * 
+ * * Outputs:
+ * 
+ * - 0 : updated tensor of 2-D Max pooling input.
  */
 
 class MaxpoolGrad: public Operation {
