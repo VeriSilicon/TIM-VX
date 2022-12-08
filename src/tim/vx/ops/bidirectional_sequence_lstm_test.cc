@@ -127,14 +127,22 @@ TEST(Bidirectional_LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
     auto fw_weight_r2c_tensor = graph->CreateTensor(fw_weight_r2c_spec, fw_weight_r2c.data());
     auto fw_weight_r2o_tensor = graph->CreateTensor(fw_weight_r2o_spec, fw_weight_r2o.data());
 
-    std::vector<float> fw_bias_i = {0.0, 0.0, 0.0, 0.0};
-    std::vector<float> fw_bias_f = {1., 1., 1., 1.};
-    std::vector<float> fw_bias_c = {0.0, 0.0, 0.0, 0.0};
-    std::vector<float> fw_bias_o = {0.0, 0.0, 0.0, 0.0};
-    auto fw_bias_i_tensor = graph->CreateTensor(fw_bias_i_spec, fw_bias_i.data());
-    auto fw_bias_f_tensor = graph->CreateTensor(fw_bias_f_spec, fw_bias_f.data());
-    auto fw_bias_c_tensor = graph->CreateTensor(fw_bias_c_spec, fw_bias_c.data());
-    auto fw_bias_o_tensor = graph->CreateTensor(fw_bias_o_spec, fw_bias_o.data());
+    std::vector<float> fw_bias_i2i = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> fw_bias_i2f = {1., 1., 1., 1.};
+    std::vector<float> fw_bias_i2c = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> fw_bias_i2o = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> fw_bias_r2i = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> fw_bias_r2f = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> fw_bias_r2c = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> fw_bias_r2o = {0.0, 0.0, 0.0, 0.0};
+    auto fw_bias_i2i_tensor = graph->CreateTensor(fw_bias_i_spec, fw_bias_i2i.data());
+    auto fw_bias_i2f_tensor = graph->CreateTensor(fw_bias_f_spec, fw_bias_i2f.data());
+    auto fw_bias_i2c_tensor = graph->CreateTensor(fw_bias_c_spec, fw_bias_i2c.data());
+    auto fw_bias_i2o_tensor = graph->CreateTensor(fw_bias_o_spec, fw_bias_i2o.data());
+    auto fw_bias_r2i_tensor = graph->CreateTensor(fw_bias_i_spec, fw_bias_r2i.data());
+    auto fw_bias_r2f_tensor = graph->CreateTensor(fw_bias_f_spec, fw_bias_r2f.data());
+    auto fw_bias_r2c_tensor = graph->CreateTensor(fw_bias_c_spec, fw_bias_r2c.data());
+    auto fw_bias_r2o_tensor = graph->CreateTensor(fw_bias_o_spec, fw_bias_r2o.data());
 
     std::vector<float> bw_weight_i2i = {-0.45018822, -0.02338299, -0.0870589,
                                         -0.34550029, 0.04266912, -0.15680569,
@@ -179,14 +187,22 @@ TEST(Bidirectional_LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
     auto bw_weight_r2c_tensor = graph->CreateTensor(bw_weight_r2c_spec, bw_weight_r2c.data());
     auto bw_weight_r2o_tensor = graph->CreateTensor(bw_weight_r2o_spec, bw_weight_r2o.data());
 
-    std::vector<float> bw_bias_i = {0.0, 0.0, 0.0, 0.0};
-    std::vector<float> bw_bias_f = {1., 1., 1., 1.};
-    std::vector<float> bw_bias_c = {0.0, 0.0, 0.0, 0.0};
-    std::vector<float> bw_bias_o = {0.0, 0.0, 0.0, 0.0};
-    auto bw_bias_i_tensor = graph->CreateTensor(bw_bias_i_spec, bw_bias_i.data());
-    auto bw_bias_f_tensor = graph->CreateTensor(bw_bias_f_spec, bw_bias_f.data());
-    auto bw_bias_c_tensor = graph->CreateTensor(bw_bias_c_spec, bw_bias_c.data());
-    auto bw_bias_o_tensor = graph->CreateTensor(bw_bias_o_spec, fw_bias_o.data());
+    std::vector<float> bw_bias_i2i = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> bw_bias_i2f = {1., 1., 1., 1.};
+    std::vector<float> bw_bias_i2c = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> bw_bias_i2o = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> bw_bias_r2i = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> bw_bias_r2f = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> bw_bias_r2c = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> bw_bias_r2o = {0.0, 0.0, 0.0, 0.0};
+    auto bw_bias_i2i_tensor = graph->CreateTensor(bw_bias_i_spec, bw_bias_i2i.data());
+    auto bw_bias_i2f_tensor = graph->CreateTensor(bw_bias_f_spec, bw_bias_i2f.data());
+    auto bw_bias_i2c_tensor = graph->CreateTensor(bw_bias_c_spec, bw_bias_i2c.data());
+    auto bw_bias_i2o_tensor = graph->CreateTensor(bw_bias_o_spec, bw_bias_i2o.data());
+    auto bw_bias_r2i_tensor = graph->CreateTensor(bw_bias_i_spec, bw_bias_r2i.data());
+    auto bw_bias_r2f_tensor = graph->CreateTensor(bw_bias_f_spec, bw_bias_r2f.data());
+    auto bw_bias_r2c_tensor = graph->CreateTensor(bw_bias_c_spec, bw_bias_r2c.data());
+    auto bw_bias_r2o_tensor = graph->CreateTensor(bw_bias_o_spec, bw_bias_r2o.data());
 
     auto bidirectional_lstm = graph->CreateOperation<tim::vx::ops::BidirectionalSequenceLstm>(
         0.0, 0.0, tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kTANH, 0.0, false,
@@ -210,10 +226,15 @@ TEST(Bidirectional_LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
             graph->CreateTensorPlaceHolder(),       /*fw_weight_c2f*/
             graph->CreateTensorPlaceHolder(),       /*fw_weight_c2o*/
 
-            fw_bias_i_tensor,
-            fw_bias_f_tensor,
-            fw_bias_c_tensor,
-            fw_bias_o_tensor,
+            fw_bias_i2i_tensor,
+            fw_bias_i2f_tensor,
+            fw_bias_i2c_tensor,
+            fw_bias_i2o_tensor,
+
+            fw_bias_r2i_tensor,
+            fw_bias_r2f_tensor,
+            fw_bias_r2c_tensor,
+            fw_bias_r2o_tensor,
 
             // optional for projection
             graph->CreateTensorPlaceHolder(),       /*fw_weight_prj*/
@@ -233,10 +254,15 @@ TEST(Bidirectional_LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
             graph->CreateTensorPlaceHolder(),       /*bw_weight_c2f*/
             graph->CreateTensorPlaceHolder(),       /*bw_weight_c2o*/
 
-            bw_bias_i_tensor,
-            bw_bias_f_tensor,
-            bw_bias_c_tensor,
-            bw_bias_o_tensor,
+            bw_bias_i2i_tensor,
+            bw_bias_i2f_tensor,
+            bw_bias_i2c_tensor,
+            bw_bias_i2o_tensor,
+
+            bw_bias_r2i_tensor,
+            bw_bias_r2f_tensor,
+            bw_bias_r2c_tensor,
+            bw_bias_r2o_tensor,
 
             // optional for projection
             graph->CreateTensorPlaceHolder(),       /*bw_weight_prj*/

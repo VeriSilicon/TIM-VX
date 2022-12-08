@@ -331,10 +331,15 @@ static vsi_bool op_setup
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_C2F] = inputs[BI_LSTM_FW_INPUT_WEIGHT_C2F];
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_C2O] = inputs[BI_LSTM_FW_INPUT_WEIGHT_C2O];
 
-        curr->inputs[LSTMUNIT_INPUT_BIAS_I] = inputs[BI_LSTM_FW_INPUT_BIAS_I];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_F] = inputs[BI_LSTM_FW_INPUT_BIAS_F];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_C] = inputs[BI_LSTM_FW_INPUT_BIAS_C];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_O] = inputs[BI_LSTM_FW_INPUT_BIAS_O];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2I] = inputs[BI_LSTM_FW_INPUT_BIAS_I2I];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2F] = inputs[BI_LSTM_FW_INPUT_BIAS_I2F];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2C] = inputs[BI_LSTM_FW_INPUT_BIAS_I2C];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2O] = inputs[BI_LSTM_FW_INPUT_BIAS_I2O];
+
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2I] = inputs[BI_LSTM_FW_INPUT_BIAS_R2I];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2F] = inputs[BI_LSTM_FW_INPUT_BIAS_R2F];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2C] = inputs[BI_LSTM_FW_INPUT_BIAS_R2C];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2O] = inputs[BI_LSTM_FW_INPUT_BIAS_R2O];
 
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_PROJ] = inputs[BI_LSTM_FW_INPUT_WEIGHT_PROJ];
         curr->inputs[LSTMUNIT_INPUT_BIAS_PROJ] = inputs[BI_LSTM_FW_INPUT_BIAS_PROJ];
@@ -431,10 +436,15 @@ static vsi_bool op_setup
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_C2F] = inputs[BI_LSTM_BW_INPUT_WEIGHT_C2F];
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_C2O] = inputs[BI_LSTM_BW_INPUT_WEIGHT_C2O];
 
-        curr->inputs[LSTMUNIT_INPUT_BIAS_I] = inputs[BI_LSTM_BW_INPUT_BIAS_I];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_F] = inputs[BI_LSTM_BW_INPUT_BIAS_F];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_C] = inputs[BI_LSTM_BW_INPUT_BIAS_C];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_O] = inputs[BI_LSTM_BW_INPUT_BIAS_O];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2I] = inputs[BI_LSTM_BW_INPUT_BIAS_I2I];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2F] = inputs[BI_LSTM_BW_INPUT_BIAS_I2F];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2C] = inputs[BI_LSTM_BW_INPUT_BIAS_I2C];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2O] = inputs[BI_LSTM_BW_INPUT_BIAS_I2O];
+
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2I] = inputs[BI_LSTM_BW_INPUT_BIAS_R2I];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2F] = inputs[BI_LSTM_BW_INPUT_BIAS_R2F];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2C] = inputs[BI_LSTM_BW_INPUT_BIAS_R2C];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2O] = inputs[BI_LSTM_BW_INPUT_BIAS_R2O];
 
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_PROJ] = inputs[BI_LSTM_BW_INPUT_WEIGHT_PROJ];
         curr->inputs[LSTMUNIT_INPUT_BIAS_PROJ] = inputs[BI_LSTM_BW_INPUT_BIAS_PROJ];

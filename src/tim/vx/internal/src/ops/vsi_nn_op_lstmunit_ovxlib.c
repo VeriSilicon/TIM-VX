@@ -281,7 +281,7 @@ static vsi_bool op_setup
     vsi_nn_internal_tensor_t* input_add_aux_input_fc_outputs[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
     vsi_nn_internal_tensor_t* recurrent_fc_outputs[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
     vsi_nn_internal_tensor_t* layernorm_outputs[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
-    vsi_nn_tensor_t* bias_tensors[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
+    vsi_nn_tensor_t* bias_tensors[LSTMUNIT_IFCO_GATE_COUNT*2] = { NULL };
     vsi_nn_tensor_t* zero_bias_tensor = NULL;
     vsi_nn_internal_node_t* curr = NULL;
     int32_t ifco_start_index = 0;
@@ -303,7 +303,7 @@ static vsi_bool op_setup
     p->local->use_peephole = ( NULL != inputs[LSTMUNIT_INPUT_WEIGHT_C2O] );
     ifco_start_index = p->local->use_cifg ? 1 : 0;
     if( inputs[LSTMUNIT_INPUT_WEIGHT_I2F]->attr.dtype.qnt_type
-        != inputs[LSTMUNIT_INPUT_BIAS_F]->attr.dtype.qnt_type )
+        != inputs[LSTMUNIT_INPUT_BIAS_I2F]->attr.dtype.qnt_type )
     {
         p->local->use_hybrid = TRUE;
     }
@@ -340,7 +340,7 @@ static vsi_bool op_setup
 
     setup_op_shapes(self, inputs, outputs);
 
-    for( i = 0; i < LSTMUNIT_IFCO_GATE_COUNT; i++)
+    for( i = 0; i < LSTMUNIT_IFCO_GATE_COUNT*2; i++)
     {
         if( p->local->use_layer_norm || p->local->use_hybrid )
         {
@@ -348,7 +348,7 @@ static vsi_bool op_setup
         }
         else
         {
-            bias_tensors[i] = inputs[LSTMUNIT_INPUT_BIAS_I + i];
+            bias_tensors[i] = inputs[LSTMUNIT_INPUT_BIAS_I2I + i];
         }
     }
 
@@ -444,7 +444,7 @@ static vsi_bool op_setup
             recurrent_fc_outputs[i] = create_tp_fc(self,
                                                 inputs[LSTMUNIT_INPUT_H_STATE],
                                                 inputs[LSTMUNIT_INPUT_WEIGHT_R2I + i],
-                                                NULL,
+                                                bias_tensors[LSTMUNIT_IFCO_GATE_COUNT + i],
                                                 &p->internal_dtype[LSTMUNIT_QUANTIZE_PARAM_R2I + i],
                                                 use_virtual_tensor);
         }
@@ -462,7 +462,7 @@ static vsi_bool op_setup
             vsi_nn_internal_tensor_t* tmp = create_nn_fc(self,
                                                 recurrent_input_tensor->t,
                                                 inputs[LSTMUNIT_INPUT_WEIGHT_R2I + i],
-                                                NULL,
+                                                bias_tensors[LSTMUNIT_IFCO_GATE_COUNT + i],
                                                 kernel_h, kernel_w,
                                                 &p->internal_dtype[LSTMUNIT_QUANTIZE_PARAM_R2I + i],
                                                 use_virtual_tensor);
@@ -519,7 +519,7 @@ static vsi_bool op_setup
                 curr = vsi_nn_internal_new_node( self, VSI_NN_OP_LAYER_NORM, 0, 0 );
                 curr->node->nn_param.layernorm.eps = (float)1e-8;
                 curr->inputs[0] = add_tensor->t;
-                curr->inputs[1] = inputs[LSTMUNIT_INPUT_BIAS_I + i];
+                curr->inputs[1] = inputs[LSTMUNIT_INPUT_BIAS_I2I + i];
                 curr->inputs[2] = inputs[LSTMUNIT_INPUT_LAYERNORM_I + i];
                 curr->outputs[0] = input_tensor->t;
                 vsi_nn_internal_setup_node(self, curr);
@@ -567,7 +567,7 @@ static vsi_bool op_setup
         if( (p->local->use_layer_norm && !self->graph->ctx->config.support_stream_processor) ||
             p->local->use_hybrid )
         {
-            curr->inputs[LSTMUNIT_ACT_DATA_BI + i] = inputs[LSTMUNIT_INPUT_BIAS_I + i];
+            curr->inputs[LSTMUNIT_ACT_DATA_BI + i] = inputs[LSTMUNIT_INPUT_BIAS_I2I + i];
         }
 
         if( p->local->use_layer_norm )

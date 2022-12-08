@@ -48,9 +48,11 @@ class UnidirectionalSequenceRnnExtImpl : public OpImpl {
   };
 
   UnidirectionalSequenceRnnExtImpl(Graph* graph, tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type,
+              bool time_major,
               DataLayout layout = DataLayout::ANY)
       : OpImpl(graph, layout),
-      act_type_(act_type) {
+      act_type_(act_type),
+      time_major_(time_major) {
     
   }
 
@@ -63,8 +65,19 @@ class UnidirectionalSequenceRnnExtImpl : public OpImpl {
       tim::vx::DataType datatype = in_tensors_[RNN_EXT_INPUT_WEIGHT_I]->GetDataType();
       uint32_t input_size = in_tensors_[RNN_EXT_INPUT_WEIGHT_I]->GetShape()[0];
       uint32_t num_units = in_tensors_[RNN_EXT_INPUT_WEIGHT_I]->GetShape()[1];
-      uint32_t batch_size = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[1];
-      uint32_t seq_length = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[2];
+      uint32_t batch_size = 0;
+      uint32_t seq_length = 0;
+      if(time_major_)
+      {
+          batch_size = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[1];
+          seq_length = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[2];
+      }
+      else
+      {
+          batch_size = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[2];
+          seq_length = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[1];
+      }
+      
  
 
       // Get all tensor
@@ -74,9 +87,20 @@ class UnidirectionalSequenceRnnExtImpl : public OpImpl {
       tim::vx::ShapeType input_bias_i_shape = {num_units};
       tim::vx::ShapeType input_bias_h_shape = {num_units};
       tim::vx::ShapeType input_hstate_shape = {num_units, batch_size};
-      tim::vx::ShapeType output_shape = {num_units, batch_size, seq_length};
+      tim::vx::ShapeType output_shape;
+      tim::vx::ShapeType ext_output_shape;
+      if(time_major_)
+      {
+          output_shape = {num_units, batch_size, seq_length};
+          ext_output_shape = {num_units, batch_size, 1, seq_length};
+      }
+      else
+      {
+          output_shape = {num_units, seq_length, batch_size};
+          ext_output_shape = {num_units, 1, seq_length, batch_size};
+      }
+      
       tim::vx::ShapeType output_hstate_shape = {num_units, batch_size};
-      tim::vx::ShapeType ext_output_shape = {num_units, 1, batch_size, seq_length};
       tim::vx::ShapeType ext_output_hstate_shape = {num_units, batch_size, 1};
 
       
@@ -113,7 +137,7 @@ class UnidirectionalSequenceRnnExtImpl : public OpImpl {
       std::vector<uint32_t> slices = {num_units, num_units};
       split_ = graph_->CreateOperation<tim::vx::ops::Split>(0, slices);
       reshape_hstate_ = graph_->CreateOperation<tim::vx::ops::Reshape>(input_hstate_shape);
-      rnn_ = graph_->CreateOperation<tim::vx::ops::UnidirectionalSequenceRnn>(act_type_, true);
+      rnn_ = graph_->CreateOperation<tim::vx::ops::UnidirectionalSequenceRnn>(act_type_, time_major_);
       reshape_out_ = graph_->CreateOperation<tim::vx::ops::Reshape>(ext_output_shape);
       reshape_out_hstate_ = graph_->CreateOperation<tim::vx::ops::Reshape>(ext_output_hstate_shape);
       
@@ -166,6 +190,7 @@ class UnidirectionalSequenceRnnExtImpl : public OpImpl {
 
  private:
   tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type_;
+  bool time_major_;
   std::shared_ptr<tim::vx::Operation> reshape_weight_;
   std::shared_ptr<tim::vx::Operation> reshape_recurrent_;
   std::shared_ptr<tim::vx::Operation> reshape_bias_;
@@ -179,13 +204,14 @@ class UnidirectionalSequenceRnnExtImpl : public OpImpl {
   std::array<std::shared_ptr<tim::vx::Tensor>, RNN_EXT_OUT_CNT> out_tensors_;
 };
 
-UnidirectionalSequenceRnnExt::UnidirectionalSequenceRnnExt(Graph* graph, tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type)
-    : act_type_(act_type) {
-  impl_ = std::make_unique<UnidirectionalSequenceRnnExtImpl>(graph, act_type, DataLayout::ANY);
+UnidirectionalSequenceRnnExt::UnidirectionalSequenceRnnExt(Graph* graph, tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type, bool time_major)
+    : act_type_(act_type),
+    time_major_(time_major) {
+  impl_ = std::make_unique<UnidirectionalSequenceRnnExtImpl>(graph, act_type, time_major, DataLayout::ANY);
 }
 
 std::shared_ptr<Operation> UnidirectionalSequenceRnnExt::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<UnidirectionalSequenceRnnExt>(this->act_type_);
+  return graph->CreateOperation<UnidirectionalSequenceRnnExt>(this->act_type_, this->time_major_);
 }
 
 }  // namespace ops

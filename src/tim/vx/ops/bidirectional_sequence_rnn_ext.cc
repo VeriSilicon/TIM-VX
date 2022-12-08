@@ -48,9 +48,11 @@ class BidirectionalSequenceRnnExtImpl : public OpImpl {
   };
 
   BidirectionalSequenceRnnExtImpl(Graph* graph, tim::vx::ops::BidirectionalSequenceRnn::ActivationType act_type,
+              bool time_major,
               DataLayout layout = DataLayout::ANY)
       : OpImpl(graph, layout),
-      act_type_(act_type) {
+      act_type_(act_type),
+      time_major_(time_major) {
     
   }
 
@@ -63,8 +65,18 @@ class BidirectionalSequenceRnnExtImpl : public OpImpl {
       tim::vx::DataType datatype = in_tensors_[RNN_EXT_INPUT_WEIGHT_I]->GetDataType();
       uint32_t input_size = in_tensors_[RNN_EXT_INPUT_WEIGHT_I]->GetShape()[0];
       uint32_t num_units = in_tensors_[RNN_EXT_INPUT_WEIGHT_I]->GetShape()[1];
-      uint32_t batch_size = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[1];
-      uint32_t seq_length = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[2];
+      uint32_t batch_size = 0;
+      uint32_t seq_length = 0;
+      if(time_major_)
+      {
+          batch_size = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[1];
+          seq_length = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[2];
+      }
+      else
+      {
+          batch_size = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[2];
+          seq_length = in_tensors_[RNN_EXT_INPUT_INPUT]->GetShape()[1];
+      }
  
 
       // Get all tensor
@@ -77,11 +89,23 @@ class BidirectionalSequenceRnnExtImpl : public OpImpl {
       tim::vx::ShapeType input_reshape_split_bias_shape = {num_units};
       tim::vx::ShapeType input_hstate_shape = {num_units, batch_size, 1};
       tim::vx::ShapeType input_reshape_hstate_shape = {num_units, batch_size};
-      tim::vx::ShapeType output_shape = {num_units, batch_size, seq_length};
-      tim::vx::ShapeType output_reshape_shape = {num_units, batch_size, 1, seq_length};
+      tim::vx::ShapeType output_shape;
+      tim::vx::ShapeType output_reshape_shape;
+      tim::vx::ShapeType ext_output_shape;
+      if(time_major_)
+      {
+          output_shape = {num_units, batch_size, seq_length};
+          output_reshape_shape = {num_units, batch_size, 1, seq_length};
+          ext_output_shape = {num_units, batch_size, 2, seq_length};
+      }
+      else
+      {
+          output_shape = {num_units, seq_length, batch_size};
+          output_reshape_shape = {num_units, 1, seq_length, batch_size};
+          ext_output_shape = {num_units, 2, seq_length, batch_size};
+      }
       tim::vx::ShapeType output_hstate_shape = {num_units, batch_size};
       tim::vx::ShapeType output_reshape_hstate_shape = {num_units, batch_size, 1};
-      tim::vx::ShapeType ext_output_shape = {num_units, batch_size, 2, seq_length};
       tim::vx::ShapeType ext_output_hstate_shape = {num_units, batch_size, 2};
 
       
@@ -163,14 +187,21 @@ class BidirectionalSequenceRnnExtImpl : public OpImpl {
       reshape_fw_hstate_ = graph_->CreateOperation<tim::vx::ops::Reshape>(input_reshape_hstate_shape);
       reshape_bw_hstate_ = graph_->CreateOperation<tim::vx::ops::Reshape>(input_reshape_hstate_shape);
       
-      rnn_ = graph_->CreateOperation<tim::vx::ops::BidirectionalSequenceRnn>(act_type_, true, false);
+      rnn_ = graph_->CreateOperation<tim::vx::ops::BidirectionalSequenceRnn>(act_type_, time_major_, false);
       
       
       reshape_fw_out_ = graph_->CreateOperation<tim::vx::ops::Reshape>(output_reshape_shape);
       reshape_fw_out_hstate_ = graph_->CreateOperation<tim::vx::ops::Reshape>(output_reshape_hstate_shape);
       reshape_bw_out_ = graph_->CreateOperation<tim::vx::ops::Reshape>(output_reshape_shape);
       reshape_bw_out_hstate_ = graph_->CreateOperation<tim::vx::ops::Reshape>(output_reshape_hstate_shape);
-      concat_output_ = graph_->CreateOperation<tim::vx::ops::Concat>(2, 2);
+      if(time_major_)
+      {
+          concat_output_ = graph_->CreateOperation<tim::vx::ops::Concat>(2, 2);
+      }
+      else{
+          concat_output_ = graph_->CreateOperation<tim::vx::ops::Concat>(1, 2);
+      }
+      
       concat_out_hstate_ = graph_->CreateOperation<tim::vx::ops::Concat>(2, 2);
 
       
@@ -253,7 +284,7 @@ class BidirectionalSequenceRnnExtImpl : public OpImpl {
 
  private:
   tim::vx::ops::BidirectionalSequenceRnn::ActivationType act_type_;
-  
+  bool time_major_;
   std::shared_ptr<tim::vx::Operation> split_weight_;
   std::shared_ptr<tim::vx::Operation> reshape_fw_weight_;
   std::shared_ptr<tim::vx::Operation> reshape_bw_weight_;
@@ -285,13 +316,14 @@ class BidirectionalSequenceRnnExtImpl : public OpImpl {
   std::array<std::shared_ptr<tim::vx::Tensor>, RNN_EXT_OUT_CNT> out_tensors_;
 };
 
-BidirectionalSequenceRnnExt::BidirectionalSequenceRnnExt(Graph* graph, tim::vx::ops::BidirectionalSequenceRnn::ActivationType act_type)
-    : act_type_(act_type) {
-  impl_ = std::make_unique<BidirectionalSequenceRnnExtImpl>(graph, act_type, DataLayout::ANY);
+BidirectionalSequenceRnnExt::BidirectionalSequenceRnnExt(Graph* graph, tim::vx::ops::BidirectionalSequenceRnn::ActivationType act_type, bool time_major)
+    : act_type_(act_type),
+    time_major_(time_major) {
+  impl_ = std::make_unique<BidirectionalSequenceRnnExtImpl>(graph, act_type, time_major, DataLayout::ANY);
 }
 
 std::shared_ptr<Operation> BidirectionalSequenceRnnExt::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<BidirectionalSequenceRnnExt>(this->act_type_);
+  return graph->CreateOperation<BidirectionalSequenceRnnExt>(this->act_type_, this->time_major_);
 }
 
 }  // namespace ops

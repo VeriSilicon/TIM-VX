@@ -61,12 +61,16 @@ TEST(LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
 
     tim::vx::TensorSpec i2i_weight_spec(tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_input, n_cell}), tim::vx::TensorAttribute::CONSTANT);
     tim::vx::TensorSpec i2i_bias_spec  (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_cell}), tim::vx::TensorAttribute::CONSTANT);
+    tim::vx::TensorSpec r2i_bias_spec  (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_cell}), tim::vx::TensorAttribute::CONSTANT);
     tim::vx::TensorSpec i2c_weight_spec(tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_input, n_cell}), tim::vx::TensorAttribute::CONSTANT);
     tim::vx::TensorSpec i2c_bias_spec  (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_cell}), tim::vx::TensorAttribute::CONSTANT);
+    tim::vx::TensorSpec r2c_bias_spec  (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_cell}), tim::vx::TensorAttribute::CONSTANT);
     tim::vx::TensorSpec i2f_weight_spec(tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_input, n_cell}), tim::vx::TensorAttribute::CONSTANT);
     tim::vx::TensorSpec i2f_bias_spec  (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_cell}), tim::vx::TensorAttribute::CONSTANT);
+    tim::vx::TensorSpec r2f_bias_spec  (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_cell}), tim::vx::TensorAttribute::CONSTANT);
     tim::vx::TensorSpec i2o_weight_spec(tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_input, n_cell}), tim::vx::TensorAttribute::CONSTANT);
     tim::vx::TensorSpec i2o_bias_spec  (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_cell}), tim::vx::TensorAttribute::CONSTANT);
+    tim::vx::TensorSpec r2o_bias_spec  (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_cell}), tim::vx::TensorAttribute::CONSTANT);
 
     tim::vx::TensorSpec output_spec    (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_output, n_step, n_batch}), tim::vx::TensorAttribute::OUTPUT);
     // tim::vx::TensorSpec hstate_spec    (tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_batch, n_output}), tim::vx::TensorAttribute::OUTPUT);
@@ -78,28 +82,36 @@ TEST(LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
 
     input2input_weights = {-0.45018822, -0.02338299, -0.0870589,  -0.34550029,
                              0.04266912,  -0.15680569, -0.34856534, 0.43890524};
-    std::vector<float> input_gate_bias = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> i2i_bias = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> r2i_bias = {0.0, 0.0, 0.0, 0.0};
     auto input2input_weights_tensor = g->CreateTensor(i2i_weight_spec, input2input_weights.data());
-    auto input_gate_bias_tensor = g->CreateTensor(i2i_bias_spec, input_gate_bias.data());
+    auto i2i_bias_tensor = g->CreateTensor(i2i_bias_spec, i2i_bias.data());
+    auto r2i_bias_tensor = g->CreateTensor(r2i_bias_spec, r2i_bias.data());
 
     input2cell_weights = {-0.50013041, 0.1370284,  0.11810488, 0.2013163,
                             -0.20583314, 0.44344562, 0.22077113, -0.29909778};
-    std::vector<float> cell_gate_bias = {0.0, 0.0, 0.0, 0.0};
-    auto cell_gate_bias_tensor = g->CreateTensor(i2c_bias_spec, cell_gate_bias.data());
+    std::vector<float> i2c_bias = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> r2c_bias = {0.0, 0.0, 0.0, 0.0};
+    auto i2c_bias_tensor = g->CreateTensor(i2c_bias_spec, i2c_bias.data());
+    auto r2c_bias_tensor = g->CreateTensor(i2c_bias_spec, r2c_bias.data());
     auto input2cell_weights_tensor = g->CreateTensor(i2c_weight_spec, input2cell_weights.data());
 
     input2forget_weights = {0.09701663,  0.20334584,  -0.50592935,
                               -0.31343272, -0.40032279, 0.44781327,
                               0.01387155,  -0.35593212};
-    std::vector<float> forget_gate_bias = {1., 1., 1., 1.};
+    std::vector<float> i2f_bias = {1., 1., 1., 1.};
+    std::vector<float> r2f_bias = {0., 0., 0., 0.};
     auto input2forget_weights_tensor = g->CreateTensor(i2f_weight_spec, input2forget_weights.data());
-    auto forget_gate_bias_tensor = g->CreateTensor(i2f_bias_spec, forget_gate_bias.data());
+    auto i2f_bias_tensor = g->CreateTensor(i2f_bias_spec, i2f_bias.data());
+    auto r2f_bias_tensor = g->CreateTensor(i2f_bias_spec, r2f_bias.data());
 
     input2output_weights = {-0.25065863, -0.28290087, 0.04613829, 0.40525138,
                               0.44272184,  0.03897077,  -0.1556896, 0.19487578};
-    std::vector<float> output_gate_bias = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> i2o_bias = {0.0, 0.0, 0.0, 0.0};
+    std::vector<float> r2o_bias = {0.0, 0.0, 0.0, 0.0};
     auto input2output_weights_tensor = g->CreateTensor(i2o_weight_spec, input2output_weights.data());
-    auto output_gate_bias_tensor = g->CreateTensor(i2o_bias_spec, output_gate_bias.data());
+    auto i2o_bias_tensor = g->CreateTensor(i2o_bias_spec, i2o_bias.data());
+    auto r2o_bias_tensor = g->CreateTensor(i2o_bias_spec, r2o_bias.data());
 
     tim::vx::TensorSpec r2i_weight_spec(tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_output, n_cell}), tim::vx::TensorAttribute::CONSTANT);
     tim::vx::TensorSpec r2c_weight_spec(tim::vx::DataType::FLOAT32, tim::vx::ShapeType({n_output, n_cell}), tim::vx::TensorAttribute::CONSTANT);
@@ -157,18 +169,23 @@ TEST(LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
             input2output_weights_tensor,
 
             r2i_weight_tensor,
-            r2c_weight_tensor,
             r2f_weight_tensor,
+            r2c_weight_tensor,
             r2o_weight_tensor,
 
             g->CreateTensorPlaceHolder(),       /*weight_c2i*/
             g->CreateTensorPlaceHolder(),       /*weight_c2f*/
             g->CreateTensorPlaceHolder(),       /*weight_c2o*/
 
-            input_gate_bias_tensor,
-            forget_gate_bias_tensor,
-            cell_gate_bias_tensor,
-            output_gate_bias_tensor,
+            i2i_bias_tensor,
+            i2f_bias_tensor,
+            i2c_bias_tensor,
+            i2o_bias_tensor,
+
+            r2i_bias_tensor,
+            r2f_bias_tensor,
+            r2c_bias_tensor,
+            r2o_bias_tensor,
 
             // optional for projection
             /*weight_prj*/

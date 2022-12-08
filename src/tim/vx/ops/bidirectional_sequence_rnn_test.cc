@@ -318,7 +318,6 @@ TEST(BidirectionalSequenceRnn, shape_2_3_2_float_relu) {
     (*op).BindInputs({input_tensor, weights_tensor,  recurrent_weights_tensor, bias_tensor, recurrent_bias_tensor, state_in_tensor, 
                                     bw_weights_tensor,  bw_recurrent_weights_tensor, bw_bias_tensor, bw_recurrent_bias_tensor, bw_state_in_tensor})
          .BindOutputs({state_out_tensor, bw_state_out_tensor,  output_tensor, bw_output_tensor});
-    graph->PrintGraph();
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());
     std::vector<float> output(output_golden.size());

@@ -304,6 +304,18 @@ static vsi_bool op_setup
         curr->node->nn_param.lstmunit_ovxlib.forget_bias = curr_param->forget_bias;
         curr->node->nn_param.lstmunit_ovxlib.proj_clip = curr_param->proj_clip;
         curr->node->nn_param.lstmunit_ovxlib.recurrent_activation = curr_param->recurrent_activation;
+        if ( reshape_output->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ||
+             reshape_output->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 )
+        {
+            int32_t k = 0;
+            for (k = 0; k < _cnt_of_array( curr_param->internal_dtype ); k++)
+            {
+                if (curr_param->internal_dtype[k].vx_type == VSI_NN_TYPE_NONE)
+                {
+                    curr_param->internal_dtype[k] = reshape_output->attr.dtype;
+                }
+            }
+        }
         memcpy( curr->node->nn_param.lstmunit_ovxlib.internal_dtype,
             curr_param->internal_dtype, sizeof( curr_param->internal_dtype ) );
         curr->inputs[LSTMUNIT_INPUT_INPUT] = reshape_output;
@@ -323,10 +335,15 @@ static vsi_bool op_setup
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_C2F] = inputs[LSTM_INPUT_WEIGHT_C2F];
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_C2O] = inputs[LSTM_INPUT_WEIGHT_C2O];
 
-        curr->inputs[LSTMUNIT_INPUT_BIAS_I] = inputs[LSTM_INPUT_BIAS_I];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_F] = inputs[LSTM_INPUT_BIAS_F];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_C] = inputs[LSTM_INPUT_BIAS_C];
-        curr->inputs[LSTMUNIT_INPUT_BIAS_O] = inputs[LSTM_INPUT_BIAS_O];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2I] = inputs[LSTM_INPUT_BIAS_I2I];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2F] = inputs[LSTM_INPUT_BIAS_I2F];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2C] = inputs[LSTM_INPUT_BIAS_I2C];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_I2O] = inputs[LSTM_INPUT_BIAS_I2O];
+
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2I] = inputs[LSTM_INPUT_BIAS_R2I];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2F] = inputs[LSTM_INPUT_BIAS_R2F];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2C] = inputs[LSTM_INPUT_BIAS_R2C];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2O] = inputs[LSTM_INPUT_BIAS_R2O];
 
         curr->inputs[LSTMUNIT_INPUT_WEIGHT_PROJ] = inputs[LSTM_INPUT_WEIGHT_PROJ];
         curr->inputs[LSTMUNIT_INPUT_BIAS_PROJ] = inputs[LSTM_INPUT_BIAS_PROJ];

@@ -144,10 +144,9 @@ TEST(BidirectionalSequenceRnnExt, shape_2_3_2_float_sigmoid) {
     EXPECT_TRUE(state_in_tensor->CopyDataToTensor(
         state_in_data.data(), state_in_data.size() * sizeof(float)));
    
-    auto op = graph->CreateOperation<tim::vx::ops::BidirectionalSequenceRnnExt>(tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kSIGMOID);
+    auto op = graph->CreateOperation<tim::vx::ops::BidirectionalSequenceRnnExt>(tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kSIGMOID, true);
     (*op).BindInputs({input_tensor, weights_tensor,  recurrent_weights_tensor, bias_tensor, state_in_tensor})
          .BindOutputs({state_out_tensor, output_tensor});
-    graph->PrintGraph();
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());
     std::vector<float> output(output_golden.size());

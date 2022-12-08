@@ -21,31 +21,35 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_BIDIRECTIONAL_SEQUENCE_RNN_EXT_H_
-#define TIM_VX_OPS_BIDIRECTIONAL_SEQUENCE_RNN_EXT_H_
+#ifndef TIM_VX_OPS_BIDIRECTIONAL_SEQUENCE_LSTM_EXT_H_
+#define TIM_VX_OPS_BIDIRECTIONAL_SEQUENCE_LSTM_EXT_H_
 #include "tim/vx/operation.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
     /**
-     * ## Bidirectional sequence rnn for onnx
-     *  how to bind input/output: take unidirectional_sequence_rnn_ext_test.cc
+     * ## Bidirectional sequence lstm for onnx
+     *  how to bind input/output: take unidirectional_sequence_lstm_ext_test.cc
      */
-    class BidirectionalSequenceRnnExt: public Operation {
+    class BidirectionalSequenceLstmExt: public Operation {
      public:
-      BidirectionalSequenceRnnExt(
-          Graph* graph, 
-          tim::vx::ops::BidirectionalSequenceRnn::ActivationType act_type,
-          bool time_major
+      BidirectionalSequenceLstmExt(
+          Graph* graph,  float cell_clip, 
+          tim::vx::ops::BidirectionalSequenceLstm::ActivationType act_type,
+          bool time_major,
+          tim::vx::ops::BidirectionalSequenceLstm::ActivationType recurrent_act_type
       );
 
-      std::shared_ptr<Operation> Clone(
+    std::shared_ptr<Operation> Clone(
           std::shared_ptr<Graph>& graph) const override;
 
      protected:
-      tim::vx::ops::BidirectionalSequenceRnn::ActivationType act_type_;
+      const float cell_clip_;
+      tim::vx::ops::BidirectionalSequenceLstm::ActivationType act_type_;
       bool time_major_;
+      tim::vx::ops::BidirectionalSequenceLstm::ActivationType recurrent_act_type_;
+
     };
 }
 }  // namespace vx

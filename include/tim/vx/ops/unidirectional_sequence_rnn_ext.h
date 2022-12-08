@@ -37,7 +37,8 @@ namespace ops {
      public:
       UnidirectionalSequenceRnnExt(
           Graph* graph, 
-          tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type
+          tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type,
+          bool time_major
       );
 
       std::shared_ptr<Operation> Clone(
@@ -45,6 +46,7 @@ namespace ops {
 
      protected:
       tim::vx::ops::UnidirectionalSequenceRnn::ActivationType act_type_;
+      bool time_major_;
     };
 }
 }  // namespace vx

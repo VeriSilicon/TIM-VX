@@ -121,7 +121,7 @@ TEST(UnidirectionalSequenceRnnExt, shape_2_3_4_float_sigmoid) {
     EXPECT_TRUE(state_in_tensor->CopyDataToTensor(
         state_in_data.data(), state_in_data.size() * sizeof(float)));
 
-    auto op = graph->CreateOperation<tim::vx::ops::UnidirectionalSequenceRnnExt>(tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kSIGMOID);
+    auto op = graph->CreateOperation<tim::vx::ops::UnidirectionalSequenceRnnExt>(tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kSIGMOID, true);
     (*op).BindInputs({input_tensor, weights_tensor,  recurrent_weights_tensor, bias_tensor, state_in_tensor})
          .BindOutputs({state_out_tensor, output_tensor});
     EXPECT_TRUE(graph->Compile());
@@ -230,7 +230,7 @@ TEST(UnidirectionalSequenceRnnExt, shape_2_3_4_float_relu) {
     EXPECT_TRUE(state_in_tensor->CopyDataToTensor(
         state_in_data.data(), state_in_data.size() * sizeof(float)));
 
-    auto op = graph->CreateOperation<tim::vx::ops::UnidirectionalSequenceRnnExt>(tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kRELU);
+    auto op = graph->CreateOperation<tim::vx::ops::UnidirectionalSequenceRnnExt>(tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kRELU, true);
     (*op).BindInputs({input_tensor, weights_tensor,  recurrent_weights_tensor, bias_tensor, state_in_tensor})
          .BindOutputs({state_out_tensor, output_tensor});
     EXPECT_TRUE(graph->Compile());
