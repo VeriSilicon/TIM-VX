@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,8 +21,8 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPERATION_PAD_H_
-#define TIM_VX_OPERATION_PAD_H_
+#ifndef TIM_VX_OPERATION_PADV2_H_
+#define TIM_VX_OPERATION_PADV2_H_
 #include "tim/vx/builtin_op.h"
 
 namespace tim {
@@ -30,17 +30,17 @@ namespace vx {
 namespace ops {
 
 /**
- * ## Pad
+ * ## PadV2
  *
  * Pads a tensor.
  *
- * - const_val : the int32 value to pad.
+ * - const_val : the float value to pad.
  * - pad_mode : the mode of pad.
  * - front_size : Add pad values to the left and top.
  * - back_size : Add pad values to the right and bottom.
  */
 
-class Pad : public BuiltinOp {
+class PadV2 : public BuiltinOp {
  public:
   typedef enum {
     // signature
@@ -50,10 +50,10 @@ class Pad : public BuiltinOp {
     PAD_MODE_REFLECT,
   } pad_mode_type;
 
-  Pad(Graph* graph, const std::vector<uint32_t>& front_size,
-           const std::vector<uint32_t>& back_size, int32_t const_val);
-  Pad(Graph* graph, const std::vector<uint32_t>& front_size,
-      const std::vector<uint32_t>& back_size, int32_t const_val,
+  PadV2(Graph* graph, const std::vector<uint32_t>& front_size,
+           const std::vector<uint32_t>& back_size, float const_val);
+  PadV2(Graph* graph, const std::vector<uint32_t>& front_size,
+      const std::vector<uint32_t>& back_size, float const_val,
       pad_mode_type pad_mode);
 
   std::shared_ptr<Operation> Clone(
@@ -62,7 +62,7 @@ class Pad : public BuiltinOp {
  protected:
   std::vector<uint32_t> front_size_;
   std::vector<uint32_t> back_size_;
-  int32_t const_val_;
+  float const_val_;
   pad_mode_type pad_mode_;
 };
 }  // namespace ops
