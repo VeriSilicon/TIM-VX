@@ -62,6 +62,7 @@
 #include "tim/vx/ops/nbg.h"
 #include "tim/vx/ops/onehot.h"
 #include "tim/vx/ops/pad.h"
+#include "tim/vx/ops/pad_v2.h"
 #include "tim/vx/ops/pool2d.h"
 #include "tim/vx/ops/reduce.h"
 #include "tim/vx/ops/relational_operations.h"

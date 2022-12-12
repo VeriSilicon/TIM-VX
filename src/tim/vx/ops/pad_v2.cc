@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2022 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,51 +21,41 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPERATION_PAD_H_
-#define TIM_VX_OPERATION_PAD_H_
-#include "tim/vx/builtin_op.h"
+#include "tim/vx/ops/pad_v2.h"
+
+#include "builtin_op_impl.h"
+#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-/**
- * ## Pad
- *
- * Pads a tensor.
- *
- * - const_val : the int32 value to pad.
- * - pad_mode : the mode of pad.
- * - front_size : Add pad values to the left and top.
- * - back_size : Add pad values to the right and bottom.
- */
+PadV2::PadV2(Graph* graph, const std::vector<uint32_t>& front_size,
+         const std::vector<uint32_t>& back_size, float const_val)
+    : PadV2(graph, front_size, back_size, const_val, PAD_MODE_CONSTANT) {}
 
-class Pad : public BuiltinOp {
- public:
-  typedef enum {
-    // signature
-    PAD_MODE_CONSTANT,
-    PAD_MODE_EDGE,
-    PAD_MODE_SYMMETRIC,
-    PAD_MODE_REFLECT,
-  } pad_mode_type;
+PadV2::PadV2(Graph* graph, const std::vector<uint32_t>& front_size,
+         const std::vector<uint32_t>& back_size, float const_val,
+         pad_mode_type pad_mode)
+    : BuiltinOp(graph, VSI_NN_OP_PAD2),
+      front_size_(front_size),
+      back_size_(back_size),
+      const_val_(const_val),
+      pad_mode_(pad_mode) {
+  this->impl()->node()->nn_param.pad2.front_size = front_size_.data();
+  this->impl()->node()->nn_param.pad2.back_size = back_size_.data();
+  this->impl()->node()->nn_param.pad2.dim_num = front_size_.size();
+  if (pad_mode_ == PAD_MODE_CONSTANT) {
+    this->impl()->node()->nn_param.pad2.const_val = const_val_;
+  }
+  this->impl()->node()->nn_param.pad2.mode = (vsi_nn_pad_mode_e)pad_mode_;
+}
 
-  Pad(Graph* graph, const std::vector<uint32_t>& front_size,
-           const std::vector<uint32_t>& back_size, int32_t const_val);
-  Pad(Graph* graph, const std::vector<uint32_t>& front_size,
-      const std::vector<uint32_t>& back_size, int32_t const_val,
-      pad_mode_type pad_mode);
+std::shared_ptr<Operation> PadV2::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<PadV2>(this->front_size_, this->back_size_,
+                                     this->const_val_, this->pad_mode_);
+}
 
-  std::shared_ptr<Operation> Clone(
-      std::shared_ptr<Graph>& graph) const override;
-
- protected:
-  std::vector<uint32_t> front_size_;
-  std::vector<uint32_t> back_size_;
-  int32_t const_val_;
-  pad_mode_type pad_mode_;
-};
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
-#endif

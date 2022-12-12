@@ -42,6 +42,7 @@
 #include "ops/space2batch_layout_inference.h"
 #include "ops/batch2space_layout_inference.h"
 #include "ops/pad_layout_inference.h"
+#include "ops/pad_v2_layout_inference.h"
 #include "ops/reduce_layout_inference.h"
 #include "ops/fullyconnected_layout_inference.h"
 #include "ops/resize_layout_inference.h"
@@ -248,6 +249,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2BATCH, Space2Batch);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH2SPACE, Batch2Space);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PAD, Pad);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PAD2, PadV2);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_FCL2, FullyConnected);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RESIZE, Resize);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPLIT, Split);
