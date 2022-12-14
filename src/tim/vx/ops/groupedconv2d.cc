@@ -41,12 +41,12 @@ GroupedConv2d::GroupedConv2d(Graph* graph,
       padding_(padding), strides_(strides), dilation_(dilation),
       pad_({0,0,0,0}), group_number_(group_number),
       kernel_layout_(kernel_layout) {
-  this->impl()->node()->nn_param.conv2d.stride[0] = strides_[0];
-  this->impl()->node()->nn_param.conv2d.stride[1] = strides_[1];
-  this->impl()->node()->nn_param.conv2d.pad_type = TranslatePadType(padding_);
-  this->impl()->node()->nn_param.conv2d.group = group_number_;
-  this->impl()->node()->nn_param.conv2d.dilation[0] = dilation_[0];
-  this->impl()->node()->nn_param.conv2d.dilation[1] = dilation_[1];
+  this->impl()->node()->nn_param.grouped_conv2d.stride[0] = strides_[0];
+  this->impl()->node()->nn_param.grouped_conv2d.stride[1] = strides_[1];
+  this->impl()->node()->nn_param.grouped_conv2d.pad_type = TranslatePadType(padding_);
+  this->impl()->node()->nn_param.grouped_conv2d.group = group_number_;
+  this->impl()->node()->nn_param.grouped_conv2d.dilation[0] = dilation_[0];
+  this->impl()->node()->nn_param.grouped_conv2d.dilation[1] = dilation_[1];
   }
 
 GroupedConv2d::GroupedConv2d(Graph* graph,
