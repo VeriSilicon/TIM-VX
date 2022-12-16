@@ -53,6 +53,13 @@ static void _reshape_tensor
         attr.size[2] = input->attr.size[1];
         attr.dim_num = 3;
     }
+    else if (input->attr.dim_num == 4)
+    {
+        attr.size[0] = input->attr.size[0];
+        attr.size[1] = input->attr.size[1] * input->attr.size[2];
+        attr.size[2] = input->attr.size[3];
+        attr.dim_num = 3;
+    }
     *output = vsi_nn_safe_reshape_tensor( input->t, (void*)attr.size, (vsi_size_t)attr.dim_num , sizeof(attr.size[0]));
 }
 
