@@ -44,14 +44,14 @@ class PadV2LayoutInfer : public OpLayoutInfer {
     auto i_src = op_->impl()->InputsTensor()[0];
     auto input_pv = context_->GetPermuteVector(i_src);
 
-    uint32_t dim_num = op_->impl()->node()->nn_param.pad.dim_num;
+    uint32_t dim_num = op_->impl()->node()->nn_param.pad2.dim_num;
     std::vector<uint32_t> front_size(dim_num);
     std::vector<uint32_t> back_size(dim_num);
-    memcpy(front_size.data(), op_->impl()->node()->nn_param.pad.front_size,
+    memcpy(front_size.data(), op_->impl()->node()->nn_param.pad2.front_size,
            sizeof(uint32_t) * dim_num);
-    memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
+    memcpy(back_size.data(), op_->impl()->node()->nn_param.pad2.back_size,
            sizeof(uint32_t) * dim_num);
-    float pad_value = op_->impl()->node()->nn_param.pad.const_val;
+    float pad_value = op_->impl()->node()->nn_param.pad2.const_val;
 
     if (!input_pv->IsAligned()) {
       front_size = MapMultipleAxis(input_pv->AsStdVec(), front_size);
