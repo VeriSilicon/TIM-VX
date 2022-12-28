@@ -61,13 +61,13 @@ TEST(HashtableLookup, int32) {
     std::vector<int32_t> value_data = {
        7,8,9,10
     };
-    std::vector<float> out_golden = {7,0};
+    std::vector<uint16_t> out_golden = {18176,0};//check for float16 output
     std::vector<int32_t> hit_golden = {1,0};//0 means not hit
     
     EXPECT_TRUE(in_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(int32_t)));
     EXPECT_TRUE(key_tensor->CopyDataToTensor(key_data.data(), key_data.size() * sizeof(int32_t)));
     EXPECT_TRUE(value_tensor->CopyDataToTensor(value_data.data(), value_data.size() * sizeof(int32_t)));
-    EXPECT_TRUE(out_tensor->CopyDataToTensor(out_golden.data(), out_golden.size() * sizeof(float)));
+    EXPECT_TRUE(out_tensor->CopyDataToTensor(out_golden.data(), out_golden.size()));
     EXPECT_TRUE(hit_tensor->CopyDataToTensor(hit_golden.data(), hit_golden.size() * sizeof(int32_t)));
 
     auto op = graph->CreateOperation<tim::vx::ops::HashtableLookup>();
@@ -76,7 +76,7 @@ TEST(HashtableLookup, int32) {
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());
 
-    std::vector<float> output(out_golden.size());
+    std::vector<uint16_t> output(out_golden.size());
     std::vector<int32_t> hit(hit_golden.size());
     EXPECT_TRUE(out_tensor->CopyDataFromTensor(output.data()));
     EXPECT_TRUE(hit_tensor->CopyDataFromTensor(hit.data()));
