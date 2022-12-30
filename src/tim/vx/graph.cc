@@ -133,17 +133,47 @@ void GraphImpl::PrintGraph() const { vsi_nn_PrintGraph(this->graph_); }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
                                                 const void* data) {
-  return std::make_shared<TensorImpl>(this, spec, data);
+  std::shared_ptr<Tensor> tensor = std::make_shared<TensorImpl>(this, spec, data);
+  uint32_t tensor_id = tensor->GetId();
+  if (spec.attr_ & TensorAttribute::INPUT) {
+    this->AddInput(tensor_id);
+    this->AddInput(tensor);
+  }
+  if (spec.attr_ & TensorAttribute::OUTPUT) {
+    this->AddOutput(tensor_id);
+    this->AddOutput(tensor);
+  }
+  return tensor;
 }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
                                                 const DmaBufferDesc& dmafd) {
-  return std::make_shared<TensorImpl>(this, spec, dmafd);
+  std::shared_ptr<Tensor> tensor = std::make_shared<TensorImpl>(this, spec, dmafd);
+  uint32_t tensor_id = tensor->GetId();
+  if (spec.attr_ & TensorAttribute::INPUT) {
+    this->AddInput(tensor_id);
+    this->AddInput(tensor);
+  }
+  if (spec.attr_ & TensorAttribute::OUTPUT) {
+    this->AddOutput(tensor_id);
+    this->AddOutput(tensor);
+  }
+  return tensor;
 }
 
 std::shared_ptr<Tensor> GraphImpl::CreateIOTensor(const TensorSpec& spec,
                                                 void* data) {
-  return std::make_shared<TensorImpl>(this, spec, data);
+  std::shared_ptr<Tensor> tensor = std::make_shared<TensorImpl>(this, spec, data);
+  uint32_t tensor_id = tensor->GetId();
+  if (spec.attr_ & TensorAttribute::INPUT) {
+    this->AddInput(tensor_id);
+    this->AddInput(tensor);
+  }
+  if (spec.attr_ & TensorAttribute::OUTPUT) {
+    this->AddOutput(tensor_id);
+    this->AddOutput(tensor);
+  }
+  return tensor;
 }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensorPlaceHolder() {
