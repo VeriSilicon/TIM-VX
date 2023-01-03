@@ -344,6 +344,11 @@ static vsi_bool op_setup
         curr->inputs[LSTMUNIT_INPUT_LAYERNORM_C] = inputs[BI_LSTM_FW_INPUT_LAYERNORM_C];
         curr->inputs[LSTMUNIT_INPUT_LAYERNORM_O] = inputs[BI_LSTM_FW_INPUT_LAYERNORM_O];
 
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2I] = inputs[BI_LSTM_FW_INPUT_BIAS_R2I];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2F] = inputs[BI_LSTM_FW_INPUT_BIAS_R2F];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2C] = inputs[BI_LSTM_FW_INPUT_BIAS_R2C];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2O] = inputs[BI_LSTM_FW_INPUT_BIAS_R2O];
+
         if (has_aux_input)
         {
             curr->inputs[LSTM_INPUT_AUX_INPUT] = aux_reshape_output_tensors[i];
@@ -443,6 +448,11 @@ static vsi_bool op_setup
         curr->inputs[LSTMUNIT_INPUT_LAYERNORM_F] = inputs[BI_LSTM_BW_INPUT_LAYERNORM_F];
         curr->inputs[LSTMUNIT_INPUT_LAYERNORM_C] = inputs[BI_LSTM_BW_INPUT_LAYERNORM_C];
         curr->inputs[LSTMUNIT_INPUT_LAYERNORM_O] = inputs[BI_LSTM_BW_INPUT_LAYERNORM_O];
+
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2I] = inputs[BI_LSTM_BW_INPUT_BIAS_R2I];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2F] = inputs[BI_LSTM_BW_INPUT_BIAS_R2F];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2C] = inputs[BI_LSTM_BW_INPUT_BIAS_R2C];
+        curr->inputs[LSTMUNIT_INPUT_BIAS_R2O] = inputs[BI_LSTM_BW_INPUT_BIAS_R2O];
 
         if (has_aux_input)
         {

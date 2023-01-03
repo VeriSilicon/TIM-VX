@@ -87,27 +87,37 @@ class BidirectionalSequenceLstmImpl : public OpImpl {
     BI_LSTM_BW_INPUT_H_STATE = 37,
     BI_LSTM_BW_INPUT_C_STATE = 38,
 
-    BI_LSTM_AUX_INPUT = 39,
+    BI_LSTM_FW_INPUT_BIAS_R2I = 39,
+    BI_LSTM_FW_INPUT_BIAS_R2F = 40,
+    BI_LSTM_FW_INPUT_BIAS_R2C = 41,
+    BI_LSTM_FW_INPUT_BIAS_R2O = 42,
 
-    BI_LSTM_FW_AUX_INPUT_WEIGHT_I2I = 40,
-    BI_LSTM_FW_AUX_INPUT_WEIGHT_I2F = 41,
-    BI_LSTM_FW_AUX_INPUT_WEIGHT_I2C = 42,
-    BI_LSTM_FW_AUX_INPUT_WEIGHT_I2O = 43,
+    BI_LSTM_BW_INPUT_BIAS_R2I = 43,
+    BI_LSTM_BW_INPUT_BIAS_R2F = 44,
+    BI_LSTM_BW_INPUT_BIAS_R2C = 45,
+    BI_LSTM_BW_INPUT_BIAS_R2O = 46,
 
-    BI_LSTM_BW_AUX_INPUT_WEIGHT_I2I = 44,
-    BI_LSTM_BW_AUX_INPUT_WEIGHT_I2F = 45,
-    BI_LSTM_BW_AUX_INPUT_WEIGHT_I2C = 46,
-    BI_LSTM_BW_AUX_INPUT_WEIGHT_I2O = 47,
+    BI_LSTM_AUX_INPUT = 47,
 
-    BI_LSTM_FW_INPUT_LAYERNORM_I = 48,
-    BI_LSTM_FW_INPUT_LAYERNORM_F = 49,
-    BI_LSTM_FW_INPUT_LAYERNORM_C = 50,
-    BI_LSTM_FW_INPUT_LAYERNORM_O = 51,
+    BI_LSTM_FW_AUX_INPUT_WEIGHT_I2I = 48,
+    BI_LSTM_FW_AUX_INPUT_WEIGHT_I2F = 49,
+    BI_LSTM_FW_AUX_INPUT_WEIGHT_I2C = 50,
+    BI_LSTM_FW_AUX_INPUT_WEIGHT_I2O = 51,
 
-    BI_LSTM_BW_INPUT_LAYERNORM_I = 52,
-    BI_LSTM_BW_INPUT_LAYERNORM_F = 53,
-    BI_LSTM_BW_INPUT_LAYERNORM_C = 54,
-    BI_LSTM_BW_INPUT_LAYERNORM_O = 55,
+    BI_LSTM_BW_AUX_INPUT_WEIGHT_I2I = 52,
+    BI_LSTM_BW_AUX_INPUT_WEIGHT_I2F = 53,
+    BI_LSTM_BW_AUX_INPUT_WEIGHT_I2C = 54,
+    BI_LSTM_BW_AUX_INPUT_WEIGHT_I2O = 55,
+
+    BI_LSTM_FW_INPUT_LAYERNORM_I = 56,
+    BI_LSTM_FW_INPUT_LAYERNORM_F = 57,
+    BI_LSTM_FW_INPUT_LAYERNORM_C = 58,
+    BI_LSTM_FW_INPUT_LAYERNORM_O = 59,
+
+    BI_LSTM_BW_INPUT_LAYERNORM_I = 60,
+    BI_LSTM_BW_INPUT_LAYERNORM_F = 61,
+    BI_LSTM_BW_INPUT_LAYERNORM_C = 62,
+    BI_LSTM_BW_INPUT_LAYERNORM_O = 63,
 
     INPUT_CNT,
 
@@ -186,6 +196,11 @@ class BidirectionalSequenceLstmImpl : public OpImpl {
       lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_LAYERNORM_C]);
       lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_LAYERNORM_O]);
 
+      lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_BIAS_R2I]);
+      lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_BIAS_R2F]);
+      lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_BIAS_R2C]);
+      lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_BIAS_R2O]);
+      
       lstm_backward_->BindInput(bw_input_tensor_);
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_H_STATE]);
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_C_STATE]);
@@ -216,6 +231,11 @@ class BidirectionalSequenceLstmImpl : public OpImpl {
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_LAYERNORM_F]);
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_LAYERNORM_C]);
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_LAYERNORM_O]);
+
+      lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_BIAS_R2I]);
+      lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_BIAS_R2F]);
+      lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_BIAS_R2C]);
+      lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_BIAS_R2O]);
     }
     this->input_tensor_index++;
     return *this;
