@@ -181,6 +181,7 @@ void LayoutInferContext::UpdateGraphOutputMap(const std::shared_ptr<vx::Tensor>&
       REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_PROD, ReduceProd);                 \
       REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_ANY, ReduceAny);                   \
       REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_SUM, ReduceSum);                   \
+      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_ALL, ReduceAll);                   \
     default:                                                                   \
       VSILOGW("Op %d: Default layout inference pass for reduce.", reduce_type);\
       assert(false);                                                           \

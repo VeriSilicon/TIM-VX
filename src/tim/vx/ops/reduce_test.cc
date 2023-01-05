@@ -129,3 +129,104 @@ TEST(Reduce_sum, KeepDims) {
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
+
+TEST(Reduce_all, KeepDims) {
+  auto ctx = tim::vx::Context::Create();
+
+  auto graph = ctx->CreateGraph();
+  tim::vx::ShapeType input_shape({2, 3, 2});
+  tim::vx::ShapeType output_shape({1, 3, 1});
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::BOOL8, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::BOOL8, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  std::vector<int32_t> axis = {2, 0};
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+  auto reduce_all = graph->CreateOperation<tim::vx::ops::ReduceAll>(axis, true);
+  (*reduce_all).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  bool in_data[] = {true, true, true,  true, true, true,
+                    true, true, false, true, true, true};
+  bool golden[] = {true, false, true};
+  bool* p_in = in_data;
+  input_tensor->CopyDataToTensor(p_in, 12 * sizeof(bool));
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  bool output[3 * sizeof(bool)];
+  bool* p_output = output;
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(p_output));
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_TRUE(golden[i] == output[i]);
+  }
+}
+
+TEST(Reduce_all, NotKeepDims) {
+  auto ctx = tim::vx::Context::Create();
+
+  auto graph = ctx->CreateGraph();
+  tim::vx::ShapeType input_shape({2, 3, 2});
+  tim::vx::ShapeType output_shape({2});
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::BOOL8, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::BOOL8, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  std::vector<int32_t> axis = {1, 2, 2, 2};
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+  auto reduce_all =
+      graph->CreateOperation<tim::vx::ops::ReduceAll>(axis, false);
+  (*reduce_all).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  bool in_data[] = {true, true, true, true, true, false,
+                    true, true, true, true, true, true};
+  bool golden[] = {true, false};
+  bool* p_in = in_data;
+  input_tensor->CopyDataToTensor(p_in, 12 * sizeof(bool));
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  bool output[2 * sizeof(bool)];
+  bool* p_output = output;
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(p_output));
+  for (int i = 0; i < 2; ++i) {
+    EXPECT_TRUE(golden[i] == output[i]);
+  }
+}
+
+TEST(Reduce_max, NotKeepDims) {
+  auto ctx = tim::vx::Context::Create();
+
+  auto graph = ctx->CreateGraph();
+  tim::vx::ShapeType input_shape({2, 3});
+  tim::vx::ShapeType output_shape({3});
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+  std::vector<int32_t> axis = {0};
+  auto reduce_sum = graph->CreateOperation<tim::vx::ops::ReduceMax>(axis, false);
+  (*reduce_sum).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  std::vector<float> in_data = {-1.0f, -2.0f, 3.0f, 4.0f, 5.0f, -6.0f};
+  std::vector<float> golden = {-1.0f, 4.0f, 5.0f};
+
+  EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
