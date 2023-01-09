@@ -328,7 +328,7 @@ LayoutInference(
   }
 
   while (!tensor_queue.empty()) {
-    const auto& tensor = tensor_queue.front();
+    auto tensor = tensor_queue.front();
     tensor_queue.pop_front();
     const auto& consumers = src_graph->GetConsumersOp(tensor);
     for (const auto& op : consumers) {
