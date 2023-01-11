@@ -40,7 +40,7 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto src_grouped_conv2d = std::static_pointer_cast<vx::ops::Conv2d>(op_);
+    auto src_grouped_conv2d = std::static_pointer_cast<vx::ops::GroupedConv2d>(op_);
     vx::DataLayout layout = op_->impl()->layout_;
     auto kernel_layout = src_grouped_conv2d->KernelDataLayout();
     std::shared_ptr<IPermuteVector> required_pv, weight_required_pv;
