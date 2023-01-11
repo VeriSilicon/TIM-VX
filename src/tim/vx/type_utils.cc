@@ -77,8 +77,8 @@ vsi_nn_pad_e TranslatePadType(PadType pad) {
       return VSI_NN_PAD_VALID;
     case PadType::SAME:
       return VSI_NN_PAD_SAME;
-
     default:
+      VSILOGE("PadType not support.");
       break;
   }
   return VSI_NN_PAD_AUTO;
