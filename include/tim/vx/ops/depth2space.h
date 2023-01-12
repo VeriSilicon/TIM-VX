@@ -48,8 +48,8 @@ namespace ops {
 class DepthToSpace : public BuiltinOp {
  public:
   enum depth2space_mode {
-    CRD_mode = 0,
-    DCR_mode = 1,
+    DCR_mode = 0,
+    CRD_mode = 1,
   };
   DepthToSpace(Graph* Graph, int block_size,
                DataLayout layout = DataLayout::WHCN);
