@@ -388,7 +388,7 @@ TensorSpec& TensorSpec::SetQuantization(Quantization& quantization) {
 }
 
 TensorSpec TensorSpec::AsTransientSpec() const {
-  return TensorSpec(this->datatype_, ShapeType({}), TensorAttribute::TRANSIENT,
+  return TensorSpec(this->datatype_, this->shape_, TensorAttribute::TRANSIENT,
                     this->quantization_);
 }
 

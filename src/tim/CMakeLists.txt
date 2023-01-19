@@ -45,6 +45,17 @@ if(TIM_VX_ENABLE_LAYOUT_INFER)
     )
 endif()
 
+if(TIM_VX_ENABLE_BATCH_FUSE)
+    aux_source_directory(./fuse BATCH_FUSE_FRAMEWORK_SRCS)
+    aux_source_directory(./fuse/ops BATCH_FUSE_OP_SRCS)
+
+    list(APPEND ${TARGET_NAME}_SRCS
+        ${BATCH_FUSE_FRAMEWORK_SRCS}
+        ${BATCH_FUSE_OP_SRCS}
+    )
+endif()
+
+
 if(TIM_VX_ENABLE_PLATFORM)
     message(STATUS "Using paltform")
     aux_source_directory(./vx/platform PLATFORM_SRC)
@@ -121,6 +132,12 @@ if(TIM_VX_ENABLE_LAYOUT_INFER)
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform 
             DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
 endif()
+
+if(TIM_VX_ENABLE_BATCH_FUSE)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/fuse 
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+endif()
+
 
 if(TIM_VX_ENABLE_TEST)
     include(GoogleTest)
