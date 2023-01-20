@@ -31,6 +31,10 @@
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
+#ifndef ENABLE_TENSOR_HNDL
+#define ENABLE_TENSOR_HNDL 1
+#endif
+
 namespace {
 
 void PackTensorDtype(tim::vx::TensorSpec& spec, vsi_nn_dtype_t* dtype) {
@@ -282,6 +286,10 @@ void TensorImpl::unmap() {
 bool TensorImpl::Init(void *external_cache) {
   vsi_nn_tensor_attr_t attr;
 
+#if (!ENABLE_TENSOR_HNDL)
+  (void)external_cache;
+#endif
+
   memset(&attr, 0x00, sizeof(attr));
   attr.dim_num = spec_.shape_.size();
   attr.is_const = static_cast<bool>(spec_.attr_ & TensorAttribute::CONSTANT);
@@ -299,6 +307,7 @@ bool TensorImpl::Init(void *external_cache) {
 
   PackTensorDtype(spec_, &attr.dtype);
 
+#if(ENABLE_TENSOR_HNDL)
   if ((spec_.attr_ & TensorAttribute::INPUT) ||
       (spec_.attr_ & TensorAttribute::OUTPUT)) {
 #ifdef VX_CREATE_TENSOR_SUPPORT_PHYSICAL
@@ -322,6 +331,7 @@ bool TensorImpl::Init(void *external_cache) {
 #endif
 
   } else
+#endif
   {
     id_ = vsi_nn_AddTensor(graph_->graph(), VSI_NN_TENSOR_ID_AUTO, &attr,
                            nullptr);
