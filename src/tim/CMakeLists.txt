@@ -51,6 +51,9 @@ if(TIM_VX_ENABLE_PLATFORM)
     list(APPEND ${TARGET_NAME}_SRCS
         ${PLATFORM_SRC}
     )
+    if(TIM_VX_ENABLE_GRPC)
+        include(vx/platform/grpc/remote_service.cmake)
+    endif()
 endif()
 
 foreach(src_file ${${TARGET_NAME}_SRCS})
@@ -80,7 +83,7 @@ if(${TIM_VX_ENABLE_VIPLITE})
         ${VIPLITE_DRV_INCLUDE_DIR}
     )
 endif()
-
+include_directories(${INC_DIRS})
 # convert op list as compile flags so that we can implement compile compatable easier
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
     file(STRINGS "${OVXLIB_INC}/interface/ops.def" ops_file_content)
@@ -101,32 +104,55 @@ target_link_libraries(${TARGET_NAME} PUBLIC
 
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
   #-Wl,--whole-archive should not applied to external library, but only for shared library
-  target_link_libraries(${TARGET_NAME} PUBLIC tim_internal)
+    target_link_libraries(${TARGET_NAME} PUBLIC tim_internal)
 endif()
 
-if (NOT CMAKE_INSTALL_LIBDIR)
+if(TIM_VX_ENABLE_PLATFORM AND TIM_VX_ENABLE_GRPC)
+    target_link_libraries(${TARGET_NAME} PUBLIC
+        ${GRPCPP_REFLECTION}
+        ${GRPC_GRPCPP}
+        ${PROTOBUF_LIBPROTOBUF})
+
+    add_executable(remote_service_server
+        ${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/grpc/remote_service_server.cc)
+    target_link_libraries(remote_service_server -Wl,--whole-archive ${TARGET_NAME})
+    install(TARGETS remote_service_server remote_service_server
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+endif()
+if(NOT CMAKE_INSTALL_LIBDIR)
 	set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx 
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/lite
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
 
 if(TIM_VX_ENABLE_LAYOUT_INFER)
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform 
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+endif()
+
+if(TIM_VX_ENABLE_PLATFORM)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx)
+    if(TIM_VX_ENABLE_GRPC)
+        install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform/grpc
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx/platform)
+    endif()
 endif()
 
 if(TIM_VX_ENABLE_TEST)
     include(GoogleTest)
 
     add_executable(unit_test ${${TARGET_NAME}_TEST_SRCS})
-    target_link_libraries(unit_test PRIVATE gtest gtest_main gmock gmock_main ${TARGET_NAME} ${OVXDRV_LIBRARIES})
+    target_link_libraries(unit_test PRIVATE
+        -Wl,--whole-archive ${TARGET_NAME}
+        -Wl,--no-whole-archive gtest gtest_main gmock gmock_main ${OVXDRV_LIBRARIES})
     target_include_directories(unit_test PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
@@ -135,11 +161,6 @@ if(TIM_VX_ENABLE_TEST)
     )
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
-endif()
-
-if(TIM_VX_ENABLE_PLATFORM)
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx)
 endif()
 
 add_subdirectory("utils")

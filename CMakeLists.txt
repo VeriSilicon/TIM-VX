@@ -12,6 +12,7 @@ option(TIM_VX_BUILD_EXAMPLES            "Build demos show general usage"        
 option(TIM_VX_ENABLE_VIPLITE            "Enable lite driver api support"        OFF)
 option(TIM_VX_ENABLE_40BIT              "Enable large memory support"           OFF)
 option(TIM_VX_ENABLE_PLATFORM           "Enable multi devices support"          OFF)
+option(TIM_VX_ENABLE_GRPC               "Enable gPRC support"                   OFF)
 option(TIM_VX_DBG_ENABLE_TENSOR_HNDL    "Enable built-in tensor from handle: use malloced memory instead of VideoMemory by kernel driver" ON)
 
 set(CMAKE_CXX_STANDARD 14)
