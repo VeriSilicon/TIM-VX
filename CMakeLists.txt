@@ -16,7 +16,7 @@ option(TIM_VX_ENABLE_BATCH_FUSE         "Enable batch fuse support"             
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
 set(CONFIG "" CACHE STRING "Target Platform")
 
 if(${TIM_VX_CODE_COVERAGE})

@@ -45,7 +45,7 @@ class ConcatBatchFuse : public OpBatchFuse {
     auto i_src_map_0 = context_->GetPadInferShape(i_src[0]);
     auto i_src_map_1 = context_->GetPadInferShape(i_src[1]);
 
-    uint32_t batch = o_src_shape[3];
+    // uint32_t batch = o_src_shape[3];
     if (i_src_map_0[0] != i_src_map_1[0] && i_src_map_0[1] != i_src_map_1[1] && i_src_map_0[3] != i_src_map_1[3]){
       if (i_src_map_0[3] == 1) {
         auto i_src_gap_0 = context_->GetForwardGap(i_src[0]);
@@ -64,13 +64,13 @@ class ConcatBatchFuse : public OpBatchFuse {
       context_->UpdatePadInferShape(o_src,{i_src_map_0[0], i_src_map_0[1], i_src_map_0[2] + i_src_map_1[2], i_src_map_0[3]});
     }
 
-    context_->UpdateInitPad(i_src[0], {0, 0, 0, 0});
-    context_->UpdateInitPad(i_src[1], {0, 0, 0, 0});
-    context_->UpdateForwardPad(i_src[0], context_->GetForwardPad(i_src[0]));
-    context_->UpdateForwardPad(i_src[1], context_->GetForwardPad(i_src[1]));
+    // context_->UpdateInitPad(i_src[0], {0, 0, 0, 0});
+    // context_->UpdateInitPad(i_src[1], {0, 0, 0, 0});
+    // context_->UpdateForwardPad(i_src[0], context_->GetForwardPad(i_src[0]));
+    // context_->UpdateForwardPad(i_src[1], context_->GetForwardPad(i_src[1]));
 
     next_tensors.push_back(o_src);
-    context_->UpdateForwardPad(o_src, {0, 0, 0, 0});
+    // context_->UpdateForwardPad(o_src, {0, 0, 0, 0});
 
     return false;
   }
@@ -116,16 +116,16 @@ class ConcatBatchFuse : public OpBatchFuse {
     auto map_shape_1 = i_src_map_1->GetShape();
     if (map_shape_0 != map_shape_1) {
       if (map_shape_0[3] != 1) {
-        auto pad_tensor = InsertPad(i_src_map_0, false, i_src_map_0);
+        auto pad_tensor = InsertPad(i_src_map_0, i_src_map_0);
         auto batch_fuse_tensor_0 =
-            InsertPermuteAndReshape(pad_tensor, false, i_src_map_0);
+            InsertPermuteAndReshape(pad_tensor, i_src_map_0);
         context_->UpdateTensorMap(i_src[0], batch_fuse_tensor_0);
         map_shape_0 = batch_fuse_tensor_0->GetShape();
       }
       if (map_shape_1[3] != 1) {
-        auto pad_tensor = InsertPad(i_src_map_1, false, i_src_map_1);
+        auto pad_tensor = InsertPad(i_src_map_1, i_src_map_1);
         auto batch_fuse_tensor_1 =
-            InsertPermuteAndReshape(pad_tensor, false, i_src_map_1);
+            InsertPermuteAndReshape(pad_tensor, i_src_map_1);
         context_->UpdateTensorMap(i_src[1], batch_fuse_tensor_1);
         map_shape_1 = batch_fuse_tensor_1->GetShape();
       }

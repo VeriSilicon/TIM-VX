@@ -59,19 +59,19 @@ class OpBatchFuse {
   std::pair<uint32_t, uint32_t> ClosestFactors(uint32_t batch);
 
   std::shared_ptr<vx::Tensor> InsertPad(
-      std::shared_ptr<vx::Tensor> input, bool is_graph_output = false,
+      std::shared_ptr<vx::Tensor> input,
       std::shared_ptr<vx::Tensor> src_out = nullptr);
 
   std::shared_ptr<vx::Tensor> InsertMask(
-      std::shared_ptr<vx::Tensor> input, bool is_graph_output = false,
+      std::shared_ptr<vx::Tensor> input,
       std::shared_ptr<vx::Tensor> src_out = nullptr);
 
   std::shared_ptr<vx::Tensor> InsertPermuteAndReshape(
-      std::shared_ptr<vx::Tensor> input, bool is_graph_output = false,
+      std::shared_ptr<vx::Tensor> input,
       std::shared_ptr<vx::Tensor> src_out = nullptr);
 
   std::shared_ptr<vx::Tensor> InsertSliceAndConcat(
-      std::shared_ptr<vx::Tensor> input, bool is_graph_output = false,
+      std::shared_ptr<vx::Tensor> input,
       std::shared_ptr<vx::Tensor> src_out = nullptr);
 
   std::vector<std::shared_ptr<vx::Tensor>> CreateOutputsTensor();

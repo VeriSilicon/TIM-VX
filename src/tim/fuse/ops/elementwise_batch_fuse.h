@@ -50,10 +50,10 @@ class ElementWiseBatchFuse : public OpBatchFuse {
     uint32_t batch = o_src_shape[3];
     // auto map_shape_0 = i_src_map_0->GetShape();
     // auto map_shape_1 = i_src_map_1->GetShape();
-    context_->UpdateInitPad(i_src[0], {0, 0, 0, 0});
-    context_->UpdateInitPad(i_src[1], {0, 0, 0, 0});
-    context_->UpdateForwardPad(i_src[0], context_->GetForwardPad(i_src[0]));
-    context_->UpdateForwardPad(i_src[1], context_->GetForwardPad(i_src[1]));
+    // context_->UpdateInitPad(i_src[0], {0, 0, 0, 0});
+    // context_->UpdateInitPad(i_src[1], {0, 0, 0, 0});
+    // context_->UpdateForwardPad(i_src[0], context_->GetForwardPad(i_src[0]));
+    // context_->UpdateForwardPad(i_src[1], context_->GetForwardPad(i_src[1]));
 
     if (i_src_map_0 == i_src_map_1) {
       context_->UpdatePadInferShape(o_src, i_src_map_0);
@@ -77,7 +77,7 @@ class ElementWiseBatchFuse : public OpBatchFuse {
       }
     }
     next_tensors.push_back(o_src);
-    context_->UpdateForwardPad(o_src, {0, 0, 0, 0});
+    // context_->UpdateForwardPad(o_src, {0, 0, 0, 0});
     auto output_gap = context_->GetForwardGap(i_src[0]);
     context_->UpdateForwardGap(o_src, output_gap);
     return false;
@@ -138,9 +138,9 @@ class ElementWiseBatchFuse : public OpBatchFuse {
       if (batch == 1 && batch_src != 1) {
         //insert slice and concat
         slice_and_concat_out_0 =
-            InsertSliceAndConcat(i_src_map_0, false, i_src[0]);
+            InsertSliceAndConcat(i_src_map_0, i_src[0]);
         slice_and_concat_out_1 =
-            InsertSliceAndConcat(i_src_map_1, false, i_src[1]);
+            InsertSliceAndConcat(i_src_map_1, i_src[1]);
       } else {
         slice_and_concat_out_0 = i_src_map_0;
         slice_and_concat_out_1 = i_src_map_1;

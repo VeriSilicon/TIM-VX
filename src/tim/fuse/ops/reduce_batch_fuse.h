@@ -48,10 +48,10 @@ class ReduceBatchFuse : public OpBatchFuse {
     auto output_shape = output_tensor->GetShape();
     auto input_tensor = input_tensors[0];
     auto input_shape = input_tensor->GetShape();
-    context_->UpdateInitPad(input_tensor, {0, 0, 0, 0});
-    context_->UpdateForwardPad(input_tensor, {0, 0, 0, 0});
+    // context_->UpdateInitPad(input_tensor, {0, 0, 0, 0});
+    // context_->UpdateForwardPad(input_tensor, {0, 0, 0, 0});
     context_->UpdatePadInferShape(output_tensor, output_shape);
-    context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
+    // context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
     context_->UpdateForwardGap(output_tensor, {0, 0});
     next_tensors.push_back(output_tensor);
     return false;
@@ -63,8 +63,9 @@ class ReduceBatchFuse : public OpBatchFuse {
     auto output_shape = output_tensor->GetShape();
     auto input_tensor = input_tensors[0];
     auto input_shape = input_tensor->GetShape();
-    context_->UpdateBackwardPad(input_tensor, {0, 0, 0, 0});
-    // context_->UpdatePadInferShape(output_tensor, output_shape);
+    // context_->UpdateBackwardPad(input_tensor, {0, 0, 0, 0});
+    former_tensors.push_back(input_tensor);
+    former_tensors.pop_back();
     return false;
   }
   void OnInputs(
@@ -83,7 +84,7 @@ class ReduceBatchFuse : public OpBatchFuse {
     if (batch == 1 && batch_src != 1) {
       //insert slice and concat
       slice_and_concat_out =
-          InsertSliceAndConcat(input_batch_fuse_tensor, true, input_tensor);
+          InsertSliceAndConcat(input_batch_fuse_tensor, input_tensor);
     } else {
       slice_and_concat_out = input_batch_fuse_tensor;
     }

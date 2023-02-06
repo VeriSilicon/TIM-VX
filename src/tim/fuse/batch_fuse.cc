@@ -99,22 +99,22 @@ void BatchFuseContext::UpdateCloneTensorMap(
   clone_tensor_map_[t_src] = t_clone_graph;
 }
 
-void BatchFuseContext::UpdateInitPad(const std::shared_ptr<vx::Tensor>& t_src,
-                                     const std::array<uint32_t, 4>& pad) {
-  init_pad_map_[t_src] = pad;
-}
+// void BatchFuseContext::UpdateInitPad(const std::shared_ptr<vx::Tensor>& t_src,
+//                                      const std::array<uint32_t, 4>& pad) {
+//   init_pad_map_[t_src] = pad;
+// }
 
-void BatchFuseContext::UpdateBackwardPad(
-    const std::shared_ptr<vx::Tensor>& t_src,
-    const std::array<uint32_t, 4>& pad) {
-  backward_pad_map_[t_src] = pad;
-}
+// void BatchFuseContext::UpdateBackwardPad(
+//     const std::shared_ptr<vx::Tensor>& t_src,
+//     const std::array<uint32_t, 4>& pad) {
+//   backward_pad_map_[t_src] = pad;
+// }
 
-void BatchFuseContext::UpdateForwardPad(
-    const std::shared_ptr<vx::Tensor>& t_src,
-    const std::array<uint32_t, 4>& pad) {
-  forward_pad_map_[t_src] = pad;
-}
+// void BatchFuseContext::UpdateForwardPad(
+//     const std::shared_ptr<vx::Tensor>& t_src,
+//     const std::array<uint32_t, 4>& pad) {
+//   forward_pad_map_[t_src] = pad;
+// }
 
 void BatchFuseContext::UpdateBackwardGap(
     const std::shared_ptr<vx::Tensor>& t_src,
@@ -177,31 +177,31 @@ std::shared_ptr<vx::Tensor> BatchFuseContext::GetBatchFuseMapedTensor(
   return nullptr;
 }
 
-std::array<uint32_t, 4> BatchFuseContext::GetInitPad(
-    const std::shared_ptr<vx::Tensor>& t_src) const {
-  auto it = init_pad_map_.find(t_src);
-  if (it != init_pad_map_.end()) {
-    return it->second;
-  } else {
-    VSILOGE("Tensor has not beed inserted in init pad map.");
-    assert(false);
-  }
+// std::array<uint32_t, 4> BatchFuseContext::GetInitPad(
+//     const std::shared_ptr<vx::Tensor>& t_src) const {
+//   auto it = init_pad_map_.find(t_src);
+//   if (it != init_pad_map_.end()) {
+//     return it->second;
+//   } else {
+//     VSILOGE("Tensor has not beed inserted in init pad map.");
+//     assert(false);
+//   }
 
-  return {};
-}
+//   return {};
+// }
 
-std::array<uint32_t, 4> BatchFuseContext::GetBackwardPad(
-    const std::shared_ptr<vx::Tensor>& t_src) const {
-  auto it = backward_pad_map_.find(t_src);
-  if (it != backward_pad_map_.end()) {
-    return it->second;
-  } else {
-    VSILOGE("Tensor has not beed inserted in backward pad map.");
-    assert(false);
-  }
+// std::array<uint32_t, 4> BatchFuseContext::GetBackwardPad(
+//     const std::shared_ptr<vx::Tensor>& t_src) const {
+//   auto it = backward_pad_map_.find(t_src);
+//   if (it != backward_pad_map_.end()) {
+//     return it->second;
+//   } else {
+//     VSILOGE("Tensor has not beed inserted in backward pad map.");
+//     assert(false);
+//   }
 
-  return {};
-}
+//   return {};
+// }
 
 std::array<uint32_t, 2> BatchFuseContext::GetBackwardGap(
     const std::shared_ptr<vx::Tensor>& t_src) const {
@@ -216,18 +216,18 @@ std::array<uint32_t, 2> BatchFuseContext::GetBackwardGap(
   return {};
 }
 
-std::array<uint32_t, 4> BatchFuseContext::GetForwardPad(
-    const std::shared_ptr<vx::Tensor>& t_src) const {
-  auto it = forward_pad_map_.find(t_src);
-  if (it != forward_pad_map_.end()) {
-    return it->second;
-  } else {
-    VSILOGE("Tensor has not beed inserted in forward pad map.");
-    assert(false);
-  }
+// std::array<uint32_t, 4> BatchFuseContext::GetForwardPad(
+//     const std::shared_ptr<vx::Tensor>& t_src) const {
+//   auto it = forward_pad_map_.find(t_src);
+//   if (it != forward_pad_map_.end()) {
+//     return it->second;
+//   } else {
+//     VSILOGE("Tensor has not beed inserted in forward pad map.");
+//     assert(false);
+//   }
 
-  return {};
-}
+//   return {};
+// }
 
 std::array<uint32_t, 2> BatchFuseContext::GetForwardGap(
     const std::shared_ptr<vx::Tensor>& t_src) const {
@@ -340,6 +340,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleBatchFuse(
     REGIST_BATCH_FUSE(VSI_NN_OP_RESHAPE2, Reshape, Backward, Forward, Clone);
     REGIST_BATCH_FUSE(VSI_NN_OP_CONCAT, Concat, Backward, Forward, Clone);
   }
+  (void)need_backward;
   return next_tensors;
 }
 
@@ -386,6 +387,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleCloneGraph(
     REGIST_BATCH_FUSE(VSI_NN_OP_RESHAPE2, Reshape, Backward, Forward, Clone);
     REGIST_BATCH_FUSE(VSI_NN_OP_CONCAT, Concat, Backward, Forward, Clone);
   }
+  (void)need_backward;
   return next_tensors;
 }
 
@@ -452,7 +454,7 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
     batch_fuse_ctx->UpdateTensorBatchFuseMap(input, t_src);
     batch_fuse_ctx->UpdateGraphInputMap(t_src, input);
     batch_fuse_ctx->UpdatePadInferShape(t_src, t_src->GetShape());
-    batch_fuse_ctx->UpdateForwardPad(t_src, {0, 0, 0, 0});
+    // batch_fuse_ctx->UpdateForwardPad(t_src, {0, 0, 0, 0});
     batch_fuse_ctx->UpdateForwardGap(t_src, {0, 0});
     tensor_queue.push_back(t_src);
     tensor_queue_pad_forward.push_back(t_src);
@@ -468,7 +470,7 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
     batch_fuse_ctx->UpdateTensorMap(const_in, input);
     batch_fuse_ctx->UpdateTensorBatchFuseMap(input, const_in);
     batch_fuse_ctx->UpdatePadInferShape(const_in, const_in->GetShape());
-    batch_fuse_ctx->UpdateForwardPad(const_in, {0, 0, 0, 0});
+    // batch_fuse_ctx->UpdateForwardPad(const_in, {0, 0, 0, 0});
     batch_fuse_ctx->UpdateForwardGap(const_in, {0, 0});
     tensor_queue.push_back(const_in);
     tensor_queue_pad_forward.push_back(const_in);

@@ -54,21 +54,15 @@ class Conv2dBatchFuse : public OpBatchFuse {
 
     auto pad_type = OpBatchFuse::TranslatePadType(
         op_->impl()->node()->nn_param.conv2d.pad_type);
-    std::array<uint32_t, 2> ksize = {
-        op_->impl()->node()->nn_param.conv2d.ksize[0],
-        op_->impl()->node()->nn_param.conv2d.ksize[1]};
     std::array<uint32_t, 2> stride = {
         op_->impl()->node()->nn_param.conv2d.stride[0],
         op_->impl()->node()->nn_param.conv2d.stride[1]};
-    std::array<uint32_t, 2> dilation = {
-        op_->impl()->node()->nn_param.conv2d.dilation[0],
-        op_->impl()->node()->nn_param.conv2d.dilation[1]};
     std::array<uint32_t, 4> pad = {op_->impl()->node()->nn_param.conv2d.pad[0],
                                    op_->impl()->node()->nn_param.conv2d.pad[1],
                                    op_->impl()->node()->nn_param.conv2d.pad[2],
                                    op_->impl()->node()->nn_param.conv2d.pad[3]};
-    int32_t multiplier = op_->impl()->node()->nn_param.conv2d.multiplier;
-    int32_t out_channels = op_->impl()->node()->nn_param.conv2d.weights;
+  
+   
     std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
       if (pad_type == vx::PadType::SAME || pad_type == vx::PadType::VALID) {
@@ -89,14 +83,14 @@ class Conv2dBatchFuse : public OpBatchFuse {
       }
     }
     //update init pad
-    context_->UpdateInitPad(input_tensor, pad);
-    auto old_pad_init = context_->GetForwardPad(input_tensor);
-    for (int i = 0; i < pad.size(); i++) {
-      if (pad[i] > old_pad_init[i]) {
-        context_->UpdateForwardPad(input_tensor, pad);
-        break;
-      }
-    }
+    // context_->UpdateInitPad(input_tensor, pad);
+    // auto old_pad_init = context_->GetForwardPad(input_tensor);
+    // for (uint i = 0; i < pad.size(); i++) {
+    //   if (pad[i] > old_pad_init[i]) {
+    //     context_->UpdateForwardPad(input_tensor, pad);
+    //     break;
+    //   }
+    // }
 
     //update input tensor -> fused tensor shape with this temporary pad as the smallest know size
     auto batch_fuse_shape_old = context_->GetPadInferShape(input_tensor);
@@ -173,7 +167,7 @@ class Conv2dBatchFuse : public OpBatchFuse {
                                              batch_fuse_h_update_output,
                                              output_shape[2], 1};  //whcn, n = 1
     context_->UpdatePadInferShape(output_tensor, output_batch_fuse_shape);
-    context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
+    // context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
     auto out_gap_w = (batch_fuse_w_update_output - output_shape[0] * batch_factor_w) / (batch_factor_w - 1);
     auto out_gap_h = (batch_fuse_w_update_output - output_shape[0] * batch_factor_w) / (batch_factor_w - 1);
     std::array<uint32_t, 2> output_gap = {out_gap_w, out_gap_h};
@@ -193,7 +187,7 @@ class Conv2dBatchFuse : public OpBatchFuse {
     auto input_shape = input_tensor->GetShape();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
-    auto init_pad = context_->GetInitPad(input_tensor);
+    // auto init_pad = context_->GetInitPad(input_tensor);
     auto batch_fuse_shape_new = context_->GetPadInferShape(output_tensor);
     auto batch_fuse_shape_input = context_->GetPadInferShape(input_tensor);
 
@@ -203,21 +197,21 @@ class Conv2dBatchFuse : public OpBatchFuse {
 
     auto pad_type = OpBatchFuse::TranslatePadType(
         op_->impl()->node()->nn_param.conv2d.pad_type);
-    std::array<uint32_t, 2> ksize = {
-        op_->impl()->node()->nn_param.conv2d.ksize[0],
-        op_->impl()->node()->nn_param.conv2d.ksize[1]};
+    // std::array<uint32_t, 2> ksize = {
+    //     op_->impl()->node()->nn_param.conv2d.ksize[0],
+    //     op_->impl()->node()->nn_param.conv2d.ksize[1]};
     std::array<uint32_t, 2> stride = {
         op_->impl()->node()->nn_param.conv2d.stride[0],
         op_->impl()->node()->nn_param.conv2d.stride[1]};
-    std::array<uint32_t, 2> dilation = {
-        op_->impl()->node()->nn_param.conv2d.dilation[0],
-        op_->impl()->node()->nn_param.conv2d.dilation[1]};
+    // std::array<uint32_t, 2> dilation = {
+    //     op_->impl()->node()->nn_param.conv2d.dilation[0],
+    //     op_->impl()->node()->nn_param.conv2d.dilation[1]};
     std::array<uint32_t, 4> pad = {op_->impl()->node()->nn_param.conv2d.pad[0],
                                    op_->impl()->node()->nn_param.conv2d.pad[1],
                                    op_->impl()->node()->nn_param.conv2d.pad[2],
                                    op_->impl()->node()->nn_param.conv2d.pad[3]};
-    int32_t multiplier = op_->impl()->node()->nn_param.conv2d.multiplier;
-    int32_t out_channels = op_->impl()->node()->nn_param.conv2d.weights;
+    // int32_t multiplier = op_->impl()->node()->nn_param.conv2d.multiplier;
+    // int32_t out_channels = op_->impl()->node()->nn_param.conv2d.weights;
     std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
       if (pad_type == vx::PadType::SAME || pad_type == vx::PadType::VALID) {
@@ -271,15 +265,15 @@ class Conv2dBatchFuse : public OpBatchFuse {
     new_pad[2] = new_pad[3];  //Greedy
 
     //Update pad map
-    auto old_pad_forward = context_->GetForwardPad(input_tensor);
-    // auto old_pad_backward = context_->GetBackwardPad(input_tensor);
-    for (int i = 0; i < new_pad.size(); i++) {
-      if (new_pad[i] > old_pad_forward[i]) {
-        context_->UpdateBackwardPad(input_tensor, new_pad);
-        context_->UpdateForwardPad(input_tensor, new_pad);
-        break;
-      }
-    }
+    // auto old_pad_forward = context_->GetForwardPad(input_tensor);
+    // // auto old_pad_backward = context_->GetBackwardPad(input_tensor);
+    // for (uint i = 0; i < new_pad.size(); i++) {
+    //   if (new_pad[i] > old_pad_forward[i]) {
+    //     context_->UpdateBackwardPad(input_tensor, new_pad);
+    //     context_->UpdateForwardPad(input_tensor, new_pad);
+    //     break;
+    //   }
+    // }
 
     // uint32_t batch_fuse_w_update_input =
     //     input_shape[0] * batch_factor_w + (batch_factor_w - 1) * new_pad[1];
@@ -385,14 +379,14 @@ class Conv2dBatchFuse : public OpBatchFuse {
     uint32_t batch = input_batch_fuse_tensor->GetShape()[3];
     uint32_t batch_src = input_tensor->GetShape()[3];
     // auto sqrt_batch = sqrt(batch);
-    uint32_t batch_factor_w = ClosestFactors(batch).first;
-    uint32_t batch_factor_h = ClosestFactors(batch).second;
+    // uint32_t batch_factor_w = ClosestFactors(batch).first;
+    // uint32_t batch_factor_h = ClosestFactors(batch).second;
 
     if (batch != 1) {
       // batch fuse
-      auto pad_tensor = InsertPad(input_batch_fuse_tensor, false, input_tensor);
+      auto pad_tensor = InsertPad(input_batch_fuse_tensor, input_tensor);
       batch_fuse_tensor =
-          InsertPermuteAndReshape(pad_tensor, false, input_tensor);
+          InsertPermuteAndReshape(pad_tensor, input_tensor);
 
     } else {
       batch_fuse_tensor = input_batch_fuse_tensor;
@@ -441,7 +435,7 @@ class Conv2dBatchFuse : public OpBatchFuse {
     }
     //inser mask
     if (batch_fuse_shape[3] == 1 && batch_src != 1) {
-      auto masked_input = InsertMask(batch_fuse_tensor, false, input_tensor);
+      auto masked_input = InsertMask(batch_fuse_tensor, input_tensor);
       context_->UpdateTensorMap(input_tensor, masked_input);
       // context_->UpdateTensorMap(input_tensor, batch_fuse_tensor);
     }

@@ -58,7 +58,7 @@ class FullyConnectedBatchFuse : public OpBatchFuse {
     if (batch == 1 && batch_src != 1) {
       //insert slice and concat
       slice_and_concat_out =
-          InsertSliceAndConcat(input_batch_fuse_tensor, true, input_tensor);
+          InsertSliceAndConcat(input_batch_fuse_tensor, input_tensor);
     } else {
       slice_and_concat_out = input_batch_fuse_tensor;
     }

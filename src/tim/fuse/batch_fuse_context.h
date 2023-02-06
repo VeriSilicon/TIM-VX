@@ -27,12 +27,12 @@ class BatchFuseContext {
                        const std::shared_ptr<vx::Tensor>& t_clone_graph);
   void UpdateTensorBatchFuseMap(const std::shared_ptr<vx::Tensor>& t_batch_fuse,
                                 const std::shared_ptr<vx::Tensor>& t_src);
-  void UpdateInitPad(const std::shared_ptr<vx::Tensor>& t_src,
-                     const std::array<uint32_t, 4>& pad);
-  void UpdateBackwardPad(const std::shared_ptr<vx::Tensor>& t_src,
-                         const std::array<uint32_t, 4>& pad);
-  void UpdateForwardPad(const std::shared_ptr<vx::Tensor>& t_src,
-                        const std::array<uint32_t, 4>& pad);
+//   void UpdateInitPad(const std::shared_ptr<vx::Tensor>& t_src,
+//                      const std::array<uint32_t, 4>& pad);
+//   void UpdateBackwardPad(const std::shared_ptr<vx::Tensor>& t_src,
+//                          const std::array<uint32_t, 4>& pad);
+//   void UpdateForwardPad(const std::shared_ptr<vx::Tensor>& t_src,
+//                         const std::array<uint32_t, 4>& pad);
 
   void UpdateBackwardGap(const std::shared_ptr<vx::Tensor>& t_src,
                          const std::array<uint32_t, 2>& pad);
@@ -54,14 +54,14 @@ class BatchFuseContext {
   std::shared_ptr<vx::Tensor> GetBatchFuseMapedTensor(
       const std::shared_ptr<vx::Tensor>& t_batch_fuse) const;
 
-  std::array<uint32_t, 4> GetInitPad(
-      const std::shared_ptr<vx::Tensor>& t_src) const;
+//   std::array<uint32_t, 4> GetInitPad(
+//       const std::shared_ptr<vx::Tensor>& t_src) const;
 
-  std::array<uint32_t, 4> GetBackwardPad(
-      const std::shared_ptr<vx::Tensor>& t_src) const;
+//   std::array<uint32_t, 4> GetBackwardPad(
+//       const std::shared_ptr<vx::Tensor>& t_src) const;
 
-  std::array<uint32_t, 4> GetForwardPad(
-      const std::shared_ptr<vx::Tensor>& t_src) const;
+//   std::array<uint32_t, 4> GetForwardPad(
+//       const std::shared_ptr<vx::Tensor>& t_src) const;
   
   std::array<uint32_t, 2> GetBackwardGap(
       const std::shared_ptr<vx::Tensor>& t_src) const;
@@ -121,11 +121,11 @@ class BatchFuseContext {
 
   //pad inference
   //init pad size for op need
-  std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>> init_pad_map_;
-  std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>>
-      backward_pad_map_;
-  std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>>
-      forward_pad_map_;
+//   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>> init_pad_map_;
+//   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>>
+//       backward_pad_map_;
+//   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>>
+//       forward_pad_map_;
 
   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 2>>
       backward_gap_map_;

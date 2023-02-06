@@ -674,7 +674,7 @@ TEST(BatchFuse, conv2d_float_1444) {
 
   batch_fuse_graph->Compile();
   std::vector<float> input_data(16 * 4);
-  for (int i = 0; i < input_data.size(); ++i) {
+  for (uint i = 0; i < input_data.size(); ++i) {
     input_data[i] = i;
   }
   auto batch_fuse_input_0 =
@@ -723,7 +723,7 @@ TEST(BatchFuse, pool_uint8_1444) {
 
   batch_fuse_graph->Compile();
   std::vector<uint8_t> input_data(16 * 4);
-  for (int i = 0; i < input_data.size(); ++i) {
+  for (uint i = 0; i < input_data.size(); ++i) {
     input_data[i] = i;
   }
 
@@ -774,7 +774,7 @@ TEST(BatchFuse, reshape_float_1444) {
 
   batch_fuse_graph->Compile();
   std::vector<float> input_data(16 * 4);
-  for (int i = 0; i < input_data.size(); ++i) {
+  for (uint i = 0; i < input_data.size(); ++i) {
     input_data[i] = i;
   }
 

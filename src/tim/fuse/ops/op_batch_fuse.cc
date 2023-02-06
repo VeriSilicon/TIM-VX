@@ -61,7 +61,7 @@ std::pair<uint32_t, uint32_t> OpBatchFuse::ClosestFactors(uint32_t n) {
 }
 
 std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
-    std::shared_ptr<vx::Tensor> input, bool is_graph_output,
+    std::shared_ptr<vx::Tensor> input,
     std::shared_ptr<vx::Tensor> src_input) {
   auto in_spec = input->GetSpec();    // whcn
   auto in_shape = input->GetShape();  // whcn
@@ -149,7 +149,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
 }
 
 #define CREATE_AND_CONCAT_OP(idx, start, length)                             \
-  \              
+                                                                             \
   auto idx##_op =                                                            \
       context_->batch_fuse_graph_->CreateOperation<vx::ops::Slice>(0, start, \
                                                                    length);  \
@@ -160,7 +160,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
   tensors.push_back(idx##_tensor);
 
 std::shared_ptr<vx::Tensor> OpBatchFuse::InsertSliceAndConcat(
-    std::shared_ptr<vx::Tensor> input, bool is_graph_output,
+    std::shared_ptr<vx::Tensor> input,
     std::shared_ptr<vx::Tensor> src_out) {
   auto input_spec = input->GetSpec();
   auto input_shape = input->GetShape();  //    bw bh c1
@@ -199,22 +199,22 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertSliceAndConcat(
   std::vector<int32_t> length = {out_w_, out_h_, out_channel_, 1};
   std::vector<std::vector<int32_t>> start_point;
 
-  for (int i = 0; i < batch_factor_h; i++) {
+  for (uint i = 0; i < batch_factor_h; i++) {
     axis_point_h[i] = 0 + i * (overlap_h + out_h);
   }
 
-  for (int i = 0; i < batch_factor_w; i++) {
+  for (uint i = 0; i < batch_factor_w; i++) {
     axis_point_w[i] = 0 + i * (overlap_w + out_w);
   }
 
-  for (int i = 0; i < batch_factor_h; i++) {
-    for (int j = 0; j < batch_factor_w; j++) {
+  for (uint i = 0; i < batch_factor_h; i++) {
+    for (uint j = 0; j < batch_factor_w; j++) {
       start_point.push_back({axis_point_w[j], axis_point_h[i], 0, 0});
     }
   }
 
   std::vector<std::shared_ptr<vx::Tensor>> tensors;
-  for (int i = 0; i < batch; i++) {
+  for (uint i = 0; i < batch; i++) {
     CREATE_AND_CONCAT_OP(i, start_point[i], length);
   }
   auto slice_shape = tensors[0]->GetSpec();
@@ -228,7 +228,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertSliceAndConcat(
 }
 
 std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
-    std::shared_ptr<vx::Tensor> input, bool is_graph_output,
+    std::shared_ptr<vx::Tensor> input,
     std::shared_ptr<vx::Tensor> src_in) {
   auto input_spec = input->GetSpec();    // whcn
   auto input_shape = input->GetShape();  // whcn
@@ -263,16 +263,16 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
   std::vector<uint32_t> axis_point_w(batch_factor_w, 0);
   std::vector<std::vector<uint32_t>> start_point;
 
-  for (int i = 0; i < batch_factor_h; i++) {
+  for (uint i = 0; i < batch_factor_h; i++) {
     axis_point_h[i] = 0 + i * (overlap_h + out_h);
   }
 
-  for (int i = 0; i < batch_factor_w; i++) {
+  for (uint i = 0; i < batch_factor_w; i++) {
     axis_point_w[i] = 0 + i * (overlap_w + out_w);
   }
 
-  for (int i = 0; i < batch_factor_w; i++) {
-    for (int j = 0; j < batch_factor_h; j++) {
+  for (uint i = 0; i < batch_factor_w; i++) {
+    for (uint j = 0; j < batch_factor_h; j++) {
       start_point.push_back({axis_point_w[i], axis_point_h[j], 0, 0});
     }
   }
@@ -284,13 +284,13 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
         in_channel, std::vector<std::vector<float>>(
                         batch_out_h, std::vector<float>(batch_out_w, 0)));
 
-    for (int i = 0; i < start_point.size(); i++) {
+    for (uint i = 0; i < start_point.size(); i++) {
       int w_start = start_point[i][0];
       int h_start = start_point[i][1];
       int c_start = start_point[i][2];
-      for (int c = 0; c < in_channel; c++) {
-        for (int h = 0; h < out_h; h++) {
-          for (int w = 0; w < out_w; w++) {
+      for (uint c = 0; c < in_channel; c++) {
+        for (uint h = 0; h < out_h; h++) {
+          for (uint w = 0; w < out_w; w++) {
             mask_data_float[c_start + c][h_start + h][w_start + w] = 1;
           }
         }
@@ -298,9 +298,9 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
     }
 
     std::vector<float> mask_vector_float;
-    for (int c = 0; c < in_channel; c++) {
-      for (int h = 0; h < batch_out_h; h++) {
-        for (int w = 0; w < batch_out_w; w++) {
+    for (uint c = 0; c < in_channel; c++) {
+      for (uint h = 0; h < batch_out_h; h++) {
+        for (uint w = 0; w < batch_out_w; w++) {
           mask_vector_float.push_back(mask_data_float[c][h][w]);
         }
       }
@@ -316,13 +316,13 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
         in_channel, std::vector<std::vector<uint8_t>>(
                         batch_out_h, std::vector<uint8_t>(batch_out_w, 0)));
 
-    for (int i = 0; i < start_point.size(); i++) {
+    for (uint i = 0; i < start_point.size(); i++) {
       int w_start = start_point[i][0];
       int h_start = start_point[i][1];
       int c_start = start_point[i][2];
-      for (int c = 0; c < in_channel; c++) {
-        for (int h = 0; h < out_h; h++) {
-          for (int w = 0; w < out_w; w++) {
+      for (uint c = 0; c < in_channel; c++) {
+        for (uint h = 0; h < out_h; h++) {
+          for (uint w = 0; w < out_w; w++) {
             mask_data[c_start + c][h_start + h][w_start + w] = 1;
           }
         }
@@ -330,9 +330,9 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
     }
 
     std::vector<uint8_t> mask_vector;
-    for (int c = 0; c < in_channel; c++) {
-      for (int h = 0; h < batch_out_h; h++) {
-        for (int w = 0; w < batch_out_w; w++) {
+    for (uint c = 0; c < in_channel; c++) {
+      for (uint h = 0; h < batch_out_h; h++) {
+        for (uint w = 0; w < batch_out_w; w++) {
           mask_vector.push_back(mask_data[c][h][w]);
         }
       }
@@ -355,13 +355,13 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
 }
 
 std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPad(
-    std::shared_ptr<vx::Tensor> input, bool is_graph_output,
+    std::shared_ptr<vx::Tensor> input,
     std::shared_ptr<vx::Tensor> src_in) {
   auto input_spec = input->GetSpec();    // whcn
   auto input_shape = input->GetShape();  // whcn
 
-  uint32_t pad_h = 0;
-  uint32_t pad_w = 0;
+  // uint32_t pad_h = 0;
+  // uint32_t pad_w = 0;
   uint32_t out_h = input_shape[1];
   uint32_t out_w = input_shape[0];
 
@@ -431,7 +431,7 @@ void OpBatchFuse::OnOutputs(
         }
         if (batch == 1 && batch_src != 1) {
           auto slice_and_concat_out =
-              InsertSliceAndConcat(context_->GetMapedTensor(out), true, out);
+              InsertSliceAndConcat(context_->GetMapedTensor(out), out);
           auto slice_and_concat_out_shape = slice_and_concat_out->GetShape();
           context_->UpdateTensorMap(out, slice_and_concat_out);
           context_->UpdateTensorBatchFuseMap(slice_and_concat_out, out);
@@ -471,7 +471,7 @@ void OpBatchFuse::CloneGraph(
 
     auto out_shape = op_outputs[0]->GetShape();
     auto out_spec = op_outputs[0]->GetSpec();
-    auto batch = out_shape[3];
+
     vx::ShapeType new_shape = {out_shape[1], out_shape[2], out_shape[0],
                                fake_batch};
     // vx::TensorSpec new_spec(out_spec.datatype_, new_shape, out_spec.attr_);
@@ -494,7 +494,7 @@ void OpBatchFuse::CloneGraph(
         //graph input
         auto in_shape = input->GetShape();
         auto in_spec = input->GetSpec();
-        auto batch = in_shape[3];
+      
         vx::ShapeType new_shape = {in_shape[0], in_shape[1], in_shape[2],
                                    fake_batch};
         // vx::TensorSpec new_spec(in_spec.datatype_, new_shape, in_spec.attr_);

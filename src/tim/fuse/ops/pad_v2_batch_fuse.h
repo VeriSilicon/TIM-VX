@@ -25,7 +25,7 @@
 #define TIM_BATCH_FUSE_PADV2_BATCH_FUSE_H_
 
 #include "tim/vx/ops/pad.h"
-// #include "tim/vx/ops/pad_v2.h"
+#include "tim/vx/ops/pad_v2.h"
 
 #include "builtin_op_impl.h"
 // #include "permute_vector.h"
@@ -65,15 +65,15 @@ class PadV2BatchFuse : public OpBatchFuse {
 
     std::array<uint32_t, 4> pad = {front_size[0], front_size[1], back_size[0],
                                    back_size[1]};
-    context_->UpdateInitPad(input_tensor, pad);
+    // context_->UpdateInitPad(input_tensor, pad);
 
-    auto old_pad_init = context_->GetForwardPad(input_tensor);
-    for (int i = 0; i < pad.size(); i++) {
-      if (pad[i] > old_pad_init[i]) {
-        context_->UpdateForwardPad(input_tensor, pad);
-        break;
-      }
-    }
+    // auto old_pad_init = context_->GetForwardPad(input_tensor);
+    // for (int i = 0; i < pad.size(); i++) {
+    //   if (pad[i] > old_pad_init[i]) {
+    //     context_->UpdateForwardPad(input_tensor, pad);
+    //     break;
+    //   }
+    // }
 
     auto batch_fuse_shape_old = context_->GetPadInferShape(input_tensor);
 
@@ -115,7 +115,7 @@ class PadV2BatchFuse : public OpBatchFuse {
     vx::ShapeType output_batch_fuse_shape = {output_w, output_h,
                                              output_shape[2], 1};  //whcn, n = 1
     context_->UpdatePadInferShape(output_tensor, output_batch_fuse_shape);
-    context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
+    // context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
 
     next_tensors.push_back(output_tensor);
     return need_backward;
@@ -129,7 +129,7 @@ class PadV2BatchFuse : public OpBatchFuse {
     auto input_shape = input_tensor->GetShape();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
-    auto init_pad = context_->GetInitPad(input_tensor);
+    // auto init_pad = context_->GetInitPad(input_tensor);
     auto batch_fuse_shape_new = context_->GetPadInferShape(output_tensor);
     auto batch_fuse_shape_input = context_->GetPadInferShape(input_tensor);
 
@@ -166,15 +166,15 @@ class PadV2BatchFuse : public OpBatchFuse {
     new_pad[2] = new_pad[3];  //Greedy
 
     //Update pad map
-    auto old_pad_forward = context_->GetForwardPad(input_tensor);
-    // auto old_pad_backward = context_->GetBackwardPad(input_tensor);
-    for (int i = 0; i < new_pad.size(); i++) {
-      if (new_pad[i] > old_pad_forward[i]) {
-        context_->UpdateBackwardPad(input_tensor, new_pad);
-        context_->UpdateForwardPad(input_tensor, new_pad);
-        break;
-      }
-    }
+    // auto old_pad_forward = context_->GetForwardPad(input_tensor);
+    // // auto old_pad_backward = context_->GetBackwardPad(input_tensor);
+    // for (int i = 0; i < new_pad.size(); i++) {
+    //   if (new_pad[i] > old_pad_forward[i]) {
+    //     context_->UpdateBackwardPad(input_tensor, new_pad);
+    //     context_->UpdateForwardPad(input_tensor, new_pad);
+    //     break;
+    //   }
+    // }
 
     bool need_backward = false;
     if ((batch_fuse_shape_input[0] < batch_fuse_w_update_input) ||
@@ -216,9 +216,9 @@ class PadV2BatchFuse : public OpBatchFuse {
     // }
 
     if (batch != 1) {
-      auto pad_tensor = InsertPad(input_batch_fuse_tensor, false, input_tensor);
+      auto pad_tensor = InsertPad(input_batch_fuse_tensor, input_tensor);
       batch_fuse_tensor =
-          InsertPermuteAndReshape(pad_tensor, false, input_tensor);
+          InsertPermuteAndReshape(pad_tensor, input_tensor);
     } else {
       batch_fuse_tensor = input_batch_fuse_tensor;
     }

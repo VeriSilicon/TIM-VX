@@ -44,12 +44,12 @@ class ReshapeBatchFuse : public OpBatchFuse {
     auto i_src_shape = i_src->GetShape();
     auto o_src = op_->impl()->OutputsTensor()[0];
     auto o_src_shape = o_src->GetShape();
-    auto pad = context_->GetForwardPad(i_src);
+    // auto pad = context_->GetForwardPad(i_src);
     auto i_infer_shape = context_->GetPadInferShape(i_src);
 
     // same as input
-    context_->UpdateInitPad(o_src, {0, 0, 0, 0});
-    context_->UpdateForwardPad(o_src, pad);
+    // context_->UpdateInitPad(o_src, {0, 0, 0, 0});
+    // context_->UpdateForwardPad(o_src, pad);
     context_->UpdatePadInferShape(o_src, o_src_shape);
 
     auto gap = context_->GetForwardGap(i_src);
@@ -60,19 +60,12 @@ class ReshapeBatchFuse : public OpBatchFuse {
 
   bool PadBackwardInference(
       std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+    auto i_src = op_->impl()->InputsTensor()[0];
+     former_tensors.push_back(i_src);
+     former_tensors.pop_back();
     return false;
   }
 
-#define CREATE_AND_CONCAT_OP(idx, start, length)                             \
-  \               
-    auto idx##_op =                                                          \
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Slice>(0, start, \
-                                                                   length);  \
-  vx::ShapeType idx##_shape({out_channel, out_w, out_h, 1});                 \
-  auto idx##_spec = i_src_spec.SetShape(idx##_shape);                  \
-  auto idx##_tensor = context_->batch_fuse_graph_->CreateTensor(idx##_spec); \
-  (*idx##_op).BindInput(i_src_batch_fuse).BindOutput(idx##_tensor);          \
-  tensors.push_back(idx##_tensor);
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensor) override {
@@ -122,22 +115,22 @@ class ReshapeBatchFuse : public OpBatchFuse {
         std::vector<int32_t> length = {out_channel_, out_w_, out_h_, 1};
         std::vector<std::vector<int32_t>> start_point;
 
-        for (int i = 0; i < batch_factor_h; i++) {
+        for (uint i = 0; i < batch_factor_h; i++) {
           axis_point_h[i] = 0 + i * (overlap_h + out_h);
         }
 
-        for (int i = 0; i < batch_factor_w; i++) {
+        for (uint i = 0; i < batch_factor_w; i++) {
           axis_point_w[i] = 0 + i * (overlap_w + out_w);
         }
 
-        for (int i = 0; i < batch_factor_w; i++) {
-          for (int j = 0; j < batch_factor_h; j++) {
+        for (uint i = 0; i < batch_factor_w; i++) {
+          for (uint j = 0; j < batch_factor_h; j++) {
             start_point.push_back({0, axis_point_w[j], axis_point_h[i], 0});
           }
         }
 
         std::vector<std::shared_ptr<vx::Tensor>> tensors;
-        for (int i = 0; i < batch; i++) {
+        for (uint i = 0; i < batch; i++) {
           CREATE_AND_CONCAT_OP(i, start_point[i], length);
         }
         auto slice_shape = tensors[0]->GetSpec();
