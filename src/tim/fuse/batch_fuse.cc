@@ -40,12 +40,8 @@ void BatchFuseContext::MarkVisited(const std::shared_ptr<vx::Operation>& op) {
 
 bool BatchFuseContext::IsVisited(
     const std::shared_ptr<vx::Operation>& op) const {
-  if (visited_op_.end() !=
-      std::find(visited_op_.begin(), visited_op_.end(), op)) {
-    return true;
-  } else {
-    return false;
-  }
+  return (visited_op_.end() !=
+      std::find(visited_op_.begin(), visited_op_.end(), op));
 }
 
 bool BatchFuseContext::IsReadyForBatchFuse(
