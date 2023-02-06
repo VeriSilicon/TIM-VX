@@ -44,6 +44,11 @@ class PadLayoutInfer : public OpLayoutInfer {
     auto i_src = op_->impl()->InputsTensor()[0];
     auto input_pv = context_->GetPermuteVector(i_src);
 
+    if (i_src->GetSpec().attr_ & tim::vx::TensorAttribute::INPUT){
+      input_pv = std::make_shared<PermuteVector<4>>(kCWHN2WHCN);
+      context_->UpdateTensorMap(i_src, InsertPermute(context_->GetMapedTensor(i_src), input_pv));
+    }
+    
     uint32_t dim_num = op_->impl()->node()->nn_param.pad.dim_num;
     std::vector<uint32_t> front_size(dim_num);
     std::vector<uint32_t> back_size(dim_num);
