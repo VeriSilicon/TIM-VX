@@ -52,6 +52,7 @@ class ReduceBatchFuse : public OpBatchFuse {
     context_->UpdateForwardPad(input_tensor, {0, 0, 0, 0});
     context_->UpdatePadInferShape(output_tensor, output_shape);
     context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
+    context_->UpdateForwardGap(output_tensor, {0, 0});
     next_tensors.push_back(output_tensor);
     return false;
   }

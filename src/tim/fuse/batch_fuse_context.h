@@ -34,6 +34,11 @@ class BatchFuseContext {
   void UpdateForwardPad(const std::shared_ptr<vx::Tensor>& t_src,
                         const std::array<uint32_t, 4>& pad);
 
+  void UpdateBackwardGap(const std::shared_ptr<vx::Tensor>& t_src,
+                         const std::array<uint32_t, 2>& pad);
+  void UpdateForwardGap(const std::shared_ptr<vx::Tensor>& t_src,
+                        const std::array<uint32_t, 2>& pad);
+  
   void UpdatePadInferShape(const std::shared_ptr<vx::Tensor>& t_src,
                         const ShapeType& shape);
 
@@ -57,7 +62,13 @@ class BatchFuseContext {
 
   std::array<uint32_t, 4> GetForwardPad(
       const std::shared_ptr<vx::Tensor>& t_src) const;
+  
+  std::array<uint32_t, 2> GetBackwardGap(
+      const std::shared_ptr<vx::Tensor>& t_src) const;
 
+  std::array<uint32_t, 2> GetForwardGap(
+      const std::shared_ptr<vx::Tensor>& t_src) const;
+  
   ShapeType GetPadInferShape(
       const std::shared_ptr<vx::Tensor>& t_src) const;
 
@@ -116,6 +127,10 @@ class BatchFuseContext {
   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>>
       forward_pad_map_;
 
+  std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 2>>
+      backward_gap_map_;
+  std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 2>>
+      forward_gap_map_;
   //t_src -> fused_tensor for pad inference
   std::map<std::shared_ptr<vx::Tensor>, ShapeType>
       pad_infer_shape_map_;

@@ -51,6 +51,9 @@ class ReshapeBatchFuse : public OpBatchFuse {
     context_->UpdateInitPad(o_src, {0, 0, 0, 0});
     context_->UpdateForwardPad(o_src, pad);
     context_->UpdatePadInferShape(o_src, o_src_shape);
+
+    auto gap = context_->GetForwardGap(i_src);
+    context_->UpdateForwardGap(o_src, gap);
     next_tensors.push_back(o_src);
     return false;
   }

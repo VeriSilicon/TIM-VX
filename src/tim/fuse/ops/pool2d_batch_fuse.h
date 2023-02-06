@@ -68,23 +68,37 @@ class Pool2dBatchFuse : public OpBatchFuse {
         op_->impl()->node()->nn_param.pool.pad[2],
         op_->impl()->node()->nn_param.pool.pad[3]};  // {0, 0, 0, 0}
 
+    std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
-      if (pad_type == vx::PadType::SAME) {
+      if (pad_type == vx::PadType::SAME || pad_type == vx::PadType::VALID) {
         //cal pad and map init pad
-        auto p_w =
+        int32_t p_w =
             stride[0] * output_shape[0] - input_shape[0] + ksize[0] - stride[0];
-        auto p_h =
+        int32_t p_h =
             stride[1] * output_shape[1] - input_shape[1] + ksize[1] - stride[1];
 
         //pad[1] >= pad[0], pad[3] >= pad[2]
-        pad[0] = p_w / 2;       //p_w_front
-        pad[1] = p_w - pad[0];  //p_w_end
-        pad[2] = p_h / 2;       //p_h_front
-        pad[3] = p_h - pad[2];  //p_h_end
+        int_pad[0] = p_w / 2;       //p_w_front
+        int_pad[1] = p_w - int_pad[0];  //p_w_end
+        int_pad[2] = p_h / 2;       //p_h_front
+        int_pad[3] = p_h - int_pad[2];  //p_h_end
 
       } else {
         //AUTO how to pad?
       }
+    }
+    if (int_pad[0] > 0 || int_pad[1] > 0 || int_pad[2] > 0 || int_pad[3] > 0){
+      // do not batch fuse and pad inside
+      context_->UpdateInitPad(input_tensor, pad);
+      context_->UpdateForwardPad(input_tensor, {0, 0, 0, 0});
+      context_->UpdatePadInferShape(input_tensor, input_shape);
+      context_->UpdatePadInferShape(output_tensor, output_shape);
+      context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
+
+      context_->UpdateForwardGap(input_tensor, {0, 0});
+      context_->UpdateForwardGap(output_tensor, {0, 0});
+      next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
+      return false;
     }
     //update init pad
     context_->UpdateInitPad(input_tensor, pad);
@@ -109,10 +123,23 @@ class Pool2dBatchFuse : public OpBatchFuse {
                               batch_fuse_shape_old[2], 1};
       context_->UpdatePadInferShape(input_tensor, batch_fuse_shape_old);
     }
-    auto batch_fuse_w_new = input_shape[0] * batch_factor_w +
-                            (batch_factor_w - 1) * pad[1];  //pad[1] >= pad[0]
-    auto batch_fuse_h_new = input_shape[1] * batch_factor_h +
-                            (batch_factor_h - 1) * pad[3];  //pad[3] >= pad[2]
+    
+    std::array<uint32_t, 2> gap = {0, 0};
+    auto m_w = ceil((float_t)(ksize[0] - int_pad[0] - int_pad[1]) / (float_t)stride[0]);
+    auto m_h = ceil((float_t)(ksize[1] - int_pad[2] - int_pad[3]) / (float_t)stride[1]);
+    gap[0] = (m_w + 2) * stride[0] + int_pad[0] + int_pad[1] - ksize[0];
+    gap[1] = (m_h + 2) * stride[1] + int_pad[2] + int_pad[3] - ksize[1];
+    context_->UpdateForwardGap(input_tensor, gap);
+    auto batch_fuse_w_new =
+        input_shape[0] * batch_factor_w + (batch_factor_w - 1) * gap[0];
+    auto batch_fuse_h_new =
+        input_shape[1] * batch_factor_h + (batch_factor_h - 1) * gap[1];
+
+    
+    // auto batch_fuse_w_new = input_shape[0] * batch_factor_w +
+    //                         (batch_factor_w - 1) * pad[1];  //pad[1] >= pad[0]
+    // auto batch_fuse_h_new = input_shape[1] * batch_factor_h +
+    //                         (batch_factor_h - 1) * pad[3];  //pad[3] >= pad[2]
     vx::ShapeType batch_fuse_shape_new = {batch_fuse_w_new, batch_fuse_h_new,
                                           input_shape[2], 1};  //whcn, n = 1
 
@@ -134,16 +161,15 @@ class Pool2dBatchFuse : public OpBatchFuse {
     //cal the batch fused output shape of this conv2d
     uint32_t batch_fuse_w_update_output = 0;
     uint32_t batch_fuse_h_update_output = 0;
-    batch_fuse_w_update_output =
-        ceil((float_t)(input_w - ksize[0] + pad[0] + pad[1]) /
-                  (float_t)(stride[0]) +
-              1);
-    batch_fuse_h_update_output =
-        ceil((float_t)(input_h - ksize[1] + pad[2] + pad[3]) /
-                  (float_t)(stride[1]) + 1);
+    batch_fuse_w_update_output = ceil(
+        (float_t)(input_w - ksize[0] + int_pad[0] + int_pad[1]) / (float_t)(stride[0]) +
+        1);
+    batch_fuse_h_update_output = ceil(
+        (float_t)(input_h - ksize[1] + int_pad[2] + int_pad[3]) / (float_t)(stride[1]) +
+        1);
 
-    vx::ShapeType batch_fuse_shape_update = {input_w, input_h,
-                                          input_shape[2], 1};  //whcn, n = 1
+    vx::ShapeType batch_fuse_shape_update = {input_w, input_h, input_shape[2],
+                                             1};  //whcn, n = 1
     context_->UpdatePadInferShape(input_tensor, batch_fuse_shape_update);
 
     //update output tensor -> fused tensor shape with this temporary pad
@@ -152,6 +178,10 @@ class Pool2dBatchFuse : public OpBatchFuse {
                                              output_shape[2], 1};  //whcn, n = 1
     context_->UpdatePadInferShape(output_tensor, output_batch_fuse_shape);
     context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
+    auto out_gap_w = (batch_fuse_w_update_output - output_shape[0] * batch_factor_w) / (batch_factor_w - 1);
+    auto out_gap_h = (batch_fuse_w_update_output - output_shape[0] * batch_factor_w) / (batch_factor_w - 1);
+    std::array<uint32_t, 2> output_gap = {out_gap_w, out_gap_h};
+    context_->UpdateForwardGap(output_tensor, output_gap);
 
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
     // former_tensors.push_back(op_->impl()->OutputsTensor()[0]);
@@ -191,33 +221,49 @@ class Pool2dBatchFuse : public OpBatchFuse {
         op_->impl()->node()->nn_param.pool.pad[2],
         op_->impl()->node()->nn_param.pool.pad[3]};  // {0, 0, 0, 0}
 
-
+    std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
       if (pad_type == vx::PadType::SAME) {
         //cal pad and map init pad
-        auto p_w = stride[0] * output_shape[0] - input_shape[0] +
-                   ksize[0] - stride[0];
-        auto p_h = stride[1] * output_shape[1] - input_shape[1] +
-                   ksize[1] - stride[1];
+        int32_t p_w =
+            stride[0] * output_shape[0] - input_shape[0] + ksize[0] - stride[0];
+        int32_t p_h =
+            stride[1] * output_shape[1] - input_shape[1] + ksize[1] - stride[1];
 
         //pad[1] >= pad[0], pad[3] >= pad[2]
-        pad[0] = p_w / 2;       //p_w_front
-        pad[1] = p_w - pad[0];  //p_w_end
-        pad[2] = p_h / 2;       //p_h_front
-        pad[3] = p_h - pad[2];  //p_h_end
+        int_pad[0] = p_w / 2;       //p_w_front
+        int_pad[1] = p_w - int_pad[0];  //p_w_end
+        int_pad[2] = p_h / 2;       //p_h_front
+        int_pad[3] = p_h - int_pad[2];  //p_h_end
 
       } else {
         //AUTO how to pad?
       }
     }
 
+    if (int_pad[0] > 0 || int_pad[1] > 0 || int_pad[2] > 0 || int_pad[3] > 0){
+      context_->UpdateForwardGap(output_tensor, context_->GetForwardGap(output_tensor));
+      context_->UpdatePadInferShape(output_tensor, context_->GetPadInferShape(output_tensor));
+      return false;
+    }
+    
+    std::array<uint32_t, 2> gap_input = {0, 0};
+    std::array<uint32_t, 2> gap_output = context_->GetForwardGap(output_tensor);
+    gap_input[0] = stride[0] * (gap_output[0] + 1) + int_pad[0] + int_pad[1];
+    gap_input[1] = stride[1] * (gap_output[1] + 1) + int_pad[2] + int_pad[3];
+    context_->UpdateForwardGap(input_tensor, gap_input);
+
+    uint32_t batch_fuse_w_update_input =
+        input_shape[0] * batch_factor_w + (batch_factor_w - 1) * gap_input[0];
+
+    uint32_t batch_fuse_h_update_input =
+        input_shape[1] * batch_factor_h + (batch_factor_h - 1) * gap_input[1];
+    
     //Computes the size of the updated input using the output of the smallest known size
-    uint32_t batch_fuse_w_update_input = stride[0] * batch_fuse_shape_new[0] -
-                                         pad[0] - pad[1] + ksize[0] -
-                                         stride[0];
-    uint32_t batch_fuse_h_update_input = stride[1] * batch_fuse_shape_new[1] -
-                                         pad[2] - pad[3] + ksize[1] -
-                                         stride[1];
+    // uint32_t batch_fuse_w_update_input = stride[0] * batch_fuse_shape_new[0] -
+    //                                      pad[0] - pad[1] + ksize[0] - stride[0];
+    // uint32_t batch_fuse_h_update_input = stride[1] * batch_fuse_shape_new[1] -
+    //                                      pad[2] - pad[3] + ksize[1] - stride[1];
 
     //Computes the new pad size of updated input
     std::array<uint32_t, 4> new_pad = {0, 0, 0, 0};
@@ -264,14 +310,12 @@ class Pool2dBatchFuse : public OpBatchFuse {
     uint32_t batch_fuse_h_update_output = 0;
 
     batch_fuse_w_update_output =
-        ceil((float_t)(batch_fuse_w_update_input + pad[0] + pad[1] -
-                        ksize[0]) /
-              (float_t)(stride[0])) +
+        ceil((float_t)(batch_fuse_w_update_input + int_pad[0] + int_pad[1] - ksize[0]) /
+             (float_t)(stride[0])) +
         1;
     batch_fuse_h_update_output =
-        ceil((float_t)(batch_fuse_h_update_input + pad[2] + pad[3] -
-                        ksize[1]) /
-              (float_t)(stride[1])) +
+        ceil((float_t)(batch_fuse_h_update_input + int_pad[2] + int_pad[3] - ksize[1]) /
+             (float_t)(stride[1])) +
         1;
 
     vx::ShapeType output_batch_fuse_shape = {batch_fuse_w_update_output,
@@ -313,25 +357,25 @@ class Pool2dBatchFuse : public OpBatchFuse {
         op_->impl()->node()->nn_param.pool.pad[2],
         op_->impl()->node()->nn_param.pool.pad[3]};  // {0, 0, 0, 0}
     
+    std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
       if (pad_type == vx::PadType::SAME) {
         //cal pad and map init pad
-        auto p_w = stride[0] * output_shape[0] - input_shape[0] +
-                   ksize[0] - stride[0];
-        auto p_h = stride[1] * output_shape[1] - input_shape[1] +
-                   ksize[1] - stride[1];
+        int32_t p_w =
+            stride[0] * output_shape[0] - input_shape[0] + ksize[0] - stride[0];
+        int32_t p_h =
+            stride[1] * output_shape[1] - input_shape[1] + ksize[1] - stride[1];
 
         //pad[1] >= pad[0], pad[3] >= pad[2]
-        pad[0] = p_w / 2;       //p_w_front
-        pad[1] = p_w - pad[0];  //p_w_end
-        pad[2] = p_h / 2;       //p_h_front
-        pad[3] = p_h - pad[2];  //p_h_end
+        int_pad[0] = p_w / 2;       //p_w_front
+        int_pad[1] = p_w - int_pad[0];  //p_w_end
+        int_pad[2] = p_h / 2;       //p_h_front
+        int_pad[3] = p_h - int_pad[2];  //p_h_end
 
       } else {
         //AUTO how to pad?
       }
     }
-
 
     // auto sqrt_batch = sqrt(batch_src);
     uint32_t batch_factor_w = ClosestFactors(batch).first;
@@ -342,28 +386,40 @@ class Pool2dBatchFuse : public OpBatchFuse {
     uint32_t out_h_batch = 0;
 
     if (batch != 1) {
-      auto pad_tensor = InsertPad(input_batch_fuse_tensor, false, input_tensor);
-      batch_fuse_tensor =
-          InsertPermuteAndReshape(pad_tensor, false, input_tensor);
+      if (int_pad[0] <= 0 && int_pad[1] <= 0 && int_pad[2] <= 0 && int_pad[3] <= 0)
+      // pool wont be effected by pad value
+      {
+        auto pad_tensor =
+            InsertPad(input_batch_fuse_tensor, false, input_tensor);
+        batch_fuse_tensor =
+            InsertPermuteAndReshape(pad_tensor, false, input_tensor);
+      } else {
+        // do not batch fuse
+        batch_fuse_tensor = input_tensor;
+      }
     } else {
-      batch_fuse_tensor = input_batch_fuse_tensor;
+      //fused before
+      if (int_pad[0] <= 0 && int_pad[1] <= 0 && int_pad[2] <= 0 && int_pad[3] <= 0) {
+        batch_fuse_tensor = input_batch_fuse_tensor;
+      } else {
+        // do not batch fuse
+        batch_fuse_tensor = InsertSliceAndConcat(input_batch_fuse_tensor, false, input_tensor);
+      }
     }
     auto batch_fuse_shape = batch_fuse_tensor->GetShape();
 
     out_w_batch =
-        ceil((float_t)(batch_fuse_shape[0] - ksize[0] + pad[0] + pad[1]) /
-              (float_t)(stride[0])) +
+        ceil((float_t)(batch_fuse_shape[0] - ksize[0] + int_pad[0] + int_pad[1]) /
+             (float_t)(stride[0])) +
         1;
     out_h_batch =
-        ceil((float_t)(batch_fuse_shape[1] - ksize[1] + pad[2] + pad[3]) /
-              (float_t)(stride[1])) +
+        ceil((float_t)(batch_fuse_shape[1] - ksize[1] + int_pad[2] + int_pad[3]) /
+             (float_t)(stride[1])) +
         1;
 
     tim::vx::ShapeType pool_output_shape(
-        {out_w_batch, out_h_batch, channel, 1});  //whcn
-    // tim::vx::TensorSpec pool_output_spec(input_tensor->GetDataType(),
-    //                                      pool_output_shape,
-    //                                      tim::vx::TensorAttribute::TRANSIENT);
+        {out_w_batch, out_h_batch, channel, batch_fuse_shape[3]});  //whcn
+    
     auto output_spec = output_tensor->GetSpec();
     auto pool_output_spec = output_spec.SetShape(pool_output_shape);
     pool2d_out_tensor =
@@ -375,12 +431,12 @@ class Pool2dBatchFuse : public OpBatchFuse {
     context_->UpdateTensorBatchFuseMap(pool2d_out_tensor, output_tensor);
 
     //inser mask
-    if (batch_fuse_tensor->GetShape()[3] == 1 && batch_src != 1){
+    if (batch_fuse_tensor->GetShape()[3] == 1 && batch_src != 1) {
       auto masked_input = InsertMask(batch_fuse_tensor, false, input_tensor);
       context_->UpdateTensorMap(input_tensor, masked_input);
       // context_->UpdateTensorMap(input_tensor, batch_fuse_tensor);
     }
-  
+
     auto pool2d = context_->batch_fuse_graph_->CreateOperation<vx::ops::Pool2d>(
         pool_type, pad_type, ksize, stride, round_type, vx::DataLayout::WHCN);
 

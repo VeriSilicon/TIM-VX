@@ -44,15 +44,34 @@ class ConcatBatchFuse : public OpBatchFuse {
     auto i_src = op_->impl()->InputsTensor();
     auto i_src_map_0 = context_->GetPadInferShape(i_src[0]);
     auto i_src_map_1 = context_->GetPadInferShape(i_src[1]);
+
     uint32_t batch = o_src_shape[3];
+    if (i_src_map_0[0] != i_src_map_1[0] && i_src_map_0[1] != i_src_map_1[1] && i_src_map_0[3] != i_src_map_1[3]){
+      if (i_src_map_0[3] == 1) {
+        auto i_src_gap_0 = context_->GetForwardGap(i_src[0]);
+        context_->UpdateForwardGap(o_src, i_src_gap_0);
+        
+        context_->UpdatePadInferShape(o_src, {i_src_map_0[0], i_src_map_0[1], i_src_map_0[2] + i_src_map_1[2], i_src_map_0[3]});
+      }
+      if (i_src_map_1[3] == 1) {
+        auto i_src_gap_1 = context_->GetForwardGap(i_src[1]);
+        context_->UpdateForwardGap(o_src, i_src_gap_1);
+        context_->UpdatePadInferShape(o_src, {i_src_map_1[0], i_src_map_1[1], i_src_map_0[2] + i_src_map_1[2], i_src_map_1[3]});
+      }
+    } else {
+      auto i_src_gap_0 = context_->GetForwardGap(i_src[0]);
+      context_->UpdateForwardGap(o_src, i_src_gap_0);
+      context_->UpdatePadInferShape(o_src,{i_src_map_0[0], i_src_map_0[1], i_src_map_0[2] + i_src_map_1[2], i_src_map_0[3]});
+    }
 
     context_->UpdateInitPad(i_src[0], {0, 0, 0, 0});
     context_->UpdateInitPad(i_src[1], {0, 0, 0, 0});
     context_->UpdateForwardPad(i_src[0], context_->GetForwardPad(i_src[0]));
     context_->UpdateForwardPad(i_src[1], context_->GetForwardPad(i_src[1]));
-    context_->UpdatePadInferShape(o_src, i_src_map_0);
+
     next_tensors.push_back(o_src);
     context_->UpdateForwardPad(o_src, {0, 0, 0, 0});
+
     return false;
   }
 
@@ -64,14 +83,22 @@ class ConcatBatchFuse : public OpBatchFuse {
     auto i_src_map_1 = context_->GetPadInferShape(i_src[1]);
     // auto map_shape_0 = i_src_map_0->GetShape();
     // auto map_shape_1 = i_src_map_1->GetShape();
-    if (i_src_map_0 == i_src_map_1) {
+    if (i_src_map_0[0] == i_src_map_1[0] && i_src_map_0[1] == i_src_map_1[1] && i_src_map_0[3] == i_src_map_1[3]) {
       // continue to backward
       former_tensors.push_back(i_src[0]);
       former_tensors.push_back(i_src[1]);
+      auto out_shape = context_->GetPadInferShape(o_src);
       context_->UpdatePadInferShape(i_src[0],
-                                    context_->GetPadInferShape(o_src));
+                                    {out_shape[0], out_shape[1], i_src_map_0[2], out_shape[3]});
       context_->UpdatePadInferShape(i_src[1],
-                                    context_->GetPadInferShape(o_src));
+                                    {out_shape[0], out_shape[1], i_src_map_1[2], out_shape[3]});
+      auto gap_1 = context_->GetForwardGap(i_src[0]);
+      auto gap_2 = context_->GetForwardGap(i_src[1]);
+      auto gap = context_->GetForwardGap(o_src);
+      if (gap_1 == gap_2){
+          context_->UpdateForwardGap(i_src[0], gap);
+          context_->UpdateForwardGap(i_src[1], gap);
+      }
       return true;
     }
     //else backward break
@@ -87,6 +114,22 @@ class ConcatBatchFuse : public OpBatchFuse {
     auto i_src_map_1 = context_->GetMapedTensor(i_src[1]);
     auto map_shape_0 = i_src_map_0->GetShape();
     auto map_shape_1 = i_src_map_1->GetShape();
+    if (map_shape_0 != map_shape_1) {
+      if (map_shape_0[3] != 1) {
+        auto pad_tensor = InsertPad(i_src_map_0, false, i_src_map_0);
+        auto batch_fuse_tensor_0 =
+            InsertPermuteAndReshape(pad_tensor, false, i_src_map_0);
+        context_->UpdateTensorMap(i_src[0], batch_fuse_tensor_0);
+        map_shape_0 = batch_fuse_tensor_0->GetShape();
+      }
+      if (map_shape_1[3] != 1) {
+        auto pad_tensor = InsertPad(i_src_map_1, false, i_src_map_1);
+        auto batch_fuse_tensor_1 =
+            InsertPermuteAndReshape(pad_tensor, false, i_src_map_1);
+        context_->UpdateTensorMap(i_src[1], batch_fuse_tensor_1);
+        map_shape_1 = batch_fuse_tensor_1->GetShape();
+      }
+    }
 
     auto axis = op_->impl()->node()->nn_param.concat.axis;
     auto concat = context_->batch_fuse_graph_->CreateOperation<vx::ops::Concat>(
@@ -107,8 +150,8 @@ class ConcatBatchFuse : public OpBatchFuse {
     auto o_src_spec = o_src->GetSpec();
     auto out_spec = o_src_spec.SetShape(out_shape);
     // vx::TensorSpec out_spec(o_src->GetSpec().datatype_, out_shape,
-                            // o_src->GetSpec().attr_);
-    
+    // o_src->GetSpec().attr_);
+
     auto out_concat = context_->batch_fuse_graph_->CreateTensor(out_spec);
 
     (*concat).BindOutput(out_concat);

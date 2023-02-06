@@ -51,6 +51,9 @@ class ActivationBatchFuse : public OpBatchFuse {
     context_->UpdateInitPad(o_src, {0, 0, 0, 0});
     context_->UpdateForwardPad(o_src, pad);
     context_->UpdatePadInferShape(o_src, i_infer_shape);
+
+    auto gap = context_->GetForwardGap(i_src);
+    context_->UpdateForwardGap(o_src, gap);
     next_tensors.push_back(o_src);
     return false;
   }
@@ -64,6 +67,8 @@ class ActivationBatchFuse : public OpBatchFuse {
     auto pad = context_->GetForwardPad(i_src);
     auto i_infer_shape = context_->GetPadInferShape(i_src);
     auto o_infer_shape = context_->GetPadInferShape(o_src);
+    auto gap = context_->GetForwardGap(o_src);
+    context_->UpdateForwardGap(i_src, gap);
     
     //pass new infered shape to input of activation
     context_->UpdatePadInferShape(i_src, o_infer_shape);

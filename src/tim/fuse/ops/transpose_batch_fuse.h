@@ -53,6 +53,8 @@ class TransposeBatchFuse : public OpBatchFuse {
     context_->UpdateInitPad(o_src, {0, 0, 0, 0});
     context_->UpdateForwardPad(o_src, pad);
     context_->UpdatePadInferShape(o_src, o_src_shape);
+    auto gap = context_->GetForwardGap(i_src);
+    context_->UpdateForwardGap(o_src, gap);
     next_tensors.push_back(o_src);
     return false;
   }
@@ -68,7 +70,7 @@ class TransposeBatchFuse : public OpBatchFuse {
       context_->batch_fuse_graph_->CreateOperation<vx::ops::Slice>(0, start, \
                                                                    length);  \
   vx::ShapeType idx##_shape({out_w, out_h, out_channel, 1});                 \
-  auto idx##_spec = i_src_spec.SetShape(idx##_shape);                        \
+  auto idx##_spec = i_src_spec.SetShape(idx##_shape);                  \
   auto idx##_tensor = context_->batch_fuse_graph_->CreateTensor(idx##_spec); \
   (*idx##_op).BindInput(i_src_batch_fuse).BindOutput(idx##_tensor);          \
   tensors.push_back(idx##_tensor);

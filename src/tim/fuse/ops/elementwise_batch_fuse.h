@@ -78,6 +78,8 @@ class ElementWiseBatchFuse : public OpBatchFuse {
     }
     next_tensors.push_back(o_src);
     context_->UpdateForwardPad(o_src, {0, 0, 0, 0});
+    auto output_gap = context_->GetForwardGap(i_src[0]);
+    context_->UpdateForwardGap(o_src, output_gap);
     return false;
   }
   bool PadBackwardInference(
@@ -96,6 +98,13 @@ class ElementWiseBatchFuse : public OpBatchFuse {
                                     context_->GetPadInferShape(o_src));
       context_->UpdatePadInferShape(i_src[1],
                                     context_->GetPadInferShape(o_src));
+      auto gap_1 = context_->GetForwardGap(i_src[0]);
+      auto gap_2 = context_->GetForwardGap(i_src[1]);
+      auto gap = context_->GetForwardGap(o_src);
+      if (gap_1 == gap_2){
+          context_->UpdateForwardGap(i_src[0], gap);
+          context_->UpdateForwardGap(i_src[1], gap);
+      }
       return true;
     }
     //else backward break

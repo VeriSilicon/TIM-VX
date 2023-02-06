@@ -116,6 +116,18 @@ void BatchFuseContext::UpdateForwardPad(
   forward_pad_map_[t_src] = pad;
 }
 
+void BatchFuseContext::UpdateBackwardGap(
+    const std::shared_ptr<vx::Tensor>& t_src,
+    const std::array<uint32_t, 2>& pad) {
+  backward_gap_map_[t_src] = pad;
+}
+
+void BatchFuseContext::UpdateForwardGap(
+    const std::shared_ptr<vx::Tensor>& t_src,
+    const std::array<uint32_t, 2>& pad) {
+  forward_gap_map_[t_src] = pad;
+}
+
 void BatchFuseContext::UpdatePadInferShape(
     const std::shared_ptr<vx::Tensor>& t_src, const ShapeType& shape) {
   pad_infer_shape_map_[t_src] = shape;
@@ -191,6 +203,19 @@ std::array<uint32_t, 4> BatchFuseContext::GetBackwardPad(
   return {};
 }
 
+std::array<uint32_t, 2> BatchFuseContext::GetBackwardGap(
+    const std::shared_ptr<vx::Tensor>& t_src) const {
+  auto it = backward_gap_map_.find(t_src);
+  if (it != backward_gap_map_.end()) {
+    return it->second;
+  } else {
+    VSILOGE("Tensor has not beed inserted in backward gap map.");
+    assert(false);
+  }
+
+  return {};
+}
+
 std::array<uint32_t, 4> BatchFuseContext::GetForwardPad(
     const std::shared_ptr<vx::Tensor>& t_src) const {
   auto it = forward_pad_map_.find(t_src);
@@ -198,6 +223,19 @@ std::array<uint32_t, 4> BatchFuseContext::GetForwardPad(
     return it->second;
   } else {
     VSILOGE("Tensor has not beed inserted in forward pad map.");
+    assert(false);
+  }
+
+  return {};
+}
+
+std::array<uint32_t, 2> BatchFuseContext::GetForwardGap(
+    const std::shared_ptr<vx::Tensor>& t_src) const {
+  auto it = forward_gap_map_.find(t_src);
+  if (it != forward_gap_map_.end()) {
+    return it->second;
+  } else {
+    VSILOGE("Tensor has not beed inserted in forward gap map.");
     assert(false);
   }
 
@@ -415,6 +453,7 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
     batch_fuse_ctx->UpdateGraphInputMap(t_src, input);
     batch_fuse_ctx->UpdatePadInferShape(t_src, t_src->GetShape());
     batch_fuse_ctx->UpdateForwardPad(t_src, {0, 0, 0, 0});
+    batch_fuse_ctx->UpdateForwardGap(t_src, {0, 0});
     tensor_queue.push_back(t_src);
     tensor_queue_pad_forward.push_back(t_src);
     tensor_clone_queue.push_back(t_src);
@@ -430,6 +469,7 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
     batch_fuse_ctx->UpdateTensorBatchFuseMap(input, const_in);
     batch_fuse_ctx->UpdatePadInferShape(const_in, const_in->GetShape());
     batch_fuse_ctx->UpdateForwardPad(const_in, {0, 0, 0, 0});
+    batch_fuse_ctx->UpdateForwardGap(const_in, {0, 0});
     tensor_queue.push_back(const_in);
     tensor_queue_pad_forward.push_back(const_in);
     tensor_clone_queue.push_back(const_in);

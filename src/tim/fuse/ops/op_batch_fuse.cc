@@ -130,10 +130,9 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
       (reshape_2_shape[1] > pad_infer_shape[1])) {
     //has pad inside
     //slice back and bottom
-
-    // pad_infer_shape = {480, 480, in_channel, 1}; //resnet quant model
+    // vx::ShapeType fake_pad_shape({480, 480, in_channel, 1});
+    // auto slice_spec = in_spec.SetShape(fake_pad_shape);
     auto slice_spec = in_spec.SetShape(pad_infer_shape);
-
     auto slice_tensor = context_->batch_fuse_graph_->CreateTensor(slice_spec);
     std::vector<int32_t> length = {(int32_t)pad_infer_shape[0],
                                    (int32_t)pad_infer_shape[1],
@@ -278,41 +277,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
     }
   }
   std::vector<uint32_t> length = {out_w, out_h, in_channel, 1};
-
-  std::vector<std::vector<std::vector<uint8_t>>> mask_data(
-      in_channel, std::vector<std::vector<uint8_t>>(
-                      batch_out_h, std::vector<uint8_t>(batch_out_w, 0)));
-
-  for (int i = 0; i < start_point.size(); i++) {
-    int w_start = start_point[i][0];
-    int h_start = start_point[i][1];
-    int c_start = start_point[i][2];
-    for (int c = 0; c < in_channel; c++) {
-      for (int h = 0; h < out_h; h++) {
-        for (int w = 0; w < out_w; w++) {
-          mask_data[c_start + c][h_start + h][w_start + w] = 1;
-        }
-      }
-    }
-  }
-
-  std::vector<uint8_t> mask_vector;
-  for (int c = 0; c < in_channel; c++) {
-    for (int h = 0; h < batch_out_h; h++) {
-      for (int w = 0; w < batch_out_w; w++) {
-        mask_vector.push_back(mask_data[c][h][w]);
-      }
-    }
-  }
-  float scales = 1;
-  int zp = 0;
-
-  tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, scales, zp);
-  vx::TensorSpec mask_spec(input_spec.datatype_, input_shape,
-                           tim::vx::TensorAttribute::CONSTANT, quant_input);
-  auto mask_tensor =
-      context_->batch_fuse_graph_->CreateTensor(mask_spec, mask_vector.data());
-
+  std::shared_ptr<vx::Tensor> mask_tensor;
 
   if (input_spec.datatype_ == vx::DataType::FLOAT32) {
     std::vector<std::vector<std::vector<float>>> mask_data_float(
@@ -336,19 +301,52 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
     for (int c = 0; c < in_channel; c++) {
       for (int h = 0; h < batch_out_h; h++) {
         for (int w = 0; w < batch_out_w; w++) {
-          mask_vector_float.push_back(mask_data[c][h][w]);
+          mask_vector_float.push_back(mask_data_float[c][h][w]);
         }
       }
     }
-    
+
     vx::TensorSpec mask_spec(input_spec.datatype_, input_shape,
                              tim::vx::TensorAttribute::CONSTANT);
 
-    mask_tensor =
-      context_->batch_fuse_graph_->CreateTensor(mask_spec, mask_vector_float.data());
+    mask_tensor = context_->batch_fuse_graph_->CreateTensor(
+        mask_spec, mask_vector_float.data());
+  } else {
+    std::vector<std::vector<std::vector<uint8_t>>> mask_data(
+        in_channel, std::vector<std::vector<uint8_t>>(
+                        batch_out_h, std::vector<uint8_t>(batch_out_w, 0)));
+
+    for (int i = 0; i < start_point.size(); i++) {
+      int w_start = start_point[i][0];
+      int h_start = start_point[i][1];
+      int c_start = start_point[i][2];
+      for (int c = 0; c < in_channel; c++) {
+        for (int h = 0; h < out_h; h++) {
+          for (int w = 0; w < out_w; w++) {
+            mask_data[c_start + c][h_start + h][w_start + w] = 1;
+          }
+        }
+      }
+    }
+
+    std::vector<uint8_t> mask_vector;
+    for (int c = 0; c < in_channel; c++) {
+      for (int h = 0; h < batch_out_h; h++) {
+        for (int w = 0; w < batch_out_w; w++) {
+          mask_vector.push_back(mask_data[c][h][w]);
+        }
+      }
+    }
+    float scales = 1;
+    int zp = 0;
+    tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, scales,
+                                      zp);
+    vx::TensorSpec mask_spec(input_spec.datatype_, input_shape,
+                             tim::vx::TensorAttribute::CONSTANT, quant_input);
+    mask_tensor = context_->batch_fuse_graph_->CreateTensor(
+        mask_spec, mask_vector.data());
   }
 
-  
   auto mask_out = context_->batch_fuse_graph_->CreateTensor(input_spec);
   auto mask_op =
       context_->batch_fuse_graph_->CreateOperation<vx::ops::Multiply>();
@@ -367,38 +365,19 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPad(
   uint32_t out_h = input_shape[1];
   uint32_t out_w = input_shape[0];
 
-  ////aanother way to compute pad size
-  // uint32_t batch_factor_w = ClosestFactors(input_shape[3]).first;
-  // uint32_t batch_factor_h = ClosestFactors(input_shape[3]).second;
-  // auto pad_infer_shape =
-  //     context_->GetPadInferShape(input);  //inside paded tensor
-  // if (batch_factor_h - 1 == 0)
-  //   pad_h = 0;
-  // else
-  //   pad_h =
-  //       (pad_infer_shape[0] - batch_factor_h * out_h) / (batch_factor_h - 1);
-  // if (batch_factor_w - 1 == 0)
-  //   pad_w = 0;
-  // else
-  //   pad_w =
-  //       (pad_infer_shape[1] - batch_factor_w * out_w) / (batch_factor_w - 1);
-
-  auto pad = context_->GetForwardPad(src_in);
-  if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
-    // no pad
+  auto gap = context_->GetForwardGap(src_in);
+  if (gap[0] == 0 && gap[1] == 0) {
     return input;
   }
   std::vector<uint32_t> front_size = {0, 0, 0, 0};
-  // std::vector<uint32_t> back_size = {32, 32, 0, 0};//resnet quant model
-  std::vector<uint32_t> back_size = {pad[1], pad[3], 0, 0};
+  std::vector<uint32_t> back_size = {gap[0], gap[1], 0, 0};
+  // std::vector<uint32_t> back_size = {32, 32, 0, 0};
   auto pad_op = context_->batch_fuse_graph_->CreateOperation<vx::ops::Pad>(
       front_size, back_size, 0, tim::vx::ops::Pad::PAD_MODE_CONSTANT);
 
   vx::ShapeType pad_shape = {out_w + back_size[0], out_h + back_size[1],
                              input_shape[2], input_shape[3]};
   auto pad_spec = input_spec.SetShape(pad_shape);
-  // vx::TensorSpec pad_spec(input_spec.datatype_, pad_shape,
-  //                         tim::vx::TensorAttribute::TRANSIENT);
   auto pad_tensor = context_->batch_fuse_graph_->CreateTensor(pad_spec);
   (*pad_op).BindInput(input).BindOutput(pad_tensor);
   return pad_tensor;

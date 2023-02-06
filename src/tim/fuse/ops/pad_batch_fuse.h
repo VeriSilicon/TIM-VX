@@ -88,11 +88,13 @@ class PadBatchFuse : public OpBatchFuse {
     }
 
     auto batch_fuse_w_new = input_shape[0] * batch_factor_w +
-                            (batch_factor_w - 1) * pad[1];  //pad[1] >= pad[0]
+                            (batch_factor_w - 1) * (pad[1] + pad[0]);  //pad[1] >= pad[0]
     auto batch_fuse_h_new = input_shape[1] * batch_factor_h +
-                            (batch_factor_h - 1) * pad[3];  //pad[3] >= pad[2]
+                            (batch_factor_h - 1) * (pad[3] + pad[2]);  //pad[3] >= pad[2]
     vx::ShapeType batch_fuse_shape_new = {batch_fuse_w_new, batch_fuse_h_new,
                                           input_shape[2], 1};  //whcn, n = 1
+    
+    
 
     bool need_backward = false;
     uint32_t input_w, input_h;
@@ -115,6 +117,18 @@ class PadBatchFuse : public OpBatchFuse {
                                              output_shape[2], 1};  //whcn, n = 1
     context_->UpdatePadInferShape(output_tensor, output_batch_fuse_shape);
     context_->UpdateForwardPad(output_tensor, {0, 0, 0, 0});
+
+    std::array<uint32_t, 4> new_pad = {0, 0, 0, 0};
+    new_pad[1] = ceil((float_t)((output_w -
+                                 batch_factor_w * output_shape[0])) /
+                      (float_t)(batch_factor_w - 1));
+    new_pad[0] = new_pad[1];  //Greedy
+    new_pad[3] = ceil((float_t)((output_h -
+                                 batch_factor_h * output_shape[1])) /
+                      (float_t)(batch_factor_h - 1));
+    new_pad[2] = new_pad[3];  //Greedy
+    context_->UpdateForwardGap(output_tensor, {new_pad[1], new_pad[3]});
+    // context_->UpdateForwardGap(output_tensor, {0, 0});
 
     next_tensors.push_back(output_tensor);
     return need_backward;
@@ -160,9 +174,11 @@ class PadBatchFuse : public OpBatchFuse {
                       (float_t)(batch_factor_w - 1));
     new_pad[0] = new_pad[1];  //Greedy
     new_pad[3] = ceil((float_t)((batch_fuse_h_update_input -
-                                 batch_factor_h * input_shape[0])) /
+                                 batch_factor_w * input_shape[1])) /
                       (float_t)(batch_factor_h - 1));
     new_pad[2] = new_pad[3];  //Greedy
+
+    context_->UpdateForwardGap(input_tensor, {new_pad[1], new_pad[3]});
 
     //Update pad map
     auto old_pad_forward = context_->GetForwardPad(input_tensor);

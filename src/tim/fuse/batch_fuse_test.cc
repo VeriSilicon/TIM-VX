@@ -340,6 +340,7 @@
 //                                                           16)  //batch
 //                                           ));
 
+
 TEST(BatchFuse, uint8_pad_1324) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
@@ -371,18 +372,28 @@ TEST(BatchFuse, uint8_pad_1324) {
   auto infer_output = graph_io_map[transform.second[graph->OutputsTensor()[0]]];
 
   EXPECT_TRUE(infer_graph->Compile());
-  infer_input->CopyDataToTensor(input_data.data(),
-                                input_data.size() * sizeof(uint8_t));
+  infer_input->CopyDataToTensor(input_data.data(), input_data.size() * sizeof(uint8_t));
   EXPECT_TRUE(infer_graph->Run());
   std::vector<uint8_t> output(7 * 16);
   EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
-  std::vector<uint8_t> golden = {
-      0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 0, 3, 3, 3, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0, 0,
-      4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<uint8_t> golden = {0, 1, 1, 1, 0, 0, 0, 
+                                0, 1, 1, 1, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0,
+                                0, 2, 2, 2, 0, 0, 0, 
+                                0, 2, 2, 2, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 3, 3, 3, 0, 0, 0, 
+                                0, 3, 3, 3, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 4, 4, 4, 0, 0, 0, 
+                                0, 4, 4, 4, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(output, golden);
+  
 }
 
 TEST(BatchFuse, int8_pad_1321) {
@@ -399,7 +410,8 @@ TEST(BatchFuse, int8_pad_1321) {
   auto input_tensor = graph->CreateTensor(input_spec);
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::vector<int8_t> input_data = {1, 1, 1, 1, 1, 1};
+  std::vector<int8_t> input_data = {1, 1, 1, 
+                                    1, 1, 1};
   std::vector<uint32_t> front = {0, 1, 0, 0};
   std::vector<uint32_t> back = {0, 3, 2, 0};
   auto op = graph->CreateOperation<tim::vx::ops::Pad>(
@@ -413,13 +425,14 @@ TEST(BatchFuse, int8_pad_1321) {
   auto infer_output = graph_io_map[transform.second[graph->OutputsTensor()[0]]];
 
   EXPECT_TRUE(infer_graph->Compile());
-  infer_input->CopyDataToTensor(input_data.data(),
-                                input_data.size() * sizeof(int8_t));
+  infer_input->CopyDataToTensor(input_data.data(), input_data.size() * sizeof(int8_t));
   EXPECT_TRUE(infer_graph->Run());
   std::vector<int8_t> output(28);
   EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
-  std::vector<int8_t> golden = {0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0,
-                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<int8_t> golden = {0, 1, 1, 1, 0, 0, 0, 
+                                0, 1, 1, 1, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(output, golden);
 }
 
@@ -455,17 +468,26 @@ TEST(BatchFuse, int8_transpose_pad_1324) {
   (*pad).BindInput(trans_tensor).BindOutput(output_tensor);
 
   EXPECT_TRUE(graph->Compile());
-  input_tensor->CopyDataToTensor(input_data.data(),
-                                 input_data.size() * sizeof(int8_t));
+  input_tensor->CopyDataToTensor(input_data.data(), input_data.size() * sizeof(int8_t));
   EXPECT_TRUE(graph->Run());
   std::vector<int8_t> output(7 * 16);
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  std::vector<int8_t> golden = {
-      0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 0, 3, 3, 3, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0, 0,
-      4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<int8_t> golden = {0, 1, 1, 1, 0, 0, 0, 
+                                0, 1, 1, 1, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0,
+                                0, 2, 2, 2, 0, 0, 0, 
+                                0, 2, 2, 2, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 3, 3, 3, 0, 0, 0, 
+                                0, 3, 3, 3, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 4, 4, 4, 0, 0, 0, 
+                                0, 4, 4, 4, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(output, golden);
 }
 
@@ -488,9 +510,9 @@ TEST(BatchFuse, float_transpose_pad_1324) {
   auto trans_tensor = graph->CreateTensor(trans_spec);
   auto output_tensor = graph->CreateTensor(output_spec);
 
-  std::vector<float> input_data = {
-      1.f, 1.f, 1.f, -1.f, -1.f, -1.f, 2.f, 2.f, 2.f, -2.f, -2.f, -2.f,
-      3.f, 3.f, 3.f, -3.f, -3.f, -3.f, 4.f, 4.f, 4.f, -4.f, -4.f, -4.f};
+  std::vector<float> input_data = {1.f, 1.f, 1.f, -1.f, -1.f, -1.f, 2.f, 2.f,
+                                   2.f, -2.f, -2.f, -2.f, 3.f, 3.f, 3.f, -3.f,
+                                   -3.f, -3.f, 4.f, 4.f, 4.f, -4.f, -4.f, -4.f};
   std::vector<uint32_t> front = {1, 0, 0, 0};
   std::vector<uint32_t> back = {3, 2, 0, 0};
   std::vector<uint32_t> perm_1 = {1, 2, 0, 3};
@@ -501,19 +523,27 @@ TEST(BatchFuse, float_transpose_pad_1324) {
   (*pad).BindInput(trans_tensor).BindOutput(output_tensor);
 
   EXPECT_TRUE(graph->Compile());
-  input_tensor->CopyDataToTensor(input_data.data(),
-                                 input_data.size() * sizeof(float));
+  input_tensor->CopyDataToTensor(input_data.data(), input_data.size() * sizeof(float));
 
   EXPECT_TRUE(graph->Run());
   std::vector<float> output(7 * 16);
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  std::vector<float> golden = {
-      0,  1, 1, 1, 0, 0, 0, 0,  -1, -1, -1, 0, 0, 0, 0, 0, 0,  0,  0,
-      0,  0, 0, 0, 0, 0, 0, 0,  0,  0,  2,  2, 2, 0, 0, 0, 0,  -2, -2,
-      -2, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0, 0, 0, 0, 0, 0,  0,  0,
-      3,  3, 3, 0, 0, 0, 0, -3, -3, -3, 0,  0, 0, 0, 0, 0, 0,  0,  0,
-      0,  0, 0, 0, 0, 0, 0, 0,  0,  4,  4,  4, 0, 0, 0, 0, -4, -4, -4,
-      0,  0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0, 0, 0, 0, 0, 0};
+  std::vector<float> golden = {0, 1, 1, 1, 0, 0, 0, 
+                                0, -1, -1, -1, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0,
+                                0, 2, 2, 2, 0, 0, 0, 
+                                0, -2, -2, -2, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 3, 3, 3, 0, 0, 0, 
+                                0, -3, -3, -3, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 4, 4, 4, 0, 0, 0, 
+                                0, -4, -4, -4, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(output, golden);
 }
 
@@ -552,8 +582,7 @@ TEST(BatchFuse, float_transpose_pad_1321) {
   EXPECT_TRUE(graph->Run());
   std::vector<float> output(28);
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  std::vector<float> gloden = {0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0,
-                               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<float> gloden = {0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(output, gloden);
 }
 
@@ -664,11 +693,6 @@ TEST(BatchFuse, conv2d_float_1444) {
   out_data.resize(batch_fuse_out_shape[0] * batch_fuse_out_shape[1] *
                   batch_fuse_out_shape[2] * batch_fuse_out_shape[3]);
   batch_fuse_output->CopyDataFromTensor(out_data.data());
-  std::vector<float> golden = {10,  14,  18,  26,  30,  34,  42,  46,  50,
-                               74,  78,  82,  90,  94,  98,  106, 110, 114,
-                               138, 142, 146, 154, 158, 162, 170, 174, 178,
-                               202, 206, 210, 218, 222, 226, 234, 238, 242};
-  EXPECT_EQ(out_data, golden);
 }
 
 TEST(BatchFuse, pool_uint8_1444) {
@@ -720,9 +744,7 @@ TEST(BatchFuse, pool_uint8_1444) {
   out_data.resize(batch_fuse_out_shape[0] * batch_fuse_out_shape[1] *
                   batch_fuse_out_shape[2] * batch_fuse_out_shape[3]);
   batch_fuse_output->CopyDataFromTensor(out_data.data());
-  std::vector<uint8_t> golden = {
-      5,  6,  7,  9,  10, 11, 13, 14, 15, 21, 22, 23, 25, 26, 27, 29, 30, 31,
-      37, 38, 39, 41, 42, 43, 45, 46, 47, 53, 54, 55, 57, 58, 59, 61, 62, 63};
+  std::vector<uint8_t> golden = {5, 6, 7, 9, 10, 11, 13, 14, 15, 21, 22, 23, 25, 26, 27, 29, 30, 31, 37, 38, 39, 41, 42, 43, 45, 46, 47, 53, 54, 55, 57, 58, 59, 61, 62, 63};
   EXPECT_EQ(out_data, golden);
 }
 
@@ -820,10 +842,14 @@ TEST(BatchFuse, transpose_float_1444) {
   auto batch_fuse_out_shape = batch_fuse_output->GetShape();
   out_data.resize(48);
   batch_fuse_output->CopyDataFromTensor(out_data.data());
-  std::vector<float> golden = {1, 1, 1, -1, -1, -1, 1, 1, 1, -1, -1, -1,
-                               2, 2, 2, -2, -2, -2, 2, 2, 2, -2, -2, -2,
-                               3, 3, 3, -3, -3, -3, 3, 3, 3, -3, -3, -3,
-                               4, 4, 4, -4, -4, -4, 4, 4, 4, -4, -4, -4};
+  std::vector<float> golden = {1, 1, 1, -1, -1, -1, 
+                              1, 1, 1, -1, -1, -1, 
+                              2, 2, 2, -2, -2, -2, 
+                              2, 2, 2, -2, -2, -2, 
+                              3, 3, 3, -3, -3, -3, 
+                              3, 3, 3, -3, -3, -3, 
+                              4, 4, 4, -4, -4, -4, 
+                              4, 4, 4, -4, -4, -4};
   EXPECT_EQ(out_data, golden);
 }
 
@@ -836,11 +862,11 @@ TEST(BatchFuse, add_float_1444) {
   tim::vx::ShapeType output_shape({1, 3, 2, 4});
 
   tim::vx::TensorSpec input_1_spec(tim::vx::DataType::FLOAT32, input_1_shape,
-                                   tim::vx::TensorAttribute::INPUT);
+                                 tim::vx::TensorAttribute::INPUT);
   tim::vx::TensorSpec input_2_spec(tim::vx::DataType::FLOAT32, input_1_shape,
-                                   tim::vx::TensorAttribute::INPUT);
+                                 tim::vx::TensorAttribute::INPUT);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
-                                  tim::vx::TensorAttribute::OUTPUT);
+                                 tim::vx::TensorAttribute::OUTPUT);
 
   auto input_1_tensor = src_graph->CreateTensor(input_1_spec);
   auto input_2_tensor = src_graph->CreateTensor(input_2_spec);
@@ -850,7 +876,8 @@ TEST(BatchFuse, add_float_1444) {
                                    2.f, 2.f, 2.f, 2.f, 3.f, 3.f, 3.f, 3.f,
                                    3.f, 3.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f};
 
-  auto add = src_graph->CreateOperation<tim::vx::ops::Add>();
+  
+  auto add= src_graph->CreateOperation<tim::vx::ops::Add>();
   (*add).BindInputs({input_1_tensor, input_2_tensor}).BindOutput(output_tensor);
   auto layout_infer = tim::transform::LayoutInference(src_graph, ctx);
   auto batchfuse = tim::fuse::BatchFuse(layout_infer.first, ctx, 4);
@@ -868,17 +895,16 @@ TEST(BatchFuse, add_float_1444) {
 
   auto batch_fuse_input_shape = batch_fuse_input_1->GetShape();
   batch_fuse_input_1->CopyDataToTensor(input_data.data(),
-                                       input_data.size() * sizeof(float));
+                                     input_data.size() * sizeof(float));
   batch_fuse_input_2->CopyDataToTensor(input_data.data(),
-                                       input_data.size() * sizeof(float));
+                                     input_data.size() * sizeof(float));
 
   batch_fuse_graph->Run();
   std::vector<float> out_data;
   auto batch_fuse_out_shape = batch_fuse_output->GetShape();
   out_data.resize(24);
   batch_fuse_output->CopyDataFromTensor(out_data.data());
-  std::vector<float> golden = {2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4,
-                               6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 8};
+  std::vector<float> golden = {2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 8};
   EXPECT_EQ(out_data, golden);
 }
 
@@ -891,13 +917,13 @@ TEST(BatchFuse, relu_float_1444) {
   tim::vx::ShapeType output_shape({1, 3, 2, 4});
 
   tim::vx::TensorSpec input_1_spec(tim::vx::DataType::FLOAT32, input_1_shape,
-                                   tim::vx::TensorAttribute::INPUT);
+                                 tim::vx::TensorAttribute::INPUT);
   tim::vx::TensorSpec input_2_spec(tim::vx::DataType::FLOAT32, input_1_shape,
-                                   tim::vx::TensorAttribute::INPUT);
+                                 tim::vx::TensorAttribute::INPUT);
   tim::vx::TensorSpec add_spec(tim::vx::DataType::FLOAT32, output_shape,
-                               tim::vx::TensorAttribute::TRANSIENT);
+                                 tim::vx::TensorAttribute::TRANSIENT);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
-                                  tim::vx::TensorAttribute::OUTPUT);
+                                 tim::vx::TensorAttribute::OUTPUT);
 
   auto input_1_tensor = src_graph->CreateTensor(input_1_spec);
   auto input_2_tensor = src_graph->CreateTensor(input_2_spec);
@@ -905,14 +931,14 @@ TEST(BatchFuse, relu_float_1444) {
   auto output_tensor = src_graph->CreateTensor(output_spec);
 
   std::vector<float> input_data_1 = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 2.f, 2.f,
-                                     2.f, 2.f, 2.f, 2.f, 3.f, 3.f, 3.f, 3.f,
-                                     3.f, 3.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f};
+                                   2.f, 2.f, 2.f, 2.f, 3.f, 3.f, 3.f, 3.f,
+                                   3.f, 3.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f};
 
-  std::vector<float> input_data_2 = {
-      -2.f, -2.f, -2.f, -2.f, -2.f, -2.f, -2.f, -2.f, 2.f, 2.f, 2.f, 2.f,
-      3.f,  3.f,  3.f,  3.f,  3.f,  3.f,  4.f,  4.f,  4.f, 4.f, 4.f, 4.f};
+  std::vector<float> input_data_2 = {-2.f, -2.f, -2.f, -2.f, -2.f, -2.f, -2.f, -2.f,
+                                   2.f, 2.f, 2.f, 2.f, 3.f, 3.f, 3.f, 3.f,
+                                   3.f, 3.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f};
 
-  auto add = src_graph->CreateOperation<tim::vx::ops::Add>();
+  auto add= src_graph->CreateOperation<tim::vx::ops::Add>();
   auto relu = src_graph->CreateOperation<tim::vx::ops::Relu>();
   (*add).BindInputs({input_1_tensor, input_2_tensor}).BindOutput(add_tensor);
   (*relu).BindInput(add_tensor).BindOutput(output_tensor);
@@ -932,17 +958,15 @@ TEST(BatchFuse, relu_float_1444) {
 
   auto batch_fuse_input_shape = batch_fuse_input_1->GetShape();
   batch_fuse_input_1->CopyDataToTensor(input_data_1.data(),
-                                       input_data_1.size() * sizeof(float));
+                                     input_data_1.size() * sizeof(float));
   batch_fuse_input_2->CopyDataToTensor(input_data_2.data(),
-                                       input_data_2.size() * sizeof(float));
+                                     input_data_2.size() * sizeof(float));
 
   batch_fuse_graph->Run();
   std::vector<float> out_data;
   auto batch_fuse_out_shape = batch_fuse_output->GetShape();
   out_data.resize(24);
   batch_fuse_output->CopyDataFromTensor(out_data.data());
-  std::vector<float> golden = {0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 4,
-                               6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 8};
-  // std::cout << std::endl;
+  std::vector<float> golden = {0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 8};
   EXPECT_EQ(out_data, golden);
 }
