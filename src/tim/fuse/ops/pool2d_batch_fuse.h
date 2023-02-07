@@ -249,8 +249,8 @@ class Pool2dBatchFuse : public OpBatchFuse {
     
     std::array<uint32_t, 2> gap_input = {0, 0};
     std::array<uint32_t, 2> gap_output = context_->GetForwardGap(output_tensor);
-    gap_input[0] = stride[0] * (gap_output[0] + 1) + int_pad[0] + int_pad[1];
-    gap_input[1] = stride[1] * (gap_output[1] + 1) + int_pad[2] + int_pad[3];
+    gap_input[0] = stride[0] * (gap_output[0] + 1) + int_pad[0] + int_pad[1] - 1;
+    gap_input[1] = stride[1] * (gap_output[1] + 1) + int_pad[2] + int_pad[3] - 1;
     context_->UpdateForwardGap(input_tensor, gap_input);
 
     uint32_t batch_fuse_w_update_input =
