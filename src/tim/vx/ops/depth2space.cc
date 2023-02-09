@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 DepthToSpace::DepthToSpace(Graph* Graph, int block_size, DataLayout layout)
-    : DepthToSpace(Graph, block_size, CRD_mode, layout) {}
+    : DepthToSpace(Graph, block_size, DCR_mode, layout) {}
 
 DepthToSpace::DepthToSpace(Graph* Graph, int block_size, depth2space_mode mode,
                            DataLayout layout)
