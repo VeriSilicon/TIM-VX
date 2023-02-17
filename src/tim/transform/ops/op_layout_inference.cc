@@ -66,6 +66,11 @@ std::shared_ptr<vx::Tensor> OpLayoutInfer::InsertPermute(
     std::shared_ptr<vx::Tensor> input, std::shared_ptr<IPermuteVector> perm,
     bool is_graph_output, std::shared_ptr<vx::Tensor> src_out) {
   auto out_spec = input->GetSpec();
+  auto in_shape = input->GetShape();
+  std::vector<uint32_t> data = perm->AsStdVec();
+  vx::ShapeType out_shape = {in_shape[data[0]], in_shape[data[1]], in_shape[data[2]], in_shape[data[3]]};
+  out_spec.SetShape(out_shape);
+
   if (is_graph_output) {
     auto out_shape = src_out->GetShape();
     out_spec.SetShape(out_shape);
@@ -95,12 +100,18 @@ std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
   }
 
   uint32_t i = 0;
+  auto perm = required_pv->AsStdVec();
   for (const auto& o : op_->impl()->OutputsTensor()) {
     auto in_shape = o->GetShape();
     auto out_spec = o->GetSpec();
     if (!(required_pv->IsAligned())) {
       out_spec = out_spec.AsTransientSpec();
     }
+    auto out_shape = in_shape;
+    for (uint32_t i = 0; i < perm.size(); i ++)
+      out_shape[i] = in_shape[perm[i]];
+    
+    out_spec.SetShape(out_shape);
     auto t_infer = context_->infer_graph_->CreateTensor(out_spec);
     context_->UpdateTensorMap(o, t_infer);
     outputs_tensor.push_back(t_infer);
