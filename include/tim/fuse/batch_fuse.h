@@ -38,7 +38,7 @@ namespace vx {
 }
 
 namespace fuse {
-class IPermuteVector;
+
 std::pair<
     /*graph after batch fused*/
     std::shared_ptr<vx::Graph>,

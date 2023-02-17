@@ -25,9 +25,7 @@
 #define TIM_BATCH_FUSE_ACTIVATION_BATCH_FUSE_H_
 
 #include "tim/vx/ops/activations.h"
-
 #include "op_batch_fuse.h"
-// #include "permute_vector.h"
 #include "builtin_op_impl.h"
 namespace tim {
 namespace fuse {
@@ -39,66 +37,91 @@ class ActivationBatchFuse : public OpBatchFuse {
       const std::shared_ptr<vx::Operation> op,
       std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
       : OpBatchFuse(op, context) {}
-  bool PadForwardInference(
+  bool GapForwardInference(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto i_src_shape = i_src->GetShape();
-    auto o_src = op_->impl()->OutputsTensor()[0];
-    // auto pad = context_->GetForwardPad(i_src);
-    auto i_infer_shape = context_->GetPadInferShape(i_src);
-    // same as input
-    // context_->UpdateInitPad(o_src, {0, 0, 0, 0});
-    // context_->UpdateForwardPad(o_src, pad);
-    context_->UpdatePadInferShape(o_src, i_infer_shape);
+    auto input_tensor = op_->impl()->InputsTensor()[0];
+    auto input_shape = input_tensor->GetShape();
+    auto output_tensor = op_->impl()->OutputsTensor()[0];
 
-    auto gap = context_->GetForwardGap(i_src);
-    context_->UpdateForwardGap(o_src, gap);
-    next_tensors.push_back(o_src);
+    //the infered shape with gap inside
+    auto input_infer_shape = context_->GetGapInferShape(input_tensor);
+
+    //Activation will not be affected by batch fuse and gap inside,
+    //so the gap and GapInferShape will be passed directly from input tensor to output tensor.
+    context_->UpdateGapInferShape(output_tensor, input_infer_shape);
+    auto gap = context_->GetForwardGap(input_tensor);
+
+    context_->UpdateForwardGap(output_tensor, gap);
+    next_tensors.push_back(output_tensor);
+
+    //Activation always do not need backward
     return false;
   }
 
-  bool PadBackwardInference(
+  bool GapBackwardInference(
       std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto i_src_shape = i_src->GetShape();
-    // auto i_src_batch_fuse_spec = context_->GetMapedTensor(i_src)->GetSpec();
-    auto o_src = op_->impl()->OutputsTensor()[0];
-    // auto pad = context_->GetForwardPad(i_src);
-    auto i_infer_shape = context_->GetPadInferShape(i_src);
-    auto o_infer_shape = context_->GetPadInferShape(o_src);
-    auto gap = context_->GetForwardGap(o_src);
-    context_->UpdateForwardGap(i_src, gap);
-    
-    //pass new infered shape to input of activation
-    context_->UpdatePadInferShape(i_src, o_infer_shape);
-    
-    former_tensors.push_back(i_src);
+    auto input_tensor = op_->impl()->InputsTensor()[0];
+    auto input_shape = input_tensor->GetShape();
+    auto output_tensor = op_->impl()->OutputsTensor()[0];
 
-    //when activatetion is in backward, always need backward, but this flag is useless
-    return true; 
+    //the infered shape with gap inside
+    auto input_infer_shape = context_->GetGapInferShape(input_tensor);
+    auto output_infer_shape = context_->GetGapInferShape(output_tensor);
+    auto gap = context_->GetForwardGap(output_tensor);
+
+    //pass new gap and infered shape to the input of activation
+    context_->UpdateForwardGap(input_tensor, gap);
+    context_->UpdateGapInferShape(input_tensor, output_infer_shape);
+
+    former_tensors.push_back(input_tensor);
+
+    //when activatetion is in backward, always need backward
+    //if it is triggered by its next op which need backward
+    //, but this flag is useless
+    return true;
   }
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
     assert(op_->impl()->InputsTensor().size() == 1);
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto i_src_shape = i_src->GetShape();
-    auto i_src_batch_fuse_spec = context_->GetMapedTensor(i_src)->GetSpec();
-    auto o_src = op_->impl()->OutputsTensor()[0];
+    auto input_tensor = op_->impl()->InputsTensor()[0];
+    auto input_shape = input_tensor->GetShape();
+    auto output_tensor = op_->impl()->OutputsTensor()[0];
+    auto output_spec = output_tensor->GetSpec();
+
+    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
+    // auto batch_src_axis = context_->GetBatchAxis();  // 3
+    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+
+    auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
+    auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
+    auto batch_axis = context_->GetPermBatchAxis(input_tensor);
+
+    auto w_axis = fuse_axes[0];
+    auto h_axis = fuse_axes[1];
+
+    auto input_batch_fuse_tensor = context_->GetMapedTensor(input_tensor);
+    auto input_batch_fuse_spec = input_batch_fuse_tensor->GetSpec();
+    auto input_batch_fuse_shape = input_batch_fuse_tensor->GetShape();
+
+    //fused output shape is the same as input shape
+    auto output_batch_fuse_spec = output_spec.SetShape(input_batch_fuse_shape);
+    auto output_batch_fuse_tensor =
+        context_->batch_fuse_graph_->CreateTensor(output_batch_fuse_spec);
+
+    //compute the proporation of valid data
+    auto valid_prop =
+        (float)(input_shape[w_axis] * input_shape[h_axis] * input_shape[batch_axis]) /
+        (float)(input_batch_fuse_shape[w_axis] * input_batch_fuse_shape[h_axis]);
+    context_->UpdateProportion(input_tensor, valid_prop);
+    context_->UpdateTensorMap(output_tensor, output_batch_fuse_tensor);
+
+    //clone op to batch_fuse_graph_
     auto activation = op_->Clone(context_->batch_fuse_graph_);
-    auto i_src_batch_fuse_shape = context_->GetMapedTensor(i_src)->GetShape();
-    auto o_src_spec = o_src->GetSpec();
-    auto out_batch_spec = o_src_spec.SetShape(i_src_batch_fuse_shape);
-    auto out_batch_fuse =
-        context_->batch_fuse_graph_->CreateTensor(out_batch_spec);
-    // auto out_batch_fuse = CreateOutputsTensor();
-    auto out_batch_fuse_shape = out_batch_fuse->GetShape();
-    context_->UpdateTensorMap(o_src, out_batch_fuse);
-    context_->UpdateTensorBatchFuseMap(out_batch_fuse, o_src);
     (*activation)
-        .BindInput(context_->GetMapedTensor(i_src))
-        .BindOutput(out_batch_fuse);
-    next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
+        .BindInput(context_->GetMapedTensor(input_tensor))
+        .BindOutput(output_batch_fuse_tensor);
+    next_tensors.push_back(output_tensor);
   }
 };
 

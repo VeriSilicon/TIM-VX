@@ -44,10 +44,10 @@ class OpBatchFuse {
   virtual void OnOutputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors);
 
-  virtual bool PadForwardInference(
+  virtual bool GapForwardInference(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) = 0;
 
-  virtual bool PadBackwardInference(
+  virtual bool GapBackwardInference(
       std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) = 0;
 
   virtual void CloneGraph(
@@ -59,20 +59,24 @@ class OpBatchFuse {
   std::pair<uint32_t, uint32_t> ClosestFactors(uint32_t batch);
 
   std::shared_ptr<vx::Tensor> InsertPad(
-      std::shared_ptr<vx::Tensor> input,
-      std::shared_ptr<vx::Tensor> src_out = nullptr);
+      std::shared_ptr<vx::Tensor> input_batch_fuse_tensor,
+      std::shared_ptr<vx::Tensor> input_tensor, uint32_t batch_axis,
+      std::vector<uint32_t> fuse_axes);
 
   std::shared_ptr<vx::Tensor> InsertMask(
-      std::shared_ptr<vx::Tensor> input,
-      std::shared_ptr<vx::Tensor> src_out = nullptr);
+      std::shared_ptr<vx::Tensor> input_batch_fuse_tensor,
+      std::shared_ptr<vx::Tensor> input_tensor, uint32_t batch_axis,
+      std::vector<uint32_t> fuse_axes);
 
   std::shared_ptr<vx::Tensor> InsertPermuteAndReshape(
-      std::shared_ptr<vx::Tensor> input,
-      std::shared_ptr<vx::Tensor> src_out = nullptr);
+      std::shared_ptr<vx::Tensor> pad_tensor,
+      std::shared_ptr<vx::Tensor> input_tensor, uint32_t batch_axis,
+      std::vector<uint32_t> fuse_axes);
 
   std::shared_ptr<vx::Tensor> InsertSliceAndConcat(
-      std::shared_ptr<vx::Tensor> input,
-      std::shared_ptr<vx::Tensor> src_out = nullptr);
+      std::shared_ptr<vx::Tensor> input_batch_fuse_tensor,
+      std::shared_ptr<vx::Tensor> input_tensor, uint32_t batch_axis,
+      std::vector<uint32_t> fuse_axes);
 
   std::vector<std::shared_ptr<vx::Tensor>> CreateOutputsTensor();
 

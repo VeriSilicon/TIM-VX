@@ -39,31 +39,33 @@ class TransposeBatchFuse : public OpBatchFuse {
       std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
       : OpBatchFuse(op, context) {}
 
-  bool PadForwardInference(
+  bool GapForwardInference(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto i_src_shape = i_src->GetShape();
-    // auto i_src_batch_fuse_spec = context_->GetMapedTensor(i_src)->GetSpec();
-    auto o_src = op_->impl()->OutputsTensor()[0];
-    auto o_src_shape = o_src->GetShape();
-    // auto pad = context_->GetForwardPad(i_src);
-    auto i_infer_shape = context_->GetPadInferShape(i_src);
+    auto input_tensor = op_->impl()->InputsTensor()[0];
+    auto input_shape = input_tensor->GetShape();
 
-    // same as input
-    // context_->UpdateInitPad(o_src, {0, 0, 0, 0});
-    // context_->UpdateForwardPad(o_src, pad);
-    context_->UpdatePadInferShape(o_src, o_src_shape);
-    auto gap = context_->GetForwardGap(i_src);
-    context_->UpdateForwardGap(o_src, gap);
-    next_tensors.push_back(o_src);
+    auto output_tensor = op_->impl()->OutputsTensor()[0];
+    auto output_shape = output_tensor->GetShape();
+
+    auto input_gap_infer_shape = context_->GetGapInferShape(input_tensor);
+
+    context_->UpdateGapInferShape(output_tensor, output_shape);
+    auto gap = context_->GetForwardGap(input_tensor);
+
+    //Shape of input and output is different, but their gap is the same
+    context_->UpdateForwardGap(output_tensor, gap);
+    next_tensors.push_back(output_tensor);
+
+    //Transpose do not need backward
     return false;
   }
 
-  bool PadBackwardInference(
+  bool GapBackwardInference(
       std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
-     auto i_src = op_->impl()->InputsTensor()[0];
-     former_tensors.push_back(i_src);
-     former_tensors.pop_back();
+    auto input_tensor = op_->impl()->InputsTensor()[0];
+    //To hack a werror
+    former_tensors.push_back(input_tensor);
+    former_tensors.pop_back();
     return false;
   }
 
@@ -72,23 +74,34 @@ class TransposeBatchFuse : public OpBatchFuse {
       context_->batch_fuse_graph_->CreateOperation<vx::ops::Slice>(0, start, \
                                                                    length);  \
   vx::ShapeType idx##_shape({out_w, out_h, out_channel, 1});                 \
-  auto idx##_spec = i_src_spec.SetShape(idx##_shape);                        \
+  auto idx##_spec = input_spec.SetShape(idx##_shape);                        \
   auto idx##_tensor = context_->batch_fuse_graph_->CreateTensor(idx##_spec); \
-  (*idx##_op).BindInput(i_src_batch_fuse).BindOutput(idx##_tensor);          \
+  (*idx##_op).BindInput(input_batch_fuse_tensor).BindOutput(idx##_tensor);   \
   tensors.push_back(idx##_tensor);
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto i_src = op_->impl()->InputsTensor()[0];
-    auto i_src_shape = i_src->GetShape();
-    auto i_src_spec = i_src->GetSpec();
-    auto i_src_batch_fuse = context_->GetMapedTensor(i_src);
-    auto i_src_batch_fuse_shape = i_src_batch_fuse->GetShape();
-    auto i_src_batch_fuse_spec = context_->GetMapedTensor(i_src)->GetSpec();
-    auto o_src = op_->impl()->OutputsTensor()[0];
-    auto o_src_sepc = o_src->GetSpec();
-    auto o_src_shape = o_src->GetShape();
-    // auto batch = i_src_shape[3];
+    auto input_tensor = op_->impl()->InputsTensor()[0];
+    auto input_shape = input_tensor->GetShape();
+    auto input_spec = input_tensor->GetSpec();
+    auto input_batch_fuse_tensor = context_->GetMapedTensor(input_tensor);
+    auto input_batch_fuse_shape = input_batch_fuse_tensor->GetShape();
+    auto input_batch_fuse_spec = input_batch_fuse_tensor->GetSpec();
+    auto output_tensor = op_->impl()->OutputsTensor()[0];
+    auto output_sepc = output_tensor->GetSpec();
+    auto output_shape = output_tensor->GetShape();
+
+    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
+    // auto batch_src_axis = context_->GetBatchAxis();  // 3
+    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+
+    auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
+    auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
+    auto batch_axis = context_->GetPermBatchAxis(input_tensor);
+    // auto c_axis = context_->GetPermChannelAxis(input_tensor);
+
+    auto w_axis = fuse_axes[0];
+    auto h_axis = fuse_axes[1];
 
     std::vector<uint32_t> perm(op_->impl()->node()->nn_param.permute.dim_num);
     memcpy(perm.data(), op_->impl()->node()->nn_param.permute.perm,
@@ -97,99 +110,44 @@ class TransposeBatchFuse : public OpBatchFuse {
         context_->batch_fuse_graph_->CreateOperation<tim::vx::ops::Transpose>(
             perm);
 
-    if (i_src_shape[3] != 1 && i_src_batch_fuse_shape[3] == 1 &&
-        o_src->GetSpec().attr_ == vx::TensorAttribute::OUTPUT) {
-      uint32_t batch = i_src_shape[3];
-      uint32_t batch_factor_w = ClosestFactors(i_src_shape[3]).first;
-      uint32_t batch_factor_h = ClosestFactors(i_src_shape[3]).second;
-      // uint32_t sqrt_batch = sqrt(batch);
-      uint32_t batch_out_h = i_src_batch_fuse_shape[1];
-      uint32_t batch_out_w = i_src_batch_fuse_shape[0];
-      uint32_t out_h = i_src_shape[1];
-      uint32_t out_w = i_src_shape[0];
-      uint32_t out_channel = i_src_shape[2];
+    if (input_shape[batch_axis] != 1 &&
+        input_batch_fuse_shape[batch_axis] == 1 &&
+        output_sepc.attr_ == vx::TensorAttribute::OUTPUT) {
+      auto concat_tensor = InsertSliceAndConcat(
+          input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+      auto concat_shape = concat_tensor->GetShape();
+      context_->UpdateTensorMap(input_tensor, concat_tensor);
 
-      //if there has shared pad between valid value, overlap size may be negative
-      int32_t overlap_h = 0;
-      int32_t overlap_w = 0;
-      if (batch_factor_h - 1 == 0)
-        overlap_h = 0;
-      else
-        overlap_h =
-            (batch_out_h - batch_factor_h * out_h) / (batch_factor_h - 1);
-      if (batch_factor_w - 1 == 0)
-        overlap_w = 0;
-      else
-        overlap_w =
-            (batch_out_w - batch_factor_w * out_w) / (batch_factor_w - 1);
-
-      int32_t out_w_ = static_cast<int32_t>(out_w);
-      int32_t out_h_ = static_cast<int32_t>(out_h);
-      int32_t out_channel_ = static_cast<int32_t>(out_channel);
-
-      std::vector<int32_t> axis_point_h(batch_factor_h, 0);
-      std::vector<int32_t> axis_point_w(batch_factor_w, 0);
-
-      std::vector<int32_t> length = {out_w_, out_h_, out_channel_, 1};
-      std::vector<std::vector<int32_t>> start_point;
-
-      for (uint i = 0; i < batch_factor_h; i++) {
-        axis_point_h[i] = 0 + i * (overlap_h + out_h);
-      }
-
-      for (uint i = 0; i < batch_factor_w; i++) {
-        axis_point_w[i] = 0 + i * (overlap_w + out_w);
-      }
-
-      for (uint i = 0; i < batch_factor_w; i++) {
-        for (uint j = 0; j < batch_factor_h; j++) {
-          start_point.push_back({axis_point_w[j], axis_point_h[i], 0, 0});
-        }
-      }
-
-      std::vector<std::shared_ptr<vx::Tensor>> tensors;
-      for (uint i = 0; i < batch; i++) {
-        CREATE_AND_CONCAT_OP(i, start_point[i], length);
-      }
-      auto slice_shape = tensors[0]->GetShape();
-
-      vx::ShapeType concat_shape = {slice_shape[0], slice_shape[1],
-                                    slice_shape[2], batch};
-      i_src_spec.SetShape(concat_shape);
-      auto concat =
-          context_->batch_fuse_graph_->CreateOperation<vx::ops::Concat>(3,
-                                                                        batch);
-      auto concat_tensor =
-          context_->batch_fuse_graph_->CreateTensor(i_src_spec);
-      concat_shape = concat_tensor->GetShape();
-      (*concat).BindInputs(tensors).BindOutput(concat_tensor);
-      context_->UpdateTensorMap(i_src, concat_tensor);
-      context_->UpdateTensorBatchFuseMap(concat_tensor, i_src);
-
+      //Set tansposed shape according to permute parameters
       vx::ShapeType new_shape = {concat_shape[perm[0]], concat_shape[perm[1]],
                                  concat_shape[perm[2]], concat_shape[perm[3]]};
-      o_src_sepc.SetShape(new_shape);
-      auto out = context_->batch_fuse_graph_->CreateTensor(o_src_sepc);
-      context_->UpdateTensorMap(o_src, out);
-      context_->UpdateTensorBatchFuseMap(out, o_src);
+      output_sepc.SetShape(new_shape);
+      auto out = context_->batch_fuse_graph_->CreateTensor(output_sepc);
+      context_->UpdateProportion(input_tensor, 1);
+      context_->UpdateTensorMap(output_tensor, out);
 
       (*transpose_op)
-          .BindInput(context_->GetMapedTensor(i_src))
+          .BindInput(context_->GetMapedTensor(input_tensor))
           .BindOutput(out);
-      next_tensors.push_back(o_src);
+      next_tensors.push_back(output_tensor);
     } else {
-      auto map_input_shape = context_->GetMapedTensor(i_src)->GetShape();
+      //If it is not output, let it stay fused, no need to slice and concat
       vx::ShapeType new_shape = {
-          map_input_shape[perm[0]], map_input_shape[perm[1]],
-          map_input_shape[perm[2]], map_input_shape[perm[3]]};
-      o_src_sepc.SetShape(new_shape);
-      auto out = context_->batch_fuse_graph_->CreateTensor(o_src_sepc);
-      context_->UpdateTensorMap(o_src, out);
-      context_->UpdateTensorBatchFuseMap(out, o_src);
+          //Set transposed shape according to permute parameters on fused shape
+          input_batch_fuse_shape[perm[0]], input_batch_fuse_shape[perm[1]],
+          input_batch_fuse_shape[perm[2]], input_batch_fuse_shape[perm[3]]};
+      output_sepc.SetShape(new_shape);
+      auto out = context_->batch_fuse_graph_->CreateTensor(output_sepc);
+      context_->UpdateTensorMap(output_tensor, out);
       (*transpose_op)
-          .BindInput(context_->GetMapedTensor(i_src))
+          .BindInput(context_->GetMapedTensor(input_tensor))
           .BindOutput(out);
-      next_tensors.push_back(o_src);
+      next_tensors.push_back(output_tensor);
+      auto valid_ratio = (float)(input_shape[w_axis] * input_shape[h_axis] *
+                                 input_shape[batch_axis]) /
+                         (float)(input_batch_fuse_shape[w_axis] *
+                                 input_batch_fuse_shape[h_axis]);
+      context_->UpdateProportion(input_tensor, valid_ratio);
     }
   }
 };

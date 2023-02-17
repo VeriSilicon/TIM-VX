@@ -10,40 +10,39 @@ namespace batch_fuse_impl {
 class BatchFuseContext {
  public:
   BatchFuseContext(const std::shared_ptr<vx::Graph>& src_graph,
-                   std::shared_ptr<vx::Graph>& batch_fuse_graph, std::shared_ptr<vx::Graph>& clone_fuse_graph)
-      : src_graph_(src_graph), batch_fuse_graph_(batch_fuse_graph), clone_batch_graph_(clone_fuse_graph) {}
-  //   void SetPermuteVector(std::shared_ptr<vx::Tensor> tensor,
-  //                         std::shared_ptr<IPermuteVector> pv);
-  //   const std::shared_ptr<IPermuteVector> GetPermuteVector(
-  //       const std::shared_ptr<vx::Tensor>& tensor) const;
+                   std::shared_ptr<vx::Graph>& batch_fuse_graph,
+                   std::shared_ptr<vx::Graph>& clone_fuse_graph)
+      : src_graph_(src_graph),
+        batch_fuse_graph_(batch_fuse_graph),
+        clone_batch_graph_(clone_fuse_graph) {}
+
   void MarkVisited(const std::shared_ptr<vx::Operation>& op);
+
   bool IsVisited(const std::shared_ptr<vx::Operation>& op) const;
+
   bool IsReadyForBatchFuse(const std::shared_ptr<vx::Operation>& op) const;
-  bool IsReadyForPadInfer(const std::shared_ptr<vx::Operation>& op) const;
+
+  bool IsReadyForGapInfer(const std::shared_ptr<vx::Operation>& op) const;
+
   bool IsReadyForCloneGraph(const std::shared_ptr<vx::Operation>& op) const;
+
   void UpdateTensorMap(const std::shared_ptr<vx::Tensor>& t_src,
                        const std::shared_ptr<vx::Tensor>& t_batch_fuse);
-  void UpdateCloneTensorMap(const std::shared_ptr<vx::Tensor>& t_src,
-                       const std::shared_ptr<vx::Tensor>& t_clone_graph);
-  void UpdateTensorBatchFuseMap(const std::shared_ptr<vx::Tensor>& t_batch_fuse,
-                                const std::shared_ptr<vx::Tensor>& t_src);
-//   void UpdateInitPad(const std::shared_ptr<vx::Tensor>& t_src,
-//                      const std::array<uint32_t, 4>& pad);
-//   void UpdateBackwardPad(const std::shared_ptr<vx::Tensor>& t_src,
-//                          const std::array<uint32_t, 4>& pad);
-//   void UpdateForwardPad(const std::shared_ptr<vx::Tensor>& t_src,
-//                         const std::array<uint32_t, 4>& pad);
 
-  void UpdateBackwardGap(const std::shared_ptr<vx::Tensor>& t_src,
-                         const std::array<uint32_t, 2>& pad);
+  void UpdateCloneTensorMap(const std::shared_ptr<vx::Tensor>& t_src,
+                            const std::shared_ptr<vx::Tensor>& t_clone_graph);
+
   void UpdateForwardGap(const std::shared_ptr<vx::Tensor>& t_src,
                         const std::array<uint32_t, 2>& pad);
-  
-  void UpdatePadInferShape(const std::shared_ptr<vx::Tensor>& t_src,
-                        const ShapeType& shape);
+
+  void UpdateGapInferShape(const std::shared_ptr<vx::Tensor>& t_src,
+                           const ShapeType& shape);
 
   void UpdateProportion(const std::shared_ptr<vx::Tensor>& t_src,
-                        const int32_t proportion);
+                        const float proportion);
+
+  void UpdatePermAxisMap(const std::shared_ptr<vx::Tensor>& t_src,
+                         const std::vector<uint32_t>& p_a_m);
 
   std::shared_ptr<vx::Tensor> GetMapedTensor(
       const std::shared_ptr<vx::Tensor>& t_src) const;
@@ -51,94 +50,108 @@ class BatchFuseContext {
   std::shared_ptr<vx::Tensor> GetCloneMapedTensor(
       const std::shared_ptr<vx::Tensor>& t_src) const;
 
-  std::shared_ptr<vx::Tensor> GetBatchFuseMapedTensor(
-      const std::shared_ptr<vx::Tensor>& t_batch_fuse) const;
-
-//   std::array<uint32_t, 4> GetInitPad(
-//       const std::shared_ptr<vx::Tensor>& t_src) const;
-
-//   std::array<uint32_t, 4> GetBackwardPad(
-//       const std::shared_ptr<vx::Tensor>& t_src) const;
-
-//   std::array<uint32_t, 4> GetForwardPad(
-//       const std::shared_ptr<vx::Tensor>& t_src) const;
-  
-  std::array<uint32_t, 2> GetBackwardGap(
-      const std::shared_ptr<vx::Tensor>& t_src) const;
-
   std::array<uint32_t, 2> GetForwardGap(
       const std::shared_ptr<vx::Tensor>& t_src) const;
-  
-  ShapeType GetPadInferShape(
+
+  ShapeType GetGapInferShape(const std::shared_ptr<vx::Tensor>& t_src) const;
+
+  float GetProportion(const std::shared_ptr<vx::Tensor>& t_src) const;
+
+  std::vector<uint32_t> GetPermAxisMap(
       const std::shared_ptr<vx::Tensor>& t_src) const;
 
-  int32_t GetProportion(const std::shared_ptr<vx::Tensor>& t_src) const;
+  uint32_t GetFakeBatch() { return fake_batch_; }
 
-  void UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& i_src,
-                           const std::shared_ptr<vx::Tensor>& i_batch_fuse);
+  uint32_t GetBatchAxis() { return batch_axis_; }
 
-  void UpdateGraphOutputMap(const std::shared_ptr<vx::Tensor>& o_src,
-                            const std::shared_ptr<vx::Tensor>& o_batch_fuse);
+  std::vector<uint32_t> GetFuseAxes() { return fuse_axes_; }
 
-  std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
-  GetGraphInputMap() const {
-    return graph_input_map_;
+  uint32_t GetPermBatchAxis(const std::shared_ptr<vx::Tensor>& t_src) {
+    // The index of batch axis
+    auto perm_axis = perm_axis_map_[t_src];
+    for (uint32_t i(0); i < perm_axis.size(); i++) {
+      if (perm_axis[i] == batch_axis_) {
+        return i;
+      }
+    }
+    return 0;
   }
 
-  std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
-  GetGraphOutputMap() const {
-    return graph_output_map_;
+  uint32_t GetPermChannelAxis(const std::shared_ptr<vx::Tensor>& t_src) {
+    // The index of channel axis
+    auto perm_axis = perm_axis_map_[t_src];
+    for (uint32_t i(0); i < perm_axis.size(); i++) {
+      if (perm_axis[i] == channel_axis_) {
+        return i;
+      }
+    }
+    return 0;
   }
 
-  uint32_t GetFakeBatch(){
-    return fake_batch_;
+  std::vector<uint32_t> GetPermFuseAxes(
+      const std::shared_ptr<vx::Tensor>& t_src) {
+    // The index of fuse axes
+    auto perm_axis = perm_axis_map_[t_src];
+    std::vector<uint32_t> perm_fuse_axes;
+    for (uint32_t i(0); i < perm_axis.size(); i++) {
+      for (uint32_t j(0); j < fuse_axes_.size(); j++) {
+        if (perm_axis[i] == fuse_axes_[j]) {
+          perm_fuse_axes.push_back(i);
+        }
+      }
+    }
+    return perm_fuse_axes;
   }
 
-  void SetFakeBatch(uint32_t batch){
-    fake_batch_ = batch;
+  void SetFakeBatch(uint32_t batch) { fake_batch_ = batch; }
+
+  void SetBatchAxis(uint32_t batch) { batch_axis_ = batch; }
+
+  void SetChannelAxis(uint32_t channel) { channel_axis_ = channel; }
+
+  void SetFuseAxes(const std::vector<uint32_t>& fuse_axes) {
+    fuse_axes_ = fuse_axes;
   }
 
-  const std::shared_ptr<vx::Graph>& src_graph_;
-  std::shared_ptr<vx::Graph>& batch_fuse_graph_;
-  std::shared_ptr<vx::Graph>& clone_batch_graph_;
+
+  // After graph layout infered, we get a layout infered graph
+  // Then we clone a new graph from layout infered graph, when we clone,
+  // we just clone ops and set new shape for tensors in cloned graph, here we just multiply fake_batch_ times of batch
+  // Lastly, we batch fuse the cloned graph to get a batch fused graph
+
+  const std::shared_ptr<vx::Graph>& src_graph_;   //layout infered graph
+  std::shared_ptr<vx::Graph>& batch_fuse_graph_;  //batch fused gaph
+  std::shared_ptr<vx::Graph>&
+      clone_batch_graph_;  //cloned from src_graph which can set fake batch
 
  private:
-  //   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<IPermuteVector>>
-  //       tensor_pv_;
   std::vector<std::shared_ptr<vx::Operation>> visited_op_;
-  // tensor_in_src -> tensor_in_layout
-  std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
-      tensor_map_;
+
+  // src graph is relatively, layout infered graph is the source graph of clone graph
+  // clone graph is the source graph of batch fuse graph
+
+  //tensor_in_src -> tensor_in_clone
   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
       clone_tensor_map_;
-  // tensor_bacth_fused -> tensor_in_src
+  // tensor_in_clone -> tensor_in_batch_fuse
   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
-      tensor_batch_fuse_map_;
-  std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
-      graph_input_map_;
-  std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
-      graph_output_map_;
-
-  //pad inference
-  //init pad size for op need
-//   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>> init_pad_map_;
-//   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>>
-//       backward_pad_map_;
-//   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 4>>
-//       forward_pad_map_;
-
-  std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 2>>
-      backward_gap_map_;
+      tensor_map_;
+  // tensor_in_src -> gap inside
   std::map<std::shared_ptr<vx::Tensor>, std::array<uint32_t, 2>>
       forward_gap_map_;
-  //t_src -> fused_tensor for pad inference
-  std::map<std::shared_ptr<vx::Tensor>, ShapeType>
-      pad_infer_shape_map_;
+  // tensor_in_src -> fused_tensor for pad inference
+  std::map<std::shared_ptr<vx::Tensor>, ShapeType> gap_infer_shape_map_;
 
-  //Proportion of useful data
-  std::map<std::shared_ptr<vx::Tensor>, int32_t> proportion_map_;
+  // tensor_in_src -> permute_axis_0, permute_axis_1
+  std::map<std::shared_ptr<vx::Tensor>, std::vector<uint32_t>> perm_axis_map_;
+
+  // Proportion of useful or valid data
+  std::map<std::shared_ptr<vx::Tensor>, float> proportion_map_;
 
   uint32_t fake_batch_;
+  uint32_t batch_axis_;
+  uint32_t channel_axis_;
+  std::vector<uint32_t> fuse_axes_;
 };
 
 }  // namespace batch_fuse_impl
