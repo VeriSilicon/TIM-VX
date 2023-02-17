@@ -235,7 +235,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertSliceAndConcat(
 
   for (uint i = 0; i < batch_factor_h; i++) {
     for (uint j = 0; j < batch_factor_w; j++) {
-      std::vector<int32_t> point(4, 0);
+      std::vector<int32_t> point(batch, 0);
       point[w_axis] = axis_point_w[j];
       point[h_axis] = axis_point_h[i];
       start_point.push_back(point);
@@ -249,7 +249,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertSliceAndConcat(
   auto slice_shape = tensors[0]->GetSpec();
 
   auto concat =
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Concat>(3, batch);
+      context_->batch_fuse_graph_->CreateOperation<vx::ops::Concat>(batch_axis, batch);
 
   // Concat tensor has the same spec of original tensor
   auto concat_tensor = context_->batch_fuse_graph_->CreateTensor(input_spec);
@@ -328,7 +328,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
 
   for (uint i = 0; i < batch_factor_h; i++) {
     for (uint j = 0; j < batch_factor_w; j++) {
-      std::vector<int32_t> point(4, 0);
+      std::vector<int32_t> point(batch, 0);
       point[w_axis] = axis_point_w[j];
       point[h_axis] = axis_point_h[i];
       start_point.push_back(point);
