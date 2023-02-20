@@ -171,3 +171,82 @@ TEST(GroupedConv2d, kernel_bigger_than_input_SAME) {
   EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
   EXPECT_EQ(golden, output);
 }
+
+TEST(TransposeConv2d, all_tensor_as_input) {
+  auto ctx = tim::vx::Context::Create();
+  auto src_graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({1, 2, 1, 1});  //cwhn
+  tim::vx::ShapeType kernel_shape({1, 3, 3, 1});  //iwho,
+  tim::vx::ShapeType bias_shape({1});
+  tim::vx::ShapeType output_shape({1, 4, 3, 1});  //cwhn
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec kernel_spec(tim::vx::DataType::FLOAT32, kernel_shape,
+                                  tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec bias_spec(tim::vx::DataType::FLOAT32, bias_shape,
+                                tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  std::vector<float> in_data = {
+      1.0f,
+      3.0f,
+  };
+  std::vector<float> weight = {2.0f, 2, 2, 2, 2, 2, 2, 2, 2};
+  std::vector<float> bias = {0.0f};
+  std::vector<float> golden = {2, 2, 6, 6, 2, 2, 6, 6, 2, 2, 6, 6};
+  auto input_tensor = src_graph->CreateTensor(input_spec);
+  auto weight_tensor = src_graph->CreateTensor(kernel_spec);
+  auto bias_tensor = src_graph->CreateTensor(bias_spec);
+  auto output_tensor = src_graph->CreateTensor(output_spec);
+
+  std::array<uint32_t, 2> strides = {3, 3};
+  std::array<uint32_t, 2> ksize = {3, 3};
+  std::array<uint32_t, 2> output_padding = {0, 0};
+
+  uint32_t ksize_w = kernel_shape[1];
+  uint32_t ksize_h = kernel_shape[2];
+  uint32_t input_w = input_shape[1];
+  uint32_t input_h = input_shape[2];
+  uint32_t output_w = output_shape[1];
+  uint32_t output_h = output_shape[2];
+  uint32_t stride_w = strides[0];
+  uint32_t stride_h = strides[1];
+  int32_t pad_left_inter =
+      static_cast<int32_t>(ksize_w + stride_w * (input_w - 1) - output_w);
+  uint32_t pad_left = pad_left_inter > 0 ? pad_left_inter / 2 : 0;
+  uint32_t pad_right = pad_left_inter - pad_left;
+  int32_t pad_top_inter =
+      static_cast<int32_t>(ksize_h + stride_h * (input_h - 1) - output_h);
+  uint32_t pad_top = pad_top_inter > 0 ? pad_top_inter / 2 : 0;
+  uint32_t pad_bottom = pad_top_inter - pad_top;
+  std::array<uint32_t, 4> pad = {pad_left, pad_right, pad_top, pad_bottom};
+
+  auto op = src_graph->CreateOperation<tim::vx::ops::DeConv2d>(
+      0, tim::vx::PadType::SAME, ksize, strides, output_padding, pad, 1,
+      tim::vx::DataLayout::CWHN, tim::vx::DataLayout::IcWHOc);
+  (*op)
+      .BindInputs({input_tensor, weight_tensor, bias_tensor})
+      .BindOutputs({output_tensor});
+
+  // Do layout inference
+  auto transform = tim::transform::LayoutInference(src_graph, ctx);
+  auto infer_graph = transform.first;
+  auto graph_io_map = transform.second;
+  infer_graph->Compile();
+
+  auto infer_input = graph_io_map[src_graph->InputsTensor()[0]];
+  auto infer_weight = graph_io_map[src_graph->InputsTensor()[1]];
+  auto infer_bias = graph_io_map[src_graph->InputsTensor()[2]];
+  auto infer_output = graph_io_map[src_graph->OutputsTensor()[0]];
+
+  infer_input->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float));
+  infer_weight->CopyDataToTensor(weight.data(), weight.size() * sizeof(float));
+  infer_bias->CopyDataToTensor(bias.data(), bias.size() * sizeof(float));
+  infer_graph->Run();
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
