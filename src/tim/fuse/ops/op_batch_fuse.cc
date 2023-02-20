@@ -58,6 +58,62 @@ std::pair<uint32_t, uint32_t> OpBatchFuse::ClosestFactors(uint32_t n) {
   }
 }
 
+std::vector<std::vector<int32_t>> OpBatchFuse::ComputeStartPoints(
+    std::vector<uint32_t> input_batch_fuse_shape,
+    std::vector<uint32_t> input_shape, uint32_t batch_axis,
+    std::vector<uint32_t> fuse_axes) {
+  auto w_axis = fuse_axes[0];
+  auto h_axis = fuse_axes[1];
+
+  uint32_t batch = input_shape[batch_axis];
+  uint32_t batch_factor_w = ClosestFactors(batch).first;
+  uint32_t batch_factor_h = ClosestFactors(batch).second;
+
+  uint32_t batch_out_h = input_batch_fuse_shape[h_axis];
+  uint32_t batch_out_w = input_batch_fuse_shape[w_axis];
+  uint32_t out_h = input_shape[h_axis];
+  uint32_t out_w = input_shape[w_axis];
+
+  //if there has shared pad between valid value, overlap size may be negative
+  int32_t gap_output_h = 0;
+  int32_t gap_output_w = 0;
+  if (batch_factor_h - 1 == 0)
+    gap_output_h = 0;
+  else
+    gap_output_h =
+        (batch_out_h - batch_factor_h * out_h) / (batch_factor_h - 1);
+  if (batch_factor_w - 1 == 0)
+    gap_output_w = 0;
+  else
+    gap_output_w =
+        (batch_out_w - batch_factor_w * out_w) / (batch_factor_w - 1);
+
+  std::vector<int32_t> axis_point_h(batch_factor_h, 0);
+  std::vector<int32_t> axis_point_w(batch_factor_w, 0);
+
+  std::vector<std::vector<int32_t>> start_point;
+
+  // Compute the start point of each piece of data
+  for (uint i = 0; i < batch_factor_h; i++) {
+    axis_point_h[i] = 0 + i * (gap_output_h + out_h);
+  }
+
+  for (uint i = 0; i < batch_factor_w; i++) {
+    axis_point_w[i] = 0 + i * (gap_output_w + out_w);
+  }
+
+  for (uint i = 0; i < batch_factor_h; i++) {
+    for (uint j = 0; j < batch_factor_w; j++) {
+      std::vector<int32_t> point(4, 0);
+      point[w_axis] = axis_point_w[j];
+      point[h_axis] = axis_point_h[i];
+      start_point.push_back(point);
+    }
+  }
+
+  return start_point;
+}
+
 std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
     std::shared_ptr<vx::Tensor> pad_tensor,
     std::shared_ptr<vx::Tensor> input_tensor, uint32_t batch_axis,
@@ -72,12 +128,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
   uint32_t batch_factor_h = ClosestFactors(pad_shape[batch_axis]).second;
   auto w_axis = fuse_axes[0];
   auto h_axis = fuse_axes[1];
-  uint32_t c_axis;
-  for (uint32_t i(0); i < pad_shape.size(); i++) {
-    if (i != batch_axis && i != w_axis && i != h_axis) {
-      c_axis = i;
-    }
-  }
+  auto c_axis = context_->GetPermChannelAxis(input_tensor);
   uint32_t in_channel = pad_shape[c_axis];
   uint32_t h = pad_shape[h_axis];
   uint32_t w = pad_shape[w_axis];
@@ -183,64 +234,25 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertSliceAndConcat(
 
   auto w_axis = fuse_axes[0];
   auto h_axis = fuse_axes[1];
+  auto c_axis = context_->GetPermChannelAxis(input_tensor);
 
-  uint32_t batch = input_shape[batch_axis];
-  uint32_t batch_factor_w = ClosestFactors(batch).first;
-  uint32_t batch_factor_h = ClosestFactors(batch).second;
-
-  uint32_t batch_out_h = input_batch_fuse_shape[h_axis];
-  uint32_t batch_out_w = input_batch_fuse_shape[w_axis];
   uint32_t out_h = input_shape[h_axis];
   uint32_t out_w = input_shape[w_axis];
-
-  auto c_axis = context_->GetPermChannelAxis(input_tensor);
   uint32_t out_channel = input_shape[c_axis];
-
-  //if there has shared pad between valid value, overlap size may be negative
-  int32_t gap_output_h = 0;
-  int32_t gap_output_w = 0;
-  if (batch_factor_h - 1 == 0)
-    gap_output_h = 0;
-  else
-    gap_output_h =
-        (batch_out_h - batch_factor_h * out_h) / (batch_factor_h - 1);
-  if (batch_factor_w - 1 == 0)
-    gap_output_w = 0;
-  else
-    gap_output_w =
-        (batch_out_w - batch_factor_w * out_w) / (batch_factor_w - 1);
 
   int32_t out_w_ = static_cast<int32_t>(out_w);
   int32_t out_h_ = static_cast<int32_t>(out_h);
   int32_t out_channel_ = static_cast<int32_t>(out_channel);
-
-  std::vector<int32_t> axis_point_h(batch_factor_h, 0);
-  std::vector<int32_t> axis_point_w(batch_factor_w, 0);
 
   std::vector<int32_t> length(4);
   length[w_axis] = out_w_;
   length[h_axis] = out_h_;
   length[c_axis] = out_channel_;
   length[batch_axis] = 1;
-  std::vector<std::vector<int32_t>> start_point;
 
-  // Compute the start point of each piece of data
-  for (uint i = 0; i < batch_factor_h; i++) {
-    axis_point_h[i] = 0 + i * (gap_output_h + out_h);
-  }
-
-  for (uint i = 0; i < batch_factor_w; i++) {
-    axis_point_w[i] = 0 + i * (gap_output_w + out_w);
-  }
-
-  for (uint i = 0; i < batch_factor_h; i++) {
-    for (uint j = 0; j < batch_factor_w; j++) {
-      std::vector<int32_t> point(4, 0);
-      point[w_axis] = axis_point_w[j];
-      point[h_axis] = axis_point_h[i];
-      start_point.push_back(point);
-    }
-  }
+  auto start_point = ComputeStartPoints(input_batch_fuse_shape, input_shape,
+                                        batch_axis, fuse_axes);
+  uint32_t batch = input_shape[batch_axis];
 
   std::vector<std::shared_ptr<vx::Tensor>> tensors;
   for (uint i = 0; i < batch; i++) {
@@ -248,8 +260,8 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertSliceAndConcat(
   }
   auto slice_shape = tensors[0]->GetSpec();
 
-  auto concat =
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Concat>(batch_axis, batch);
+  auto concat = context_->batch_fuse_graph_->CreateOperation<vx::ops::Concat>(
+      batch_axis, batch);
 
   // Concat tensor has the same spec of original tensor
   auto concat_tensor = context_->batch_fuse_graph_->CreateTensor(input_spec);
@@ -271,109 +283,57 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
 
   auto w_axis = fuse_axes[0];
   auto h_axis = fuse_axes[1];
-  uint32_t c_axis;
-  for (uint32_t i(0); i < input_shape.size(); i++) {
-    if (i != batch_axis && i != w_axis && i != h_axis) {
-      c_axis = i;
-    }
-  }
+  auto c_axis = context_->GetPermChannelAxis(input_tensor);
 
-  uint32_t batch = input_shape[batch_axis];
-  uint32_t batch_factor_w = ClosestFactors(batch).first;
-  uint32_t batch_factor_h = ClosestFactors(batch).second;
-
-  uint32_t batch_out_h = input_batch_fuse_shape[h_axis];
-  uint32_t batch_out_w = input_batch_fuse_shape[w_axis];
   uint32_t out_h = input_shape[h_axis];
   uint32_t out_w = input_shape[w_axis];
   uint32_t out_channel = input_shape[c_axis];
+  uint32_t batch_out_h = input_batch_fuse_shape[h_axis];
+  uint32_t batch_out_w = input_batch_fuse_shape[w_axis];
 
-  //if there has shared pad between valid value, overlap size may be negative
-  int32_t gap_output_h = 0;
-  int32_t gap_output_w = 0;
-  if (batch_factor_h - 1 == 0)
-    gap_output_h = 0;
-  else
-    gap_output_h =
-        (batch_out_h - batch_factor_h * out_h) / (batch_factor_h - 1);
-  if (batch_factor_w - 1 == 0)
-    gap_output_w = 0;
-  else
-    gap_output_w =
-        (batch_out_w - batch_factor_w * out_w) / (batch_factor_w - 1);
+  auto start_point = ComputeStartPoints(input_batch_fuse_shape, input_shape,
+                                        batch_axis, fuse_axes);
 
-  int32_t out_w_ = static_cast<int32_t>(out_w);
-  int32_t out_h_ = static_cast<int32_t>(out_h);
-  int32_t out_channel_ = static_cast<int32_t>(out_channel);
-
-  std::vector<int32_t> axis_point_h(batch_factor_h, 0);
-  std::vector<int32_t> axis_point_w(batch_factor_w, 0);
-
-  std::vector<int32_t> length(4, 0);
-  length[w_axis] = out_w_;
-  length[h_axis] = out_h_;
-  length[c_axis] = out_channel_;
-  length[batch_axis] = 1;
-
-  std::vector<std::vector<int32_t>> start_point;
-
-  // Compute the start point of each piece of data
-  for (uint i = 0; i < batch_factor_h; i++) {
-    axis_point_h[i] = 0 + i * (gap_output_h + out_h);
-  }
-
-  for (uint i = 0; i < batch_factor_w; i++) {
-    axis_point_w[i] = 0 + i * (gap_output_w + out_w);
-  }
-
-  for (uint i = 0; i < batch_factor_h; i++) {
-    for (uint j = 0; j < batch_factor_w; j++) {
-      std::vector<int32_t> point(4, 0);
-      point[w_axis] = axis_point_w[j];
-      point[h_axis] = axis_point_h[i];
-      start_point.push_back(point);
-    }
-  }
   std::shared_ptr<vx::Tensor> mask_tensor;
-
-  
-
+  std::vector<uint32_t> index(3);
+  index[2 - w_axis] = batch_out_w;
+  index[2 - h_axis] = batch_out_h;
+  index[2 - c_axis] = out_channel;
 
   if (input_spec.datatype_ == vx::DataType::FLOAT32) {
-    std::vector<uint32_t> index(3);
-    index[2 - w_axis] = batch_out_w;
-    index[2 - h_axis] = batch_out_h;
-    index[2 - c_axis] = out_channel;
-
     std::vector<std::vector<std::vector<float>>> mask_data_float(
         index[0], std::vector<std::vector<float>>(
-                        index[1], std::vector<float>(index[2], 0)));
+                      index[1], std::vector<float>(index[2], 0)));
 
     // Set valid area with mask value 1
     // Set gap area with mask value 0
-     
+
     for (uint i = 0; i < start_point.size(); i++) {
       int w_start = start_point[i][w_axis];
       int h_start = start_point[i][h_axis];
       int c_start = start_point[i][c_axis];
-      std::vector<uint32_t> index(3);
+      std::vector<uint32_t> index_(3);
       for (uint c = 0; c < out_channel; c++) {
         for (uint h = 0; h < out_h; h++) {
           for (uint w = 0; w < out_w; w++) {
-            index[2 - w_axis] = w_start + w;
-            index[2 - h_axis] = h_start + h;
-            index[2 - c_axis] = c_start + c;
-            mask_data_float[index[0]][index[1]][index[2]] = 1;
+            index_[2 - w_axis] = w_start + w;
+            index_[2 - h_axis] = h_start + h;
+            index_[2 - c_axis] = c_start + c;
+            mask_data_float[index_[0]][index_[1]][index_[2]] = 1;
           }
         }
       }
     }
 
     std::vector<float> mask_vector_float;
+    std::vector<uint32_t> index_(3);
     for (uint c = 0; c < out_channel; c++) {
       for (uint h = 0; h < batch_out_h; h++) {
         for (uint w = 0; w < batch_out_w; w++) {
-          mask_vector_float.push_back(mask_data_float[c][h][w]);
+          index_[2 - w_axis] = w;
+          index_[2 - h_axis] = h;
+          index_[2 - c_axis] = c;
+          mask_vector_float.push_back(mask_data_float[index_[0]][index_[1]][index_[2]]);
         }
       }
     }
@@ -386,37 +346,37 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
         mask_spec, mask_vector_float.data());
 
   } else if (input_spec.datatype_ == vx::DataType::UINT8) {
-    std::vector<uint32_t> index(3);
-    index[2 - w_axis] = batch_out_w;
-    index[2 - h_axis] = batch_out_h;
-    index[2 - c_axis] = out_channel;
 
     std::vector<std::vector<std::vector<float>>> mask_data(
         index[0], std::vector<std::vector<float>>(
-                        index[1], std::vector<float>(index[2], 0)));
+                      index[1], std::vector<float>(index[2], 0)));
 
     for (uint i = 0; i < start_point.size(); i++) {
       int w_start = start_point[i][w_axis];
       int h_start = start_point[i][h_axis];
       int c_start = start_point[i][c_axis];
-      std::vector<uint32_t> index(3);
+      std::vector<uint32_t> index_(3);
       for (uint c = 0; c < out_channel; c++) {
         for (uint h = 0; h < out_h; h++) {
           for (uint w = 0; w < out_w; w++) {
-            index[2 - w_axis] = w_start + w;
-            index[2 - h_axis] = h_start + h;
-            index[2 - c_axis] = c_start + c;
-            mask_data[index[0]][index[1]][index[2]] = 1;
+            index_[2 - w_axis] = w_start + w;
+            index_[2 - h_axis] = h_start + h;
+            index_[2 - c_axis] = c_start + c;
+            mask_data[index_[0]][index_[1]][index_[2]] = 1;
           }
         }
       }
     }
 
     std::vector<uint8_t> mask_vector;
+    std::vector<uint32_t> index_(3);
     for (uint c = 0; c < out_channel; c++) {
       for (uint h = 0; h < batch_out_h; h++) {
         for (uint w = 0; w < batch_out_w; w++) {
-          mask_vector.push_back(mask_data[c][h][w]);
+          index_[2 - w_axis] = w;
+          index_[2 - h_axis] = h;
+          index_[2 - c_axis] = c;
+          mask_vector.push_back(mask_data[index_[0]][index_[1]][index_[2]]);
         }
       }
     }
@@ -516,7 +476,7 @@ void OpBatchFuse::OnOutputs(
       auto out_batch_fuse_shape = out_batch_fuse->GetShape();
 
       // auto batch_src_axis = context_->GetBatchAxis();  // 3
-      auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+      auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
       auto perm_axis_map = context_->GetPermAxisMap(out);
       auto fuse_axes = context_->GetPermFuseAxes(out);
@@ -543,8 +503,8 @@ void OpBatchFuse::OnOutputs(
           // If reshape is the last op of graph, its output shape may not be whcn
           // so we handle its slice and concat in reshape's OnInputs() too
           // TODO(HuanyuCai): unify transpose and reshape's slice and concat
-          auto slice_and_concat_out =
-              InsertSliceAndConcat(context_->GetMapedTensor(out), out, batch_axis, fuse_axes);
+          auto slice_and_concat_out = InsertSliceAndConcat(
+              context_->GetMapedTensor(out), out, batch_axis, fuse_axes);
           auto slice_and_concat_out_shape = slice_and_concat_out->GetShape();
           context_->UpdateTensorMap(out, slice_and_concat_out);
         }
@@ -576,7 +536,8 @@ void OpBatchFuse::CloneGraph(
       clone_in_tensor = context_->clone_batch_graph_->CreateTensor(input_spec);
       context_->UpdatePermAxisMap(clone_in_tensor, {0, 1, 2, 3});
     } else {
-      if (op_->impl()->kind_ == 2 && input_spec.attr_ == vx::TensorAttribute::CONSTANT) {
+      if (op_->impl()->kind_ == 2 &&
+          input_spec.attr_ == vx::TensorAttribute::CONSTANT) {
         // weight or bias
 
         std::vector<uint8_t> tmp(input_spec.GetByteSize());
@@ -602,7 +563,8 @@ void OpBatchFuse::CloneGraph(
     output_spec.SetShape(output_shape);
     clone_out_tensor = context_->clone_batch_graph_->CreateTensor(output_spec);
     context_->UpdateCloneTensorMap(output, clone_out_tensor);
-    auto input_perm = context_->GetPermAxisMap(context_->GetCloneMapedTensor(input_tensor));
+    auto input_perm =
+        context_->GetPermAxisMap(context_->GetCloneMapedTensor(input_tensor));
     if (op_->impl()->kind_ == 19) {
       // Transpose
       std::vector<uint32_t> perm(op_->impl()->node()->nn_param.permute.dim_num);

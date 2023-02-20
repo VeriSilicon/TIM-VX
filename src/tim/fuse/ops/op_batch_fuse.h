@@ -58,6 +58,11 @@ class OpBatchFuse {
  protected:
   std::pair<uint32_t, uint32_t> ClosestFactors(uint32_t batch);
 
+  std::vector<std::vector<int32_t>> ComputeStartPoints(
+      std::vector<uint32_t> input_batch_fuse_shape,
+      std::vector<uint32_t> input_shape, uint32_t batch_axis,
+      std::vector<uint32_t> fuse_axes);
+
   std::shared_ptr<vx::Tensor> InsertPad(
       std::shared_ptr<vx::Tensor> input_batch_fuse_tensor,
       std::shared_ptr<vx::Tensor> input_tensor, uint32_t batch_axis,
