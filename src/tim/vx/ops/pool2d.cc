@@ -108,7 +108,7 @@ void Pool2d::Init() {
 }
 
 std::shared_ptr<Operation> Pool2d::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<Pool2d>(this->type_, this->pad_, this->ksize_,
+  return graph->CreateOperation<Pool2d>(this->type_, this->padding_, this->ksize_,
                                         this->stride_, this->round_type_,
                                         this->impl_->layout_);
 }
