@@ -245,7 +245,7 @@ class Pool2dBatchFuse : public OpBatchFuse {
 
     std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
-      if (pad_type == vx::PadType::SAME) {
+      if (pad_type == vx::PadType::SAME || pad_type == vx::PadType::VALID) {
         int32_t p_w =
             stride[0] * output_shape[w_axis] - input_shape[w_axis] + ksize[0] - stride[0];
         int32_t p_h =
@@ -374,7 +374,7 @@ class Pool2dBatchFuse : public OpBatchFuse {
 
     std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
-      if (pad_type == vx::PadType::SAME) {
+      if (pad_type == vx::PadType::SAME || pad_type == vx::PadType::VALID) {
         
         int32_t p_w =
             stride[0] * output_shape[w_axis] - input_shape[w_axis] + ksize[0] - stride[0];
