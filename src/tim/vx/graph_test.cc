@@ -25,6 +25,7 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/elementwise.h"
 #include "tim/vx/ops/nbg.h"
+#include "tim/vx/ops.h"
 
 #include "gtest/gtest.h"
 
