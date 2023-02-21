@@ -132,12 +132,19 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
   uint32_t in_channel = pad_shape[c_axis];
   uint32_t h = pad_shape[h_axis];
   uint32_t w = pad_shape[w_axis];
-  std::vector<uint32_t> perm1 = {0, 1, 3, 4, 2, 5};
-  std::vector<uint32_t> perm2 = {0, 2, 1, 3, 4, 5};
 
   // Batch fuse through tanspose
+  if (w_axis != 0 && h_axis != 1 && c_axis != 2) {
+    VSILOGE("Only supports shape as WHCN instead of CWHN");
+  }
 
-  // TODO(HuanyuCai): Set shape with index of w_axis, h_axis, c_index and batch_index
+  // The following parameters and shapes are only applicable to tensors whose shape is WHCN
+  // According to the rules of layout inference, the shape of ops such as conv2d and pool2d will be transferred to WHCN,
+  // and these ops need batch fuse, so the shape of CWHN will not appear here logically,
+  // so only an error log is added here, not according to axis to map the shape.
+
+  std::vector<uint32_t> perm1 = {0, 1, 3, 4, 2, 5};
+  std::vector<uint32_t> perm2 = {0, 2, 1, 3, 4, 5};
   vx::ShapeType reshape_1_shape(
       {w, h, in_channel, batch_factor_w, batch_factor_h, 1});  //whcbbn
   vx::ShapeType transpose_1_shape(
@@ -333,7 +340,8 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
           index_[2 - w_axis] = w;
           index_[2 - h_axis] = h;
           index_[2 - c_axis] = c;
-          mask_vector_float.push_back(mask_data_float[index_[0]][index_[1]][index_[2]]);
+          mask_vector_float.push_back(
+              mask_data_float[index_[0]][index_[1]][index_[2]]);
         }
       }
     }
@@ -346,7 +354,6 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
         mask_spec, mask_vector_float.data());
 
   } else if (input_spec.datatype_ == vx::DataType::UINT8) {
-
     std::vector<std::vector<std::vector<float>>> mask_data(
         index[0], std::vector<std::vector<float>>(
                       index[1], std::vector<float>(index[2], 0)));
@@ -497,12 +504,6 @@ void OpBatchFuse::OnOutputs(
         }
         if (batch == 1 && batch_src != 1) {
           // If the tensor is output, it need slice and concat
-          // the tensor shape need to be whcn
-          // So if transpose is the last op of graph, its output shape will be cwhn
-          // we handle its slice and concat in transpose's OnInputs()
-          // If reshape is the last op of graph, its output shape may not be whcn
-          // so we handle its slice and concat in reshape's OnInputs() too
-          // TODO(HuanyuCai): unify transpose and reshape's slice and concat
           auto slice_and_concat_out = InsertSliceAndConcat(
               context_->GetMapedTensor(out), out, batch_axis, fuse_axes);
           auto slice_and_concat_out_shape = slice_and_concat_out->GetShape();
@@ -576,6 +577,13 @@ void OpBatchFuse::CloneGraph(
       output_perm[2] = input_perm[perm[2]];
       output_perm[3] = input_perm[perm[3]];
       context_->UpdatePermAxisMap(clone_out_tensor, output_perm);
+    } else if (op_->impl()->kind_ == 162) {
+      // Reshape
+      // If the input shape is WHCN and output shape is not, how to define output tensor's perm? 
+      // How to map the perm, what does each dimension obtained by map, and how does it affect the subsequent tensor?
+      // Although map the perm axis is a concept that only applies to ops (conv2d, pool2d) with physical meanings in shape, 
+      // we also need to assign a value that is as correct as possible for other ops such as reshape
+      context_->UpdatePermAxisMap(clone_out_tensor, input_perm);
     } else {
       context_->UpdatePermAxisMap(clone_out_tensor, input_perm);
     }

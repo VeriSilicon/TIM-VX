@@ -89,6 +89,7 @@ class ReshapeBatchFuse : public OpBatchFuse {
 
     if (input_shape[batch_axis] != 1 && input_batch_fuse_shape[batch_axis] == 1) {
       if (output_spec.attr_ == vx::TensorAttribute::OUTPUT) {
+        // For reshape, its output tensor may not be 4 dimensions, so we slice and concat its input tensor in its OnInputs()
         auto concat_tensor = InsertSliceAndConcat(input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
         context_->UpdateTensorMap(input_tensor, concat_tensor);
       }
