@@ -417,7 +417,7 @@ TEST(graph, G_VOXELNET_ONNX_SOC) {
   EXPECT_TRUE(vx_nbg_graph->Run());
 }
 
-TEST(graph, DISABLED_G_DETR3D_0913_NO_DCN_SIM_ONNX_SOC) {
+TEST(graph, G_DETR3D_0913_NO_DCN_SIM_ONNX_SOC) {
   std::shared_ptr<tim::vx::Tensor> dumpTensor;
   std::unordered_map<uint32_t, std::shared_ptr<tim::vx::Tensor>> dumpTensorMap;
   auto vx_context = tim::vx::Context::Create();
@@ -986,7 +986,7 @@ TEST(graph, DISABLED_G_DETR3D_0913_NO_DCN_SIM_ONNX_SOC) {
   EXPECT_TRUE(vx_nbg_graph->Run());
 }
 
-TEST(graph, DISABLED_G_3DUNET_ONNX_SOC) {
+TEST(graph, G_3DUNET_ONNX_SOC) {
   std::shared_ptr<tim::vx::Tensor> dumpTensor;
   std::unordered_map<uint32_t, std::shared_ptr<tim::vx::Tensor>> dumpTensorMap;
   auto vx_context = tim::vx::Context::Create();
