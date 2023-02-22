@@ -874,8 +874,9 @@ TEST(graph, G_DETR3D_0913_NO_DCN_SIM_ONNX_SOC) {
   nbg_buf.swap(tmp);
   EXPECT_TRUE(vx_graph->CompileToBinary(nbg_buf.data(), &bin_size));
 
-  std::vector<std::pair<tim::vx::TensorSpec, std::vector<float>>> input_specs_;
+  
   std::vector<tim::vx::TensorSpec> output_specs_;
+  std::vector<std::shared_ptr<tim::vx::Tensor>> input_tensors;
   auto vx_nbg_graph = vx_context->CreateGraph();
   vx_output_tspec = tim::vx::TensorSpec(
       tim::vx::DataType::FLOAT32,
@@ -887,7 +888,10 @@ TEST(graph, G_DETR3D_0913_NO_DCN_SIM_ONNX_SOC) {
                             std::vector<float, std::allocator<float>>({}),
                             std::vector<int, std::allocator<int>>({})));
   std::vector<float> in_data_0(2 * 900 * 6, 1.5f);
-  input_specs_.push_back(std::make_pair(vx_output_tspec, in_data_0));
+  auto input_tensor_0 =
+      vx_nbg_graph->CreateTensor(vx_output_tspec, in_data_0.data());
+  input_tensors.push_back(input_tensor_0);
+
   vx_output_tspec = tim::vx::TensorSpec(
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
@@ -898,7 +902,10 @@ TEST(graph, G_DETR3D_0913_NO_DCN_SIM_ONNX_SOC) {
                             std::vector<float, std::allocator<float>>({}),
                             std::vector<int, std::allocator<int>>({})));
   std::vector<float> in_data_1(4 * 6 * 900 * 6, 1.5f);
-  input_specs_.push_back(std::make_pair(vx_output_tspec, in_data_1));
+  auto input_tensor_1 =
+      vx_nbg_graph->CreateTensor(vx_output_tspec, in_data_1.data());
+  input_tensors.push_back(input_tensor_1);
+  
   vx_output_tspec = tim::vx::TensorSpec(
       tim::vx::DataType::BOOL8,
       tim::vx::ShapeType(
@@ -908,8 +915,10 @@ TEST(graph, G_DETR3D_0913_NO_DCN_SIM_ONNX_SOC) {
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
                             std::vector<int, std::allocator<int>>({})));
-  std::vector<float> in_data_2(900 * 6, 1.5f);
-  input_specs_.push_back(std::make_pair(vx_output_tspec, in_data_2));
+  std::vector<char> in_data_2(900 * 6, 1);
+  auto input_tensor_2 =
+      vx_nbg_graph->CreateTensor(vx_output_tspec, in_data_2.data());
+  input_tensors.push_back(input_tensor_2);
 
   vx_output_tspec = tim::vx::TensorSpec(
       tim::vx::DataType::FLOAT32,
@@ -963,19 +972,10 @@ TEST(graph, G_DETR3D_0913_NO_DCN_SIM_ONNX_SOC) {
                             std::vector<int, std::allocator<int>>({})));
   output_specs_.push_back(vx_output_tspec);
   auto nbg_node = vx_nbg_graph->CreateOperation<tim::vx::ops::NBG>(
-      nbg_buf.data(), input_specs_.size(), output_specs_.size());
+      nbg_buf.data(), input_tensors.size(), output_specs_.size());
 
-  std::vector<std::shared_ptr<tim::vx::Tensor>> input_tensors, output_tensors;
-  std::transform(
-      input_specs_.begin(), input_specs_.end(),
-      std::back_inserter(input_tensors),
-      [vx_nbg_graph](
-          const std::pair<tim::vx::TensorSpec, std::vector<float>>& pair) {
-        auto input_tensor = vx_nbg_graph->CreateTensor(pair.first);
-        input_tensor->CopyDataToTensor(pair.second.data(),
-                                       pair.second.size() * sizeof(float));
-        return input_tensor;
-      });
+  std::vector<std::shared_ptr<tim::vx::Tensor>> output_tensors;
+  
   std::transform(output_specs_.begin(), output_specs_.end(),
                  std::back_inserter(output_tensors),
                  [vx_nbg_graph](const tim::vx::TensorSpec& spec) {
@@ -997,7 +997,7 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {80, 112, 112, 64, 1})),
+              {5, 7, 7, 64, 1})),
       tim::vx::TensorAttribute::OUTPUT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
@@ -1009,7 +1009,7 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {80, 112, 112, 64, 1})),
+              {5, 7, 7, 64, 1})),
       tim::vx::TensorAttribute::OUTPUT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
@@ -1021,7 +1021,7 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {80, 112, 112, 64, 1})),
+              {5, 7, 7, 64, 1})),
       tim::vx::TensorAttribute::TRANSIENT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
@@ -1033,7 +1033,7 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {160, 224, 224, 32, 1})),
+              {10, 14, 14, 32, 1})),
       tim::vx::TensorAttribute::OUTPUT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
@@ -1045,7 +1045,7 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {160, 224, 224, 32, 1})),
+              {10, 14, 14, 32, 1})),
       tim::vx::TensorAttribute::TRANSIENT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
@@ -1057,7 +1057,7 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {160, 224, 224, 32, 1})),
+              {10, 14, 14, 32, 1})),
       tim::vx::TensorAttribute::TRANSIENT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
@@ -1069,7 +1069,7 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {160, 224, 224, 32, 1})),
+              {10, 14, 14, 32, 1})),
       tim::vx::TensorAttribute::TRANSIENT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
@@ -1081,7 +1081,7 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {160, 224, 224, 32, 1})),
+              {10, 14, 14, 32, 1})),
       tim::vx::TensorAttribute::INPUT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
@@ -1285,12 +1285,12 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {160, 224, 224, 32, 1})),
+              {10, 14, 14, 32, 1})),
       tim::vx::TensorAttribute::INPUT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
                             std::vector<int, std::allocator<int>>({})));
-  std::vector<float> in_data_0(160 * 224 * 224 * 32 * 1, 1.5f);
+  std::vector<float> in_data_0(10 * 14 * 14 * 32 * 1, 1.5f);
   auto input_tensor_0 =
       vx_nbg_graph->CreateTensor(vx_output_tspec, in_data_0.data());
   input_tensors.push_back(input_tensor_0);
@@ -1313,26 +1313,25 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {80, 112, 112, 64, 1})),
+              {10, 14, 14, 32, 1})),
+      tim::vx::TensorAttribute::OUTPUT,
+      tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
+                            std::vector<float, std::allocator<float>>({}),
+                            std::vector<int, std::allocator<int>>({})));
+  auto output_tensor_3 = vx_nbg_graph->CreateTensor(vx_output_tspec);
+  output_tensors.push_back(output_tensor_3);
+
+  vx_output_tspec = tim::vx::TensorSpec(
+      tim::vx::DataType::FLOAT32,
+      tim::vx::ShapeType(
+          std::vector<unsigned int, std::allocator<unsigned int>>(
+              {5, 7, 7, 64, 1})),
       tim::vx::TensorAttribute::OUTPUT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
                             std::vector<int, std::allocator<int>>({})));
   auto output_tensor_0 = vx_nbg_graph->CreateTensor(vx_output_tspec);
   output_tensors.push_back(output_tensor_0);
-
-  vx_output_tspec = tim::vx::TensorSpec(
-      tim::vx::DataType::FLOAT32,
-      tim::vx::ShapeType(
-          std::vector<unsigned int, std::allocator<unsigned int>>(
-              {80, 112, 112, 64, 1})),
-      tim::vx::TensorAttribute::OUTPUT,
-      tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
-                            std::vector<float, std::allocator<float>>({}),
-                            std::vector<int, std::allocator<int>>({})));
-
-  auto output_tensor_1 = vx_nbg_graph->CreateTensor(vx_output_tspec);
-  output_tensors.push_back(output_tensor_1);
 
   vx_output_tspec = tim::vx::TensorSpec(
       tim::vx::DataType::FLOAT32,
@@ -1350,13 +1349,14 @@ TEST(graph, G_3DUNET_ONNX_SOC) {
       tim::vx::DataType::FLOAT32,
       tim::vx::ShapeType(
           std::vector<unsigned int, std::allocator<unsigned int>>(
-              {160, 224, 224, 32, 1})),
+              {5, 7, 7, 64, 1})),
       tim::vx::TensorAttribute::OUTPUT,
       tim::vx::Quantization(tim::vx::QuantType::NONE, -1,
                             std::vector<float, std::allocator<float>>({}),
                             std::vector<int, std::allocator<int>>({})));
-  auto output_tensor_3 = vx_nbg_graph->CreateTensor(vx_output_tspec);
-  output_tensors.push_back(output_tensor_3);
+
+  auto output_tensor_1 = vx_nbg_graph->CreateTensor(vx_output_tspec);
+  output_tensors.push_back(output_tensor_1);
 
   auto nbg_node = vx_nbg_graph->CreateOperation<tim::vx::ops::NBG>(
       nbg_buf.data(), input_tensors.size(), output_tensors.size());
