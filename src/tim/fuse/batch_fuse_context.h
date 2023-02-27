@@ -1,6 +1,5 @@
 #ifndef TIM_VX_BATCH_FUSE_CONTEXT_H_
 #define TIM_VX_BATCH_FUSE_CONTEXT_H_
-// #include "permute_vector.h"
 #include "tim/fuse/batch_fuse.h"
 
 namespace tim {

@@ -43,8 +43,6 @@ class PadBatchFuse : public OpBatchFuse {
     auto output_shape = output_tensor->GetShape();
     auto input_shape = input_tensor->GetShape();
 
-    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    // auto batch_src_axis = context_->GetBatchAxis();  // 3
     auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
@@ -148,8 +146,6 @@ class PadBatchFuse : public OpBatchFuse {
     auto output_batch_fuse_shape = context_->GetGapInferShape(output_tensor);
     auto input_batch_fuse_shape = context_->GetGapInferShape(input_tensor);
 
-    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    // auto batch_src_axis = context_->GetBatchAxis();  // 3
     auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
@@ -217,8 +213,6 @@ class PadBatchFuse : public OpBatchFuse {
     auto input_batch_fuse_tensor = context_->GetMapedTensor(input_tensor);
     auto input_batch_fuse_shape = input_batch_fuse_tensor->GetShape();
 
-    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    // auto batch_src_axis = context_->GetBatchAxis();  // 3
     auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 202 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -89,8 +89,6 @@ class ActivationBatchFuse : public OpBatchFuse {
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_spec = output_tensor->GetSpec();
 
-    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    // auto batch_src_axis = context_->GetBatchAxis();  // 3
     auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);

@@ -43,8 +43,6 @@ class ConcatBatchFuse : public OpBatchFuse {
     auto input_gap_infer_shape_0 = context_->GetGapInferShape(input_tensors[0]);
     auto input_gap_infer_shape_1 = context_->GetGapInferShape(input_tensors[1]);
 
-    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    // auto batch_src_axis = context_->GetBatchAxis();  // 3
     auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
 
     auto perm_axis_map_0 = context_->GetPermAxisMap(input_tensors[0]);

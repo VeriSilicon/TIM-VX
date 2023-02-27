@@ -75,17 +75,11 @@ class ReshapeBatchFuse : public OpBatchFuse {
     auto output_spec = output_tensor->GetSpec();
     auto reshape_op = op_->Clone(context_->batch_fuse_graph_);
 
-    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    // auto batch_src_axis = context_->GetBatchAxis();  // 3
     auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
     auto batch_axis = context_->GetPermBatchAxis(input_tensor);
-    // auto c_axis = context_->GetPermChannelAxis(input_tensor);
-
-    // auto w_axis = fuse_axes[0];
-    // auto h_axis = fuse_axes[1];
 
     if (input_shape[batch_axis] != 1 && input_batch_fuse_shape[batch_axis] == 1) {
       if (output_spec.attr_ == vx::TensorAttribute::OUTPUT) {

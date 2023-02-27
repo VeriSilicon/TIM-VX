@@ -29,7 +29,6 @@
 #include "../batch_fuse_context.h"
 #include "tim/fuse/batch_fuse.h"
 #include "tim/vx/types.h"
-// #include "builtin_op_impl.h"
 
 namespace tim {
 namespace fuse {

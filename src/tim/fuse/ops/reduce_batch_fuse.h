@@ -70,18 +70,11 @@ class ReduceBatchFuse : public OpBatchFuse {
     auto input_batch_fuse_shape = input_batch_fuse_tensor->GetShape();
     std::shared_ptr<vx::Tensor> slice_and_concat_out;
 
-    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    // auto batch_src_axis = context_->GetBatchAxis();  // 3
     auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
     auto batch_axis = context_->GetPermBatchAxis(input_tensor);
-    // auto c_axis = context_->GetPermChannelAxis(input_tensor);
-
-    // auto w_axis = fuse_axes[0];
-    // auto h_axis = fuse_axes[1];
-
 
     uint32_t batch = input_batch_fuse_shape[batch_axis];
     uint32_t batch_src = input_shape[batch_axis];

@@ -55,10 +55,6 @@ class ElementWiseBatchFuse : public OpBatchFuse {
 
     auto perm_axis_map_1 = context_->GetPermAxisMap(input_tensors[1]);
     auto fuse_axes_1 = context_->GetPermFuseAxes(input_tensors[1]);
-    // auto batch_axis_1 = context_->GetPermBatchAxis(input_tensors[1]);
-    // auto c_axis_1 = context_->GetPermChannelAxis(input_tensors[1]);
-    // auto w_axis_1 = fuse_axes_1[0];
-    // auto h_axis_1 = fuse_axes_1[1];
 
     uint32_t batch = output_shape[batch_axis_0];
 
@@ -153,9 +149,6 @@ class ElementWiseBatchFuse : public OpBatchFuse {
     auto perm_axis_map_1 = context_->GetPermAxisMap(input_tensors[1]);
     auto fuse_axes_1 = context_->GetPermFuseAxes(input_tensors[1]);
     auto batch_axis_1 = context_->GetPermBatchAxis(input_tensors[1]);
-    // auto c_axis_1 = context_->GetPermChannelAxis(input_tensors[1]);
-    // auto w_axis_1 = fuse_axes_1[0];
-    // auto h_axis_1 = fuse_axes_1[1];
 
     std::shared_ptr<vx::Tensor> ele_out;
     auto output_spec = output_tensor->GetSpec();

@@ -69,16 +69,6 @@ class TransposeBatchFuse : public OpBatchFuse {
     return false;
   }
 
-#define CREATE_AND_CONCAT_OP(idx, start, length)                             \
-  auto idx##_op =                                                            \
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Slice>(0, start, \
-                                                                   length);  \
-  vx::ShapeType idx##_shape({out_w, out_h, out_channel, 1});                 \
-  auto idx##_spec = input_spec.SetShape(idx##_shape);                        \
-  auto idx##_tensor = context_->batch_fuse_graph_->CreateTensor(idx##_spec); \
-  (*idx##_op).BindInput(input_batch_fuse_tensor).BindOutput(idx##_tensor);   \
-  tensors.push_back(idx##_tensor);
-
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
     auto input_tensor = op_->impl()->InputsTensor()[0];
@@ -91,14 +81,11 @@ class TransposeBatchFuse : public OpBatchFuse {
     auto output_sepc = output_tensor->GetSpec();
     auto output_shape = output_tensor->GetShape();
 
-    // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    // auto batch_src_axis = context_->GetBatchAxis();  // 3
     auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
     auto batch_axis = context_->GetPermBatchAxis(input_tensor);
-    // auto c_axis = context_->GetPermChannelAxis(input_tensor);
 
     auto w_axis = fuse_axes[0];
     auto h_axis = fuse_axes[1];

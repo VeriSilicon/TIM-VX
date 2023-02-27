@@ -11,7 +11,6 @@
 #include "tim/vx/operation.h"
 
 #include "ops/conv2d_batch_fuse.h"
-// #include "ops/pad_v2_batch_fuse.h"
 #include "ops/pad_batch_fuse.h"
 #include "ops/activation_batch_fuse.h"
 #include "ops/elementwise_batch_fuse.h"
@@ -430,10 +429,6 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
     //bfs
     auto tensor = tensor_queue_pad_forward.front();
     tensor_queue_pad_forward.pop_front();
-
-    //dfs
-    //auto tensor = tensor_queue_pad_forward.back();
-    //tensor_queue_pad_forward.pop_back();
 
     const auto& consumers = clone_batch_graph->GetConsumersOp(tensor);
     for (const auto& op : consumers) {

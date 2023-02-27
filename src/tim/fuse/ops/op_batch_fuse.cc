@@ -489,9 +489,6 @@ void OpBatchFuse::OnOutputs(
       auto fuse_axes = context_->GetPermFuseAxes(out);
       auto batch_axis = context_->GetPermBatchAxis(out);
 
-      // auto w_axis = fuse_axes[0];
-      // auto h_axis = fuse_axes[1];
-
       uint32_t batch = out_batch_fuse_shape[out_batch_fuse_shape.size() - 1];
       auto out_shape = out->GetShape();
       uint32_t batch_src = out_shape[out_shape.size() - 1];
