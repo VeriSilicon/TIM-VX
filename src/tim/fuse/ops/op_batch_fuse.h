@@ -90,7 +90,7 @@ class OpBatchFuse {
 
  protected:
   const std::shared_ptr<vx::Operation> op_;
-  std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context_;
+  std::shared_ptr<batch_fuse_impl::BatchFuseContext> context_;
 };
 
 }  // namespace fuse
