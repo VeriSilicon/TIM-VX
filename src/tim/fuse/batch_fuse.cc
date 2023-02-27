@@ -1,6 +1,5 @@
 
 #include "tim/fuse/batch_fuse.h"
-// #include "builtin_op_impl.h"
 #include "batch_fuse_context.h"
 #include <algorithm>
 #include <deque>
