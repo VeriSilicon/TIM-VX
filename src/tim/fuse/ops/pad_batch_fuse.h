@@ -275,7 +275,7 @@ class PadBatchFuse : public OpBatchFuse {
            sizeof(uint32_t) * dim_num);
     int32_t pad_value = op_->impl()->node()->nn_param.pad.const_val;
 
-    auto pad_op = context_->batch_fuse_graph_->CreateOperation<vx::ops::Pad>(
+    auto pad_op = context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Pad>(
         front_size, back_size, pad_value);
 
     //Pad batch fused tensor outside and compute its new shape
@@ -292,7 +292,7 @@ class PadBatchFuse : public OpBatchFuse {
     auto output_spec = output_tensor->GetSpec();
     auto pad_output_spec = output_spec.SetShape(pad_output_shape);
     auto pad_out_tensor =
-        context_->batch_fuse_graph_->CreateTensor(pad_output_spec);
+        context_->GetBatchFuseGraph()->CreateTensor(pad_output_spec);
 
     context_->UpdateTensorMap(output_tensor, pad_out_tensor);
     for (auto i_src : op_->impl()->InputsTensor()) {

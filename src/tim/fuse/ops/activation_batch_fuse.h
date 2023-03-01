@@ -114,7 +114,7 @@ class ActivationBatchFuse : public OpBatchFuse {
     //fused output shape is the same as input shape
     auto output_batch_fuse_spec = output_spec.SetShape(input_batch_fuse_shape);
     auto output_batch_fuse_tensor =
-        context_->batch_fuse_graph_->CreateTensor(output_batch_fuse_spec);
+        context_->GetBatchFuseGraph()->CreateTensor(output_batch_fuse_spec);
 
     //compute the proporation of valid data
     auto valid_prop = (float)(input_shape[w_axis] * input_shape[h_axis] *
@@ -125,7 +125,7 @@ class ActivationBatchFuse : public OpBatchFuse {
     context_->UpdateTensorMap(output_tensor, output_batch_fuse_tensor);
 
     //clone op to batch_fuse_graph_
-    auto activation = op_->Clone(context_->batch_fuse_graph_);
+    auto activation = op_->Clone(context_->GetBatchFuseGraph());
     (*activation)
         .BindInput(context_->GetMapedTensor(input_tensor))
         .BindOutput(output_batch_fuse_tensor);

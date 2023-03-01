@@ -160,24 +160,24 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
   auto reshape_2_spec = pad_spec.SetShape(reshape_2_shape);
 
   auto reshape_1_tensor =
-      context_->batch_fuse_graph_->CreateTensor(reshape_1_spec);
+      context_->GetBatchFuseGraph()->CreateTensor(reshape_1_spec);
   auto reshape_2_tensor =
-      context_->batch_fuse_graph_->CreateTensor(reshape_2_spec);
+      context_->GetBatchFuseGraph()->CreateTensor(reshape_2_spec);
   auto transpose_1_tensor =
-      context_->batch_fuse_graph_->CreateTensor(transpose_1_spec);
+      context_->GetBatchFuseGraph()->CreateTensor(transpose_1_spec);
   auto transpose_2_tensor =
-      context_->batch_fuse_graph_->CreateTensor(transpose_2_spec);
+      context_->GetBatchFuseGraph()->CreateTensor(transpose_2_spec);
 
   auto reshape_op_1 =
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Reshape>(
+      context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Reshape>(
           reshape_1_shape);
   auto reshape_op_2 =
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Reshape>(
+      context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Reshape>(
           reshape_2_shape);
   auto perm_op_1 =
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Transpose>(perm1);
+      context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Transpose>(perm1);
   auto perm_op_2 =
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Transpose>(perm2);
+      context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Transpose>(perm2);
 
   (*reshape_op_1).BindInput(pad_tensor).BindOutput(reshape_1_tensor);
   (*perm_op_1).BindInput(reshape_1_tensor).BindOutput(transpose_1_tensor);
@@ -194,7 +194,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
     // to the shape which is computed by OnInputs()
 
     auto slice_spec = pad_spec.SetShape(gap_infer_shape);
-    auto slice_tensor = context_->batch_fuse_graph_->CreateTensor(slice_spec);
+    auto slice_tensor = context_->GetBatchFuseGraph()->CreateTensor(slice_spec);
     std::vector<int32_t> length = {0, 0, 0, 0};
     length[w_axis] = (int32_t)gap_infer_shape[w_axis];
     length[h_axis] = (int32_t)gap_infer_shape[h_axis];
@@ -202,7 +202,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
     length[batch_axis] = 1;
     std::vector<int32_t> start = {0, 0, 0, 0};
     auto slice_op =
-        context_->batch_fuse_graph_->CreateOperation<vx::ops::Slice>(0, start,
+        context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Slice>(0, start,
                                                                      length);
     (*slice_op).BindInput(reshape_2_tensor).BindOutput(slice_tensor);
     return slice_tensor;
@@ -214,7 +214,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
 #define CREATE_AND_CONCAT_OP(idx, start, length)                             \
                                                                              \
   auto idx##_op =                                                            \
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Slice>(0, start, \
+      context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Slice>(0, start, \
                                                                    length);  \
   vx::ShapeType idx##_shape({out_w, out_h, out_channel, 1});                 \
   idx##_shape[w_axis] = out_w;                                               \
@@ -222,7 +222,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPermuteAndReshape(
   idx##_shape[c_axis] = out_channel;                                         \
   idx##_shape[batch_axis] = 1;                                               \
   auto idx##_spec = input_batch_fuse_spec.SetShape(idx##_shape);             \
-  auto idx##_tensor = context_->batch_fuse_graph_->CreateTensor(idx##_spec); \
+  auto idx##_tensor = context_->GetBatchFuseGraph()->CreateTensor(idx##_spec); \
   (*idx##_op).BindInput(input_batch_fuse_tensor).BindOutput(idx##_tensor);   \
   tensors.push_back(idx##_tensor);
 
@@ -267,11 +267,11 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertSliceAndConcat(
   }
   auto slice_shape = tensors[0]->GetSpec();
 
-  auto concat = context_->batch_fuse_graph_->CreateOperation<vx::ops::Concat>(
+  auto concat = context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Concat>(
       batch_axis, batch);
 
   // Concat tensor has the same spec of original tensor
-  auto concat_tensor = context_->batch_fuse_graph_->CreateTensor(input_spec);
+  auto concat_tensor = context_->GetBatchFuseGraph()->CreateTensor(input_spec);
   auto concat_shape = concat_tensor->GetShape();
   (*concat).BindInputs(tensors).BindOutput(concat_tensor);
   return concat_tensor;
@@ -350,7 +350,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
                              input_batch_fuse_shape,
                              tim::vx::TensorAttribute::CONSTANT);
 
-    mask_tensor = context_->batch_fuse_graph_->CreateTensor(
+    mask_tensor = context_->GetBatchFuseGraph()->CreateTensor(
         mask_spec, mask_vector_float.data());
 
   } else if (input_spec.datatype_ == vx::DataType::UINT8) {
@@ -396,7 +396,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
     vx::TensorSpec mask_spec(input_batch_fuse_spec.datatype_,
                              input_batch_fuse_shape,
                              tim::vx::TensorAttribute::CONSTANT, quant_input);
-    mask_tensor = context_->batch_fuse_graph_->CreateTensor(mask_spec,
+    mask_tensor = context_->GetBatchFuseGraph()->CreateTensor(mask_spec,
                                                             mask_vector.data());
   } else {
     VSILOGE("No Support for this data type");
@@ -404,9 +404,9 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertMask(
   }
 
   auto mask_out =
-      context_->batch_fuse_graph_->CreateTensor(input_batch_fuse_spec);
+      context_->GetBatchFuseGraph()->CreateTensor(input_batch_fuse_spec);
   auto mask_op =
-      context_->batch_fuse_graph_->CreateOperation<vx::ops::Multiply>();
+      context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Multiply>();
   (*mask_op)
       .BindInputs({input_batch_fuse_tensor, mask_tensor})
       .BindOutput(mask_out);
@@ -437,7 +437,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPad(
   std::vector<uint32_t> back_size = {0, 0, 0, 0};
   back_size[w_axis] = gap[w_axis];
   back_size[h_axis] = gap[h_axis];
-  auto pad_op = context_->batch_fuse_graph_->CreateOperation<vx::ops::Pad>(
+  auto pad_op = context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Pad>(
       front_size, back_size, 0, tim::vx::ops::Pad::PAD_MODE_CONSTANT);
 
   vx::ShapeType pad_shape = {0, 0, 0, 0};
@@ -450,7 +450,7 @@ std::shared_ptr<vx::Tensor> OpBatchFuse::InsertPad(
     }
   }
   auto pad_spec = input_batch_fuse_spec.SetShape(pad_shape);
-  auto pad_tensor = context_->batch_fuse_graph_->CreateTensor(pad_spec);
+  auto pad_tensor = context_->GetBatchFuseGraph()->CreateTensor(pad_spec);
   (*pad_op).BindInput(input_batch_fuse_tensor).BindOutput(pad_tensor);
   return pad_tensor;
 }
@@ -462,7 +462,7 @@ std::vector<std::shared_ptr<vx::Tensor>> OpBatchFuse::CreateOutputsTensor() {
   for (const auto& o : op_->impl()->OutputsTensor()) {
     auto out_shape = o->GetShape();
     auto out_spec = o->GetSpec();
-    auto t_batch_fuse = context_->batch_fuse_graph_->CreateTensor(out_spec);
+    auto t_batch_fuse = context_->GetBatchFuseGraph()->CreateTensor(out_spec);
     context_->UpdateTensorMap(o, t_batch_fuse);
     outputs_tensor.push_back(t_batch_fuse);
     i++;
@@ -476,7 +476,7 @@ void OpBatchFuse::OnOutputs(
     std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) {
   op_ = op;
   context_ = context;
-  auto graph_outputs = context_->clone_batch_graph_->OutputsTensor();
+  auto graph_outputs = context_->GetCloneBatchGraph()->OutputsTensor();
   auto op_outputs = op_->impl()->OutputsTensor();
   auto op_inputs = op_->impl()->InputsTensor();
   for (const auto& out : op_outputs) {
@@ -497,7 +497,7 @@ void OpBatchFuse::OnOutputs(
       auto out_shape = out->GetShape();
       uint32_t batch_src = out_shape[out_shape.size() - 1];
 
-      if (context_->clone_batch_graph_->GetConsumersOp(out).empty()) {
+      if (context_->GetCloneBatchGraph()->GetConsumersOp(out).empty()) {
         // The tensor is output of graph, and is not the input of other operations
         auto it = std::find(next_tensors.begin(), next_tensors.end(), out);
         if (it != next_tensors.end()) {
@@ -524,7 +524,7 @@ void OpBatchFuse::CloneGraph(
   auto op_outputs = op_->impl()->OutputsTensor();
   auto op_inputs = op_->impl()->InputsTensor();
   auto fake_batch = context_->GetFakeBatch();
-  auto new_op = op_->Clone(context_->clone_batch_graph_);
+  auto new_op = op_->Clone(context_->GetCloneBatchGraph());
   std::shared_ptr<vx::Tensor> clone_in_tensor;
   std::shared_ptr<vx::Tensor> clone_out_tensor;
 
@@ -539,7 +539,7 @@ void OpBatchFuse::CloneGraph(
       // Set multi batch
       input_shape[input_shape.size() - 1] = fake_batch;
       input_spec.SetShape(input_shape);
-      clone_in_tensor = context_->clone_batch_graph_->CreateTensor(input_spec);
+      clone_in_tensor = context_->GetCloneBatchGraph()->CreateTensor(input_spec);
       context_->UpdatePermAxisMap(clone_in_tensor, {0, 1, 2, 3});
     } else {
       if (op_->impl()->kind_ == 2 &&
@@ -550,7 +550,7 @@ void OpBatchFuse::CloneGraph(
         input->CopyDataFromTensor(tmp.data());
 
         // Original tensor spec
-        clone_in_tensor = context_->clone_batch_graph_->CreateTensor(
+        clone_in_tensor = context_->GetCloneBatchGraph()->CreateTensor(
             input->GetSpec(), tmp.data());
 
       } else {
@@ -567,7 +567,7 @@ void OpBatchFuse::CloneGraph(
     // Set multi batch
     output_shape[output_shape.size() - 1] = fake_batch;
     output_spec.SetShape(output_shape);
-    clone_out_tensor = context_->clone_batch_graph_->CreateTensor(output_spec);
+    clone_out_tensor = context_->GetCloneBatchGraph()->CreateTensor(output_spec);
     context_->UpdateCloneTensorMap(output, clone_out_tensor);
     auto input_perm =
         context_->GetPermAxisMap(context_->GetCloneMapedTensor(input_tensor));

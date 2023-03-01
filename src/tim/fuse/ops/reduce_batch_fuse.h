@@ -108,7 +108,7 @@ class ReduceBatchFuse : public OpBatchFuse {
       new_axis.push_back(axis);
     }
 
-    auto reduce = context_->batch_fuse_graph_->CreateOperation<OpType>(
+    auto reduce = context_->GetBatchFuseGraph()->CreateOperation<OpType>(
         new_axis, op_->impl()->node()->nn_param.reduce.keep_dim);
 
     auto reduce_out_tensor = CreateOutputsTensor()[0];

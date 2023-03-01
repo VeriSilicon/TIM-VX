@@ -257,7 +257,7 @@ class ConcatBatchFuse : public OpBatchFuse {
     context_->UpdateProportion(input_tensors[1], valid_ratio_1);
 
     auto axis = op_->impl()->node()->nn_param.concat.axis;
-    auto concat = context_->batch_fuse_graph_->CreateOperation<vx::ops::Concat>(
+    auto concat = context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Concat>(
         axis, op_->impl()->InputsTensor().size());
     for (const auto& i_src : op_->impl()->InputsTensor()) {
       (*concat).BindInput(context_->GetMapedTensor(i_src));
@@ -278,7 +278,7 @@ class ConcatBatchFuse : public OpBatchFuse {
 
     // set batch fused new output shape of concat
     output_spec.SetShape(output_shape);
-    auto out_concat = context_->batch_fuse_graph_->CreateTensor(output_spec);
+    auto out_concat = context_->GetBatchFuseGraph()->CreateTensor(output_spec);
 
     (*concat).BindOutput(out_concat);
     context_->UpdateTensorMap(output_tensor, out_concat);

@@ -472,13 +472,13 @@ class Conv2dBatchFuse : public OpBatchFuse {
     auto output_spec = output_tensor->GetSpec();
     auto output_batch_fuse_spec = output_spec.SetShape(output_batch_fuse_shape);
     conv2d_out_tensor =
-        context_->batch_fuse_graph_->CreateTensor(output_batch_fuse_spec);
+        context_->GetBatchFuseGraph()->CreateTensor(output_batch_fuse_spec);
     context_->UpdateTensorMap(input_tensor, batch_fuse_tensor);
 
     //create new weight tensor and copy the constant value
     std::vector<uint8_t> tmp_weight(weight_tensor->GetSpec().GetByteSize());
     weight_tensor->CopyDataFromTensor(tmp_weight.data());
-    auto batch_weight_tensor = context_->batch_fuse_graph_->CreateTensor(
+    auto batch_weight_tensor = context_->GetBatchFuseGraph()->CreateTensor(
         weight_tensor->GetSpec(), tmp_weight.data());
     context_->UpdateTensorMap(weight_tensor, batch_weight_tensor);
 
@@ -487,7 +487,7 @@ class Conv2dBatchFuse : public OpBatchFuse {
       auto bias_tensor = input_tensors[2];
       std::vector<uint8_t> tmp_bias(bias_tensor->GetSpec().GetByteSize());
       bias_tensor->CopyDataFromTensor(tmp_bias.data());
-      auto batch_bias_tensor = context_->batch_fuse_graph_->CreateTensor(
+      auto batch_bias_tensor = context_->GetBatchFuseGraph()->CreateTensor(
           bias_tensor->GetSpec(), tmp_bias.data());
       context_->UpdateTensorMap(bias_tensor, batch_bias_tensor);
     }
@@ -498,7 +498,7 @@ class Conv2dBatchFuse : public OpBatchFuse {
       context_->UpdateTensorMap(input_tensor, masked_input);
     }
 
-    auto conv2d = context_->batch_fuse_graph_->CreateOperation<vx::ops::Conv2d>(
+    auto conv2d = context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Conv2d>(
         out_channels, pad_type, ksize, stride, dilation, pad, multiplier,
         vx::DataLayout::WHCN, vx::DataLayout::WHIcOc);
 

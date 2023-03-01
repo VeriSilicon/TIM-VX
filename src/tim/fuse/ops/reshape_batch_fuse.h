@@ -83,7 +83,7 @@ class ReshapeBatchFuse : public OpBatchFuse {
     auto input_batch_fuse_spec = input_batch_fuse_tensor->GetSpec();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_spec = output_tensor->GetSpec();
-    auto reshape_op = op_->Clone(context_->batch_fuse_graph_);
+    auto reshape_op = op_->Clone(context_->GetBatchFuseGraph());
 
     auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
@@ -103,7 +103,7 @@ class ReshapeBatchFuse : public OpBatchFuse {
 
     //No batch fuse, so valid propartion is 1
     context_->UpdateProportion(input_tensor, 1);
-    auto out = context_->batch_fuse_graph_->CreateTensor(output_spec);
+    auto out = context_->GetBatchFuseGraph()->CreateTensor(output_spec);
     context_->UpdateTensorMap(output_tensor, out);
     (*reshape_op)
         .BindInput(context_->GetMapedTensor(input_tensor))

@@ -166,7 +166,7 @@ class ElementWiseBatchFuse : public OpBatchFuse {
 
     if (input_batch_fuse_shape_0 == input_batch_fuse_shape_1) {
       auto ele_out_spec = output_spec.SetShape(input_batch_fuse_shape_0);
-      ele_out = context_->batch_fuse_graph_->CreateTensor(ele_out_spec);
+      ele_out = context_->GetBatchFuseGraph()->CreateTensor(ele_out_spec);
       auto valid_prop =
           (float)(input_shape_0[w_axis_0] * input_shape_0[h_axis_0] *
                   input_shape_0[c_axis_0]) /
@@ -198,7 +198,7 @@ class ElementWiseBatchFuse : public OpBatchFuse {
       auto slice_and_concat_0_shape = slice_and_concat_out_0->GetShape();
       auto slice_and_concat_1_shape = slice_and_concat_out_1->GetShape();
       auto ele_out_spec = output_spec.SetShape(slice_and_concat_0_shape);
-      ele_out = context_->batch_fuse_graph_->CreateTensor(ele_out_spec);
+      ele_out = context_->GetBatchFuseGraph()->CreateTensor(ele_out_spec);
 
       //No batch fuse and no gap, so no dirty data
       context_->UpdateProportion(input_tensors[0], 1);
@@ -206,7 +206,7 @@ class ElementWiseBatchFuse : public OpBatchFuse {
       context_->UpdateTensorMap(input_tensors[0], slice_and_concat_out_0);
       context_->UpdateTensorMap(input_tensors[1], slice_and_concat_out_1);
     }
-    auto elementwise = context_->batch_fuse_graph_->CreateOperation<OpType>();
+    auto elementwise = context_->GetBatchFuseGraph()->CreateOperation<OpType>();
     for (const auto& i_src : op_->impl()->InputsTensor()) {
       (*elementwise).BindInput(context_->GetMapedTensor(i_src));
     }

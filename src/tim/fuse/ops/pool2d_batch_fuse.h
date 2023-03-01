@@ -453,7 +453,7 @@ class Pool2dBatchFuse : public OpBatchFuse {
     auto output_spec = output_tensor->GetSpec();
     auto pool_output_spec = output_spec.SetShape(pool_output_shape);
     pool2d_out_tensor =
-        context_->batch_fuse_graph_->CreateTensor(pool_output_spec);
+        context_->GetBatchFuseGraph()->CreateTensor(pool_output_spec);
     context_->UpdateTensorMap(input_tensor, batch_fuse_tensor);
     context_->UpdateTensorMap(output_tensor, pool2d_out_tensor);
 
@@ -464,7 +464,7 @@ class Pool2dBatchFuse : public OpBatchFuse {
       context_->UpdateTensorMap(input_tensor, masked_input);
     }
 
-    auto pool2d = context_->batch_fuse_graph_->CreateOperation<vx::ops::Pool2d>(
+    auto pool2d = context_->GetBatchFuseGraph()->CreateOperation<vx::ops::Pool2d>(
         pool_type, pad_type, ksize, stride, round_type, vx::DataLayout::WHCN);
 
     (*pool2d).BindInput(context_->GetMapedTensor(input_tensor));

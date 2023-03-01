@@ -112,7 +112,11 @@ class BatchFuseContext {
     fuse_axes_ = fuse_axes;
   }
 
+  const std::shared_ptr<vx::Graph>& GetSrcGraph() { return src_graph_; }
+  std::shared_ptr<vx::Graph>& GetBatchFuseGraph() { return batch_fuse_graph_; }
+  std::shared_ptr<vx::Graph>& GetCloneBatchGraph() { return clone_batch_graph_; }
 
+ private:
   // After graph layout infered, we get a layout infered graph
   // Then we clone a new graph from layout infered graph, when we clone,
   // we just clone ops and set new shape for tensors in cloned graph, here we just multiply fake_batch_ times of batch
@@ -122,9 +126,7 @@ class BatchFuseContext {
   std::shared_ptr<vx::Graph>& batch_fuse_graph_;  //batch fused gaph
   std::shared_ptr<vx::Graph>&
       clone_batch_graph_;  //cloned from src_graph which can set fake batch
-  // std::map<int32_t, std::shared_ptr<tim::fuse::OpBatchFuse>> BatchFuseHandler_;
 
- private:
   std::vector<std::shared_ptr<vx::Operation>> visited_op_;
 
   // src graph is relatively, layout infered graph is the source graph of clone graph

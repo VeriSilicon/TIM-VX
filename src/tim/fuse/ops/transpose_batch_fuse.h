@@ -103,7 +103,7 @@ class TransposeBatchFuse : public OpBatchFuse {
     memcpy(perm.data(), op_->impl()->node()->nn_param.permute.perm,
            op_->impl()->node()->nn_param.permute.dim_num * sizeof(uint32_t));
     auto transpose_op =
-        context_->batch_fuse_graph_->CreateOperation<tim::vx::ops::Transpose>(
+        context_->GetBatchFuseGraph()->CreateOperation<tim::vx::ops::Transpose>(
             perm);
 
     if (input_shape[batch_axis] != 1 &&
@@ -118,7 +118,7 @@ class TransposeBatchFuse : public OpBatchFuse {
       vx::ShapeType new_shape = {concat_shape[perm[0]], concat_shape[perm[1]],
                                  concat_shape[perm[2]], concat_shape[perm[3]]};
       output_sepc.SetShape(new_shape);
-      auto out = context_->batch_fuse_graph_->CreateTensor(output_sepc);
+      auto out = context_->GetBatchFuseGraph()->CreateTensor(output_sepc);
       context_->UpdateProportion(input_tensor, 1);
       context_->UpdateTensorMap(output_tensor, out);
 
@@ -133,7 +133,7 @@ class TransposeBatchFuse : public OpBatchFuse {
           input_batch_fuse_shape[perm[0]], input_batch_fuse_shape[perm[1]],
           input_batch_fuse_shape[perm[2]], input_batch_fuse_shape[perm[3]]};
       output_sepc.SetShape(new_shape);
-      auto out = context_->batch_fuse_graph_->CreateTensor(output_sepc);
+      auto out = context_->GetBatchFuseGraph()->CreateTensor(output_sepc);
       context_->UpdateTensorMap(output_tensor, out);
       (*transpose_op)
           .BindInput(context_->GetMapedTensor(input_tensor))
