@@ -122,6 +122,7 @@ class BatchFuseContext {
   std::shared_ptr<vx::Graph>& batch_fuse_graph_;  //batch fused gaph
   std::shared_ptr<vx::Graph>&
       clone_batch_graph_;  //cloned from src_graph which can set fake batch
+  // std::map<int32_t, std::shared_ptr<tim::fuse::OpBatchFuse>> BatchFuseHandler_;
 
  private:
   std::vector<std::shared_ptr<vx::Operation>> visited_op_;

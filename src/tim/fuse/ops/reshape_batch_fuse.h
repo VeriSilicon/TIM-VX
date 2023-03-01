@@ -33,12 +33,14 @@ namespace tim {
 namespace fuse {
 class ReshapeBatchFuse : public OpBatchFuse {
  public:
-  ReshapeBatchFuse(const std::shared_ptr<vx::Operation> op,
-                   std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  ReshapeBatchFuse() {}
 
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
@@ -55,7 +57,11 @@ class ReshapeBatchFuse : public OpBatchFuse {
   }
 
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     //Hack a werror
     former_tensors.push_back(input_tensor);
@@ -64,7 +70,11 @@ class ReshapeBatchFuse : public OpBatchFuse {
   }
 
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensor) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
     auto input_spec = input_tensor->GetSpec();
@@ -75,16 +85,18 @@ class ReshapeBatchFuse : public OpBatchFuse {
     auto output_spec = output_tensor->GetSpec();
     auto reshape_op = op_->Clone(context_->batch_fuse_graph_);
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
     auto batch_axis = context_->GetPermBatchAxis(input_tensor);
 
-    if (input_shape[batch_axis] != 1 && input_batch_fuse_shape[batch_axis] == 1) {
+    if (input_shape[batch_axis] != 1 &&
+        input_batch_fuse_shape[batch_axis] == 1) {
       if (output_spec.attr_ == vx::TensorAttribute::OUTPUT) {
         // For reshape, its output tensor may not be 4 dimensions, so we slice and concat its input tensor in its OnInputs()
-        auto concat_tensor = InsertSliceAndConcat(input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+        auto concat_tensor = InsertSliceAndConcat(
+            input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
         context_->UpdateTensorMap(input_tensor, concat_tensor);
       }
     }
@@ -96,7 +108,7 @@ class ReshapeBatchFuse : public OpBatchFuse {
     (*reshape_op)
         .BindInput(context_->GetMapedTensor(input_tensor))
         .BindOutput(out);
-    next_tensor.push_back(output_tensor);
+    next_tensors.push_back(output_tensor);
   }
 };
 }  // namespace fuse

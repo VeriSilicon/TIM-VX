@@ -33,13 +33,14 @@ namespace fuse {
 template <typename OpType>
 class ElementWiseBatchFuse : public OpBatchFuse {
  public:
-  ElementWiseBatchFuse(
-      const std::shared_ptr<vx::Operation> op,
-      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  ElementWiseBatchFuse() {}
 
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
     auto input_tensors = op_->impl()->InputsTensor();
@@ -74,7 +75,7 @@ class ElementWiseBatchFuse : public OpBatchFuse {
         uint32_t batch_factor_h = ClosestFactors(batch).second;
         auto output_batch_fuse_w = batch_factor_w * output_shape[w_axis_0];
         auto output_batch_fuse_h = batch_factor_h * output_shape[h_axis_0];
-        
+
         vx::ShapeType output_batch_fuse_shape(4, 0);
         output_batch_fuse_shape[w_axis_0] = output_batch_fuse_w;
         output_batch_fuse_shape[h_axis_0] = output_batch_fuse_h;
@@ -95,7 +96,11 @@ class ElementWiseBatchFuse : public OpBatchFuse {
     return false;
   }
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto input_tensors = op_->impl()->InputsTensor();
     auto input_gap_infer_shape_0 = context_->GetGapInferShape(input_tensors[0]);
@@ -131,7 +136,11 @@ class ElementWiseBatchFuse : public OpBatchFuse {
   }
 
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto input_tensors = op_->impl()->InputsTensor();
     auto input_batch_fuse_tensor_0 = context_->GetMapedTensor(input_tensors[0]);
@@ -156,12 +165,13 @@ class ElementWiseBatchFuse : public OpBatchFuse {
     auto input_shape_1 = input_tensors[0]->GetShape();
 
     if (input_batch_fuse_shape_0 == input_batch_fuse_shape_1) {
-      
       auto ele_out_spec = output_spec.SetShape(input_batch_fuse_shape_0);
       ele_out = context_->batch_fuse_graph_->CreateTensor(ele_out_spec);
       auto valid_prop =
-          (float)(input_shape_0[w_axis_0] * input_shape_0[h_axis_0] * input_shape_0[c_axis_0]) /
-          (float)(input_batch_fuse_shape_0[w_axis_0] * input_batch_fuse_shape_0[h_axis_0]);
+          (float)(input_shape_0[w_axis_0] * input_shape_0[h_axis_0] *
+                  input_shape_0[c_axis_0]) /
+          (float)(input_batch_fuse_shape_0[w_axis_0] *
+                  input_batch_fuse_shape_0[h_axis_0]);
       context_->UpdateProportion(input_tensors[0], valid_prop);
       context_->UpdateProportion(input_tensors[1], valid_prop);
     } else {
@@ -173,8 +183,12 @@ class ElementWiseBatchFuse : public OpBatchFuse {
 
       if (batch == 1 && batch_src != 1) {
         //insert slice and concat
-        slice_and_concat_out_0 = InsertSliceAndConcat(input_batch_fuse_tensor_0, input_tensors[0], batch_axis_0, fuse_axes_0);
-        slice_and_concat_out_1 = InsertSliceAndConcat(input_batch_fuse_tensor_1, input_tensors[1], batch_axis_1, fuse_axes_1);
+        slice_and_concat_out_0 =
+            InsertSliceAndConcat(input_batch_fuse_tensor_0, input_tensors[0],
+                                 batch_axis_0, fuse_axes_0);
+        slice_and_concat_out_1 =
+            InsertSliceAndConcat(input_batch_fuse_tensor_1, input_tensors[1],
+                                 batch_axis_1, fuse_axes_1);
       } else {
         //Both tensors are fused tensor, n = 1
         slice_and_concat_out_0 = input_batch_fuse_tensor_0;

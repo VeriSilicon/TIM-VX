@@ -32,18 +32,20 @@ namespace tim {
 namespace fuse {
 class PadBatchFuse : public OpBatchFuse {
  public:
-  PadBatchFuse(const std::shared_ptr<vx::Operation> op,
-               std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  PadBatchFuse() {}
 
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
     auto input_shape = input_tensor->GetShape();
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -65,8 +67,8 @@ class PadBatchFuse : public OpBatchFuse {
     memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
            sizeof(uint32_t) * dim_num);
 
-    std::array<uint32_t, 4> pad = {front_size[w_axis], back_size[w_axis], front_size[h_axis],
-                                   back_size[h_axis]};
+    std::array<uint32_t, 4> pad = {front_size[w_axis], back_size[w_axis],
+                                   front_size[h_axis], back_size[h_axis]};
 
     auto input_batch_fuse_shape_old = context_->GetGapInferShape(input_tensor);
 
@@ -80,7 +82,7 @@ class PadBatchFuse : public OpBatchFuse {
       input_batch_fuse_shape_old[h_axis] = input_batch_fuse_h_old;
       input_batch_fuse_shape_old[c_axis] = input_batch_fuse_shape_old[c_axis];
       input_batch_fuse_shape_old[batch_axis] = 1;
-      
+
       context_->UpdateGapInferShape(input_tensor, input_batch_fuse_shape_old);
     }
 
@@ -101,7 +103,8 @@ class PadBatchFuse : public OpBatchFuse {
     if (input_batch_fuse_w_new > input_batch_fuse_w_old ||
         input_batch_fuse_h_new > input_batch_fuse_h_old) {
       context_->UpdateGapInferShape(input_tensor, input_batch_fuse_shape_new);
-      context_->UpdateForwardGap(input_tensor, {pad[1] + pad[0], pad[3] + pad[2]});
+      context_->UpdateForwardGap(input_tensor,
+                                 {pad[1] + pad[0], pad[3] + pad[2]});
       need_backward = true;  //need backward to update gap
       input_w = input_batch_fuse_w_new;
       input_h = input_batch_fuse_h_new;
@@ -115,29 +118,34 @@ class PadBatchFuse : public OpBatchFuse {
     auto output_batch_fuse_w = input_w + pad[0] + pad[1];
     auto output_batch_fuse_h = input_h + pad[2] + pad[3];
 
-
     vx::ShapeType output_batch_fuse_shape(4);
     output_batch_fuse_shape[w_axis] = output_batch_fuse_w;
     output_batch_fuse_shape[h_axis] = output_batch_fuse_h;
     output_batch_fuse_shape[c_axis] = output_shape[c_axis];
     output_batch_fuse_shape[batch_axis] = 1;
-    
+
     context_->UpdateGapInferShape(output_tensor, output_batch_fuse_shape);
 
     //Update output's gap
     std::array<uint32_t, 2> gap_output = {0, 0};
-    gap_output[0] = ceil((float_t)((output_batch_fuse_w - batch_factor_w * output_shape[w_axis])) /
-                      (float_t)(batch_factor_w - 1));
- 
-    gap_output[1] = ceil((float_t)((output_batch_fuse_h - batch_factor_h * output_shape[h_axis])) /
-                      (float_t)(batch_factor_h - 1));
-    
+    gap_output[0] = ceil((float_t)((output_batch_fuse_w -
+                                    batch_factor_w * output_shape[w_axis])) /
+                         (float_t)(batch_factor_w - 1));
+
+    gap_output[1] = ceil((float_t)((output_batch_fuse_h -
+                                    batch_factor_h * output_shape[h_axis])) /
+                         (float_t)(batch_factor_h - 1));
+
     context_->UpdateForwardGap(output_tensor, gap_output);
     next_tensors.push_back(output_tensor);
     return need_backward;
   }
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
@@ -146,7 +154,7 @@ class PadBatchFuse : public OpBatchFuse {
     auto output_batch_fuse_shape = context_->GetGapInferShape(output_tensor);
     auto input_batch_fuse_shape = context_->GetGapInferShape(input_tensor);
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -167,8 +175,8 @@ class PadBatchFuse : public OpBatchFuse {
     memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
            sizeof(uint32_t) * dim_num);
 
-    std::array<uint32_t, 4> pad = {front_size[w_axis], back_size[w_axis], front_size[h_axis],
-                                   back_size[h_axis]};
+    std::array<uint32_t, 4> pad = {front_size[w_axis], back_size[w_axis],
+                                   front_size[h_axis], back_size[h_axis]};
 
     //Computes the size of the updated input using the output of the smallest known size
     uint32_t input_batch_fuse_w_update =
@@ -179,11 +187,11 @@ class PadBatchFuse : public OpBatchFuse {
     //Computes the new pad size of updated input
     std::array<uint32_t, 2> gap_input = {0, 0};
     gap_input[0] = ceil((float_t)((input_batch_fuse_w_update -
-                                 batch_factor_w * input_shape[w_axis])) /
-                      (float_t)(batch_factor_w - 1));
+                                   batch_factor_w * input_shape[w_axis])) /
+                        (float_t)(batch_factor_w - 1));
     gap_input[1] = ceil((float_t)((input_batch_fuse_h_update -
-                                 batch_factor_w * input_shape[h_axis])) /
-                      (float_t)(batch_factor_h - 1));
+                                   batch_factor_w * input_shape[h_axis])) /
+                        (float_t)(batch_factor_h - 1));
 
     context_->UpdateForwardGap(input_tensor, gap_input);
 
@@ -199,13 +207,18 @@ class PadBatchFuse : public OpBatchFuse {
 
       former_tensors.push_back(input_tensor);
       need_backward = true;
-      context_->UpdateGapInferShape(input_tensor, input_batch_fuse_shape_update);
+      context_->UpdateGapInferShape(input_tensor,
+                                    input_batch_fuse_shape_update);
     }
     return need_backward;  // useless
   }
 
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
@@ -213,7 +226,7 @@ class PadBatchFuse : public OpBatchFuse {
     auto input_batch_fuse_tensor = context_->GetMapedTensor(input_tensor);
     auto input_batch_fuse_shape = input_batch_fuse_tensor->GetShape();
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -222,7 +235,7 @@ class PadBatchFuse : public OpBatchFuse {
 
     auto w_axis = fuse_axes[0];
     auto h_axis = fuse_axes[1];
-   
+
     std::shared_ptr<vx::Tensor> batch_fuse_tensor;
     uint32_t batch = input_batch_fuse_shape[batch_axis];
 
@@ -230,23 +243,27 @@ class PadBatchFuse : public OpBatchFuse {
       //input tensor has not been batch fused, fuse it
 
       //step one, if it need pad, pad it with input tensor's gap infer shape
-      auto pad_tensor = InsertPad(input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+      auto pad_tensor = InsertPad(input_batch_fuse_tensor, input_tensor,
+                                  batch_axis, fuse_axes);
 
       //step two, batch fuse
-      batch_fuse_tensor = InsertPermuteAndReshape(pad_tensor, input_tensor, batch_axis, fuse_axes);
+      batch_fuse_tensor = InsertPermuteAndReshape(pad_tensor, input_tensor,
+                                                  batch_axis, fuse_axes);
     } else {
       batch_fuse_tensor = input_batch_fuse_tensor;
     }
 
     //insert mask to clean gap inside's value to be 0
-    auto masked_input = InsertMask(batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+    auto masked_input =
+        InsertMask(batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
     context_->UpdateTensorMap(input_tensor, masked_input);
 
     auto batch_fuse_tensor_shape = masked_input->GetShape();
 
-    auto valid_prop =
-        (float)(input_shape[w_axis] * input_shape[h_axis] * input_shape[batch_axis]) /
-        (float)(batch_fuse_tensor_shape[w_axis] * batch_fuse_tensor_shape[h_axis]);
+    auto valid_prop = (float)(input_shape[w_axis] * input_shape[h_axis] *
+                              input_shape[batch_axis]) /
+                      (float)(batch_fuse_tensor_shape[w_axis] *
+                              batch_fuse_tensor_shape[h_axis]);
     context_->UpdateProportion(input_tensor, valid_prop);
 
     uint32_t dim_num = op_->impl()->node()->nn_param.pad.dim_num;
@@ -271,7 +288,7 @@ class PadBatchFuse : public OpBatchFuse {
     pad_output_shape[h_axis] = out_h_batch;
     pad_output_shape[c_axis] = batch_fuse_tensor_shape[c_axis];
     pad_output_shape[batch_axis] = 1;
-    
+
     auto output_spec = output_tensor->GetSpec();
     auto pad_output_spec = output_spec.SetShape(pad_output_shape);
     auto pad_out_tensor =

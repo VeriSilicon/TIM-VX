@@ -8,7 +8,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/operation.h"
-
+#include "ops/op_batch_fuse.h"
 #include "ops/conv2d_batch_fuse.h"
 #include "ops/pad_batch_fuse.h"
 #include "ops/activation_batch_fuse.h"
@@ -183,48 +183,24 @@ std::vector<uint32_t> BatchFuseContext::GetPermAxisMap(
   return {};
 }
 
-#define REGIST_BATCH_FUSE(op_idx, name)                              \
-  case op_idx: {                                                     \
-    auto op_batch_fuse = std::make_shared<name##BatchFuse>(op, ctx); \
-    op_batch_fuse->OnInputs(next_tensors);                           \
-    op_batch_fuse->OnOutputs(next_tensors);                          \
-    break;                                                           \
-  }
-
-#define REGIST_REDUCE_BATCH_FUSE(op_idx)                                    \
-  case op_idx: {                                                            \
-    auto reduce_type = op->impl()->node()->nn_param.reduce.type;            \
-    switch (reduce_type) {                                                  \
-      REGIST_BATCH_FUSE(VSI_NN_REDUCE_MEAN, ReduceMean);                    \
-      REGIST_BATCH_FUSE(VSI_NN_REDUCE_MAX, ReduceMax);                      \
-      REGIST_BATCH_FUSE(VSI_NN_REDUCE_MIN, ReduceMin);                      \
-      REGIST_BATCH_FUSE(VSI_NN_REDUCE_PROD, ReduceProd);                    \
-      REGIST_BATCH_FUSE(VSI_NN_REDUCE_ANY, ReduceAny);                      \
-      REGIST_BATCH_FUSE(VSI_NN_REDUCE_SUM, ReduceSum);                      \
-      default:                                                              \
-        VSILOGW("Op %d: Default batch fuse pass for reduce.", reduce_type); \
-        assert(false);                                                      \
-    }                                                                       \
-    break;                                                                  \
-  }
-
-#define REGIST_CLONE_GRAPH(op_idx, name)                             \
-  case op_idx: {                                                     \
-    auto op_batch_fuse = std::make_shared<name##BatchFuse>(op, ctx); \
-    op_batch_fuse->CloneGraph(next_tensors);                         \
-    break;                                                           \
+#define REGIST_CLONE_GRAPH(op_idx, name, reduce_idx)          \
+  case reduce_idx: {                                          \
+    auto op_batch_fuse = std::make_shared<name##BatchFuse>(); \
+    BatchFuseHandler_[op_idx][reduce_idx] = op_batch_fuse;    \
+    op_batch_fuse->CloneGraph(next_tensors, op, ctx);         \
+    break;                                                    \
   }
 
 #define REGIST_REDUCE_CLONE_GRAPH(op_idx)                                    \
   case op_idx: {                                                             \
     auto reduce_type = op->impl()->node()->nn_param.reduce.type;             \
     switch (reduce_type) {                                                   \
-      REGIST_CLONE_GRAPH(VSI_NN_REDUCE_MEAN, ReduceMean);                    \
-      REGIST_CLONE_GRAPH(VSI_NN_REDUCE_MAX, ReduceMax);                      \
-      REGIST_CLONE_GRAPH(VSI_NN_REDUCE_MIN, ReduceMin);                      \
-      REGIST_CLONE_GRAPH(VSI_NN_REDUCE_PROD, ReduceProd);                    \
-      REGIST_CLONE_GRAPH(VSI_NN_REDUCE_ANY, ReduceAny);                      \
-      REGIST_CLONE_GRAPH(VSI_NN_REDUCE_SUM, ReduceSum);                      \
+      REGIST_CLONE_GRAPH(VSI_NN_OP_REDUCE, ReduceMean, VSI_NN_REDUCE_MEAN);  \
+      REGIST_CLONE_GRAPH(VSI_NN_OP_REDUCE, ReduceMax, VSI_NN_REDUCE_MAX);    \
+      REGIST_CLONE_GRAPH(VSI_NN_OP_REDUCE, ReduceMin, VSI_NN_REDUCE_MIN);    \
+      REGIST_CLONE_GRAPH(VSI_NN_OP_REDUCE, ReduceProd, VSI_NN_REDUCE_PROD);  \
+      REGIST_CLONE_GRAPH(VSI_NN_OP_REDUCE, ReduceAny, VSI_NN_REDUCE_ANY);    \
+      REGIST_CLONE_GRAPH(VSI_NN_OP_REDUCE, ReduceSum, VSI_NN_REDUCE_SUM);    \
       default:                                                               \
         VSILOGW("Op %d: Default clone graph pass for reduce.", reduce_type); \
         assert(false);                                                       \
@@ -232,93 +208,64 @@ std::vector<uint32_t> BatchFuseContext::GetPermAxisMap(
     break;                                                                   \
   }
 
-#define REGIST_PAD_INFERNECE(op_idx, name, Forward)                      \
-  case op_idx: {                                                         \
-    auto op_batch_fuse = std::make_shared<name##BatchFuse>(op, ctx);     \
-    if (Forward) {                                                       \
-      need_backward = op_batch_fuse->GapForwardInference(next_tensors);  \
-    } else {                                                             \
-      need_backward = op_batch_fuse->GapBackwardInference(next_tensors); \
-    }                                                                    \
-    break;                                                               \
-  }
-
-#define REGIST_REDUCE_PAD_INFERENCE(op_idx, Forward)                           \
-  case op_idx: {                                                               \
-    auto reduce_type = op->impl()->node()->nn_param.reduce.type;               \
-    switch (reduce_type) {                                                     \
-      REGIST_PAD_INFERNECE(VSI_NN_REDUCE_MEAN, ReduceMean, Forward);           \
-      REGIST_PAD_INFERNECE(VSI_NN_REDUCE_MAX, ReduceMax, Forward);             \
-      REGIST_PAD_INFERNECE(VSI_NN_REDUCE_MIN, ReduceMin, Forward);             \
-      REGIST_PAD_INFERNECE(VSI_NN_REDUCE_PROD, ReduceProd, Forward);           \
-      REGIST_PAD_INFERNECE(VSI_NN_REDUCE_ANY, ReduceAny, Forward);             \
-      REGIST_PAD_INFERNECE(VSI_NN_REDUCE_SUM, ReduceSum, Forward);             \
-      default:                                                                 \
-        VSILOGW("Op %d: Default pad inference pass for reduce.", reduce_type); \
-        assert(false);                                                         \
-    }                                                                          \
-    break;                                                                     \
-  }
-
-std::vector<std::shared_ptr<vx::Tensor>> HandleBatchFuse(
+std::vector<std::shared_ptr<vx::Tensor>> HandleCloneGraph(
     std::shared_ptr<batch_fuse_impl::BatchFuseContext>& ctx,
-    const std::shared_ptr<vx::Operation>& op) {
-  ctx->MarkVisited(op);
+    const std::shared_ptr<vx::Operation>& op,
+    std::map<int32_t, std::map<int32_t, std::shared_ptr<OpBatchFuse>>>&
+        BatchFuseHandler_) {
   auto op_id = op->impl()->kind_;
   std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
   switch (op_id) {
-    REGIST_BATCH_FUSE(VSI_NN_OP_CONV2D, Conv2d);
-    REGIST_BATCH_FUSE(VSI_NN_OP_PAD, Pad);
-    REGIST_BATCH_FUSE(VSI_NN_OP_RELU, Relu);
-    REGIST_BATCH_FUSE(VSI_NN_OP_ADD, Add);
-    REGIST_BATCH_FUSE(VSI_NN_OP_POOL, Pool2d);
-    REGIST_REDUCE_BATCH_FUSE(VSI_NN_OP_REDUCE);
-    REGIST_BATCH_FUSE(VSI_NN_OP_PERMUTE, Transpose);
-    REGIST_BATCH_FUSE(VSI_NN_OP_RESHAPE2, Reshape);
-    REGIST_BATCH_FUSE(VSI_NN_OP_CONCAT, Concat);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_CONV2D, Conv2d, VSI_NN_OP_CONV2D);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_PAD, Pad, VSI_NN_OP_PAD);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_RELU, Relu, VSI_NN_OP_RELU);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_ADD, Add, VSI_NN_OP_ADD);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_POOL, Pool2d, VSI_NN_OP_POOL);
+    REGIST_REDUCE_CLONE_GRAPH(VSI_NN_OP_REDUCE);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_PERMUTE, Transpose, VSI_NN_OP_PERMUTE);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_RESHAPE, Reshape, VSI_NN_OP_RESHAPE);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_RESHAPE2, Reshape, VSI_NN_OP_RESHAPE2);
+    REGIST_CLONE_GRAPH(VSI_NN_OP_CONCAT, Concat, VSI_NN_OP_CONCAT);
   }
+  return next_tensors;
+}
+
+std::vector<std::shared_ptr<vx::Tensor>> HandleBatchFuse(
+    std::shared_ptr<batch_fuse_impl::BatchFuseContext>& ctx,
+    const std::shared_ptr<vx::Operation>& op,
+    std::map<int32_t, std::map<int32_t, std::shared_ptr<OpBatchFuse>>>&
+        BatchFuseHandler_) {
+  ctx->MarkVisited(op);
+  std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
+  auto op_id = op->impl()->kind_;
+  int32_t reduce_id = op_id;
+  if (op_id == 59) {
+    reduce_id = op->impl()->node()->nn_param.reduce.type;
+  }
+  BatchFuseHandler_[op_id][reduce_id]->OnInputs(next_tensors, op, ctx);
+  BatchFuseHandler_[op_id][reduce_id]->OnOutputs(next_tensors, op, ctx);
   return next_tensors;
 }
 
 std::pair<std::vector<std::shared_ptr<vx::Tensor>>, bool> HandlePadInfernce(
     std::shared_ptr<batch_fuse_impl::BatchFuseContext>& ctx,
-    const std::shared_ptr<vx::Operation>& op, bool Forward) {
-  auto op_id = op->impl()->kind_;
+    const std::shared_ptr<vx::Operation>& op, bool Forward,
+    std::map<int32_t, std::map<int32_t, std::shared_ptr<OpBatchFuse>>>&
+        BatchFuseHandler_) {
   std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
   bool need_backward = false;
-  switch (op_id) {
-    REGIST_PAD_INFERNECE(VSI_NN_OP_CONV2D, Conv2d, Forward);
-    REGIST_PAD_INFERNECE(VSI_NN_OP_PAD, Pad, Forward);
-    REGIST_PAD_INFERNECE(VSI_NN_OP_RELU, Relu, Forward);
-    REGIST_PAD_INFERNECE(VSI_NN_OP_ADD, Add, Forward);
-    REGIST_PAD_INFERNECE(VSI_NN_OP_POOL, Pool2d, Forward);
-    REGIST_REDUCE_PAD_INFERENCE(VSI_NN_OP_REDUCE, Forward);
-    REGIST_PAD_INFERNECE(VSI_NN_OP_PERMUTE, Transpose, Forward);
-    REGIST_PAD_INFERNECE(VSI_NN_OP_RESHAPE, Reshape, Forward);
-    REGIST_PAD_INFERNECE(VSI_NN_OP_RESHAPE2, Reshape, Forward);
-    REGIST_PAD_INFERNECE(VSI_NN_OP_CONCAT, Concat, Forward);
-  }
-  return std::make_pair(next_tensors, need_backward);
-}
-
-std::vector<std::shared_ptr<vx::Tensor>> HandleCloneGraph(
-    std::shared_ptr<batch_fuse_impl::BatchFuseContext>& ctx,
-    const std::shared_ptr<vx::Operation>& op) {
   auto op_id = op->impl()->kind_;
-  std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
-  switch (op_id) {
-    REGIST_CLONE_GRAPH(VSI_NN_OP_CONV2D, Conv2d);
-    REGIST_CLONE_GRAPH(VSI_NN_OP_PAD, Pad);
-    REGIST_CLONE_GRAPH(VSI_NN_OP_RELU, Relu);
-    REGIST_CLONE_GRAPH(VSI_NN_OP_ADD, Add);
-    REGIST_CLONE_GRAPH(VSI_NN_OP_POOL, Pool2d);
-    REGIST_REDUCE_CLONE_GRAPH(VSI_NN_OP_REDUCE);
-    REGIST_CLONE_GRAPH(VSI_NN_OP_PERMUTE, Transpose);
-    REGIST_CLONE_GRAPH(VSI_NN_OP_RESHAPE, Reshape);
-    REGIST_CLONE_GRAPH(VSI_NN_OP_RESHAPE2, Reshape);
-    REGIST_CLONE_GRAPH(VSI_NN_OP_CONCAT, Concat);
+  int32_t reduce_id = op_id;
+  if (op_id == 59) {
+    reduce_id = op->impl()->node()->nn_param.reduce.type;
   }
-  return next_tensors;
+  if (Forward)
+    need_backward = BatchFuseHandler_[op_id][reduce_id]->GapForwardInference(
+        next_tensors, op, ctx);
+  else
+    need_backward = BatchFuseHandler_[op_id][reduce_id]->GapBackwardInference(
+        next_tensors, op, ctx);
+  return std::make_pair(next_tensors, need_backward);
 }
 
 }  // namespace batch_fuse_impl
@@ -338,6 +285,9 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
   batch_fuse_ctx->SetBatchAxis(3);
   batch_fuse_ctx->SetFuseAxes({1, 2});
   batch_fuse_ctx->SetChannelAxis(0);
+
+  std::map<int32_t, std::map<int32_t, std::shared_ptr<OpBatchFuse>>>
+      BatchFuseHandler_;
 
   std::map<std::shared_ptr<vx::Tensor>, std::shared_ptr<vx::Tensor>>
       graph_io_map;
@@ -386,8 +336,8 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
     const auto& consumers = src_graph->GetConsumersOp(tensor);
     for (const auto& op : consumers) {
       if (op->impl()->kind_ != -1 && batch_fuse_ctx->IsReadyForCloneGraph(op)) {
-        auto next_tensors =
-            batch_fuse_impl::HandleCloneGraph(batch_fuse_ctx, op);
+        auto next_tensors = batch_fuse_impl::HandleCloneGraph(
+            batch_fuse_ctx, op, BatchFuseHandler_);
         for (const auto& t : next_tensors) {
           tensor_clone_queue.push_back(t);
         }
@@ -433,7 +383,7 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
     for (const auto& op : consumers) {
       if (op->impl()->kind_ != -1 && batch_fuse_ctx->IsReadyForGapInfer(op)) {
         auto tensors_pad_forward_infer = batch_fuse_impl::HandlePadInfernce(
-            batch_fuse_ctx, op, true);  //forward gap infer
+            batch_fuse_ctx, op, true, BatchFuseHandler_);  //forward gap infer
         if (tensors_pad_forward_infer.second) {
           //need_backward is true
           tensor_queue_pad_backward.push_back(tensor);
@@ -453,7 +403,7 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
               // Start backward inference
               auto tensors_pad_backward_infer =
                   batch_fuse_impl::HandlePadInfernce(batch_fuse_ctx, producer,
-                                                     false);
+                                                     false, BatchFuseHandler_);
 
               for (const auto& t : tensors_pad_backward_infer.first) {
                 tensor_queue_pad_backward.push_back(t);  //former_tesnors
@@ -484,8 +434,8 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
     for (const auto& op : consumers) {
       if (!batch_fuse_ctx->IsVisited(op) && op->impl()->kind_ != -1 &&
           batch_fuse_ctx->IsReadyForBatchFuse(op)) {
-        auto next_tensors =
-            batch_fuse_impl::HandleBatchFuse(batch_fuse_ctx, op);
+        auto next_tensors = batch_fuse_impl::HandleBatchFuse(batch_fuse_ctx, op,
+                                                             BatchFuseHandler_);
         for (const auto& t : next_tensors) {
           tensor_queue.push_back(t);
         }

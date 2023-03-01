@@ -34,12 +34,14 @@ namespace fuse {
 template <typename OpType>
 class ReduceBatchFuse : public OpBatchFuse {
  public:
-  ReduceBatchFuse(const std::shared_ptr<vx::Operation> op,
-                  std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  ReduceBatchFuse() {}
 
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
@@ -52,16 +54,24 @@ class ReduceBatchFuse : public OpBatchFuse {
     return false;
   }
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
-    
+
     //To hack a werror
     former_tensors.push_back(input_tensor);
     former_tensors.pop_back();
     return false;
   }
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensor) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
@@ -70,7 +80,7 @@ class ReduceBatchFuse : public OpBatchFuse {
     auto input_batch_fuse_shape = input_batch_fuse_tensor->GetShape();
     std::shared_ptr<vx::Tensor> slice_and_concat_out;
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -80,8 +90,8 @@ class ReduceBatchFuse : public OpBatchFuse {
     uint32_t batch_src = input_shape[batch_axis];
     if (batch == 1 && batch_src != 1) {
       //Reduce op need insert slice and concat
-      slice_and_concat_out =
-          InsertSliceAndConcat(input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+      slice_and_concat_out = InsertSliceAndConcat(
+          input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
     } else {
       slice_and_concat_out = input_batch_fuse_tensor;
     }
@@ -94,7 +104,7 @@ class ReduceBatchFuse : public OpBatchFuse {
     for (uint32_t i = 0; i < op_->impl()->node()->nn_param.reduce.axis_num;
          ++i) {
       int32_t axis = op_->impl()->node()->nn_param.reduce.axis[i];
-      if (axis < 0) axis += input_shape.size(); //Handle negative axis
+      if (axis < 0) axis += input_shape.size();  //Handle negative axis
       new_axis.push_back(axis);
     }
 
@@ -103,7 +113,7 @@ class ReduceBatchFuse : public OpBatchFuse {
 
     auto reduce_out_tensor = CreateOutputsTensor()[0];
     (*reduce).BindInput(slice_and_concat_out).BindOutput(reduce_out_tensor);
-    next_tensor.push_back(output_tensor);
+    next_tensors.push_back(output_tensor);
   }
 };
 

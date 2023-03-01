@@ -32,19 +32,21 @@ namespace tim {
 namespace fuse {
 class Pool2dBatchFuse : public OpBatchFuse {
  public:
-  Pool2dBatchFuse(const std::shared_ptr<vx::Operation> op,
-                  std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  Pool2dBatchFuse() {}
 
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto output_tensor = op_->impl()->OutputsTensor()[0];
 
     auto input_shape = input_tensor->GetShape();
     auto output_shape = output_tensor->GetShape();  //whcn
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -76,10 +78,10 @@ class Pool2dBatchFuse : public OpBatchFuse {
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
       if (pad_type == vx::PadType::SAME || pad_type == vx::PadType::VALID) {
         //Compute the positive and negative value of pad size
-        int32_t p_w =
-            stride[0] * output_shape[w_axis] - input_shape[w_axis] + ksize[0] - stride[0];
-        int32_t p_h =
-            stride[1] * output_shape[h_axis] - input_shape[h_axis] + ksize[1] - stride[1];
+        int32_t p_w = stride[0] * output_shape[w_axis] - input_shape[w_axis] +
+                      ksize[0] - stride[0];
+        int32_t p_h = stride[1] * output_shape[h_axis] - input_shape[h_axis] +
+                      ksize[1] - stride[1];
 
         int_pad[0] = p_w / 2;           //p_w_front
         int_pad[1] = p_w - int_pad[0];  //p_w_back
@@ -202,13 +204,17 @@ class Pool2dBatchFuse : public OpBatchFuse {
     return need_backward;
   }
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -242,10 +248,10 @@ class Pool2dBatchFuse : public OpBatchFuse {
     std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
       if (pad_type == vx::PadType::SAME || pad_type == vx::PadType::VALID) {
-        int32_t p_w =
-            stride[0] * output_shape[w_axis] - input_shape[w_axis] + ksize[0] - stride[0];
-        int32_t p_h =
-            stride[1] * output_shape[h_axis] - input_shape[h_axis] + ksize[1] - stride[1];
+        int32_t p_w = stride[0] * output_shape[w_axis] - input_shape[w_axis] +
+                      ksize[0] - stride[0];
+        int32_t p_h = stride[1] * output_shape[h_axis] - input_shape[h_axis] +
+                      ksize[1] - stride[1];
 
         //Front pad >= back pad
         int_pad[0] = p_w / 2;           //p_w_front
@@ -278,11 +284,11 @@ class Pool2dBatchFuse : public OpBatchFuse {
         stride[1] * (gap_output[1] + 1) + int_pad[2] + int_pad[3] - 1;
     context_->UpdateForwardGap(input_tensor, gap_input);
 
-    uint32_t input_batch_fuse_w_update =
-        input_shape[w_axis] * batch_factor_w + (batch_factor_w - 1) * gap_input[0];
+    uint32_t input_batch_fuse_w_update = input_shape[w_axis] * batch_factor_w +
+                                         (batch_factor_w - 1) * gap_input[0];
 
-    uint32_t input_batch_fuse_h_update =
-        input_shape[h_axis] * batch_factor_h + (batch_factor_h - 1) * gap_input[1];
+    uint32_t input_batch_fuse_h_update = input_shape[h_axis] * batch_factor_h +
+                                         (batch_factor_h - 1) * gap_input[1];
 
     bool need_backward = false;
     if ((input_batch_fuse_shape[w_axis] < input_batch_fuse_w_update) ||
@@ -327,7 +333,11 @@ class Pool2dBatchFuse : public OpBatchFuse {
     return need_backward;  // useless
   }
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_spec = input_tensor->GetSpec();
     auto input_shape = input_tensor->GetShape();
@@ -336,7 +346,7 @@ class Pool2dBatchFuse : public OpBatchFuse {
     auto input_batch_fuse_tensor = context_->GetMapedTensor(input_tensor);
     auto input_batch_fuse_shape = input_batch_fuse_tensor->GetShape();
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -370,13 +380,11 @@ class Pool2dBatchFuse : public OpBatchFuse {
     std::array<int32_t, 4> int_pad = {0, 0, 0, 0};
     if (pad[0] == 0 && pad[1] == 0 && pad[2] == 0 && pad[3] == 0) {
       if (pad_type == vx::PadType::SAME || pad_type == vx::PadType::VALID) {
-        
-        int32_t p_w =
-            stride[0] * output_shape[w_axis] - input_shape[w_axis] + ksize[0] - stride[0];
-        int32_t p_h =
-            stride[1] * output_shape[h_axis] - input_shape[h_axis] + ksize[1] - stride[1];
+        int32_t p_w = stride[0] * output_shape[w_axis] - input_shape[w_axis] +
+                      ksize[0] - stride[0];
+        int32_t p_h = stride[1] * output_shape[h_axis] - input_shape[h_axis] +
+                      ksize[1] - stride[1];
 
-        
         int_pad[0] = p_w / 2;           //p_w_front
         int_pad[1] = p_w - int_pad[0];  //p_w_back
         int_pad[2] = p_h / 2;           //p_h_front
@@ -395,16 +403,17 @@ class Pool2dBatchFuse : public OpBatchFuse {
 
     if (batch != 1) {
       if (int_pad[0] <= 0 && int_pad[1] <= 0 && int_pad[2] <= 0 &&
-          int_pad[3] <= 0)
-      {
+          int_pad[3] <= 0) {
         //Pool wont be effected by pad value
         //Input tensor has not been batch fused, fuse it
 
-       //step one, if it need pad, pad it with input tensor's gap infer shape
-        auto pad_tensor = InsertPad(input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+        //step one, if it need pad, pad it with input tensor's gap infer shape
+        auto pad_tensor = InsertPad(input_batch_fuse_tensor, input_tensor,
+                                    batch_axis, fuse_axes);
 
         //step two, batch fuse
-        batch_fuse_tensor = InsertPermuteAndReshape(pad_tensor, input_tensor, batch_axis, fuse_axes);
+        batch_fuse_tensor = InsertPermuteAndReshape(pad_tensor, input_tensor,
+                                                    batch_axis, fuse_axes);
       } else {
         //Do not batch fuse
         batch_fuse_tensor = input_tensor;
@@ -416,21 +425,22 @@ class Pool2dBatchFuse : public OpBatchFuse {
         batch_fuse_tensor = input_batch_fuse_tensor;
       } else {
         //Do not batch fuse
-        batch_fuse_tensor =
-            InsertSliceAndConcat(input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+        batch_fuse_tensor = InsertSliceAndConcat(
+            input_batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
       }
     }
     auto batch_fuse_shape = batch_fuse_tensor->GetShape();
-    auto valid_prop = (float)(input_shape[w_axis] * input_shape[h_axis] * batch_src) /
-                       (float)(batch_fuse_shape[w_axis] * batch_fuse_shape[h_axis]);
+    auto valid_prop =
+        (float)(input_shape[w_axis] * input_shape[h_axis] * batch_src) /
+        (float)(batch_fuse_shape[w_axis] * batch_fuse_shape[h_axis]);
     context_->UpdateProportion(input_tensor, valid_prop);
 
-    out_w_batch = ceil((float_t)(batch_fuse_shape[w_axis] - ksize[0] + int_pad[0] +
-                                 int_pad[1]) /
+    out_w_batch = ceil((float_t)(batch_fuse_shape[w_axis] - ksize[0] +
+                                 int_pad[0] + int_pad[1]) /
                        (float_t)(stride[0])) +
                   1;
-    out_h_batch = ceil((float_t)(batch_fuse_shape[h_axis] - ksize[1] + int_pad[2] +
-                                 int_pad[3]) /
+    out_h_batch = ceil((float_t)(batch_fuse_shape[h_axis] - ksize[1] +
+                                 int_pad[2] + int_pad[3]) /
                        (float_t)(stride[1])) +
                   1;
 
@@ -449,7 +459,8 @@ class Pool2dBatchFuse : public OpBatchFuse {
 
     //Insert mask to clean gap inside's value to be 0
     if (batch_fuse_tensor->GetShape()[batch_axis] == 1 && batch_src != 1) {
-      auto masked_input = InsertMask(batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+      auto masked_input =
+          InsertMask(batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
       context_->UpdateTensorMap(input_tensor, masked_input);
     }
 

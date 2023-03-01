@@ -33,12 +33,13 @@ namespace fuse {
 template <typename OpType>
 class ActivationBatchFuse : public OpBatchFuse {
  public:
-  ActivationBatchFuse(
-      const std::shared_ptr<vx::Operation> op,
-      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  ActivationBatchFuse(){};
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
@@ -59,7 +60,11 @@ class ActivationBatchFuse : public OpBatchFuse {
   }
 
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
@@ -82,14 +87,18 @@ class ActivationBatchFuse : public OpBatchFuse {
   }
 
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     assert(op_->impl()->InputsTensor().size() == 1);
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_spec = output_tensor->GetSpec();
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -108,9 +117,10 @@ class ActivationBatchFuse : public OpBatchFuse {
         context_->batch_fuse_graph_->CreateTensor(output_batch_fuse_spec);
 
     //compute the proporation of valid data
-    auto valid_prop =
-        (float)(input_shape[w_axis] * input_shape[h_axis] * input_shape[batch_axis]) /
-        (float)(input_batch_fuse_shape[w_axis] * input_batch_fuse_shape[h_axis]);
+    auto valid_prop = (float)(input_shape[w_axis] * input_shape[h_axis] *
+                              input_shape[batch_axis]) /
+                      (float)(input_batch_fuse_shape[w_axis] *
+                              input_batch_fuse_shape[h_axis]);
     context_->UpdateProportion(input_tensor, valid_prop);
     context_->UpdateTensorMap(output_tensor, output_batch_fuse_tensor);
 

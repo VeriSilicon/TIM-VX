@@ -471,7 +471,11 @@ std::vector<std::shared_ptr<vx::Tensor>> OpBatchFuse::CreateOutputsTensor() {
 }
 
 void OpBatchFuse::OnOutputs(
-    std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) {
+    std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+    const std::shared_ptr<vx::Operation>& op,
+    std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) {
+  op_ = op;
+  context_ = context;
   auto graph_outputs = context_->clone_batch_graph_->OutputsTensor();
   auto op_outputs = op_->impl()->OutputsTensor();
   auto op_inputs = op_->impl()->InputsTensor();
@@ -512,7 +516,11 @@ void OpBatchFuse::OnOutputs(
 }
 
 void OpBatchFuse::CloneGraph(
-    std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) {
+    std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+    const std::shared_ptr<vx::Operation>& op,
+    std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) {
+  op_ = op;
+  context_ = context;
   auto op_outputs = op_->impl()->OutputsTensor();
   auto op_inputs = op_->impl()->InputsTensor();
   auto fake_batch = context_->GetFakeBatch();
@@ -576,9 +584,9 @@ void OpBatchFuse::CloneGraph(
       context_->UpdatePermAxisMap(clone_out_tensor, output_perm);
     } else if (op_->impl()->kind_ == 162) {
       // Reshape
-      // If the input shape is WHCN and output shape is not, how to define output tensor's perm? 
+      // If the input shape is WHCN and output shape is not, how to define output tensor's perm?
       // How to map the perm, what does each dimension obtained by map, and how does it affect the subsequent tensor?
-      // Although map the perm axis is a concept that only applies to ops (conv2d, pool2d) with physical meanings in shape, 
+      // Although map the perm axis is a concept that only applies to ops (conv2d, pool2d) with physical meanings in shape,
       // we also need to assign a value that is as correct as possible for other ops such as reshape
       context_->UpdatePermAxisMap(clone_out_tensor, input_perm);
     } else {

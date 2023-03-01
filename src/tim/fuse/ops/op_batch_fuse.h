@@ -35,22 +35,29 @@ namespace fuse {
 
 class OpBatchFuse {
  public:
-  OpBatchFuse(const std::shared_ptr<vx::Operation> op,
-              std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : op_(op), context_(context) {}
-  virtual void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) = 0;
+   virtual void OnInputs(
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) = 0;
   virtual void OnOutputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors);
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context);
 
   virtual bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) = 0;
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) = 0;
 
   virtual bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) = 0;
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) = 0;
 
   virtual void CloneGraph(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors);
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context);
 
   virtual ~OpBatchFuse() = default;
 
@@ -89,7 +96,7 @@ class OpBatchFuse {
   vx::RoundType TranslateRoundType(int32_t round);
 
  protected:
-  const std::shared_ptr<vx::Operation> op_;
+  std::shared_ptr<vx::Operation> op_;
   std::shared_ptr<batch_fuse_impl::BatchFuseContext> context_;
 };
 

@@ -31,19 +31,21 @@ namespace tim {
 namespace fuse {
 class ConcatBatchFuse : public OpBatchFuse {
  public:
-  ConcatBatchFuse(const std::shared_ptr<vx::Operation> op,
-                  std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  ConcatBatchFuse() {}
 
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto output_shape = output_tensor->GetShape();
     auto input_tensors = op_->impl()->InputsTensor();
     auto input_gap_infer_shape_0 = context_->GetGapInferShape(input_tensors[0]);
     auto input_gap_infer_shape_1 = context_->GetGapInferShape(input_tensors[1]);
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map_0 = context_->GetPermAxisMap(input_tensors[0]);
     auto fuse_axes_0 = context_->GetPermFuseAxes(input_tensors[0]);
@@ -114,7 +116,11 @@ class ConcatBatchFuse : public OpBatchFuse {
   }
 
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto input_tensors = op_->impl()->InputsTensor();
     auto input_gap_infer_shape_0 = context_->GetGapInferShape(input_tensors[0]);
@@ -179,15 +185,18 @@ class ConcatBatchFuse : public OpBatchFuse {
       }
       // it is balanced, so it can continue to backward
       return true;
-    } 
-    else {
+    } else {
       // unbalance
       VSILOGW("Unbalanced branches are not supported yet");
       return false;
     }
   }
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto output_tensor = op_->impl()->OutputsTensor()[0];
 
     auto input_tensors = op_->impl()->InputsTensor();

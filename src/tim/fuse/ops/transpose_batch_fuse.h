@@ -34,13 +34,14 @@ namespace tim {
 namespace fuse {
 class TransposeBatchFuse : public OpBatchFuse {
  public:
-  TransposeBatchFuse(
-      const std::shared_ptr<vx::Operation> op,
-      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  TransposeBatchFuse(){};
 
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
 
@@ -61,7 +62,11 @@ class TransposeBatchFuse : public OpBatchFuse {
   }
 
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     //To hack a werror
     former_tensors.push_back(input_tensor);
@@ -70,7 +75,11 @@ class TransposeBatchFuse : public OpBatchFuse {
   }
 
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensor = op_->impl()->InputsTensor()[0];
     auto input_shape = input_tensor->GetShape();
     auto input_spec = input_tensor->GetSpec();
@@ -81,7 +90,7 @@ class TransposeBatchFuse : public OpBatchFuse {
     auto output_sepc = output_tensor->GetSpec();
     auto output_shape = output_tensor->GetShape();
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);

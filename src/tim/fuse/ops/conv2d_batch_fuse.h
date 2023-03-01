@@ -32,12 +32,14 @@ namespace tim {
 namespace fuse {
 class Conv2dBatchFuse : public OpBatchFuse {
  public:
-  Conv2dBatchFuse(const std::shared_ptr<vx::Operation> op,
-                  std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context)
-      : OpBatchFuse(op, context) {}
+  Conv2dBatchFuse() {}
 
   bool GapForwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensors = op_->impl()->InputsTensor();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto input_tensor = input_tensors[0];
@@ -50,7 +52,7 @@ class Conv2dBatchFuse : public OpBatchFuse {
     uint32_t batch_factor_w = ClosestFactors(batch).first;
     uint32_t batch_factor_h = ClosestFactors(batch).second;
 
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -104,7 +106,7 @@ class Conv2dBatchFuse : public OpBatchFuse {
       input_batch_fuse_shape_old[h_axis] = input_batch_fuse_h_old;
       input_batch_fuse_shape_old[c_axis] = input_batch_fuse_shape_old[c_axis];
       input_batch_fuse_shape_old[batch_axis] = 1;
-      
+
       context_->UpdateGapInferShape(input_tensor, input_batch_fuse_shape_old);
     }
 
@@ -144,7 +146,6 @@ class Conv2dBatchFuse : public OpBatchFuse {
     input_batch_fuse_shape_new[h_axis] = input_batch_fuse_h_new;
     input_batch_fuse_shape_new[c_axis] = input_shape[c_axis];
     input_batch_fuse_shape_new[batch_axis] = 1;
-
 
     bool need_backward = false;
     uint32_t input_w, input_h;
@@ -187,8 +188,9 @@ class Conv2dBatchFuse : public OpBatchFuse {
     output_batch_fuse_shape_update[h_axis] = output_batch_fuse_h_update;
     output_batch_fuse_shape_update[c_axis] = output_shape[c_axis];
     output_batch_fuse_shape_update[batch_axis] = 1;
-    
-    context_->UpdateGapInferShape(output_tensor, output_batch_fuse_shape_update);
+
+    context_->UpdateGapInferShape(output_tensor,
+                                  output_batch_fuse_shape_update);
 
     //compute the output gap
     auto gap_output_w =
@@ -205,7 +207,11 @@ class Conv2dBatchFuse : public OpBatchFuse {
   }
 
   bool GapBackwardInference(
-      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& former_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensors = op_->impl()->InputsTensor();
     auto input_tensor = input_tensors[0];
     auto weight_tensor = input_tensors[1];
@@ -215,7 +221,7 @@ class Conv2dBatchFuse : public OpBatchFuse {
     auto output_shape = output_tensor->GetShape();
 
     // Original axis is [0, 1, 2, 3] -> [C, W, H, N]
-    auto fuse_src_axes = context_->GetFuseAxes();    // [1, 2]
+    auto fuse_src_axes = context_->GetFuseAxes();  // [1, 2]
 
     auto perm_axis_map = context_->GetPermAxisMap(input_tensor);
     auto fuse_axes = context_->GetPermFuseAxes(input_tensor);
@@ -224,7 +230,6 @@ class Conv2dBatchFuse : public OpBatchFuse {
 
     auto w_axis = fuse_axes[0];
     auto h_axis = fuse_axes[1];
-
 
     auto output_batch_fuse_shape = context_->GetGapInferShape(output_tensor);
     auto input_batch_fuse_shape = context_->GetGapInferShape(input_tensor);
@@ -283,11 +288,11 @@ class Conv2dBatchFuse : public OpBatchFuse {
     context_->UpdateForwardGap(input_tensor, gap_input);
 
     // update the batch fused input shape with new gap inside
-    uint32_t input_batch_fuse_w_update =
-        input_shape[w_axis] * batch_factor_w + (batch_factor_w - 1) * gap_input[0];
+    uint32_t input_batch_fuse_w_update = input_shape[w_axis] * batch_factor_w +
+                                         (batch_factor_w - 1) * gap_input[0];
 
-    uint32_t input_batch_fuse_h_update =
-        input_shape[h_axis] * batch_factor_h + (batch_factor_h - 1) * gap_input[1];
+    uint32_t input_batch_fuse_h_update = input_shape[h_axis] * batch_factor_h +
+                                         (batch_factor_h - 1) * gap_input[1];
 
     bool need_backward = false;
     if ((input_batch_fuse_shape[w_axis] < input_batch_fuse_w_update) ||
@@ -328,12 +333,17 @@ class Conv2dBatchFuse : public OpBatchFuse {
     output_batch_fuse_shape_update[batch_axis] = 1;
 
     //Update tensor shape map
-    context_->UpdateGapInferShape(output_tensor, output_batch_fuse_shape_update);
+    context_->UpdateGapInferShape(output_tensor,
+                                  output_batch_fuse_shape_update);
     return need_backward;  // useless
   }
 
   void OnInputs(
-      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
+      std::vector<std::shared_ptr<vx::Tensor>>& next_tensors,
+      const std::shared_ptr<vx::Operation>& op,
+      std::shared_ptr<batch_fuse_impl::BatchFuseContext>& context) override {
+    op_ = op;
+    context_ = context;
     auto input_tensors = op_->impl()->InputsTensor();
     auto output_tensor = op_->impl()->OutputsTensor()[0];
     auto input_tensor = input_tensors[0];
@@ -483,7 +493,8 @@ class Conv2dBatchFuse : public OpBatchFuse {
     }
     //insert mask to clean gap inside's value to be 0
     if (batch_fuse_shape[batch_axis] == 1 && batch_src != 1) {
-      auto masked_input = InsertMask(batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
+      auto masked_input =
+          InsertMask(batch_fuse_tensor, input_tensor, batch_axis, fuse_axes);
       context_->UpdateTensorMap(input_tensor, masked_input);
     }
 
