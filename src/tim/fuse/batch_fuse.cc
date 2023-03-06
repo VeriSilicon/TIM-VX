@@ -308,6 +308,16 @@ BatchFuse(const std::shared_ptr<vx::Graph>& src_graph,
   auto graph_inputs = src_graph->InputsTensor();
   auto graph_outputs = src_graph->OutputsTensor();
 
+  if (fake_batch == 1) {
+    for (const auto& graph_input : graph_inputs) {
+      graph_io_map[graph_input] = graph_input;
+    }
+    for (const auto& graph_output : graph_outputs) {
+      graph_io_map[graph_output] = graph_output;
+    }
+    return std::make_pair(src_graph, graph_io_map);
+  }
+
   for (const auto& t_src : graph_inputs) {
     //Initialize clone graph's tensor map
     auto input = clone_batch_graph->CreateTensor(t_src->GetSpec());
