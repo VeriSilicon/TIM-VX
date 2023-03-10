@@ -46,8 +46,10 @@ BuiltinOpImpl& BuiltinOpImpl::BindInput(
   uint32_t tensor_id = tensor->GetId();
   node_->input.tensors[input_tensor_index++] = tensor_id;
   if (tensor->GetSpec().attr_ & TensorAttribute::INPUT) {
-    graph_->AddInput(tensor_id);
-    graph_->AddInput(tensor);
+    graph_->ConsumeInput();
+  }
+  if (tensor->GetSpec().attr_ & TensorAttribute::OUTPUT) {
+    graph_->ConsumeOutput();
   }
   return *this;
 }
@@ -57,9 +59,11 @@ BuiltinOpImpl& BuiltinOpImpl::BindOutput(
   outputs_tensor_.push_back(tensor);
   uint32_t tensor_id = tensor->GetId();
   node_->output.tensors[output_tensor_index++] = tensor_id;
-  if (tensor->GetSpec().attr_ == TensorAttribute::OUTPUT) {
-    graph_->AddOutput(tensor_id);
-    graph_->AddOutput(tensor);
+  if (tensor->GetSpec().attr_ & TensorAttribute::INPUT) {
+    graph_->ConsumeInput();
+  }
+  if (tensor->GetSpec().attr_ & TensorAttribute::OUTPUT) {
+    graph_->ConsumeOutput();
   }
   return *this;
 }

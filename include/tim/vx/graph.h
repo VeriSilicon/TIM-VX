@@ -66,6 +66,11 @@ class Graph {
 
   virtual bool Run() = 0;
 
+  virtual void ProduceInput() = 0;
+  virtual void ProduceOutput() = 0;
+  virtual void ConsumeInput() = 0;
+  virtual void ConsumeOutput() = 0;
+
   template <typename OpType, typename... Params>
   std::shared_ptr<OpType> CreateOperation(Params... parameters) {
     auto op = std::make_shared<OpType>(this, parameters...);
