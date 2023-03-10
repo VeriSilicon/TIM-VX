@@ -49,6 +49,8 @@ GraphImpl::GraphImpl(ContextImpl* context, const CompileOption& options)
     : context_(context),
       graph_(vsi_nn_CreateGraph(context_->context(), 0, 0)),
       tensor_placeholder_(nullptr),
+      free_input_cnt_(0),
+      free_output_cnt_(0),
       options_(options){}
 
 GraphImpl::~GraphImpl() { vsi_nn_ReleaseGraph(&graph_); }
@@ -133,17 +135,50 @@ void GraphImpl::PrintGraph() const { vsi_nn_PrintGraph(this->graph_); }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
                                                 const void* data) {
-  return std::make_shared<TensorImpl>(this, spec, data);
+  auto tensor = std::make_shared<TensorImpl>(this, spec, data);
+  if (spec.attr_ & TensorAttribute::INPUT) {
+    this->AddInput(tensor);
+    this->AddInput(tensor->GetId());
+    this->AddFreeInput();
+  }
+  if (spec.attr_ & TensorAttribute::OUTPUT) {
+    this->AddOutput(tensor);
+    this->AddOutput(tensor->GetId());
+    this->AddFreeOutput();
+  }
+  return tensor;
 }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
                                                 const DmaBufferDesc& dmafd) {
-  return std::make_shared<TensorImpl>(this, spec, dmafd);
+  auto tensor = std::make_shared<TensorImpl>(this, spec, dmafd);
+  if (spec.attr_ & TensorAttribute::INPUT) {
+    this->AddInput(tensor);
+    this->AddInput(tensor->GetId());
+    this->AddFreeInput();
+  }
+  if (spec.attr_ & TensorAttribute::OUTPUT) {
+    this->AddOutput(tensor);
+    this->AddOutput(tensor->GetId());
+    this->AddFreeOutput();
+  }
+  return tensor;
 }
 
 std::shared_ptr<Tensor> GraphImpl::CreateIOTensor(const TensorSpec& spec,
                                                 void* data) {
-  return std::make_shared<TensorImpl>(this, spec, data);
+  auto tensor = std::make_shared<TensorImpl>(this, spec, data);
+  if (spec.attr_ & TensorAttribute::INPUT) {
+    this->AddInput(tensor);
+    this->AddInput(tensor->GetId());
+    this->AddFreeInput();
+  }
+  if (spec.attr_ & TensorAttribute::OUTPUT) {
+    this->AddOutput(tensor);
+    this->AddOutput(tensor->GetId());
+    this->AddFreeOutput();
+  }
+  return tensor;
 }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensorPlaceHolder() {
@@ -185,7 +220,10 @@ bool GraphImpl::Setup() {
 
 bool GraphImpl::Compile() {
   bool status = true;
-
+  if (free_input_cnt_ != 0 || free_output_cnt_ != 0) {
+    VSILOGE("Graph has free input/output.");
+    return false;
+  }
   status = Setup();
   std::call_once(verify_graph_once_, [&status, this]() {
     status = (VSI_SUCCESS == vsi_nn_VerifyGraph(this->graph_));

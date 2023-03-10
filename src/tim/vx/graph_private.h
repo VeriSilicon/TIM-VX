@@ -77,6 +77,10 @@ class GraphImpl : public Graph {
   bool Compile() override;
   bool CompileToBinary(void* buf, size_t* size) override;
   bool Run() override;
+  void AddFreeInput() { free_input_cnt_++; }
+  void AddFreeOutput() { free_output_cnt_++; }
+  void BindFreeInput() { free_input_cnt_--; }
+  void BindFreeOutput() { free_output_cnt_--; }
 
  protected:
   ContextImpl* context_;
@@ -88,7 +92,9 @@ class GraphImpl : public Graph {
   std::vector<vsi_nn_tensor_id_t> inputs_;
   std::vector<vsi_nn_tensor_id_t> outputs_;
   std::vector<std::shared_ptr<Tensor>> inputs_tensor_;
+  int32_t free_input_cnt_;
   std::vector<std::shared_ptr<Tensor>> outputs_tensor_;
+  int32_t free_output_cnt_;
   std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>> tensor_consumers_;
   std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>> tensor_producer_;
 
