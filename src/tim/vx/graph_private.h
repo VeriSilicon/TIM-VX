@@ -77,10 +77,10 @@ class GraphImpl : public Graph {
   bool Compile() override;
   bool CompileToBinary(void* buf, size_t* size) override;
   bool Run() override;
-  void ProduceInput() { not_consumed_input_cnt_++; }
-  void ProduceOutput() { not_consumed_output_cnt_++; }
-  void ConsumeInput() { not_consumed_input_cnt_--; }
-  void ConsumeOutput() { not_consumed_output_cnt_--; }
+  void ProduceInput() override { not_consumed_input_cnt_++; }
+  void ProduceOutput() override { not_consumed_output_cnt_++; }
+  void ConsumeInput() override { not_consumed_input_cnt_--; }
+  void ConsumeOutput() override { not_consumed_output_cnt_--; }
 
  protected:
   ContextImpl* context_;
