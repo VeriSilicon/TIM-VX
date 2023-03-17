@@ -138,11 +138,13 @@ TEST(MaxpoolGrad, without_overlay) {
                             out_shape, tim::vx::TensorAttribute::TRANSIENT);
     tim::vx::TensorSpec output_spec_values(tim::vx::DataType::FLOAT32,
                             out_shape, tim::vx::TensorAttribute::OUTPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            in_shape, tim::vx::TensorAttribute::OUTPUT);
 
     auto input_tensor = graph->CreateTensor(input_spec);
     auto output_tensor_indices = graph->CreateTensor(output_spec_indices);
     auto output_tensor_values = graph->CreateTensor(output_spec_values);
-    auto output_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
 
     std::vector<float> in_data = {
         7, 2, 5, 3, 10, 2,
@@ -210,11 +212,13 @@ TEST(MaxpoolGrad, with_overlay) {
                             out_shape, tim::vx::TensorAttribute::TRANSIENT);
     tim::vx::TensorSpec output_spec_values(tim::vx::DataType::FLOAT32,
                             out_shape, tim::vx::TensorAttribute::OUTPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            in_shape, tim::vx::TensorAttribute::OUTPUT);
 
     auto input_tensor = graph->CreateTensor(input_spec);
     auto output_tensor_indices = graph->CreateTensor(output_spec_indices);
     auto output_tensor_values = graph->CreateTensor(output_spec_values);
-    auto output_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
 
     std::vector<float> in_data = {
         7, 2, 5, 3, 8,
@@ -282,11 +286,13 @@ TEST(MaxpoolGrad, with_overlay_multi_channel_multi_batch) {
                             out_shape, tim::vx::TensorAttribute::TRANSIENT);
     tim::vx::TensorSpec output_spec_values(tim::vx::DataType::FLOAT32,
                             out_shape, tim::vx::TensorAttribute::OUTPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            in_shape, tim::vx::TensorAttribute::OUTPUT);
 
     auto input_tensor = graph->CreateTensor(input_spec);
     auto output_tensor_indices = graph->CreateTensor(output_spec_indices);
     auto output_tensor_values = graph->CreateTensor(output_spec_values);
-    auto output_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
 
     std::vector<float> in_data = {
         7, 2, 5, 3, 8,

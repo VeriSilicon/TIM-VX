@@ -220,9 +220,13 @@ bool GraphImpl::Setup() {
 
 bool GraphImpl::Compile() {
   bool status = true;
-  if (not_consumed_input_cnt_ > 0 || not_consumed_output_cnt_ != 0) {
-    // A INPUT can be bind repeatedly
-    VSILOGE("Graph has free input/output.");
+  if (not_consumed_input_cnt_ > 0 ) {
+    // Tensor can bind to different operations
+    VSILOGE("Graph has free input, INPUT tensor may be created with OUTPUT attr.");
+    return false;
+  }
+  if (not_consumed_output_cnt_ != 0) {
+    VSILOGE("Graph has free output, OUTPUT tensor may be created with INPUT attr.");
     return false;
   }
   status = Setup();
