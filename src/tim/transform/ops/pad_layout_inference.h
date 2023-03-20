@@ -52,6 +52,7 @@ class PadLayoutInfer : public OpLayoutInfer {
     memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
            sizeof(uint32_t) * dim_num);
     int32_t pad_value = op_->impl()->node()->nn_param.pad.const_val;
+    auto pad_mode = (tim::vx::ops::Pad::pad_mode_type)op_->impl()->node()->nn_param.pad.mode;
 
     if (!input_pv->IsAligned()) {
       front_size = MapMultipleAxis(input_pv->AsStdVec(), front_size);
@@ -59,7 +60,8 @@ class PadLayoutInfer : public OpLayoutInfer {
     }
 
     auto pad = context_->infer_graph_->CreateOperation<vx::ops::Pad>(
-        front_size, back_size, pad_value);
+        front_size, back_size, pad_value, pad_mode);
+
     auto out_infer = CreateOutputsTensor(input_pv);
     (*pad).BindInput(context_->GetMapedTensor(i_src));
     (*pad).BindOutput(out_infer[0]);
