@@ -95,7 +95,7 @@ TEST(Fuse_MaxpoolGrad, with_overlay) {
 
     auto input_tensor = graph->CreateTensor(input_spec);
     auto updates_tensor = graph->CreateTensor(updates_spec);
-    auto output_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
 
     std::vector<float> in_data = {
         7, 2, 5, 3, 8,
@@ -124,7 +124,7 @@ TEST(Fuse_MaxpoolGrad, with_overlay) {
 
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());
-    
+
     std::vector<float> output_values(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output_values.data()));
     EXPECT_EQ(golden, output_values);
@@ -145,7 +145,7 @@ TEST(Fuse_MaxpoolGrad, with_overlay_multi_channel_multi_batch) {
 
     auto input_tensor = graph->CreateTensor(input_spec);
     auto updates_tensor = graph->CreateTensor(updates_spec);
-    auto output_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
 
     std::vector<float> in_data = {
         7, 2, 5, 3, 8,
@@ -204,7 +204,7 @@ TEST(Fuse_MaxpoolGrad, with_overlay_multi_channel_multi_batch) {
 
     EXPECT_TRUE(graph->Compile());
     EXPECT_TRUE(graph->Run());
-    
+
     std::vector<float> output_values(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output_values.data()));
     EXPECT_EQ(golden, output_values);
