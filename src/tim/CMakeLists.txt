@@ -52,7 +52,7 @@ if(TIM_VX_ENABLE_PLATFORM)
         ${PLATFORM_SRC}
     )
     if(TIM_VX_ENABLE_GRPC)
-        include(vx/platform/grpc/remote_service.cmake)
+        include(vx/platform/grpc/grpc_platform.cmake)
     endif()
 endif()
 
@@ -72,6 +72,16 @@ list(APPEND INC_DIRS
     ${OVXLIB_INCLUDE_DIR}
     ${OVXDRV_INCLUDE_DIRS}
 )
+
+if(${TIM_VX_ENABLE_PLATFORM_LITE})
+    list(APPEND ${TARGET_NAME}_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/lite/lite_native.cc
+    )
+    list(APPEND EXTERNAL_LIBS
+        ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/drivers/libNBGlinker.so
+        ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/drivers/libVIPlite.so)
+    list(APPEND INC_DIRS ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/include)
+endif()
 
 if(${TIM_VX_ENABLE_VIPLITE})
     aux_source_directory(./lite LITE_SRC)
@@ -100,7 +110,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${op_as_flags}")
 add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
 target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
 target_link_libraries(${TARGET_NAME} PUBLIC
-    -Wl,--no-whole-archive ${EXTERNAL_LIBS} ${OVXDRV_LIBRARIES})
+    -Wl,--no-whole-archive  ${OVXDRV_LIBRARIES} ${EXTERNAL_LIBS})
 
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
   #-Wl,--whole-archive should not applied to external library, but only for shared library
@@ -113,10 +123,10 @@ if(TIM_VX_ENABLE_PLATFORM AND TIM_VX_ENABLE_GRPC)
         ${GRPC_GRPCPP}
         ${PROTOBUF_LIBPROTOBUF})
 
-    add_executable(remote_service_server
-        ${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/grpc/remote_service_server.cc)
-    target_link_libraries(remote_service_server -Wl,--whole-archive ${TARGET_NAME})
-    install(TARGETS remote_service_server remote_service_server
+    add_executable(grpc_platform_server
+        ${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/grpc/grpc_platform_server.cc)
+    target_link_libraries(grpc_platform_server -Wl,--whole-archive ${TARGET_NAME})
+    install(TARGETS grpc_platform_server grpc_platform_server
         DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()
 if(NOT CMAKE_INSTALL_LIBDIR)
@@ -135,15 +145,6 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/lite
 if(TIM_VX_ENABLE_LAYOUT_INFER)
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform
         DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
-endif()
-
-if(TIM_VX_ENABLE_PLATFORM)
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx)
-    if(TIM_VX_ENABLE_GRPC)
-        install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform/grpc
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx/platform)
-    endif()
 endif()
 
 if(TIM_VX_ENABLE_TEST)

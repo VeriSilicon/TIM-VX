@@ -21,51 +21,47 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_REMOTE_H_
-#define TIM_VX_REMOTE_H_
+#ifndef TIM_VX_LITE_NATIVE_H_
+#define TIM_VX_LITE_NATIVE_H_
 
 #include "tim/vx/platform/platform.h"
+#include "vip_lite.h"
+#include "nbg_linker.h"
 
 namespace tim {
 namespace vx {
 namespace platform {
-
-class RemoteServiceClient;
-
-class RemoteDevice : public IDevice {
+class LiteNativeDevice : public IDevice {
  public:
-  RemoteDevice(int32_t id, std::shared_ptr<RemoteServiceClient> client);
-  ~RemoteDevice();
   bool Submit(const std::shared_ptr<Graph>& graph) override;
   bool Trigger(bool async = false, async_callback cb = NULL) override;
   bool DeviceExit() override;
   void WaitDeviceIdle() override;
-  void RemoteReset() override;
-  static std::vector<std::shared_ptr<IDevice>> Enumerate(
-      const std::string& port);
-
-  std::shared_ptr<RemoteServiceClient> client_;
 };
 
-class RemoteExecutor : public IExecutor {
+class LiteNativeExecutor
+    : public IExecutor,
+      public std::enable_shared_from_this<LiteNativeExecutor> {
  public:
-  RemoteExecutor(std::shared_ptr<IDevice> device);
+  LiteNativeExecutor(const std::shared_ptr<IDevice>& device);
+  virtual ~LiteNativeExecutor();
   bool Submit(const std::shared_ptr<IExecutable>& executable,
               const std::shared_ptr<IExecutable>& ref,
               bool after = true) override;
   bool Trigger(bool async = false) override;
   std::shared_ptr<IExecutable> Compile(
       const std::shared_ptr<Graph>& graph) override;
-  int32_t Id() const;
 
  private:
-  int32_t executor_id_;
-  std::shared_ptr<IDevice> device_;
+  vip_task_descriptor_t* task_descriptor_;
+  vip_database database_;
 };
 
-class RemoteExecutable : public IExecutable {
+class LiteNativeExecutable : public IExecutable {
  public:
-  RemoteExecutable(int32_t id, std::shared_ptr<IDevice> device);
+  LiteNativeExecutable(const std::shared_ptr<IExecutor>& executor,
+                       const std::vector<char>& nb_buf);
+  virtual ~LiteNativeExecutable();
   void SetInput(const std::shared_ptr<ITensorHandle>& th) override;
   void SetOutput(const std::shared_ptr<ITensorHandle>& th) override;
   void GetOutput(
@@ -75,25 +71,33 @@ class RemoteExecutable : public IExecutable {
   bool Verify() override;
   std::shared_ptr<ITensorHandle> AllocateTensor(
       const TensorSpec& tensor_spec) override;
-  int32_t Id() const;
+
+  vip_network network_;
+
  private:
-  int32_t executable_id_;
-  std::shared_ptr<IDevice> device_;
+  void SetBuffer(vip_memory_t* dst, gcvip_videomemory_t* src);
+
+  int32_t input_count_;
+  int32_t output_count_;
+
+  gcvip_videomemory_t* coeff_;
+  gcvip_videomemory_t* command_;
+  gcvip_videomemory_t* memory_pool_;
+  gcvip_videomemory_t* others_;
+  gcvip_videomemory_t* pre_command_;
 };
 
-class RemoteTensorHandle : public ITensorHandle {
+class LiteNativeTensorHandle : public ITensorHandle {
  public:
-  RemoteTensorHandle(int32_t id, std::shared_ptr<IDevice> device);
+  LiteNativeTensorHandle(const std::shared_ptr<Tensor>& tensr);
+  virtual ~LiteNativeTensorHandle();
   bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) override;
   bool CopyDataFromTensor(void* data) override;
-  int32_t Id() const;
 
- private:
-  int32_t tensor_id_;
-  std::shared_ptr<IDevice> device_;
+  gcvip_videomemory_t* tensor_buffer_;
 };
-
 }  // namespace platform
 }  // namespace vx
 }  // namespace tim
+
 #endif

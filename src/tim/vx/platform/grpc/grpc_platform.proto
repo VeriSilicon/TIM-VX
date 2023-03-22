@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package rpc;
 
-service RemoteService {
+service GRPCPlatform {
   rpc Enumerate(EmptyMsg) returns (DeviceCount) {}
 
   rpc CreateExecutor(Device) returns (Executor) {}

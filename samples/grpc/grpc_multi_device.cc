@@ -26,7 +26,7 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/ops.h"
 #include "tim/vx/types.h"
-#include "tim/vx/platform/grpc/remote.h"
+#include "tim/vx/platform/grpc/grpc_remote.h"
 
 int main(int argc, char** argv) {
   if(argc < 2) {
@@ -54,9 +54,9 @@ int main(int argc, char** argv) {
 
   //use grpc with platfrom remote API
   std::string port(argv[1]);
-  auto devices = tim::vx::platform::RemoteDevice::Enumerate(port);
+  auto devices = tim::vx::platform::GRPCRemoteDevice::Enumerate(port);
   auto device = devices[0];
-  auto executor = std::make_shared<tim::vx::platform::RemoteExecutor>(device);
+  auto executor = std::make_shared<tim::vx::platform::GRPCRemoteExecutor>(device);
   auto executable = executor->Compile(graph);
   auto input0_handle = executable->AllocateTensor(input_spec);
   auto input1_handle = executable->AllocateTensor(input_spec);

@@ -27,9 +27,12 @@
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 
-#include "remote_service.grpc.pb.h"
+#include "grpc_platform.grpc.pb.h"
 #include "tim/vx/platform/native.h"
 #include "vsi_nn_pub.h"
+#ifdef ENABLE_PLATFORM_LITE
+#include "tim/vx/platform/lite/lite_native.h"
+#endif
 
 std::unordered_map<int32_t, std::shared_ptr<tim::vx::platform::IDevice>>
     device_table;
@@ -113,41 +116,14 @@ tim::vx::QuantType MapQuantType(::rpc::QuantType quant) {
   }
   return vx_quant;
 }
-
-size_t ByteSize(tim::vx::DataType type) {
-  size_t size;
-  switch (type) {
-    case tim::vx::DataType::INT64:
-      size = 8;
-      break;
-    case tim::vx::DataType::FLOAT32:
-    case tim::vx::DataType::INT32:
-    case tim::vx::DataType::UINT32:
-      size = 4;
-      break;
-    case tim::vx::DataType::INT16:
-    case tim::vx::DataType::UINT16:
-      size = 2;
-      break;
-    case tim::vx::DataType::INT8:
-    case tim::vx::DataType::UINT8:
-    case tim::vx::DataType::BOOL8:
-      size = 1;
-      break;
-    default:
-      std::cout << "uknown data type" << std::endl;
-      assert(false);
-  }
-  return size;
-}
 }  // namespace
 
-class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
+class GRPCPlatformService final : public ::rpc::GRPCPlatform::Service {
  public:
   ::grpc::Status Enumerate(::grpc::ServerContext* context,
                            const ::rpc::EmptyMsg* request,
                            ::rpc::DeviceCount* response) override {
-    VSILOGD("Calling remote Enumerate");
+    VSILOGD("------ Calling gRPC Enumerate ------");
     (void)context;
     (void)request;
     auto devices = tim::vx::platform::NativeDevice::Enumerate();
@@ -161,11 +137,16 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status CreateExecutor(::grpc::ServerContext* context,
                                 const ::rpc::Device* request,
                                 ::rpc::Executor* response) override {
-    VSILOGD("Calling remote CreateExecutor");
+    VSILOGD("------ Calling gRPC CreateExecutor ------");
     (void)context;
     int32_t id = request->device();
     auto device = device_table[id];
+#ifdef ENABLE_PLATFORM_LITE
+    auto executor =
+        std::make_shared<tim::vx::platform::LiteNativeExecutor>(device);
+#else
     auto executor = std::make_shared<tim::vx::platform::NativeExecutor>(device);
+#endif
     executor_table.insert({id, executor});
     response->set_executor(id);
     return ::grpc::Status::OK;
@@ -174,17 +155,22 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status CreateExecutable(::grpc::ServerContext* context,
                                   const ::rpc::GraphInfo* request,
                                   ::rpc::Executable* response) override {
-    VSILOGD("Calling remote CreateExecutable");
+    VSILOGD("------ Calling gRPC CreateExecutable ------");
     (void)context;
     int32_t id = request->executor();
     auto executor = executor_table[id];
-    int32_t input_size = request->input_size();
-    int32_t output_size = request->output_size();
     std::string nbg_str = request->nbg();
     std::vector<char> nbg_vec(nbg_str.size());
     memcpy(nbg_vec.data(), nbg_str.data(), nbg_str.size());
+#ifdef ENABLE_PLATFORM_LITE
+    auto executable = std::make_shared<tim::vx::platform::LiteNativeExecutable>(
+        executor, nbg_vec);
+#else
+    int32_t input_size = request->input_size();
+    int32_t output_size = request->output_size();
     auto executable = std::make_shared<tim::vx::platform::NativeExecutable>(
         executor, nbg_vec, input_size, output_size);
+#endif
     executable_table.push_back(executable);
     response->set_executable(executable_table.size() - 1);
     return ::grpc::Status::OK;
@@ -193,7 +179,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status AllocateTensor(::grpc::ServerContext* context,
                                 const ::rpc::TensorInfo* request,
                                 ::rpc::Tensor* response) override {
-    VSILOGD("Calling remote AllocateTensor");
+    VSILOGD("------ Calling gRPC AllocateTensor ------");
     (void)context;
     int32_t id = request->executable();
     auto executable = executable_table[id];
@@ -238,7 +224,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status SetInput(::grpc::ServerContext* context,
                           const ::rpc::IOTensor* request,
                           ::rpc::Status* response) override {
-    VSILOGD("Calling remote SetInput");
+    VSILOGD("------ Calling gRPC SetInput ------");
     (void)context;
     int32_t tensor_id = request->tensor();
     int32_t executable_id = request->executable();
@@ -246,8 +232,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
     auto tensor_handle = tensor_table[tensor_id];
     if (tensor_handle->GetTensor()->GetSpec().attr_ !=
         tim::vx::TensorAttribute::INPUT) {
-      std::cout << "WTF? You are setting a input which is not a input!"
-                << std::endl;
+      VSILOGE("You are setting a no-input tensor as graph input");
     }
     executable->SetInput(tensor_handle);
     response->set_status(true);
@@ -257,7 +242,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status SetOutput(::grpc::ServerContext* context,
                            const ::rpc::IOTensor* request,
                            ::rpc::Status* response) override {
-    VSILOGD("Calling remote SetOutput");
+    VSILOGD("------ Calling gRPC SetOutput ------");
     (void)context;
     int32_t tensor_id = request->tensor();
     int32_t executable_id = request->executable();
@@ -265,8 +250,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
     auto tensor_handle = tensor_table[tensor_id];
     if (tensor_handle->GetTensor()->GetSpec().attr_ !=
         tim::vx::TensorAttribute::OUTPUT) {
-      std::cout << "WTF? You are setting a output which is not a output!"
-                << std::endl;
+      VSILOGE("You are setting a no-output tensor as graph output");
     }
     executable->SetOutput(tensor_handle);
     response->set_status(true);
@@ -276,7 +260,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status Submit(::grpc::ServerContext* context,
                         const ::rpc::Executable* request,
                         ::rpc::Status* response) override {
-    VSILOGD("Calling remote Submit");
+    VSILOGD("------ Calling gRPC Submit ------");
     (void)context;
     int32_t id = request->executable();
     auto executable = executable_table[id];
@@ -288,7 +272,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status Trigger(::grpc::ServerContext* context,
                          const ::rpc::Executor* request,
                          ::rpc::Status* response) override {
-    VSILOGD("Calling remote Trigger");
+    VSILOGD("------ Calling gRPC Trigger ------");
     (void)context;
     int32_t id = request->executor();
     auto executor = executor_table[id];
@@ -300,7 +284,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status CopyDataToTensor(::grpc::ServerContext* context,
                                   const ::rpc::TensorData* request,
                                   ::rpc::Status* response) override {
-    VSILOGD("Calling remote CopyDataToTensor");
+    VSILOGD("------ Calling gRPC CopyDataToTensor ------");
     (void)context;
     int32_t id = request->tensor();
     auto tensor_handle = tensor_table[id];
@@ -314,19 +298,15 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status CopyDataFromTensor(::grpc::ServerContext* context,
                                     const ::rpc::Tensor* request,
                                     ::rpc::Data* response) override {
-    VSILOGD("Calling remote CopyDataFromTensor");
+    VSILOGD("------ Calling gRPC CopyDataFromTensor ------");
     (void)context;
     int32_t id = request->tensor();
     auto tensor_handle = tensor_table[id];
-    auto shape = tensor_handle->GetTensor()->GetShape();
-    size_t data_size = ByteSize(tensor_handle->GetTensor()->GetDataType());
-    for (uint32_t i : shape) {
-      data_size *= i;
-    }
+    size_t data_size = tensor_handle->GetTensor()->GetSpec().GetByteSize();
     void* ptr = malloc(data_size);
     bool status = tensor_handle->CopyDataFromTensor(ptr);
     if (!status) {
-      std::cout << "CopyDataFromTensor fails" << std::endl;
+      VSILOGE("------ CopyDataFromTensor fail ------");
       free(ptr);
       return ::grpc::Status::CANCELLED;
     }
@@ -339,7 +319,7 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
   ::grpc::Status Clean(::grpc::ServerContext* context,
                        const ::rpc::EmptyMsg* request,
                        ::rpc::Status* response) override {
-    VSILOGD("Calling remote Clean");
+    VSILOGD("------ Calling gRPC Clean ------");
     (void)context;
     (void)request;
     executor_table.clear();
@@ -351,12 +331,12 @@ class RemoteServiceImpl final : public ::rpc::RemoteService::Service {
 };
 
 int main(int argc, char** argv) {
-  if(argc < 2) {
+  if (argc < 2) {
     std::cout << "error: need a port to connect." << std::endl;
     return -1;
   }
   std::string port(argv[1]);
-  RemoteServiceImpl service;
+  GRPCPlatformService service;
   ::grpc::ServerBuilder builder;
   builder.AddListeningPort(port, grpc::InsecureServerCredentials());
   builder.RegisterService(&service);

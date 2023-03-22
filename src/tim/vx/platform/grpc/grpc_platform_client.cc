@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "remote_service_client.h"
+#include "grpc_platform_client.h"
 
 namespace {
 ::rpc::DataType MapDataType(tim::vx::DataType type) {
@@ -103,7 +103,7 @@ namespace {
 namespace tim {
 namespace vx {
 namespace platform {
-int32_t RemoteServiceClient::Enumerate() {
+int32_t GRPCPlatformClient::Enumerate() {
   ::grpc::ClientContext context;
   ::rpc::EmptyMsg emsg;
   ::rpc::DeviceCount device_count;
@@ -112,7 +112,7 @@ int32_t RemoteServiceClient::Enumerate() {
   return device_count.count();
 }
 
-int32_t RemoteServiceClient::CreateExecutor(int32_t device) {
+int32_t GRPCPlatformClient::CreateExecutor(int32_t device) {
   ::grpc::ClientContext context;
   ::rpc::Device device_msg;
   device_msg.set_device(device);
@@ -122,10 +122,10 @@ int32_t RemoteServiceClient::CreateExecutor(int32_t device) {
   return executor_msg.executor();
 }
 
-int32_t RemoteServiceClient::CreateExecutable(int32_t executor,
-                                              const std::vector<char>& nbg,
-                                              int32_t input_size,
-                                              int32_t output_size) {
+int32_t GRPCPlatformClient::CreateExecutable(int32_t executor,
+                                             const std::vector<char>& nbg,
+                                             int32_t input_size,
+                                             int32_t output_size) {
   ::grpc::ClientContext context;
   ::rpc::GraphInfo graph_info_msg;
   graph_info_msg.set_executor(executor);
@@ -139,8 +139,8 @@ int32_t RemoteServiceClient::CreateExecutable(int32_t executor,
   return executable_msg.executable();
 }
 
-int32_t RemoteServiceClient::AllocateTensor(int32_t executable,
-                                            const tim::vx::TensorSpec& spec) {
+int32_t GRPCPlatformClient::AllocateTensor(int32_t executable,
+                                           const tim::vx::TensorSpec& spec) {
   ::grpc::ClientContext context;
   ::rpc::TensorInfo tensor_info_msg;
   ::rpc::Tensor tensor_msg;
@@ -159,7 +159,7 @@ int32_t RemoteServiceClient::AllocateTensor(int32_t executable,
   return tensor_msg.tensor();
 }
 
-bool RemoteServiceClient::SetInput(int32_t executable, int32_t tensor) {
+bool GRPCPlatformClient::SetInput(int32_t executable, int32_t tensor) {
   ::grpc::ClientContext context;
   ::rpc::IOTensor in_tensor_msg;
   ::rpc::Status status_msg;
@@ -170,7 +170,7 @@ bool RemoteServiceClient::SetInput(int32_t executable, int32_t tensor) {
   return status_msg.status();
 }
 
-bool RemoteServiceClient::SetOutput(int32_t executable, int32_t tensor) {
+bool GRPCPlatformClient::SetOutput(int32_t executable, int32_t tensor) {
   ::grpc::ClientContext context;
   ::rpc::IOTensor out_tensor_msg;
   ::rpc::Status status_msg;
@@ -181,7 +181,7 @@ bool RemoteServiceClient::SetOutput(int32_t executable, int32_t tensor) {
   return status_msg.status();
 }
 
-bool RemoteServiceClient::Submit(int32_t executable) {
+bool GRPCPlatformClient::Submit(int32_t executable) {
   ::grpc::ClientContext context;
   ::rpc::Executable executable_mag;
   ::rpc::Status status_msg;
@@ -191,7 +191,7 @@ bool RemoteServiceClient::Submit(int32_t executable) {
   return status_msg.status();
 }
 
-bool RemoteServiceClient::Trigger(int32_t executor) {
+bool GRPCPlatformClient::Trigger(int32_t executor) {
   ::grpc::ClientContext context;
   ::rpc::Executor executor_mag;
   ::rpc::Status status_msg;
@@ -201,8 +201,8 @@ bool RemoteServiceClient::Trigger(int32_t executor) {
   return status_msg.status();
 }
 
-bool RemoteServiceClient::CopyDataToTensor(int32_t tensor, const void* data,
-                                           int32_t length) {
+bool GRPCPlatformClient::CopyDataToTensor(int32_t tensor, const void* data,
+                                          int32_t length) {
   ::grpc::ClientContext context;
   ::rpc::TensorData tensor_data_msg;
   ::rpc::Status status_msg;
@@ -214,7 +214,7 @@ bool RemoteServiceClient::CopyDataToTensor(int32_t tensor, const void* data,
   return status_msg.status();
 }
 
-bool RemoteServiceClient::CopyDataFromTensor(int32_t tensor, void* data) {
+bool GRPCPlatformClient::CopyDataFromTensor(int32_t tensor, void* data) {
   ::grpc::ClientContext context;
   ::rpc::Tensor tensor_msg;
   ::rpc::Data data_msg;
@@ -227,7 +227,7 @@ bool RemoteServiceClient::CopyDataFromTensor(int32_t tensor, void* data) {
   return (data != nullptr);
 }
 
-void RemoteServiceClient::Clean() {
+void GRPCPlatformClient::Clean() {
   ::grpc::ClientContext context;
   ::rpc::EmptyMsg emsg;
   ::rpc::Status status_msg;

@@ -1,7 +1,6 @@
 list(APPEND ${TARGET_NAME}_SRCS
-  "${PROJECT_SOURCE_DIR}/src/tim/vx/platform/grpc/remote_service_client.cc"
-  "${PROJECT_SOURCE_DIR}/src/tim/vx/platform/grpc/remote_service_client.h"
-  "${PROJECT_SOURCE_DIR}/src/tim/vx/platform/grpc/remote.cc")
+  "${PROJECT_SOURCE_DIR}/src/tim/vx/platform/grpc/grpc_platform_client.cc"
+  "${PROJECT_SOURCE_DIR}/src/tim/vx/platform/grpc/grpc_remote.cc")
 
 find_package(Threads REQUIRED)
 
@@ -32,28 +31,28 @@ else()
 endif()
 
 # Proto file
-get_filename_component(rs_proto "${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/grpc/remote_service.proto" ABSOLUTE)
-get_filename_component(rs_proto_path "${rs_proto}" PATH)
+get_filename_component(gp_proto "${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/grpc/grpc_platform.proto" ABSOLUTE)
+get_filename_component(gp_proto_path "${gp_proto}" PATH)
 
 # Generated sources
-set(rs_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/remote_service.pb.cc")
-set(rs_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/remote_service.pb.h")
-set(rs_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/remote_service.grpc.pb.cc")
-set(rs_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/remote_service.grpc.pb.h")
+set(gp_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/grpc_platform.pb.cc")
+set(gp_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/grpc_platform.pb.h")
+set(gp_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/grpc_platform.grpc.pb.cc")
+set(gp_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/grpc_platform.grpc.pb.h")
 add_custom_command(
-  OUTPUT "${rs_proto_srcs}" "${rs_proto_hdrs}" "${rs_grpc_srcs}" "${rs_grpc_hdrs}"
+  OUTPUT "${gp_proto_srcs}" "${gp_proto_hdrs}" "${gp_grpc_srcs}" "${gp_grpc_hdrs}"
   COMMAND ${PROTOBUF_PROTOC}
   ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
     --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-    -I "${rs_proto_path}"
+    -I "${gp_proto_path}"
     --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN_EXECUTABLE}"
-    "${rs_proto}"
-  DEPENDS "${rs_proto}")
+    "${gp_proto}"
+  DEPENDS "${gp_proto}")
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 list(APPEND ${TARGET_NAME}_SRCS
-  ${rs_grpc_srcs}
-  ${rs_grpc_hdrs}
-  ${rs_proto_srcs}
-  ${rs_proto_hdrs})
+  ${gp_grpc_srcs}
+  ${gp_grpc_hdrs}
+  ${gp_proto_srcs}
+  ${gp_proto_hdrs})

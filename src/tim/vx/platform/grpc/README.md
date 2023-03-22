@@ -17,7 +17,7 @@ $ make install
 ```shell
 $ export LD_LIBRARY_PATH=${tim_vx_root}/host_build/install/lib:${tim_vx_root}/prebuilt-sdk/x86_64_linux/lib:$LD_LIBRARY_PATH
 $ cd ${tim_vx_root}/host_build/install/bin
-$ ./remote_service_server 0.0.0.0:50051
+$ ./grpc_platform_server 0.0.0.0:50051
 ```
 4. Run demo
 
@@ -25,7 +25,7 @@ Open a new terminal
 ```shell
 $ export LD_LIBRARY_PATH=${tim_vx_root}/host_build/install/lib:${tim_vx_root}/prebuilt-sdk/x86_64_linux/lib:$LD_LIBRARY_PATH
 $ cd ${tim_vx_root}/host_build/install/bin
-$ ./remote_service_demo 0.0.0.0:50051
+$ ./grpc_multi_device 0.0.0.0:50051
 ```
 ## Build for device
 1. Cross-compile gRPC, see [Cross-compile gRPC](https://github.com/grpc/grpc/blob/master/BUILDING.md#cross-compiling)

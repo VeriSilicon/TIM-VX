@@ -12,6 +12,7 @@ option(TIM_VX_BUILD_EXAMPLES            "Build demos show general usage"        
 option(TIM_VX_ENABLE_VIPLITE            "Enable lite driver api support"        OFF)
 option(TIM_VX_ENABLE_40BIT              "Enable large memory support"           OFF)
 option(TIM_VX_ENABLE_PLATFORM           "Enable multi devices support"          OFF)
+option(TIM_VX_ENABLE_PLATFORM_LITE      "Enable lite multi-device support"      OFF)
 option(TIM_VX_ENABLE_GRPC               "Enable gPRC support"                   OFF)
 option(TIM_VX_DBG_ENABLE_TENSOR_HNDL    "Enable built-in tensor from handle: use malloced memory instead of VideoMemory by kernel driver" ON)
 
@@ -23,6 +24,12 @@ set(CONFIG "" CACHE STRING "Target Platform")
 if(${TIM_VX_CODE_COVERAGE})
     set(CMAKE_CXX_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage")
     set(CMAKE_C_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage")
+endif()
+
+if(${TIM_VX_ENABLE_PLATFORM_LITE})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PLATFORM_LITE=1")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PLATFORM_LITE=0")
 endif()
 
 if(${TIM_VX_DBG_ENABLE_TENSOR_HNDL})

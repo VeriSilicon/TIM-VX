@@ -21,8 +21,9 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _REMOTE_SERVICE_CLIENT_
-#define _REMOTE_SERVICE_CLIENT_
+#ifndef _GRPC_PLATFORM_CLIENT_
+#define _GRPC_PLATFORM_CLIENT_
+
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
@@ -33,15 +34,15 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/ops.h"
 #include "tim/vx/types.h"
-#include "remote_service.grpc.pb.h"
+#include "grpc_platform.grpc.pb.h"
 
 namespace tim {
 namespace vx {
 namespace platform {
-class RemoteServiceClient {
+class GRPCPlatformClient {
  public:
-  RemoteServiceClient(const std::string& port)
-      : stub_(rpc::RemoteService::NewStub(
+  GRPCPlatformClient(const std::string& port)
+      : stub_(rpc::GRPCPlatform::NewStub(
             grpc::CreateChannel(port, grpc::InsecureChannelCredentials()))) {}
 
   int32_t Enumerate();
@@ -68,7 +69,7 @@ class RemoteServiceClient {
   void Clean();
 
  private:
-  std::unique_ptr<rpc::RemoteService::Stub> stub_;
+  std::unique_ptr<rpc::GRPCPlatform::Stub> stub_;
 };
 }  // namespace platform
 }  // namespace vx
