@@ -92,8 +92,10 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
       if (!weight_required_pv->IsAligned()) {
         infer_weight = PermuteConstTensor(input_tensors[1], weight_required_pv);
       } else {
+        std::vector<uint8_t> dataRef(input_tensors[1]->GetSpec().GetByteSize());
+        input_tensors[1]->CopyDataFromTensor(dataRef.data());
         infer_weight = context_->infer_graph_->CreateTensor(
-            input_tensors[1]->GetSpec(), input_tensors[1]->GetDataRef());
+            input_tensors[1]->GetSpec(), (const void*)dataRef.data());
       }
       context_->SetPermuteVector(input_tensors[1], weight_required_pv);
       context_->UpdateTensorMap(input_tensors[1], infer_weight);
@@ -114,8 +116,10 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
     // For bias
     if (input_tensors.size() == 3) {
       if (input_tensors[2]->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(input_tensors[2]->GetSpec().GetByteSize());
+        input_tensors[2]->CopyDataFromTensor(dataRef.data());
         infer_bias = context_->infer_graph_->CreateTensor(
-            input_tensors[2]->GetSpec(), input_tensors[2]->GetDataRef());
+            input_tensors[2]->GetSpec(), (const void*)dataRef.data());
       } else {
         infer_bias = context_->GetMapedTensor(input_tensors[2]);
       }

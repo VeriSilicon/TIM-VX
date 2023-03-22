@@ -317,8 +317,10 @@ LayoutInference(
 
   auto const_inputs = src_graph->GetConstantInputs();
   for (auto const_in : const_inputs) {
+    std::vector<uint8_t> dataRef(const_in->GetSpec().GetByteSize());
+    const_in->CopyDataFromTensor(dataRef.data());
     auto input =
-        infer_graph->CreateTensor(const_in->GetSpec(), const_in->GetDataRef());
+        infer_graph->CreateTensor(const_in->GetSpec(), (const void*)dataRef.data());
     layout_infer_ctx->UpdateTensorMap(const_in, input);
     tensor_queue.push_back(const_in);
     layout_infer_ctx->SetPermuteVector(

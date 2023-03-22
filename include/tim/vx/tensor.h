@@ -145,7 +145,6 @@ class Tensor {
   virtual void unmap() = 0;
   virtual bool IsPlaceHolder() = 0;
   virtual bool IsConstTensor() = 0;
-  virtual const void* GetDataRef() const = 0;
 };
 
 }  // namespace vx

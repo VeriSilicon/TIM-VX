@@ -197,18 +197,22 @@ OpLayoutInfer::AlignPermuteVectorForMutilInputs() {
   if (!required_pv) {
     // all inputs are constant tensors
     for (const auto& i_src : src_inputs) {
+      std::vector<uint8_t> dataRef(i_src->GetSpec().GetByteSize());
+      i_src->CopyDataFromTensor(dataRef.data());
       context_->UpdateTensorMap(
           i_src, context_->infer_graph_->CreateTensor(i_src->GetSpec(),
-                                                      i_src->GetDataRef()));
+                                                      (const void*)dataRef.data()));
       context_->SetPermuteVector(i_src, MakeShared(i_src->GetShape().size()));
     }
   } else {
     for (const auto& i_src : src_inputs) {
       std::shared_ptr<vx::Tensor> perm_out;
       if (i_src->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(i_src->GetSpec().GetByteSize());
+        i_src->CopyDataFromTensor(dataRef.data());
         required_pv->IsAligned()
             ? perm_out = context_->infer_graph_->CreateTensor(
-                  i_src->GetSpec(), i_src->GetDataRef())
+                  i_src->GetSpec(), (const void*)dataRef.data())
             : perm_out = PermuteConstTensor(i_src, required_pv);
       } else {
         auto final_pv =
@@ -241,8 +245,10 @@ OpLayoutInfer::AlignPermuteVectorForElementWise() {
     std::shared_ptr<vx::Tensor> perm_out;
     if (i_src->IsConstTensor()) {
       if (required_pv->IsAligned()) {
+        std::vector<uint8_t> dataRef(i_src->GetSpec().GetByteSize());
+        i_src->CopyDataFromTensor(dataRef.data());
         perm_out = context_->infer_graph_->CreateTensor(i_src->GetSpec(),
-                                                        i_src->GetDataRef());
+                                                        (const void*)dataRef.data());
       } else if (i_src->GetShape().size() == required_pv->Rank()) {
         perm_out = PermuteConstTensor(i_src, required_pv);
         // need shape expansion
@@ -272,8 +278,10 @@ void OpLayoutInfer::ReverseInputsPermuteVector() {
     std::shared_ptr<IPermuteVector> input_pv;
     if (i_src->GetId() != (uint32_t)-1) {
       if (i_src->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(i_src->GetSpec().GetByteSize());
+        i_src->CopyDataFromTensor(dataRef.data());
         perm_out = context_->infer_graph_->CreateTensor(i_src->GetSpec(),
-                                                        i_src->GetDataRef());
+                                                        (const void*)dataRef.data());
         input_pv = MakeShared(i_src->GetShape().size());
       } else {
         perm_out = context_->GetMapedTensor(i_src);
@@ -312,7 +320,7 @@ bool OpLayoutInfer::TransposeConstTensorData(
   for (const auto& s : input->GetShape()) out_size *= s;
   out_size *= type_size;
   out_data.resize(out_size);
-  if (!input->GetDataRef()) {
+  if (!input->IsConstTensor()) {
     return false;
   }
 
@@ -339,7 +347,9 @@ bool OpLayoutInfer::TransposeConstTensorData(
                  [](const uint32_t& i) { return i; });
   std::transform(perm.begin(), perm.end(), std::back_inserter(native_perm),
                  [](const uint32_t& i) { return i; });
-  vsi_nn_Transpose(out_data.data(), (uint8_t*)(input->GetDataRef()),
+  std::vector<uint8_t> dataRef(input->GetSpec().GetByteSize());
+  input->CopyDataFromTensor(dataRef.data());
+  vsi_nn_Transpose(out_data.data(), (uint8_t*)(dataRef.data()),
                    native_shape_array.data(),
                    static_cast<uint32_t>(input->GetShape().size()),
                    native_perm.data(), vx_type);
