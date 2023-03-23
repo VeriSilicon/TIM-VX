@@ -12,8 +12,7 @@ endif()
 set(${TARGET_NAME}_SRCS)
 list(APPEND ${TARGET_NAME}_SRCS
     ${VX_SRC}
-    ${OPS_SRC}
-)
+    ${OPS_SRC})
 
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
     find_library(OVXLIB_LIB NAMES "ovxlib")
@@ -41,18 +40,56 @@ if(TIM_VX_ENABLE_LAYOUT_INFER)
 
     list(APPEND ${TARGET_NAME}_SRCS
         ${LAYOUT_INFER_FRAMEWORK_SRCS}
-        ${LAYOUT_INFER_OP_SRCS}
-    )
+        ${LAYOUT_INFER_OP_SRCS})
 endif()
 
 if(TIM_VX_ENABLE_PLATFORM)
     message(STATUS "Using paltform")
     aux_source_directory(./vx/platform PLATFORM_SRC)
     list(APPEND ${TARGET_NAME}_SRCS
-        ${PLATFORM_SRC}
-    )
+        ${PLATFORM_SRC})
+
+    if(${TIM_VX_ENABLE_PLATFORM_LITE})
+        message(STATUS "Using lite paltform")
+        list(APPEND ${TARGET_NAME}_SRCS
+            ${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/lite/lite_native.cc)
+        list(APPEND EXTERNAL_LIBS
+            ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/drivers/libNBGlinker.so
+            ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/drivers/libVIPlite.so)
+        list(APPEND INC_DIRS ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/include)
+    endif()
+
     if(TIM_VX_ENABLE_GRPC)
-        include(vx/platform/grpc/grpc_platform.cmake)
+        list(APPEND ${TARGET_NAME}_SRCS
+            "${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/grpc/grpc_platform_client.cc"
+            "${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/grpc/grpc_remote.cc")
+
+        # Proto file
+        get_filename_component(gp_proto "${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/grpc/grpc_platform.proto" ABSOLUTE)
+        get_filename_component(gp_proto_path "${gp_proto}" PATH)
+
+        # Generate sources
+        set(gp_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/grpc_platform.pb.cc")
+        set(gp_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/grpc_platform.pb.h")
+        set(gp_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/grpc_platform.grpc.pb.cc")
+        set(gp_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/grpc_platform.grpc.pb.h")
+        add_custom_command(
+            OUTPUT "${gp_proto_srcs}" "${gp_proto_hdrs}" "${gp_grpc_srcs}" "${gp_grpc_hdrs}"
+            COMMAND ${PROTOBUF_PROTOC}
+            ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+                --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+                -I "${gp_proto_path}"
+                --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN_EXECUTABLE}"
+                    "${gp_proto}"
+            DEPENDS "${gp_proto}")
+
+        include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+        list(APPEND ${TARGET_NAME}_SRCS
+            ${gp_grpc_srcs}
+            ${gp_grpc_hdrs}
+            ${gp_proto_srcs}
+            ${gp_proto_hdrs})
     endif()
 endif()
 
@@ -70,18 +107,7 @@ list(APPEND INC_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/vx
     ${CMAKE_CURRENT_SOURCE_DIR}/transform
     ${OVXLIB_INCLUDE_DIR}
-    ${OVXDRV_INCLUDE_DIRS}
-)
-
-if(${TIM_VX_ENABLE_PLATFORM_LITE})
-    list(APPEND ${TARGET_NAME}_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/lite/lite_native.cc
-    )
-    list(APPEND EXTERNAL_LIBS
-        ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/drivers/libNBGlinker.so
-        ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/drivers/libVIPlite.so)
-    list(APPEND INC_DIRS ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/include)
-endif()
+    ${OVXDRV_INCLUDE_DIRS})
 
 if(${TIM_VX_ENABLE_VIPLITE})
     aux_source_directory(./lite LITE_SRC)
@@ -90,8 +116,7 @@ if(${TIM_VX_ENABLE_VIPLITE})
     list(APPEND EXTERNAL_LIBS ${VIPLITE_DRV_LIBRARIES})
     list(APPEND INC_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}/lite
-        ${VIPLITE_DRV_INCLUDE_DIR}
-    )
+        ${VIPLITE_DRV_INCLUDE_DIR})
 endif()
 include_directories(${INC_DIRS})
 # convert op list as compile flags so that we can implement compile compatable easier
@@ -133,18 +158,49 @@ if(NOT CMAKE_INSTALL_LIBDIR)
 	set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
+# Install
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+install(
+    FILES
+        ${CMAKE_SOURCE_DIR}/include/tim/vx/builtin_op.h
+        ${CMAKE_SOURCE_DIR}/include/tim/vx/compile_option.h
+        ${CMAKE_SOURCE_DIR}/include/tim/vx/context.h
+        ${CMAKE_SOURCE_DIR}/include/tim/vx/graph.h
+        ${CMAKE_SOURCE_DIR}/include/tim/vx/operation.h
+        ${CMAKE_SOURCE_DIR}/include/tim/vx/ops.h
+        ${CMAKE_SOURCE_DIR}/include/tim/vx/tensor.h
+        ${CMAKE_SOURCE_DIR}/include/tim/vx/types.h
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx)
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/lite
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/ops
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx)
+
+if(TIM_VX_ENABLE_VIPLITE)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/lite
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+endif()
 
 if(TIM_VX_ENABLE_LAYOUT_INFER)
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/transform
         DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim)
+endif()
+
+if(TIM_VX_ENABLE_PLATFORM)
+    install(
+        FILES
+            ${CMAKE_SOURCE_DIR}/include/tim/vx/platform/platform.h
+            ${CMAKE_SOURCE_DIR}/include/tim/vx/platform/native.h
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx/platform)
+    if(TIM_VX_ENABLE_PLATFORM_LITE)
+        install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform/lite
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx/platform)
+    endif()
+    if(TIM_VX_ENABLE_GRPC)
+        install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/tim/vx/platform/grpc
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/tim/vx/platform)
+    endif()
 endif()
 
 if(TIM_VX_ENABLE_TEST)
@@ -158,8 +214,7 @@ if(TIM_VX_ENABLE_TEST)
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
         ${OVXLIB_INCLUDE_DIR}
-        ${INC_DIRS}
-    )
+        ${INC_DIRS})
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()

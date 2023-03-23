@@ -27,9 +27,7 @@ if(${TIM_VX_CODE_COVERAGE})
 endif()
 
 if(${TIM_VX_ENABLE_PLATFORM_LITE})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PLATFORM_LITE=1")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PLATFORM_LITE=0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PLATFORM_LITE")
 endif()
 
 if(${TIM_VX_DBG_ENABLE_TENSOR_HNDL})
@@ -77,10 +75,9 @@ endif()
 if(TIM_VX_ENABLE_TEST)
     include(FetchContent)
     FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.12.0
-    )
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-1.12.0)
 
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
@@ -90,6 +87,10 @@ if(TIM_VX_ENABLE_TEST)
         FetchContent_Populate(googletest)
         add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
     endif()
+endif()
+
+if(TIM_VX_ENABLE_GRPC)
+    include(cmake/gRPC.cmake)
 endif()
 
 add_subdirectory("src/tim")
