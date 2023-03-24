@@ -306,7 +306,7 @@ class GRPCPlatformService final : public ::rpc::GRPCPlatform::Service {
     void* ptr = malloc(data_size);
     bool status = tensor_handle->CopyDataFromTensor(ptr);
     if (!status) {
-      VSILOGE("------ CopyDataFromTensor fail ------");
+      VSILOGE("CopyDataFromTensor fail");
       free(ptr);
       return ::grpc::Status::CANCELLED;
     }

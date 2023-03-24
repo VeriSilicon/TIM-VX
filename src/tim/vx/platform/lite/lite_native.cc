@@ -21,9 +21,10 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+#include "tim/vx/platform/lite/lite_native.h"
+
 #include <cassert>
 
-#include "tim/vx/platform/lite/lite_native.h"
 #include "tim/vx/graph.h"
 #include "graph_private.h"
 #include "vsi_nn_pub.h"
@@ -31,21 +32,6 @@
 namespace tim {
 namespace vx {
 namespace platform {
-bool LiteNativeDevice::Submit(const std::shared_ptr<Graph>& graph) {
-  (void)graph;
-  return false;
-}
-
-bool LiteNativeDevice::Trigger(bool async, async_callback cb) {
-  (void)async;
-  (void)cb;
-  return false;
-}
-
-bool LiteNativeDevice::DeviceExit() { return false; }
-
-void LiteNativeDevice::WaitDeviceIdle() {}
-
 LiteNativeExecutor::LiteNativeExecutor(const std::shared_ptr<IDevice>& device) {
   device_ = device;
   context_ = Context::Create();
@@ -92,9 +78,6 @@ bool LiteNativeExecutor::Trigger(bool async) {
   std::vector<vip_network> networks;
   for (auto exe : tasks_) {
     auto task = exe.lock();
-    if (!task) {
-      std::cout << "Task unable to lock weak_ptr" << std::endl;
-    }
     task->Verify();
     vip_network& network =
         std::dynamic_pointer_cast<LiteNativeExecutable>(task)->network_;

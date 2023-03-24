@@ -44,7 +44,7 @@ if(TIM_VX_ENABLE_LAYOUT_INFER)
 endif()
 
 if(TIM_VX_ENABLE_PLATFORM)
-    message(STATUS "Using paltform")
+    message(STATUS "Using platform")
     aux_source_directory(./vx/platform PLATFORM_SRC)
     list(APPEND ${TARGET_NAME}_SRCS
         ${PLATFORM_SRC})
@@ -53,10 +53,13 @@ if(TIM_VX_ENABLE_PLATFORM)
         message(STATUS "Using lite paltform")
         list(APPEND ${TARGET_NAME}_SRCS
             ${CMAKE_CURRENT_SOURCE_DIR}/vx/platform/lite/lite_native.cc)
+        if(NOT VIP_LITE_SDK)
+            message(FATAL_ERROR "Please set VIP_LITE_SDK when using lite platform(TIM_VX_ENABLE_PLATFORM_LITE)")
+        endif()
         list(APPEND EXTERNAL_LIBS
-            ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/drivers/libNBGlinker.so
-            ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/drivers/libVIPlite.so)
-        list(APPEND INC_DIRS ${PROJECT_SOURCE_DIR}/prebuilt-sdk/VIPLite/sdk/include)
+            ${VIP_LITE_SDK}/drivers/libNBGlinker.so
+            ${VIP_LITE_SDK}/drivers/libVIPlite.so)
+        list(APPEND INC_DIRS ${VIP_LITE_SDK}/include)
     endif()
 
     if(TIM_VX_ENABLE_GRPC)

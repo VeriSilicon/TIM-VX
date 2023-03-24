@@ -31,13 +31,6 @@
 namespace tim {
 namespace vx {
 namespace platform {
-class LiteNativeDevice : public IDevice {
- public:
-  bool Submit(const std::shared_ptr<Graph>& graph) override;
-  bool Trigger(bool async = false, async_callback cb = NULL) override;
-  bool DeviceExit() override;
-  void WaitDeviceIdle() override;
-};
 
 class LiteNativeExecutor
     : public IExecutor,

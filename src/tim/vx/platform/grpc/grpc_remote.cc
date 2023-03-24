@@ -22,6 +22,7 @@
 *
 *****************************************************************************/
 #include "tim/vx/platform/grpc/grpc_remote.h"
+
 #include "tim/vx/platform/platform.h"
 #include "grpc_platform_client.h"
 
