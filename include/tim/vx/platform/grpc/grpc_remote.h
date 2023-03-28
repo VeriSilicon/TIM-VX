@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020-2023 Vivante Corporation
+*    Copyright (c) 2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,8 +21,8 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_NATIVE_H_
-#define TIM_VX_NATIVE_H_
+#ifndef TIM_VX_GRPC_REMOTE_H_
+#define TIM_VX_GRPC_REMOTE_H_
 
 #include "tim/vx/platform/platform.h"
 
@@ -30,58 +30,67 @@ namespace tim {
 namespace vx {
 namespace platform {
 
-class NativeDevice : public IDevice {
+class GRPCPlatformClient;
+
+class GRPCRemoteDevice : public IDevice {
  public:
-  ~NativeDevice(){};
-  virtual bool Submit(const std::shared_ptr<Graph>& graph) = 0;
-  virtual bool Trigger(bool async = false, async_callback cb = NULL) = 0;
-  virtual bool DeviceExit() = 0;
-  virtual void WaitDeviceIdle() = 0;
-  static std::vector<std::shared_ptr<IDevice>> Enumerate();
+  GRPCRemoteDevice(int32_t id, std::shared_ptr<GRPCPlatformClient> client);
+  bool Submit(const std::shared_ptr<Graph>& graph) override;
+  bool Trigger(bool async = false, async_callback cb = NULL) override;
+  bool DeviceExit() override;
+  void WaitDeviceIdle() override;
+  void RemoteReset() override;
+  static std::vector<std::shared_ptr<IDevice>> Enumerate(
+      const std::string& port);
+
+  std::shared_ptr<GRPCPlatformClient> client_;
 };
 
-class NativeExecutable : public IExecutable {
+class GRPCRemoteExecutor : public IExecutor {
  public:
-  NativeExecutable(const std::shared_ptr<IExecutor>& executor,
-                   const std::vector<char>& nb_buf, size_t inputs,
-                   size_t outputs);
-  ~NativeExecutable(){};
-  void SetInput(const std::shared_ptr<ITensorHandle>& th) override;
-  void SetOutput(const std::shared_ptr<ITensorHandle>& th) override;
-  void GetOutput(
-      const std::vector<std::shared_ptr<ITensorHandle>>& th) override;
-  bool Submit(const std::shared_ptr<IExecutable>& ref,
-              bool after = true) override;
-  bool Trigger(bool async = false) override;
-  std::shared_ptr<ITensorHandle> AllocateTensor(
-      const TensorSpec& tensor_spec) override;
-  bool Verify() override;
-
- protected:
-  std::shared_ptr<tim::vx::ops::NBG> nb_node_;
-  std::vector<char> nb_buf_;
-};
-
-class NativeExecutor : public IExecutor,
-                       public std::enable_shared_from_this<NativeExecutor> {
- public:
-  NativeExecutor(const std::shared_ptr<IDevice>& device);
-  NativeExecutor(const std::shared_ptr<IDevice>& device,
-                 const std::shared_ptr<Context>& context);
-  ~NativeExecutor(){};
+  GRPCRemoteExecutor(std::shared_ptr<IDevice> device);
   bool Submit(const std::shared_ptr<IExecutable>& executable,
               const std::shared_ptr<IExecutable>& ref,
               bool after = true) override;
   bool Trigger(bool async = false) override;
   std::shared_ptr<IExecutable> Compile(
       const std::shared_ptr<Graph>& graph) override;
+  int32_t Id() const;
+
+ private:
+  int32_t executor_id_;
+  std::shared_ptr<IDevice> device_;
 };
 
-class NativeTensorHandle : public ITensorHandle {
+class GRPCRemoteExecutable : public IExecutable {
  public:
-  NativeTensorHandle(const std::shared_ptr<Tensor>& tensor);
+  GRPCRemoteExecutable(int32_t id, std::shared_ptr<IDevice> device);
+  void SetInput(const std::shared_ptr<ITensorHandle>& th) override;
+  void SetOutput(const std::shared_ptr<ITensorHandle>& th) override;
+  void GetOutput(
+      const std::vector<std::shared_ptr<ITensorHandle>>& th) override;
+  bool Submit(const std::shared_ptr<IExecutable>& ref, bool after) override;
+  bool Trigger(bool async) override;
+  bool Verify() override;
+  std::shared_ptr<ITensorHandle> AllocateTensor(
+      const TensorSpec& tensor_spec) override;
+  int32_t Id() const;
+
+ private:
+  int32_t executable_id_;
+  std::shared_ptr<IDevice> device_;
+};
+
+class GRPCRemoteTensorHandle : public ITensorHandle {
+ public:
+  GRPCRemoteTensorHandle(int32_t id, std::shared_ptr<IDevice> device);
   bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) override;
   bool CopyDataFromTensor(void* data) override;
+  int32_t Id() const;
+
+ private:
+  int32_t tensor_id_;
+  std::shared_ptr<IDevice> device_;
 };
 
 }  // namespace platform
