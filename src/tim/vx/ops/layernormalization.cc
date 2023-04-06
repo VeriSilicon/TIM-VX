@@ -37,7 +37,7 @@ LayerNormalization::LayerNormalization(Graph* graph, int32_t axis, float eps)
     VSILOGE("Layer norm only support axis 0.");
     assert(false);
   }
-  this->impl()->node()->nn_param.instancenorm.eps = eps_;
+  this->impl()->node()->nn_param.layernorm.eps = eps_;
 }
 
 std::shared_ptr<Operation> LayerNormalization::Clone(

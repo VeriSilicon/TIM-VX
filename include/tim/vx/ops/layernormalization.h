@@ -38,7 +38,7 @@ class LayerNormalization : public Operation {
 
  protected:
   int32_t axis_;
-  int32_t eps_;
+  float eps_;
 };
 
 }  // namespace ops
