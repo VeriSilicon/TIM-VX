@@ -93,6 +93,7 @@ __kernel void gemm_transa_##src0_type_name##src1_type_name##to##dst_type_name( \
 GEMM_TRANSA_QINT(U8, U8, U8, vxc_uchar16, vxc_uchar16, vxc_uchar16)
 GEMM_TRANSA_QINT(I8, I8, I8, vxc_char16, vxc_char16, vxc_char16)
 GEMM_TRANSA_QINT(I16, I16, I16, vxc_short8, vxc_short8, vxc_short8)
+GEMM_TRANSA_QINT(U8, I16, I16, vxc_uchar16, vxc_short8, vxc_short8)
 
 #define GEMM_TRANSA_INPUTB_F16(src0_type_name, read0_type) \
 __kernel void gemm_transa_##src0_type_name##F16to##src0_type_name( \

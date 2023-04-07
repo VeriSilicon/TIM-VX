@@ -88,6 +88,7 @@ static vx_param_description_t _roi_align_kernel_param_def[] =
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
 };
 #define _ROI_ALIGN_PARAM_NUM  _cnt_of_array( _roi_align_kernel_param_def )
 
@@ -105,8 +106,9 @@ static vx_param_description_t _roi_align_kernel_param_def[] =
 #define SCALAR_SAMPLING_Y_RATIO         (15)
 #define SCALAR_DEPTH                    (16)
 #define SCALAR_FORMAT                   (17)
+#define PLATFORM_TYPE                   (18)
 
-#define ROI_ALIGN_PARAM_NUM         18
+#define ROI_ALIGN_PARAM_NUM         19
 #define ROI_ALIGN_QUANT_PARAM_NUM   _cnt_of_array( _roi_align_kernel_param_def )
 
 /*
@@ -250,6 +252,7 @@ static vsi_nn_kernel_node_t _setup
     float   height_ratio        = vsi_nn_kernel_param_get_float32( params, "height_ratio" );
     int32_t width_sample_num    = vsi_nn_kernel_param_get_int32( params, "width_sample_num" );
     int32_t height_sample_num   = vsi_nn_kernel_param_get_int32( params, "height_sample_num" );
+    int32_t platform_type       = vsi_nn_kernel_param_get_int32( params, "platform_type" );
     float   input_zp    = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
     float   input_scale = vsi_nn_get_tensor_scale(inputs[0]);
     float   input_tail  = -(input_zp * input_scale);
@@ -318,6 +321,7 @@ static vsi_nn_kernel_node_t _setup
             node_params[SCALAR_SAMPLING_Y_RATIO]     = vsi_nn_kernel_scalar_create( graph, F32, &sampling_y_ratio );
             node_params[SCALAR_DEPTH]                = vsi_nn_kernel_scalar_create( graph, I32, &depth );
             node_params[SCALAR_FORMAT]               = vsi_nn_kernel_scalar_create( graph, I32, &dtype );
+            node_params[PLATFORM_TYPE]               = vsi_nn_kernel_scalar_create( graph, I32, &platform_type );
 
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, node_params_num );
@@ -336,6 +340,7 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_DEPTH] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_DEPTH] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_FORMAT] );
+            vsi_nn_kernel_scalar_release( &node_params[PLATFORM_TYPE] );
         }
     }
 

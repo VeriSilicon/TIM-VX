@@ -69,7 +69,6 @@ filegroup(
         "src/custom/ops/*.c",
         "src/custom/ops/kernel/evis/*.c",
         "src/custom/ops/kernel/cl/*.c",
-        "src/custom/ops/kernel/cpu/*.c",
     ])
 )
 
@@ -84,6 +83,7 @@ cc_library(
     linkstatic = True,
     includes = [
         "include",
+        "src",
     ],
     hdrs = [
         "include/vsi_nn_pub.h",
@@ -104,6 +104,7 @@ cc_library(
         "include/vsi_nn_compatibility.h",
         "include/vsi_nn_assert.h",
         "include/vsi_nn_feature.h",
+        "include/vsi_nn_post.h",
         "include/vsi_nn_rnn.h",
         "include/vsi_nn_rnn_helper.h",
         "include/vsi_nn_rnn_prv.h",
@@ -121,13 +122,15 @@ cc_library(
         "include/utils/vsi_nn_limits.h",
         "include/utils/vsi_nn_dtype_util.h",
         "include/utils/vsi_nn_dtype_util_prv.h",
-        "include/utils/vsi_nn_vdata.h",
         "include/utils/vsi_nn_tensor_op.h",
+        "include/utils/vsi_nn_dlfcn.h",
         "include/utils/vsi_nn_shape_util.h",
         "include/utils/vsi_nn_constraint_check.h",
         "include/quantization/vsi_nn_asymmetric_affine.h",
         "include/quantization/vsi_nn_dynamic_fixed_point.h",
         "include/quantization/vsi_nn_perchannel_symmetric_affine.h",
+        "include/post/vsi_nn_post_fasterrcnn.h",
+        "include/post/vsi_nn_post_cmupose.h",
         "include/interface/ops.def",
         "include/kernel/vsi_nn_kernel.h",
         "include/kernel/vsi_nn_gpu.h",
@@ -168,6 +171,9 @@ cc_library(
         "src/vsi_nn_daemon.c",
         "src/vsi_nn_graph_optimization.c",
         "src/vsi_nn_pre_post_process.c",
+        "src/vsi_nn_tensor_util_prv.h",
+        "src/vsi_nn_types_prv.h",
+        "src/vsi_nn_kernel_prv.h",
         "src/utils/vsi_nn_link_list.c",
         "src/utils/vsi_nn_util.c",
         "src/utils/vsi_nn_math.c",
@@ -177,14 +183,16 @@ cc_library(
         "src/utils/vsi_nn_hashmap.c",
         "src/utils/vsi_nn_limits.c",
         "src/utils/vsi_nn_dtype_util.c",
-        "src/utils/vsi_nn_vdata.c",
         "src/utils/vsi_nn_tensor_op.c",
+        "src/utils/vsi_nn_dlfcn.c",
         "src/utils/vsi_nn_shape_util.c",
         "src/utils/vsi_nn_dtype.c",
         "src/utils/vsi_nn_constraint_check.c",
         "src/quantization/vsi_nn_asymmetric_affine.c",
         "src/quantization/vsi_nn_dynamic_fixed_point.c",
         "src/quantization/vsi_nn_perchannel_symmetric_affine.c",
+        "src/post/vsi_nn_post_fasterrcnn.c",
+        "src/post/vsi_nn_post_cmupose.c",
         "src/kernel/vsi_nn_kernel.c",
         "src/kernel/vsi_nn_kernel_util.c",
         "src/kernel/vsi_nn_kernel_backend.c",
@@ -202,4 +210,3 @@ cc_library(
       + [":custom_srcs"],
     deps = ["//prebuilt-sdk:VIV_SDK_LIB"]
 )
-

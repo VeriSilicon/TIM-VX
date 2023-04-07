@@ -37,7 +37,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "vsi_nn_internal_node.h"
-#include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "utils/vsi_nn_constraint_check.h"
 #include "utils/vsi_nn_dtype_util.h"
 
@@ -62,46 +61,17 @@ static vsi_status op_compute
     }
     else
     {
-        vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
-        vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
-        vsi_size_t new_rank = 0;
-        vsi_bool ret = TRUE;
         vsi_nn_kernel_param_t * param = NULL;
 
         param = vsi_nn_kernel_param_create();
 
-        if ( vsi_nn_TypeGetBits(inputs[0]->attr.dtype.vx_type) == 4 ||
-             vsi_nn_TypeGetBits(outputs[0]->attr.dtype.vx_type) == 4 )
-        {
-            new_rank = inputs[0]->attr.dim_num;
-            memcpy(shape, inputs[0]->attr.size, sizeof(inputs[0]->attr.size));
-        }
-        else
-        {
-            ret = vsi_nn_kernel_optimize_element_shape(
-                    inputs[0]->attr.size, inputs[0]->attr.dim_num,
-                    shape, &new_rank );
-        }
-
-
         vsi_nn_kernel_param_add_float32( param, "min_value",  min_value );
         vsi_nn_kernel_param_add_float32( param, "max_value",  max_value );
 
-        if ( ret )
-        {
-            reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                    inputs[0], shape, new_rank );
-            reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                    outputs[0], shape, new_rank );
-
-            self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
-                    "clip",
-                    &reshape_tensors[0], 1,
-                    &reshape_tensors[1], 1, param );
-
-            vsi_safe_release_tensor( reshape_tensors[0] );
-            vsi_safe_release_tensor( reshape_tensors[1] );
-        }
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+                "clip",
+                inputs, 1,
+                outputs, 1, param );
 
         if ( self->n )
         {

@@ -44,6 +44,7 @@ __BEGIN_DECLS
 #define KERNEL_SOURCE_1    "scatter_nd_update"
 #define KERNEL_SOURCE_2    "scatter_nd_update_big"
 #define KERNEL_SOURCE_3    "scatter_nd_update_atom"
+#define KERNEL_SOURCE_4    "scatter_nd_update_special"
 
 #define HASH_SCATTER_ND_UPDATE_KEY(_input0_type, _input2_type, _output_type, _pre_op, _large_type) \
     ((_input0_type << 24) | (_input2_type << 16) | (_output_type << 8) | (_pre_op << 4) | (_large_type))
@@ -59,6 +60,15 @@ __BEGIN_DECLS
 
  #define HASH_SCATTER_ND_UPDATE_SH_KERNEL_RESET_NAME() \
     CVIVANTE_NAMESPACE("evis.scatter_nd_update_reset")
+
+#define HASH_SCATTER_ND_UPDATE_SH_KERNEL_REF_NAME(SRC0_TYPE, DST_TYPE) \
+    CVIVANTE_NAMESPACE("evis.scatter_nd_update_ref2out_"#SRC0_TYPE"to"#DST_TYPE)
+
+#define HASH_SCATTER_ND_UPDATE_SH_KERNEL_UPDATE_NAME(SRC2_TYPE, DST_TYPE) \
+    CVIVANTE_NAMESPACE("evis.scatter_nd_update_update2ref_"#SRC2_TYPE"to"#DST_TYPE"_16x")
+
+#define HASH_SCATTER_ND_UPDATE_SH_KERNEL_COPY_NAME(DST_TYPE) \
+    CVIVANTE_NAMESPACE("evis.scatter_nd_update_cpy2out_"#DST_TYPE"to"#DST_TYPE)
 
 #define TENSOR_SCATTER_ND_UPDATE_KERNELS(IN0_TYPE, IN1_TYPE, IN2_TYPE, OUT_TYPE, SOURCE) \
     { HASH_SCATTER_ND_UPDATE_KEY(IN0_TYPE, IN2_TYPE, OUT_TYPE, 0, 0), \
@@ -78,6 +88,21 @@ __BEGIN_DECLS
  #define TENSOR_SCATTER_ND_UPDATE_RESET_KERNELS(SOURCE) \
     { HASH_SCATTER_ND_UPDATE_KEY(I32, I32, I32, 2, 1), \
         HASH_SCATTER_ND_UPDATE_SH_KERNEL_RESET_NAME(), \
+        SOURCE },
+
+#define TENSOR_SCATTER_ND_UPDATE_REF_KERNELS(IN0_TYPE, IN1_TYPE, IN2_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_SCATTER_ND_UPDATE_KEY(IN0_TYPE, IN2_TYPE, OUT_TYPE, 3, 1), \
+        HASH_SCATTER_ND_UPDATE_SH_KERNEL_REF_NAME(IN0_TYPE, OUT_TYPE), \
+        SOURCE },
+
+#define TENSOR_SCATTER_ND_UPDATE_UPDATE_KERNELS(IN0_TYPE, IN1_TYPE, IN2_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_SCATTER_ND_UPDATE_KEY(IN0_TYPE, IN2_TYPE, OUT_TYPE, 4, 1), \
+        HASH_SCATTER_ND_UPDATE_SH_KERNEL_UPDATE_NAME(IN2_TYPE, OUT_TYPE), \
+        SOURCE },
+
+#define TENSOR_SCATTER_ND_UPDATE_COPY_KERNELS(IN0_TYPE, IN1_TYPE, IN2_TYPE, OUT_TYPE, SOURCE) \
+    { HASH_SCATTER_ND_UPDATE_KEY(IN0_TYPE, IN2_TYPE, OUT_TYPE, 5, 1), \
+        HASH_SCATTER_ND_UPDATE_SH_KERNEL_COPY_NAME(IN0_TYPE), \
         SOURCE },
 
 typedef struct
@@ -122,6 +147,24 @@ static const _kernel_map_type scatter_nd_update_post_map[] =
     TENSOR_SCATTER_ND_UPDATE_BIG_KERNELS(I8,  I32, I8,  I8,   KERNEL_SOURCE_3)
     TENSOR_SCATTER_ND_UPDATE_BIG_KERNELS(U8,  I32, U8,  U8,   KERNEL_SOURCE_3)
     TENSOR_SCATTER_ND_UPDATE_BIG_KERNELS(I16, I32, I16, I16,  KERNEL_SOURCE_3)
+};
+
+static const _kernel_map_type scatter_nd_update_ref_map[] =
+{
+    TENSOR_SCATTER_ND_UPDATE_REF_KERNELS(U8,  I32, U8,  U8, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_REF_KERNELS(I8,  I32, I8,  I8, KERNEL_SOURCE_4)
+};
+
+static const _kernel_map_type scatter_nd_update_update_map[] =
+{
+    TENSOR_SCATTER_ND_UPDATE_UPDATE_KERNELS(U8,  I32, U8,  U8, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_UPDATE_KERNELS(I8,  I32, I8,  I8, KERNEL_SOURCE_4)
+};
+
+static const _kernel_map_type scatter_nd_update_copy_map[] =
+{
+    TENSOR_SCATTER_ND_UPDATE_COPY_KERNELS(U8,  I32, U8,  U8, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_COPY_KERNELS(I8,  I32, I8,  I8, KERNEL_SOURCE_4)
 };
 
 /*
@@ -178,10 +221,43 @@ static vx_param_description_t _scatter_nd_update_post_kernel_param_def[] =
     // Add kererl parameters here
 };
 
+static vx_param_description_t _scatter_nd_update_ref_kernel_param_def[] =
+{
+    {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    // Add kererl parameters here
+};
+
+static vx_param_description_t _scatter_nd_update_update_kernel_param_def[] =
+{
+    {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    // Add kererl parameters here
+};
+
+static vx_param_description_t _scatter_nd_update_copy_kernel_param_def[] =
+{
+    {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    // Add kererl parameters here
+};
+
 #define _SCATTER_ND_UPDATE_PARAM_NUM  _cnt_of_array( _scatter_nd_update_kernel_param_def )
 #define _SCATTER_ND_UPDATE_PRE_PARAM_NUM  _cnt_of_array( _scatter_nd_update_pre_kernel_param_def )
 #define _SCATTER_ND_UPDATE_POST_PARAM_NUM  _cnt_of_array( _scatter_nd_update_post_kernel_param_def )
 #define _SCATTER_ND_UPDATE_RESET_PARAM_NUM  _cnt_of_array( _scatter_nd_update_reset_kernel_param_def )
+#define _SCATTER_ND_UPDATE_REF_PARAM_NUM  _cnt_of_array( _scatter_nd_update_ref_kernel_param_def )
+#define _SCATTER_ND_UPDATE_UPDATE_PARAM_NUM  _cnt_of_array( _scatter_nd_update_update_kernel_param_def )
+#define _SCATTER_ND_UPDATE_COPY_PARAM_NUM  _cnt_of_array( _scatter_nd_update_copy_kernel_param_def )
 
 static vsi_status get_scatter_nd_update_tensor_reshape_size
     (
@@ -210,12 +286,12 @@ static vsi_status get_scatter_nd_update_tensor_reshape_size
 #define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     newDim[0] = 0;
-    for(i = 0; i < dims_num; ++i)
+    for (i = 0; i < dims_num; ++i)
     {
         elementCnt *= input_size[i];
     }
 
-    for(i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
+    for (i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
     {
         sizes[i] = 1;
     }
@@ -260,6 +336,124 @@ static vsi_status get_scatter_nd_update_tensor_reshape_size
 
     return VSI_SUCCESS;
 } /* _get_EltOP_tensor_reshape_size */
+
+static vsi_status check_scatter_nd_update_index_repeat
+    (
+    vsi_nn_tensor_t ** inputs,
+    int32_t coord_dim,
+    int32_t block_size,
+    int32_t indices_num,
+    int32_t* isRepeat
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    int32_t i = 0, j = 0;
+    vsi_size_t elementNum = 1;
+    vsi_nn_kernel_tensor_t ref_tensor = (vsi_nn_kernel_tensor_t)inputs[0]->t;
+    vsi_nn_kernel_tensor_t index_tensor = (vsi_nn_kernel_tensor_t)inputs[1]->t;
+    vsi_nn_kernel_tensor_attr_t* attr[2] = { NULL };
+    uint32_t*   index_buffer[1] = { NULL };
+    int32_t* mask_buffer = NULL;
+    int32_t  mask_len = 0;
+
+    if (inputs[1]->attr.is_const == FALSE)
+    {
+        isRepeat[0] = 1;
+        return VSI_SUCCESS;
+    }
+
+    attr[0] = vsi_nn_kernel_tensor_attr_create( ref_tensor );
+    CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
+
+    attr[1] = vsi_nn_kernel_tensor_attr_create( index_tensor );
+    CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
+
+    elementNum = vsi_nn_kernel_tensor_attr_get_size( attr[0] );
+    mask_len = (int32_t)elementNum / block_size;
+    mask_buffer = (int32_t*)malloc(mask_len * sizeof(int32_t));
+    CHECK_PTR_FAIL_GOTO( mask_buffer, "Create mask buffer fail.", final );
+    memset(mask_buffer, 0, mask_len * sizeof(int32_t));
+
+    index_buffer[0] = (uint32_t*)vsi_nn_kernel_tensor_create_buffer( index_tensor, attr[1], FALSE );
+    CHECK_PTR_FAIL_GOTO( index_buffer[0], "Create index buffer fail.", final );
+
+    if (coord_dim <= 5)
+    {
+        vsi_ssize_t stride[5] = {0, 0, 0, 0, 0};
+        vsi_ssize_t new_shape[5] = {1, 1, 1, 1, 1};
+        vsi_ssize_t merge_dim = (vsi_ssize_t)attr[0]->shape->size - coord_dim + 1;
+
+        for (i = 0; i < (int32_t)merge_dim; ++i)
+        {
+            new_shape[0] *= attr[0]->shape->data[i];
+        }
+        stride[0] = new_shape[0] / block_size;
+
+        for (i = 1; i < coord_dim; ++i)
+        {
+            new_shape[i] = attr[0]->shape->data[merge_dim + i - 1];
+
+            stride[i] = stride[i - 1] * new_shape[i];
+        }
+
+        for (i = 0; i < indices_num; i++)
+        {
+            uint32_t coord[5] = {0};
+            int32_t byd_flg = 0;
+            vsi_ssize_t  mask_idx = 0;
+
+            for (j = 0; j < coord_dim; j++)
+            {
+                coord[j] = index_buffer[0][i * coord_dim + coord_dim - j - 1];
+                if (coord[j] >= (uint32_t)new_shape[j])
+                {
+                    byd_flg = 1;
+                    break;
+                }
+            }
+            if (byd_flg)
+            {
+                continue;
+            }
+
+            mask_idx = coord[4] * stride[3] + coord[3] * stride[2] +
+                            coord[2] * stride[1] + coord[1] * stride[0] + coord[0];
+            if (mask_buffer[mask_idx] == 0)
+            {
+                mask_buffer[mask_idx] = 1;
+            }
+            else if (mask_buffer[mask_idx] > 0)
+            {
+                isRepeat[0] = 1;
+                status = VSI_FAILURE;
+                CHECK_STATUS_FAIL_GOTO( status, final );
+            }
+        }
+    }
+    else
+    {
+        status = VSI_FAILURE;
+        CHECK_STATUS_FAIL_GOTO( status, final );
+    }
+
+final:
+    if ( index_buffer[0] )
+    {
+        free( index_buffer[0] );
+    }
+
+    if ( mask_buffer )
+    {
+        free( mask_buffer );
+    }
+
+    for ( i = 0; i < 2; i ++ )
+    {
+        if (attr[i]) { vsi_nn_kernel_tensor_attr_release( &attr[i] ); }
+    }
+
+    return VSI_SUCCESS;
+} /* check_scatter_nd_update_index_repeat */
 
 /*
  * Kernel initializer
@@ -1185,6 +1379,393 @@ OnError:
     return status;
 } /* _scatter_nd_update_reset_initializer() */
 
+DEF_KERNEL_INITIALIZER(_scatter_nd_update_ref_initializer)
+    (
+    vsi_nn_kernel_node_t                node,
+    const vsi_nn_kernel_node_param_t  * param,
+    size_t                              param_size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t gpu_param = {
+        3,
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+        };
+
+    vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
+    int32_t block_size = 1;
+    int32_t width = 0;
+    int32_t height = 0;
+
+    int32_t input0_zp    = 0;
+    float   input0_scale = 1.0f;
+    int32_t output_zp    = 0;
+    float   output_scale = 1.0f;
+
+    uint32_t pack_key = 0;
+
+    attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
+    attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", OnError );
+
+    block_size   = (int32_t)(attr[0]->shape->data[0]);
+    height = (int32_t)(attr[0]->shape->data[1]);
+    width = (int32_t)(block_size * height);
+    if (attr[0]->dtype == F16 || attr[0]->dtype == I16 || attr[0]->dtype == U16)
+    {
+        width = (width + 7) / 8;
+    }
+    else if (attr[0]->dtype == U8 || attr[0]->dtype == I8)
+    {
+        width = (width + 15) / 16;
+    }
+
+    input0_zp     = attr[0]->asymm.zero_point;
+    input0_scale  = attr[0]->asymm.scale;
+    output_zp     = attr[1]->asymm.zero_point;
+    output_scale  = 1.0f / attr[1]->asymm.scale;
+
+    gpu_param.global_scale[0]  = 1;
+    gpu_param.global_scale[1]  = 1;
+    gpu_param.global_scale[2]  = 1;
+
+    gpu_param.global_size[0]   = width;
+    gpu_param.global_size[1]   = 1;
+    gpu_param.global_size[2]   = 1;
+
+    status = vsi_nn_kernel_gpu_config( node, &gpu_param );
+    CHECK_STATUS_FAIL_GOTO(status, OnError);
+
+#define _PACK_SELECT_KEY( IN0_TYPE, OUT_TYPE )    \
+        (IN0_TYPE | ( OUT_TYPE << 16))
+
+    pack_key = _PACK_SELECT_KEY( attr[0]->dtype, attr[1]->dtype );
+
+    switch( pack_key )
+    {
+    case _PACK_SELECT_KEY( I8,  I8 ):
+    case _PACK_SELECT_KEY( U8,  U8 ):
+        {
+            uint16_t M0               = 0;
+            int32_t  postShift0       = 0;
+            uint32_t multAndoutZP0[2] = {0};
+
+            gpu_dp_inst_t uniU8MulAndPostShift_Lo_2x8 = {{
+                0xdddddddd, // TCfg
+                0x44444444, // ASelt
+                0x13121110, 0x17161514, // ABin
+                0x11111111, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00002600, // AccumType, ConstantType, and PostShift
+                0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+            }, GPU_DP_TYPE_16 };
+            gpu_dp_inst_t uniU8MulAndPostShift_Hi_2x8 = {{
+                0xdddddddd, // TCfg
+                0x44444444, // ASelt
+                0x1b1a1918, 0x1f1e1d1c, // ABin
+                0x11111111, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00002600, // AccumType, ConstantType, and PostShift
+                0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+            }, GPU_DP_TYPE_16 };
+
+            gpu_quantize_multiplier_16bit( (double)input0_scale * output_scale, &M0, &postShift0);
+
+            multAndoutZP0[0] = (uint32_t)(M0);
+            multAndoutZP0[1] = (uint32_t)((output_zp << postShift0) - input0_zp * M0);
+
+            gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift_Lo_2x8, postShift0 );
+            gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift_Hi_2x8, postShift0 );
+
+            status = vsi_nn_kernel_gpu_add_param( node, "multAndoutZP0", &multAndoutZP0 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                "uniU8MulAndPostShift0_Lo_2x8",  &uniU8MulAndPostShift_Lo_2x8 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                "uniU8MulAndPostShift0_Hi_2x8",  &uniU8MulAndPostShift_Hi_2x8 );
+            CHECK_STATUS_FAIL_GOTO(status, OnError );
+        }
+        break;
+    default:
+        break;
+    }
+
+#undef _PACK_SELECT_KEY
+
+OnError:
+    if (attr[0])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[0] );
+        attr[0] = NULL;
+    }
+    if (attr[1])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[1] );
+        attr[1] = NULL;
+    }
+    return status;
+} /* _scatter_nd_update_ref_initializer() */
+
+DEF_KERNEL_INITIALIZER(_scatter_nd_update_update_initializer)
+    (
+    vsi_nn_kernel_node_t                node,
+    const vsi_nn_kernel_node_param_t  * param,
+    size_t                              param_size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t gpu_param = {
+        3,
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+        };
+
+    vsi_nn_kernel_tensor_attr_t * attr[3] = { NULL };
+    int32_t     block_size = 1;
+    int32_t     update_width = 1;
+    int32_t     index_num  = 1;
+    int32_t     width = 0, area = 0, vol = 0;
+    int32_t     coord_dim  = 0;
+    int32_t     offsetX = 0, offsetY = 0, offsetZ = 0, offsetW = 0, offset_idx = 0;
+    int32_t     input1_zp    = 0;
+    float       input1_scale = 1.0f;
+    int32_t     output_zp    = 0;
+    float       output_scale = 1.0f;
+    uint32_t    pack_key = 0;
+
+    attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
+    attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", OnError );
+    attr[2] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
+    CHECK_PTR_FAIL_GOTO( attr[2], "Create tensor attr buffer fail.", OnError );
+
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[5], &width);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[6], &area);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[7], &vol);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[8], &coord_dim);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+
+    block_size   = (int32_t)(attr[2]->shape->data[0]);
+    update_width = (int32_t)(attr[1]->shape->data[0]);
+    index_num    = (int32_t)(attr[0]->shape->data[1]);
+
+    input1_zp     = attr[1]->asymm.zero_point;
+    input1_scale  = attr[1]->asymm.scale;
+    output_zp     = attr[2]->asymm.zero_point;
+    output_scale  = 1.0f / attr[2]->asymm.scale;
+
+    if (coord_dim == 5)
+    {
+        offset_idx = 1;
+    }
+    if (coord_dim == 4 || coord_dim == 5)
+    {
+        offsetX = vol;
+        offsetY = area;
+        offsetZ = width;
+        offsetW = 1;
+    }
+    else if (coord_dim == 3)
+    {
+        offsetX = area;
+        offsetY = width;
+        offsetZ = 1;
+    }
+    else if (coord_dim == 2)
+    {
+        offsetX = width;
+        offsetY = 1;
+        offsetZ = 0;
+    }
+    else if (coord_dim == 1)
+    {
+        offsetX = 1;
+        offsetY = 0;
+        offsetZ = 0;
+    }
+
+    if (attr[1]->dtype == F16 || attr[1]->dtype == I16 || attr[1]->dtype == U16)
+    {
+        update_width = (update_width + 7) / 8;
+    }
+    else if (attr[1]->dtype == U8 || attr[1]->dtype == I8)
+    {
+        update_width = (update_width + 15) / 16;
+    }
+
+    if (attr[2]->dtype == F16 || attr[2]->dtype == I16 || attr[2]->dtype == U16)
+    {
+        block_size = (block_size + 7) / 8;
+    }
+    else if (attr[2]->dtype == U8 || attr[2]->dtype == I8)
+    {
+        block_size = (block_size + 15) / 16;
+    }
+
+    gpu_param.global_scale[0]  = 1;
+    gpu_param.global_scale[1]  = 1;
+    gpu_param.global_scale[2]  = 1;
+
+    gpu_param.global_size[0]   = block_size;
+    gpu_param.global_size[1]   = index_num;
+    gpu_param.global_size[2]   = 1;
+
+    status = vsi_nn_kernel_gpu_config( node, &gpu_param );
+    CHECK_STATUS_FAIL_GOTO(status, OnError);
+
+    {
+        status = vsi_nn_kernel_gpu_add_param( node, "update_width", &update_width );
+        status |= vsi_nn_kernel_gpu_add_param( node, "output_width", &block_size );
+        status |= vsi_nn_kernel_gpu_add_param( node, "offsetX", &offsetX );
+        status |= vsi_nn_kernel_gpu_add_param( node, "offsetY", &offsetY );
+        status |= vsi_nn_kernel_gpu_add_param( node, "offsetZ", &offsetZ );
+        status |= vsi_nn_kernel_gpu_add_param( node, "offsetW", &offsetW );
+        status |= vsi_nn_kernel_gpu_add_param( node, "offset_idx", &offset_idx );
+        CHECK_STATUS_FAIL_GOTO(status, OnError);
+    }
+#define _PACK_SELECT_KEY( IN0_TYPE, OUT_TYPE )    \
+        (IN0_TYPE | ( OUT_TYPE << 16))
+
+    pack_key = _PACK_SELECT_KEY( attr[1]->dtype, attr[2]->dtype );
+
+    switch( pack_key )
+    {
+    case _PACK_SELECT_KEY( I8,  I8 ):
+    case _PACK_SELECT_KEY( U8,  U8 ):
+        {
+            uint16_t M1               = 0;
+            int32_t  postShift1       = 0;
+            uint32_t multAndoutZP1[2] = {0};
+
+            gpu_dp_inst_t uniU8MulAndPostShift_Lo_2x8 = {{
+                0xdddddddd, // TCfg
+                0x44444444, // ASelt
+                0x13121110, 0x17161514, // ABin
+                0x11111111, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00002600, // AccumType, ConstantType, and PostShift
+                0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+            }, GPU_DP_TYPE_16 };
+            gpu_dp_inst_t uniU8MulAndPostShift_Hi_2x8 = {{
+                0xdddddddd, // TCfg
+                0x44444444, // ASelt
+                0x1b1a1918, 0x1f1e1d1c, // ABin
+                0x11111111, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00002600, // AccumType, ConstantType, and PostShift
+                0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+            }, GPU_DP_TYPE_16 };
+
+            gpu_quantize_multiplier_16bit( (double)input1_scale * output_scale, &M1, &postShift1);
+
+            multAndoutZP1[0] = (uint32_t)(M1);
+            multAndoutZP1[1] = (uint32_t)((output_zp << postShift1) - input1_zp * M1);
+
+            gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift_Lo_2x8, postShift1 );
+            gpu_dp_inst_update_postshfit( &uniU8MulAndPostShift_Hi_2x8, postShift1 );
+
+            status = vsi_nn_kernel_gpu_add_param( node, "multAndoutZP1", &multAndoutZP1 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                "uniU8MulAndPostShift1_Lo_2x8",  &uniU8MulAndPostShift_Lo_2x8 );
+            status |= vsi_nn_kernel_gpu_add_param( node,
+                "uniU8MulAndPostShift1_Hi_2x8",  &uniU8MulAndPostShift_Hi_2x8 );
+            CHECK_STATUS_FAIL_GOTO(status, OnError );
+        }
+        break;
+    default:
+        break;
+    }
+#undef _PACK_SELECT_KEY
+
+OnError:
+    if (attr[0])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[0] );
+        attr[0] = NULL;
+    }
+    if (attr[1])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[1] );
+        attr[1] = NULL;
+    }
+    if (attr[2])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[2] );
+        attr[2] = NULL;
+    }
+    return status;
+} /* _scatter_nd_update_update_initializer() */
+
+DEF_KERNEL_INITIALIZER(_scatter_nd_update_copy_initializer)
+    (
+    vsi_nn_kernel_node_t                node,
+    const vsi_nn_kernel_node_param_t  * param,
+    size_t                              param_size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t gpu_param = {
+        3,
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+        };
+
+    vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
+    int32_t     block_size = 1;
+    int32_t     width = 0;
+    int32_t     height = 0;
+
+    attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
+
+    block_size   = (int32_t)(attr[0]->shape->data[0]);
+    height = (int32_t)(attr[0]->shape->data[1]);
+    width = (int32_t)(block_size * height);
+
+    if (attr[0]->dtype == F16 || attr[0]->dtype == I16 || attr[0]->dtype == U16)
+    {
+        width = (width + 7) / 8;
+    }
+    else if (attr[0]->dtype == U8 || attr[0]->dtype == I8)
+    {
+        width = (width + 15) / 16;
+    }
+
+    gpu_param.global_scale[0]  = 1;
+    gpu_param.global_scale[1]  = 1;
+    gpu_param.global_scale[2]  = 1;
+
+    gpu_param.global_size[0]   = width;
+    gpu_param.global_size[1]   = 1;
+    gpu_param.global_size[2]   = 1;
+
+    status = vsi_nn_kernel_gpu_config( node, &gpu_param );
+    CHECK_STATUS_FAIL_GOTO(status, OnError);
+
+OnError:
+    if (attr[0])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[0] );
+        attr[0] = NULL;
+    }
+    return status;
+} /* _scatter_nd_update_copy_initializer() */
+
 /*
  * Query kernel
  */
@@ -1210,7 +1791,7 @@ static vsi_status _query_kernel
 
     key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, input2_dtype, output_dtype, 0, isBig );
 
-    for( i = 0; i < _cnt_of_array(scatter_nd_update_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_map); i ++ )
     {
         if ( scatter_nd_update_map[i].key == key )
         {
@@ -1263,7 +1844,7 @@ static vsi_status _query_kernel_large
 
     key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, I32, I32, 1, 1 );
 
-    for( i = 0; i < _cnt_of_array(scatter_nd_update_pre_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_pre_map); i ++ )
     {
         if ( scatter_nd_update_pre_map[i].key == key )
         {
@@ -1292,7 +1873,7 @@ static vsi_status _query_kernel_large
 
     key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, input2_dtype, output_dtype, 0, 1 );
 
-    for( i = 0; i < _cnt_of_array(scatter_nd_update_post_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_post_map); i ++ )
     {
         if ( scatter_nd_update_post_map[i].key == key )
         {
@@ -1319,7 +1900,7 @@ static vsi_status _query_kernel_large
 
     key = HASH_SCATTER_ND_UPDATE_KEY( I32, I32, I32, 2, 1 );
 
-    for( i = 0; i < _cnt_of_array(scatter_nd_update_reset_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_reset_map); i ++ )
     {
         if ( scatter_nd_update_reset_map[i].key == key )
         {
@@ -1346,6 +1927,111 @@ static vsi_status _query_kernel_large
     return status;
 } /* _query_kernel_large() */
 
+static vsi_status _query_kernel_special
+    (
+    vsi_nn_tensor_t* const* const inputs,
+    vsi_nn_tensor_t* const* const outputs,
+    vsi_nn_kernel_t* kernel_ref,
+    vsi_nn_kernel_t* kernel_update,
+    vsi_nn_kernel_t* kernel
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    vsi_nn_kernel_dtype_e input0_dtype = U8;
+    vsi_nn_kernel_dtype_e input2_dtype = F16;
+    vsi_nn_kernel_dtype_e output_dtype = U8;
+    uint32_t key = 0;
+    int i = 0;
+
+    input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
+    input2_dtype = vsi_nn_kernel_map_dtype( inputs[2]->attr.dtype.vx_type );
+    output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, input2_dtype, output_dtype, 3, 1 );
+
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_ref_map); i ++ )
+    {
+        if ( scatter_nd_update_ref_map[i].key == key )
+        {
+            break;
+        }
+    }
+
+    if ( i < _cnt_of_array(scatter_nd_update_ref_map) )
+    {
+        snprintf( kernel_ref->info.name, VX_MAX_KERNEL_NAME, "%s",  scatter_nd_update_ref_map[i].function_name );
+        kernel_ref->info.parameters = _scatter_nd_update_ref_kernel_param_def;
+        kernel_ref->info.numParams = _SCATTER_ND_UPDATE_REF_PARAM_NUM;
+        kernel_ref->info.initialize = _scatter_nd_update_ref_initializer;
+
+        vsi_nn_kernel_add_source( kernel_ref, VSI_NN_GPU_SOURCE_FMT_CODE, 2,
+                "vsi_nn_kernel_header",
+                scatter_nd_update_ref_map[i].source_name );
+        vsi_nn_kernel_add_source( kernel_ref, VSI_NN_GPU_SOURCE_FMT_EXECUTABLE, 1,
+                scatter_nd_update_ref_map[i].source_name );
+    }
+    else
+    {
+        status = VSI_FAILURE;
+    }
+
+
+    key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, input2_dtype, output_dtype, 4, 1 );
+
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_update_map); i ++ )
+    {
+        if ( scatter_nd_update_update_map[i].key == key )
+        {
+            break;
+        }
+    }
+    if ( i < _cnt_of_array(scatter_nd_update_update_map) )
+    {
+        snprintf( kernel_update->info.name, VX_MAX_KERNEL_NAME, "%s",  scatter_nd_update_update_map[i].function_name );
+        kernel_update->info.parameters = _scatter_nd_update_update_kernel_param_def;
+        kernel_update->info.numParams = _SCATTER_ND_UPDATE_UPDATE_PARAM_NUM;
+        kernel_update->info.initialize = _scatter_nd_update_update_initializer;
+
+        vsi_nn_kernel_add_source( kernel_update, VSI_NN_GPU_SOURCE_FMT_CODE, 2,
+                "vsi_nn_kernel_header",
+                scatter_nd_update_update_map[i].source_name );
+        vsi_nn_kernel_add_source( kernel_update, VSI_NN_GPU_SOURCE_FMT_EXECUTABLE, 1,
+                scatter_nd_update_update_map[i].source_name );
+    }
+    else
+    {
+        status |= VSI_FAILURE;
+    }
+
+    key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, input2_dtype, output_dtype, 5, 1 );
+
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_copy_map); i ++ )
+    {
+        if ( scatter_nd_update_copy_map[i].key == key )
+        {
+            break;
+        }
+    }
+    if ( i < _cnt_of_array(scatter_nd_update_copy_map) )
+    {
+        snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  scatter_nd_update_copy_map[i].function_name );
+        kernel->info.parameters = _scatter_nd_update_copy_kernel_param_def;
+        kernel->info.numParams = _SCATTER_ND_UPDATE_COPY_PARAM_NUM;
+        kernel->info.initialize = _scatter_nd_update_copy_initializer;
+
+        vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 2,
+                "vsi_nn_kernel_header",
+                scatter_nd_update_copy_map[i].source_name );
+        vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_EXECUTABLE, 1,
+                scatter_nd_update_copy_map[i].source_name );
+    }
+    else
+    {
+        status |= VSI_FAILURE;
+    }
+    return status;
+} /* _query_kernel_special() */
+
 static vsi_nn_kernel_node_t _setup
     (
     vsi_nn_graph_t              * graph,
@@ -1363,11 +2049,25 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
     int32_t block_size  = vsi_nn_kernel_param_get_int32( params, "block_size" );
     int32_t coord_dim   = vsi_nn_kernel_param_get_int32( params, "coord_dim" );
+    int32_t idx_num  = vsi_nn_kernel_param_get_int32( params, "idx_num" );
+    vsi_size_t *input_size = inputs[2]->attr.size;
+    uint32_t dims_num = inputs[2]->attr.dim_num;
     int32_t rs_in_dim = 0, rs_idx_dim = 0, rs_out_dim = 0;
     vsi_size_t width = 0, area = 0, vol = 0;
     int32_t big_flg = 0;
     vsi_nn_kernel_dtype_e update_dtype = vsi_nn_kernel_map_dtype(inputs[2]->attr.dtype.vx_type);
+    vsi_nn_kernel_dtype_e ref_dtype = vsi_nn_kernel_map_dtype(inputs[0]->attr.dtype.vx_type);
+    vsi_nn_kernel_dtype_e output_dtype = vsi_nn_kernel_map_dtype(outputs[0]->attr.dtype.vx_type);
+    int32_t type_flg = ((update_dtype == U8 || update_dtype == I8 || update_dtype == I16) &&
+                        (update_dtype == ref_dtype && update_dtype == output_dtype)) ? 1 : 0;
+    int32_t special_flg = (block_size % 16 == 0 && type_flg)  ? 1 : 0;
     int32_t i = 0;
+    int32_t isRepeat = 0;
+
+    if (coord_dim > 4 && input_size[dims_num - 1] > 1)
+    {
+        return NULL;
+    }
 
     status = get_scatter_nd_update_tensor_reshape_size(&inputs[1], shapes[0], coord_dim, 0,
                                                     NULL, NULL, NULL, &rs_idx_dim, &big_flg);
@@ -1380,7 +2080,122 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
-    if ((update_dtype == U8 || update_dtype == I8 || update_dtype == I16))
+    check_scatter_nd_update_index_repeat(inputs, coord_dim, block_size, idx_num, &isRepeat);
+
+    if (special_flg && isRepeat == 0)
+    {
+        vsi_nn_tensor_attr_t attr;
+        vsi_nn_kernel_node_t tmp_node = NULL;
+        vsi_nn_kernel_node_t ref_node = NULL;
+        vsi_nn_kernel_node_param_t ref_params[_SCATTER_ND_UPDATE_REF_PARAM_NUM] = { NULL };
+        vsi_nn_kernel_node_param_t node_params[_SCATTER_ND_UPDATE_UPDATE_PARAM_NUM] = { NULL };
+        vsi_nn_kernel_node_param_t cpy_params[_SCATTER_ND_UPDATE_COPY_PARAM_NUM] = { NULL };
+        vsi_nn_kernel_t * ikernels[2] = { NULL };
+        vsi_nn_tensor_t * tensors[3] = { NULL };
+
+        ikernels[0] = vsi_nn_kernel_create( VSI_NN_KERNEL_TYPE_EVIS );
+        ikernels[0]->unique_id = kernel->unique_id;
+        ikernels[1] = vsi_nn_kernel_create( VSI_NN_KERNEL_TYPE_EVIS );
+        ikernels[1]->unique_id = kernel->unique_id;
+
+        memset( &attr, 0, sizeof(vsi_nn_tensor_attr_t) );
+        attr.dtype = outputs[0]->attr.dtype;
+        attr.is_const = FALSE;
+        attr.vtl = TRUE;
+
+        for (i = 0; i < rs_out_dim; i++)
+        {
+            attr.size[i] = shapes[2][i];
+        }
+        attr.dim_num = rs_out_dim;
+
+        tensors[0] = vsi_nn_CreateTensor( graph, &attr );
+        attr.size[0] = 1;
+        attr.size[1] = 1;
+        tensors[1] = vsi_nn_CreateTensor( graph, &attr );
+        tensors[2] = vsi_nn_CreateTensor( graph, &attr );
+
+        status = _query_kernel_special( inputs, outputs, ikernels[0], ikernels[1], kernel);
+        if ( VSI_SUCCESS == status)
+        {
+            // convert ref to output
+            ref_node = vsi_nn_kernel_create_node( graph, ikernels[0] );
+            if (ref_node)
+            {
+                uint32_t index = 0;
+                /* Pass parameters to node. */
+                ref_params[index++] = vsi_nn_kernel_tensor_reshape( inputs[0]->t,  shapes[2], rs_out_dim );
+                ref_params[index++] = (vsi_nn_kernel_node_param_t)tensors[0]->t;
+                ref_params[index++] = (vsi_nn_kernel_node_param_t)tensors[1]->t;
+                status = vsi_nn_kernel_node_pass_param( ref_node, ref_params, _SCATTER_ND_UPDATE_REF_PARAM_NUM );
+                CHECK_STATUS(status);
+                vsi_nn_kernel_tensor_release( &ref_params[0] );
+            }
+
+            // update
+            tmp_node = vsi_nn_kernel_create_node( graph, ikernels[1] );
+            if (tmp_node)
+            {
+                uint32_t index = 0;
+                /* Pass parameters to node. */
+                node_params[index++] = vsi_nn_kernel_tensor_reshape( inputs[1]->t,  shapes[0], rs_idx_dim );
+                node_params[index++] = vsi_nn_kernel_tensor_reshape( inputs[2]->t,  shapes[1], rs_in_dim );
+                node_params[index++] = (vsi_nn_kernel_node_param_t)tensors[0]->t;
+                node_params[index++] = (vsi_nn_kernel_node_param_t)tensors[1]->t;
+                node_params[index++] = (vsi_nn_kernel_node_param_t)tensors[2]->t;
+                node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &width );
+                node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &area );
+                node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &vol );
+                node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &coord_dim );
+                status = vsi_nn_kernel_node_pass_param( tmp_node, node_params, _SCATTER_ND_UPDATE_UPDATE_PARAM_NUM );
+                CHECK_STATUS(status);
+                vsi_nn_kernel_tensor_release( &node_params[0] );
+                vsi_nn_kernel_tensor_release( &node_params[1] );
+                vsi_nn_kernel_scalar_release( &node_params[5] );
+                vsi_nn_kernel_scalar_release( &node_params[6] );
+                vsi_nn_kernel_scalar_release( &node_params[7] );
+                vsi_nn_kernel_scalar_release( &node_params[8] );
+            }
+
+            // copy to output
+            node = vsi_nn_kernel_create_node( graph, kernel );
+            if ( node )
+            {
+                uint32_t index = 0;
+                /* Pass parameters to node. */
+                cpy_params[index++] = (vsi_nn_kernel_node_param_t)tensors[0]->t;
+                cpy_params[index++] = (vsi_nn_kernel_node_param_t)tensors[2]->t;
+                cpy_params[index++] = vsi_nn_kernel_tensor_reshape( outputs[0]->t, shapes[2], rs_out_dim );
+                status = vsi_nn_kernel_node_pass_param( node, cpy_params, _SCATTER_ND_UPDATE_COPY_PARAM_NUM );
+                CHECK_STATUS(status);
+                vsi_nn_kernel_tensor_release( &cpy_params[2] );
+            }
+        }
+
+        if ( ikernels[0] )
+        {
+            vsi_nn_kernel_release( &ikernels[0] );
+        }
+        if ( ikernels[1] )
+        {
+            vsi_nn_kernel_release( &ikernels[1] );
+        }
+        if ( tensors[0] )
+        {
+            vsi_nn_ReleaseTensor( &tensors[0] );
+        }
+        if ( tensors[1] )
+        {
+            vsi_nn_ReleaseTensor( &tensors[1] );
+        }
+        if ( tensors[2] )
+        {
+            vsi_nn_ReleaseTensor( &tensors[2] );
+        }
+        if (ref_node) {vsi_nn_kernel_node_release( &ref_node );}
+        if (tmp_node) {vsi_nn_kernel_node_release( &tmp_node );}
+    }
+    else if ((update_dtype == U8 || update_dtype == I8 || update_dtype == I16))
     {
         vsi_nn_tensor_attr_t attr;
         vsi_nn_kernel_node_t tmp_node = NULL;
@@ -1402,7 +2217,7 @@ static vsi_nn_kernel_node_t _setup
         attr.is_const = FALSE;
         attr.vtl = TRUE;
 
-        for(i = 0; i < rs_out_dim; i++)
+        for (i = 0; i < rs_out_dim; i++)
         {
             attr.size[i] = shapes[2][i];
         }

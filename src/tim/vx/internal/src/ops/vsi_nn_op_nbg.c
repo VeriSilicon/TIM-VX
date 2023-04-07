@@ -146,7 +146,7 @@ static vsi_status op_compute
         );
     if(NULL == node)
     {
-        vxReleaseKernel(&kernel);
+        vxRemoveKernel(kernel);
         return status;
     }
 
@@ -191,7 +191,7 @@ static vsi_status op_deinit
     kernel = self->nn_param.nbg.local.kernel;
     if(kernel)
     {
-        vxReleaseKernel(&kernel);
+        vxRemoveKernel(kernel);
         kernel = self->nn_param.nbg.local.kernel = NULL;
     }
     vsi_nn_op_common_deinit(self);

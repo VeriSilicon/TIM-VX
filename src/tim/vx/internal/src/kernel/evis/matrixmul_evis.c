@@ -57,6 +57,7 @@ __BEGIN_DECLS
 #define KERNEL_SOURCE_13   "matrixmul_i16"
 #define KERNEL_SOURCE_14   "matrixmul_f16i16_i16"
 #define KERNEL_SOURCE_15   "matrixmul_bf16"
+#define KERNEL_SOURCE_16   "matrixmul_u8i16_i16"
 
 #define HASH_MATRIX_MUL_KEY(_input0_type, _input1_type, _output_type, _trans_a, _trans_b) \
     ((_input0_type << 24) | (_input1_type << 16) | (_output_type << 8) | (_trans_a << 4) | (_trans_b))
@@ -116,6 +117,7 @@ static const struct {
     TENSOR_MATRIX_MUL_KERNELS(F16, F16, I8,       KERNEL_SOURCE_11)
     TENSOR_MATRIX_MUL_KERNELS(F16, F16, I16,      KERNEL_SOURCE_11)
     TENSOR_MATRIX_MUL_KERNELS(F32, F32, F32,      KERNEL_SOURCE_2)
+    TENSOR_MATRIX_MUL_KERNELS(U8,  I16, I16,      KERNEL_SOURCE_16)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(F16, F16, F16,    KERNEL_SOURCE_3)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(F16, U8,  F16,    KERNEL_SOURCE_4)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(F16, U8,  U8,     KERNEL_SOURCE_4)
@@ -123,6 +125,7 @@ static const struct {
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(U8,  U8,  U8,     KERNEL_SOURCE_5)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(I16, I16, I16,    KERNEL_SOURCE_13)
     TENSOR_MATRIX_MUL_TRANSB_KERNELS(BF16,BF16,BF16,   KERNEL_SOURCE_15)
+    TENSOR_MATRIX_MUL_TRANSB_KERNELS(U8,  I16, I16,    KERNEL_SOURCE_16)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(U8,  U8,  U8,     KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(I8,  I8,  I8,     KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(I16, I16, I16,    KERNEL_SOURCE_7)
@@ -131,6 +134,7 @@ static const struct {
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(I16, F16, I16,    KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(F16, F16, F16,    KERNEL_SOURCE_7)
     TENSOR_MATRIX_MUL_TRANSA_KERNELS(BF16,BF16,BF16,   KERNEL_SOURCE_15)
+    TENSOR_MATRIX_MUL_TRANSA_KERNELS(U8,  I16, I16,    KERNEL_SOURCE_7)
 };
 
 /*
@@ -883,6 +887,7 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
         case _PACK_SELECT_KEY( U8,  F16,  U8, 1, 0, 0 ):
         case _PACK_SELECT_KEY( I8,  F16,  I8, 1, 0, 0 ):
         case _PACK_SELECT_KEY( I16, F16, I16, 1, 0, 0 ):
+        case _PACK_SELECT_KEY( U8,  I16, I16, 1, 0, 0 ):
         case _PACK_SELECT_KEY( U8,  U8,  U8,  1, 0, 1 ):
         case _PACK_SELECT_KEY( I8,  I8,  I8,  1, 0, 1 ):
         case _PACK_SELECT_KEY( I16, I16, I16, 1, 0, 1 ):
@@ -890,6 +895,7 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
         case _PACK_SELECT_KEY( U8,  F16,  U8, 1, 0, 1 ):
         case _PACK_SELECT_KEY( I8,  F16,  I8, 1, 0, 1 ):
         case _PACK_SELECT_KEY( I16, F16, I16, 1, 0, 1 ):
+        case _PACK_SELECT_KEY( U8,  I16, I16, 1, 0, 1 ):
             {
                 status = vsi_nn_kernel_gpu_add_param( node,
                         "uniConvertUint8SubZpToFp32_4x4", &uniConvertUint8SubZpToFp32_4x4 );
@@ -1038,6 +1044,24 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
             {
                 status = vsi_nn_kernel_gpu_add_param( node,
                         "uniConvertInt32toUint8_2x8", &uniConvertInt32toUint8_2x8 );
+                CHECK_STATUS_FAIL_GOTO(status, OnError );
+            }
+            break;
+        case _PACK_SELECT_KEY( U8, I16, I16, 0, 0, 0 ):
+        case _PACK_SELECT_KEY( U8, I16, I16, 0, 0, 1 ):
+        case _PACK_SELECT_KEY( U8, I16, I16, 0, 1, 0 ):
+        case _PACK_SELECT_KEY( U8, I16, I16, 0, 1, 1 ):
+            {
+                status = vsi_nn_kernel_gpu_add_param( node,
+                    "uniConvertUint8SubZpToFp32_4x4", &uniConvertUint8SubZpToFp32_4x4 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniConvertUint8SubZpToFp32B_4x4", &uniConvertUint8SubZpToFp32B_4x4 );
+                status |= vsi_nn_kernel_gpu_add_param( node,
+                    "uniConvertInt32toUint8_2x8", &uniConvertInt32toUint8_2x8 );
+                status |= vsi_nn_kernel_gpu_add_param( node, "input0_ZP", &src0ZP );
+                status |= vsi_nn_kernel_gpu_add_param( node, "input1_ZP", &src1ZP );
+                status |= vsi_nn_kernel_gpu_add_param( node, "outputScale", &reScaleOut );
+                status |= vsi_nn_kernel_gpu_add_param( node, "output_ZP", &dstZP );
                 CHECK_STATUS_FAIL_GOTO(status, OnError );
             }
             break;

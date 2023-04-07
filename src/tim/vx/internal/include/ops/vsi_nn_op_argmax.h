@@ -112,6 +112,7 @@ typedef struct _vsi_nn_argmax_param
     /* argmax layer local data structure */
     vsi_nn_argmax_lcl_data local;
     int32_t axis;
+    vsi_bool keep_dims;
 } vsi_nn_argmax_param;
 
 #ifdef __cplusplus

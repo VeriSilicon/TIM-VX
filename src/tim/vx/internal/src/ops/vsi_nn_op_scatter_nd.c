@@ -58,11 +58,6 @@ static vsi_status op_compute
     {
         coord_dim = (uint32_t)inputs[0]->attr.size[0];
     }
-    if ( coord_dim > 3 )
-    {
-        CHECK_STATUS(status);
-        return status;
-    }
     for (i = 0; i < inputs[0]->attr.dim_num; i++)
     {
         idx_num *= (uint32_t)inputs[0]->attr.size[i];

@@ -782,7 +782,7 @@ uint32_t vsi_nn_ShapeToString
 #define _NOT_PRINT_FMT (1)
     vsi_size_t s;
     uint32_t count;
-    const char * all_fmt[] = {" %d,", "%d_" };
+    const char * all_fmt[] = {" %"VSI_SIZE_T_SPECIFIER",", "%"VSI_SIZE_T_SPECIFIER"_" };
     const char * fmt;
     if( NULL == shape || NULL == buf
         || dim_num == 0 || buf_sz == 0 )
@@ -1527,4 +1527,156 @@ vsi_bool vsi_nn_is_3d_tensor
     {
         return FALSE;
     }
+}
+
+vsi_bool vsi_nn_is_stream_process_supported_types
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t** inputs,
+    size_t input_num
+    )
+{
+    size_t i = 0;
+
+    if ( graph->ctx->config.support_stream_processor == 0 )
+    {
+        return FALSE;
+    }
+
+    if ( graph->ctx->config.sp_exec_count == 0 )
+    {
+        return FALSE;
+    }
+
+    for (i = 0; i < input_num; i++)
+    {
+        if (inputs && input_num > 0 && inputs[i] &&
+            ( inputs[i]->attr.dtype.vx_type == VSI_NN_TYPE_INT32 ||
+              inputs[i]->attr.dtype.vx_type == VSI_NN_TYPE_UINT32))
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+vsi_bool vsi_nn_is_sp_supported_broadcast
+    (
+        vsi_nn_graph_t*   graph,
+        vsi_nn_tensor_t** inputs,
+        uint32_t          input_num,
+        vsi_nn_tensor_t*  output
+    )
+{
+typedef enum
+{
+    VSI_BROADCAST_BITS_NONE          = 0x0,
+    VSI_BROADCAST_BITS_ON_AXIS_0     = 0x1,
+    VSI_BROADCAST_BITS_ON_AXIS_1     = 0x2,
+    VSI_BROADCAST_BITS_ON_AXIS_2     = 0x4,
+    VSI_BROADCAST_BITS_ON_AXIS_3     = 0x8,
+    VSI_BROADCAST_BITS_ON_AXIS_4     = 0x10,
+    VSI_BROADCAST_BITS_ON_AXIS_5     = 0x20,
+    VSI_BROADCAST_BITS_ON_AXIS_10    = 0x3,
+    VSI_BROADCAST_BITS_ON_AXIS_210   = 0x7,
+    VSI_BROADCAST_BITS_ON_AXIS_21    = 0x6,
+} vsi_broadcast_bits_status_e;
+#define _PACK_ELTWISE_SP_KEY(A_BROADCAST, B_BROADCAST) \
+    ( (A_BROADCAST) | (B_BROADCAST << 8))
+    int32_t broadcast_bits_0 = VSI_BROADCAST_BITS_NONE;
+    int32_t broadcast_bits_1 = VSI_BROADCAST_BITS_NONE;
+    uint32_t i = 0;
+    uint32_t k = 0;
+    uint32_t rank = output->attr.dim_num;
+    vsi_bool is_broadcast = FALSE;
+    vsi_bool support = TRUE;
+    uint32_t key = 0;
+    vsi_broadcast_bits_status_e broadcast_bits_status[VSI_NN_MAX_DIM_NUM] = {VSI_BROADCAST_BITS_NONE};
+
+    if (vsi_nn_is_stream_process_supported_types(graph, inputs, input_num) == FALSE)
+    {
+        return FALSE;
+    }
+
+    for ( k = 1; k < input_num; k++ )
+    {
+        vsi_nn_tensor_t *input0 = inputs[k - 1];
+        vsi_nn_tensor_t *input1 = inputs[k];
+        uint32_t rank0 = input0->attr.dim_num;
+        uint32_t rank1 = input1->attr.dim_num;
+
+        broadcast_bits_status[0] = VSI_BROADCAST_BITS_NONE;
+        broadcast_bits_status[1] = VSI_BROADCAST_BITS_NONE;
+
+        for ( i = 0; i < rank; i++ )
+        {
+            vsi_size_t sz0 = i < rank0 ? input0->attr.size[i] : 1;
+            vsi_size_t sz1 = i < rank1 ? input1->attr.size[i] : 1;
+
+            if (sz0 != sz1)
+            {
+                broadcast_bits_0 |= sz0 == 1 ? (1 << i) : 0;
+                broadcast_bits_1 |= sz1 == 1 ? (1 << i) : 0;
+
+                is_broadcast = vx_true_e;
+            }
+        }
+
+        broadcast_bits_status[0] = broadcast_bits_0;
+        broadcast_bits_status[1] = broadcast_bits_1;
+
+        if (broadcast_bits_status[0] == VSI_BROADCAST_BITS_ON_AXIS_1 &&
+            broadcast_bits_status[1] == VSI_BROADCAST_BITS_NONE)
+        {
+            vsi_size_t channel = rank0 > 2 ? input0->attr.size[2] : 1;
+
+            if (channel == 1)
+            {
+                broadcast_bits_status[0] = VSI_BROADCAST_BITS_ON_AXIS_21;
+            }
+        }
+        else if (broadcast_bits_status[1] == VSI_BROADCAST_BITS_ON_AXIS_1 &&
+                 broadcast_bits_status[0] == VSI_BROADCAST_BITS_NONE)
+        {
+            vx_size channel = rank0 > 2 ? input0->attr.size[2] : 1;
+
+            if (channel == 1)
+            {
+                broadcast_bits_status[1] = VSI_BROADCAST_BITS_ON_AXIS_21;
+            }
+        }
+
+        key = _PACK_ELTWISE_SP_KEY(broadcast_bits_status[0], broadcast_bits_status[1]);
+
+        switch ( key )
+        {
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_2,   VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_2):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_21,  VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_21):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_210, VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_210):
+            break;
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_0,   VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_10,  VSI_BROADCAST_BITS_NONE):
+            support = support && (vsi_nn_TypeGetBits(input0->attr.dtype.vx_type) != 4);
+            break;
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_0):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_10):
+            support = support && (vsi_nn_TypeGetBits(input1->attr.dtype.vx_type) != 4);
+            break;
+        default:
+            support = !is_broadcast;
+            break;
+        }
+
+        if (support == FALSE)
+        {
+            break;
+        }
+    }
+
+    return support;
 }

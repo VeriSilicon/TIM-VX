@@ -1,0 +1,94 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniBilinear_8x_l10_4x8;
+_viv_uniform VXC_512Bits uniBilinear_8x_l11_4x8;
+_viv_uniform VXC_512Bits uniBilinear_8x_l20_4x8;
+_viv_uniform VXC_512Bits uniBilinear_8x_l21_4x8;
+_viv_uniform VXC_512Bits uniBilinear_8x_l30_4x8;
+_viv_uniform VXC_512Bits uniBilinear_8x_l31_4x8;
+_viv_uniform VXC_512Bits uniBilinear_8x_l40_4x8;
+_viv_uniform VXC_512Bits uniBilinear_8x_l41_4x8;
+__kernel void resize_bilinear_U8toU8_SAME_8x_upsample_align_corners
+    (
+    __read_only  image2d_array_t   input,
+    __write_only image2d_array_t   output,
+                             int   align_corners,
+                             int   half_pixel_centers
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), get_global_id(2));
+
+
+    vxc_uchar16 in0, in1, dst;
+
+    int8 input_desc;
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));
+    int baseAddr = (int)coord.z * input_desc.s4 + input_desc.s0;
+    _viv_asm(MOV, coord.w, baseAddr);
+    VXC_OP4(img_load_3d, in0, input, coord.xywz, VXC_5BITOFFSET_XY(0, 0),
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_OP4(img_load_3d, in1, input, coord.xywz, VXC_5BITOFFSET_XY(0, 1),
+            VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    coord.xy = coord.xy << 3;
+
+    int8 output_desc;
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc));
+    baseAddr = (int)coord.z * output_desc.s4 + output_desc.s0;
+    _viv_asm(MOV, coord.w, baseAddr);
+
+
+    VXC_DP4x8(dst, in0, in0, VXC_MODIFIER(0, 7,  0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l10_4x8);
+    VXC_DP4x8(dst, in0, in0, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l11_4x8);
+
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst,
+        VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+    coord.y ++;
+
+    VXC_DP4x8(dst, in0, in1, VXC_MODIFIER(0, 7,  0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l10_4x8);
+    VXC_DP4x8(dst, in0, in1, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l11_4x8);
+
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst,
+        VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+    coord.y ++;
+
+    VXC_DP4x8(dst, in0, in1, VXC_MODIFIER(0, 7,  0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l20_4x8);
+    VXC_DP4x8(dst, in0, in1, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l21_4x8);
+
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst,
+        VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+    coord.y ++;
+
+    VXC_DP4x8(dst, in0, in1, VXC_MODIFIER(0, 7,  0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l30_4x8);
+    VXC_DP4x8(dst, in0, in1, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l31_4x8);
+
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst,
+        VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+    coord.y ++;
+
+    VXC_DP4x8(dst, in0, in1, VXC_MODIFIER(0, 7,  0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l40_4x8);
+    VXC_DP4x8(dst, in0, in1, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l41_4x8);
+
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst,
+        VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+    coord.y ++;
+
+    VXC_DP4x8(dst, in1, in0, VXC_MODIFIER(0, 7,  0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l30_4x8);
+    VXC_DP4x8(dst, in1, in0, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l31_4x8);
+
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst,
+        VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+    coord.y ++;
+
+    VXC_DP4x8(dst, in1, in0, VXC_MODIFIER(0, 7,  0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l20_4x8);
+    VXC_DP4x8(dst, in1, in0, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l21_4x8);
+
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst,
+        VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+    coord.y ++;
+
+    VXC_DP4x8(dst, in1, in0, VXC_MODIFIER(0, 7,  0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l10_4x8);
+    VXC_DP4x8(dst, in1, in0, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniBilinear_8x_l11_4x8);
+
+    VXC_OP4_NoDest(img_store_3d, output, coord.xywz, dst,
+        VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0));
+}

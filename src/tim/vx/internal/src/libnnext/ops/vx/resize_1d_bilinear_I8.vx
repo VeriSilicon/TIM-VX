@@ -129,6 +129,7 @@ __kernel void resize_1d_bilinear_I8toI8_DOWN
         coord_in.x = left_x_idx.w;
         VXC_OP4(img_load_3d, src, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
+        coord_in.x = left_x_idx.x;
 
         VXC_DP4x4(left4, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_left_4x4);
         VXC_DP4x4(right4, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertDFP2FP32_right_4x4);

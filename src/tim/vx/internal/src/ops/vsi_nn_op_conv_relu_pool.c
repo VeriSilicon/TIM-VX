@@ -23,6 +23,7 @@
 *****************************************************************************/
 #include <string.h>
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
@@ -171,7 +172,7 @@ static vsi_status op_optimize
 {
     vsi_status status;
     vsi_bool ret;
-    vsi_nn_tensor_t conv_out, *pconv_out;
+    vsi_nn_tensor_prv_t conv_out, *pconv_out;
     vx_nn_convolution_relu_pooling_params_ext2_t p;
     vx_weights_biases_parameter_optimizations_t opt;
     vx_weights_biases_parameter_optimizations_t * p_opt;
@@ -184,10 +185,10 @@ static vsi_status op_optimize
     }
 
     VSILOGD("Optimize %s", vsi_nn_OpGetName(self->op));
-    memset(&conv_out, 0, sizeof(vsi_nn_tensor_t));
+    memset(&conv_out, 0, sizeof(vsi_nn_tensor_prv_t));
     pconv_out = &conv_out;
 
-    ret = vsi_nn_OpSetup( VSI_NN_OP_CONV2D, self, inputs, &pconv_out );
+    ret = vsi_nn_OpSetup( VSI_NN_OP_CONV2D, self, inputs, (vsi_nn_tensor_t**)(&pconv_out) );
     if(ret == FALSE)
     {
         VSILOGE("OpSetup [VSI_NN_OP_CONV2D] fail\n");
@@ -223,7 +224,7 @@ static vsi_status op_optimize
             for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
             {
                 size_input0[i] = (vx_size)inputs[0]->attr.size[i];
-                size_pconv_out[i] = (vx_size)pconv_out->attr.size[i];
+                size_pconv_out[i] = (vx_size)pconv_out->pot.attr.size[i];
                 size_output0[i] = (vx_size)outputs[0]->attr.size[i];
             }
             inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(
@@ -248,7 +249,7 @@ static vsi_status op_optimize
             for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
             {
                 size_u32_input0[i] = (uint32_t)inputs[0]->attr.size[i];
-                size_u32_pconv_out[i] = (uint32_t)pconv_out->attr.size[i];
+                size_u32_pconv_out[i] = (uint32_t)pconv_out->pot.attr.size[i];
                 size_u32_output0[i] = (uint32_t)outputs[0]->attr.size[i];
             }
             inputs[1]->wb = vxCreateWeightsBiasesParameterFromTensors2(

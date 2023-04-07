@@ -1,0 +1,95 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniU8MulAndPostShift0_Lo_2x8;
+_viv_uniform VXC_512Bits uniU8MulAndPostShift0_Hi_2x8;
+_viv_uniform VXC_512Bits uniU8MulAndPostShift1_Lo_2x8;
+_viv_uniform VXC_512Bits uniU8MulAndPostShift1_Hi_2x8;
+_viv_uniform int2 multAndoutZP0;//[0:15] multiplier, [31:63] output zp
+_viv_uniform int2 multAndoutZP1;//[0:15] multiplier, [31:63] output zp
+
+_viv_uniform int update_width;
+_viv_uniform int output_width;
+
+_viv_uniform int offsetX;
+_viv_uniform int offsetY;
+_viv_uniform int offsetZ;
+_viv_uniform int offsetW;
+_viv_uniform int offset_idx;
+
+#define SCATTER_ND_UPDATE_REF2OUT_8BITS(src0_type, data_type) \
+__kernel void scatter_nd_update_ref2out_##src0_type##to##src0_type( \
+    __read_only image2d_t   input_ref, \
+    image2d_t  temp_ref, \
+    image2d_t  output0 \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    Image img0 = create_image_from_image2d(input_ref, 1); \
+    Image img1 = create_image_from_image2d(temp_ref, 1); \
+    __global data_type* in_ptr = (__global data_type*)img0.ptr; \
+    __global data_type* out_ptr = (__global data_type*)img1.ptr; \
+    data_type src, dst; \
+    src = in_ptr[gidx]; \
+    vxc_ushort8 mp0; \
+    _viv_asm(COPY, mp0, multAndoutZP0, 16); \
+    VXC_DP2x8(dst, src, mp0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift0_Lo_2x8); \
+    VXC_DP2x8(dst, src, mp0, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift0_Hi_2x8); \
+    out_ptr[gidx] = dst; \
+}
+SCATTER_ND_UPDATE_REF2OUT_8BITS(U8,  vxc_uchar16)
+SCATTER_ND_UPDATE_REF2OUT_8BITS(I8,  vxc_char16)
+
+#define SCATTER_ND_UPDATE_UPDATE2REF_8BITS(src0_type, data_type) \
+__kernel void scatter_nd_update_update2ref_##src0_type##to##src0_type##_16x( \
+    __read_only image2d_t   input_index, \
+    __read_only image2d_t   input_update, \
+    image2d_t  temp_ref, \
+    image2d_t  input0, \
+    image2d_t  output1, \
+    int width, int area, int vol, int coord_dim \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+ \
+    Image img1 = create_image_from_image2d(input_index, 4); \
+    Image img2 = create_image_from_image2d(input_update, 1); \
+    Image img3 = create_image_from_image2d(temp_ref, 1); \
+    __global int* index_ptr = (__global int*)img1.ptr; \
+    __global data_type* update_ptr = (__global data_type*)img2.ptr; \
+    __global data_type* output_ptr = (__global data_type*)img3.ptr; \
+    data_type dst; \
+ \
+    int4 indice = vload4(0, index_ptr + gidy * coord_dim + offset_idx); \
+    data_type src = update_ptr[gidy * update_width + gidx]; \
+    int idx = indice.x * offsetX + indice.y * offsetY + indice.z * offsetZ + indice.w * offsetW; \
+    int loc = idx * output_width + gidx; \
+    vxc_ushort8 mp1; \
+    _viv_asm(COPY, mp1, multAndoutZP1, 16); \
+    VXC_DP2x8(dst, src, mp1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift1_Lo_2x8); \
+    VXC_DP2x8(dst, src, mp1, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), \
+        uniU8MulAndPostShift1_Hi_2x8); \
+    output_ptr[loc] = dst; \
+}
+SCATTER_ND_UPDATE_UPDATE2REF_8BITS(U8,  vxc_uchar16)
+SCATTER_ND_UPDATE_UPDATE2REF_8BITS(I8,  vxc_char16)
+
+#define SCATTER_ND_UPDATE_COPY2OUT(src0_type, data_type, element_size) \
+__kernel void scatter_nd_update_cpy2out_##src0_type##to##src0_type( \
+    __read_only image2d_t   temp_ref, \
+    image2d_t  input1, \
+    image2d_t  output \
+    ) \
+{ \
+    int gidx = get_global_id(0); \
+    Image img0 = create_image_from_image2d(temp_ref, element_size); \
+    Image img1 = create_image_from_image2d(output, element_size); \
+    __global data_type* in_ptr = (__global data_type*)img0.ptr; \
+    __global data_type* out_ptr = (__global data_type*)img1.ptr; \
+    out_ptr[gidx] = in_ptr[gidx]; \
+}
+SCATTER_ND_UPDATE_COPY2OUT(U8,  vxc_uchar16, 1)
+SCATTER_ND_UPDATE_COPY2OUT(I8,  vxc_char16, 1)

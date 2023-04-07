@@ -35,7 +35,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
+#include "kernel/vsi_nn_kernel_eltwise.h"
 
 __BEGIN_DECLS
 
@@ -286,29 +286,74 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_LOGICAL_OPS_PARAM_NUM] = {NULL};
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
+    vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
+    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
+    vsi_size_t new_rank = 0;
+    vsi_bool ret = FALSE;
     uint32_t ops_type  = vsi_nn_kernel_param_get_int32( params, "ops_type" );
 
-    if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
-                outputs[0]->attr.dim_num ) )
+    ret = vsi_nn_kernel_optimize_eltwise_shape(
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[1]->attr.size, inputs[1]->attr.dim_num,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            shapes[0], shapes[1], shapes[2], &new_rank );
+
+    if ( ret )
     {
-        return NULL;
+        reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
+                inputs[0], shapes[0], new_rank );
+        reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
+                inputs[1], shapes[1], new_rank );
+        reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
+                outputs[0], shapes[2], new_rank );
+
+#define _swap_tensor(a, b, tmp)  \
+    do { \
+        tmp = a; \
+        a = b; \
+        b = tmp; \
+    } while(0)
+
+        if (shapes[1][3] > shapes[0][3] && new_rank == 4)
+        {
+            vsi_nn_tensor_t* reshape_tmp;
+            _swap_tensor(reshape_tensors[0], reshape_tensors[1], reshape_tmp);
+        }
+
+#undef _swap_tensor
+    }
+    else
+    {
+        goto final;
     }
 
-    image_2d = (outputs[0]->attr.dim_num == 2);
+    if ( !vsi_nn_kernel_gpu_check_shape( reshape_tensors[2]->attr.size,
+                reshape_tensors[2]->attr.dim_num ) )
+    {
+        goto final;
+    }
 
-    status = _query_kernel( kernel, inputs, outputs, image_2d, (vsi_nn_logical_ops_type_t)ops_type);
+    image_2d = (reshape_tensors[2]->attr.dim_num == 2 || reshape_tensors[2]->attr.size[2] == 1);
 
-    if( VSI_SUCCESS == status)
+    status = _query_kernel( kernel, reshape_tensors, &reshape_tensors[2],
+                                image_2d, (vsi_nn_logical_ops_type_t)ops_type);
+
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             /* Pass parameters to node. */
             vsi_nn_kernel_node_pack_io( node_params, _LOGICAL_OPS_PARAM_NUM,
-                    inputs, input_num, outputs, output_num );
+                    reshape_tensors, input_num, &reshape_tensors[2], output_num );
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _LOGICAL_OPS_PARAM_NUM );
         }
     }
+
+final:
+    vsi_safe_release_tensor( reshape_tensors[0] );
+    vsi_safe_release_tensor( reshape_tensors[1] );
+    vsi_safe_release_tensor( reshape_tensors[2] );
 
     return node;
 } /* _setup() */

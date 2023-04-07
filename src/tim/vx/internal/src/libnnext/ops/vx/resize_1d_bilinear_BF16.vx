@@ -51,6 +51,7 @@ __kernel void resize_1d_bilinear_BF16toBF16_DOWN
         coord_in.x = left_x_idx.w;
         VXC_OP4(img_load_3d, top, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
+        coord_in.x = left_x_idx.x;
 
         vxc_ushort8 src;
         float4 left4;

@@ -32,9 +32,9 @@
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_log.h"
+#include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_link_list.h"
-#include "kernel/vsi_nn_kernel.h"
 
 #define MAX_SOFTMAX_BATCH 65520
 
@@ -150,7 +150,7 @@ vsi_status op_compute
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
                 "softmax",
                 inputs, 1,
-                outputs, 1, kernel_param );;
+                outputs, 1, kernel_param );
 
         if( NULL != self->n )
         {

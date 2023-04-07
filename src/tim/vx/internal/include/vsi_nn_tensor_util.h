@@ -321,10 +321,38 @@ OVXLIB_API vsi_status vsi_nn_CopyDataToTensor
     );
 
 /**
- * Flush Handle
- * If you swap the handle of the tensor, you should flush it.
+ * Swap a tensor's Handle
+ * Swap handle to old_ptr to read/write, swap new handle to new_ptr to update handle.
  *
- * @param[in] tensor Tensor handle.
+ * APP SHOULD maintain handle that created by itself to manage memory correctly,
+ * never free or wirte data for handel allocated by OVXLIB.
+ *
+ * OVXLIB would not maintain original handle anymore if new_ptr == NULL.
+ *
+ * Before free data in handle allocated by APP, vsi_nn_SwapHandle(tensor, NULL, &prev_ptr)
+ * should be called to get contol of handle.
+ *
+ * @param[in] tensor Tensor.
+ * @param[in] new_ptr New handle of tensor.
+ * @param[in] is_new_ptr_malloc_by_ovxlib If new_ptr is allocated by ovxlib while new_ptr is not NULL.
+ * @param[out] old_ptr Old handle of tensor.
+ *
+ * @return VSI_SUCCESS on success, or error core otherwise.
+ */
+OVXLIB_API vsi_status vsi_nn_SwapHandle
+(
+    vsi_nn_tensor_t* tensor,
+    void* new_ptr,
+    vsi_bool is_new_ptr_malloc_by_ovxlib,
+    void** old_ptr
+);
+
+/**
+ * Flush Handle
+ * Call this function to flush new data to the handle in hand.
+ * vsi_nn_FlushHandle() should be called at last to compleate the data writting operation.
+ *
+ * @param[in] tensor Tensor.
  *
  * @return VSI_SUCCESS on success, or error core otherwise.
  */
@@ -332,6 +360,20 @@ OVXLIB_API vsi_status vsi_nn_FlushHandle
     (
     const vsi_nn_tensor_t * tensor
     );
+
+/**
+ * Invalidate Handle
+ * invalidate handle before copy data from tensor handle.
+ * Before read data in handle, vsi_nn_InvalidateHandle() should be called to do invalidate cache in APP.
+ *
+ * @param[in] tensor Tensor.
+ *
+ * @return VSI_SUCCESS on success, or error core otherwise.
+ */
+OVXLIB_API vsi_status vsi_nn_InvalidateHandle
+(
+    const vsi_nn_tensor_t* tensor
+);
 
 /**
  * Get Tensor Handle
@@ -347,6 +389,34 @@ OVXLIB_API vsi_status vsi_nn_GetTensorHandle
     vsi_nn_tensor_t      * tensor,
     void** ptr
     );
+
+/**
+ * Get Tensor is_scalar
+ * Get the is_scalar of the tensor
+ *
+ * @param[in] tensor Tensor.
+ *
+ * @return is_scalar flag of the tensor.
+ */
+OVXLIB_API int8_t vsi_nn_GetTensorIsScalar
+(
+    vsi_nn_tensor_t* tensor
+);
+
+/**
+ * Set Tensor is_scalar
+ * Set the is_scalar for the tensor
+ *
+ * @param[in] tensor Tensor.
+ * @param[in] new is_scalar value of the tensor.
+ *
+ * @return VSI_SUCCESS on success, or error core otherwise.
+ */
+OVXLIB_API vsi_status vsi_nn_SetTensorIsScalar
+(
+    vsi_nn_tensor_t* tensor,
+    int8_t is_scalar
+);
 
 OVXLIB_API vsi_status vsi_nn_CopyRawDataToTensor
     (
@@ -721,13 +791,6 @@ vsi_nn_tensor_t* vsi_nn_ConstTensorAdd_impl
     );
 #define vsi_nn_ConstTensorAdd(_graph, _output_attr, ...) \
     vsi_nn_ConstTensorAdd_impl(_graph, _output_attr, __VA_ARGS__, END_OF_VARIADIC_ARGUMENTS)
-
-vsi_status vsi_nn_SwapHandle
-    (
-    vsi_nn_tensor_t * tensor,
-    void * new_ptr,
-    void ** old_ptr
-    );
 
 vsi_bool vsi_nn_ConvertTensor
     (

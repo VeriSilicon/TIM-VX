@@ -113,6 +113,8 @@ static const _kernel_map_type _swish_kernel_map[] =
     SWISH_PACK_KERNEL_MAP_2D(U8,  U8),
     SWISH_PACK_KERNEL_MAP(I32,  I32),
     SWISH_PACK_KERNEL_MAP_2D(I32,  I32),
+    SWISH_PACK_KERNEL_MAP(F32,  U8),
+    SWISH_PACK_KERNEL_MAP_2D(F32,  U8),
     HSWISH_PACK_KERNEL_FLOAT_MAP(F32,  F32),
     HSWISH_PACK_KERNEL_FLOAT_MAP_2D(F32,  F32),
     HSWISH_PACK_KERNEL_FLOAT_MAP(F16,  F16),
@@ -221,6 +223,11 @@ static vsi_status _query_kernel
 
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    if (in_dtype == F16)
+        in_dtype = F32;
+    if (out_dtype == F16)
+        out_dtype = F32;
 
     key = SWISH_HASH_KEY(swish_type, in_dtype, out_dtype, image_2d);
 

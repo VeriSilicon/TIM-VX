@@ -67,7 +67,7 @@ typedef struct _vsi_nn_imageprocess_param
         int32_t mean_value_size;
         float* mean_value;
     } mean;
-} vsi_nn_imageprocess_param;
+} VSI_PUBLIC_TYPE vsi_nn_imageprocess_param;
 
 /**
 * Insert imageprocess op for image pre process

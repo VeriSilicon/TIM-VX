@@ -55,6 +55,13 @@ __BEGIN_DECLS
           CVIVANTE_NAMESPACE("cl.topk_odd_even_sort_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)"_I32"), \
           "topk_odd_even_sort" }
 
+#define TOPK_ODD_EVEN_SORT_HASH_KEY2( IN_DTYPE, OUT_DTYPE ) \
+       ( ( IN_DTYPE ) | ( OUT_DTYPE << 8 ) )
+#define PACK_ODD_EVEN_SORT_KERNEL_MAP2( IN_DTYPE, OUT_DTYPE ) \
+       { TOPK_ODD_EVEN_SORT_HASH_KEY2( IN_DTYPE, OUT_DTYPE ), \
+         CVIVANTE_NAMESPACE("cl.topk_odd_even_sort_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)"_I32"), \
+         "topk_odd_even_sort2" }
+
 typedef struct
 {
     uint32_t key;
@@ -88,6 +95,22 @@ static const _kernel_map_type _topk_kernel_map[] =
     PACK_KERNEL_MAP( I32, I32, 4 ),
     PACK_KERNEL_MAP( I32, I32, 5 ),
     PACK_KERNEL_MAP( I32, I32, 6 ),
+
+    PACK_KERNEL_MAP( F32, U32, 0 ),
+    PACK_KERNEL_MAP( F32, U32, 1 ),
+    PACK_KERNEL_MAP( F32, U32, 2 ),
+    PACK_KERNEL_MAP( F32, U32, 3 ),
+    PACK_KERNEL_MAP( F32, U32, 4 ),
+    PACK_KERNEL_MAP( F32, U32, 5 ),
+    PACK_KERNEL_MAP( F32, U32, 6 ),
+
+    PACK_KERNEL_MAP( F32, I32, 0 ),
+    PACK_KERNEL_MAP( F32, I32, 1 ),
+    PACK_KERNEL_MAP( F32, I32, 2 ),
+    PACK_KERNEL_MAP( F32, I32, 3 ),
+    PACK_KERNEL_MAP( F32, I32, 4 ),
+    PACK_KERNEL_MAP( F32, I32, 5 ),
+    PACK_KERNEL_MAP( F32, I32, 6 ),
 };
 
 static const _kernel_map_type _topk_odd_even_sort_kernel_map[] =
@@ -96,6 +119,8 @@ static const _kernel_map_type _topk_odd_even_sort_kernel_map[] =
     PACK_ODD_EVEN_SORT_KERNEL_MAP( F32, F32 ),
     PACK_ODD_EVEN_SORT_KERNEL_MAP( U32, U32 ),
     PACK_ODD_EVEN_SORT_KERNEL_MAP( I32, I32 ),
+    PACK_ODD_EVEN_SORT_KERNEL_MAP2( F32, U32 ),
+    PACK_ODD_EVEN_SORT_KERNEL_MAP2( F32, I32 ),
 };
 
 /*
@@ -108,11 +133,15 @@ static vx_param_description_t _topk_kernel_param_def[] =
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     // Add kererl parameters here
 };
 #define _TOPK_PARAM_NUM  _cnt_of_array( _topk_kernel_param_def )
-#define SCALAR_INPUT_NUM_STAGES (3)
-#define SCALAR_INPUT_WIDTH      (4)
+#define SCALAR_INPUT_NUM_STAGES (7)
+#define SCALAR_INPUT_WIDTH      (8)
 
 static vx_param_description_t _topk_odd_even_sort_kernel_param_def[] =
 {
@@ -122,10 +151,14 @@ static vx_param_description_t _topk_odd_even_sort_kernel_param_def[] =
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     // Add kererl parameters here
 };
 #define _TOPK_ODD_EVEN_SORT_PARAM_NUM  _cnt_of_array( _topk_odd_even_sort_kernel_param_def )
-#define SCALAR_INPUT_SIZE  (5)
+#define SCALAR_INPUT_SIZE  (9)
 /*
  * Kernel initializer
  */
@@ -251,6 +284,22 @@ static vsi_status _query_kernel
     case _PACK_SELECT_KEY(I8,  I8):
         key = TOPK_HASH_KEY( I32, I32, num_stages );
         break;
+    case _PACK_SELECT_KEY(F32, U32):
+    case _PACK_SELECT_KEY(F16, U32):
+    case _PACK_SELECT_KEY(F32, U16):
+    case _PACK_SELECT_KEY(F16, U16):
+    case _PACK_SELECT_KEY(F32, U8):
+    case _PACK_SELECT_KEY(F16, U8):
+        key = TOPK_HASH_KEY( F32, U32, num_stages );
+        break;
+    case _PACK_SELECT_KEY(F32, I32):
+    case _PACK_SELECT_KEY(F16, I32):
+    case _PACK_SELECT_KEY(F32, I16):
+    case _PACK_SELECT_KEY(F16, I16):
+    case _PACK_SELECT_KEY(F32, I8):
+    case _PACK_SELECT_KEY(F16, I8):
+        key = TOPK_HASH_KEY( F32, I32, num_stages );
+        break;
     default:
         break;
     }
@@ -318,6 +367,22 @@ static vsi_status _query_odd_even_sort_kernel
     case _PACK_SELECT_KEY(I8,  I8):
         key = TOPK_ODD_EVEN_SORT_HASH_KEY( I32, I32 );
         break;
+    case _PACK_SELECT_KEY(F32, U32):
+    case _PACK_SELECT_KEY(F16, U32):
+    case _PACK_SELECT_KEY(F32, U16):
+    case _PACK_SELECT_KEY(F16, U16):
+    case _PACK_SELECT_KEY(F32, U8):
+    case _PACK_SELECT_KEY(F16, U8):
+        key = TOPK_ODD_EVEN_SORT_HASH_KEY2( F32, U32 );
+        break;
+    case _PACK_SELECT_KEY(F32, I32):
+    case _PACK_SELECT_KEY(F16, I32):
+    case _PACK_SELECT_KEY(F32, I16):
+    case _PACK_SELECT_KEY(F16, I16):
+    case _PACK_SELECT_KEY(F32, I8):
+    case _PACK_SELECT_KEY(F16, I8):
+        key = TOPK_ODD_EVEN_SORT_HASH_KEY2( F32, I32 );
+        break;
     default:
         break;
     }
@@ -372,14 +437,24 @@ static vsi_nn_kernel_node_t _setup
     int32_t num_stages = (int32_t)ceil(log10(block_size / 2.0f) / log10(2.0f));
     vsi_bool is_odd_even_sort = FALSE;
     size_t param_num = _TOPK_PARAM_NUM;
+    float inputScale  = vsi_nn_get_tensor_scale(inputs[0]);
+    float inputTail   = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
+    float outputTail  = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+
+    outputScale = 1.0f / outputScale;
+    inputTail   = -(inputTail * inputScale);
 
     for (i = 1; i < inputs[0]->attr.dim_num; i ++)
     {
         block_num = block_num * inputs[0]->attr.size[i];
     }
 
-    if( vsi_nn_is_same_type(inputs[0], outputs[0]) == FALSE ||
-        outputs[1]->attr.dtype.vx_type != VSI_NN_TYPE_INT32 )
+    if ((vsi_nn_is_same_type(inputs[0], outputs[0]) == FALSE ||
+       outputs[1]->attr.dtype.vx_type != VSI_NN_TYPE_INT32 ) &&
+      !(inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT16 &&
+        (outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8 ||
+        outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT16)))
     {
         return NULL;
     }
@@ -425,10 +500,15 @@ static vsi_nn_kernel_node_t _setup
         node = vsi_nn_kernel_create_node( graph, kernel );
         if ( node )
         {
-            /* Set inputs and outputs */
+            uint32_t index = (uint32_t)(input_num + output_num);
+            /* Set inputs and outputs  */
             vsi_nn_kernel_node_pack_io( node_params, param_num,
                     rs_tensors, input_num, &rs_tensors[input_num], output_num );
             /* Pass parameters to node. */
+            node_params[index++]  = vsi_nn_kernel_scalar_create(graph, I32, &inputScale );
+            node_params[index++]   = vsi_nn_kernel_scalar_create(graph, I32, &inputTail );
+            node_params[index++] = vsi_nn_kernel_scalar_create(graph, I32, &outputScale );
+            node_params[index++]  = vsi_nn_kernel_scalar_create(graph, I32, &outputTail );
             if (is_odd_even_sort)
             {
                 node_params[SCALAR_INPUT_SIZE] = vsi_nn_kernel_scalar_create(
@@ -452,8 +532,25 @@ final:
     vsi_safe_release_tensor(rs_tensors[2]);
     vsi_safe_release_tensor(rs_tensors[3]);
     vsi_safe_release_tensor(rs_tensors[4]);
+
     if (is_odd_even_sort)
     {
+        if (node_params[5])
+        {
+            vsi_nn_kernel_scalar_release( &node_params[5] );
+        }
+        if (node_params[6])
+        {
+            vsi_nn_kernel_scalar_release( &node_params[6] );
+        }
+        if (node_params[7])
+        {
+            vsi_nn_kernel_scalar_release( &node_params[7] );
+        }
+        if (node_params[8])
+        {
+            vsi_nn_kernel_scalar_release( &node_params[8] );
+        }
         if (node_params[SCALAR_INPUT_SIZE])
         {
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_SIZE] );
@@ -461,6 +558,22 @@ final:
     }
     else
     {
+        if (node_params[3])
+        {
+            vsi_nn_kernel_scalar_release( &node_params[3] );
+        }
+        if (node_params[4])
+        {
+            vsi_nn_kernel_scalar_release( &node_params[4] );
+        }
+        if (node_params[5])
+        {
+            vsi_nn_kernel_scalar_release( &node_params[5] );
+        }
+        if (node_params[6])
+        {
+            vsi_nn_kernel_scalar_release( &node_params[6] );
+        }
         if (node_params[SCALAR_INPUT_NUM_STAGES])
         {
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_NUM_STAGES] );

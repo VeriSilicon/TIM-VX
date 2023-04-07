@@ -501,6 +501,8 @@ enum vx_kernel_e {
 
     VX_KERNEL_STREAM_PROCESSOR = VX_KERNEL_BASE(VX_ID_VIVANTE, VX_LIBRARY_KHR_BASE) + 0x32,
 
+    VX_KERNEL_NN_BATCH_GEMM_RELU_POOLING_LAYER = VX_KERNEL_BASE(VX_ID_VIVANTE, VX_LIBRARY_KHR_BASE) + 0x33,
+
     VX_KERNEL_MAX_1_2, /*!< \internal Used for VX1.2 bounds checking in the conformance test. */
 };
 

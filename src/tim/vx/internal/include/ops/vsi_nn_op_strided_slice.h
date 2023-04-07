@@ -71,6 +71,7 @@ typedef struct _vsi_nn_strided_slice_lcl_data2
 
     vsi_bool is_dataconvert_op;
     vsi_bool is_optimized;
+    vsi_bool is_same_shape;
 
     strided_slice_param params;
 } vsi_nn_strided_slice_lcl_data2;

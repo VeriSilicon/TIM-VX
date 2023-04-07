@@ -30,6 +30,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
+#include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
@@ -53,21 +54,22 @@ static vsi_status op_compute
     int32_t axis = self->nn_param.gather.axis;
     int32_t batch_dims = self->nn_param.gather.batch_dims;
     vsi_size_t *input_size = inputs[0]->attr.size;
-    uint32_t dims_num = inputs[0]->attr.dim_num;
+    uint32_t r_rank = vsi_nn_GetTensorIsScalar(inputs[0]) ? 0 : inputs[0]->attr.dim_num;
+    uint32_t q_rank = vsi_nn_GetTensorIsScalar(inputs[1]) ? 0 : inputs[1]->attr.dim_num;
 
-    param =vsi_nn_kernel_param_create();
+    param = vsi_nn_kernel_param_create();
 
-    for(i = 0; i < (uint32_t)axis; ++i)
+    for (i = 0; i < (uint32_t)axis; ++i)
     {
         block_size *= input_size[i];
     }
 
     axis_num = input_size[axis];
-    for(i = axis + 1; i < dims_num - batch_dims; ++i)
+    for (i = axis + 1; i < r_rank - batch_dims; ++i)
     {
         block_num *= input_size[i];
     }
-    for(i = 0; i < (uint32_t)inputs[1]->attr.dim_num - batch_dims; ++i)
+    for (i = 0; i < q_rank - batch_dims; ++i)
     {
         indices_num *= inputs[1]->attr.size[i];
     }
@@ -79,13 +81,13 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "indices_num", (int32_t)indices_num );
     vsi_nn_kernel_param_add_int32( param, "batch_dims", (int32_t)batch_dims );
     n = vsi_nn_kernel_selector( self->graph, "gather", inputs, 2, outputs, 1, param );
-    if( n != NULL )
+    if ( n != NULL )
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;
     }
 
-    if(param != NULL)
+    if (param != NULL)
     {
         vsi_nn_kernel_param_release( &param );
     }
@@ -165,23 +167,38 @@ static vsi_bool op_setup
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         uint32_t j = 0;
+        uint32_t r_rank = vsi_nn_GetTensorIsScalar(inputs[0]) ? 0 : inputs[0]->attr.dim_num;
+        uint32_t q_rank = vsi_nn_GetTensorIsScalar(inputs[1]) ? 0 : inputs[1]->attr.dim_num;
+        uint32_t o_rank = r_rank + q_rank - 1;
+
         p = &(self->nn_param.gather);
-        outputs[0]->attr.dim_num = inputs[0]->attr.dim_num + inputs[1]->attr.dim_num - 1;
-        for (i = 0; i < (uint32_t)p->axis; i++)
+
+        outputs[0]->attr.dim_num = o_rank ? o_rank : 1;
+
+        if (o_rank == 0)
         {
-            outputs[0]->attr.size[j] = inputs[0]->attr.size[i];
-            j++;
+            outputs[0]->attr.size[0] = 1;
+            vsi_nn_SetTensorIsScalar(outputs[0], TRUE);
         }
-        for (i = 0; i < inputs[1]->attr.dim_num; i++)
+        else
         {
-            outputs[0]->attr.size[j] = inputs[1]->attr.size[i];
-            j++;
+            for (i = 0; i < (uint32_t)p->axis; i++)
+            {
+                outputs[0]->attr.size[j] = inputs[0]->attr.size[i];
+                j++;
+            }
+            for (i = 0; i < inputs[1]->attr.dim_num; i++)
+            {
+                outputs[0]->attr.size[j] = inputs[1]->attr.size[i];
+                j++;
+            }
+            for (i = (uint32_t)p->axis + 1; i < inputs[0]->attr.dim_num; i++)
+            {
+                outputs[0]->attr.size[j] = inputs[0]->attr.size[i];
+                j++;
+            }
         }
-        for (i = (uint32_t)p->axis + 1; i < inputs[0]->attr.dim_num; i++)
-        {
-            outputs[0]->attr.size[j] = inputs[0]->attr.size[i];
-            j++;
-        }
+
     }
     return TRUE;
 } /* op_setup() */
