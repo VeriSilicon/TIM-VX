@@ -171,3 +171,53 @@ TEST(GroupedConv2d, kernel_bigger_than_input_SAME) {
   EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
   EXPECT_EQ(golden, output);
 }
+
+TEST(FC, share_const_tensor) {
+  auto ctx = tim::vx::Context::Create();
+  auto src_graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({2, 1});
+  tim::vx::ShapeType kernel_shape({2, 2});
+  tim::vx::ShapeType bias_shape({2});
+  tim::vx::ShapeType output_shape({2, 1});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec kernel_spec(tim::vx::DataType::FLOAT32, kernel_shape,
+                                  tim::vx::TensorAttribute::CONSTANT);
+  tim::vx::TensorSpec bias_spec(tim::vx::DataType::FLOAT32, bias_shape,
+                                tim::vx::TensorAttribute::CONSTANT);
+  tim::vx::TensorSpec tran_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::TRANSIENT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+  std::vector<float> in_data = {1,4,};
+  std::vector<float> weight = {-3,3,2,1,};
+  std::vector<float> bias = {0.1, 0.4,};
+  std::vector<float> golden = {-8, 25};
+  auto input_tensor = src_graph->CreateTensor(input_spec);
+  auto weight_tensor = src_graph->CreateTensor(kernel_spec, weight.data());
+  auto bias_tensor = src_graph->CreateTensor(bias_spec, bias.data());
+  auto tran_tensor = src_graph->CreateTensor(tran_spec);
+  auto output_tensor = src_graph->CreateTensor(output_spec);
+
+  auto op1 = src_graph->CreateOperation<tim::vx::ops::FullyConnected>(0,2);
+  (*op1).BindInputs({input_tensor, weight_tensor, bias_tensor}).BindOutputs({tran_tensor});
+
+  auto op2 = src_graph->CreateOperation<tim::vx::ops::FullyConnected>(0,2);
+  (*op2).BindInputs({tran_tensor, weight_tensor, bias_tensor}).BindOutputs({output_tensor});
+  // Do layout inference
+  auto transform = tim::transform::LayoutInference(src_graph, ctx);
+  auto infer_graph = transform.first;
+  auto graph_io_map = transform.second;
+  infer_graph->Compile();
+
+  auto infer_input = graph_io_map[src_graph->InputsTensor()[0]];
+  auto infer_output = graph_io_map[src_graph->OutputsTensor()[0]];
+
+  infer_input->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float));
+  infer_graph->Run();
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}

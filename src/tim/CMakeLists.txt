@@ -140,6 +140,10 @@ target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
 target_link_libraries(${TARGET_NAME} PUBLIC
     -Wl,--no-whole-archive  ${OVXDRV_LIBRARIES} ${EXTERNAL_LIBS})
 
+if(${TIM_VX_ENABLE_TENSOR_CACHE})
+    target_link_libraries(${TARGET_NAME} PUBLIC ${OPENSSL_CRYPTO_LIBRARY})
+endif()
+
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
   #-Wl,--whole-archive should not applied to external library, but only for shared library
     target_link_libraries(${TARGET_NAME} PUBLIC tim_internal)

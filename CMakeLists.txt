@@ -15,6 +15,7 @@ option(TIM_VX_ENABLE_PLATFORM           "Enable multi devices support"          
 option(TIM_VX_ENABLE_PLATFORM_LITE      "Enable lite multi-device support"      OFF)
 option(TIM_VX_ENABLE_GRPC               "Enable gPRC support"                   OFF)
 option(TIM_VX_DBG_ENABLE_TENSOR_HNDL    "Enable built-in tensor from handle: use malloced memory instead of VideoMemory by kernel driver" ON)
+option(TIM_VX_ENABLE_TENSOR_CACHE       "Enable tensor cache for const tensor"  ON)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -44,6 +45,11 @@ endif()
 if(${TIM_VX_ENABLE_40BIT})
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVSI_40BIT_VA_SUPPORT")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVSI_40BIT_VA_SUPPORT")
+endif()
+
+if(${TIM_VX_ENABLE_TENSOR_CACHE})
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_TENSOR_CACHE")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_TENSOR_CACHE")
 endif()
 
 if(${TIM_VX_ENABLE_CUSTOM_OP})
@@ -93,6 +99,9 @@ if(TIM_VX_ENABLE_GRPC)
     include(cmake/gRPC.cmake)
 endif()
 
+if(TIM_VX_ENABLE_TENSOR_CACHE)
+    find_package(OpenSSL REQUIRED)
+endif()
 add_subdirectory("src/tim")
 
 if(TIM_VX_BUILD_EXAMPLES)
