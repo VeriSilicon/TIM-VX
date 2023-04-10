@@ -222,12 +222,10 @@ bool GraphImpl::Compile() {
   bool status = true;
   if (not_consumed_input_cnt_ > 0 ) {
     // Tensor can bind to different operations
-    VSILOGE("Graph has free input, INPUT tensor may be created with OUTPUT attr.");
-    return false;
+    VSILOGW("Graph has free input, INPUT tensor may be created but not consumed.");
   }
   if (not_consumed_output_cnt_ != 0) {
-    VSILOGE("Graph has free output, OUTPUT tensor may be created with INPUT attr.");
-    return false;
+    VSILOGW("Graph has free output, OUTPUT tensor may be created but not consumed.");
   }
   status = Setup();
   std::call_once(verify_graph_once_, [&status, this]() {
