@@ -53,6 +53,11 @@ if(TIM_VX_ENABLE_PLATFORM)
     )
 endif()
 
+aux_source_directory(./utils TRACE_SRCS)
+list(APPEND ${TARGET_NAME}_SRCS
+    ${TRACE_SRCS}
+)
+
 foreach(src_file ${${TARGET_NAME}_SRCS})
     if(${src_file} MATCHES ".*_test\.cc")
         list(REMOVE_ITEM ${TARGET_NAME}_SRCS ${src_file})

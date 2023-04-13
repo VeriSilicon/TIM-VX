@@ -338,3 +338,11 @@ ASALocalRun/
 build/
 *_build/
 .DS_Store
+
+# user specific ignore
+/bf400
+/host
+/host_bf
+/prebuilt-sdk
+/third_party
+/imx865

@@ -28,7 +28,11 @@
 
 #include "gtest/gtest.h"
 
+#include "tim/utils/trace_utils.h"
+
 #include <vector>
+
+namespace tvx = trace;
 
 TEST(graph, gen_binary_graph_with_empty_graph) {
     auto ctx = tim::vx::Context::Create();
@@ -89,4 +93,63 @@ TEST(graph, gen_binary_graph_with_simple_add) {
     output=0.0f;
     EXPECT_TRUE(nbg_out->CopyDataFromTensor(&output));
     EXPECT_EQ(output, expected_out);
+}
+
+TEST(graph, DISABLED_trace_test) {
+    auto ctx = tvx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tvx::ShapeType io_shape({1,2,2,1});
+    tvx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, io_shape, tim::vx::TensorAttribute::INPUT);
+    tvx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, io_shape, tim::vx::TensorAttribute::OUTPUT);
+    auto input_t0 = graph->CreateTensor(input_spec);
+    auto input_t1 = graph->CreateTensor(input_spec);
+    auto input_t2 = graph->CreateTensor(input_spec);
+    auto output_t0 = graph->CreateTensor(output_spec);
+
+    auto reshape = graph->CreateOperation<tvx::ops::Reshape>(io_shape);
+    (*reshape).BindInput(input_t0).BindOutput(input_t1);
+    auto add = graph->CreateOperation<tvx::ops::Add>();
+    (*add).BindInputs({input_t0, input_t2}).BindOutputs({output_t0});
+
+    size_t bin_size = -1;
+    EXPECT_TRUE(graph->CompileToBinary(nullptr, &bin_size));
+    EXPECT_NE(bin_size, -1);
+    std::vector<char> nbg_buf(bin_size);
+
+    // generate binary graph does't require input data
+    EXPECT_TRUE(graph->CompileToBinary(nbg_buf.data(), &bin_size));
+
+    // binary graph compilation doesn't impact current graph's execution
+    std::vector<float> in = {1.1f, 2.2f, 3.3f, 4.4f};
+    std::vector<float> expected_out = {2.2f, 4.4f, 6.6f, 8.8f};;
+    EXPECT_TRUE(input_t0->CopyDataToTensor(in.data(), sizeof(float) * in.size()));
+    EXPECT_TRUE(input_t2->CopyDataToTensor(in.data(), sizeof(float) * in.size()));
+
+    EXPECT_TRUE(graph->Run());
+    std::vector<float> output(in.size());
+    EXPECT_TRUE(output_t0->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(output, expected_out);
+
+    auto nbg_graph = ctx->CreateGraph();
+    auto nbg_in0 = nbg_graph->CreateTensor(input_spec);
+    auto nbg_in1 = nbg_graph->CreateTensor(input_spec);
+    auto nbg_out = nbg_graph->CreateTensor(output_spec);
+
+    EXPECT_TRUE(nbg_in0->CopyDataToTensor(in.data(), sizeof(float) * in.size()));
+    EXPECT_TRUE(nbg_in1->CopyDataToTensor(in.data(), sizeof(float) * in.size()));
+
+    auto nbg_node = nbg_graph->CreateOperation<tvx::ops::NBG, const char*, size_t, size_t>(
+        (nbg_buf.data()), /*num_of_input*/ 2,
+        /*num_of_output*/ 1);
+    (*nbg_node).BindInputs({nbg_in0, nbg_in1}).BindOutputs({nbg_out});
+    EXPECT_TRUE(nbg_graph->Compile());
+    EXPECT_TRUE(nbg_graph->Run());
+
+    EXPECT_TRUE(nbg_out->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(output, expected_out);
+}
+
+TEST(graph, DISABLED_replay_test) {
+    // paste trace_log.cc here to replay
 }
