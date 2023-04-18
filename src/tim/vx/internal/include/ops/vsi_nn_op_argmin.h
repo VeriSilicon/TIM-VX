@@ -111,6 +111,7 @@ typedef struct _vsi_nn_argmin_param
     /* argmin layer local data structure */
     vsi_nn_argmin_lcl_data local;
     int32_t axis;
+    vsi_bool keep_dims;
 } vsi_nn_argmin_param;
 
 #ifdef __cplusplus

@@ -35,6 +35,7 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_dtype_util.h"
+#include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 
 __BEGIN_DECLS
 
@@ -579,15 +580,32 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool image_2d = FALSE;
     float   min_value  = vsi_nn_kernel_param_get_float32( params, "min_value" );
     float   max_value  = vsi_nn_kernel_param_get_float32( params, "max_value" );
+    vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t new_rank = 0;
+    vsi_bool ret = TRUE;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
-                inputs[0]->attr.dim_num ) )
+    ret = vsi_nn_kernel_optimize_element_shape(
+        inputs[0]->attr.size, inputs[0]->attr.dim_num, shape, &new_rank);
+
+    if ( ret )
     {
         return NULL;
     }
 
-    image_2d = (inputs[0]->attr.dim_num == 2 || inputs[0]->attr.size[2] == 1);
-    status = _query_kernel( kernel, inputs, outputs, image_2d );
+    reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
+            inputs[0], shape, new_rank );
+    reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
+            outputs[0], shape, new_rank );
+
+    if ( !vsi_nn_kernel_gpu_check_shape( reshape_tensors[0]->attr.size,
+                reshape_tensors[0]->attr.dim_num ) )
+    {
+        return NULL;
+    }
+
+    image_2d = (reshape_tensors[0]->attr.dim_num == 2 || reshape_tensors[0]->attr.size[2] == 1);
+    status = _query_kernel( kernel, reshape_tensors, &reshape_tensors[1], image_2d );
     if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
@@ -595,7 +613,7 @@ static vsi_nn_kernel_node_t _setup
         {
             /* Set inputs and outputs */
             vsi_nn_kernel_node_pack_io( node_params, _CLIP_PARAM_NUM,
-                    inputs, input_num, outputs, output_num );
+                    reshape_tensors, input_num, &reshape_tensors[1], output_num );
             node_params[SCALAR_MIN_VALUE] = vsi_nn_kernel_scalar_create( graph, F32, &min_value );
             node_params[SCALAR_MAX_VALUE] = vsi_nn_kernel_scalar_create( graph, F32, &max_value );
             /* Pass parameters to node. */
@@ -605,6 +623,10 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_MAX_VALUE] );
         }
     }
+
+    vsi_safe_release_tensor( reshape_tensors[0] );
+    vsi_safe_release_tensor( reshape_tensors[1] );
+
     return node;
 } /* _setup() */
 

@@ -47,7 +47,7 @@ typedef struct vsi_nn_kernel_info
     vx_kernel_description_t ** kernel;
     uint8_t kernel_index;
     uint8_t init_index;
-} vsi_nn_kernel_info_t;
+} VSI_PUBLIC_TYPE vsi_nn_kernel_info_t;
 
 uint8_t * vsi_nn_LoadBinarySource
     (

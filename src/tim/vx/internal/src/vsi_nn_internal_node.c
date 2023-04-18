@@ -36,7 +36,6 @@
 #include "vsi_nn_test.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_util.h"
-#include "utils/vsi_nn_vdata.h"
 #include "utils/vsi_nn_map.h"
 
 /**********************************************************

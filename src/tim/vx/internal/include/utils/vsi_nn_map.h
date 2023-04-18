@@ -32,7 +32,7 @@
 extern "C"{
 #endif
 
-typedef vsi_nn_binary_tree_key_t vsi_nn_map_key_t;
+typedef vsi_nn_binary_tree_key_t VSI_PUBLIC_TYPE vsi_nn_map_key_t;
 
 typedef struct _vsi_nn_map_key_list
 {
@@ -45,7 +45,7 @@ typedef struct _vsi_nn_map
     int size;
     vsi_nn_map_key_list_t * keys;
     vsi_nn_binary_tree_t  * values;
-} vsi_nn_map_t;
+} VSI_PUBLIC_TYPE vsi_nn_map_t;
 
 OVXLIB_API void vsi_nn_MapInit
     (

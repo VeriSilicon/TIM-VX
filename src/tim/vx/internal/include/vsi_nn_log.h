@@ -46,7 +46,7 @@ typedef enum _vsi_nn_log_level_e
     VSI_NN_LOG_WARN,
     VSI_NN_LOG_INFO,
     VSI_NN_LOG_DEBUG
-}vsi_nn_log_level_e;
+} VSI_PUBLIC_TYPE vsi_nn_log_level_e;
 
 #define VSI_NN_MAX_DEBUG_BUFFER_LEN 1024
 #define VSILOGE( fmt, ... ) \

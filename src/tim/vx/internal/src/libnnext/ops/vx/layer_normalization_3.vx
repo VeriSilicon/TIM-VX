@@ -2,7 +2,7 @@
 
 /**************************layernorm float16***********************************/
 _viv_uniform int width;
-_viv_uniform float dimRatio;
+_viv_uniform float inv_multiplier;
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
 _viv_uniform VXC_512Bits uniExtractOddData_2x8;
@@ -46,9 +46,9 @@ __kernel void layer_norm_BF16F32toBF16(
         sqr += dot(srcA * srcA, ones) + dot(srcB * srcB, ones);
     }
     vxc_float mean;
-    mean = sum * dimRatio;
+    mean = sum * inv_multiplier;
     vxc_float vari;
-    vari = sqr*dimRatio - mean*mean;
+    vari = sqr*inv_multiplier - mean*mean;
     vari += eps;
     vari = rsqrt(vari);
     vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;
@@ -119,9 +119,9 @@ __kernel void layer_norm_BF16F32toBF16_2D(
         sqr += dot(srcA * srcA, ones) + dot(srcB * srcB, ones);
     }
     vxc_float mean;
-    mean = sum * dimRatio;
+    mean = sum * inv_multiplier;
     vxc_float vari;
-    vari = sqr*dimRatio - mean*mean;
+    vari = sqr*inv_multiplier - mean*mean;
     vari += eps;
     vari = rsqrt(vari);
     vxc_float4 bias_f0, bias_f1, scale_f0, scale_f1;

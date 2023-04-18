@@ -53,6 +53,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_lut_params lut_param;
 
+    memset(&lut_param, 0, sizeof(lut_param));
+
     lut_param.act_type = lut_type;
     if (lut_type == VSI_NN_KERNEL_LUT_RELU_KERAS)
     {
@@ -73,6 +75,11 @@ static vsi_nn_kernel_node_t _setup
     else if (lut_type == VSI_NN_KERNEL_LUT_CELU)
     {
         lut_param.params[0] = vsi_nn_kernel_param_get_float32( params, "alpha" );
+    }
+    else if (lut_type == VSI_NN_KERNEL_LUT_ACOSH)
+    {
+        lut_param.pwl_sign_remove_support = TRUE;
+        lut_param.clamp_min = 0;
     }
 
     if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32   ||
@@ -148,6 +155,7 @@ REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( clip,         VSI_NN_KERNEL_LUT_CLIP )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( celu,         VSI_NN_KERNEL_LUT_CELU )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( rcp,          VSI_NN_KERNEL_LUT_RCP )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( softsign,     VSI_NN_KERNEL_LUT_SOFTSIGN )
+REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( atan,         VSI_NN_KERNEL_LUT_ATAN )
 
 #undef REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL
 

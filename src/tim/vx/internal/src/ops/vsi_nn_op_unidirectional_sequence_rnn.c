@@ -244,7 +244,7 @@ static vsi_bool op_setup
                     curr_param->internal_dtype[k] = reshape_output->attr.dtype;
                 }
             }
-        }        
+        }
         memcpy( curr->node->nn_param.rnncell_ovxlib.internal_dtype,
             curr_param->internal_dtype, sizeof( curr_param->internal_dtype ) );
         curr->inputs[RNNCELL_INPUT_INPUT] = reshape_output;

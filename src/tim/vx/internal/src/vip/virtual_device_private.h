@@ -21,14 +21,13 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VIP_VIRTUAL_DEVICE_PRIVATE_H
+#ifndef _VIP_VIRTUAL_DEVICE_PRIVARE_H
 #define _VIP_VIRTUAL_DEVICE_PRIVATE_H
 
 #include <memory>
 #include <queue>
 #include <vector>
 #include <map>
-#include <array>
 #include <thread>
 #include <iostream>
 #include <mutex>

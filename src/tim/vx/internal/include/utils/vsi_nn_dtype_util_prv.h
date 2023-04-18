@@ -464,6 +464,7 @@ static VSI_INLINE_API vsi_status dtype_to_float32
     case VSI_NN_TYPE_BOOL8:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_INT16:
+    case VSI_NN_TYPE_UINT16:
     case VSI_NN_TYPE_INT32:
         {
             int32_t src_value = 0;
@@ -516,6 +517,7 @@ static VSI_INLINE_API vsi_status float32_to_dtype
     case VSI_NN_TYPE_BOOL8:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_INT16:
+    case VSI_NN_TYPE_UINT16:
     case VSI_NN_TYPE_INT32:
     case VSI_NN_TYPE_UINT32:
         {

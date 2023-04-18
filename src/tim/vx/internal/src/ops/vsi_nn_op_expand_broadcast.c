@@ -43,7 +43,7 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    return vsi_nn_internal_compute_node( self );;
+    return vsi_nn_internal_compute_node( self );
 }
 
 static vsi_bool op_check
@@ -118,9 +118,12 @@ static vsi_bool op_setup
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     attr.dim_num = p->dim_num;
-    if (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32) {
+    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE &&
+        (inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32 ||
+        inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT16)) {
         attr.dtype.vx_type = VSI_NN_TYPE_INT32;
-    } else {
+    }
+    else {
         attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
     }
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
@@ -140,7 +143,6 @@ static vsi_bool op_setup
         reshape_node = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
         reshape_input_size = (vsi_size_t*)vsi_nn_internal_new_node_param(reshape_node,
             VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
-
         for(i = 0; i < p->dim_num; i++) {
             reshape_input_size[i] = 1;
         }

@@ -889,6 +889,10 @@ static vsi_bool op_setup_default
                                                 inputs[GRUCELL_INPUT_BIAS_H2R + i],
                                                 &p->internal_dtype[GRUCELL_QUANTIZE_PARAM_H2R + i],
                                                 use_virtual_tensor);
+            if (hstate_gate_fc_outputs[i] == NULL)
+            {
+                goto error;
+            }
         }
     }
     else
@@ -1165,6 +1169,10 @@ static vsi_bool op_setup_default
     vsi_nn_internal_setup_node(self, curr);
 
     return TRUE;
+
+error:
+    return FALSE;
+
 } /* op_setup() */
 
 static vsi_bool op_setup

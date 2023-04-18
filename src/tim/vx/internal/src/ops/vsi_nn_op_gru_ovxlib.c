@@ -186,6 +186,7 @@ static vsi_bool op_setup_default
     vsi_size_t batch_size = 0;
     vsi_size_t time_step = 0;
     vsi_size_t i = 0;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
@@ -306,7 +307,7 @@ static vsi_bool op_setup_default
         curr->outputs[GRUCELL_OUTPUT_OUTPUT] = grucell_out0;
         curr->outputs[GRUCELL_OUTPUT_H_STATE] = grucell_out1;
 
-        vsi_nn_internal_setup_node( self, curr );
+        ret = vsi_nn_internal_setup_node( self, curr );
 
         last_step_h_state = grucell_out1;
 
@@ -353,7 +354,7 @@ final:
     vsi_nn_safe_free( split_output_tensors );
     vsi_nn_safe_free( grucell_reshape_output_tensors );
 
-    return TRUE;
+    return ret;
 } /* op_setup_default() */
 
 static vsi_bool op_setup_optimized

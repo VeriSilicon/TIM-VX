@@ -116,6 +116,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_input_for_nn_fc
     vsi_size_t* reshape_in_size = NULL;
     uint32_t* permute_in_perm = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, &input->attr.dtype, use_virtual_tensor);
@@ -133,7 +134,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_input_for_nn_fc
     tmp_inode->node->nn_param.reshape2.dim_num = 4;
     tmp_inode->inputs[0] = input;
     tmp_inode->outputs[0] = tensor1->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
 
     if( multi_batch )
     {
@@ -168,6 +169,10 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_input_for_nn_fc
 
         tensor1 = tensor0;
     }
+    if (!ret)
+    {
+        tensor1 = NULL;
+    }
 
     return tensor1;
 }
@@ -189,6 +194,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_output_for_nn_fc
     uint32_t* permute_in_perm = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
     vsi_nn_tensor_t* tensor = input;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, &input->attr.dtype, use_virtual_tensor);
@@ -240,7 +246,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_output_for_nn_fc
     tmp_inode->node->nn_param.reshape2.dim_num = 2;
     tmp_inode->inputs[0] = tensor;
     tmp_inode->outputs[0] = tensor2->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor2 = NULL;
+    }
 
     return tensor2;
 }
@@ -332,6 +342,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tp_fc
     vsi_nn_internal_tensor_t* tensor1 = NULL;
     vsi_nn_internal_tensor_t* tensor2 = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     tensor = bias;
@@ -353,7 +364,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tp_fc
     tmp_inode->inputs[1] = weight;
     tmp_inode->inputs[2] = tensor;
     tmp_inode->outputs[0] = tensor2->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor2 = NULL;
+    }
 
     return tensor2;
 }
@@ -376,6 +391,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc
     vsi_nn_internal_tensor_t* tensor2 = NULL;
     vsi_nn_internal_tensor_t* reshaped_weight_tensor = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     tensor = bias;
@@ -410,7 +426,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc
     tmp_inode->inputs[1] = reshaped_weight_tensor->t;
     tmp_inode->inputs[2] = tensor;
     tmp_inode->outputs[0] = tensor2->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor2 = NULL;
+    }
 
     return tensor2;
 }
@@ -470,6 +490,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc_relu
     vsi_nn_internal_tensor_t* tensor2 = NULL;
     vsi_nn_internal_tensor_t* reshaped_weight_tensor = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     tensor = bias;
@@ -509,7 +530,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc_relu
     tmp_inode->inputs[1] = reshaped_weight_tensor->t;
     tmp_inode->inputs[2] = tensor;
     tmp_inode->outputs[0] = tensor2->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor2 = NULL;
+    }
 
     return tensor2;
 }
@@ -526,6 +551,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tensor_add
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* tensor1 = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
@@ -536,8 +562,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tensor_add
     tmp_inode->inputs[0] = input1;
     tmp_inode->inputs[1] = input2;
     tmp_inode->outputs[0] = tensor1->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
-
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor1 = NULL;
+    }
     return tensor1;
 }
 
@@ -578,6 +607,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_activation
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* tensor1 = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
@@ -589,7 +619,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_activation
     tmp_inode->node->nn_param.tanh.scale_a = 1.0f;
     tmp_inode->node->nn_param.tanh.scale_b = 1.0f;
     tmp_inode->outputs[0] = tensor1->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor1 = NULL;
+    }
 
     return tensor1;
 }
@@ -606,6 +640,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_transpose_time_major
     uint32_t* permute_in_perm = NULL;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
     vsi_nn_internal_node_t* curr = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
 
@@ -635,7 +670,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_transpose_time_major
     {
         curr->outputs[0] = output;
     }
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
+    if (!ret)
+    {
+        output_tensor = NULL;
+    }
 
     return output_tensor;
 }
@@ -722,6 +761,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_reshape_split_output
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
     vsi_size_t *reshape_split_size = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     /* reshape for split output */
@@ -738,7 +778,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_reshape_split_output
     curr->node->nn_param.reshape2.dim_num = 2;
     curr->inputs[0] = input;
     curr->outputs[0] = output_tensor->t;
-    vsi_nn_internal_setup_node( self, curr );
+    ret = vsi_nn_internal_setup_node( self, curr );
+    if (!ret)
+    {
+        output_tensor = NULL;
+    }
 
     return output_tensor;
 }
@@ -755,6 +799,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_reshape_cell_output
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
     vsi_size_t* reshape_grucell_output_size = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
 
@@ -773,7 +818,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_reshape_cell_output
     curr->node->nn_param.reshape2.dim_num = 3;
     curr->inputs[0] = input;
     curr->outputs[0] = output_tensor->t;
-    vsi_nn_internal_setup_node( self, curr );
+    ret = vsi_nn_internal_setup_node( self, curr );
+    if (!ret)
+    {
+        output_tensor = NULL;
+    }
 
     return output_tensor;
 }
@@ -791,6 +840,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_binary_operator
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
@@ -803,7 +853,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_binary_operator
     tmp_inode->inputs[0] = operand1;
     tmp_inode->inputs[1] = operand2;
     tmp_inode->outputs[0] = output_tensor->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        output_tensor = NULL;
+    }
 
     return output_tensor;
 }
@@ -823,6 +877,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_concat_impl
     vsi_nn_internal_tensor_t* tmp_tensor = NULL;
     vsi_nn_internal_node_t* inode = NULL;
     int tensor_count = 1;
+    vsi_bool ret = FALSE;
 
     va_start(args, tensor);
 
@@ -851,7 +906,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_concat_impl
     va_end(args);
     inode->outputs[0] = tmp_tensor->t;
 
-    vsi_nn_internal_setup_node(self, inode);
+    ret = vsi_nn_internal_setup_node(self, inode);
+    if (!ret)
+    {
+        tmp_tensor = NULL;
+    }
 
     return tmp_tensor;
 }
@@ -920,6 +979,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_reshape
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_internal_tensor_t* tensor0 = NULL;
     vsi_size_t* reshape_in_size = NULL;
+    vsi_bool ret = FALSE;
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RESHAPE2, 0, 0 );
     reshape_in_size = (vsi_size_t*)vsi_nn_internal_new_node_param(curr, dim_num * sizeof(vsi_size_t));
@@ -941,7 +1001,12 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_reshape
         tensor0 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
         curr->outputs[0] = tensor0->t;
     }
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
+    if (!ret)
+    {
+        tensor0 = NULL;
+    }
+
 
     return tensor0;
 }
@@ -959,6 +1024,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_permute
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_internal_tensor_t* tensor0 = NULL;
     uint32_t i = 0, * permute_in_perm = NULL;
+    vsi_bool ret = FALSE;
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_PERMUTE, 0, 0);
     permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(curr,
@@ -983,7 +1049,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_permute
         tensor0 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
         curr->outputs[0] = tensor0->t;
     }
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
+    if (!ret)
+    {
+        tensor0 = NULL;
+    }
 
     return tensor0;
 }
@@ -999,6 +1069,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tensor_copy
 {
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_internal_tensor_t* tensor0 = NULL;
+    vsi_bool ret = FALSE;
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 0, 0);
     curr->inputs[0] = input_tensor;
@@ -1018,7 +1089,11 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tensor_copy
         tensor0 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
         curr->outputs[0] = tensor0->t;
     }
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
+    if (!ret)
+    {
+        tensor0 = NULL;
+    }
 
     return tensor0;
 }

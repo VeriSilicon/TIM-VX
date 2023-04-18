@@ -111,12 +111,12 @@ static vsi_status cal_scatter_nd_update_tensor_reshape_size
 #define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     newDim[0] = 0;
-    for(i = 0; i < dims_num; ++i)
+    for (i = 0; i < dims_num; ++i)
     {
         elementCnt *= input_size[i];
     }
 
-    for(i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
+    for (i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
     {
         sizes[i] = 1;
     }
@@ -235,7 +235,7 @@ static vsi_status _query_kernel
 
     key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, input2_dtype, output_dtype, 0 );
 
-    for( i = 0; i < _cnt_of_array(scatter_nd_update_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_map); i ++ )
     {
         if ( scatter_nd_update_map[i].key == key )
         {
@@ -281,6 +281,13 @@ static vsi_nn_kernel_node_t _setup
     int32_t rs_in_dim = 0, rs_idx_dim = 0, rs_out_dim = 0;
     vsi_size_t width = 0, area = 0, vol = 0;
     int32_t offsetX = 0, offsetY = 0, offsetZ = 0, offsetW = 0, offset_idx = 0;
+    vsi_size_t *input_size = inputs[2]->attr.size;
+    uint32_t dims_num = inputs[2]->attr.dim_num;
+
+    if (coord_dim > 4 && input_size[dims_num - 1] > 1)
+    {
+        return NULL;
+    }
 
     status = cal_scatter_nd_update_tensor_reshape_size(&inputs[1], shapes[0],
                     coord_dim, 0, NULL, NULL, NULL, &rs_in_dim);

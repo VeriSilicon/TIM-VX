@@ -59,6 +59,7 @@ __kernel void resize_1d_bilinear_F16toF16_DOWN
         coord_in.x = left_x_idx.w;
         VXC_OP4(img_load_3d, src, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
+        coord_in.x = left_x_idx.x;
 
         _viv_asm(COPY, src_half, src, 16);
 
@@ -124,6 +125,7 @@ __kernel void resize_1d_bilinear_F16toU8_DOWN
         coord_in.x = left_x_idx.w;
         VXC_OP4(img_load_3d, src, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 0),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
+        coord_in.x = left_x_idx.x;
 
         _viv_asm(COPY, src_half, src, 16);
 

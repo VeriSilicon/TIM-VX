@@ -1,0 +1,166 @@
+#pragma OPENCL EXTENSION cl_viv_vx_extension : enable
+
+#include "cl_viv_vx_ext.h"
+
+#define epsilon 1e-12
+
+_viv_uniform VXC_512Bits uniExtract8Bin_2x8;
+_viv_uniform VXC_512Bits ExtractBin_part0_4x4;
+_viv_uniform VXC_512Bits ExtractBin_part1_4x4;
+
+
+
+#define L1_NORM_AXIS0_SH_2D(name0, name1, src_type, conv_type0, conv_type1, dst_type, save_type) \
+__kernel void l1norm_##name0##to##name1##_2D_axis0 \
+    ( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 float            inputZp, \
+                 float            outputscale, \
+                 float            outputtail, \
+                 int              axis, \
+                 int              axis_size) \
+{ \
+    int2 coord = (int2)(0, get_global_id(0)); \
+    src_type    v0, v1; \
+    conv_type0  src0, src1; \
+    conv_type1  dst0, dst1; \
+    dst_type    dst; \
+    save_type   out; \
+    float4 src0_f, src1_f, src2_f, src3_f; \
+ \
+    float4 sum = 0; \
+    float4 total = 0; \
+    float4 rcp_total = 0; \
+    half4  rcp_total_half = 0; \
+    float4 one4 = (float4)(1.0f, 1.0f, 1.0f, 1.0f); \
+    do \
+    { \
+        VXC_ReadImage(v0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src0, v0, 16); \
+        VXC_ReadImage(v1, input, coord, VXC_5BITOFFSET_XY(8, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src1, v1, 16); \
+        coord.x = coord.x + 16; \
+        VXC_DP4x4(src0_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src1_f, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src2_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        VXC_DP4x4(src3_f, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        src0_f = fabs(src0_f - inputZp); \
+        src1_f = fabs(src1_f - inputZp); \
+        src2_f = fabs(src2_f - inputZp); \
+        src3_f = fabs(src3_f - inputZp); \
+        sum = src0_f + src1_f + src2_f + src3_f; \
+        total = total + dot(sum, one4); \
+    } while (coord.x < axis_size); \
+ \
+    total = total > epsilon ? total : epsilon; \
+    rcp_total = 1 / total * outputscale; \
+    coord.x = 0; \
+    do \
+    { \
+        VXC_ReadImage(v0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src0, v0, 16); \
+        VXC_DP4x4(src0_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src1_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        src0_f = (src0_f - inputZp) * rcp_total.x + outputtail; \
+        src1_f = (src1_f - inputZp) * rcp_total.x + outputtail; \
+        _viv_asm(CONV_RTE, dst0, src0_f); \
+        _viv_asm(CONV_RTE, dst1, src1_f); \
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Bin_2x8); \
+        _viv_asm(COPY, out, dst, 16); \
+        VXC_WriteImage(output, coord, out, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        coord.x = coord.x + 8; \
+    } while (coord.x < axis_size); \
+}
+L1_NORM_AXIS0_SH_2D(U8, F16,vxc_uchar8,vxc_uchar8,half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS0_SH_2D(U8, U8, vxc_uchar8,vxc_uchar8,short4,vxc_uchar8,vxc_uchar8)
+L1_NORM_AXIS0_SH_2D(I8, F16,vxc_char8, vxc_char8, half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS0_SH_2D(I8, I8, vxc_char8, vxc_char8, short4,vxc_char8, vxc_char8)
+L1_NORM_AXIS0_SH_2D(I16,F16,vxc_short8,vxc_short8,half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS0_SH_2D(I16,I16,vxc_short8,vxc_short8,short4,vxc_short8,vxc_short8)
+L1_NORM_AXIS0_SH_2D(F16,U8, vxc_short8,vxc_half8, short4,vxc_uchar8,vxc_uchar8)
+L1_NORM_AXIS0_SH_2D(F16,I8, vxc_short8,vxc_half8, short4,vxc_char8, vxc_char8)
+L1_NORM_AXIS0_SH_2D(F16,I16,vxc_short8,vxc_half8, short4,vxc_short8,vxc_short8)
+L1_NORM_AXIS0_SH_2D(F16,F16,vxc_short8,vxc_half8, half4, vxc_half8, vxc_short8)
+
+
+#define L1_NORM_AXIS0_SH(name0, name1, src_type, conv_type0, conv_type1, dst_type, save_type) \
+__kernel void l1norm_##name0##to##name1##_axis0 \
+    ( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 float            inputZp, \
+                 float            outputscale, \
+                 float            outputtail, \
+                 int              axis, \
+                 int              axis_size) \
+{ \
+    int4 coord = (int4)(0, get_global_id(0), get_global_id(1), 0); \
+    src_type    v0, v1; \
+    conv_type0  src0, src1; \
+    conv_type1  dst0, dst1; \
+    dst_type    dst; \
+    save_type   out; \
+    float4 src0_f, src1_f, src2_f, src3_f; \
+ \
+    float4 sum = 0; \
+    float4 total = 0; \
+    float4 rcp_total = 0; \
+    half4  rcp_total_half = 0; \
+    float4 one4 = (float4)(1.0f, 1.0f, 1.0f, 1.0f); \
+    do \
+    { \
+        VXC_ReadImage2DArray(v0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src0, v0, 16); \
+        VXC_ReadImage2DArray(v1, input, coord, VXC_5BITOFFSET_XY(8, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src1, v1, 16); \
+        coord.x = coord.x + 16; \
+        VXC_DP4x4(src0_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src1_f, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src2_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        VXC_DP4x4(src3_f, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        src0_f = fabs(src0_f - inputZp); \
+        src1_f = fabs(src1_f - inputZp); \
+        src2_f = fabs(src2_f - inputZp); \
+        src3_f = fabs(src3_f - inputZp); \
+        sum = src0_f + src1_f + src2_f + src3_f; \
+        total = total + dot(sum, one4); \
+    } while (coord.x < axis_size); \
+ \
+    total = total > epsilon ? total : epsilon; \
+    rcp_total = 1 / total * outputscale; \
+    coord.x = 0; \
+    do \
+    { \
+        VXC_ReadImage2DArray(v0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src0, v0, 16); \
+        VXC_DP4x4(src0_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src1_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        src0_f = (src0_f - inputZp) * rcp_total.x + outputtail; \
+        src1_f = (src1_f - inputZp) * rcp_total.x + outputtail; \
+        _viv_asm(CONV_RTE, dst0, src0_f); \
+        _viv_asm(CONV_RTE, dst1, src1_f); \
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Bin_2x8); \
+        _viv_asm(COPY, out, dst, 16); \
+        VXC_WriteImage2DArray(output, coord, out, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        coord.x = coord.x + 8; \
+    } while (coord.x < axis_size); \
+}
+L1_NORM_AXIS0_SH(U8, F16,vxc_uchar8,vxc_uchar8,half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS0_SH(U8, U8, vxc_uchar8,vxc_uchar8,short4,vxc_uchar8,vxc_uchar8)
+L1_NORM_AXIS0_SH(I8, F16,vxc_char8, vxc_char8, half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS0_SH(I8, I8, vxc_char8, vxc_char8, short4,vxc_char8, vxc_char8)
+L1_NORM_AXIS0_SH(I16,F16,vxc_short8,vxc_short8,half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS0_SH(I16,I16,vxc_short8,vxc_short8,short4,vxc_short8,vxc_short8)
+L1_NORM_AXIS0_SH(F16,U8, vxc_short8,vxc_half8, short4,vxc_uchar8,vxc_uchar8)
+L1_NORM_AXIS0_SH(F16,I8, vxc_short8,vxc_half8, short4,vxc_char8, vxc_char8)
+L1_NORM_AXIS0_SH(F16,I16,vxc_short8,vxc_half8, short4,vxc_short8,vxc_short8)
+L1_NORM_AXIS0_SH(F16,F16,vxc_short8,vxc_half8, half4, vxc_half8, vxc_short8)
+
+

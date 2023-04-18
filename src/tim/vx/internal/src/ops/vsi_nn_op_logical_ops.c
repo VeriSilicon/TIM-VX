@@ -34,7 +34,6 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "kernel/vsi_nn_kernel_eltwise.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 #define _INPUT_NUM          (2)
@@ -49,53 +48,23 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
-    vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
-    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
-    vsi_size_t new_rank = 0;
-    vsi_bool ret;
 
-    if( NULL == self )
+    if ( NULL == self )
     {
         return VSI_FAILURE;
     }
 
-    ret = vsi_nn_kernel_optimize_eltwise_shape(
-            inputs[0]->attr.size, inputs[0]->attr.dim_num,
-            inputs[1]->attr.size, inputs[1]->attr.dim_num,
-            outputs[0]->attr.size, outputs[0]->attr.dim_num,
-            shapes[0], shapes[1], shapes[2], &new_rank );
+    param = vsi_nn_kernel_param_create();
+    vsi_nn_kernel_param_add_int32( param, "ops_type", self->nn_param.logical_ops.op );
 
-    if( ret )
-    {
-        param =vsi_nn_kernel_param_create();
-        vsi_nn_kernel_param_add_int32( param, "ops_type", self->nn_param.logical_ops.op );
+    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+            "logical_ops",
+            inputs, _INPUT_NUM,
+            outputs, _OUTPUT_NUM, param );
 
-        reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                inputs[0], shapes[0], new_rank );
-        reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                inputs[1], shapes[1], new_rank );
-        reshape_tensors[2] = vsi_nn_reshape_tensor( self->graph,
-                outputs[0], shapes[2], new_rank );
+    vsi_nn_kernel_param_release( &param );
 
-        if (shapes[1][3] > shapes[0][3] && new_rank == 4)
-        {
-            vsi_nn_tensor_t* reshape_tmp;
-            reshape_tmp = reshape_tensors[0];
-            reshape_tensors[0] = reshape_tensors[1];
-            reshape_tensors[1] = reshape_tmp;
-        }
-
-        self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "logical_ops",
-                                                 &reshape_tensors[0], _INPUT_NUM,
-                                                 &reshape_tensors[2], _OUTPUT_NUM, param );
-        vsi_nn_ReleaseTensor( &reshape_tensors[0] );
-        vsi_nn_ReleaseTensor( &reshape_tensors[1] );
-        vsi_nn_ReleaseTensor( &reshape_tensors[2] );
-
-        vsi_nn_kernel_param_release( &param );
-    }
-
-    if( self->n )
+    if ( self->n )
     {
         status = VSI_SUCCESS;
     }

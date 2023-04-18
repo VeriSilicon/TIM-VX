@@ -31,6 +31,7 @@ if(${TIM_VX_USE_EXTERNAL_OVXLIB})
     set(OVXLIB_INCLUDE_DIR ${OVXLIB_INC})
 else()
     set(OVXLIB_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/src/tim/vx/internal/include")
+    list(APPEND OVXLIB_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/src/tim/vx/internal/src")
 endif()
 message(STATUS "OVXLIB include directory: ${OVXLIB_INCLUDE_DIR}")
 

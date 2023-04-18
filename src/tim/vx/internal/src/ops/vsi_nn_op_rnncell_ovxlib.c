@@ -311,6 +311,8 @@ static vsi_bool op_setup
 
     /* activation */
     curr = vsi_nn_internal_new_node( self, vsi_nn_rnn_get_act_op_type(p->activation), 0, 0 );
+    curr->node->nn_param.tanh.scale_a = 1.0;
+    curr->node->nn_param.tanh.scale_b = 1.0;
     curr->inputs[0] = gate_fc_outputs->t;
     curr->outputs[0] = outputs[RNNCELL_OUTPUT_OUTPUT];
     vsi_nn_internal_setup_node(self, curr);

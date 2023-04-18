@@ -30,7 +30,8 @@ __kernel void pre_process_nv12_copy_##name \
                  float           bMean, \
                  float           var, \
                  int             reverse_channel, \
-                 int             trans \
+                 int             trans, \
+                 int             nv_type \
     ) \
 { \
     int gidx = get_global_id(0); \
@@ -45,6 +46,11 @@ __kernel void pre_process_nv12_copy_##name \
  \
     VXC_ReadImage(Y, y_img, (int2)(sx,sy), 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
     VXC_ReadImage(UV, uv_img,(int2)(uvX,uvY), 0,VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+  \
+    if (nv_type == 1) \
+    { \
+        UV.s0123 = UV.s1032; \
+    } \
  \
     vxc_char16 tmpUV; \
     short tmpVal = 128; \

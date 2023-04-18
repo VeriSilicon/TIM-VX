@@ -75,7 +75,7 @@ static vsi_size_t element_fill_dim
     if (size_x == 1)
         return 0;
 
-    if ( size_x < GPU_TENSOR_MAX_WIDTH)
+    if ( size_x < max_rank)
     {
         shape_x[rank_x] = size_x;
     }
@@ -83,9 +83,9 @@ static vsi_size_t element_fill_dim
     {
         vsi_size_t divisor = 0;
         vsi_size_t remainder = 0;
-        compute_gpu_divisor( size_x, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
+        compute_gpu_divisor( size_x, max_rank, 1, &divisor );
         remainder = size_x / divisor;
-        if ( remainder > GPU_TENSOR_MAX_WIDTH || rank_x >= max_rank)
+        if ( remainder > max_rank || rank_x >= max_rank)
         {
             // Cannot optimize.
             shape_x[rank_x] = size_x;
@@ -612,6 +612,41 @@ vsi_bool vsi_nn_kernel_optimize_nchw2xhw_shape
     return TRUE;
 }
 
+static vsi_bool vsi_nn_kernel_optimize_element_shape_with_max_rank
+    (
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    vsi_size_t* out_shape_x, vsi_size_t* out_rank_x, vsi_size_t max_rank
+    )
+{
+    vsi_bool ret                        = TRUE;
+    uint32_t  i                         = 0;
+    vsi_size_t   rank_in                    = 0;
+    vsi_size_t  element_num                = 1;
+
+    for (i = 0; i < rank_x; i++)
+    {
+        element_num *= shape_x[i];
+    }
+
+    rank_in += element_fill_dim(out_shape_x, rank_in, max_rank, element_num);
+
+    if ( 0 == rank_in )
+    {
+        out_shape_x[0] = 1;
+        out_shape_x[1] = 1;
+        rank_in = 2;
+    }
+    else if ( 1 == rank_in )
+    {
+        out_shape_x[1] = 1;
+        rank_in = 2;
+    }
+
+    *out_rank_x = (size_t)rank_in;
+
+    return ret;
+} /* vsi_nn_kernel_optimize_element_shape() */
+
 vsi_bool vsi_nn_kernel_optimize_group_norm_shape
     (
     const vsi_size_t* shape, const uint32_t rank, int32_t groups,
@@ -622,11 +657,20 @@ vsi_bool vsi_nn_kernel_optimize_group_norm_shape
     uint32_t i = 0;
     vsi_size_t out_rank = 0;
     vsi_size_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t max_rank = GPU_TENSOR_MAX_WIDTH;
     group_shape[0] = shape[0];
     group_shape[1] = shape[1];
     group_shape[2] = shape[2] / groups;
 
-    vsi_nn_kernel_optimize_element_shape( group_shape, 3, out_shape, &out_rank );
+#define NN_INPUT_SIZE_MAX      ((1 << 13) - 1)
+    if (is_sp_kernel)
+    {
+        max_rank = NN_INPUT_SIZE_MAX;
+    }
+#undef NN_INPUT_SIZE_MAX
+
+    vsi_nn_kernel_optimize_element_shape_with_max_rank( group_shape, 3,
+        out_shape, &out_rank, max_rank);
 
     if (!is_sp_kernel && out_shape[1] == 1 && out_rank < 3)
     {

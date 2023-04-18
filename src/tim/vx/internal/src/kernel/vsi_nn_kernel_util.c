@@ -821,3 +821,24 @@ vsi_nn_tensor_t* vsi_nn_merge_input_zeropoint_to_bias
 
     return new_bias;
 }
+
+vsi_status vsi_nn_set_sp_kernel_name
+    (
+        vsi_nn_kernel_node_t node,
+        char* kernel_name
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+
+    if (node == NULL || kernel_name == NULL)
+    {
+        return VSI_FAILURE;
+    }
+
+#if VX_STREAM_PROCESSOR_SUPPORT
+    status = vxSetNodeAttribute((vx_node)node, VX_NODE_SP_NAME, kernel_name, sizeof(kernel_name));
+#endif
+
+    return status;
+}
+

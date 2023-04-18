@@ -83,8 +83,9 @@ static vsi_bool op_setup
     vsi_size_t output_shape[2] = {1, 1};
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_tensor_t *output_rs = NULL;
-    vsi_nn_stack_lcl_data * data;
+    vsi_nn_stack_lcl_data * data = NULL;
     vsi_bool ret = TRUE;
+    vx_int8 is_scalar = vsi_nn_GetTensorIsScalar(inputs[0]);
 
     vsi_nn_internal_init_node_wksp( node );
 
@@ -101,11 +102,11 @@ static vsi_bool op_setup
         block_num *= inputs[0]->attr.size[i];
     }
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        outputs[0]->attr.dim_num = inputs[0]->attr.dim_num + 1;
+        outputs[0]->attr.dim_num = is_scalar ? 1 : inputs[0]->attr.dim_num + 1;
 
-        for(i = 0, j = 0; j < outputs[0]->attr.dim_num; j++)
+        for (i = 0, j = 0; j < outputs[0]->attr.dim_num; j++)
         {
             if (j == p->axis)
             {

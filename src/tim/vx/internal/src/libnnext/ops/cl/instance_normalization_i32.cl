@@ -14,7 +14,6 @@ __kernel void instance_norm_sums_I32(
     int4 coord = (int4)(gidx, 0, gidz, 0);
     int4 data;
     float2 sum_x_x2 = 0;
-    int2 _sum_x_x2 = 0;
 
     __local float lcl_sum[16];
     __local float lcl_sqr[16];
@@ -25,10 +24,10 @@ __kernel void instance_norm_sums_I32(
         {
             data = read_imagei(input, coord);
             coord.y++;
-            _sum_x_x2.x = _sum_x_x2.x + data.x;
-            _sum_x_x2.y = _sum_x_x2.y + data.x * data.x;
+            float in = convert_float(data.x);
+            sum_x_x2.x = sum_x_x2.x + in;
+            sum_x_x2.y = sum_x_x2.y + in * in;
         }
-        sum_x_x2 = convert_float2(_sum_x_x2);
     }
     lcl_sum[lidx] = sum_x_x2.x;
     lcl_sqr[lidx] = sum_x_x2.y;
@@ -74,7 +73,6 @@ __kernel void instance_norm_sums_I32_2D(
     int2 coord = (int2)(gidx, gidy);
     int4 data;
     float2 sum_x_x2 = 0;
-    int2 _sum_x_x2 = 0;
 
     __local float lcl_sum[16];
     __local float lcl_sqr[16];
@@ -86,10 +84,10 @@ __kernel void instance_norm_sums_I32_2D(
         {
             data = read_imagei(input, coord);
             coord.y++;
-            _sum_x_x2.x = _sum_x_x2.x + data.x;
-            _sum_x_x2.y = _sum_x_x2.y + data.x * data.x;
+            float in = convert_float(data.x);
+            sum_x_x2.x = sum_x_x2.x + in;
+            sum_x_x2.y = sum_x_x2.y + in * in;
         }
-        sum_x_x2 = convert_float2(_sum_x_x2);
     }
     lcl_sum[lidx] = sum_x_x2.x;
     lcl_sqr[lidx] = sum_x_x2.y;

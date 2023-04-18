@@ -195,8 +195,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
                 0x0a0a0a0a, // BSelt
                 0x00000000, 0x00000000, // BBin
                 0x00000100, // AccumType, ConstantType, and PostShift
-                0x3f1d3c00, 0x00000000, 0x3f1d3c00, 0x00000000,
-                0x3f1d3c00, 0x00000000, 0x3f1d3c00, 0x00000000 // Constant
+                0x40083ca7, 0x00000000, 0x40083ca7, 0x00000000,
+                0x40083ca7, 0x00000000, 0x40083ca7, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
         gpu_dp_inst_t uniConvertYUV422toG_4x4 = {{
                 0x29292929, // TCfg
@@ -205,8 +205,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
                 0x2a2a2a2a, // BSelt
                 0x00000000, 0x00000000, // BBin
                 0x00000100, // AccumType, ConstantType, and PostShift
-                0x35873c00, 0x000039bc, 0x35873c00, 0x000039bc,
-                0x35873c00, 0x000039bc, 0x35873c00, 0x000039bc // Constant
+                0x36453ca7, 0x00003a81, 0x36453ca7, 0x00003a81,
+                0x36453ca7, 0x00003a81, 0x36453ca7, 0x00003a81 // Constant
         }, GPU_DP_TYPE_16 };
         gpu_dp_inst_t uniConvertYUV422toR_4x4 = {{
                 0x05050505, // TCfg
@@ -215,18 +215,18 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
                 0x0a0a0a0a, // BSelt
                 0x00000000, 0x00000000, // BBin
                 0x00000100, // AccumType, ConstantType, and PostShift
-                0x3da03c00, 0x00000000, 0x3da03c00, 0x00000000,
-                0x3da03c00, 0x00000000, 0x3da03c00, 0x00000000 // Constant
+                0x3e623ca7, 0x00000000, 0x3e623ca7, 0x00000000,
+                0x3e623ca7, 0x00000000, 0x3e623ca7, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniExtractUVtoCharSub128_2x8 = {{
-                0x91919191, // TCfg
-                0x40404040, // ASelt
-                0x03020100, 0x07060504, // ABin
-                0xa2a2a2a2, // BSelt
+        gpu_dp_inst_t uniExtractYUVtoShortSub_2x8 = {{
+                0x99999999, // TCfg
+                0x44444444, // ASelt
+                0x03120110, 0x07160514, // ABin
+                0xaaaaaaaa, // BSelt
                 0x00000000, 0x00000000, // BBin
                 0x00000700, // AccumType, ConstantType, and PostShift
-                0x00000001, 0x00010001, 0x00000001, 0x00010001,
-                0x00000001, 0x00010001, 0x00000001, 0x00010001 // Constant
+                0x00010001, 0x00010001, 0x00010001, 0x00010001,
+                0x00010001, 0x00010001, 0x00010001, 0x00010001 // Constant
         }, GPU_DP_TYPE_16 };
         gpu_dp_inst_t uniConvertHalftoFp16_2x8 = {{
             0x11111111, // TCfg
@@ -244,7 +244,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertYUV422toR_4x4", &uniConvertYUV422toR_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);
         status |= vsi_nn_kernel_gpu_add_param(node, "bOrder", &order1);
-        status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractUVtoCharSub128_2x8", &uniExtractUVtoCharSub128_2x8);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractYUVtoShortSub_2x8", &uniExtractYUVtoShortSub_2x8);
         status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar", &outputScaleVar);
         status |= vsi_nn_kernel_gpu_add_param(node, "bMeanScaleVarZp", &bMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "gMeanScaleVarZp", &gMeanScaleVarZp);
@@ -386,8 +386,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
                 0x0a0a0a0a, // BSelt
                 0x00000000, 0x00000000, // BBin
                 0x00000100, // AccumType, ConstantType, and PostShift
-                0x3f323c00, 0x00000000, 0x3f323c00, 0x00000000,
-                0x3f323c00, 0x00000000, 0x3f323c00, 0x00000000 // Constant
+                0x40083ca7, 0x00000000, 0x40083ca7, 0x00000000,
+                0x40083ca7, 0x00000000, 0x40083ca7, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
         gpu_dp_inst_t uniConvertYUV422toG_4x4 = {{
                 0x29292929, // TCfg
@@ -396,18 +396,18 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
                 0x2a2a2a2a, // BSelt
                 0x00000000, 0x00000000, // BBin
                 0x00000100, // AccumType, ConstantType, and PostShift
-                0x35873c00, 0x000039bc, 0x35873c00, 0x000039bc,
-                0x35873c00, 0x000039bc, 0x35873c00, 0x000039bc // Constant
+                0x36453ca7, 0x00003a81, 0x36453ca7, 0x00003a81,
+                0x36453ca7, 0x00003a81, 0x36453ca7, 0x00003a81 // Constant
         }, GPU_DP_TYPE_16 };
-        gpu_dp_inst_t uniConvertYUV422toR_4x4 = {{
+        gpu_dp_inst_t uniConvertYUV422toR_4x4 = { {
                 0x05050505, // TCfg
                 0x04040404, // ASelt
                 0x00510040, 0x00730062, // ABin
                 0x0a0a0a0a, // BSelt
                 0x00000000, 0x00000000, // BBin
                 0x00000100, // AccumType, ConstantType, and PostShift
-                0x3da03c00, 0x00000000, 0x3da03c00, 0x00000000,
-                0x3da03c00, 0x00000000, 0x3da03c00, 0x00000000 // Constant
+                0x3e623ca7, 0x00000000, 0x3e623ca7, 0x00000000,
+                0x3e623ca7, 0x00000000, 0x3e623ca7, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
         gpu_dp_inst_t uniExtractUVtoCharSub128_2x8 = {{
                 0x99999999, // TCfg
@@ -419,6 +419,16 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
                 0x00010001, 0x00010001, 0x00010001, 0x00010001,
                 0x00010001, 0x00010001, 0x00010001, 0x00010001 // Constant
         }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractYtoShortSub16_4x4 = {{
+                0x09090909, // TCfg
+                0x04040404, // ASelt
+                0x00010000, 0x00030002, // ABin
+                0x0a0a0a0a, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000400, // AccumType, ConstantType, and PostShift
+                0x00010001, 0x00000000, 0x00010001, 0x00000000,
+                0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
+        },  GPU_DP_TYPE_16 };
         gpu_dp_inst_t uniConvertHalftoFp16_2x8 = {{
                 0x11111111, // TCfg
                 0x11110000, // ASelt
@@ -440,6 +450,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "gMeanScaleVarZp", &gMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "rMeanScaleVarZp", &rMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractUVtoCharSub128_2x8", &uniExtractUVtoCharSub128_2x8);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractYtoShortSub16_4x4", &uniExtractYtoShortSub16_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);
         status |= vsi_nn_kernel_gpu_add_param(node, "bOrder", &order1);
         CHECK_STATUS_FAIL_GOTO(status, OnError );

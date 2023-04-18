@@ -87,6 +87,7 @@ typedef enum
     VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP,
     VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422,
     VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422,
+    VSI_NN_SOURCE_FORMAT_IMAGE_NV21,
 } vsi_nn_preprocess_source_format_e;
 
 /**
@@ -98,7 +99,7 @@ typedef struct
     vsi_nn_preprocess_type_e type;
     /** Preprocess paramters */
     void* param;
-} vsi_nn_preprocess_base_t;
+} VSI_PUBLIC_TYPE vsi_nn_preprocess_base_t;
 
 /**
  * Postprocess base structure
@@ -109,7 +110,7 @@ typedef struct
     vsi_nn_postprocess_type_e type;
     /** Postrocess paramters */
     void* param;
-} vsi_nn_postprocess_base_t;
+} VSI_PUBLIC_TYPE vsi_nn_postprocess_base_t;
 
 /**
  * Process dtype convert parameter structure
