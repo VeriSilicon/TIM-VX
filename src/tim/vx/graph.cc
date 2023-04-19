@@ -24,6 +24,10 @@
 #include "tim/vx/graph.h"
 #include <algorithm>
 
+#ifdef ENABLE_TENSOR_CACHE
+#include <openssl/evp.h>
+#endif
+
 #include "context_private.h"
 #include "graph_private.h"
 #include "op_impl.h"
@@ -54,6 +58,96 @@ GraphImpl::GraphImpl(ContextImpl* context, const CompileOption& options)
       options_(options){}
 
 GraphImpl::~GraphImpl() { vsi_nn_ReleaseGraph(&graph_); }
+
+#ifdef ENABLE_TENSOR_CACHE
+std::map<std::string, std::shared_ptr<tim::vx::Tensor>>& GraphImpl::GetTensorCacheMap() {
+  return cached_tensor_;
+}
+
+#define MD5_SECRET_LEN_16 (16)
+#define MD5_BYTE_STRING_LEN (4)
+const std::string GraphImpl::caclulateMd5Secret32(const std::string& src) {
+  std::string md5String;
+  EVP_MD_CTX *mdctx;
+  const EVP_MD *md;
+  uint32_t md_len;
+  unsigned char md_value[MD5_SECRET_LEN_16] = {0};
+  char tmp[MD5_BYTE_STRING_LEN] = {0};
+
+  OpenSSL_add_all_digests();
+  md = EVP_md5();
+  if (md == NULL) {
+    VSILOGE("Unknown EVP_md5 message.");
+  }
+  mdctx = EVP_MD_CTX_new();
+  if (!EVP_DigestInit_ex(mdctx, md, NULL)) {
+    VSILOGE("EVP_MD_CTX initialization failed.");
+    EVP_MD_CTX_free(mdctx);
+  }
+  if (!EVP_DigestUpdate(mdctx, src.c_str(), src.size())) {
+    VSILOGE("EVP_MD_CTX update failed.");
+    EVP_MD_CTX_free(mdctx);
+  }
+  if (!EVP_DigestFinal_ex(mdctx, md_value, &md_len)) {
+    VSILOGE("EVP_MD_CTX finalization failed.");
+    EVP_MD_CTX_free(mdctx);
+  }
+  EVP_MD_CTX_free(mdctx);
+
+  for (int i = 0; i < MD5_SECRET_LEN_16; ++i) {
+    memset(tmp, 0x00, sizeof(tmp));
+    snprintf(tmp, sizeof(tmp), "%02X", md_value[i]);
+    md5String += tmp;
+  }
+  return md5String;
+}
+
+const std::string GraphImpl::CaclulateCacheKey(const TensorSpec& spec, const void* data) {
+  std::string md5_key;
+  uint32_t data_size = 1;
+  for (auto it = spec.shape_.begin(); it != spec.shape_.end(); ++it) {
+    data_size *= *it;
+  }
+  switch (spec.datatype_) {
+    case DataType::INT16:
+    case DataType::UINT16:
+    case DataType::FLOAT16:
+      data_size *= 2;
+      break;
+    case DataType::INT32:
+    case DataType::UINT32:
+    case DataType::FLOAT32:
+      data_size *= 4;
+      break;
+    case DataType::INT64:
+      data_size *= 8;
+      break;
+    default:
+      break;
+  }
+  if (data_size < 512) {
+    md5_key = caclulateMd5Secret32(std::string((const char*)data, data_size));
+  } else {
+    md5_key = caclulateMd5Secret32(
+        std::string((const char*)data, 512));  //Take first 512 bytes
+  }
+  return md5_key;
+}
+
+std::shared_ptr<Tensor> GraphImpl::GetTensorFromCache(const TensorSpec& spec, const void* data) {
+  std::shared_ptr<tim::vx::Tensor> tensor;
+  std::string md5_key = CaclulateCacheKey(spec, data);
+  if (GetTensorCacheMap().find(md5_key) != GetTensorCacheMap().end() &&
+      GetTensorCacheMap()[md5_key]->GetQuantization().Scales() == spec.quantization_.Scales() &&
+      GetTensorCacheMap()[md5_key]->GetQuantization().ZeroPoints() == spec.quantization_.ZeroPoints()) {
+    tensor = GetTensorCacheMap()[md5_key];
+  } else {
+    tensor = std::make_shared<TensorImpl>(this, spec, data);
+    GetTensorCacheMap()[md5_key] = tensor;
+  }
+  return tensor;
+}
+#endif
 
 vsi_nn_graph_t* GraphImpl::graph() { return graph_; }
 
@@ -135,6 +229,11 @@ void GraphImpl::PrintGraph() const { vsi_nn_PrintGraph(this->graph_); }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
                                                 const void* data) {
+#ifdef ENABLE_TENSOR_CACHE
+  if (spec.attr_ & TensorAttribute::CONSTANT && data != NULL) {
+    return GetTensorFromCache(spec, data);
+  }
+#endif
   auto tensor = std::make_shared<TensorImpl>(this, spec, data);
   if (spec.attr_ & TensorAttribute::INPUT) {
     this->AddInput(tensor);

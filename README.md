@@ -84,6 +84,7 @@ cmake options:
 |`VIP_LITE_SDK` | full path to VIPLite sdk, required when `TIM_VX_ENABLE_PLATFORM_LITE`=ON | Not set |
 |`TIM_VX_ENABLE_GRPC` | Enable gPRC support, only work when `TIM_VX_ENABLE_PLATFORM`=ON | OFF |
 |`TIM_VX_DBG_ENABLE_TENSOR_HNDL` | Enable built-in tensor from handle | ON |
+|`TIM_VX_ENABLE_TENSOR_CACHE` | Enable tensor cache for const tensor | ON |
 
 ----
 Run unit test:

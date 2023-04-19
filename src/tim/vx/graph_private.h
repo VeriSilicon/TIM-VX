@@ -26,6 +26,7 @@
 #include "tim/vx/graph.h"
 
 #include <vector>
+#include <string>
 #include <mutex>
 #include <utility>
 #include <map>
@@ -43,7 +44,12 @@ class GraphImpl : public Graph {
  public:
   GraphImpl(ContextImpl* context, const CompileOption& options = CompileOption::DefaultOptions);
   ~GraphImpl();
-
+#ifdef ENABLE_TENSOR_CACHE
+  std::shared_ptr<Tensor> GetTensorFromCache(const TensorSpec& spec, const void* data);
+  const std::string CaclulateCacheKey(const TensorSpec& spec, const void* data);
+  const std::string caclulateMd5Secret32(const std::string& src);
+  std::map<std::string, std::shared_ptr<tim::vx::Tensor>>& GetTensorCacheMap();
+#endif
   /// Return the low-level graph object
   vsi_nn_graph_t* graph();
   void AddInput(vsi_nn_tensor_id_t id);
@@ -97,7 +103,9 @@ class GraphImpl : public Graph {
   int32_t not_consumed_output_cnt_;
   std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>> tensor_consumers_;
   std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>> tensor_producer_;
-
+#ifdef ENABLE_TENSOR_CACHE
+  std::map<std::string, std::shared_ptr<tim::vx::Tensor>> cached_tensor_;
+#endif
   CompileOption options_;
  private:
  /// Setup graph
