@@ -84,7 +84,7 @@ cmake options:
 |`VIP_LITE_SDK` | full path to VIPLite sdk, required when `TIM_VX_ENABLE_PLATFORM_LITE`=ON | Not set |
 |`TIM_VX_ENABLE_GRPC` | Enable gPRC support, only work when `TIM_VX_ENABLE_PLATFORM`=ON | OFF |
 |`TIM_VX_DBG_ENABLE_TENSOR_HNDL` | Enable built-in tensor from handle | ON |
-|`TIM_VX_ENABLE_TENSOR_CACHE` | Enable tensor cache for const tensor | ON |
+|`TIM_VX_ENABLE_TENSOR_CACHE` | Enable tensor cache for const tensor | OFF |
 
 ----
 Run unit test:
@@ -120,6 +120,12 @@ export DISABLE_IDE_DEBUG=1
    -DCONFIG=BUILDROOT -DCMAKE_SYSROOT=${CMAKE_SYSROOT} -DEXTERNAL_VIV_SDK=${BUILDROOT_SYSROOT}
    ```
 5. then make
+
+----
+#### Enable tensor cache feature
+Enable tensor cache use a third-party library named openssl, after fetch openssl, our patch will be applied on openssl-src, two additional environment variables needed
+1. add ```-DBUILD_OPENSSL=ON``` to enable openssl source code build
+2. If you want to reuse your local OpenSSL source repo, add ```-DLOCAL_BUILD=ON``` and ```-DLOCAL_BUILD_URL=<intranet-url>```
 
 ----
 #### Important notice for integration

@@ -1,0 +1,436 @@
+diff --git a/.gitmodules b/.gitmodules
+index 35f803a99c..af859b3300 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -1,15 +1,15 @@
+-[submodule "pyca.cryptography"]
+-	path = pyca-cryptography
+-	url = https://github.com/pyca/cryptography.git
++# [submodule "pyca.cryptography"]
++# 	path = pyca-cryptography
++# 	url = https://github.com/pyca/cryptography.git
+ 
+-[submodule "krb5"]
+-	path = krb5
+-	url = https://github.com/krb5/krb5
++# [submodule "krb5"]
++# 	path = krb5
++# 	url = https://github.com/krb5/krb5
+ 
+-[submodule "gost-engine"]
+-	path = gost-engine
+-	url = https://github.com/gost-engine/engine
+-	update = rebase
+-[submodule "wycheproof"]
+-	path = wycheproof
+-	url = https://github.com/google/wycheproof
++# [submodule "gost-engine"]
++# 	path = gost-engine
++# 	url = https://github.com/gost-engine/engine
++# 	update = rebase
++# [submodule "wycheproof"]
++# 	path = wycheproof
++# 	url = https://github.com/google/wycheproof
+diff --git a/test/recipes/95-test_external_gost_engine.t b/test/recipes/95-test_external_gost_engine.t
+index 37daaf7eca..ffc90aa4ba 100644
+--- a/test/recipes/95-test_external_gost_engine.t
++++ b/test/recipes/95-test_external_gost_engine.t
+@@ -7,22 +7,22 @@
+ # https://www.openssl.org/source/license.html
+ 
+ 
+-use OpenSSL::Test;
+-use OpenSSL::Test::Utils;
+-use OpenSSL::Test qw/:DEFAULT data_file bldtop_dir srctop_dir cmdstr/;
++# use OpenSSL::Test;
++# use OpenSSL::Test::Utils;
++# use OpenSSL::Test qw/:DEFAULT data_file bldtop_dir srctop_dir cmdstr/;
+ 
+-setup("test_external_gost_engine");
++# setup("test_external_gost_engine");
+ 
+-plan skip_all => "No external tests in this configuration"
+-    if disabled("external-tests");
+-plan skip_all => "GOST engine tests not available on Windows or VMS"
+-    if $^O =~ /^(VMS|MSWin32)$/;
+-plan skip_all => "GOST engine tests only available in a shared build"
+-    if disabled("shared");
+-plan skip_all => "GOST engine tests not supported in out of tree builds"
+-    if bldtop_dir() ne srctop_dir();
++# plan skip_all => "No external tests in this configuration"
++#     if disabled("external-tests");
++# plan skip_all => "GOST engine tests not available on Windows or VMS"
++#     if $^O =~ /^(VMS|MSWin32)$/;
++# plan skip_all => "GOST engine tests only available in a shared build"
++#     if disabled("shared");
++# plan skip_all => "GOST engine tests not supported in out of tree builds"
++#     if bldtop_dir() ne srctop_dir();
+ 
+-plan tests => 1;
++# plan tests => 1;
+ 
+-ok(run(cmd(["sh", data_file("gost_engine.sh")])),
+-   "running GOST engine tests");
++# ok(run(cmd(["sh", data_file("gost_engine.sh")])),
++#    "running GOST engine tests");
+diff --git a/test/recipes/95-test_external_gost_engine_data/gost_engine.sh b/test/recipes/95-test_external_gost_engine_data/gost_engine.sh
+index 4fd434f29a..20c7171b14 100755
+--- a/test/recipes/95-test_external_gost_engine_data/gost_engine.sh
++++ b/test/recipes/95-test_external_gost_engine_data/gost_engine.sh
+@@ -1,55 +1,55 @@
+-#!/bin/sh
+-#
+-# Copyright 2020-2021 The OpenSSL Project Authors. All Rights Reserved.
+-#
+-# Licensed under the Apache License 2.0 (the "License").  You may not use
+-# this file except in compliance with the License.  You can obtain a copy
+-# in the file LICENSE in the source distribution or at
+-# https://www.openssl.org/source/license.html
+-
+-#
+-# OpenSSL external testing using the GOST engine
+-#
+-set -e
+-
+-PWD="$(pwd)"
+-
+-SRCTOP="$(cd $SRCTOP; pwd)"
+-BLDTOP="$(cd $BLDTOP; pwd)"
+-
+-if [ "$SRCTOP" != "$BLDTOP" ] ; then
+-    echo "Out of tree builds not supported with gost_engine test!"
+-    exit 1
+-fi
+-
+-O_EXE="$BLDTOP/apps"
+-O_BINC="$BLDTOP/include"
+-O_SINC="$SRCTOP/include"
+-O_LIB="$BLDTOP"
+-
+-unset OPENSSL_CONF
+-
+-export PATH="$O_EXE:$PATH"
+-export LD_LIBRARY_PATH="$O_LIB:$LD_LIBRARY_PATH"
+-export OPENSSL_ROOT_DIR="$O_LIB"
+-
+-# Check/Set openssl version
+-OPENSSL_VERSION=`openssl version | cut -f 2 -d ' '`
+-
+-echo "------------------------------------------------------------------"
+-echo "Testing OpenSSL using GOST engine:"
+-echo "   CWD:                $PWD"
+-echo "   SRCTOP:             $SRCTOP"
+-echo "   BLDTOP:             $BLDTOP"
+-echo "   OPENSSL_ROOT_DIR:   $OPENSSL_ROOT_DIR"
+-echo "   OpenSSL version:    $OPENSSL_VERSION"
+-echo "------------------------------------------------------------------"
+-
+-cmake $SRCTOP/gost-engine -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR"
+-make
+-export CTEST_OUTPUT_ON_FAILURE=1
+-export HARNESS_OSSL_PREFIX=''
+-export OPENSSL_ENGINES="$PWD/bin"
+-export OPENSSL_APP="$O_EXE/openssl"
+-make test
+-make tcl_tests
++# #!/bin/sh
++# #
++# # Copyright 2020-2021 The OpenSSL Project Authors. All Rights Reserved.
++# #
++# # Licensed under the Apache License 2.0 (the "License").  You may not use
++# # this file except in compliance with the License.  You can obtain a copy
++# # in the file LICENSE in the source distribution or at
++# # https://www.openssl.org/source/license.html
++
++# #
++# # OpenSSL external testing using the GOST engine
++# #
++# set -e
++
++# PWD="$(pwd)"
++
++# SRCTOP="$(cd $SRCTOP; pwd)"
++# BLDTOP="$(cd $BLDTOP; pwd)"
++
++# if [ "$SRCTOP" != "$BLDTOP" ] ; then
++#     echo "Out of tree builds not supported with gost_engine test!"
++#     exit 1
++# fi
++
++# O_EXE="$BLDTOP/apps"
++# O_BINC="$BLDTOP/include"
++# O_SINC="$SRCTOP/include"
++# O_LIB="$BLDTOP"
++
++# unset OPENSSL_CONF
++
++# export PATH="$O_EXE:$PATH"
++# export LD_LIBRARY_PATH="$O_LIB:$LD_LIBRARY_PATH"
++# export OPENSSL_ROOT_DIR="$O_LIB"
++
++# # Check/Set openssl version
++# OPENSSL_VERSION=`openssl version | cut -f 2 -d ' '`
++
++# echo "------------------------------------------------------------------"
++# echo "Testing OpenSSL using GOST engine:"
++# echo "   CWD:                $PWD"
++# echo "   SRCTOP:             $SRCTOP"
++# echo "   BLDTOP:             $BLDTOP"
++# echo "   OPENSSL_ROOT_DIR:   $OPENSSL_ROOT_DIR"
++# echo "   OpenSSL version:    $OPENSSL_VERSION"
++# echo "------------------------------------------------------------------"
++
++# cmake $SRCTOP/gost-engine -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR"
++# make
++# export CTEST_OUTPUT_ON_FAILURE=1
++# export HARNESS_OSSL_PREFIX=''
++# export OPENSSL_ENGINES="$PWD/bin"
++# export OPENSSL_APP="$O_EXE/openssl"
++# make test
++# make tcl_tests
+diff --git a/test/recipes/95-test_external_krb5.t b/test/recipes/95-test_external_krb5.t
+index 9b8067d5d1..b708247c71 100644
+--- a/test/recipes/95-test_external_krb5.t
++++ b/test/recipes/95-test_external_krb5.t
+@@ -7,21 +7,21 @@
+ # https://www.openssl.org/source/license.html
+ 
+ 
+-use OpenSSL::Test;
+-use OpenSSL::Test::Utils;
+-use OpenSSL::Test qw/:DEFAULT data_file srctop_file bldtop_dir/;
+-use Cwd qw(abs_path);
++# use OpenSSL::Test;
++# use OpenSSL::Test::Utils;
++# use OpenSSL::Test qw/:DEFAULT data_file srctop_file bldtop_dir/;
++# use Cwd qw(abs_path);
+ 
+-setup("test_external_krb5");
++# setup("test_external_krb5");
+ 
+-plan skip_all => "No external tests in this configuration"
+-    if disabled("external-tests");
+-plan skip_all => "krb5 not available"
+-    if ! -f srctop_file("krb5", "src", "configure.ac");
++# plan skip_all => "No external tests in this configuration"
++#     if disabled("external-tests");
++# plan skip_all => "krb5 not available"
++#     if ! -f srctop_file("krb5", "src", "configure.ac");
+ 
+-plan tests => 1;
++# plan tests => 1;
+ 
+-$ENV{OPENSSL_MODULES} = abs_path(bldtop_dir("providers"));
+-$ENV{OPENSSL_CONF} = abs_path(srctop_file("test", "default-and-legacy.cnf"));
++# $ENV{OPENSSL_MODULES} = abs_path(bldtop_dir("providers"));
++# $ENV{OPENSSL_CONF} = abs_path(srctop_file("test", "default-and-legacy.cnf"));
+ 
+-ok(run(cmd([data_file("krb5.sh")])), "running krb5 tests");
++# ok(run(cmd([data_file("krb5.sh")])), "running krb5 tests");
+diff --git a/test/recipes/95-test_external_krb5_data/krb5.sh b/test/recipes/95-test_external_krb5_data/krb5.sh
+index eeaa59f961..0f195ed175 100755
+--- a/test/recipes/95-test_external_krb5_data/krb5.sh
++++ b/test/recipes/95-test_external_krb5_data/krb5.sh
+@@ -1,23 +1,23 @@
+-#!/bin/sh -ex
+-#
+-# Copyright 2017-2021 The OpenSSL Project Authors. All Rights Reserved.
+-#
+-# Licensed under the Apache License 2.0 (the "License").  You may not use
+-# this file except in compliance with the License.  You can obtain a copy
+-# in the file LICENSE in the source distribution or at
+-# https://www.openssl.org/source/license.html
++# #!/bin/sh -ex
++# #
++# # Copyright 2017-2021 The OpenSSL Project Authors. All Rights Reserved.
++# #
++# # Licensed under the Apache License 2.0 (the "License").  You may not use
++# # this file except in compliance with the License.  You can obtain a copy
++# # in the file LICENSE in the source distribution or at
++# # https://www.openssl.org/source/license.html
+ 
+-# krb5's test suite clears LD_LIBRARY_PATH
+-LDFLAGS="-L`pwd`/$BLDTOP -Wl,-rpath,`pwd`/$BLDTOP"
+-CFLAGS="-I`pwd`/$BLDTOP/include -I`pwd`/$SRCTOP/include"
++# # krb5's test suite clears LD_LIBRARY_PATH
++# LDFLAGS="-L`pwd`/$BLDTOP -Wl,-rpath,`pwd`/$BLDTOP"
++# CFLAGS="-I`pwd`/$BLDTOP/include -I`pwd`/$SRCTOP/include"
+ 
+-cd $SRCTOP/krb5/src
+-autoreconf
+-./configure --with-ldap --with-prng-alg=os --enable-pkinit \
+-            --with-crypto-impl=openssl --with-tls-impl=openssl \
+-            CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
++# cd $SRCTOP/krb5/src
++# autoreconf
++# ./configure --with-ldap --with-prng-alg=os --enable-pkinit \
++#             --with-crypto-impl=openssl --with-tls-impl=openssl \
++#             CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+ 
+-# quiet make so that Travis doesn't overflow
+-make -s
++# # quiet make so that Travis doesn't overflow
++# make -s
+ 
+-make check
++# make check
+diff --git a/test/recipes/95-test_external_pyca.t b/test/recipes/95-test_external_pyca.t
+index a3d09c118c..d054954a0f 100644
+--- a/test/recipes/95-test_external_pyca.t
++++ b/test/recipes/95-test_external_pyca.t
+@@ -7,22 +7,22 @@
+ # https://www.openssl.org/source/license.html
+ 
+ 
+-use OpenSSL::Test;
+-use OpenSSL::Test::Utils;
+-use OpenSSL::Test qw/:DEFAULT bldtop_file data_file srctop_file cmdstr/;
++# use OpenSSL::Test;
++# use OpenSSL::Test::Utils;
++# use OpenSSL::Test qw/:DEFAULT bldtop_file data_file srctop_file cmdstr/;
+ 
+-setup("test_external_pyca");
++# setup("test_external_pyca");
+ 
+-plan skip_all => "No external tests in this configuration"
+-    if disabled("external-tests");
+-plan skip_all => "PYCA tests not available on Windows or VMS"
+-    if $^O =~ /^(VMS|MSWin32)$/;
+-plan skip_all => "PYCA Cryptography not available"
+-    if ! -f srctop_file("pyca-cryptography", "setup.py");
+-plan skip_all => "PYCA tests only available in a shared build"
+-    if disabled("shared");
++# plan skip_all => "No external tests in this configuration"
++#     if disabled("external-tests");
++# plan skip_all => "PYCA tests not available on Windows or VMS"
++#     if $^O =~ /^(VMS|MSWin32)$/;
++# plan skip_all => "PYCA Cryptography not available"
++#     if ! -f srctop_file("pyca-cryptography", "setup.py");
++# plan skip_all => "PYCA tests only available in a shared build"
++#     if disabled("shared");
+ 
+-plan tests => 1;
++# plan tests => 1;
+ 
+-ok(run(cmd(["sh", data_file("cryptography.sh")])),
+-   "running Python Cryptography tests");
++# ok(run(cmd(["sh", data_file("cryptography.sh")])),
++#    "running Python Cryptography tests");
+diff --git a/test/recipes/95-test_external_pyca_data/cryptography.sh b/test/recipes/95-test_external_pyca_data/cryptography.sh
+index b73f64b836..917f372c3b 100755
+--- a/test/recipes/95-test_external_pyca_data/cryptography.sh
++++ b/test/recipes/95-test_external_pyca_data/cryptography.sh
+@@ -1,64 +1,64 @@
+-#!/bin/sh
+-#
+-# Copyright 2017-2021 The OpenSSL Project Authors. All Rights Reserved.
+-# Copyright (c) 2017, Oracle and/or its affiliates.  All rights reserved.
+-#
+-# Licensed under the Apache License 2.0 (the "License").  You may not use
+-# this file except in compliance with the License.  You can obtain a copy
+-# in the file LICENSE in the source distribution or at
+-# https://www.openssl.org/source/license.html
++# #!/bin/sh
++# #
++# # Copyright 2017-2021 The OpenSSL Project Authors. All Rights Reserved.
++# # Copyright (c) 2017, Oracle and/or its affiliates.  All rights reserved.
++# #
++# # Licensed under the Apache License 2.0 (the "License").  You may not use
++# # this file except in compliance with the License.  You can obtain a copy
++# # in the file LICENSE in the source distribution or at
++# # https://www.openssl.org/source/license.html
+ 
+-#
+-# OpenSSL external testing using the Python Cryptography module
+-#
+-set -e
+-set -x
++# #
++# # OpenSSL external testing using the Python Cryptography module
++# #
++# set -e
++# set -x
+ 
+-O_EXE=`pwd`/$BLDTOP/apps
+-O_BINC=`pwd`/$BLDTOP/include
+-O_SINC=`pwd`/$SRCTOP/include
+-O_LIB=`pwd`/$BLDTOP
++# O_EXE=`pwd`/$BLDTOP/apps
++# O_BINC=`pwd`/$BLDTOP/include
++# O_SINC=`pwd`/$SRCTOP/include
++# O_LIB=`pwd`/$BLDTOP
+ 
+-export PATH=$O_EXE:$PATH
+-export LD_LIBRARY_PATH=$O_LIB:$LD_LIBRARY_PATH
++# export PATH=$O_EXE:$PATH
++# export LD_LIBRARY_PATH=$O_LIB:$LD_LIBRARY_PATH
+ 
+-# Check/Set openssl version
+-OPENSSL_VERSION=`openssl version | cut -f 2 -d ' '`
++# # Check/Set openssl version
++# OPENSSL_VERSION=`openssl version | cut -f 2 -d ' '`
+ 
+-echo "------------------------------------------------------------------"
+-echo "Testing OpenSSL using Python Cryptography:"
+-echo "   CWD:                $PWD"
+-echo "   SRCTOP:             $SRCTOP"
+-echo "   BLDTOP:             $BLDTOP"
+-echo "   OpenSSL version:    $OPENSSL_VERSION"
+-echo "------------------------------------------------------------------"
++# echo "------------------------------------------------------------------"
++# echo "Testing OpenSSL using Python Cryptography:"
++# echo "   CWD:                $PWD"
++# echo "   SRCTOP:             $SRCTOP"
++# echo "   BLDTOP:             $BLDTOP"
++# echo "   OpenSSL version:    $OPENSSL_VERSION"
++# echo "------------------------------------------------------------------"
+ 
+-cd $SRCTOP
++# cd $SRCTOP
+ 
+-# Create a python virtual env and activate
+-rm -rf venv-cryptography
+-python -m venv venv-cryptography
+-. ./venv-cryptography/bin/activate
++# # Create a python virtual env and activate
++# rm -rf venv-cryptography
++# python -m venv venv-cryptography
++# . ./venv-cryptography/bin/activate
+ 
+-cd pyca-cryptography
++# cd pyca-cryptography
+ 
+-pip install .[test]
+-pip install -e vectors
++# pip install .[test]
++# pip install -e vectors
+ 
+-echo "------------------------------------------------------------------"
+-echo "Building cryptography"
+-echo "------------------------------------------------------------------"
+-CFLAGS="-I$O_BINC -I$O_SINC -L$O_LIB" pip install .
++# echo "------------------------------------------------------------------"
++# echo "Building cryptography"
++# echo "------------------------------------------------------------------"
++# CFLAGS="-I$O_BINC -I$O_SINC -L$O_LIB" pip install .
+ 
+-echo "------------------------------------------------------------------"
+-echo "Running tests"
+-echo "------------------------------------------------------------------"
++# echo "------------------------------------------------------------------"
++# echo "Running tests"
++# echo "------------------------------------------------------------------"
+ 
+-CFLAGS="-I$O_BINC -I$O_SINC -L$O_LIB" pytest -n auto tests --wycheproof-root=../wycheproof
++# CFLAGS="-I$O_BINC -I$O_SINC -L$O_LIB" pytest -n auto tests --wycheproof-root=../wycheproof
+ 
+-cd ../
+-deactivate
+-rm -rf venv-cryptography
++# cd ../
++# deactivate
++# rm -rf venv-cryptography
+ 
+-exit 0
++# exit 0
+ 
