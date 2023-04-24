@@ -1,0 +1,153 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 22ab3cc..7e3f31a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -38,6 +38,8 @@ set(CROSS OFF CACHE BOOL "Cross-compiling?")
+ set(CROSS_TARGET OFF CACHE STRING "Cross-compilation target")
+ set(SYSTEM_OPENSSL OFF CACHE STRING "Use system-provided openssl libraries (instead of prebuilts or building)")
+ 
++option(INTERNAL_BUILD "Build in the intranet" OFF)
++set(INTERNAL_BUILD_URL OFF CACHE STRING "The full path of the internal resource")
+ # allow including our modules
+ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+ 
+@@ -55,7 +57,7 @@ if (SYSTEM_OPENSSL)
+     add_custom_target(openssl)
+ else()
+     # build our own or use prebuilts
+-    
++
+     # set up fake targets
+     add_library(ssl_lib STATIC IMPORTED GLOBAL)
+     add_library(crypto_lib STATIC IMPORTED GLOBAL)
+@@ -72,14 +74,14 @@ else()
+ 
+     set(OPENSSL_LIBSSL_PATH ${OPENSSL_PREFIX}/usr/local/lib/libssl.a)
+     set(OPENSSL_LIBCRYPTO_PATH ${OPENSSL_PREFIX}/usr/local/lib/libcrypto.a)
+-    
++
+     # set up openssl target
+     if (BUILD_OPENSSL)
+         include(BuildOpenSSL)
+     else()
+         include(PrebuiltOpenSSL)
+     endif()
+-    
++
+     # set import locations
+     set_target_properties(ssl_lib PROPERTIES IMPORTED_LOCATION ${OPENSSL_LIBSSL_PATH})
+     set_target_properties(crypto_lib PROPERTIES IMPORTED_LOCATION ${OPENSSL_LIBCRYPTO_PATH})
+diff --git a/cmake/BuildOpenSSL.cmake b/cmake/BuildOpenSSL.cmake
+index e31f4bb..483b096 100644
+--- a/cmake/BuildOpenSSL.cmake
++++ b/cmake/BuildOpenSSL.cmake
+@@ -50,29 +50,25 @@ endif()
+ if ((EXISTS ${OPENSSL_LIBSSL_PATH}) AND (EXISTS ${OPENSSL_LIBCRYPTO_PATH}))
+     message(WARNING "Not building OpenSSL again. Remove ${OPENSSL_LIBSSL_PATH} and ${OPENSSL_LIBCRYPTO_PATH} for rebuild")
+ else()
+-    if (NOT OPENSSL_BUILD_VERSION)
+-        message(FATAL_ERROR "You must specify OPENSSL_BUILD_VERSION!")
+-    endif()
+-
+     if (WIN32 AND NOT CROSS)
+         # yep, windows needs special treatment, but neither cygwin nor msys, since they provide an UNIX-like environment
+-        
++
+         if (MINGW)
+             set(OS "WIN32")
+             message(WARNING "Building on windows is experimental")
+-            
++
+             find_program(MSYS_BASH "bash.exe" PATHS "C:/Msys/" "C:/MinGW/msys/" PATH_SUFFIXES "/1.0/bin/" "/bin/"
+                     DOC "Path to MSYS installation")
+             if (NOT MSYS_BASH)
+                 message(FATAL_ERROR "Specify MSYS installation path")
+             endif(NOT MSYS_BASH)
+-            
++
+             set(MINGW_MAKE ${CMAKE_MAKE_PROGRAM})
+             message(WARNING "Assuming your make program is a sibling of your compiler (resides in same directory)")
+         elseif(NOT (CYGWIN OR MSYS))
+             message(FATAL_ERROR "Unsupported compiler infrastructure")
+         endif(MINGW)
+-        
++
+         set(MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM})
+     elseif(NOT UNIX)
+         message(FATAL_ERROR "Unsupported platform")
+@@ -113,12 +109,12 @@ else()
+     if (OPENSSL_DEBUG_BUILD)
+         set(CONFIGURE_OPENSSL_PARAMS "${CONFIGURE_OPENSSL_PARAMS} no-asm -g3 -O0 -fno-omit-frame-pointer -fno-inline-functions")
+     endif()
+-    
++
+     # set install command depending of choice on man page generation
+     if (OPENSSL_INSTALL_MAN)
+         set(INSTALL_OPENSSL_MAN "install_docs")
+     endif()
+-    
++
+     # disable building tests
+     if (NOT OPENSSL_ENABLE_TESTS)
+         set(CONFIGURE_OPENSSL_MODULES ${CONFIGURE_OPENSSL_MODULES} no-tests)
+@@ -130,19 +126,19 @@ else()
+         set(COMMAND_CONFIGURE ./Configure ${CONFIGURE_OPENSSL_PARAMS} --cross-compile-prefix=${CROSS_PREFIX} ${CROSS_TARGET} ${CONFIGURE_OPENSSL_MODULES} --prefix=/usr/local/)
+         set(COMMAND_TEST "true")
+     elseif(CROSS_ANDROID)
+-        
++
+         # Android specific configuration options
+         set(CONFIGURE_OPENSSL_MODULES ${CONFIGURE_OPENSSL_MODULES} no-hw)
+-                
++
+         # silence warnings about unused arguments (Clang specific)
+         set(CFLAGS "${CMAKE_C_FLAGS} -Qunused-arguments")
+         set(CXXFLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
+-    
++
+         # required environment configuration is already set (by e.g. ndk) so no need to fiddle around with all the OpenSSL options ...
+         if (NOT ANDROID)
+             message(FATAL_ERROR "Use NDK cmake toolchain or cmake android autoconfig")
+         endif()
+-        
++
+         if (ARMEABI_V7A)
+             set(OPENSSL_PLATFORM "arm")
+             set(CONFIGURE_OPENSSL_PARAMS ${CONFIGURE_OPENSSL_PARAMS} "-march=armv7-a")
+@@ -153,25 +149,30 @@ else()
+                 set(OPENSSL_PLATFORM ${CMAKE_ANDROID_ARCH_ABI})
+             endif()
+         endif()
+-                
++
+         # ... but we have to convert all the CMake options to environment variables!
+         set(PATH "${ANDROID_TOOLCHAIN_ROOT}/bin/:${ANDROID_TOOLCHAIN_ROOT}/${ANDROID_TOOLCHAIN_NAME}/bin/")
+         set(LDFLAGS ${CMAKE_MODULE_LINKER_FLAGS})
+-        
++
+         set(COMMAND_CONFIGURE ./Configure android-${OPENSSL_PLATFORM} ${CONFIGURE_OPENSSL_PARAMS} ${CONFIGURE_OPENSSL_MODULES})
+         set(COMMAND_TEST "true")
+     else()                   # detect host system automatically
+         set(COMMAND_CONFIGURE ./config ${CONFIGURE_OPENSSL_PARAMS} ${CONFIGURE_OPENSSL_MODULES})
+-        
++
+         if (NOT COMMAND_TEST)
+             set(COMMAND_TEST ${BUILD_ENV_TOOL} <SOURCE_DIR> ${MAKE_PROGRAM} test)
+         endif()
+     endif()
+-    
++    if(INTERNAL_BUILD)
++        set(URL INTERNAL_BUILD_URL)
++    else()
++        set(URL https://mirror.viaduck.org/openssl/openssl-${OPENSSL_BUILD_VERSION}.tar.gz)
++    endif()
+     # add openssl target
+     ExternalProject_Add(openssl
+-        URL https://mirror.viaduck.org/openssl/openssl-${OPENSSL_BUILD_VERSION}.tar.gz
+-        ${OPENSSL_CHECK_HASH}
++        # SOURCE_DIR ${CMAKE_BINARY_DIR}/openssl-build/openssl-prefix/src/openssl
++        GIT_REPOSITORY ${INTERNAL_BUILD_URL}/openssl/openssl.git
++        GIT_TAG openssl-3.0
+         UPDATE_COMMAND ""
+ 
+         CONFIGURE_COMMAND ${BUILD_ENV_TOOL} <SOURCE_DIR> ${COMMAND_CONFIGURE}
