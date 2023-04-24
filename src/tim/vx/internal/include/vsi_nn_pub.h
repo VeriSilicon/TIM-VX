@@ -44,6 +44,7 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_version.h"
 #include "vsi_nn_assert.h"
+#include "vsi_nn_post.h"
 #include "vsi_nn_rnn.h"
 #include "vsi_nn_test.h"
 #include "vsi_nn_pre_post_process.h"

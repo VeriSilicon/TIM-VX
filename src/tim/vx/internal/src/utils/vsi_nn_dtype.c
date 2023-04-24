@@ -273,6 +273,9 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_asymm
         case I16:
             return vsi_nn_dtype_convert_float_to_quantize_symm16(
                     buffer, size, scale, zero_point, (int16_t*)out_buffer );
+        case U16:
+            return vsi_nn_dtype_convert_float_to_quantize_asymm16(
+                    buffer, size, scale, zero_point, (uint16_t*)out_buffer );
         default:
             VSILOGE("Don't support convert float to asymm quant %d.", dtype);
             break;

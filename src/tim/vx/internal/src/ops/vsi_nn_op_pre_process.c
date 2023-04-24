@@ -92,6 +92,7 @@ static vsi_bool op_setup
     if ( p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420        ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444        ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12          ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB           ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_BGRA          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_GRAY          ||
@@ -108,6 +109,11 @@ static vsi_bool op_setup
 
         for (i = 0; i < p->dim_num; i++)
         {
+            if (p->perm == NULL)
+            {
+                i = p->dim_num;
+                break;
+            }
             _axis = p->perm[i];
             if (_axis != i)
                 break;
@@ -438,6 +444,7 @@ static vsi_bool op_setup
             vsi_nn_internal_setup_node(self, curr);
         }
         break;
+    case VSI_NN_SOURCE_FORMAT_IMAGE_NV21:
     case VSI_NN_SOURCE_FORMAT_IMAGE_NV12:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_NV12, 0, 0 );
@@ -453,6 +460,15 @@ static vsi_bool op_setup
                 curr->node->nn_param.pre_process_nv12.r_mean = p->norm.mean[0];
                 curr->node->nn_param.pre_process_nv12.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_nv12.b_mean = p->norm.mean[2];
+            }
+
+            if (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12)
+            {
+                curr->node->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV12;
+            }
+            else
+            {
+                curr->node->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV21;
             }
 
             curr->node->nn_param.pre_process_nv12.rgb_scale = p->norm.scale;
@@ -544,6 +560,7 @@ static vsi_bool op_setup
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422       ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444        ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12          ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB           ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_BGRA          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_GRAY          ||

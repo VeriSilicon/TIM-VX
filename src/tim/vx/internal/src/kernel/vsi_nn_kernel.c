@@ -36,6 +36,7 @@
 #include "utils/vsi_nn_math.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_dtype_util.h"
+#include "vsi_nn_tensor_util_prv.h"
 
 #include "libnnext/vsi_nn_libnnext_resource.h"
 #if VSI_USE_VXC_BINARY
@@ -118,13 +119,6 @@ static void _kernel_clear_source
     ( vsi_nn_kernel_t * kernel );
 
 static vsi_bool _check_shader_support(vsi_nn_graph_t* graph);
-
-static vsi_bool _check_stream_process_support
-    (
-    vsi_nn_graph_t* graph,
-    vsi_nn_tensor_t** inputs,
-    size_t input_num
-    );
 
 vsi_bool vsi_nn_kernel_is_supported_types
     (
@@ -303,6 +297,9 @@ static const uint8_t* _load_internal_executable
         case VSI_NN_KERNEL_TYPE_CL:
             return _load_bin( source_name, size,
                 vx_bin_resource_items_cl, vx_bin_resource_items_cl_cnt, "_cl" );
+        default:
+            VSILOGE("Unsupported source format %d", type);
+            break;
     }
 #endif
     return NULL;
@@ -321,7 +318,7 @@ static char* _load_source_code_from_file
     source = NULL;
     //TODO: Pack new name
     fp = vsi_nn_fopen( source_name, "rb" );
-    if( NULL == fp )
+    if ( NULL == fp )
     {
         VSILOGE("Open program file %s fail.", source_name);
         *size = 0;
@@ -330,17 +327,17 @@ static char* _load_source_code_from_file
     fseek( fp, 0, SEEK_END );
     total_bytes = ftell( fp );
     fseek( fp, 0, SEEK_SET );
-    if( total_bytes == 0 )
+    if ( total_bytes == 0 )
     {
         VSILOGE("Program file %s is empty.", source_name);
         *size = 0;
         goto final;
     }
     source = (char*)malloc( total_bytes + 1 );
-    if( source )
+    if ( source )
     {
         read_bytes = 0;
-        while( total_bytes - read_bytes > 0 )
+        while ( total_bytes - read_bytes > 0 )
         {
             read_bytes += fread( &source[read_bytes], 1, total_bytes - read_bytes, fp );
         }
@@ -348,7 +345,11 @@ static char* _load_source_code_from_file
         *size = read_bytes;
     }
 final:
-    if (fp) fclose( fp );
+    if (fp)
+    {
+        fclose( fp );
+    }
+
     return source;
 } /* _load_source_code_from_file() */
 
@@ -1222,7 +1223,7 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
     {
         uint32_t i;
         vsi_nn_kernel_type_e type;
-        vsi_nn_kernel_setup_func_t kernel_func = NULL;;
+        vsi_nn_kernel_setup_func_t kernel_func = NULL;
         for( i = 0; i < (uint32_t)selector.allow_kernel_num; i ++ )
         {
             type = selector.pirority[i].kernel_type;
@@ -1243,7 +1244,7 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
 
             /* Skip StreamProcesor if not support */
             if( type == VSI_NN_KERNEL_TYPE_SP &&
-                _check_stream_process_support(graph, inputs, input_num) == FALSE )
+                vsi_nn_is_stream_process_supported_types(graph, inputs, input_num) == FALSE )
             {
                 continue;
             }
@@ -1457,7 +1458,7 @@ vsi_nn_kernel_tensor_attr_t * vsi_nn_kernel_tensor_attr_create
         attr->scale = attr->asymm.scale;
         attr->zero_point = attr->asymm.zero_point;
     }
-    break;
+        break;
     default:
         attr->scale = 1.0f;
         break;
@@ -1468,21 +1469,21 @@ vsi_nn_kernel_tensor_attr_t * vsi_nn_kernel_tensor_attr_create
 void vsi_nn_kernel_tensor_attr_release
     ( vsi_nn_kernel_tensor_attr_t ** p_attr )
 {
-    if( p_attr && *p_attr )
+    if ( p_attr && *p_attr )
     {
         vsi_nn_kernel_tensor_attr_t * attr = *p_attr;
         vsi_size_array_release( &attr->shape );
-        if( attr->quant == VSI_NN_KERNEL_QUANT_ASYMM_PERCHANNEL )
+        if ( attr->quant == VSI_NN_KERNEL_QUANT_ASYMM_PERCHANNEL )
         {
             vsi_float_array_release( &attr->asymm_v.scale );
             vsi_int_array_release( &attr->asymm_v.zero_point );
         }
-        else if( attr->quant == VSI_NN_KERNEL_QUANT_SYMM_PERCHANNEL )
+        else if ( attr->quant == VSI_NN_KERNEL_QUANT_SYMM_PERCHANNEL )
         {
             //TODO:
         }
-        free( attr );
-        *p_attr = NULL;
+
+        vsi_nn_safe_free(*p_attr);
     }
 } /* vsi_nn_kernel_tensor_attr_release() */
 
@@ -1693,32 +1694,6 @@ vsi_bool vsi_nn_kernel_is_supported_types
         {
             return FALSE;
         }
-    }
-
-    return TRUE;
-}
-
-static vsi_bool _check_stream_process_support
-    (
-    vsi_nn_graph_t* graph,
-    vsi_nn_tensor_t** inputs,
-    size_t input_num
-    )
-{
-    if ( graph->ctx->config.support_stream_processor == 0 )
-    {
-        return FALSE;
-    }
-
-    if ( graph->ctx->config.sp_exec_count == 0 )
-    {
-        return FALSE;
-    }
-
-    if (inputs && input_num > 0 &&
-        inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32)
-    {
-        return FALSE;
     }
 
     return TRUE;

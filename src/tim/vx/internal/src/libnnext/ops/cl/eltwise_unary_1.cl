@@ -151,6 +151,30 @@ float eltwise_unary_softsign(float val, float alpha, float rcp_alpha)
     return val / (1.0f + fabs(val));
 }
 
+float eltwise_unary_atan(float x, float alpha, float beta)
+{
+    return atan(x);
+}
+
+float eltwise_unary_atanh(float x, float alpha, float beta)
+{
+    return atanh(x);
+}
+float eltwise_unary_acosh(float x, float alpha, float beta)
+{
+    return acosh(x);
+}
+
+float eltwise_unary_inverse_sigmoid(float x, float alpha, float beta)
+{
+    float x1, x2;
+    x = clamp(x, 0, 1);
+    x1 = x > alpha ? x : alpha;
+    x2 = 1 - x;
+    x2 = x2 > alpha ? x2 : alpha;
+    return log(x1 / x2);
+}
+
 #define ELTWISE_UNARY_F32(func_name) \
 __kernel void func_name##_F32toF32 \
     ( \
@@ -188,6 +212,10 @@ ELTWISE_UNARY_F32(celu)
 ELTWISE_UNARY_F32(rcp)
 ELTWISE_UNARY_F32(sign)
 ELTWISE_UNARY_F32(softsign)
+ELTWISE_UNARY_F32(atan)
+ELTWISE_UNARY_F32(atanh)
+ELTWISE_UNARY_F32(acosh)
+ELTWISE_UNARY_F32(inverse_sigmoid)
 
 #define ELTWISE_UNARY_U8(func_name) \
 __kernel void func_name##_U8toU8 \
@@ -227,6 +255,52 @@ ELTWISE_UNARY_U8(celu)
 ELTWISE_UNARY_U8(rcp)
 ELTWISE_UNARY_U8(sign)
 ELTWISE_UNARY_U8(softsign)
+ELTWISE_UNARY_U8(atan)
+ELTWISE_UNARY_U8(atanh)
+ELTWISE_UNARY_U8(acosh)
+ELTWISE_UNARY_U8(inverse_sigmoid)
+
+#define ELTWISE_UNARY_U8toF32(func_name) \
+__kernel void func_name##_U8toF32 \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+                 float           inputScale, \
+                 float           inputTail, \
+                 float           outputScale, \
+                 float           outputZP, \
+                 float           alpha, \
+                 float           beta \
+    ) \
+{ \
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+ \
+    uint4 src = read_imageui(input, coord); \
+    float4 dst = convert_float4(src) * inputScale - inputTail; \
+ \
+    dst.x = eltwise_unary_##func_name(dst.x, alpha, beta); \
+ \
+    write_imagef(output, coord, dst); \
+}
+ELTWISE_UNARY_U8toF32(sin)
+ELTWISE_UNARY_U8toF32(cos)
+ELTWISE_UNARY_U8toF32(exp)
+ELTWISE_UNARY_U8toF32(log)
+ELTWISE_UNARY_U8toF32(neg)
+ELTWISE_UNARY_U8toF32(mish)
+ELTWISE_UNARY_U8toF32(hard_sigmoid)
+ELTWISE_UNARY_U8toF32(round)
+ELTWISE_UNARY_U8toF32(gelu)
+ELTWISE_UNARY_U8toF32(hard_gelu)
+ELTWISE_UNARY_U8toF32(selu)
+ELTWISE_UNARY_U8toF32(celu)
+ELTWISE_UNARY_U8toF32(rcp)
+ELTWISE_UNARY_U8toF32(sign)
+ELTWISE_UNARY_U8toF32(softsign)
+ELTWISE_UNARY_U8toF32(atan)
+ELTWISE_UNARY_U8toF32(atanh)
+ELTWISE_UNARY_U8toF32(acosh)
+ELTWISE_UNARY_U8toF32(inverse_sigmoid)
 
 __kernel void neg_I32toI32
     (

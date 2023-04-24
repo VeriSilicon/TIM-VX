@@ -55,12 +55,15 @@ static vsi_status op_compute
     vsi_size_t rank_in[_INPUT_NUM];
     uint32_t new_rank = 0;
     int32_t  i        = 0;
-    vsi_bool ret;
+    vsi_bool ret = FALSE;
+    vsi_nn_context_t ctx = NULL;
 
-    if( NULL == self )
+    if ( NULL == self )
     {
         return VSI_FAILURE;
     }
+
+    ctx = self->graph->ctx;
 
     for (i = 0; i < _IO_NUM; i++)
     {
@@ -78,7 +81,7 @@ static vsi_status op_compute
             outputs[0]->attr.size, outputs[0]->attr.dim_num,
             shapes_ptr, shapes[_INPUT_NUM], &new_rank);
 
-    if( ret )
+    if ( ret && !ctx->config.support_stream_processor )
     {
         for (i = 0; i < _INPUT_NUM; i++)
         {
@@ -98,11 +101,17 @@ static vsi_status op_compute
 
         for (i = 0; i < _IO_NUM; i++)
         {
-            vsi_nn_ReleaseTensor( &reshape_tensors[i] );
+            vsi_safe_release_tensor( reshape_tensors[i] );
         }
     }
+    else
+    {
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "select",
+                                        inputs, _INPUT_NUM,
+                                        outputs, _OUTPUT_NUM, NULL );
+    }
 
-    if( self->n )
+    if ( self->n )
     {
         status = VSI_SUCCESS;
     }
@@ -243,7 +252,7 @@ static vsi_bool op_setup
     in2_rank = inputs[2]->attr.dim_num;
     out_rank = vsi_nn_max(in0_rank, vsi_nn_max( in1_rank, in2_rank ));
 
-    for(i = 0; i < out_rank; i++)
+    for (i = 0; i < out_rank; i++)
     {
         vsi_size_t sz0, sz1, sz2;
         sz0 = i < in0_rank ? inputs[0]->attr.size[i] : 1;
@@ -252,7 +261,7 @@ static vsi_bool op_setup
         shape[i] = vsi_nn_max(vsi_nn_max(sz0, sz1), sz2);
     }
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = (uint32_t)out_rank;
         memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(vsi_size_t) );
@@ -264,7 +273,7 @@ static vsi_bool op_setup
         total_size_expected = vsi_nn_ShapeProduct( shape, out_rank );
         total_size_got = vsi_nn_ShapeProduct( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num );
-        if( total_size_expected != total_size_got )
+        if ( total_size_expected != total_size_got )
         {
             VSILOGW("Output size mismatch, expect %"VSI_SIZE_T_SPECIFIER", but got %"VSI_SIZE_T_SPECIFIER"",
                     total_size_expected, total_size_got);

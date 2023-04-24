@@ -32,7 +32,6 @@ OBJECTS +=   $(OBJ_DIR)/vsi_nn_code_generator.o   \
              $(OBJ_DIR)/vsi_nn_shape_util.o   \
              $(OBJ_DIR)/vsi_nn_dtype.o   \
              $(OBJ_DIR)/vsi_nn_limits.o   \
-             $(OBJ_DIR)/vsi_nn_vdata.o   \
              $(OBJ_DIR)/vsi_nn_util.o    \
              $(OBJ_DIR)/vsi_nn_dlfcn.o    \
              $(OBJ_DIR)/vsi_nn_constraint_check.o    \
@@ -43,9 +42,6 @@ vpath %.c quantization
 OBJECTS +=   $(OBJ_DIR)/vsi_nn_dynamic_fixed_point.o   \
              $(OBJ_DIR)/vsi_nn_asymmetric_affine.o   \
              $(OBJ_DIR)/vsi_nn_perchannel_symmetric_affine.o
-
-vpath %.c pycc
-OBJECTS +=      $(OBJ_DIR)/vsi_pycc_interface.o
 
 vpath %.c post
 OBJECTS +=      $(OBJ_DIR)/vsi_nn_post_fasterrcnn.o \
@@ -115,7 +111,8 @@ INCLUDES=-I. -I$(VIVANTE_SDK_DIR)/include/ \
  -I$(VIVANTE_SDK_DIR)/include/VX \
  -I../include/ops -I../include/utils -I../include/inference \
  -I../include/client -I../include -I../include/libnnext \
- -I../include/cpu_backend
+ -I../include/cpu_backend \
+ -I../src
 
 ifeq (1,$(DEBUG))
 CFLAGS+=-g
@@ -202,6 +199,7 @@ INCLUDE += -I$(VIVANTE_SDK_INC) -I$(VIVANTE_SDK_INC)/HAL -I$(AQROOT)/sdk/inc
 INCLUDE += -I../include/ops -I../include/utils -I../include/inference
 INCLUDE += -I../include/client -I../include -I../include/libnnext
 INCLUDE += -I../include/cpu_backend
+INCLUDE += -I../src
 
 CFLAGS += $(INCLUDE)
 CFLAGS += -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Werror

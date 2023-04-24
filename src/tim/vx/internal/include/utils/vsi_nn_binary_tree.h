@@ -29,8 +29,9 @@ extern "C"{
 #endif
 
 #include <stdint.h>
+#include "vsi_nn_feature_config.h"
 
-typedef int64_t vsi_nn_binary_tree_key_t;
+typedef int64_t VSI_PUBLIC_TYPE vsi_nn_binary_tree_key_t;
 
 #define vsi_nn_BinaryTreeInitRoot(n) do{n = NULL;} while (0);
 
@@ -40,7 +41,7 @@ typedef struct _vsi_nn_binary_tree
     struct _vsi_nn_binary_tree * right;
     vsi_nn_binary_tree_key_t     key;
     void * data_ptr;
-} vsi_nn_binary_tree_t;
+} VSI_PUBLIC_TYPE vsi_nn_binary_tree_t;
 
 OVXLIB_API void vsi_nn_BinaryTreeRemoveNode
     (

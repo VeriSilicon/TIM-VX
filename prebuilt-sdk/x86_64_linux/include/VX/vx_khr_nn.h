@@ -219,6 +219,28 @@ enum vx_nn_activation_function_e
     VX_NN_ACTIVATION_HSWISH = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x6,
     VX_NN_ACTIVATION_CUSTOM = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x7,
     VX_NN_ACTIVATION_NONE = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x8,
+    VX_NN_ACTIVATION_SIGN_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x9,
+    VX_NN_ACTIVATION_HSIGMOID_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0xa,
+    VX_NN_ACTIVATION_NEG_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0xb,
+    VX_NN_ACTIVATION_CLIP_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0xc,
+    VX_NN_ACTIVATION_EXP_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0xd,
+    VX_NN_ACTIVATION_SIN_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0xe,
+    VX_NN_ACTIVATION_COS_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0xf,
+    VX_NN_ACTIVATION_LOG_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x10,
+    VX_NN_ACTIVATION_MISH_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x11,
+    VX_NN_ACTIVATION_GELU_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x12,
+    VX_NN_ACTIVATION_HGELU_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x13,
+    VX_NN_ACTIVATION_ELU_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x14,
+    VX_NN_ACTIVATION_SELU_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x15,
+    VX_NN_ACTIVATION_CELU_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x16,
+    VX_NN_ACTIVATION_RECIPROCAL_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x17,
+    VX_NN_ACTIVATION_SOFTSIGN_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x18,
+    VX_NN_ACTIVATION_ATAN_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x19,
+    VX_NN_ACTIVATION_ATANH_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x1a,
+    VX_NN_ACTIVATION_ACOSH_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x1b,
+    VX_NN_ACTIVATION_INVERSE_SIGMOID_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x1c,
+    VX_NN_ACTIVATION_ROUND_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x1d,
+    VX_NN_ACTIVATION_ERF_VSI = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_NN_ACTIVATION_FUNCTION_TYPE) + 0x1e,
 };
 
 /*! \brief  The Convolutional network type
@@ -623,6 +645,19 @@ VX_API_ENTRY vx_tensor VX_API_CALL vxCreateTensorFromHandle2(
 * \retval VX_ERROR_INVALID_REFERENCE tensor is not a valid <tt>\ref vx_tensor</tt> <tt>\ref vx_image</tt>reference created from Handle.
 */
 VX_API_ENTRY vx_status VX_API_CALL vxFlushHandle(vx_reference ref);
+/* !\brief Same as vxFlushHandle() also added by Verisilicon as extension API.
+ */
+VX_API_ENTRY vx_status VX_API_CALL vxFlushHandleVSI(vx_reference ref);
+
+#if defined(VX_INVALIDATE_HANDLE_SUPPORT) && VX_INVALIDATE_HANDLE_SUPPORT
+/*! \brief Invalidate the memory referenced by reference's handle when it is ready.
+* added by Versilicon as extension API.
+* \param [in] ref The reference(image or tensor) which created from handle.
+* \return A <tt>\ref vx_status_e</tt> enumeration.;
+* \retval VX_ERROR_INVALID_REFERENCE tensor is not a valid <tt>\ref vx_tensor</tt> <tt>\ref vx_image</tt>reference created from Handle.
+*/
+VX_API_ENTRY vx_status VX_API_CALL vxInvalidateHandleVSI(vx_reference ref);
+#endif
 
 #if VX_VA40_EXT_SUPPORT
 /*! \brief Return a new tensor referencing the same memory location but with different shape.
@@ -776,6 +811,14 @@ typedef struct _vx_nn_convolution_params_ext2_t
 
     vx_int32 depth_multiplier;               /*!< \brief depthwise multiplier value, if 0, means convolution, elsewise(>=1), the convolution is depthwiseconvolution. */
 } vx_nn_convolution_params_ext2_t;
+
+typedef struct _vx_nn_convolution_params_ext3_t
+{
+    vx_nn_convolution_params_ext2_t ext2;      /*!< \brief Convolution extension structure head */
+
+    vx_bool isPPU;                            /*!< \brief  merge convolution and relu for PPU.  */
+} vx_nn_convolution_params_ext3_t;
+
 /*==============================================================================
     NN Nodes
 =============================================================================*/
@@ -2142,7 +2185,8 @@ typedef struct _vx_hardware_caps_params_ext_t
 typedef struct _vx_hardware_caps_params_ext2_t
 {
     vx_hardware_caps_params_ext_t base;
-    vx_uint32 streamProcessorExecCount;     /*!< \brief  streamprocess execution count.  */
+    vx_uint32 streamProcessorExecCount;     /*!< \brief  stream processor execution count.  */
+    vx_uint32 streamProcessorVectorSize;    /*!< \brief  stream processor vector size.  */
 } vx_hardware_caps_params_ext2_t;
 
 /*! \brief Queries hardware caps information.

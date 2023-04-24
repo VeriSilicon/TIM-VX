@@ -279,7 +279,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t  new_rank = 0;
     vsi_bool ret = FALSE;
     uint32_t dim = inputs[0]->attr.dim_num;
-    vsi_size_t multiples[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t multiples[VSI_NN_MAX_DIM_NUM] = { 1, 1, 1, 1 };
 
     for ( i = 0;  i < dim;  i++)
     {

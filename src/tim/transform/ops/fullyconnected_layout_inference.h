@@ -49,8 +49,10 @@ class FullyConnectedLayoutInfer : public OpLayoutInfer {
     }
     for (const auto& in : input_tensors) {
       if (in->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(in->GetSpec().GetByteSize());
+        in->CopyDataFromTensor(dataRef.data());
         auto infer_tensor = context_->infer_graph_->CreateTensor(in->GetSpec(),
-                                                            in->GetDataRef());
+                                                            (const void*)dataRef.data());
         auto trans_pv = MakeShared(in->GetShape().size());
 
         context_->UpdateTensorMap(in, infer_tensor);

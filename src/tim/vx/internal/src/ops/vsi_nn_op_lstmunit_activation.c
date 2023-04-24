@@ -258,6 +258,8 @@ static vsi_status op_deinit
         self->nn_param.lstmunit_activation.local.lstmunit_param = NULL;
     }
 
+    status = vsi_nn_op_common_deinit(self);
+
     return status;
 } /* op_deinit() */
 

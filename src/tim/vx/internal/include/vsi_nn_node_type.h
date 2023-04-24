@@ -200,8 +200,17 @@
 #include "ops/vsi_nn_op_scatter_elements.h"
 #include "ops/vsi_nn_op_pre_process_yuv422.h"
 #include "ops/vsi_nn_op_bucketize.h"
+#include "ops/vsi_nn_op_globallppool.h"
+#include "ops/vsi_nn_op_gather_nd.h"
+#include "ops/vsi_nn_op_avg_pool3d.h"
+#include "ops/vsi_nn_op_maxunpool.h"
+#include "ops/vsi_nn_op_reversesequence.h"
+#include "ops/vsi_nn_op_grid_sample.h"
+#include "ops/vsi_nn_op_bilinear_grid_sample.h"
+#include "ops/vsi_nn_op_lpnorm.h"
 /* custom node head define define */
 #include "custom/vsi_nn_custom_node_type.h"
+#include "ops/vsi_nn_op_inverse_sigmoid.h"
 
 #if defined(__cplusplus)
 extern "C"{
@@ -386,6 +395,15 @@ typedef union _vsi_nn_nn_param
     vsi_nn_scatter_elements_param   scatter_elements;
     vsi_nn_pre_process_yuv422_param pre_process_yuv422;
     vsi_nn_bucketize_param          bucketize;
+    vsi_nn_globallppool_param       globallppool;
+    vsi_nn_gather_nd_param          gather_nd;
+    vsi_nn_avg_pool3d_param         avg_pool3d;
+    vsi_nn_maxunpool_param          maxunpool;
+    vsi_nn_reversesequence_param    reversesequence;
+    vsi_nn_inverse_sigmoid_param       inverse_sigmoid;
+    vsi_nn_grid_sample_param        gridsample;
+    vsi_nn_bilinear_grid_sample_param bilinear_grid_sample;
+    vsi_nn_lpnorm_param             lpnorm;
     void*                         client_param;
 
     /* custom node data struct define */

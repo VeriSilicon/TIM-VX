@@ -42,7 +42,7 @@ class L2NormalizationLayoutInfer : public OpLayoutInfer {
     auto input_pv = context_->GetPermuteVector(src_input);
 
     int32_t axis =
-        MapAxis(input_pv->AsStdVec(), op_->impl()->node()->nn_param.lrn.axis);
+        MapAxis(input_pv->AsStdVec(), op_->impl()->node()->nn_param.l2_normalize.axis);
 
     auto l2norm =
         context_->infer_graph_->CreateOperation<vx::ops::L2Normalization>(axis);

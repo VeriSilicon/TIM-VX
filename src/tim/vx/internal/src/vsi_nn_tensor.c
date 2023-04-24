@@ -31,7 +31,9 @@
 #include "vsi_nn_graph.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
+#include "vsi_nn_tensor_util_prv.h"
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_test.h"
 #include "utils/vsi_nn_math.h"
 #include "utils/vsi_nn_util.h"
@@ -91,7 +93,7 @@ static void print_tensor
     char *ext_str
     )
 {
-#define _SHAPE_BUF_SZ   (64)
+#define _SHAPE_BUF_SZ   (128)
 #define _EXT_ATTR_BUF_SZ   (64)
 #define _ATTR_BUF_SZ   (64)
     int count;
@@ -106,7 +108,7 @@ static void print_tensor
     }
     vsi_nn_ShapeToString( tensor->attr.size, tensor->attr.dim_num,
         shape, _SHAPE_BUF_SZ, TRUE );
-    vsi_nn_FormatToString( tensor, format, _SHAPE_BUF_SZ );
+    vsi_nn_FormatToString( tensor, format, _ATTR_BUF_SZ );
 
     /* Process quantize parameters */
     switch( tensor->attr.dtype.qnt_type )
@@ -145,22 +147,24 @@ static void print_tensor
 
     if(ext_str)
     {
-        VSILOGD("%s id[%4u] vtl[%d] const[%d] shape[%-18s] fmt[%s] qnt[%s]",
+        VSILOGD("%s id[%4u] vtl[%d] const[%d] shape[%-18s] is_scalar[%d] fmt[%s] qnt[%s]",
             ext_str,
             id,
             tensor->attr.vtl,
             tensor->attr.is_const,
             shape,
+            vsi_nn_GetTensorIsScalar(tensor),
             format,
             ext_attr);
     }
     else
     {
-        VSILOGD("id[%4u] vtl[%d] const[%d] shape[%-18s] fmt[%s] qnt[%s]",
+        VSILOGD("id[%4u] vtl[%d] const[%d] shape[%-18s] is_scalar[%d] fmt[%s] qnt[%s]",
             id,
             tensor->attr.vtl,
             tensor->attr.is_const,
             shape,
+            vsi_nn_GetTensorIsScalar(tensor),
             format,
             ext_attr);
     }
@@ -424,13 +428,6 @@ static vsi_bool _init_tensor
         vxReleaseWeightsBiasesParameter( &tensor->wb );
     }
 
-#if VX_STREAM_PROCESSOR_SUPPORT
-    if ( TRUE == tensor->attr.is_dummy )
-    {
-        tensor->t = vxCreateDummyTensor( graph->ctx->c,
-            (vsi_size_t)tensor->attr.dim_num, size_vxsize, (vsi_enum)tensor->attr.dtype.vx_type );
-    } else
-#endif
     if( TRUE == tensor->attr.is_created_from_handle )
     {
         vx_tensor_addressing addr = NULL;
@@ -453,28 +450,22 @@ static vsi_bool _init_tensor
             }
             else
             {
-                tensor->attr.is_handle_malloc_by_ovxlib = FALSE;
+                if (TRUE == tensor->attr.is_handle_malloc_by_ovxlib)
+                {
+                    VSILOGE("Data allocated by OVXLIB should not be shared by other OVXLIB tensors.");
+                    ret = FALSE;
+                    goto final;
+                }
                 if (!vsi_nn_IsBufferAligned(data, align_start_size))
                 {
                     VSILOGE( "vsi_nn_IsBufferAligned is FALSE." );
-                    if( scales )
-                    {
-                        free(scales);
-                    }
-                    if( zeroPoints )
-                    {
-                        free(zeroPoints);
-                    }
-                    if(null_zp)
-                    {
-                        free(null_zp);
-                        null_zp = NULL;
-                    }
-                    return FALSE;
+                    ret = FALSE;
+                    goto final;
                 }
             }
             if( data )
             {
+                vsi_status status = VSI_FAILURE;
 #ifdef VSI_40BIT_VA_SUPPORT
                 {
                     vx_size size_vxsize2[_cnt_of_array(tensor->attr.size)] = {0};
@@ -539,7 +530,16 @@ static vsi_bool _init_tensor
                     ret = FALSE;
                     goto final;
                 }
-                vxFlushHandle( (vx_reference)tensor->t );
+                status = vxFlushHandle( (vx_reference)tensor->t );
+                if (VSI_SUCCESS != status)
+                {
+                    VSILOGE("Flush handle fail.");
+                    ret = FALSE;
+                    goto final;
+                }
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+                _set_tensor_handle((vsi_nn_tensor_prv_t*)tensor, data);
+#endif
             }
         }
     }
@@ -552,6 +552,18 @@ static vsi_bool _init_tensor
     {
         tensor->t = vxCreateVirtualTensor2( graph->g,
             &params, sizeof( vx_tensor_create_params_t ) );
+
+        if ((!vsi_nn_IsGraphFastMode(graph))
+            && (tensor->t != NULL)
+            && (params.data_format == VX_TYPE_FLOAT32))
+        {
+
+            vx_enum precision = VX_TENSOR_PRECISION_HIGH;
+            vxSetTensorAttribute(tensor->t,
+                                      VX_TENSOR_PRECISION,
+                                      &precision,
+                                      sizeof(vx_enum));
+        }
     }
     if ( NULL == tensor->t )
     {
@@ -568,7 +580,12 @@ static vsi_bool _init_tensor
             vsi_nn_FillTensorWithValue( graph, tensor, 0.0f );
             if(tensor->attr.is_created_from_handle)
             {
-                vxFlushHandle( (vx_reference)tensor->t );
+                vsi_status status = vxFlushHandle( (vx_reference)tensor->t );
+                if (VSI_SUCCESS != status)
+                {
+                    ret = FALSE;
+                    goto final;
+                }
             }
         }
     }
@@ -619,26 +636,26 @@ static vsi_nn_tensor_t * _create_tensor
     vsi_nn_tensor_attr_t * attr
     )
 {
-    vsi_nn_tensor_t * tensor;
+    vsi_nn_tensor_prv_t * tensor;
 
     tensor = NULL;
     if( NULL == graph || NULL == graph->g || NULL == attr )
     {
-        return tensor;
+        return NULL;
     }
 
-    tensor = (vsi_nn_tensor_t *)malloc( sizeof( vsi_nn_tensor_t ) );
+    tensor = (vsi_nn_tensor_prv_t *)malloc( sizeof( vsi_nn_tensor_prv_t ) );
     //vsi_nn_UpdateTensorDims( attr );
 
     if( NULL != tensor )
     {
-        memset( tensor, 0, sizeof( vsi_nn_tensor_t ) );
-        memcpy( &tensor->attr, attr, sizeof( vsi_nn_tensor_attr_t ) );
-        tensor->is_swapped = FALSE;
+        memset( tensor, 0, sizeof( vsi_nn_tensor_prv_t ) );
+        memcpy( &tensor->pot.attr, attr, sizeof( vsi_nn_tensor_attr_t ) );
+        tensor->pot.is_swapped = FALSE;
         if( attr->dim_num != VSI_NN_DIM_AUTO )
         {
-            _init_tensor( graph, tensor, data);
-            if( NULL == tensor->t )
+            _init_tensor( graph, &tensor->pot, data);
+            if( NULL == tensor->pot.t )
             {
                 VSILOGE( "Create vx tensor fail." );
                 free( tensor );
@@ -646,7 +663,7 @@ static vsi_nn_tensor_t * _create_tensor
             }
         }
     }
-    return tensor;
+    return (vsi_nn_tensor_t*)tensor;
 }
 
 vsi_nn_tensor_t * vsi_nn_CreateTensor
@@ -666,14 +683,34 @@ vsi_nn_tensor_t * vsi_nn_CreateTensorFromHandle
     vsi_nn_tensor_attr_t * attr
     )
 {
-    attr->is_created_from_handle = TRUE;
+    vsi_nn_tensor_t* ptensor = NULL;
 #ifdef VX_CREATE_TENSOR_SUPPORT_PHYSICAL
     if(attr->vsi_memory_type == VSI_MEMORY_TYPE_NONE || attr->vsi_memory_type == 0)
     {
         attr->vsi_memory_type = VSI_MEMORY_TYPE_HOST;
     }
 #endif
-    return _create_tensor(graph, data, attr);
+    if (TRUE != attr->is_created_from_handle)
+    {
+        VSILOGE("Could only create tensor with flag 'is_created_from_handle == TRUE'.");
+        ptensor = NULL;
+        goto final;
+    }
+    /* 'attr' should contain correct flag is_handle_malloc_by_ovxlib to indicate the if 'data' is
+    allocated by OVXLIB. And 'data' allocated by OVXLIB shouldn't be shared by other ovxlib tensors */
+    if (NULL != data && TRUE == attr->is_handle_malloc_by_ovxlib)
+    {
+        VSILOGE("Handle allocated by OVXLIB should not be shared by other OVXLIB tensors.");
+        ptensor = NULL;
+        goto final;
+    }
+    else
+    {
+        ptensor = _create_tensor(graph, data, attr);
+    }
+
+ final:
+    return ptensor;
 } /* vsi_nn_CreateTensorFromHandle() */
 
 vsi_nn_tensor_t * vsi_nn_CreateTensorWithDefault
@@ -797,29 +834,42 @@ void vsi_nn_ReleaseTensor
     vsi_nn_tensor_t ** tensor
     )
 {
-    vsi_nn_tensor_t * ptr;
-    ptr = (NULL != tensor) ? *tensor : NULL;
+    vsi_nn_tensor_prv_t * ptr;
+    ptr = (NULL != tensor) ? (vsi_nn_tensor_prv_t*)(*tensor) : NULL;
     if( NULL != ptr)
     {
-        uint8_t * handle = NULL;
-        if( NULL != ptr->t )
+        if( NULL != ptr->pot.t )
         {
-            if (ptr->attr.is_created_from_handle &&
-                ptr->attr.is_handle_malloc_by_ovxlib)
+            uint8_t* handle = NULL;
+            if (ptr->pot.attr.is_created_from_handle &&
+                ptr->pot.attr.is_handle_malloc_by_ovxlib)
             {
-                vxSwapTensorHandle( ptr->t, NULL, (void**)&handle);
+                vxSwapTensorHandle(ptr->pot.t, NULL, (void**)&handle);
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+                if(handle != _get_tensor_handle(ptr))
+                {
+                    VSILOGE("Tensor handle maybe swapped by accident!");
+                }
+#endif
                 if ( handle == NULL )
                 {
-                    VSILOGE("vxSwapTensorHandle fail.");
+                    VSILOGE("Tensor handle is NULL.");
                     return;
                 }
             }
-            vxReleaseTensor( &ptr->t );
-            if (handle) vsi_nn_FreeAlignedBuffer(handle);
+            vxReleaseTensor( &ptr->pot.t );
+            if (handle)
+            {
+                vsi_nn_FreeAlignedBuffer(handle);
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+                handle = NULL;
+                _set_tensor_handle(ptr, NULL);
+#endif
+            }
         }
 
-        if (ptr->wb) {
-            vxReleaseWeightsBiasesParameter(&ptr->wb);
+        if (ptr->pot.wb) {
+            vxReleaseWeightsBiasesParameter(&ptr->pot.wb);
         }
 
         free( ptr );
@@ -961,10 +1011,15 @@ float * vsi_nn_ConvertTensorToFloat32Data
 
     if( tensor->attr.is_created_from_handle )
     {
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+        tensor_data = _get_tensor_handle((vsi_nn_tensor_prv_t*)tensor);
+        vxInvalidateHandleVSI((vx_reference)tensor->t);
+#else
         vxSwapTensorHandle(tensor->t, NULL, (void**)&tensor_data);
+#endif
         if ( tensor_data == NULL )
         {
-            VSILOGE("vxSwapTensorHandle fail.");
+            VSILOGE("Tensor handle is NULL.");
             if( data )
             {
                 free( data );
@@ -1023,10 +1078,15 @@ uint8_t * vsi_nn_ConvertTensorToData
     if( data && tensor->attr.is_created_from_handle )
     {
         uint8_t* tensor_data = NULL;
-        vxSwapTensorHandle( tensor->t, NULL, (void **)&tensor_data );
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+        tensor_data = _get_tensor_handle((vsi_nn_tensor_prv_t*)tensor);
+        vxInvalidateHandleVSI((vx_reference)tensor->t);
+#else
+        vxSwapTensorHandle(tensor->t, NULL, (void**)&tensor_data);
+#endif
         if ( tensor_data == NULL )
         {
-            VSILOGE("vxSwapTensorHandle fail.");
+            VSILOGE("Tensor handle is NULL.");
             if( data )
             {
                 free( data );
@@ -1253,7 +1313,7 @@ void vsi_nn_SaveTensorToTextByFp32
         ptr += stride;
 
         count += snprintf( (char *)&buf[count], _TENSOR_TMPBUF_SZ - count,
-            "%f%s", write_data, seperator );
+            "%.16f%s", write_data, seperator );
         if ( count > _TENSOR_TMPBUF_SZ )
         {
             VSILOGW( "tensor buffer overflow!" );
@@ -1497,16 +1557,24 @@ vsi_status vsi_nn_CopyDataToTensor
     if( tensor->attr.is_created_from_handle )
     {
         uint8_t* ptr = NULL;
-        vxSwapTensorHandle( tensor->t, NULL, (void **)&ptr);
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+        ptr = _get_tensor_handle((vsi_nn_tensor_prv_t*)tensor);
+#else
+        vxSwapTensorHandle(tensor->t, NULL, (void**)&ptr);
+#endif
         if ( ptr == NULL )
         {
-            VSILOGE("vxSwapTensorHandle fail.");
+            VSILOGE("Tensor handle is NULL.");
             return VSI_FAILURE;
         }
         memcpy( ptr, data, vsi_nn_GetTensorSize(tensor->attr.size, tensor->attr.dim_num,
                     tensor->attr.dtype.vx_type));
-        status = vxSwapTensorHandle( tensor->t, ptr, NULL );
-        status |= vxFlushHandle( (vx_reference)tensor->t );
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+        status = vxFlushHandle((vx_reference)tensor->t);
+#else
+        status = vxSwapTensorHandle(tensor->t, ptr, NULL);
+        status |= vxFlushHandle((vx_reference)tensor->t);
+#endif
     }
     else
     {
@@ -1550,6 +1618,25 @@ vsi_status vsi_nn_FlushHandle
     }
 } /* vsi_nn_FlushHandle() */
 
+vsi_status vsi_nn_InvalidateHandle
+(
+    const vsi_nn_tensor_t* tensor
+)
+{
+    if (NULL == tensor || NULL == tensor->t)
+    {
+        return VSI_FAILURE;
+    }
+    else
+    {
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+        return vxInvalidateHandleVSI((vx_reference)tensor->t);
+#else
+        return VSI_SUCCESS;
+#endif
+    }
+} /* vsi_nn_FlushHandle() */
+
 vsi_status vsi_nn_GetTensorHandle
     (
     vsi_nn_tensor_t      * tensor,
@@ -1562,9 +1649,38 @@ vsi_status vsi_nn_GetTensorHandle
     }
     else
     {
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+        if (NULL != _get_tensor_handle((vsi_nn_tensor_prv_t*)tensor))
+        {
+            *ptr = _get_tensor_handle((vsi_nn_tensor_prv_t*)tensor);
+            return VSI_SUCCESS;
+        }
+        else
+        {
+            return VSI_FAILURE;
+        }
+#else
         return vxSwapTensorHandle(tensor->t, NULL, ptr);
+#endif
     }
 } /* vsi_nn_GetTensorHandle() */
+
+vsi_status vsi_nn_SetTensorIsScalar
+(
+    vsi_nn_tensor_t* tensor,
+    int8_t is_scalar
+)
+{
+    return _set_tensor_is_scalar((vsi_nn_tensor_prv_t*)tensor, is_scalar);
+}
+
+int8_t vsi_nn_GetTensorIsScalar
+(
+    vsi_nn_tensor_t* tensor
+)
+{
+    return _get_tensor_is_scalar((vsi_nn_tensor_prv_t*)tensor);
+}
 
 vsi_status vsi_nn_CopyRawDataToTensor
     (
@@ -2240,6 +2356,18 @@ vsi_status vsi_nn_SwapTensorHandle
     status = vxSwapTensor( tensor0->t, tensor1->t );
     if( VX_SUCCESS == status )
     {
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+        uint8_t* temp_handle = NULL;
+        vsi_bool temp_is_handle_malloc_by_ovxlib = TRUE;
+
+        temp_handle = _get_tensor_handle((vsi_nn_tensor_prv_t*)tensor0);
+        _set_tensor_handle((vsi_nn_tensor_prv_t*)tensor0, _get_tensor_handle((vsi_nn_tensor_prv_t*)tensor1));
+        _set_tensor_handle((vsi_nn_tensor_prv_t*)tensor1, temp_handle);
+
+        temp_is_handle_malloc_by_ovxlib = tensor0->attr.is_handle_malloc_by_ovxlib;
+        tensor0->attr.is_handle_malloc_by_ovxlib = tensor1->attr.is_handle_malloc_by_ovxlib;
+        tensor1->attr.is_handle_malloc_by_ovxlib = temp_is_handle_malloc_by_ovxlib;
+#endif
         tensor0->is_swapped = TRUE;
         tensor1->is_swapped = TRUE;
     }
@@ -2671,17 +2799,26 @@ final:
 
 vsi_status vsi_nn_SwapHandle
     (
-    vsi_nn_tensor_t * tensor,
-    void * new_ptr,
-    void ** old_ptr
+    vsi_nn_tensor_t* tensor,
+    void* new_ptr,
+    vsi_bool is_new_ptr_malloc_by_ovxlib,
+    void** old_ptr
     )
 {
-    if(!tensor)
+    vsi_status status = VSI_FAILURE;
+    if (!tensor)
     {
         return VSI_FAILURE;
     }
-    vxSwapTensorHandle(tensor->t, new_ptr, old_ptr);
-    return VSI_SUCCESS;
+    status = vxSwapTensorHandle(tensor->t, new_ptr, old_ptr);
+#ifdef VSI_INVALIDATE_HANDLE_SUPPORT
+    if (VSI_SUCCESS == status)
+    {
+        _set_tensor_handle((vsi_nn_tensor_prv_t*)tensor, new_ptr);
+        tensor->attr.is_handle_malloc_by_ovxlib = is_new_ptr_malloc_by_ovxlib;
+    }
+#endif
+    return status;
 } /* vsi_nn_SwapHandle() */
 
 vsi_bool vsi_nn_ConvertTensor
@@ -2759,13 +2896,19 @@ vsi_nn_tensor_t * vsi_nn_dropout_tensor
     vsi_size_t size = 0;
     vsi_size_t i = 0;
     float* data   = NULL;
+    vsi_nn_tensor_attr_t attr;
 
     if (NULL == input || NULL == graph)
     {
         return NULL;
     }
 
-    output = vsi_nn_CreateTensor(graph, &input->attr);
+    memset(&attr, 0, sizeof(attr));
+    memcpy(&attr, &input->attr, sizeof(attr));
+    attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+    attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+
+    output = vsi_nn_CreateTensor(graph, &attr);
     if ( !output )
     {
         VSILOGE("create tensor failed.");
@@ -2785,10 +2928,272 @@ vsi_nn_tensor_t * vsi_nn_dropout_tensor
         data[i] = data[i] * rate;
     }
 
-    vsi_nn_CopyRawDataToTensor( graph, (uint8_t *)data, &input->attr.dtype, output );
+    vsi_nn_CopyRawDataToTensor( graph, (uint8_t *)data, &attr.dtype, output );
 
 final:
     vsi_nn_safe_free(data);
 
     return output;
 }
+
+uint8_t* _get_tensor_handle
+    (
+    vsi_nn_tensor_prv_t* tensor
+    )
+{
+    uint8_t* handle = NULL;
+    if (NULL == tensor)
+    {
+        goto final;
+    }
+    handle = tensor->handle;
+
+final:
+    return handle;
+}
+
+vsi_status _set_tensor_handle
+    (
+    vsi_nn_tensor_prv_t* tensor,
+    uint8_t*             handle
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    if (NULL == tensor)
+    {
+        status = VSI_FAILURE;
+        goto final;
+    }
+    tensor->handle = handle;
+
+final:
+    return status;
+}
+
+int8_t _get_tensor_is_scalar
+(
+    vsi_nn_tensor_prv_t* tensor
+)
+{
+    int8_t is_scalar = FALSE;
+    if (NULL == tensor)
+    {
+        VSILOGE("To get is_scalar, tensor pointer SHOULD NOT be NULL.");
+        goto final;
+    }
+    is_scalar = tensor->is_scalar;
+
+    final:
+    return is_scalar;
+}
+
+vsi_status _set_tensor_is_scalar
+(
+    vsi_nn_tensor_prv_t* tensor,
+    int8_t is_salar
+)
+{
+    vsi_status status = VSI_SUCCESS;
+    if (NULL == tensor)
+    {
+        status = VSI_FAILURE;
+        goto final;
+    }
+    tensor->is_scalar = is_salar;
+
+    final:
+    return status;
+}
+
+static vsi_bool _init_dummy_tensor
+    (
+    vsi_nn_graph_t  * graph,
+    vsi_nn_tensor_t * tensor
+    )
+{
+    vsi_bool ret;
+    vx_tensor_create_params_t params;
+    float * scales = NULL;
+    int32_t * zeroPoints = NULL;
+    int32_t * null_zp = NULL;
+    vx_size size_vxsize[VSI_NN_MAX_DIM_NUM] = {0};
+    vx_uint32 size_u32[VSI_NN_MAX_DIM_NUM] = {0};
+    size_t i = 0;
+    ret = TRUE;
+
+    memset( &params, 0, sizeof( vx_tensor_create_params_t ) );
+    params.num_of_dims = tensor->attr.dim_num;
+    for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    {
+        size_vxsize[i] = -1 == tensor->attr.size[i] ? -1 : (vx_size)tensor->attr.size[i];
+    }
+    for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    {
+        size_u32[i] = -1 == tensor->attr.size[i] ? -1 : (vx_uint32)tensor->attr.size[i];
+    }
+#ifdef VSI_40BIT_VA_SUPPORT
+    params.sizes = size_vxsize;
+    (void)size_u32;
+#else
+    params.sizes = size_u32;
+    (void)size_vxsize;
+#endif
+    params.data_format = (vsi_enum)tensor->attr.dtype.vx_type;
+    switch( tensor->attr.dtype.qnt_type )
+    {
+    case VSI_NN_QNT_TYPE_DFP:
+        params.quant_format = (vsi_enum)VX_QUANT_DYNAMIC_FIXED_POINT;
+        params.quant_data.dfp.fixed_point_pos = (uint8_t)tensor->attr.dtype.fl;
+        break;
+    case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
+    case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+        params.quant_format = (vsi_enum)VX_QUANT_AFFINE_SCALE;
+        params.quant_data.affine.scale = tensor->attr.dtype.scale;
+        params.quant_data.affine.zeroPoint = (int32_t)tensor->attr.dtype.zero_point;
+        break;
+    case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC:
+#ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
+        #ifdef VX_QUANT_AFFINE_SCALE_PER_CHANNEL
+            params.quant_format = (vsi_enum)VX_QUANT_AFFINE_SCALE_PER_CHANNEL;
+        #else
+            params.quant_format = (vsi_enum)VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC;
+        #endif
+        // This is a hack that driver doesn't support const scales
+        scales = (float*)malloc(sizeof(float) * tensor->attr.dtype.scale_dim);
+        memcpy(scales, tensor->attr.dtype.scales, tensor->attr.dtype.scale_dim * sizeof(float));
+        params.quant_data.affinePerChannel.channelDim = tensor->attr.dtype.channel_dim;
+        params.quant_data.affinePerChannel.scaleCount = tensor->attr.dtype.scale_dim;
+        params.quant_data.affinePerChannel.scales = scales;
+        params.quant_data.affinePerChannel.zeroPoint = NULL;
+        params.quant_data.affinePerChannel.zeroPointCount = 0;
+        {
+            // Low-level driver only support asymmetric. Application doesn't provide zp information if
+            // it's symmetric quantized tensor. Fake a zp information filled with zero to meet low-level's
+            // requirement
+            null_zp = (int32_t*)malloc(sizeof(int32_t) * tensor->attr.dtype.scale_dim);
+            memset(null_zp, 0, sizeof(int32_t) * tensor->attr.dtype.scale_dim);
+            params.quant_data.affinePerChannel.zeroPoint = null_zp;
+            params.quant_data.affinePerChannel.zeroPointCount= tensor->attr.dtype.scale_dim;
+        }
+        break;
+#else
+    VSILOGE( "can't support qnt_type VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC." );
+#endif
+    case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC:
+#ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
+        #ifdef VX_QUANT_AFFINE_SCALE_PER_CHANNEL
+            params.quant_format = (vsi_enum)VX_QUANT_AFFINE_SCALE_PER_CHANNEL;
+        #else
+            params.quant_format = (vsi_enum)VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC;
+        #endif
+        // This is a hack that driver doesn't support const scales
+        scales = (float*)malloc(sizeof(float) * tensor->attr.dtype.scale_dim);
+        memcpy(scales,
+               tensor->attr.dtype.scales,
+               tensor->attr.dtype.scale_dim * sizeof(float));
+        zeroPoints = (int32_t*)malloc(sizeof(int32_t) * tensor->attr.dtype.zero_points_dim);
+        memcpy(zeroPoints,
+               tensor->attr.dtype.zero_points,
+               tensor->attr.dtype.zero_points_dim * sizeof(int32_t));
+        params.quant_data.affinePerChannel.channelDim =
+            tensor->attr.dtype.channel_dim;
+        params.quant_data.affinePerChannel.scaleCount =
+            tensor->attr.dtype.scale_dim;
+        params.quant_data.affinePerChannel.scales = scales;
+        params.quant_data.affinePerChannel.zeroPoint = zeroPoints;
+        params.quant_data.affinePerChannel.zeroPointCount = tensor->attr.dtype.zero_points_dim;
+        break;
+#else
+        VSILOGE(
+            "can't support qnt_type "
+            "VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC.");
+#endif
+    default:
+        break;
+    }
+
+    if( NULL != tensor->t )
+    {
+        vxReleaseTensor( &tensor->t );
+    }
+    if( NULL != tensor->wb )
+    {
+        vxReleaseWeightsBiasesParameter( &tensor->wb );
+    }
+
+#if (VX_STREAM_PROCESSOR_SUPPORT)
+    tensor->t = vxCreateDummyTensor( graph->ctx->c,
+        (vsi_size_t)tensor->attr.dim_num, size_vxsize, (vsi_enum)tensor->attr.dtype.vx_type );
+#else
+    tensor->t = NULL;
+#endif
+    if ( NULL == tensor->t )
+    {
+        VSILOGE( "Create vx tensor fail." );
+        ret = FALSE;
+        goto final;
+    }
+
+final:
+    if( scales )
+    {
+        free(scales);
+    }
+    if (zeroPoints)
+    {
+        free(zeroPoints);
+    }
+    if(null_zp)
+    {
+        free(null_zp);
+        null_zp = NULL;
+    }
+    return ret;
+} /* _init_dummy_tensor() */
+
+static vsi_nn_tensor_t * _create_dummy_tensor
+    (
+    vsi_nn_graph_t       * graph,
+    vsi_nn_tensor_attr_t * attr
+    )
+{
+    vsi_nn_tensor_prv_t * tensor;
+
+    tensor = NULL;
+    if( NULL == graph || NULL == graph->g || NULL == attr )
+    {
+        return NULL;
+    }
+
+    tensor = (vsi_nn_tensor_prv_t *)malloc( sizeof( vsi_nn_tensor_prv_t ) );
+    //vsi_nn_UpdateTensorDims( attr );
+
+    if ( NULL != tensor )
+    {
+        memset( tensor, 0, sizeof( vsi_nn_tensor_prv_t ) );
+        memcpy( &tensor->pot.attr, attr, sizeof( vsi_nn_tensor_attr_t ) );
+        tensor->pot.is_swapped = FALSE;
+        if( attr->dim_num != VSI_NN_DIM_AUTO )
+        {
+            _init_dummy_tensor( graph, &tensor->pot);
+            if( NULL == tensor->pot.t )
+            {
+                VSILOGE( "Create vx tensor fail." );
+                free( tensor );
+                tensor = NULL;
+            }
+        }
+    }
+
+    return (vsi_nn_tensor_t*)tensor;
+}
+
+vsi_nn_tensor_t * vsi_nn_create_dummy_tensor
+    (
+    vsi_nn_graph_t       * graph,
+    vsi_nn_tensor_attr_t * attr
+    )
+{
+    attr->is_created_from_handle = FALSE;
+    return _create_dummy_tensor(graph, attr);
+} /* vsi_nn_create_dummy_tensor() */

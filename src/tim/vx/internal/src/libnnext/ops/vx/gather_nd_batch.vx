@@ -1,0 +1,94 @@
+#include "cl_viv_vx_ext.h"
+
+__kernel void gather_nd_batch_I8toI8_1D(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // batch
+
+    int4 coord = (int4)(gidx, gidy, 0, 0);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.wy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
+    coord.z = indice.x * block_size + gidx;
+
+    vxc_char16 src;
+    VXC_ReadImage(src, input0, coord.zy, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    VXC_WriteImage(output, coord.xy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_nd_batch_U8toU8_1D(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // batch num
+
+    int4 coord = (int4)(gidx, gidy, 0, 0);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.wy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
+    coord.z = indice.x * block_size + gidx;
+
+    vxc_uchar16 src;
+    VXC_ReadImage(src, input0, coord.zy, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.xy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_nd_batch_I16toI16_1D(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // batch num
+
+    int4 coord = (int4)(gidx, gidy, 0, 0);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.wy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
+    coord.z = indice.x * block_size + gidx;
+
+    vxc_short8 src;
+    VXC_ReadImage(src, input0, coord.zy, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.xy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void gather_nd_batch_F16toF16_1D(
+    __read_only image2d_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // batch num
+
+    int4 coord = (int4)(gidx, gidy, 0, 0);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.wy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
+    coord.z = indice.x * block_size + gidx;
+
+    vxc_short8 src;
+    VXC_ReadImage(src, input0, coord.zy, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.xy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}

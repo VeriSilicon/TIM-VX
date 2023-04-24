@@ -37,6 +37,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
+#include "vsi_nn_error.h"
 
 static vsi_status op_compute
     (
@@ -81,8 +82,16 @@ static vsi_status op_compute
             inputs[0]->t, &reshape_param, sizeof(reshape_param), outputs[0]->t);
         vsi_safe_release_tensor(dims_tensor);
 #else
+        vsi_nn_tensor_t *tmp_tensor = NULL;
+        tmp_tensor = vsi_nn_reshape_tensor( self->graph,
+            outputs[0], inputs[0]->attr.size, inputs[0]->attr.dim_num );
+        CHECK_PTR_FAIL_GOTO( tmp_tensor, "create tensor fail.", final );
+
         self->n = vxTensorCopyNode(self->graph->g,
-            inputs[0]->t, outputs[0]->t);
+            inputs[0]->t, tmp_tensor->t);
+
+final:
+        vsi_safe_release_tensor(tmp_tensor);
 #endif
         if (NULL == self->n)
         {

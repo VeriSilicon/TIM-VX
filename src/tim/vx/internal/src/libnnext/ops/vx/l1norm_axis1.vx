@@ -1,0 +1,147 @@
+#pragma OPENCL EXTENSION cl_viv_vx_extension : enable
+
+#include "cl_viv_vx_ext.h"
+
+#define epsilon 1e-12
+
+_viv_uniform VXC_512Bits uniExtract8Bin_2x8;
+_viv_uniform VXC_512Bits ExtractBin_part0_4x4;
+_viv_uniform VXC_512Bits ExtractBin_part1_4x4;
+
+
+#define L1_NORM_AXIS1_SH_2D(name0, name1, src_type, conv_type0, conv_type1, dst_type, save_type) \
+__kernel void l1norm_##name0##to##name1##_2D_axis1 \
+    ( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 float            inputZp, \
+                 float            outputscale, \
+                 float            outputtail, \
+                 int              axis, \
+                 int              axis_size) \
+{ \
+    int2 coord = (int2)(get_global_id(0),0); \
+    src_type    v0; \
+    conv_type0  src0; \
+    dst_type    dst; \
+    conv_type1  dst0, dst1; \
+    save_type   out; \
+    float4 src0_f, src1_f; \
+ \
+    float4 total0 = 0, total1 = 0; \
+    float4 rcp_total0 = 0, rcp_total1 = 0; \
+    do \
+    { \
+        VXC_ReadImage(v0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src0, v0, 16); \
+        coord.y = coord.y + 1; \
+        VXC_DP4x4(src0_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src1_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        src0_f = fabs(src0_f - inputZp); \
+        src1_f = fabs(src1_f - inputZp); \
+        total0 = total0 + src0_f; \
+        total1 = total1 + src1_f; \
+    } while (coord.y < axis_size); \
+ \
+    total0 = total0 > epsilon ? total0 : epsilon; \
+    total1 = total1 > epsilon ? total1 : epsilon; \
+    rcp_total0 = 1 / total0 * outputscale; \
+    rcp_total1 = 1 / total1 * outputscale; \
+    coord.y = 0; \
+    do \
+    { \
+        VXC_ReadImage(v0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src0, v0, 16); \
+        VXC_DP4x4(src0_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src1_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        src0_f = (src0_f - inputZp) * rcp_total0 + outputtail; \
+        src1_f = (src1_f - inputZp) * rcp_total1 + outputtail; \
+        _viv_asm(CONV_RTE, dst0, src0_f); \
+        _viv_asm(CONV_RTE, dst1, src1_f); \
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Bin_2x8); \
+        _viv_asm(COPY, out, dst, 16); \
+        VXC_WriteImage(output, coord, out, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        coord.y = coord.y + 1; \
+    } while (coord.y < axis_size); \
+}
+L1_NORM_AXIS1_SH_2D(U8, F16,vxc_uchar8,vxc_uchar8,half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS1_SH_2D(U8, U8, vxc_uchar8,vxc_uchar8,short4,vxc_uchar8,vxc_uchar8)
+L1_NORM_AXIS1_SH_2D(I8, F16,vxc_char8, vxc_char8, half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS1_SH_2D(I8, I8, vxc_char8, vxc_char8, short4,vxc_char8, vxc_char8)
+L1_NORM_AXIS1_SH_2D(I16,F16,vxc_short8,vxc_short8,half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS1_SH_2D(I16,I16,vxc_short8,vxc_short8,short4,vxc_short8,vxc_short8)
+L1_NORM_AXIS1_SH_2D(F16,U8, vxc_short8,vxc_half8, short4,vxc_uchar8,vxc_uchar8)
+L1_NORM_AXIS1_SH_2D(F16,I8, vxc_short8,vxc_half8, short4,vxc_char8, vxc_char8)
+L1_NORM_AXIS1_SH_2D(F16,I16,vxc_short8,vxc_half8, short4,vxc_short8,vxc_short8)
+L1_NORM_AXIS1_SH_2D(F16,F16,vxc_short8,vxc_half8, half4, vxc_half8, vxc_short8)
+
+
+#define L1_NORM_AXIS1_SH(name0, name1, src_type, conv_type0, conv_type1, dst_type, save_type) \
+__kernel void l1norm_##name0##to##name1##_axis1 \
+    ( \
+    __read_only  image2d_array_t  input, \
+    __write_only image2d_array_t  output, \
+                 float            inputZp, \
+                 float            outputscale, \
+                 float            outputtail, \
+                 int              axis, \
+                 int              axis_size) \
+{ \
+    int4 coord = (int4)(get_global_id(0), 0, get_global_id(1), 0); \
+    src_type    v0; \
+    conv_type0  src0; \
+    dst_type    dst; \
+    conv_type1  dst0, dst1; \
+    save_type   out; \
+    float4 src0_f, src1_f; \
+ \
+    float4 total0 = 0, total1 = 0; \
+    float4 rcp_total0 = 0, rcp_total1 = 0; \
+    do \
+    { \
+        VXC_ReadImage2DArray(v0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src0, v0, 16); \
+        coord.y = coord.y + 1; \
+        VXC_DP4x4(src0_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src1_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        src0_f = fabs(src0_f - inputZp); \
+        src1_f = fabs(src1_f - inputZp); \
+        total0 = total0 + src0_f; \
+        total1 = total1 + src1_f; \
+    } while (coord.y < axis_size); \
+ \
+    total0 = total0 > epsilon ? total0 : epsilon; \
+    total1 = total1 > epsilon ? total1 : epsilon; \
+    rcp_total0 = 1 / total0 * outputscale; \
+    rcp_total1 = 1 / total1 * outputscale; \
+    coord.y = 0; \
+    do \
+    { \
+        VXC_ReadImage2DArray(v0, input, coord, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, src0, v0, 16); \
+        VXC_DP4x4(src0_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part0_4x4); \
+        VXC_DP4x4(src1_f, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), ExtractBin_part1_4x4); \
+        src0_f = (src0_f - inputZp) * rcp_total0 + outputtail; \
+        src1_f = (src1_f - inputZp) * rcp_total1 + outputtail; \
+        _viv_asm(CONV_RTE, dst0, src0_f); \
+        _viv_asm(CONV_RTE, dst1, src1_f); \
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Bin_2x8); \
+        _viv_asm(COPY, out, dst, 16); \
+        VXC_WriteImage2DArray(output, coord, out, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        coord.y = coord.y + 1; \
+    } while (coord.y < axis_size); \
+}
+L1_NORM_AXIS1_SH(U8, F16,vxc_uchar8,vxc_uchar8,half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS1_SH(U8, U8, vxc_uchar8,vxc_uchar8,short4,vxc_uchar8,vxc_uchar8)
+L1_NORM_AXIS1_SH(I8, F16,vxc_char8, vxc_char8, half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS1_SH(I8, I8, vxc_char8, vxc_char8, short4,vxc_char8, vxc_char8)
+L1_NORM_AXIS1_SH(I16,F16,vxc_short8,vxc_short8,half4, vxc_half8, vxc_short8)
+L1_NORM_AXIS1_SH(I16,I16,vxc_short8,vxc_short8,short4,vxc_short8,vxc_short8)
+L1_NORM_AXIS1_SH(F16,U8, vxc_short8,vxc_half8, short4,vxc_uchar8,vxc_uchar8)
+L1_NORM_AXIS1_SH(F16,I8, vxc_short8,vxc_half8, short4,vxc_char8, vxc_char8)
+L1_NORM_AXIS1_SH(F16,I16,vxc_short8,vxc_half8, short4,vxc_short8,vxc_short8)
+L1_NORM_AXIS1_SH(F16,F16,vxc_short8,vxc_half8, half4, vxc_half8, vxc_short8)

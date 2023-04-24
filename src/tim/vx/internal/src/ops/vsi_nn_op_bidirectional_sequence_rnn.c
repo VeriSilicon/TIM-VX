@@ -410,7 +410,6 @@ static vsi_bool op_setup
         vsi_nn_tensor_t* rnncell_out1 = NULL;
 
         /* rnncell output */
-
         if(curr_param->merge_outputs)
         {
             vsi_nn_internal_init_tensor_attr(&attr,

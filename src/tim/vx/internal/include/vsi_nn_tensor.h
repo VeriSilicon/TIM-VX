@@ -63,7 +63,7 @@ typedef enum
     VSI_NN_DIM_FMT_NHWC = 0x01,
     VSI_NN_DIM_FMT_NA   = 0xFF,
     VSI_NN_DIM_FMT_AUTO = VSI_NN_DIM_FMT_NA - 1,
-} vsi_nn_dim_fmt_e;
+} VSI_PUBLIC_TYPE vsi_nn_dim_fmt_e;
 
 /**
  * Quantization type.
@@ -125,7 +125,7 @@ typedef struct vsi_nn_dtype
 #endif
         };
     };
-} vsi_nn_dtype_t;
+} VSI_PUBLIC_TYPE vsi_nn_dtype_t;
 
 /**
  * Tensor Attribute
@@ -150,15 +150,13 @@ typedef struct vsi_nn_tensor_attr
 #ifdef VX_CREATE_TENSOR_SUPPORT_PHYSICAL
     vsi_memory_type_e vsi_memory_type;
 #endif
-#if VX_STREAM_PROCESSOR_SUPPORT
-    vsi_bool     is_dummy;
-#endif
-} vsi_nn_tensor_attr_t;
+    // DO NOT modify this struct.
+} VSI_PUBLIC_TYPE vsi_nn_tensor_attr_t;
 
 /**
  * Tensor structure
  */
-struct _vsi_nn_tensor
+struct VSI_PUBLIC_TYPE _vsi_nn_tensor
 {
     /** Tensor attributes */
     vsi_nn_tensor_attr_t attr;
@@ -168,6 +166,7 @@ struct _vsi_nn_tensor
     vx_weights_biases_parameter wb;
     /** Mark tensor swapped by vxSwapTensor */
     int8_t  is_swapped;
+    // DO NOT modify this struct.
 };
 
 /**

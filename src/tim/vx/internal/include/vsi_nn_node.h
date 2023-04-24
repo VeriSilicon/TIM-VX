@@ -58,7 +58,7 @@ typedef struct _vsi_nn_node_attr_t
 } vsi_nn_node_attr_t;
 
 /** Node structure */
-struct _vsi_nn_node
+struct VSI_PUBLIC_TYPE _vsi_nn_node
 {
     /**
      * Graph handle
