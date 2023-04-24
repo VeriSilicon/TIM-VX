@@ -74,7 +74,6 @@ const std::string GraphImpl::caclulateMd5Secret32(const std::string& src) {
   unsigned char md_value[MD5_SECRET_LEN_16] = {0};
   char tmp[MD5_BYTE_STRING_LEN] = {0};
 
-  OpenSSL_add_all_digests();
   md = EVP_md5();
   if (md == NULL) {
     VSILOGE("Unknown EVP_md5 message.");
