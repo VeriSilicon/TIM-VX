@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VIP_VIRTUAL_DEVICE_PRIVARE_H
+#ifndef _VIP_VIRTUAL_DEVICE_PRIVATE_H
 #define _VIP_VIRTUAL_DEVICE_PRIVATE_H
 
 #include <memory>
@@ -29,6 +29,7 @@
 #include <vector>
 #include <map>
 #include <thread>
+#include <array>
 #include <iostream>
 #include <mutex>
 #include <unistd.h>
