@@ -28,6 +28,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <string>
 
 #include "tim/vx/types.h"
 
@@ -145,8 +146,13 @@ class Tensor {
   virtual void unmap() = 0;
   virtual bool IsPlaceHolder() = 0;
   virtual bool IsConstTensor() = 0;
+  virtual bool SaveTensorToTextByFp32(std::string filename) = 0;
+  virtual void* ConvertTensorToData(uint8_t* tensorData) = 0;
 };
-
+namespace utils{
+  bool Float32ToDtype(std::shared_ptr<tim::vx::Tensor> tensor, std::vector<float> fval, uint8_t* tensorData);
+  bool DtypeToFloat32(std::shared_ptr<tim::vx::Tensor> tensor, uint8_t* tensorData, float* data);
+}  //namespace utils
 }  // namespace vx
 }  // namespace tim
 

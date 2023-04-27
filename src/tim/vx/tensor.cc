@@ -118,6 +118,18 @@ TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, void* data)
 
 TensorImpl::~TensorImpl() {}
 
+bool TensorImpl::SaveTensorToTextByFp32(std::string filename){
+  vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+  vsi_nn_SaveTensorToTextByFp32(graph_->graph(), tensor, filename.c_str(), NULL);
+  return true;
+}
+
+void* TensorImpl::ConvertTensorToData(uint8_t* tensorData){
+  vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+  tensorData = vsi_nn_ConvertTensorToData(graph_->graph(), tensor);
+  return tensorData;
+}
+
 bool TensorImpl::CopyDataToTensor(const void* data, uint32_t size_in_bytes) {
   (void)size_in_bytes;
   if (!IsWriteable()) {
@@ -432,6 +444,31 @@ int64_t TensorSpec::GetElementByteSize() const {
 int64_t TensorSpec::GetByteSize() const {
   return GetElementNum() * GetElementByteSize();
 }
+namespace utils{
+bool Float32ToDtype(std::shared_ptr<tim::vx::Tensor> tensor, std::vector<float> fval, uint8_t* tensorData){
+bool retn = true;
+vsi_nn_tensor_attr_t attr;
+uint32_t sz = tensor->GetSpec().GetElementNum();
+uint32_t stride = tensor->GetSpec().GetElementByteSize();
+PackTensorDtype(tensor->GetSpec(),  &attr.dtype);
+for (uint32_t i = 0; i < sz; i++){
+  retn = (VSI_SUCCESS == vsi_nn_Float32ToDtype(fval[i], &tensorData[i * stride], &attr.dtype));
+  if (!retn) {
+    VSILOGE("Convert data fail");
+    return retn;
+  }
+}
+return retn;
+}
 
+bool DtypeToFloat32(std::shared_ptr<tim::vx::Tensor> tensor, uint8_t* tensorData, float* data){
+  bool retn = true;    
+  vsi_nn_tensor_attr_t attr;
+
+  PackTensorDtype(tensor->GetSpec(),  &attr.dtype);
+  retn = (VSI_SUCCESS == vsi_nn_DtypeToFloat32(tensorData, data, &attr.dtype));
+  return retn;
+}
+}  //namespace utils
 }  // namespace vx
 }  // namespace tim
