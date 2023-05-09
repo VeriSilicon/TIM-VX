@@ -81,6 +81,8 @@ class Quantization {
 
   const std::int8_t& Fl() const{ return this->fl_; }
 
+  bool operator ==  (const Quantization& other_quant) const;
+
  protected:
   QuantType type_{QuantType::NONE};
   int32_t channel_dim_{-1};
