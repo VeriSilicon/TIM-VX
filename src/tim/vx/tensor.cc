@@ -444,6 +444,19 @@ int64_t TensorSpec::GetElementByteSize() const {
 int64_t TensorSpec::GetByteSize() const {
   return GetElementNum() * GetElementByteSize();
 }
+
+bool Quantization::operator ==  (const Quantization& other_quant) const {
+    if (type_ != tim::vx::QuantType::DYNAMIC_FIXED_POINT){
+       if(type_ ==  other_quant.type_ &&
+          scales_ == other_quant.scales_ &&
+          zero_points_ == other_quant.zero_points_ &&
+          channel_dim_ == other_quant.channel_dim_)
+          return true;
+    }
+    else if(fl_ == other_quant.fl_) return true;
+    return false;
+}
+
 namespace utils{
 bool Float32ToDtype(std::shared_ptr<tim::vx::Tensor> tensor, std::vector<float> fval, uint8_t* tensorData){
 bool retn = true;
@@ -462,7 +475,7 @@ return retn;
 }
 
 bool DtypeToFloat32(std::shared_ptr<tim::vx::Tensor> tensor, uint8_t* tensorData, float* data){
-  bool retn = true;    
+  bool retn = true;
   vsi_nn_tensor_attr_t attr;
 
   PackTensorDtype(tensor->GetSpec(),  &attr.dtype);
