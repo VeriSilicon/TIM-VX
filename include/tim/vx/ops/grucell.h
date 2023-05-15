@@ -26,7 +26,6 @@
 
 #include <array>
 #include "tim/vx/builtin_op.h"
-#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
@@ -56,7 +55,7 @@ class GRUCell : public BuiltinOp {
   GRUCell(Graph* graph, uint32_t num_units,
           ActivationType activation = ActivationType::kTANH,
           ActivationType recurrent_activation = ActivationType::kSIGMOID,
-          vsi_bool reset_after = TRUE);
+          bool reset_after = true);
 
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
@@ -65,7 +64,7 @@ class GRUCell : public BuiltinOp {
   const uint32_t num_units_;
   const ActivationType activation_;
   const ActivationType recurrent_activation_;
-  const int32_t reset_after_;
+  const bool reset_after_;
 };
 
 }  // namespace ops

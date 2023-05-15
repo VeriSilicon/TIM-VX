@@ -30,7 +30,7 @@ namespace tim {
 namespace vx {
 namespace ops {
 GRUCell::GRUCell(Graph* graph, uint32_t num_units, ActivationType activation,
-                 ActivationType recurrent_activation, vsi_bool reset_after)
+                 ActivationType recurrent_activation, bool reset_after)
     : BuiltinOp(graph, VSI_NN_OP_GRUCELL),
       num_units_(num_units),
       activation_(activation),
@@ -39,7 +39,7 @@ GRUCell::GRUCell(Graph* graph, uint32_t num_units, ActivationType activation,
   this->impl()->node()->nn_param.grucell.num_units = num_units;
   this->impl()->node()->nn_param.grucell.activation = activation;
   this->impl()->node()->nn_param.grucell.recurrent_activation = recurrent_activation;
-  this->impl()->node()->nn_param.grucell.reset_after = reset_after;
+  this->impl()->node()->nn_param.grucell.reset_after = TranslateToVsibool(reset_after);
 }
 
 std::shared_ptr<Operation> GRUCell::Clone(std::shared_ptr<Graph>& graph) const {

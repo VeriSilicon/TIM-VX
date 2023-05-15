@@ -163,6 +163,7 @@ vsi_enum TranslateResizeType(ResizeType type) {
 }
 
 vx_bool_e ToVxBool(bool val) { return val ? vx_true_e : vx_false_e; }
+vsi_bool TranslateToVsibool(bool val) { return val? TRUE : FALSE; }
 
 }  // namespace vx
 }  // namespace tim

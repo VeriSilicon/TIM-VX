@@ -26,7 +26,6 @@
 
 #include <array>
 #include "tim/vx/builtin_op.h"
-#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
@@ -61,9 +60,9 @@ class UnidirectionalSequenceGRU : public BuiltinOp {
       Graph* graph, uint32_t num_units,
       ActivationType activation = ActivationType::kTANH,
       ActivationType recurrent_activation = ActivationType::kSIGMOID,
-      vsi_bool reset_after = TRUE,
-      vsi_bool return_sequences = FALSE, /*False: only return last state*/
-      vsi_bool time_major = TRUE);
+      bool reset_after = true,
+      bool return_sequences = false, /*False: only return last state*/
+      bool time_major = true);
 
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
@@ -72,9 +71,9 @@ class UnidirectionalSequenceGRU : public BuiltinOp {
   const uint32_t num_units_;
   const ActivationType activation_;
   const ActivationType recurrent_activation_;
-  const int32_t reset_after_;
-  const int32_t return_sequences_;
-  const int32_t time_major_;
+  const bool reset_after_;
+  const bool return_sequences_;
+  const bool time_major_;
 };
 
 }  // namespace ops
