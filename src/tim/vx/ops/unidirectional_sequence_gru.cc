@@ -31,8 +31,8 @@ namespace vx {
 namespace ops {
 UnidirectionalSequenceGRU::UnidirectionalSequenceGRU(
     Graph* graph, uint32_t num_units, ActivationType activation,
-    ActivationType recurrent_activation, vsi_bool reset_after,
-    vsi_bool return_sequences, vsi_bool time_major)
+    ActivationType recurrent_activation, bool reset_after,
+    bool return_sequences, bool time_major)
     : BuiltinOp(graph, VSI_NN_OP_GRU),
       num_units_(num_units),
       activation_(activation),
@@ -43,9 +43,9 @@ UnidirectionalSequenceGRU::UnidirectionalSequenceGRU(
   this->impl()->node()->nn_param.gru.num_units = num_units;
   this->impl()->node()->nn_param.gru.activation = activation;
   this->impl()->node()->nn_param.gru.recurrent_activation = recurrent_activation;
-  this->impl()->node()->nn_param.gru.reset_after = reset_after;
-  this->impl()->node()->nn_param.gru.return_sequences = return_sequences;
-  this->impl()->node()->nn_param.gru.time_major = time_major;
+  this->impl()->node()->nn_param.gru.reset_after = TranslateToVsibool(reset_after);
+  this->impl()->node()->nn_param.gru.return_sequences = TranslateToVsibool(return_sequences);
+  this->impl()->node()->nn_param.gru.time_major = TranslateToVsibool(time_major);
 }
 
 std::shared_ptr<Operation> UnidirectionalSequenceGRU::Clone(

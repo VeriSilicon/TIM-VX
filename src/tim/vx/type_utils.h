@@ -39,6 +39,7 @@ vsi_enum TranslateRoundingPolicy(RoundingPolicy type);
 vsi_enum TranslateDownScaleSizeRounding(RoundType type);
 vsi_enum TranslateResizeType(ResizeType type);
 vx_bool_e ToVxBool(bool val);
+vsi_bool TranslateToVsibool(bool val);
 }  // namespace vx
 }  // namespace tim
 
