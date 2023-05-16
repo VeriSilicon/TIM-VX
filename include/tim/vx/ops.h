@@ -102,5 +102,10 @@
 #include "tim/vx/ops/bidirectional_sequence_lstm.h"
 #include "tim/vx/ops/hashtable_lookup.h"
 #include "tim/vx/ops/embedding_lookup.h"
+#include "tim/vx/ops/cumsum.h"
+#include "tim/vx/ops/mod.h"
+#include "tim/vx/ops/max_pool3d.h"
+#include "tim/vx/ops/unidirectional_sequence_gru.h"
+#include "tim/vx/ops/grucell.h"
 
 #endif /* TIM_VX_OPS_H_ */
