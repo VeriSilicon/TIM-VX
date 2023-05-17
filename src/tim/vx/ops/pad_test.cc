@@ -45,7 +45,7 @@ TEST(Pad, constant) {
   auto output_tensor = graph->CreateTensor(output_spec);
 
   std::vector<float> input_data = {
-      0, 1, 2, 3, 4, 5, 6,
+      0, 1, 2, 3, 4, 5,
   };
 
   std::vector<float> golden = {
@@ -168,11 +168,11 @@ TEST(Pad, reflect) {
   auto output_tensor = graph->CreateTensor(output_spec);
 
   std::vector<float> input_data = {
-      0, 1, 2, 3, 4, 5, 6,
+      0, 1, 2, 3, 4, 5,
   };
 
   std::vector<float> golden = {
-      0, 0, 1, 2, 2, 0, 0, 1, 2, 2, 3, 3, 4, 5, 5, 3, 3, 4, 5, 5,
+      4, 3, 4, 5, 4, 1, 0, 1, 2, 1, 4, 3, 4, 5, 4, 1, 0, 1, 2, 1
   };
 
   EXPECT_TRUE(
@@ -180,7 +180,7 @@ TEST(Pad, reflect) {
   std::vector<uint32_t> front = {1, 1};
   std::vector<uint32_t> back = {1, 1};
   auto op = graph->CreateOperation<tim::vx::ops::Pad>(
-      front, back, 0, tim::vx::ops::Pad::PAD_MODE_EDGE);
+      front, back, 0, tim::vx::ops::Pad::PAD_MODE_REFLECT);
   (*op).BindInput(input_tensor).BindOutput(output_tensor);
 
   EXPECT_TRUE(graph->Compile());
@@ -206,7 +206,7 @@ TEST(Pad, edge) {
   auto output_tensor = graph->CreateTensor(output_spec);
 
   std::vector<float> input_data = {
-      0, 1, 2, 3, 4, 5, 6,
+      0, 1, 2, 3, 4, 5,
   };
 
   std::vector<float> golden = {0, 0, 1, 2, 2, 0, 0, 1, 2, 2,
