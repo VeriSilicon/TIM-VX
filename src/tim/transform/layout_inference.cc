@@ -63,6 +63,7 @@
 #include "ops/conv3d_layout_inference.h"
 #include "ops/default_layout_inference.h"
 #include "ops/transpose_layout_inference.h"
+#include "ops/yolov4_layout_inference.h"
 #include "ops/unidirectional_lstm_layout_inference.h"
 #include "ops/broadcast_layout_inference.h"
 #include "ops/unidirectional_rnn_layout_inference.h"
@@ -274,6 +275,9 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_EXPAND_BROADCAST, Broadcast);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_UNIDIRECTIONAL_SEQUENCE_RNN, UnidirectionalRnn);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN, BidirectionalRnn);
+#ifdef ENABLE_TENSOR_CACHE
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CUSTOM_TINY_YOLOV4_POSTPROCESS, Yolov4);
+#endif
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
     REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     // use default layout inference

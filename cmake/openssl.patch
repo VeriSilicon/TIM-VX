@@ -61,9 +61,18 @@ index 22ab3cc..00bf90d 100644
 +        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
  endif()
 diff --git a/cmake/BuildOpenSSL.cmake b/cmake/BuildOpenSSL.cmake
-index e31f4bb..a5c5f72 100644
+index e31f4bb..e5e99a6 100644
 --- a/cmake/BuildOpenSSL.cmake
 +++ b/cmake/BuildOpenSSL.cmake
+@@ -29,7 +29,7 @@ include(ExternalProject)
+ 
+ # find packages
+ find_package(Git REQUIRED)
+-find_package(PythonInterp 3 REQUIRED)
++find_package(PythonInterp 2 REQUIRED)
+ 
+ # # used to apply various patches to OpenSSL
+ find_program(PATCH_PROGRAM patch)
 @@ -50,29 +50,25 @@ endif()
  if ((EXISTS ${OPENSSL_LIBSSL_PATH}) AND (EXISTS ${OPENSSL_LIBCRYPTO_PATH}))
      message(WARNING "Not building OpenSSL again. Remove ${OPENSSL_LIBSSL_PATH} and ${OPENSSL_LIBCRYPTO_PATH} for rebuild")

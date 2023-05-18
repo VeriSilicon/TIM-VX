@@ -27,13 +27,17 @@
 #ifdef BUILD_WITH_BAZEL
 #include "vsi_feat_ops_def.h"
 #endif
-
+#ifdef ENABLE_TENSOR_CACHE
+#include <openssl/evp.h>
+#include <string>
+#endif
 #include <memory>
 #include <vector>
-
 namespace tim {
 namespace vx {
-
+#ifdef ENABLE_TENSOR_CACHE
+const std::string calculateMd5Secret32(const std::string& src);
+#endif
 class Tensor;
 struct TensorSpec;
 struct DmaBufferDesc;

@@ -126,15 +126,21 @@ include_directories(${INC_DIRS})
 # convert op list as compile flags so that we can implement compile compatable easier
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
     file(STRINGS "${OVXLIB_INC}/interface/ops.def" ops_file_content)
+    file(STRINGS "${OVXLIB_INC}/custom/custom_ops.def" custom_ops_file_content)
 else()
     file(STRINGS "./vx/internal/include/interface/ops.def" ops_file_content)
+    file(STRINGS "./vx/internal/include/custom/custom_ops.def" custom_ops_file_content)
 endif()
 string(LENGTH "/*;   Add new ops to the end.;*_/" comment_len)
 string(SUBSTRING "${ops_file_content}" ${comment_len} -1 op_list_only)
 string(REGEX REPLACE "DEF_OP\\(" "-DVSI_FEAT_OP_" op_list_tmp ${op_list_only})
 string(REGEX REPLACE "\\)" " " op_as_flags ${op_list_tmp})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${op_as_flags}")
+string(LENGTH "/*;   Add custom ops to the end.;*_/" custom_comment_len)
+string(SUBSTRING "${custom_ops_file_content}" ${custom_comment_len} -1 custom_op_list_only)
+string(REGEX REPLACE "DEF_OP\\(" "-DVSI_FEAT_OP_" custom_op_list_tmp ${custom_op_list_only})
+string(REGEX REPLACE "\\)" " " custom_op_as_flags ${custom_op_list_tmp})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${op_as_flags} ${custom_op_as_flags}")
 
 add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
 target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
@@ -170,7 +176,13 @@ endif()
 # Install
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-
+    
+if(TIM_VX_ENABLE_TENSOR_CACHE)
+install(
+    FILES
+        ${openssl-cmake_BINARY_DIR}/usr/local/include/openssl/evp.h
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/openssl)
+endif()
 install(
     FILES
         ${CMAKE_SOURCE_DIR}/include/tim/vx/builtin_op.h
