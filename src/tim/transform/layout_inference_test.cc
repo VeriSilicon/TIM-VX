@@ -2,6 +2,7 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/ops.h"
 #include "tim/transform/layout_inference.h"
+#include "test_utils.h"
 
 #include "gtest/gtest.h"
 
@@ -220,4 +221,54 @@ TEST(FC, share_const_tensor) {
   std::vector<float> output(golden.size());
   EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
   EXPECT_EQ(golden, output);
+}
+
+TEST(InstanceNorm, nhwc) {
+  auto ctx = tim::vx::Context::Create();
+  auto src_graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType io_shape({2, 2, 2, 2}); //nhwc
+    tim::vx::ShapeType param_shape({1});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
+                            param_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = src_graph->CreateTensor(input_spec);
+    auto beta_tensor = src_graph->CreateTensor(param_spec);
+    auto gamma_tensor = src_graph->CreateTensor(param_spec);
+    auto output_tensor = src_graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = {
+        0.0f, 1.0f, 0.0f, 2.0f, 0.0f, 2.0f, 0.0f, 4.0f, 1.0f, -1.0f, -1.0f, 2.0f, -1.0f, -2.0f, 1.0f, 4.0f
+    };
+    std::vector<float> beta = {0};
+    std::vector<float> gamma = {1.0f};
+    std::vector<float> golden = {
+        0.0f, -1.1470304f, 0.0f, -0.22940612f, 0.0f, -0.22940612f, 0.0f, 1.6058424f, 0.99995005f,
+        -0.7337929f, -0.99995005f, 0.52413774f, -0.99995005f, -1.1531031f, 0.99995005f, 1.3627582f,
+    };
+    auto op = src_graph->CreateOperation<tim::vx::ops::InstanceNormalization>(1e-4f, tim::vx::DataLayout::CWHN);
+    (*op).BindInputs({input_tensor, beta_tensor, gamma_tensor}).BindOutputs({output_tensor});
+  // Do layout inference
+  auto transform = tim::transform::LayoutInference(src_graph, ctx);
+  auto infer_graph = transform.first;
+  auto graph_io_map = transform.second;
+  infer_graph->Compile();
+
+  auto infer_input = graph_io_map[src_graph->InputsTensor()[0]];
+  auto infer_beta = graph_io_map[src_graph->InputsTensor()[1]];
+  auto infer_gamma = graph_io_map[src_graph->InputsTensor()[2]];
+  auto infer_output = graph_io_map[src_graph->OutputsTensor()[0]];
+
+  infer_input->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float));
+  infer_beta->CopyDataToTensor(beta.data(), beta.size() * sizeof(float));
+  infer_gamma->CopyDataToTensor(gamma.data(), gamma.size() * sizeof(float));
+  infer_graph->Run();
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
