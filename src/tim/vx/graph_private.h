@@ -46,8 +46,7 @@ class GraphImpl : public Graph {
   ~GraphImpl();
 #ifdef ENABLE_TENSOR_CACHE
   std::shared_ptr<Tensor> GetTensorFromCache(const TensorSpec& spec, const void* data);
-  const std::string CaclulateCacheKey(const TensorSpec& spec, const void* data);
-  const std::string caclulateMd5Secret32(const std::string& src);
+  const std::string CalculateCacheKey(const TensorSpec& spec, const void* data);
   std::map<std::string, std::shared_ptr<tim::vx::Tensor>>& GetTensorCacheMap();
 #endif
   /// Return the low-level graph object

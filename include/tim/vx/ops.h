@@ -99,6 +99,7 @@
 #include "tim/vx/ops/conv3d.h"
 #include "tim/vx/ops/custom_base.h"
 #include "tim/vx/ops/topk.h"
+#include "tim/vx/ops/tiny_yolov4_postprocess.h"
 #include "tim/vx/ops/bidirectional_sequence_lstm.h"
 #include "tim/vx/ops/hashtable_lookup.h"
 #include "tim/vx/ops/embedding_lookup.h"
