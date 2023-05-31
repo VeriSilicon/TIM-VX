@@ -30,7 +30,7 @@ namespace vx {
 namespace ops {
 class InstanceNormalization : public BuiltinOp {
  public:
-  InstanceNormalization(Graph* graph, float eps = 1e-5f);
+  InstanceNormalization(Graph* graph, float eps = 1e-5f, DataLayout input_layout = DataLayout::WHCN);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 

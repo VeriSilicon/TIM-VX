@@ -50,6 +50,7 @@
 #include "ops/stridedslice_layout_inference.h"
 #include "ops/lrn_layout_inference.h"
 #include "ops/l2normalization_layout_inference.h"
+#include "ops/instance_norm_layout_inference.h"
 #include "ops/addn_layout_inference.h"
 #include "ops/gather_layout_inference.h"
 #include "ops/gather_nd_layout_inference.h"
@@ -258,6 +259,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_STRIDED_SLICE, StridedSlice);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LRN2, LRN);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_L2_NORMALIZE, L2Normalization);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_INSTANCE_NORM, InstanceNorm);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ADDN, AddN);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PRELU, PRelu);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GATHER, Gather);
@@ -275,7 +277,7 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_EXPAND_BROADCAST, Broadcast);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_UNIDIRECTIONAL_SEQUENCE_RNN, UnidirectionalRnn);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN, BidirectionalRnn);
-#ifdef ENABLE_TENSOR_CACHE
+#ifdef VSI_FEAT_OP_CUSTOM_TINY_YOLOV4_POSTPROCESS
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CUSTOM_TINY_YOLOV4_POSTPROCESS, Yolov4);
 #endif
     REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);

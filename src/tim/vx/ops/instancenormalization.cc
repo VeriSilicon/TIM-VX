@@ -29,14 +29,14 @@
 namespace tim {
 namespace vx {
 namespace ops {
-InstanceNormalization::InstanceNormalization(Graph* graph, float eps)
-    : BuiltinOp(graph, VSI_NN_OP_INSTANCE_NORM), eps_(eps) {
+InstanceNormalization::InstanceNormalization(Graph* graph, float eps, DataLayout input_layout)
+    : BuiltinOp(graph, VSI_NN_OP_INSTANCE_NORM, 0, 0, input_layout), eps_(eps) {
   this->impl()->node()->nn_param.instancenorm.eps = eps_;
 }
 
 std::shared_ptr<Operation> InstanceNormalization::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<InstanceNormalization>(this->eps_);
+  return graph->CreateOperation<InstanceNormalization>(this->eps_, this->impl_->layout_);
 }
 
 }  // namespace ops
