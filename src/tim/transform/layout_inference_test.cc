@@ -272,3 +272,83 @@ TEST(InstanceNorm, nhwc) {
   EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
   EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
+
+TEST(Resize, bilinear_factor) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType input_shape({1,2,2, 1});
+    tim::vx::ShapeType output_shape({1,3,3, 1});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            input_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            output_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = {1.0f, 1.0f, 2.0f, 2.0f};
+    std::vector<float> golden = {1.0f, 1.0f, 1.0f, 1.6666666269302368f, 1.6666666269302368f,
+                                    1.6666666269302368f, 2.0f, 2.0f, 2.0f};
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
+
+    auto op = graph->CreateOperation<tim::vx::ops::Resize>(tim::vx::ResizeType::BILINEAR,
+            1.7999999523162842f, false, false, 0, 0, tim::vx::DataLayout::CWHN);
+    (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+    auto transform = tim::transform::LayoutInference(graph, ctx);
+    auto infer_graph = transform.first;
+    auto graph_io_map = transform.second;
+    infer_graph->Compile();
+
+    auto infer_input = graph_io_map[graph->InputsTensor()[0]];
+    auto infer_output = graph_io_map[graph->OutputsTensor()[0]];
+
+    infer_input->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float));
+    infer_graph->Run();
+
+    std::vector<float> output(golden.size());
+    EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}
+
+TEST(Resize, bilinear_outputsize) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType input_shape({1,2,2, 1});
+    tim::vx::ShapeType output_shape({1,3,3, 1});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            input_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            output_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = {1.0f, 1.0f, 2.0f, 2.0f};
+    std::vector<float> golden = {1.0f, 1.0f, 1.0f, 1.6666666269302368f, 1.6666666269302368f,
+                                    1.6666666269302368f, 2.0f, 2.0f, 2.0f};
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
+
+    auto op = graph->CreateOperation<tim::vx::ops::Resize>(tim::vx::ResizeType::BILINEAR,
+            0, false, false, 3, 3, tim::vx::DataLayout::CWHN);
+    (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+    auto transform = tim::transform::LayoutInference(graph, ctx);
+    auto infer_graph = transform.first;
+    auto graph_io_map = transform.second;
+    infer_graph->Compile();
+
+    auto infer_input = graph_io_map[graph->InputsTensor()[0]];
+    auto infer_output = graph_io_map[graph->OutputsTensor()[0]];
+
+    infer_input->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float));
+    infer_graph->Run();
+
+    std::vector<float> output(golden.size());
+    EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}
