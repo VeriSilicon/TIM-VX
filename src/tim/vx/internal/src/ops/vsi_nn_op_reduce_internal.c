@@ -66,8 +66,6 @@ static vsi_status _reduce_internal_op_compute
     }
     status = VSI_FAILURE;
 
-
-
     param =vsi_nn_kernel_param_create();
 
     if (strcmp(kernel_name, "reducemax_internal") == 0)

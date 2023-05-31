@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -30,6 +30,10 @@
 #include "tim/vx/graph.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
+
+#ifndef ENABLE_TENSOR_HNDL
+#define ENABLE_TENSOR_HNDL 1
+#endif
 
 namespace {
 
@@ -113,6 +117,18 @@ TensorImpl::TensorImpl(Graph* graph, const TensorSpec& spec, void* data)
 }
 
 TensorImpl::~TensorImpl() {}
+
+bool TensorImpl::SaveTensorToTextByFp32(std::string filename){
+  vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+  vsi_nn_SaveTensorToTextByFp32(graph_->graph(), tensor, filename.c_str(), NULL);
+  return true;
+}
+
+void* TensorImpl::ConvertTensorToData(uint8_t* tensorData){
+  vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+  tensorData = vsi_nn_ConvertTensorToData(graph_->graph(), tensor);
+  return tensorData;
+}
 
 bool TensorImpl::CopyDataToTensor(const void* data, uint32_t size_in_bytes) {
   (void)size_in_bytes;
@@ -282,6 +298,10 @@ void TensorImpl::unmap() {
 bool TensorImpl::Init(void *external_cache) {
   vsi_nn_tensor_attr_t attr;
 
+#if (!ENABLE_TENSOR_HNDL)
+  (void)external_cache;
+#endif
+
   memset(&attr, 0x00, sizeof(attr));
   attr.dim_num = spec_.shape_.size();
   attr.is_const = static_cast<bool>(spec_.attr_ & TensorAttribute::CONSTANT);
@@ -299,6 +319,7 @@ bool TensorImpl::Init(void *external_cache) {
 
   PackTensorDtype(spec_, &attr.dtype);
 
+#if(ENABLE_TENSOR_HNDL)
   if ((spec_.attr_ & TensorAttribute::INPUT) ||
       (spec_.attr_ & TensorAttribute::OUTPUT)) {
 #ifdef VX_CREATE_TENSOR_SUPPORT_PHYSICAL
@@ -322,6 +343,7 @@ bool TensorImpl::Init(void *external_cache) {
 #endif
 
   } else
+#endif
   {
     id_ = vsi_nn_AddTensor(graph_->graph(), VSI_NN_TENSOR_ID_AUTO, &attr,
                            nullptr);
@@ -423,5 +445,43 @@ int64_t TensorSpec::GetByteSize() const {
   return GetElementNum() * GetElementByteSize();
 }
 
+bool Quantization::operator ==  (const Quantization& other_quant) const {
+    if (type_ != tim::vx::QuantType::DYNAMIC_FIXED_POINT){
+       if(type_ ==  other_quant.type_ &&
+          scales_ == other_quant.scales_ &&
+          zero_points_ == other_quant.zero_points_ &&
+          channel_dim_ == other_quant.channel_dim_)
+          return true;
+    }
+    else if(fl_ == other_quant.fl_) return true;
+    return false;
+}
+
+namespace utils{
+bool Float32ToDtype(std::shared_ptr<tim::vx::Tensor> tensor, std::vector<float> fval, uint8_t* tensorData){
+bool retn = true;
+vsi_nn_tensor_attr_t attr;
+uint32_t sz = tensor->GetSpec().GetElementNum();
+uint32_t stride = tensor->GetSpec().GetElementByteSize();
+PackTensorDtype(tensor->GetSpec(),  &attr.dtype);
+for (uint32_t i = 0; i < sz; i++){
+  retn = (VSI_SUCCESS == vsi_nn_Float32ToDtype(fval[i], &tensorData[i * stride], &attr.dtype));
+  if (!retn) {
+    VSILOGE("Convert data fail");
+    return retn;
+  }
+}
+return retn;
+}
+
+bool DtypeToFloat32(std::shared_ptr<tim::vx::Tensor> tensor, uint8_t* tensorData, float* data){
+  bool retn = true;
+  vsi_nn_tensor_attr_t attr;
+
+  PackTensorDtype(tensor->GetSpec(),  &attr.dtype);
+  retn = (VSI_SUCCESS == vsi_nn_DtypeToFloat32(tensorData, data, &attr.dtype));
+  return retn;
+}
+}  //namespace utils
 }  // namespace vx
 }  // namespace tim

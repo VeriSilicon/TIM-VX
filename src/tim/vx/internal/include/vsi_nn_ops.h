@@ -48,7 +48,7 @@ extern "C"{
  * @see include/custom/custom_ops.def
  * @see include/internal/internal_ops.def
  */
-typedef int32_t vsi_nn_op_t; enum
+typedef int32_t VSI_PUBLIC_TYPE vsi_nn_op_t; enum
 {
 #define DEF_OP( NAME, ... ) VSI_NN_OP_##NAME,
     #include "interface/ops.def"
@@ -126,7 +126,7 @@ typedef struct _vsi_nn_op_proc
     vsi_nn_op_optimize_t optimize;
     uint32_t            input_num;
     uint32_t            output_num;
-} vsi_nn_op_proc_t;
+} VSI_PUBLIC_TYPE vsi_nn_op_proc_t;
 
 /*------------------------------------
               Functions

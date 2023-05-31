@@ -258,12 +258,6 @@ static vsi_bool op_check
             destroy_op_io_types_desc(desc);
             return FALSE;
         }
-
-        /* check parameters */
-        if(inputs[1]->attr.size[0] * inputs[1]->attr.size[1] > 6400) {
-            VSILOGE("Kernel size should <= 6400.");
-            return FALSE;
-        }
     }
     return TRUE;
 } /* op_check() */

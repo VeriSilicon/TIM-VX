@@ -215,7 +215,7 @@ static vsi_bool op_setup
             (
             inputs[0]->attr.size[1],
             self->nn_param.lppool.ksize[1],
-            &self->nn_param.lppool.pad[1],
+            &self->nn_param.lppool.pad[2],
             self->nn_param.lppool.stride[1],
             0,
             VSI_NN_ROUND_CEIL

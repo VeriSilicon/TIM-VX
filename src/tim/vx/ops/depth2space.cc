@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 DepthToSpace::DepthToSpace(Graph* Graph, int block_size, DataLayout layout)
-    : DepthToSpace(Graph, block_size, CRD_mode, layout) {}
+    : DepthToSpace(Graph, block_size, DCR_mode, layout) {}
 
 DepthToSpace::DepthToSpace(Graph* Graph, int block_size, depth2space_mode mode,
                            DataLayout layout)

@@ -54,12 +54,14 @@ static vsi_status op_compute
     float height_ratio = self->nn_param.roi_align.height_ratio;
     int32_t width_sample_num = self->nn_param.roi_align.width_sample_num;
     int32_t height_sample_num = self->nn_param.roi_align.height_sample_num;
+    int32_t platform_type = self->nn_param.roi_align.platform_type;
 
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_float32( param, "width_ratio",  width_ratio );
     vsi_nn_kernel_param_add_float32( param, "height_ratio",  height_ratio );
     vsi_nn_kernel_param_add_int32( param, "width_sample_num",  width_sample_num );
     vsi_nn_kernel_param_add_int32( param, "height_sample_num",  height_sample_num );
+    vsi_nn_kernel_param_add_int32( param, "platform_type",  platform_type );
 
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
         "roi_align",
@@ -121,6 +123,17 @@ static vsi_bool op_setup
     }
 
     return TRUE;
+}
+
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    self->nn_param.roi_align.platform_type = VSI_NN_ROI_ALIGN_ANDROID;
+
+    return status;
 } /* op_init() */
 
 
@@ -131,7 +144,7 @@ extern "C" {
 DEF_OP_REG
     (
     /* op_name    */ ROI_ALIGN,
-    /* init       */ NULL,
+    /* init       */ op_init,
     /* compute    */ op_compute,
     /* deinit     */ vsi_nn_op_common_deinit,
     /* check      */ op_check,

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2022 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -56,8 +56,10 @@ class UnidirectionalRnnLayoutInfer : public OpLayoutInfer {
       std::shared_ptr<IPermuteVector> required_pv;
       if ((i_src->IsConstTensor() &&
               !(i_src->GetSpec().attr_ & vx::TensorAttribute::INPUT))) {
+        std::vector<uint8_t> dataRef(i_src->GetSpec().GetByteSize());
+        i_src->CopyDataFromTensor(dataRef.data());
         infer_tensor = context_->infer_graph_->CreateTensor(
-            i_src->GetSpec(), i_src->GetDataRef());
+            i_src->GetSpec(), (const void*)dataRef.data());
         context_->UpdateTensorMap(i_src, infer_tensor);
       }
       if (i_src->GetId() == (uint32_t)-1) {

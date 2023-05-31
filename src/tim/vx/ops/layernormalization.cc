@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -37,7 +37,7 @@ LayerNormalization::LayerNormalization(Graph* graph, int32_t axis, float eps)
     VSILOGE("Layer norm only support axis 0.");
     assert(false);
   }
-  this->impl()->node()->nn_param.instancenorm.eps = eps_;
+  this->impl()->node()->nn_param.layernorm.eps = eps_;
 }
 
 std::shared_ptr<Operation> LayerNormalization::Clone(

@@ -54,48 +54,28 @@ static vsi_status op_compute
     )
 {
     vsi_status status = VSI_FAILURE;
-    int32_t * axis = self->nn_param.reduce_mean_internal.axis;
     int32_t axis_num = self->nn_param.reduce_mean_internal.axis_num;
     float scale = self->nn_param.reduce_mean_internal.scale;
-    vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = { {0} };
-    int32_t new_axis[VSI_NN_MAX_DIM_NUM] = {0};
-    vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
-    uint32_t axis_size = 0;
-    uint32_t rank_in = 0;
-    uint32_t rank_out = 0;
-    vsi_bool ret = FALSE;
+    vsi_enum type = self->nn_param.reduce_mean_internal.type;
     vsi_nn_kernel_param_t * param = NULL;
 
-    ret = vsi_nn_kernel_optimize_reduce_shape(
-            inputs[0]->attr.size, inputs[0]->attr.dim_num,
-            axis, axis_num,
-            outputs[0]->attr.size, outputs[0]->attr.dim_num,
-            shapes[0], &rank_in, shapes[1], &rank_out,
-            new_axis, &axis_size);
-
     param = vsi_nn_kernel_param_create();
-    vsi_nn_kernel_param_add_int32( param, "axis_num", axis_size );
+    vsi_nn_kernel_param_add_int32( param, "axis_num", axis_num );
     vsi_nn_kernel_param_add_float32( param, "scale", scale );
 
-    if (ret)
+    if (type == VSI_NN_REDUCE_MAX)
     {
-        uint32_t i = 0;
-        reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-            inputs[0], shapes[0], rank_in );
-        for (i = 0; i < axis_size; i++)
-        {
-            shapes[0][i] = 1;
-        }
-        reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-            outputs[0], shapes[0], rank_in );
-
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+                "reduce_max",
+                inputs, 1,
+                outputs, 1, param );
+    }
+    else
+    {
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
                 "reduce_mean",
-                &reshape_tensors[0], 1,
-                &reshape_tensors[1], 1, param );
-
-        vsi_nn_ReleaseTensor( &reshape_tensors[0] );
-        vsi_nn_ReleaseTensor( &reshape_tensors[1] );
+                inputs, 1,
+                outputs, 1, param );
     }
 
     if ( self->n )

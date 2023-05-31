@@ -81,9 +81,11 @@ static const struct {
 {
     TENSOR_POW_KERNELS_FLOAT(F32, F32, F32,  KERNEL_SOURCE_1)
     TENSOR_POW_KERNELS_FLOAT(F16, F16, F16, KERNEL_SOURCE_1)
+    TENSOR_POW_KERNELS(U32, F32, U32, KERNEL_SOURCE_1)
 
     TENSOR_POW_KERNELS_2D_FLOAT(F32, F32, F32, KERNEL_SOURCE_1)
     TENSOR_POW_KERNELS_2D_FLOAT(F16, F16, F16, KERNEL_SOURCE_1)
+    TENSOR_POW_KERNELS_2D(U32, F32, U32, KERNEL_SOURCE_1)
 };
 
 /*
@@ -94,6 +96,10 @@ static vx_param_description_t kernel_param_def[] =
     {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
 };
 
 #define _CL_PARAM_NUM          _cnt_of_array(kernel_param_def)
@@ -179,7 +185,25 @@ static vsi_status _query_kernel
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
-    key = HASH_POW_KEY( input0_dtype, input1_dtype, output_dtype, image_2d );
+
+#define _PACK_SELECT_KEY( input0_dtype, input1_dtype, output_dtype) \
+    ((input0_dtype) | (input1_dtype << 8) | (output_dtype << 16))
+    switch(_PACK_SELECT_KEY(input0_dtype, input1_dtype, output_dtype))
+    {
+    case _PACK_SELECT_KEY(F16, F16, F16):
+    case _PACK_SELECT_KEY(F32, F32, F32):
+        key = HASH_POW_KEY( F32, F32, F32, image_2d );
+        break;
+    case _PACK_SELECT_KEY(U8, F16, U8):
+    case _PACK_SELECT_KEY(U8, F32, U8):
+    case _PACK_SELECT_KEY(U32, F16, U32):
+    case _PACK_SELECT_KEY(U32, F32, U32):
+        key = HASH_POW_KEY( U32, F32, U32, image_2d );
+        break;
+    default:
+        key = HASH_POW_KEY( input0_dtype, input1_dtype, output_dtype, image_2d );
+        break;
+    }
 
     for( i = 0; i < _cnt_of_array(pow_map); i ++ )
     {
@@ -219,6 +243,13 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_CL_PARAM_NUM] = {NULL};
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
+    float   outputScale  = vsi_nn_get_tensor_scale(outputs[0]);
+    float   outputTail   = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float   inputScale   = vsi_nn_get_tensor_scale(inputs[0]);
+    float   inputTail    = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+
+    outputScale = 1.0f / outputScale;
+    inputTail   = -(inputTail * inputScale);
 
     if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
@@ -234,11 +265,20 @@ static vsi_nn_kernel_node_t _setup
 
         if( node )
         {
+            uint32_t index = 3;
             vsi_nn_kernel_node_pack_io( node_params, _CL_PARAM_NUM,
                     inputs, 2, outputs, 1 );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &inputScale );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &inputTail );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &outputScale );
+            node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &outputTail );
 
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _CL_PARAM_NUM );
+            vsi_nn_kernel_scalar_release( &node_params[3] );
+            vsi_nn_kernel_scalar_release( &node_params[4] );
+            vsi_nn_kernel_scalar_release( &node_params[5] );
+            vsi_nn_kernel_scalar_release( &node_params[6] );
             VSI_ASSERT( status == VSI_SUCCESS );
         }
     }

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -48,8 +48,8 @@ namespace ops {
 class DepthToSpace : public BuiltinOp {
  public:
   enum depth2space_mode {
-    CRD_mode = 0,
-    DCR_mode = 1,
+    DCR_mode = 0,
+    CRD_mode = 1,
   };
   DepthToSpace(Graph* Graph, int block_size,
                DataLayout layout = DataLayout::WHCN);

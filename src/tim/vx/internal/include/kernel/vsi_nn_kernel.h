@@ -51,7 +51,7 @@ typedef enum
     VSI_NN_KERNEL_TYPE_SP,
     VSI_NN_KERNEL_TYPE_NUM,
     VSI_NN_KERNEL_TYPE_NONE = VSI_NN_KERNEL_TYPE_NUM
-} vsi_nn_kernel_type_e;
+} VSI_PUBLIC_TYPE  vsi_nn_kernel_type_e;
 
 /** Kernel pirority */
 enum
@@ -79,7 +79,7 @@ typedef enum
     BOOL8,
     I4,
     U4,
-} vsi_nn_kernel_dtype_e;
+} VSI_PUBLIC_TYPE vsi_nn_kernel_dtype_e;
 
 typedef enum
 {
@@ -98,7 +98,7 @@ typedef enum
     VSI_NN_GPU_SOURCE_FMT_CODE = 0,
     VSI_NN_GPU_SOURCE_FMT_EXECUTABLE = 1,
     VSI_NN_GPU_SOURCE_FMT_NUM
-} vsi_nn_gpu_source_fmt_e;
+} VSI_PUBLIC_TYPE vsi_nn_gpu_source_fmt_e;
 
 typedef char * vsi_nn_kernel_source_t;
 typedef uint32_t vsi_nn_kernel_unique_id_t;
@@ -125,7 +125,7 @@ typedef struct
         vsi_nn_kernel_source_info_t sources[VSI_NN_GPU_SOURCE_FMT_NUM];
         vsi_nn_gpu_source_fmt_e active_source_fmt;
     } gpu;
-} vsi_nn_kernel_t;
+} VSI_PUBLIC_TYPE vsi_nn_kernel_t;
 
 typedef struct
 {
@@ -172,15 +172,15 @@ typedef struct
     int32_t allow_kernel_num;
 } vsi_nn_kernel_selector_t;
 
-typedef void * vsi_nn_kernel_node_param_t;
+typedef void * VSI_PUBLIC_TYPE vsi_nn_kernel_node_param_t;
 
 typedef void * vsi_nn_kernel_tensor_t;
 
-typedef void * vsi_nn_kernel_node_t;
+typedef void * VSI_PUBLIC_TYPE vsi_nn_kernel_node_t;
 
 typedef void * vsi_nn_kernel_graph_t;
 
-typedef void * vsi_nn_kernel_scalar_t;
+typedef void * VSI_PUBLIC_TYPE vsi_nn_kernel_scalar_t;
 
 typedef vsi_nn_hashmap_t vsi_nn_kernel_param_t;
 

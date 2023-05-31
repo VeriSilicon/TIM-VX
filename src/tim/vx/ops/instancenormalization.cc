@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -29,14 +29,14 @@
 namespace tim {
 namespace vx {
 namespace ops {
-InstanceNormalization::InstanceNormalization(Graph* graph, float eps)
-    : BuiltinOp(graph, VSI_NN_OP_INSTANCE_NORM), eps_(eps) {
+InstanceNormalization::InstanceNormalization(Graph* graph, float eps, DataLayout input_layout)
+    : BuiltinOp(graph, VSI_NN_OP_INSTANCE_NORM, 0, 0, input_layout), eps_(eps) {
   this->impl()->node()->nn_param.instancenorm.eps = eps_;
 }
 
 std::shared_ptr<Operation> InstanceNormalization::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<InstanceNormalization>(this->eps_);
+  return graph->CreateOperation<InstanceNormalization>(this->eps_, this->impl_->layout_);
 }
 
 }  // namespace ops

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -71,9 +71,15 @@ GroupedConv2d::GroupedConv2d(Graph* graph,
 
 std::shared_ptr<Operation> GroupedConv2d::Clone(
     std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<GroupedConv2d>(
-      this->pad_, this->strides_, this->dilation_, this->group_number_,
-      this->impl_->layout_, this->kernel_layout_);
+  if(this->padding_ == PadType::AUTO){
+    return graph->CreateOperation<GroupedConv2d>(
+            this->pad_, this->strides_, this->dilation_, this->group_number_,
+            this->impl_->layout_, this->kernel_layout_);
+  } else {
+    return graph->CreateOperation<GroupedConv2d>(
+            this->padding_, this->strides_, this->dilation_, this->group_number_,
+            this->impl_->layout_, this->kernel_layout_);
+  }
 }
 
 }  // namespace ops

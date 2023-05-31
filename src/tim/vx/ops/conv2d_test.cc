@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2022 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -1845,4 +1845,55 @@ TEST(Conv2d, shape_4_2_1_1_int16_DFPQuantizedTest) {
     f.push_back( q / (float)((int64_t)1 << fl_output));
   }
   EXPECT_EQ(golden, f);
+}
+
+TEST(Conv2d, kernel_bigger_than_input_SAME) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({2, 3, 1, 1});  //whcn
+  tim::vx::ShapeType kernel_shape({3, 2, 1, 1});  //whio
+  tim::vx::ShapeType bias_shape({1});
+  tim::vx::ShapeType output_shape({2, 3, 1, 1});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec kernel_spec(tim::vx::DataType::FLOAT32, kernel_shape,
+                                  tim::vx::TensorAttribute::CONSTANT);
+  tim::vx::TensorSpec bias_spec(tim::vx::DataType::FLOAT32, bias_shape,
+                                tim::vx::TensorAttribute::CONSTANT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  std::vector<float> input_data = {1.0f, 3.0f, 4.0f, 2.0f, 2.0f, 3.0f,
+                                };
+  std::vector<float> weight = {100.0f, 20.0f, 1.0f, 200.0f, 10.0f, 2.0f,
+                               };
+  std::vector<float> bias = {500.0f};
+  std::vector<float> golden = {567.0f,  1480.0f, 608.0f,  1370.0f,
+                               543.0f,  760.0f, };
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto weight_tensor = graph->CreateTensor(kernel_spec, weight.data());
+  auto bias_tensor = graph->CreateTensor(bias_spec, bias.data());
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::array<uint32_t, 2> dilations = {0, 0};
+  std::array<uint32_t, 2> strides = {1, 1};
+  auto op = graph->CreateOperation<tim::vx::ops::Conv2d>(
+      tim::vx::PadType::SAME, strides, dilations, 0, tim::vx::DataLayout::WHCN,
+      tim::vx::DataLayout::IcWHOc);
+  (*op).BindInputs({input_tensor, weight_tensor, bias_tensor}).BindOutputs({output_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+
+  input_tensor->CopyDataToTensor(input_data.data());
+
+  EXPECT_TRUE(graph->Run());
+
+  uint32_t output_size = 1;
+  for (auto i : output_tensor->GetShape()) {
+    output_size *= i;
+  }
+  std::vector<float> output(output_size);
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -40,7 +40,7 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto src_grouped_conv2d = std::static_pointer_cast<vx::ops::Conv2d>(op_);
+    auto src_grouped_conv2d = std::static_pointer_cast<vx::ops::GroupedConv2d>(op_);
     vx::DataLayout layout = op_->impl()->layout_;
     auto kernel_layout = src_grouped_conv2d->KernelDataLayout();
     std::shared_ptr<IPermuteVector> required_pv, weight_required_pv;
@@ -92,8 +92,10 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
       if (!weight_required_pv->IsAligned()) {
         infer_weight = PermuteConstTensor(input_tensors[1], weight_required_pv);
       } else {
+        std::vector<uint8_t> dataRef(input_tensors[1]->GetSpec().GetByteSize());
+        input_tensors[1]->CopyDataFromTensor(dataRef.data());
         infer_weight = context_->infer_graph_->CreateTensor(
-            input_tensors[1]->GetSpec(), input_tensors[1]->GetDataRef());
+            input_tensors[1]->GetSpec(), (const void*)dataRef.data());
       }
       context_->SetPermuteVector(input_tensors[1], weight_required_pv);
       context_->UpdateTensorMap(input_tensors[1], infer_weight);
@@ -114,8 +116,10 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
     // For bias
     if (input_tensors.size() == 3) {
       if (input_tensors[2]->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(input_tensors[2]->GetSpec().GetByteSize());
+        input_tensors[2]->CopyDataFromTensor(dataRef.data());
         infer_bias = context_->infer_graph_->CreateTensor(
-            input_tensors[2]->GetSpec(), input_tensors[2]->GetDataRef());
+            input_tensors[2]->GetSpec(), (const void*)dataRef.data());
       } else {
         infer_bias = context_->GetMapedTensor(input_tensors[2]);
       }

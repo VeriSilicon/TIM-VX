@@ -74,7 +74,7 @@ extern "C" {
 /**
  * Graph structure
  */
-struct _vsi_nn_graph
+struct VSI_PUBLIC_TYPE _vsi_nn_graph
 {
     /** Context */
     vsi_nn_context_t   ctx;
@@ -167,6 +167,8 @@ struct _vsi_nn_graph
     } complete_signal;
 
     vsi_bool isAllowFastMode;
+
+    //DO NOT modify this sturct.
 };
 
 /**

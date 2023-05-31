@@ -173,7 +173,7 @@ VX_DECONV_3D_API_SUPPORT is used to declare that vsi openvx driver can support d
  1: support
 */
 #ifndef VX_DECONV_3D_API_SUPPORT
-#define VX_DECONV_3D_API_SUPPORT 0
+#define VX_DECONV_3D_API_SUPPORT 1
 #endif
 
 /*
@@ -236,5 +236,27 @@ VX_STREAM_PROCESSOR_SUPPORT is used to declare that vsi openvx driver can suppor
 #ifndef VX_SCALE_EXTRA_PARAMETER_SUPPORT
 #define VX_SCALE_EXTRA_PARAMETER_SUPPORT 1
 #endif
+
+/*
+ VX_INVALIDATE_HANDLE_SUPPORT is used to declare that we refined vxSwapTensorHandle API to follow KHR OpenVX 1.3 spec: tensor don't maintain handle internally if new_ptr is NULL.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_INVALIDATE_HANDLE_SUPPORT
+#define VX_INVALIDATE_HANDLE_SUPPORT 1
+#endif
+
+/*
+ VX_ACTIVATION_EXT2_SUPPORT is used to declare that ACTIVATION can support sign, hard_sigmoid, neg, clip, exp, sin, cos,
+ log, mish, gelu, hgelu, elu, selu, celu, rcp, softsign, atan, atanh, acosh, inverse sigmoid, round and erf.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_ACTIVATION_EXT2_SUPPORT
+#define VX_ACTIVATION_EXT2_SUPPORT 1
+#endif
+
 
 #endif /* __VX_KHR_COMPATIBLE_H__ */

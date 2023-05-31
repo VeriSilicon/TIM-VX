@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package rpc;
+
+service GRPCPlatform {
+  rpc Enumerate(EmptyMsg) returns (DeviceCount) {}
+
+  rpc CreateExecutor(Device) returns (Executor) {}
+
+  rpc CreateExecutable(GraphInfo) returns (Executable) {}
+
+  rpc AllocateTensor(TensorInfo) returns (Tensor) {}
+
+  rpc SetInput(IOTensor) returns (Status) {}
+
+  rpc SetOutput(IOTensor) returns (Status) {}
+
+  rpc Submit(Executable) returns (Status) {}
+
+  rpc Trigger(Executor) returns (Status) {}
+
+  rpc CopyDataToTensor(TensorData) returns (Status) {}
+
+  rpc CopyDataFromTensor(Tensor) returns (Data) {}
+
+  rpc Clean(EmptyMsg) returns (Status) {}
+}
+
+message EmptyMsg {}
+
+message DeviceCount {
+  int32 count = 1;
+}
+
+message Device {
+  int32 device = 1;
+}
+
+message Executor {
+  int32 executor = 1;
+}
+
+message Executable {
+  int32 executable = 1;
+}
+
+message Tensor {
+  int32 tensor = 1;
+}
+
+message Data {
+  bytes data = 1;
+}
+
+message GraphInfo {
+  int32 executor = 1;
+  int32 input_size = 2;
+  int32 output_size = 3;
+  bytes nbg = 4;
+}
+
+enum DataType {
+  UNKNOWN = 0;
+  INT8 = 1;
+  UINT8 = 2;
+  INT16 = 3;
+  UINT16 = 4;
+  INT32 = 5;
+  UINT32 = 6;
+  FLOAT16 = 7;
+  FLOAT32 = 8;
+  INT64 = 9;
+  BOOL8 = 10;
+}
+
+enum TensorAttr {
+  INVALID = 0;
+  INPUT = 1;
+  OUTPUT = 2;
+}
+
+enum QuantType {
+  NONE = 0;
+  ASYMMETRIC = 1;
+  SYMMETRIC_PER_CHANNEL = 2;
+}
+
+message Quantization {
+  QuantType quant_type = 1;
+  int32 channel_dim = 2;
+  repeated int32 scales = 3;
+  repeated int32 zero_points = 4;
+}
+
+message TensorSpec {
+  DataType data_type = 1;
+  repeated int32 shape = 2;
+  TensorAttr tensor_attr = 3;
+  Quantization quant = 4;
+
+}
+
+message TensorInfo {
+  int32 executable = 1;
+  TensorSpec tensor_spec = 2;
+}
+
+message IOTensor {
+  int32 tensor = 1;
+  int32 executable = 2;
+}
+
+message TensorData {
+  int32 tensor = 1;
+  bytes data = 2;
+}
+
+message Status {
+  bool status = 1;
+}

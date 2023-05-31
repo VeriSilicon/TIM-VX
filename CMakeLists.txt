@@ -12,6 +12,10 @@ option(TIM_VX_BUILD_EXAMPLES            "Build demos show general usage"        
 option(TIM_VX_ENABLE_VIPLITE            "Enable lite driver api support"        OFF)
 option(TIM_VX_ENABLE_40BIT              "Enable large memory support"           OFF)
 option(TIM_VX_ENABLE_PLATFORM           "Enable multi devices support"          OFF)
+option(TIM_VX_ENABLE_PLATFORM_LITE      "Enable lite multi-device support"      OFF)
+option(TIM_VX_ENABLE_GRPC               "Enable gPRC support"                   OFF)
+option(TIM_VX_DBG_ENABLE_TENSOR_HNDL    "Enable built-in tensor from handle: use malloced memory instead of VideoMemory by kernel driver" ON)
+option(TIM_VX_ENABLE_TENSOR_CACHE       "Enable tensor cache for const tensor"  OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -23,6 +27,16 @@ if(${TIM_VX_CODE_COVERAGE})
     set(CMAKE_C_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage")
 endif()
 
+if(${TIM_VX_ENABLE_PLATFORM_LITE})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PLATFORM_LITE")
+endif()
+
+if(${TIM_VX_DBG_ENABLE_TENSOR_HNDL})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_TENSOR_HNDL=1")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_TENSOR_HNDL=0")
+endif()
+
 include(GNUInstallDirs)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
@@ -31,6 +45,11 @@ endif()
 if(${TIM_VX_ENABLE_40BIT})
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVSI_40BIT_VA_SUPPORT")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVSI_40BIT_VA_SUPPORT")
+endif()
+
+if(${TIM_VX_ENABLE_TENSOR_CACHE})
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_TENSOR_CACHE")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_TENSOR_CACHE")
 endif()
 
 if(${TIM_VX_ENABLE_CUSTOM_OP})
@@ -62,10 +81,9 @@ endif()
 if(TIM_VX_ENABLE_TEST)
     include(FetchContent)
     FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.12.0
-    )
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-1.12.0)
 
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
@@ -77,6 +95,13 @@ if(TIM_VX_ENABLE_TEST)
     endif()
 endif()
 
+if(TIM_VX_ENABLE_GRPC)
+    include(cmake/gRPC.cmake)
+endif()
+
+if(TIM_VX_ENABLE_TENSOR_CACHE)
+    include(cmake/openssl.cmake)
+endif()
 add_subdirectory("src/tim")
 
 if(TIM_VX_BUILD_EXAMPLES)

@@ -88,7 +88,8 @@ static void _create_multi_norm_tensors
             multi_input_tensors[1] = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &uv_input_attr, NULL);
             multi_input_tensors[2] = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &uv_input_attr, NULL);
         }
-        else if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12)
+        else if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
+                *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21)
         {
             uv_input_attr = *input_attr;
             uv_input_attr.size[0] = w;
@@ -289,6 +290,21 @@ static void _set_preproc_node_input_attr
             input_attr->size[2] = 1;
         }
     }
+    if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422 ||
+        *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422)
+    {
+        if(*source_layout == VSI_NN_SOURCE_LAYOUT_NHWC)
+        {
+            input_attr->size[0] = 2*input_attr->size[1];
+            input_attr->size[1] = input_attr->size[2];
+            input_attr->size[2] = 1;
+        }
+        else
+        {
+            input_attr->size[0] = 2*input_attr->size[0];
+            input_attr->size[2] = 1;
+        }
+    }
 } /*_set_preproc_node_input_attr() */
 
 static void _set_preproc_node_output_attr
@@ -407,7 +423,8 @@ static void _get_org_graph_inputs
                 {
                     i += 2 ;
                 }
-                else if(nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12)
+                else if(nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
+                        nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21 )
                 {
                     i += 1;
                 }
@@ -506,7 +523,8 @@ vsi_status vsi_nn_add_single_preproc_node
     {
         node_input_num = 3;
     }
-    else if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12)
+    else if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
+             *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21)
     {
         node_input_num = 2;
     }
@@ -552,6 +570,7 @@ vsi_status vsi_nn_add_single_preproc_node
     /* Create new norm and virtual tensors */
     if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420 ||
         *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
+        *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21 ||
         *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444 ||
         *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP)
     {

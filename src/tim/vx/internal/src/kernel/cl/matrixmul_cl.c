@@ -64,12 +64,12 @@ __BEGIN_DECLS
 
 #define TENSOR_MATRIXMUL_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
     { HASH_MATRIXMUL_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, 0), \
-        HASH_MATRIXMUL_SH_KERNEL_NAME(F32, F32, F32, IMAGE_DIM), \
+        HASH_MATRIXMUL_SH_KERNEL_NAME(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM), \
         SOURCE },
 
 #define TENSOR_MATRIXMUL_TRANSA_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
     { HASH_MATRIXMUL_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, 1), \
-        HASH_MATRIXMUL_TRANSA_SH_KERNEL_NAME(F32, F32, F32, IMAGE_DIM), \
+        HASH_MATRIXMUL_TRANSA_SH_KERNEL_NAME(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM), \
         SOURCE },
 
 #define TENSOR_MATRIXMUL_TRANSB_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
@@ -83,18 +83,32 @@ static const struct {
         const char* source_name;
     } matrixmul_map[] =
 {
-    TENSOR_MATRIXMUL_KERNELS(F16, F16, F16, _2D,           KERNEL_SOURCE_1)
-    TENSOR_MATRIXMUL_KERNELS(F16, F16, F16, _3D,           KERNEL_SOURCE_1)
-    TENSOR_MATRIXMUL_TRANSA_KERNELS(F16, F16, F16, _2D,    KERNEL_SOURCE_2)
-    TENSOR_MATRIXMUL_TRANSA_KERNELS(F16, F16, F16, _3D,    KERNEL_SOURCE_2)
     TENSOR_MATRIXMUL_KERNELS(F32, F32, F32, _2D,           KERNEL_SOURCE_1)
     TENSOR_MATRIXMUL_KERNELS(F32, F32, F32, _3D,           KERNEL_SOURCE_1)
     TENSOR_MATRIXMUL_TRANSA_KERNELS(F32, F32, F32, _2D,    KERNEL_SOURCE_2)
     TENSOR_MATRIXMUL_TRANSA_KERNELS(F32, F32, F32, _3D,    KERNEL_SOURCE_2)
     TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, F32, F32, _2D,    KERNEL_SOURCE_1)
     TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, F32, F32, _3D,    KERNEL_SOURCE_1)
-    TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, I8,  F32, _2D,    KERNEL_SOURCE_1)
-    TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, I8,  F32, _3D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, I8, F32, _2D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(F32, I8, F32, _3D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_KERNELS(I8, I8, I8, _2D,           KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_KERNELS(I8, I8, I8, _3D,           KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSA_KERNELS(I8, I8, I8, _2D,    KERNEL_SOURCE_2)
+    TENSOR_MATRIXMUL_TRANSA_KERNELS(I8, I8, I8, _3D,    KERNEL_SOURCE_2)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(I8, I8, I8, _2D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(I8, I8, I8, _3D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_KERNELS(U8, U8, U8, _2D,           KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_KERNELS(U8, U8, U8, _3D,           KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSA_KERNELS(U8, U8, U8, _2D,    KERNEL_SOURCE_2)
+    TENSOR_MATRIXMUL_TRANSA_KERNELS(U8, U8, U8, _3D,    KERNEL_SOURCE_2)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(U8, U8, U8, _2D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(U8, U8, U8, _3D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_KERNELS(U8, U8, F32, _2D,           KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_KERNELS(U8, U8, F32, _3D,           KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSA_KERNELS(U8, U8, F32, _2D,    KERNEL_SOURCE_2)
+    TENSOR_MATRIXMUL_TRANSA_KERNELS(U8, U8, F32, _3D,    KERNEL_SOURCE_2)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(U8, U8, F32, _2D,    KERNEL_SOURCE_1)
+    TENSOR_MATRIXMUL_TRANSB_KERNELS(U8, U8, F32, _3D,    KERNEL_SOURCE_1)
 };
 
 /*
@@ -198,9 +212,43 @@ static vsi_status _query_kernel
         dim_type = _3D;
     }
 
+    if (input0_dtype == I16 || input0_dtype == I32)
+    {
+        input0_dtype = I8;
+    }
+    else if (input0_dtype == F16)
+    {
+        input0_dtype = F32;
+    }
+    else if (input0_dtype == U32)
+    {
+        input0_dtype = U8;
+    }
+
     if (input1_dtype == I16 || input1_dtype == I32)
     {
         input1_dtype = I8;
+    }
+    else if (input1_dtype == F16)
+    {
+        input1_dtype = F32;
+    }
+    else if (input1_dtype == U32)
+    {
+        input1_dtype = U8;
+    }
+
+    if (output_dtype == I16 || output_dtype == I32)
+    {
+        output_dtype = I8;
+    }
+    else if (output_dtype == F16)
+    {
+        output_dtype = F32;
+    }
+    else if (output_dtype == U32)
+    {
+        output_dtype = U8;
     }
 
     key = HASH_MATRIXMUL_KEY( input0_dtype, input1_dtype, output_dtype, dim_type, transa );
@@ -259,6 +307,8 @@ static vsi_nn_kernel_node_t _setup
     float    zp_b = (float)vsi_nn_get_tensor_zero_point(inputs[1]);
     float    scale_out = vsi_nn_get_tensor_scale(outputs[0]);
     float    zp_out = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+
+    scale_out = 1 / scale_out;
 
     if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )

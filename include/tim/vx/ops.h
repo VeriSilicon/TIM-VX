@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -99,8 +99,14 @@
 #include "tim/vx/ops/conv3d.h"
 #include "tim/vx/ops/custom_base.h"
 #include "tim/vx/ops/topk.h"
+#include "tim/vx/ops/tiny_yolov4_postprocess.h"
 #include "tim/vx/ops/bidirectional_sequence_lstm.h"
 #include "tim/vx/ops/hashtable_lookup.h"
 #include "tim/vx/ops/embedding_lookup.h"
+#include "tim/vx/ops/cumsum.h"
+#include "tim/vx/ops/mod.h"
+#include "tim/vx/ops/max_pool3d.h"
+#include "tim/vx/ops/unidirectional_sequence_gru.h"
+#include "tim/vx/ops/grucell.h"
 
 #endif /* TIM_VX_OPS_H_ */

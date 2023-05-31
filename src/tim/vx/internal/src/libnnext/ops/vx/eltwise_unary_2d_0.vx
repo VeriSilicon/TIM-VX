@@ -101,6 +101,15 @@ float4 eltwise_unary_hard_gelu(float4 x)
     return x * cdf;
 }
 
+float4 eltwise_unary_inverse_sigmoid(float4 x)
+{
+    float4 x1, x2;
+    x = clamp(x, 0, 1);
+    x1 = clamp(x, alpha, 1);
+    x2 = clamp((1 - x), alpha, 1);
+    return log(x1 / x2);
+}
+
 _viv_uniform float inputScale;
 _viv_uniform float inputTail;
 _viv_uniform float outputScale;
@@ -200,6 +209,17 @@ ELTSISE_UNARY_2D(hard_gelu, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8,
 ELTSISE_UNARY_2D(hard_gelu, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
 ELTSISE_UNARY_2D(hard_gelu, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
 ELTSISE_UNARY_2D(hard_gelu, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
+//INVERSE_SIGMOID
+ELTSISE_UNARY_2D(inverse_sigmoid, F16, F16, vxc_short8, vxc_half8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(inverse_sigmoid, F16, I8,  vxc_short8, vxc_half8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_2D(inverse_sigmoid, F16, U8,  vxc_short8, vxc_half8,  int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_2D(inverse_sigmoid, F16, I16, vxc_short8, vxc_half8,  int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_2D(inverse_sigmoid, I8,  I8,  vxc_char8,  vxc_char8,  int4,  vxc_char8,  vxc_char8)
+ELTSISE_UNARY_2D(inverse_sigmoid, I8,  F16, vxc_char8,  vxc_char8,  half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(inverse_sigmoid, U8,  U8,  vxc_uchar8, vxc_uchar8, int4,  vxc_uchar8, vxc_uchar8)
+ELTSISE_UNARY_2D(inverse_sigmoid, U8,  F16, vxc_uchar8, vxc_uchar8, half4, vxc_half8,  vxc_short8)
+ELTSISE_UNARY_2D(inverse_sigmoid, I16, I16, vxc_short8, vxc_short8, int4,  vxc_short8, vxc_short8)
+ELTSISE_UNARY_2D(inverse_sigmoid, I16, F16, vxc_short8, vxc_short8, half4, vxc_half8,  vxc_short8)
 
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
@@ -244,3 +264,5 @@ ELTSISE_UNARY_BF16_2D(round)
 ELTSISE_UNARY_BF16_2D(gelu)
 //HARD_GELU
 ELTSISE_UNARY_BF16_2D(hard_gelu)
+//INVERSE_SIGMOID
+ELTSISE_UNARY_BF16_2D(inverse_sigmoid)

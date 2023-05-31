@@ -44,7 +44,7 @@ typedef struct
 {
     vsi_nn_tensor_id_t output;
     vsi_nn_tensor_id_t inputs[VSI_NN_MAX_RNN_CONNECTION_INPUTS];
-} vsi_nn_rnn_external_connection_t;
+} VSI_PUBLIC_TYPE vsi_nn_rnn_external_connection_t;
 
 /*-------------------------------------------
 Procedure to prepare input data, return FALSE

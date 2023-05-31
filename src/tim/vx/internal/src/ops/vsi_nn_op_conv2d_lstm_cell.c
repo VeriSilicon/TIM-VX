@@ -82,7 +82,19 @@ static vsi_nn_internal_tensor_t * create_input_conv
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
 
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if( input->attr.dtype.vx_type != VSI_NN_TYPE_FLOAT32 &&
+        input->attr.dtype.vx_type != VSI_NN_TYPE_BFLOAT16 )
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
+    else if (input->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16)
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_BFLOAT16;
+    }
+    else
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+    }
     attr.dim_num = VSI_NN_DIM_AUTO;
     attr.vtl = TRUE;
     attr.is_const = FALSE;
@@ -147,7 +159,19 @@ static vsi_nn_internal_tensor_t * create_recurrent_conv
     bias = internal_bias->t;
 
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-    attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    if( input->attr.dtype.vx_type != VSI_NN_TYPE_FLOAT32 &&
+        input->attr.dtype.vx_type != VSI_NN_TYPE_BFLOAT16 )
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
+    }
+    else if (input->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16)
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_BFLOAT16;
+    }
+    else
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+    }
     attr.dim_num = VSI_NN_DIM_AUTO;
     attr.vtl = TRUE;
     attr.is_const = FALSE;

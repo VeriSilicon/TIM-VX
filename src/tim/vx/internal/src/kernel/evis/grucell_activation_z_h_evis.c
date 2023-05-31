@@ -154,11 +154,11 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_z_h_initializer)
 
     if ( VSI_NN_KERNEL_QUANT_DFP == output_attr[0]->quant )
     {
-        int8_t srcFixPointPos = (int8_t)input_attr[0]->dfp.fl;
-        if (srcFixPointPos >= 0)
-            output_scale *= (vx_float32)((int64_t)1 << srcFixPointPos);
-        else if (srcFixPointPos < 0)
-            output_scale *= 1.0f / (vx_float32) ((int64_t)1 << - srcFixPointPos);
+        int8_t dstFixPointPos = (int8_t)output_attr[0]->dfp.fl;
+        if (dstFixPointPos >= 0)
+            output_scale *= (vx_float32)((int64_t)1 << dstFixPointPos);
+        else if (dstFixPointPos < 0)
+            output_scale *= 1.0f / (vx_float32) ((int64_t)1 << - dstFixPointPos);
     }
     else if ( VSI_NN_KERNEL_QUANT_ASYMM == output_attr[0]->quant )
     {

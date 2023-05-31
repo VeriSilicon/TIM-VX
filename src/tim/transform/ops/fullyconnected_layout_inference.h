@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -49,8 +49,10 @@ class FullyConnectedLayoutInfer : public OpLayoutInfer {
     }
     for (const auto& in : input_tensors) {
       if (in->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(in->GetSpec().GetByteSize());
+        in->CopyDataFromTensor(dataRef.data());
         auto infer_tensor = context_->infer_graph_->CreateTensor(in->GetSpec(),
-                                                            in->GetDataRef());
+                                                            (const void*)dataRef.data());
         auto trans_pv = MakeShared(in->GetShape().size());
 
         context_->UpdateTensorMap(in, infer_tensor);

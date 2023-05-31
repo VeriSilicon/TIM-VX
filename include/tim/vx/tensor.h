@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <string>
 
 #include "tim/vx/types.h"
 
@@ -79,6 +80,8 @@ class Quantization {
   }
 
   const std::int8_t& Fl() const{ return this->fl_; }
+
+  bool operator ==  (const Quantization& other_quant) const;
 
  protected:
   QuantType type_{QuantType::NONE};
@@ -145,9 +148,13 @@ class Tensor {
   virtual void unmap() = 0;
   virtual bool IsPlaceHolder() = 0;
   virtual bool IsConstTensor() = 0;
-  virtual const void* GetDataRef() const = 0;
+  virtual bool SaveTensorToTextByFp32(std::string filename) = 0;
+  virtual void* ConvertTensorToData(uint8_t* tensorData) = 0;
 };
-
+namespace utils{
+  bool Float32ToDtype(std::shared_ptr<tim::vx::Tensor> tensor, std::vector<float> fval, uint8_t* tensorData);
+  bool DtypeToFloat32(std::shared_ptr<tim::vx::Tensor> tensor, uint8_t* tensorData, float* data);
+}  //namespace utils
 }  // namespace vx
 }  // namespace tim
 

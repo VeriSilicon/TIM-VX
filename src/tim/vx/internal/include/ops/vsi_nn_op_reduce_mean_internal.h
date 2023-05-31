@@ -38,6 +38,7 @@ typedef struct _vsi_nn_reduce_mean_internal_param
     vx_int32    *axis;
     vx_uint32   axis_num;
     float       scale;
+    vsi_enum     type;
 } vsi_nn_reduce_mean_internal_param;
 _compiler_assert(offsetof(vsi_nn_reduce_mean_internal_param, local) == 0, \
     vsi_nn_reduce_mean_internal_h );

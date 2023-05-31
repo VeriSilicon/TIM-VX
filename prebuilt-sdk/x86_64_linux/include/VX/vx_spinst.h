@@ -165,6 +165,7 @@ typedef enum _vx_sp_attribute_e
     VX_SP_ATTRIBUTE_SUM_ENGINE_CONTROL,
     VX_SP_ATTRIBUTE_SUM_ENGINE_NUM_CH_MINUS_ONE,
     VX_SP_ATTRIBUTE_SUM_ENGINE_2D_ACCUM_STORAGE,
+    VX_SP_ATTRIBUTE_SUM_ENGINE_OP_SELECT,
 
     VX_SP_ATTRIBUTE_NUM_OF_ELEMENTS_PER_LOOP_PER_INPUT,
 
@@ -180,6 +181,18 @@ typedef enum _vx_sp_attribute_e
     VX_SP_ATTRIBUTE_CONST2,     /* NN tensor add const   */
     VX_SP_ATTRIBUTE_CONST3,     /* NN clamp max          */
     VX_SP_ATTRIBUTE_CONST4,     /* NN clmap min          */
+
+    VX_SP_ATTRIBUTE_CONST_COUNT,
+
+    VX_SP_ATTRIBUTE_SPLIT_AXIS,
+    VX_SP_ATTRIBUTE_SPLIT_MAX_SIZE,
+    VX_SP_ATTRIBUTE_SPLIT_TILEX_EQUAL_INIMAGEX,
+
+    VX_SP_ATTRIBUTE_NOT_MERGE_CONVSP,
+    VX_SP_ATTRIBUTE_UPDATE_CONST0_TO_PCQ_COEF_TENSOR,
+    VX_SP_ATTRIBUTE_RESHAPE_ARRAY, /* bit layout | output:24-29 | input3:18-23 | input2:12-17 | input1:6-11 | input0:0-5 | */
+    VX_SP_ATTRIBUTE_ALIGN_SP_CORE_AXIS,
+    VX_SP_ATTRIBUTE_KEEP_TILE_SIZE,
 
     VX_SP_ATTRIBUTE_TOTAL_COUNT,
 }
@@ -274,9 +287,55 @@ typedef enum _vx_sp_attribute_sum_engine_2d_accum_storage_e
 }
 vx_sp_attribute_sum_engine_2d_accum_storage_e;
 
+typedef enum _vx_sp_attribute_sum_engine_op_select_e
+{
+    VX_SP_ATTRIBUTE_SUM_ENGINE_SUM_OP,
+    VX_SP_ATTRIBUTE_SUM_ENGINE_MAX_OP
+} vx_sp_attribute_sum_engine_op_select_e;
+
+typedef enum _vx_sp_attribute_reshape_e
+{
+    VX_SP_ATTRIBUTE_RESHAPE_CHW2CHW = 0x00,
+    VX_SP_ATTRIBUTE_RESHAPE_CHW2WHC = 0x06,
+    VX_SP_ATTRIBUTE_RESHAPE_CHW2WCH = 0x09,
+    VX_SP_ATTRIBUTE_RESHAPE_CHW2HWC = 0x12,
+    VX_SP_ATTRIBUTE_RESHAPE_CHW2HCW = 0x18,
+    VX_SP_ATTRIBUTE_RESHAPE_CHW2CWH = 0x21,
+}
+vx_sp_attribute_reshape_e;
+
+typedef enum _vx_sp_attribute_split_axis_e
+{
+    VX_SP_ATTRIBUTE_SPLIT_ON_AXIS_X,
+    VX_SP_ATTRIBUTE_SPLIT_ON_AXIS_Y,
+    VX_SP_ATTRIBUTE_SPLIT_ON_AXIS_Z,
+    VX_SP_ATTRIBUTE_SPLIT_ON_AXIS_XY,
+    VX_SP_ATTRIBUTE_SPLIT_ON_AXIS_YZ,
+    VX_SP_ATTRIBUTE_SPLIT_ON_AXIS_XYZ,
+}
+vx_sp_attribute_split_axis_e;
+
+typedef enum _vx_sp_attribute_tile_align_sp_core_e
+{
+    VX_SP_ATTRIBUTE_TILE_ALIGN_SP_CORE_NONE = 0,
+    VX_SP_ATTRIBUTE_TILE_ALIGN_SP_CORE_WITH_AXIS_X,
+    VX_SP_ATTRIBUTE_TILE_ALIGN_SP_CORE_WITH_AXIS_Y,
+    VX_SP_ATTRIBUTE_TILE_ALIGN_SP_CORE_WITH_AXIS_XY,
+}
+vx_sp_attribute_tile_align_sp_core_e;
+
+typedef enum _vx_sp_attribute_keep_tile_size_e
+{
+    VX_SP_ATTRIBUTE_KEEP_TILE_SIZE_NONE = 0,
+    VX_SP_ATTRIBUTE_KEEP_TILE_SIZE_WITH_AXIS_X,
+    VX_SP_ATTRIBUTE_KEEP_TILE_SIZE_WITH_AXIS_Y,
+    VX_SP_ATTRIBUTE_KEEP_TILE_SIZE_WITH_AXIS_XY,
+}
+vx_sp_attribute_keep_tile_size_e;
+
 /**********************************************************************************************/
 
-/*! \brief Creates an opaque reference to a spinst data.
+/*! \brief Creates an external reference to a spinst data.
  * \param [in] context The reference to the implementation context.
  * \return A spinst data reference.
  * \Any possible errors preventing a successful creation should be checked using <tt>\ref vxGetStatus</tt>.
@@ -286,7 +345,17 @@ VX_API_ENTRY vx_spinst VX_API_CALL vxCreateSPINST(
     vx_context          context
     );
 
-/*! \brief Releases a reference to a spinst object.
+/*! \brief Creates an internal reference to a spinst data.
+ * \param [in] context The reference to the implementation context.
+ * \return A spinst data reference.
+ * \Any possible errors preventing a successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_object_spinst
+ */
+VX_API_ENTRY vx_spinst VX_API_CALL vxCreateSPINSTInternal(
+    vx_context          context
+    );
+
+/*! \brief Releases a reference to a external spinst object.
  * The object may not be garbage collected until its total reference count is zero.
  * \param [in] spinst_obj The pointer to the spinst data to release.
  * \post After returning from this function the reference is zeroed.
@@ -296,6 +365,19 @@ VX_API_ENTRY vx_spinst VX_API_CALL vxCreateSPINST(
  * \ingroup group_object_spinst
  */
 VX_API_ENTRY vx_status VX_API_CALL vxReleaseSPINST(
+    vx_spinst            *spinst_obj
+    );
+
+/*! \brief Releases a reference to a internal spinst object.
+ * The object may not be garbage collected until its total reference count is zero.
+ * \param [in] spinst_obj The pointer to the spinst data to release.
+ * \post After returning from this function the reference is zeroed.
+ * \return A <tt>\ref vx_status_e</tt> enumeration.
+ * \retval VX_SUCCESS No errors; all other values indicate failure
+ * \retval * An error occurred. See <tt>\ref vx_status_e</tt>.
+ * \ingroup group_object_spinst
+ */
+VX_API_ENTRY vx_status VX_API_CALL vxReleaseSPINSTInternal(
     vx_spinst            *spinst_obj
     );
 
@@ -331,6 +413,12 @@ VX_API_ENTRY vx_status VX_API_CALL vxSetAttributeToSPINST(
     vx_enum            attribute,
     vx_uint32          value
     );
+
+VX_API_ENTRY vx_status VX_API_CALL vxGetAttributeToSPINST(
+    vx_spinst          spinst_obj,
+    vx_enum            attribute,
+    vx_uint32* value
+);
 
 #ifdef  __cplusplus
 }

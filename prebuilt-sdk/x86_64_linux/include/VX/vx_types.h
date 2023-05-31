@@ -539,6 +539,15 @@ typedef vx_enum vx_action;
  */
 typedef vx_action (VX_CALLBACK *vx_nodecomplete_f)(vx_node node);
 
+/*! \brief A callback to the client for querying information of a node.
+ * \see vx_action
+ * \see vxAssignNodeCallback
+ * \param [in] node The node to which the callback was attached.
+ * \return An action code from <tt>\ref vx_action_e</tt>.
+ * \ingroup group_node_callback
+ */
+typedef vx_status (VX_CALLBACK *vx_nodequery_f)(vx_node node);
+
 /*! \brief Vendor IDs are 2 nibbles in size and are located in the upper byte of
  * the 4 bytes of an enumeration.
  * \ingroup group_basic_features
@@ -1028,6 +1037,11 @@ enum vx_node_attribute_e {
 
     VX_NODE_ATTRIBUTE_FOR_HW_QUALITY     = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0xA,
 
+    VX_NODE_SWTILING_TILE_XY                   = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0x10,
+    VX_NODE_SPINST_INDEX                       = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0x11,
+    VX_NODE_SPCONV_PCQ_REPLACE_SPINST          = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0x12,
+    VX_NODE_SP_NAME                            = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0x13,
+    VX_NODE_SPINST                             = VX_ATTRIBUTE_BASE(VX_ID_KHRONOS, VX_TYPE_NODE) + 0x14,
 };
 
 /*! \brief The parameter attributes list

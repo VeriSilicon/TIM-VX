@@ -28,8 +28,8 @@
 #include <queue>
 #include <vector>
 #include <map>
-#include <array>
 #include <thread>
+#include <array>
 #include <iostream>
 #include <mutex>
 #include <unistd.h>

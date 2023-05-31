@@ -838,6 +838,16 @@ static vsi_nn_kernel_node_t _setup
         new_shape[3] = batch;
         rank = 4;
     }
+#define LOCAL_GROUP_PIXEL_SIZE_U8  (256)
+    else if (new_shape[0] < LOCAL_GROUP_PIXEL_SIZE_U8 &&
+            (new_shape[0] * new_shape[1]) % LOCAL_GROUP_PIXEL_SIZE_U8 == 0)
+    {
+        if (vsi_nn_TypeGetBits(outputs[i]->attr.dtype.vx_type) == 8)
+        {
+            new_shape[0] = LOCAL_GROUP_PIXEL_SIZE_U8;
+            new_shape[1] = inputs[0]->attr.size[0] * inputs[0]->attr.size[1] / LOCAL_GROUP_PIXEL_SIZE_U8;
+        }
+    }
 
     reshape_tensor[0] = vsi_nn_reshape_tensor( graph,
             inputs[0], new_shape, rank );
@@ -922,6 +932,21 @@ static vsi_nn_kernel_node_t _setup
         goto final;
     }
 
+    /* a = input_scale * output_scale * alpha * mean
+      b = (beta - scale * mean) * output_scale + output_zp - input * alpha  */
+    status = _query_kernel( ikernels[MEANS_INDEX], inputs, outputs, reshape_flg, INTERNAL_KERNEL_MEANS );
+    if ( VSI_SUCCESS != status )
+    {
+        goto final;
+    }
+
+    /* dst = x * a + b  */
+    status = _query_kernel( kernel, inputs, outputs, reshape_flg, INTERNAL_KERNEL_NORMS );
+    if ( VSI_SUCCESS != status )
+    {
+        goto final;
+    }
+
     sums_node = vsi_nn_kernel_create_node( graph, ikernels[SUMS_INDEX] );
     if (sums_node)
     {
@@ -952,14 +977,6 @@ static vsi_nn_kernel_node_t _setup
         }
     }
 
-    /* a = input_scale * output_scale * alpha * mean
-      b = (beta - scale * mean) * output_scale + output_zp - input * alpha  */
-    status = _query_kernel( ikernels[MEANS_INDEX], inputs, outputs, reshape_flg, INTERNAL_KERNEL_MEANS );
-    if ( VSI_SUCCESS != status )
-    {
-        goto final;
-    }
-
     means_node = vsi_nn_kernel_create_node( graph, ikernels[MEANS_INDEX] );
     if (means_node)
     {
@@ -988,12 +1005,6 @@ static vsi_nn_kernel_node_t _setup
         vsi_nn_kernel_scalar_release( &means_node_params[MEANS_GROUP_NUM_SCL] );
     }
 
-    /* dst = x * a + b  */
-    status = _query_kernel( kernel, inputs, outputs, reshape_flg, INTERNAL_KERNEL_NORMS );
-    if ( VSI_SUCCESS != status )
-    {
-        goto final;
-    }
     norms_node = vsi_nn_kernel_create_node( graph, kernel );
     if (norms_node)
     {

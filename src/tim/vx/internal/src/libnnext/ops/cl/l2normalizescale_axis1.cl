@@ -34,6 +34,7 @@ __kernel __attribute__((reqd_work_group_size(1, 16, 1))) void l2normalizescale_a
     rsqrt_sum = (sum == 0 ? rsEps : rsqrt(sum));
     for (coord.y = gidy; coord.y < axis_size; coord.y += 16)
     {
+        coord_scale.x = coord.y;
         src         = read_imagef(input, coord);
         scale_value = read_imagef(scale, coord_scale);
         result      = src * rsqrt_sum * scale_value;
@@ -76,6 +77,7 @@ __kernel __attribute__((reqd_work_group_size(1, 16, 1))) void l2normalizescale_a
     rsqrt_sum = (sum == 0 ? rsEps : rsqrt(sum));
     for (coord.y = gidy; coord.y < axis_size; coord.y += 16)
     {
+        coord_scale.x = coord.y;
         src         = convert_float4(read_imageui(input, coord))  * inputScale + inputTail;
         scale_value = read_imagef(scale, coord_scale);
         result      = src * rsqrt_sum * scale_value;
@@ -119,6 +121,7 @@ __kernel __attribute__((reqd_work_group_size(1, 16, 1))) void l2normalizescale_a
     rsqrt_sum = (sum == 0 ? rsEps : rsqrt(sum));
     for (coord.y = gidy; coord.y < axis_size; coord.y += 16)
     {
+        coord_scale.x = coord.y;
         src         = convert_float4(read_imagei(input, coord)) * inputScale + inputTail;
         scale_value = read_imagef(scale, coord_scale);
         result      = src * rsqrt_sum * scale_value;

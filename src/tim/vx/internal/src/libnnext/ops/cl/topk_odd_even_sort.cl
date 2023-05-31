@@ -6,6 +6,10 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                image2d_t indices_t,
   __write_only image2d_t output,
   __write_only image2d_t indices,
+               float     input_scale,
+               float     input_tail,
+               float     output_scale,
+               float     output_tail,
                int       width
   )
  {
@@ -115,6 +119,10 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                image2d_t indices_t,
   __write_only image2d_t output,
   __write_only image2d_t indices,
+               float     input_scale,
+               float     input_tail,
+               float     output_scale,
+               float     output_tail,
                int       width
   )
  {
@@ -224,6 +232,10 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                image2d_t indices_t,
   __write_only image2d_t output,
   __write_only image2d_t indices,
+               float     input_scale,
+               float     input_tail,
+               float     output_scale,
+               float     output_tail,
                int       width
   )
  {

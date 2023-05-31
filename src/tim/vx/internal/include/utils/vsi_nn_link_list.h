@@ -36,7 +36,7 @@ typedef struct _vsi_nn_link_list
 {
     struct _vsi_nn_link_list * prev;
     struct _vsi_nn_link_list * next;
-} vsi_nn_link_list_t;
+} VSI_PUBLIC_TYPE vsi_nn_link_list_t;
 
 typedef void ( * vsi_nn_link_list_init_t )
     (

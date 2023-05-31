@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -41,22 +41,23 @@ class TensorImpl : public Tensor {
   bool IsWriteable();
   bool IsReadable();
 
-  const ShapeType& GetShape() { return spec_.shape_; }
-  DataType GetDataType() { return spec_.datatype_; }
-  const Quantization& GetQuantization() { return spec_.quantization_; }
-  TensorSpec& GetSpec() { return spec_; }
-  uint32_t GetId();
-  bool CopyDataToTensor(const void* data, uint32_t size = 0);
-  bool CopyDataFromTensor(void* data);
-  bool FlushCacheForHandle();
-  bool InvalidateCacheForHandle();
-  void* map(bool invalidate_cpu_cache = false);
-  void unmap();
-  bool IsPlaceHolder() { return false; }
-  bool IsConstTensor() {
+  const ShapeType& GetShape() override { return spec_.shape_; }
+  DataType GetDataType() override { return spec_.datatype_; }
+  const Quantization& GetQuantization() override { return spec_.quantization_; }
+  TensorSpec& GetSpec() override { return spec_; }
+  uint32_t GetId() override;
+  bool CopyDataToTensor(const void* data, uint32_t size = 0) override;
+  bool CopyDataFromTensor(void* data) override;
+  bool FlushCacheForHandle() override;
+  bool InvalidateCacheForHandle() override;
+  void* map(bool invalidate_cpu_cache = false) override;
+  void unmap() override;
+  bool IsPlaceHolder() override { return false; }
+  bool IsConstTensor() override {
     return spec_.attr_ == tim::vx::TensorAttribute::CONSTANT;
   }
-  const void* GetDataRef() const { return data_; }
+  bool SaveTensorToTextByFp32(std::string filename) override;
+  void* ConvertTensorToData(uint8_t* tensorData) override;
 
   GraphImpl* graph_;
   vsi_nn_tensor_id_t id_;
@@ -70,31 +71,38 @@ class TensorPlaceholder : public Tensor {
   TensorPlaceholder(Graph* graph) : id_(VSI_NN_TENSOR_ID_NA) {(void)(graph);}
   ~TensorPlaceholder(){};
 
-  const ShapeType& GetShape() { return spec_.shape_; }
-  DataType GetDataType() { return spec_.datatype_; }
-  const Quantization& GetQuantization() { return spec_.quantization_; }
-  TensorSpec& GetSpec() { return spec_; }
-  uint32_t GetId() { return id_; };
-  bool CopyDataToTensor(const void* data, uint32_t size = 0) {
+  const ShapeType& GetShape() override { return spec_.shape_; }
+  DataType GetDataType() override { return spec_.datatype_; }
+  const Quantization& GetQuantization() override { return spec_.quantization_; }
+  TensorSpec& GetSpec() override { return spec_; }
+  uint32_t GetId() override { return id_; };
+  bool CopyDataToTensor(const void* data, uint32_t size = 0) override {
     (void)data, void(size);
     return false;
   }
-  bool CopyDataFromTensor(void* data) {
+  bool CopyDataFromTensor(void* data) override {
     (void)data;
     return false;
   }
-  bool InvalidateCacheForHandle() { return false; }
-  bool FlushCacheForHandle() { return false; }
-  void* map(bool invalidate_cpu_cache = false) {
+  bool InvalidateCacheForHandle() override { return false; }
+  bool FlushCacheForHandle() override { return false; }
+  void* map(bool invalidate_cpu_cache = false) override {
     (void)invalidate_cpu_cache;
     return nullptr;
   }
-  void unmap() { return; }
-  bool IsPlaceHolder() { return true; }
-  bool IsConstTensor() {
+  void unmap() override { return; }
+  bool IsPlaceHolder() override { return true; }
+  bool IsConstTensor() override {
     return spec_.attr_ == tim::vx::TensorAttribute::CONSTANT;
   }
-  const void* GetDataRef() const { return nullptr; }
+ bool SaveTensorToTextByFp32(std::string filename) override {
+   (void)filename;
+   return false;
+ }
+ void* ConvertTensorToData(uint8_t* tensorData) override {
+   (void)tensorData;
+   return nullptr;
+ }
 
   vsi_nn_tensor_id_t id_;
   TensorSpec spec_;

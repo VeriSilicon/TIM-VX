@@ -294,7 +294,7 @@ DEF_KERNEL_INITIALIZER(_warp_affine_initializer)
     }
     else if (attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
-        output_scale   = 1.0f / attr[1]->asymm.scale;;
+        output_scale   = 1.0f / attr[1]->asymm.scale;
         output_zp = (float)attr[1]->asymm.zero_point;
     }
 

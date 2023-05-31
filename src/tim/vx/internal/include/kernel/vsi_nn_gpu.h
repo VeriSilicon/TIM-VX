@@ -59,7 +59,7 @@ typedef struct
     gpu_dp_type_e type;
 } gpu_dp_inst_t;
 
-typedef struct
+typedef struct VSI_PUBLIC_TYPE
 {
     uint32_t dim;
     size_t   global_offset[GPU_MAX_DIMENSION_SIZE];

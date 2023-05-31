@@ -79,6 +79,12 @@ cmake options:
 |`EXTERNAL_VIV_SDK`| Give external vivante openvx driver libraries | Not set|
 |`TIM_VX_BUILD_EXAMPLES`| Build example applications | OFF |
 |`TIM_VX_ENABLE_40BIT` | Enable large memory (over 4G) support in NPU driver | OFF |
+|`TIM_VX_ENABLE_PLATFORM` | Enable multi devices support | OFF |
+|`TIM_VX_ENABLE_PLATFORM_LITE` | Enable lite multi-device support, only work when `TIM_VX_ENABLE_PLATFORM`=ON | OFF |
+|`VIP_LITE_SDK` | full path to VIPLite sdk, required when `TIM_VX_ENABLE_PLATFORM_LITE`=ON | Not set |
+|`TIM_VX_ENABLE_GRPC` | Enable gPRC support, only work when `TIM_VX_ENABLE_PLATFORM`=ON | OFF |
+|`TIM_VX_DBG_ENABLE_TENSOR_HNDL` | Enable built-in tensor from handle | ON |
+|`TIM_VX_ENABLE_TENSOR_CACHE` | Enable tensor cache for const tensor, check [OpenSSL build notes](docs/openssl_build.md) | OFF |
 
 ----
 Run unit test:

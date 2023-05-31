@@ -13,7 +13,7 @@ _viv_uniform VXC_512Bits uniConvertYUV422toG_4x4;
 _viv_uniform VXC_512Bits uniConvertYUV422toR_4x4;
 
 _viv_uniform VXC_512Bits uniExtract8Data_2x8;
-_viv_uniform VXC_512Bits uniExtractUVtoCharSub128_2x8;
+_viv_uniform VXC_512Bits uniExtractYUVtoShortSub_2x8;
 
 #define YUV422_COPY_SH_IMPL(name, dst_type, conv_type, save_type, copy_bytes) \
 __kernel void pre_process_yuv422_copy_##name \
@@ -37,7 +37,7 @@ __kernel void pre_process_yuv422_copy_##name \
     int gidy = get_global_id(1); \
  \
     int sy = gidy + (*yOffset); \
-    int sx = gidx + (*xOffset * 2); \
+    int sx = gidx * 2 + (*xOffset * 2); \
  \
     vxc_uchar8 YUV; \
     vxc_short8 tmpYUV; \
@@ -48,11 +48,10 @@ __kernel void pre_process_yuv422_copy_##name \
     { \
         YUV.s01234567 = YUV.s10325476; \
     } \
-\
-    short tmpVal = 128; \
-    VXC_DP2x8(tmpYUV, YUV, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractUVtoCharSub128_2x8); \
  \
     float4 tmpDstB, tmpDstG, tmpDstR; \
+    vxc_short2 value = (vxc_short2)(128,16); \
+    VXC_DP2x8(tmpYUV, YUV, value, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractYUVtoShortSub_2x8); \
     VXC_DP4x4(tmpDstB, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toB_4x4); \
     VXC_DP4x4(tmpDstG, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toG_4x4); \
     VXC_DP4x4(tmpDstR, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toR_4x4); \

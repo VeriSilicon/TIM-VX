@@ -89,29 +89,22 @@ static vsi_bool op_check
     ret = vsi_nn_QuantCheck(inputs[0], inputs[1], inputs[2]);
 
     if (ret) {
-        vsi_size_t kx = 1;
-        vsi_size_t ky = 1;
         /* check inputs outputs data type */
         BEGIN_IO_TYPE_DECL(CONV2D, 2, 0)
             /* IO_TYPE(INPUT, WEIGHT) */
-            IO_TYPE(D_F32, D_F32)
-            IO_TYPE(D_F16, D_F16)
+            IO_TYPE(D_F32,          D_F32)
+            IO_TYPE(D_F16,          D_F16)
 
             IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
-
             IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
             IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
             IO_TYPE(D_U8|Q_ASYM,    D_I8|Q_DFP)
             IO_TYPE(D_BF16,         D_BF16)
             IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_SYM_PC)
-            IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
             IO_TYPE(D_U8|Q_ASYM,    D_I8|Q_SYM_PC)
             IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_SYM_PC)
 
-            /* HW 9.0 */
-            IO_TYPE(D_F32, D_BF16)
             /* HW 9.0.1 */
-            IO_TYPE(D_U8|Q_ASYM,    D_I8|Q_DFP)
             IO_TYPE(D_I8|Q_DFP,     D_U8|Q_ASYM)
             IO_TYPE(D_I8|Q_ASYM,    D_U8|Q_ASYM)
             IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
@@ -163,6 +156,30 @@ static vsi_bool op_check
             IO_TYPE(D_I16|Q_SYM,    D_I8|Q_SYM_PC)
             IO_TYPE(D_I16|Q_SYM,    D_U8|Q_SYM_PC)
 
+            /* HW 9.2 */
+            IO_TYPE(D_U16|Q_ASYM,   D_U16|Q_ASYM)
+            IO_TYPE(D_I16|Q_ASYM,   D_U16|Q_ASYM)
+            IO_TYPE(D_I16|Q_SYM,    D_U16|Q_ASYM)
+            IO_TYPE(D_U8|Q_ASYM,    D_U16|Q_ASYM)
+            IO_TYPE(D_I8|Q_ASYM,    D_U16|Q_ASYM)
+            IO_TYPE(D_I8|Q_SYM,     D_U16|Q_ASYM)
+            IO_TYPE(D_I4|Q_ASYM,    D_U16|Q_ASYM)
+            IO_TYPE(D_I4|Q_SYM,     D_U16|Q_ASYM)
+            IO_TYPE(D_U4|Q_ASYM,    D_U16|Q_ASYM)
+            IO_TYPE(D_U4|Q_SYM,     D_U16|Q_ASYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_I16|Q_ASYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_I16|Q_SYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_U8|Q_ASYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_I8|Q_ASYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_I8|Q_SYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_I4|Q_ASYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_I4|Q_SYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_U4|Q_ASYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_U4|Q_SYM)
+            IO_TYPE(D_U16|Q_ASYM,   D_I8|Q_SYM_PC)
+            IO_TYPE(D_U16|Q_ASYM,   D_U8|Q_SYM_PC)
+            IO_TYPE(D_U16|Q_ASYM,   D_I16|Q_SYM_PC)
+
         END_IO_TYPE_DECL(CONV2D)
         ret = VALIDATE_OP_IO_TYPES(CONV2D, self, inputs, 2, outputs, 0);
         if (!ret) {
@@ -173,13 +190,6 @@ static vsi_bool op_check
             return FALSE;
         }
 
-        /* check parameters */
-        kx = inputs[1]->attr.size[0];
-        ky = inputs[1]->attr.dim_num == 3 ? 1 : inputs[1]->attr.size[1];
-        if (kx * ky > 6400) {
-            VSILOGE("Kernel size should <= 6400.");
-            return FALSE;
-        }
     }
 
     return ret;
