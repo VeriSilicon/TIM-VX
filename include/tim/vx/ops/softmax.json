@@ -1,0 +1,13 @@
+{
+    "Softmax":{
+        "parameters":
+            [
+                {"name": "beta",
+                    "dtype": "float"
+                },
+                {"name": "axis",
+                    "dtype": "int32_t"
+                }
+            ]
+    }
+}

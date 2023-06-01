@@ -1,0 +1,25 @@
+{
+    "StridedSlice":{
+        "parameters":
+            [
+                {"name":"begin_dims",
+                    "dtype": "std::vector<int32_t>"
+                },
+                {"name": "end_dims",
+                    "dtype": "std::vector<int32_t>"
+                },
+                {"name":"stride_dims",
+                    "dtype": "std::vector<int32_t>"
+                },
+                {"name": "begin_mask",
+                    "dtype": "int32_t"
+                },
+                {"name":"end_mask",
+                    "dtype": "int32_t"
+                },
+                {"name": "shrink_axis_mask",
+                    "dtype": "int32_t"
+                }
+            ]
+    }
+}

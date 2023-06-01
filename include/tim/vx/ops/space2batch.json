@@ -1,0 +1,21 @@
+{
+    "Space2Batch":{
+        "parameters":
+            [
+                {"name":"block_size",
+                    "dtype": "std::vector<int>"
+                },
+                {"name": "pad",
+                    "dtype": "std::vector<int>"
+                },
+                {"name": "layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
+                }
+            ]
+    }
+}

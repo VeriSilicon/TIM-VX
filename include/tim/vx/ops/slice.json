@@ -1,0 +1,16 @@
+{
+    "Slice":{
+        "parameters":
+            [
+                {"name":"dims",
+                    "dtype": "uint32_t"
+                },
+                {"name":"start",
+                    "dtype": "std::vector<int32_t>"
+                },
+                {"name":"length",
+                    "dtype": "std::vector<int32_t>"
+                }
+            ]
+    }
+}

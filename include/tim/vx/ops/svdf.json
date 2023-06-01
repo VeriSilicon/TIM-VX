@@ -1,0 +1,16 @@
+{
+    "Svdf":{
+        "parameters":
+            [
+                {"name":"rank",
+                    "dtype": "int32_t"
+                },
+                {"name":"num_units",
+                    "dtype": "int32_t"
+                },
+                {"name":"spectrogram_length",
+                    "dtype": "int32_t"
+                }
+            ]
+    }
+}

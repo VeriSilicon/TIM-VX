@@ -1,0 +1,48 @@
+{
+    "BidirectionalSequenceLstm":{
+        "parameters":
+            [
+                {"name": "cell_clip",
+                 "dtype": "float"
+                },
+                {"name": "proj_clip",
+                 "dtype": "float"
+                },
+                {"name": "act_type",
+                 "dtype": "tim::vx::ops::BidirectionalSequenceLstm::ActivationType",
+                 "range":["tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kNONE",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kRELU",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kRELU1",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kRELU6",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kTANH",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kSIGMOID",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kHARDSIGMOID"]
+                },
+                {"name": "forget_bias",
+                 "dtype": "float"
+                },
+                {"name": "time_major",
+                 "dtype": "bool",
+                 "Optional": "true",
+                 "default": "false"
+                },
+                {"name": "recurrent_act_type",
+                 "dtype": "tim::vx::ops::BidirectionalSequenceLstm::ActivationType",
+                 "Optional": "true",
+                 "default": "tim::vx::ops::BidirectionalSequenceLstm::kSIGMOID",
+                 "range":["tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kNONE",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kRELU",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kRELU1",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kRELU6",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kTANH",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kSIGMOID",
+                         "tim::vx::ops::BidirectionalSequenceLstm::ActivationType::kHARDSIGMOID"]
+                },
+                {"name": "return_sequences",
+                 "dtype": "bool",
+                 "Optional": "true",
+                 "default": "false"
+                }
+            ]
+    }
+}

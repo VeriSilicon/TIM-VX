@@ -1,0 +1,15 @@
+{
+    "FullyConnected":{
+        "parameters":
+            [
+                {"name": "axis",
+                 "dtype": "uint32_t"
+                },
+                {"name": "weights",
+                 "dtype": "uint32_t",
+                 "Optional": "true",
+                 "default": "0"
+                }
+            ]
+    }
+}

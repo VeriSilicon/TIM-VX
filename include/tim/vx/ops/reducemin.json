@@ -1,0 +1,13 @@
+{
+    "ReduceMin":{
+        "parameters":
+            [
+                {"name":"axis",
+                    "dtype": "std::vector<int32_t>"
+                },
+                {"name":"keep_dims",
+                    "dtype": "bool"
+                }
+            ]
+    }
+}

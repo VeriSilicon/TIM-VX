@@ -1,0 +1,36 @@
+{
+    "Conv3d":{
+        "parameters":
+            [
+                {"name": "pad",
+                    "dtype": "std::array<int32_t,6>"
+                },
+                {"name": "stride",
+                    "dtype": "std::array<int32_t,3>"
+                },
+                {"name": "dilation",
+                    "dtype": "std::array<int32_t,3>"
+                },
+                {"name": "multiplier",
+                    "dtype": "int32_t",
+                    "Optional":"true",
+                    "default": "0"
+                },
+                {"name": "input_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional":"true",
+                    "default": "tim::vx::DataLayout::WHDCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHDCN",
+                             "tim::vx::DataLayout::CWHDN"]
+                },
+                {"name": "kernel_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional":"true",
+                    "default": "tim::vx::DataLayout::WHDIO",
+                    "range":["tim::vx::DataLayout::OIWHD",
+                             "tim::vx::DataLayout::WHDIO"]
+                }
+            ]
+    }
+}

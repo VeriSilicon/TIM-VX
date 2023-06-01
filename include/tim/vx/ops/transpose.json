@@ -1,0 +1,10 @@
+{
+    "Transpose":{
+        "parameters":
+            [
+                {"name":"perm",
+                    "dtype": "std::vector<uint32_t>"
+                }
+            ]
+    }
+}

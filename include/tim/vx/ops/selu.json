@@ -1,0 +1,17 @@
+{
+    "Selu":{
+        "parameters":
+            [
+                {"name":"alpha",
+                    "dtype": "float",
+                    "Optional":"true",
+                    "default":"1.67326"
+                },
+                {"name":"gamma",
+                    "dtype": "float",
+                    "Optional":"true",
+                    "default":"1.0507"
+                }
+            ]
+    }
+}

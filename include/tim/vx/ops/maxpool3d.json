@@ -1,0 +1,36 @@
+{
+    "MaxPool3d":{
+        "parameters":
+            [
+                {"name": "round_type",
+                 "dtype": "tim::vx::RoundType",
+                 "range": ["tim::vx::RoundType::CEILING",
+                           "tim::vx::RoundType::FLOOR"]
+                },
+                {"name": "ksize",
+                 "dtype": "std::array<uint32_t,3>"
+                },
+                {"name": "stride",
+                 "dtype": "std::array<uint32_t,3>"
+                },
+                {"name": "pad",
+                 "dtype": "std::array<uint32_t,6>"
+                },
+                {"name": "pad_type",
+                "dtype": "tim::vx::PadType",
+                "range": ["tim::vx::PadType::NONE",
+                          "tim::vx::PadType::AUTO",
+                          "tim::vx::PadType::VALID",
+                          "tim::vx::PadType::SAME"]
+                },
+                {"name": "layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional":"true",
+                    "default": "tim::vx::DataLayout::WHDCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHDCN",
+                             "tim::vx::DataLayout::CWHDN"]
+                }
+            ]
+    }
+}

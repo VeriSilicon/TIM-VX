@@ -1,0 +1,36 @@
+{
+    "Resize":{
+        "parameters":
+            [
+                {"name":"type",
+                    "dtype": "tim::vx::ResizeType",
+                    "range": ["tim::vx::ResizeType::NEAREST_NEIGHBOR",
+                              "tim::vx::ResizeType::BILINEAR",
+                              "tim::vx::ResizeType::AREA"]
+                },
+                {"name": "factor",
+                    "dtype": "float"
+                },
+                {"name": "align_corners",
+                    "dtype": "bool"
+                },
+                {"name": "half_pixel_centers",
+                    "dtype": "bool"
+                },
+                {"name": "target_height",
+                    "dtype": "int"
+                },
+                {"name": "target_width",
+                    "dtype": "int"
+                },
+                {"name": "layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
+                }
+            ]
+    }
+}

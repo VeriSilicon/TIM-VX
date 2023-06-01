@@ -1,0 +1,13 @@
+{
+    "Split":{
+        "parameters":
+            [
+                {"name":"axis",
+                    "dtype": "uint32_t"
+                },
+                {"name": "slices",
+                    "dtype": "std::vector<uint32_t>"
+                }
+            ]
+    }
+}

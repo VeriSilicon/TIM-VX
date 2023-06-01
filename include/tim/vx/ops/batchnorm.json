@@ -1,0 +1,18 @@
+{
+    "BatchNorm":{
+        "parameters":
+            [
+                {"name": "eps",
+                 "dtype": "float"
+                },
+                {"name": "input_layout",
+                "dtype": "tim::vx::DataLayout",
+                "Optional": "true",
+                "default": "tim::vx::DataLayout::WHCN",
+                "range":["tim::vx::DataLayout::ANY",
+                         "tim::vx::DataLayout::WHCN",
+                         "tim::vx::DataLayout::CWHN"]
+                }
+            ]
+    }
+}

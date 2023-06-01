@@ -1,0 +1,22 @@
+{
+    "LocalResponseNormalization":{
+        "parameters":
+            [
+                {"name": "size",
+                 "dtype": "uint32_t"
+                },
+                {"name": "alpha",
+                 "dtype": "float"
+                },
+                {"name": "beta",
+                 "dtype": "float"
+                },
+                {"name": "bias",
+                 "dtype": "float"
+                },
+                {"name": "axis",
+                 "dtype": "int32_t"
+                }
+            ]
+    }
+}

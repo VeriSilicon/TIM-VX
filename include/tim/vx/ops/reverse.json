@@ -1,0 +1,10 @@
+{
+    "Reverse":{
+        "parameters":
+            [
+                {"name":"axis",
+                    "dtype": "std::vector<int32_t>"
+                }
+            ]
+    }
+}

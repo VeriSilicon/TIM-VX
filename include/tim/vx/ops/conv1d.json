@@ -1,0 +1,32 @@
+{
+    "Conv1d":{
+        "parameters":
+
+            [
+                {"name": "pad",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "stride",
+                    "dtype": "uint32_t"
+                },
+                {"name": "dilation",
+                    "dtype": "uint32_t"
+                },
+                {"name": "multiplier",
+                    "dtype": "int32_t",
+                    "Optional":"true",
+                    "default": "0"
+                },
+                {"name": "input_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional":"true",
+                    "default": "tim::vx::DataLayout::WCN"
+                },
+                {"name": "kernel_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional":"true",
+                    "default": "tim::vx::DataLayout::WIO"
+                }
+            ]
+    }
+}

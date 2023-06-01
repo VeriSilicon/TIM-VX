@@ -1,0 +1,12 @@
+{
+    "InstanceNormalization":{
+        "parameters":
+            [
+                {"name": "eps",
+                 "dtype": "float",
+                 "Optional": "true",
+                 "default": "1e-5f"
+                }
+            ]
+    }
+}

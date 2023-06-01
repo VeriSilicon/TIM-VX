@@ -1,0 +1,46 @@
+{
+    "UnidirectionalSequenceLstm":{
+        "parameters":
+            [
+                {"name":"cell_clip",
+                    "dtype": "float"
+                },
+                {"name":"proj_clip",
+                    "dtype": "float"
+                },
+                {"name": "act_type",
+                    "dtype": "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType",
+                    "range": ["tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kNONE",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kRELU",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kRELU6",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kTANH",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kSIGMOID",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kHARDSIGMOID"]
+                },
+                {"name":"forget_bias",
+                    "dtype": "float"
+                },
+                {"name":"time_major",
+                    "dtype": "bool",
+                    "Optional":"true",
+                    "default":"false"
+                },
+                {"name": "recurrent_act_type",
+                    "dtype": "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType",
+                    "Optional":"true",
+                    "default":"tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kSIGMOID",
+                    "range": ["tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kNONE",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kRELU",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kRELU6",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kTANH",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kSIGMOID",
+                              "tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kHARDSIGMOID"]
+                },
+                {"name":"return_sequence",
+                    "dtype": "bool",
+                    "Optional":"true",
+                    "default":"flase"
+                }
+            ]
+    }
+}

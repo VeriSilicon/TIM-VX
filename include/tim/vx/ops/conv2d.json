@@ -1,0 +1,58 @@
+{
+    "Conv2d":{
+        "parameters":
+            [
+                {"name": "weights",
+                    "dtype": "int32_t",
+                    "Optional":"true",
+                    "default":"0"
+                },
+                {"name": "padding",
+                    "dtype": "tim::vx::PadType",
+                    "range": ["tim::vx::PadType::NONE",
+                              "tim::vx::PadType::AUTO",
+                              "tim::vx::PadType::VALID",
+                              "tim::vx::PadType::SAME"]
+                },
+                {"name": "ksize",
+                    "dtype": "std::array<uint32_t,2>",
+                    "Optional": "true",
+                    "default": "{0,0}"
+                },
+                {"name": "stride",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "dilation",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "pad",
+                    "dtype": "std::array<uint32_t,4>",
+                    "Optional":"true",
+                    "default":"{0,0,0,0}"
+                },
+                {"name": "multiplier",
+                    "dtype": "int32_t",
+                    "Optional":"true",
+                    "default": "0"
+                },
+                {"name": "input_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
+                },
+                {"name": "kernel_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHIO",
+                    "range":["tim::vx::DataLayout::IWHO",
+                             "tim::vx::DataLayout::OIWH",
+                             "tim::vx::DataLayout::IOWH",
+                             "tim::vx::DataLayout::WHIO"]
+                }
+
+            ]
+    }
+}

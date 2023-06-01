@@ -1,0 +1,10 @@
+{
+    "LeakyRelu":{
+        "parameters":
+            [
+                {"name":"alpha",
+                    "dtype": "float"
+                }
+            ]
+    }
+}

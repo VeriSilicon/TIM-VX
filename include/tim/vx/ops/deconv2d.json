@@ -1,0 +1,51 @@
+{
+    "DeConv2d":{
+        "parameters":
+            [
+                {"name": "oc_count",
+                    "dtype": "int32_t"
+                },
+                {"name": "pad_type",
+                    "dtype": "tim::vx::PadType",
+                    "range": ["tim::vx::PadType::NONE",
+                              "tim::vx::PadType::AUTO",
+                              "tim::vx::PadType::VALID",
+                              "tim::vx::PadType::SAME"]
+                },
+                {"name": "ksize",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "stride",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "output_padding",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "pad",
+                    "dtype": "std::array<uint32_t,4>"
+                },
+                {"name": "group",
+                    "dtype": "uint32_t",
+                    "Optional":"true",
+                    "default":"1"
+                },
+                {"name": "input_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional":"true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
+                },
+                {"name": "kernel_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional":"true",
+                    "default": "tim::vx::DataLayout::WHIO",
+                    "range":["tim::vx::DataLayout::IWHO",
+                             "tim::vx::DataLayout::OIWH",
+                             "tim::vx::DataLayout::IOWH",
+                             "tim::vx::DataLayout::WHIO"]
+                }
+            ]
+    }
+}

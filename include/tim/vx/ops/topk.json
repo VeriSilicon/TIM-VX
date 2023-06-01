@@ -1,0 +1,10 @@
+{
+    "Topk":{
+        "parameters":
+            [
+                {"name":"k",
+                    "dtype": "uint32_t"
+                }
+            ]
+    }
+}
