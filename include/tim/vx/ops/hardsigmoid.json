@@ -1,0 +1,13 @@
+{
+    "HardSigmoid":{
+        "parameters":
+            [
+                {"name":"alpha",
+                    "dtype": "float"
+                },
+                {"name":"beta",
+                    "dtype": "float"
+                }
+            ]
+    }
+}

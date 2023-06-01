@@ -1,0 +1,54 @@
+{
+    "SpatialTransformer":{
+        "parameters":
+            [
+                {"name":"output_h",
+                    "dtype": "uint32_t"
+                },
+                {"name": "output_w",
+                    "dtype": "uint32_t"
+                },
+                {"name":"has_theta_1_1",
+                    "dtype": "bool"
+                },
+                {"name": "has_theta_1_2",
+                    "dtype": "bool"
+                },
+                {"name":"has_theta_1_3",
+                    "dtype": "bool"
+                },
+                {"name": "has_theta_2_1",
+                    "dtype": "bool"
+                },
+                {"name":"has_theta_2_2",
+                    "dtype": "bool"
+                },
+                {"name": "has_theta_2_3",
+                    "dtype": "bool"
+                },
+                {"name":"theta_1_1",
+                    "dtype": "float"
+                },
+                {"name": "theta_1_2",
+                    "dtype": "float"
+                },
+                {"name":"theta_1_3",
+                    "dtype": "float"
+                },
+                {"name": "theta_2_1",
+                    "dtype": "float"
+                },
+                {"name":"theta_2_2",
+                    "dtype": "float"
+                },
+                {"name": "theta_2_3",
+                    "dtype": "float"
+                },
+                {"name":"align_corners",
+                    "dtype": "bool",
+                    "Optional":"true",
+                    "default":"false"
+                }
+            ]
+    }
+}

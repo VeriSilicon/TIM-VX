@@ -1,0 +1,20 @@
+{
+    "RoiPool":{
+        "parameters":
+            [
+                {"name":"type",
+                    "dtype": "tim::vx::PoolType",
+                    "range": ["tim::vx::PoolType::MAX",
+                              "tim::vx::PoolType::AVG",
+                              "tim::vx::PoolType::L2",
+                              "tim::vx::POOLType::AVG_ANDROID"]
+                },
+                {"name":"scale",
+                    "dtype": "float"
+                },
+                {"name":"size",
+                    "dtype": "std::array<uint32_t, 2>"
+                }
+            ]
+    }
+}

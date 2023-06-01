@@ -1,0 +1,12 @@
+{
+    "Elu":{
+        "parameters":
+            [
+                {"name":"alpha",
+                    "dtype": "float",
+                    "Optional":"true",
+                    "default":"1"
+                }
+            ]
+    }
+}

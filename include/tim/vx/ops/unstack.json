@@ -1,0 +1,13 @@
+{
+    "Unstack":{
+        "parameters":
+            [
+                {"name":"axis",
+                    "dtype": "int32_t"
+                },
+                {"name":"output_num",
+                    "dtype": "uint32_t"
+                }
+            ]
+    }
+}

@@ -1,0 +1,27 @@
+{
+    "BidirectionalSequenceRNN":{
+        "parameters":
+            [
+                {"name": "act_type",
+                 "dtype": "tim::vx::ops::BidirectionalSequenceRnn::ActivationType",
+                 "range":["tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kNONE",
+                         "tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kRELU",
+                         "tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kRELU1",
+                         "tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kRELU6",
+                         "tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kTANH",
+                         "tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kSIGMOID",
+                         "tim::vx::ops::BidirectionalSequenceRnn::ActivationType::kHARDSIGMOID"]
+                },
+                {"name": "time_major",
+                 "dtype": "bool",
+                 "Optional": "true",
+                 "default": "false"
+                },
+                {"name": "merge_outputs",
+                 "dtype": "bool",
+                 "Optional": "true",
+                 "default": "false"
+                }
+            ]
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "NBG":{
+        "parameters":
+            [
+                {"name":"binary",
+                    "dtype": "char*"
+                },
+                {"name": "input_count",
+                    "dtype": "size_t"
+                },
+                {"name": "output_count",
+                    "dtype": "size_t"
+                }
+            ]
+    }
+}

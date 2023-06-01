@@ -1,0 +1,38 @@
+{
+    "MaxpoolWithArgmax":{
+        "parameters":
+            [
+                {"name": "padding",
+                    "dtype": "tim::vx::PadType",
+                    "range": ["tim::vx::PadType::NONE",
+                              "tim::vx::PadType::AUTO",
+                              "tim::vx::PadType::VALID",
+                              "tim::vx::PadType::SAME"]
+                },
+                {"name": "ksize",
+                    "dtype": "std::array<uint32_t,2>",
+                    "Optional": "true",
+                    "default": "{0,0}"
+                },
+                {"name": "stride",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "round_type",
+                "dtype": "tim::vx::RoundType",
+                "Optional": "true",
+                "default": "tim::vx::RoundType::FLOOR",
+                "range": ["tim::vx::RoundType::FLOOR",
+                          "tim::vx::RoundType::CEILING"]
+                },
+                {"name": "layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
+                }
+
+            ]
+    }
+}

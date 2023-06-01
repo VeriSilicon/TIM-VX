@@ -1,0 +1,12 @@
+{
+    "Multiply":{
+        "parameters":
+            [
+                {"name": "scale",
+                    "dtype": "float",
+                    "Optional":"true",
+                    "default":"1.0"
+                }
+            ]
+    }
+}

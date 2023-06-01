@@ -1,0 +1,47 @@
+{
+    "UnidirectionalSequenceGRU":{
+        "parameters":
+            [
+                {"name":"num_units",
+                    "dtype": "uint32_t"
+                },
+                {"name": "activation",
+                    "dtype": "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType",
+                    "Optional":"true",
+                    "default":"tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kTANH",
+                    "range": ["tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kNONE",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kRELU",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kRELU6",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kTANH",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kSIGMOID",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kHARDSIGMOID"]
+                },
+                {"name": "recurrent_activation",
+                    "dtype": "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType",
+                    "Optional":"true",
+                    "default":"tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kSIGMOID",
+                    "range": ["tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kNONE",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kRELU",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kRELU6",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kTANH",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kSIGMOID",
+                              "tim::vx::ops::UnidirectionalSequenceGRU::ActivationType::kHARDSIGMOID"]
+                },
+                {"name":"reset_after",
+                    "dtype": "vsi_bool",
+                    "Optional":"true",
+                    "default":"TRUE"
+                },
+                {"name":"return_sequences",
+                    "dtype": "vsi_bool",
+                    "Optional":"true",
+                    "default":"FALSE"
+                },
+                {"name":"time_major",
+                    "dtype": "vsi_bool",
+                    "Optional":"true",
+                    "default":"TRUE"
+                }
+            ]
+    }
+}

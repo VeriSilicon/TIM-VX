@@ -1,0 +1,10 @@
+{
+    "Squeeze":{
+        "parameters":
+            [
+                {"name": "axis",
+                    "dtype": "std::vector<uint32_t>"
+                }
+            ]
+    }
+}

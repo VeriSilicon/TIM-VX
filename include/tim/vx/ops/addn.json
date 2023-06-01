@@ -1,0 +1,10 @@
+{
+    "AddN":{
+        "parameters":
+            [
+                {"name":"num_inputs",
+                    "dtype": "uint32_t"
+                }
+            ]
+    }
+}

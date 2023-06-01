@@ -1,0 +1,17 @@
+{
+    "LayerNormalization":{
+        "parameters":
+            [
+                {"name": "axis",
+                 "dtype": "int32_t",
+                 "Optional": "true",
+                 "default": "0"
+                },
+                {"name": "eps",
+                 "dtype": "float",
+                 "Optional": "true",
+                 "default": "1e-5f"
+                }
+            ]
+    }
+}

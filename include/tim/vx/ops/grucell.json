@@ -1,0 +1,39 @@
+{
+    "GRUCell":{
+        "parameters":
+            [
+                {"name": "num_units",
+                 "dtype": "uint32_t"
+                },
+                {"name": "activation",
+                 "dtype": "tim::vx::ops::GRUCell::ActivationType",
+                 "Optional": "true",
+                 "default": "tim::vx::ops::GRUCell::ActivationType::kTANH",
+                 "range":["tim::vx::ops::GRUCell::ActivationType::kNONE",
+                         "tim::vx::ops::GRUCell::ActivationType::kRELU",
+                         "tim::vx::ops::GRUCell::ActivationType::kRELU1",
+                         "tim::vx::ops::GRUCell::ActivationType::kRELU6",
+                         "tim::vx::ops::GRUCell::ActivationType::kTANH",
+                         "tim::vx::ops::GRUCell::ActivationType::kSIGMOID",
+                         "tim::vx::ops::GRUCell::ActivationType::kHARDSIGMOID"]
+                },
+                {"name": "recurrent_act_type",
+                 "dtype": "tim::vx::ops::GRUCell::ActivationType",
+                 "Optional": "true",
+                 "default": "tim::vx::ops::GRUCell::ActivationType::kSIGMOID",
+                 "range":["tim::vx::ops::GRUCell::ActivationType::kNONE",
+                         "tim::vx::ops::GRUCell::ActivationType::kRELU",
+                         "tim::vx::ops::GRUCell::ActivationType::kRELU1",
+                         "tim::vx::ops::GRUCell::ActivationType::kRELU6",
+                         "tim::vx::ops::GRUCell::ActivationType::kTANH",
+                         "tim::vx::ops::GRUCell::ActivationType::kSIGMOID",
+                         "tim::vx::ops::GRUCell::ActivationType::kHARDSIGMOID"]
+                },
+                {"name": "reset_after",
+                 "dtype": "vsi_bool",
+                 "Optional": "true",
+                 "default": "TRUE"
+                }
+            ]
+    }
+}

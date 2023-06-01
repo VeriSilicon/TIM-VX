@@ -1,0 +1,25 @@
+{
+    "OneHot":{
+        "parameters":
+            [
+                {"name":"depth",
+                    "dtype": "int32_t"
+                },
+                {"name": "on_value",
+                    "dtype": "float",
+                    "Optional": "true",
+                    "default": "1"
+                },
+                {"name": "off_value",
+                    "dtype": "float",
+                    "Optional": "true",
+                    "default": "0"
+                },
+                {"name": "axis",
+                    "dtype": "int32_t",
+                    "Optional": "true",
+                    "default": "0"
+                }
+            ]
+    }
+}

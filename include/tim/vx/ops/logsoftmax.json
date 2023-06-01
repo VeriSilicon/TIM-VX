@@ -1,0 +1,15 @@
+{
+    "LogSoftmax":{
+        "parameters":
+            [
+                {"name": "axis",
+                 "dtype": "int32_t"
+                },
+                {"name": "beta",
+                 "dtype": "float",
+                 "Optional": "true",
+                 "default": "1.0"
+                }
+            ]
+    }
+}

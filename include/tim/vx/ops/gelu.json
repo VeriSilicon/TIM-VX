@@ -1,0 +1,12 @@
+{
+    "Gelu":{
+        "parameters":
+            [
+                {"name":"approximate",
+                    "dtype": "bool",
+                    "Optional":"true",
+                    "default":"true"
+                }
+            ]
+    }
+}
