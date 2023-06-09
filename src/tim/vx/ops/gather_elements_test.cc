@@ -50,7 +50,7 @@ TEST(GatherElements, shape_3_2_1_int32_axis_0) {
   std::vector<int32_t> in_data = {
       1, 2, 3, 4, 5, 6,
   };
-  //The index value greater than rank-1 is regarded as rank-1
+
   std::vector<int32_t> indices = {
       1,
       2,
@@ -97,7 +97,7 @@ TEST(GatherElements, shape_3_2_1_int32_axis_1) {
   std::vector<int32_t> in_data = {
       1, 2, 3, 4, 5, 6,
   };
-  //The index value greater than rank-1 is regarded as rank-1
+
   std::vector<int32_t> indices = {
       1,
       2,
@@ -144,7 +144,7 @@ TEST(GatherElements, shape_3_2_1_float32_axis_2) {
   std::vector<float> in_data = {
       1, 2, 3, 4, 5, 6,
   };
-  //The index value greater than rank-1 is regarded as rank-1
+
   std::vector<int32_t> indices = {
       1,
       2,
