@@ -16,6 +16,7 @@ option(TIM_VX_ENABLE_PLATFORM_LITE      "Enable lite multi-device support"      
 option(TIM_VX_ENABLE_GRPC               "Enable gPRC support"                   OFF)
 option(TIM_VX_DBG_ENABLE_TENSOR_HNDL    "Enable built-in tensor from handle: use malloced memory instead of VideoMemory by kernel driver" ON)
 option(TIM_VX_ENABLE_TENSOR_CACHE       "Enable tensor cache for const tensor"  OFF)
+option(TIM_VX_ENABLE_API_TRACE          "Enable trace and replay of graph apis" OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -106,4 +107,16 @@ add_subdirectory("src/tim")
 
 if(TIM_VX_BUILD_EXAMPLES)
     add_subdirectory("samples")
+endif()
+
+if(TIM_VX_ENABLE_API_TRACE)
+    include(FetchContent)
+    FetchContent_Declare(
+        ApiTracer
+        GIT_REPOSITORY https://github.com/MercuryChen/ApiTrace.git
+        GIT_TAG origin/for_tim_vx
+    )
+    FetchContent_MakeAvailable(ApiTracer)
+    message("ApiTrace enabled, ApiTracer source dir:")
+    message(${ApiTracer_SOURCE_DIR})
 endif()

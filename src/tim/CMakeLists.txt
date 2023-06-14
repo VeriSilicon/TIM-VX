@@ -231,11 +231,19 @@ if(TIM_VX_ENABLE_TEST)
     target_link_libraries(unit_test PRIVATE
         -Wl,--whole-archive ${TARGET_NAME}
         -Wl,--no-whole-archive gtest gtest_main gmock gmock_main ${OVXDRV_LIBRARIES})
+
+    if(TIM_VX_ENABLE_API_TRACE)
+        add_definitions("-DENABLE_API_TRACE")
+        target_link_libraries(unit_test PRIVATE -Wl,--no-whole-archive apitracer)
+    endif()
+
     target_include_directories(unit_test PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
         ${OVXLIB_INCLUDE_DIR}
-        ${INC_DIRS})
+        ${INC_DIRS}
+        ${ApiTracer_SOURCE_DIR}
+        )
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()

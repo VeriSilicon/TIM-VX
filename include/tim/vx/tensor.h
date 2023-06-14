@@ -122,6 +122,14 @@ struct TensorSpec {
 
   int64_t GetByteSize() const;
 
+  inline DataType& GetDataType() { return datatype_; }
+
+  inline ShapeType& GetShapeType() { return shape_; }
+
+  inline TensorAttribute& GetTensorAttribute() { return attr_; }
+
+  inline Quantization& GetQuantization() { return quantization_; }
+
   DataType datatype_;
   ShapeType shape_;
   TensorAttribute attr_;
