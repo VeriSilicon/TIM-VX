@@ -32,11 +32,7 @@ namespace vx {
 namespace ops {
 LayerNormalization::LayerNormalization(Graph* graph, int32_t axis, float eps)
     : BuiltinOp(graph, VSI_NN_OP_LAYER_NORM), axis_(axis), eps_(eps) {
-  // Layer normalization shares the parameters of instance normalization.
-  if (axis != 0) {
-    VSILOGE("Layer norm only support axis 0.");
-    assert(false);
-  }
+  this->impl()->node()->nn_param.layernorm.axis = axis_;
   this->impl()->node()->nn_param.layernorm.eps = eps_;
 }
 

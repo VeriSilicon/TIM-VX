@@ -3,9 +3,7 @@
         "parameters":
             [
                 {"name": "axis",
-                 "dtype": "int32_t",
-                 "Optional": "true",
-                 "default": "0"
+                 "dtype": "int32_t"
                 },
                 {"name": "eps",
                  "dtype": "float",
