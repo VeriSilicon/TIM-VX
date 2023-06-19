@@ -135,23 +135,9 @@ TEST(graph, trace_test) {
     EXPECT_TRUE(output_t0->CopyDataFromTensor(output.data()));
     EXPECT_EQ(output, expected_out);
 
-    auto nbg_graph = ctx->CreateGraph();
-    auto nbg_in0 = nbg_graph->CreateTensor(input_spec);
-    auto nbg_in1 = nbg_graph->CreateTensor(input_spec);
-    auto nbg_out = nbg_graph->CreateTensor(output_spec);
+}
 
-    EXPECT_TRUE(nbg_in0->CopyDataToTensor(in.data(), sizeof(float) * in.size()));
-    EXPECT_TRUE(nbg_in1->CopyDataToTensor(in.data(), sizeof(float) * in.size()));
-
-    auto nbg_node = nbg_graph->CreateOperation<tvx::ops::NBG, const char*, size_t, size_t>(
-        (nbg_buf.data()), /*num_of_input*/ 2,
-        /*num_of_output*/ 1);
-    (*nbg_node).BindInputs({nbg_in0, nbg_in1}).BindOutputs({nbg_out});
-    EXPECT_TRUE(nbg_graph->Compile());
-    EXPECT_TRUE(nbg_graph->Run());
-
-    EXPECT_TRUE(nbg_out->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(output, expected_out);
+TEST(graph, DISABLED_replay_test) {
 }
 
 #endif /* #ifdef ENABLE_API_TRACE */

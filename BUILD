@@ -31,6 +31,11 @@ cc_library(
     hdrs = [":gen_vsi_feat_ops_def"]
 )
 
+config_setting(
+    name = "enable_api_trace",
+    define_values = {"enable_api_trace": "true"}
+)
+
 cc_library(
     name = "tim-vx_interface",
     defines = ["BUILD_WITH_BAZEL"],
@@ -39,7 +44,10 @@ cc_library(
         "include",
         "src/tim/vx",
         "src/tim/transform",
-    ],
+    ] + select({
+        "enable_api_trace": ["@api_tracer//include"],
+        "//conditions:default":[]
+    }),
     hdrs = [
         "include/tim/vx/context.h",
         "include/tim/vx/builtin_op.h",
@@ -52,7 +60,10 @@ cc_library(
         "include/tim/transform/layout_inference.h",
     ] + glob([
         "include/tim/vx/ops/*.h"
-    ]),
+    ]) + select({
+        "enable_api_trace": ["@api_tracer//:api_tracer_hdrs"],
+        "//conditions:default":[]
+    }),
     srcs = [
         "src/tim/vx/context_private.h",
         "src/tim/vx/context.cc",
@@ -76,11 +87,18 @@ cc_library(
         "src/tim/vx/ops/*.cc",
         "src/tim/vx/ops/*.h"
         ], exclude = ["src/tim/vx/ops/*_test.cc"]
-    ) + glob(["src/tim/transform/ops/*.*"]),
+    ) + glob(["src/tim/transform/ops/*.*"])
+    + select({
+        "enable_api_trace": ["@api_tracer//:api_tracer_hdrs"],
+        "//conditions:default":[]
+    }),
     deps = [
         ":vsi_feat_ops_def",
         "//src/tim/vx/internal:ovxlibimpl",
-    ],
+    ] + select({
+        "enable_api_trace": ["@api_tracer//:api_tracer"],
+        "//conditions:default":[]
+    }),
     linkstatic = True,
     strip_include_prefix = "include",
 )
@@ -136,10 +154,17 @@ cc_test (
     copts = ["-std=c++14", "-Werror"],
     srcs = [
         "src/tim/vx/test_utils.h",
-    ] + glob(["src/tim/**/*_test.cc"]),
+    ] + glob(["src/tim/**/*_test.cc"])
+    + select({
+        "enable_api_trace": ["@api_tracer//:api_tracer_hdrs"],
+        "//conditions:default":[]}
+    ),
     deps = [
         "@gtest//:gtest",
         "@gtest//:gtest_main",
         ":tim-vx_interface",
-    ]
+    ] + select({
+        "enable_api_trace": ["@api_tracer//:api_tracer"],
+        "//conditions:default":[]}
+    ),
 )

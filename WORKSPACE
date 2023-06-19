@@ -56,3 +56,14 @@ http_archive(
     ],
 )
 
+git_repository(
+    name = "api_tracer",
+    remote = "https://github.com/MercuryChen/ApiTrace.git",
+    branch = "for_tim_vx",
+    verbose = True,
+)
+
+# local_repository(
+#     name = "api_tracer",
+#     path = "../../ApiTracer",
+# )
