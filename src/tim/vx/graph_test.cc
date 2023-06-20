@@ -137,7 +137,16 @@ TEST(graph, trace_test) {
 
 }
 
-TEST(graph, DISABLED_replay_test) {
+TEST(graph, replay_test) {
+    /* Put trace_log.cc in the root dir of tim-vx,
+     * and copy the trace_bin.bin file to the runtime workspace,
+     * rename with trace_bin.bin.rpl
+     */
+
+    // #include "trace_log.cc"
+    // manual compile and run the selected graph, like:
+    // graph_12->Compile();
+    // graph_12->Run();
 }
 
 #endif /* #ifdef ENABLE_API_TRACE */

@@ -243,6 +243,7 @@ if(TIM_VX_ENABLE_TEST)
         ${OVXLIB_INCLUDE_DIR}
         ${INC_DIRS}
         ${ApiTracer_SOURCE_DIR}
+        ${PROJECT_SOURCE_DIR}
         )
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
