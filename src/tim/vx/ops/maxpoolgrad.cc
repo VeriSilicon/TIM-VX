@@ -67,19 +67,25 @@ class MaxpoolGradImpl : public OpImpl {
       tim::vx::ShapeType idx_flattened_shape({CalFlattenedShape(grad_shape)});
       tim::vx::ShapeType out_flattened_shape({CalFlattenedShape(in_shape)});
 
-      tim::vx::TensorSpec pool_out_spec_values(tim::vx::DataType::FLOAT32,
-          grad_shape, tim::vx::TensorAttribute::TRANSIENT);
+      auto in_type = in_tensors_[POOL_INPUT_TENSOR]->GetDataType();
+      auto in_quant = in_tensors_[POOL_INPUT_TENSOR]->GetQuantization();
+      if (in_quant.Type() != tim::vx::QuantType::NONE) {
+        VSILOGW("MaxPoolGrad deal with quantization tensor not validate yet!");
+      }
+      tim::vx::TensorSpec pool_out_spec_values(in_type,
+          grad_shape, tim::vx::TensorAttribute::TRANSIENT, in_quant);
       tim::vx::TensorSpec pool_out_spec_indices(tim::vx::DataType::INT32,
           grad_shape, tim::vx::TensorAttribute::TRANSIENT);
       tim::vx::TensorSpec idx_flattened_spec(tim::vx::DataType::INT32,
           idx_flattened_shape,tim::vx::TensorAttribute::TRANSIENT);
-      tim::vx::TensorSpec upd_flattened_spec(tim::vx::DataType::FLOAT32,
-          idx_flattened_shape, tim::vx::TensorAttribute::TRANSIENT);
-      tim::vx::TensorSpec out_flattened_spec(tim::vx::DataType::FLOAT32,
-          out_flattened_shape, tim::vx::TensorAttribute::TRANSIENT);
+      tim::vx::TensorSpec upd_flattened_spec(in_type,
+          idx_flattened_shape, tim::vx::TensorAttribute::TRANSIENT, in_quant);
+      tim::vx::TensorSpec out_flattened_spec(in_type,
+          out_flattened_shape, tim::vx::TensorAttribute::TRANSIENT, in_quant);
 
       auto pool_out_values_tensor = graph_->CreateTensor(pool_out_spec_values);
-      auto pool_out_indices_tensor = graph_->CreateTensor(pool_out_spec_indices);
+      auto pool_out_indices_tensor =
+          graph_->CreateTensor(pool_out_spec_indices);
       auto idx_flattened_tensor = graph_->CreateTensor(idx_flattened_spec);
       auto upd_flattened_tensor = graph_->CreateTensor(upd_flattened_spec);
       auto out_flattened_tensor = graph_->CreateTensor(out_flattened_spec);
@@ -88,36 +94,43 @@ class MaxpoolGradImpl : public OpImpl {
           .BindOutputs({pool_out_values_tensor, pool_out_indices_tensor});
 
       // eliminate pool out of maxpoolwithargmax begin
-      tim::vx::TensorSpec sliced_spec(tim::vx::DataType::FLOAT32,
-          {1, 1, 1, 1}, tim::vx::TensorAttribute::TRANSIENT);
+      tim::vx::TensorSpec sliced_spec(in_type,
+          {1, 1, 1, 1}, tim::vx::TensorAttribute::TRANSIENT, in_quant);
       auto sliced_tensor = graph_->CreateTensor(sliced_spec);
       auto one_zero_tensor = graph_->CreateTensor(sliced_spec);
       auto grad_tensor = graph_->CreateTensor(pool_out_spec_values);
 
       std::vector<int32_t> start = {0, 0, 0, 0};
       std::vector<int32_t> length = {1, 1, 1, 1};
-      slice_one_ = graph_->CreateOperation<tim::vx::ops::Slice>(0, start, length);
-      (*slice_one_).BindInput(pool_out_values_tensor).BindOutput(sliced_tensor);
+      auto slice_one =
+          graph_->CreateOperation<tim::vx::ops::Slice>(0, start, length);
+      (*slice_one).BindInput(pool_out_values_tensor).BindOutput(sliced_tensor);
 
-      self_sub_ = graph_->CreateOperation<tim::vx::ops::Sub>();
-      (*self_sub_).BindInputs({sliced_tensor, sliced_tensor}).BindOutput(one_zero_tensor);
+      auto self_sub = graph_->CreateOperation<tim::vx::ops::Sub>();
+      (*self_sub).BindInputs({sliced_tensor, sliced_tensor})
+                 .BindOutput(one_zero_tensor);
 
-      add_zeros_ = graph_->CreateOperation<tim::vx::ops::Add>();
-      (*add_zeros_).BindInputs({one_zero_tensor, in_tensors_[GRADIENT_TENSOR]})
+      auto add_zeros = graph_->CreateOperation<tim::vx::ops::Add>();
+      (*add_zeros).BindInputs({one_zero_tensor, in_tensors_[GRADIENT_TENSOR]})
                   .BindOutput(grad_tensor);
       // eliminate pool out of maxpoolwithargmax end
 
-      flatten_idx_ = graph_->CreateOperation<tim::vx::ops::Reshape>(idx_flattened_shape);
-      (*flatten_idx_).BindInput(pool_out_indices_tensor).BindOutput(idx_flattened_tensor);
+      auto flatten_idx =
+          graph_->CreateOperation<tim::vx::ops::Reshape>(idx_flattened_shape);
+      (*flatten_idx).BindInput(pool_out_indices_tensor)
+                    .BindOutput(idx_flattened_tensor);
 
-      flatten_upd_ = graph_->CreateOperation<tim::vx::ops::Reshape>(idx_flattened_shape);
-      (*flatten_upd_).BindInput(grad_tensor).BindOutput(upd_flattened_tensor);
+      auto flatten_upd =
+          graph_->CreateOperation<tim::vx::ops::Reshape>(idx_flattened_shape);
+      (*flatten_upd).BindInput(grad_tensor).BindOutput(upd_flattened_tensor);
 
-      scatternd_ = graph_->CreateOperation<tim::vx::ops::ScatterND>(out_flattened_shape);
-      (*scatternd_).BindInputs({idx_flattened_tensor, upd_flattened_tensor})
-                   .BindOutput(out_flattened_tensor);
+      auto scatternd =
+          graph_->CreateOperation<tim::vx::ops::ScatterND>(out_flattened_shape);
+      (*scatternd).BindInputs({idx_flattened_tensor, upd_flattened_tensor})
+                  .BindOutput(out_flattened_tensor);
 
-      reshape_like_input_ = graph_->CreateOperation<tim::vx::ops::Reshape>(in_shape);
+      reshape_like_input_ =
+          graph_->CreateOperation<tim::vx::ops::Reshape>(in_shape);
       (*reshape_like_input_).BindInput(out_flattened_tensor);
 
     }
@@ -150,14 +163,7 @@ class MaxpoolGradImpl : public OpImpl {
   const RoundType round_type_;
 
   std::shared_ptr<tim::vx::Operation> maxpoolwithargmax2_;
-  std::shared_ptr<tim::vx::Operation> slice_one_;
-  std::shared_ptr<tim::vx::Operation> self_sub_;
-  std::shared_ptr<tim::vx::Operation> add_zeros_;
-  std::shared_ptr<tim::vx::Operation> flatten_idx_;
-  std::shared_ptr<tim::vx::Operation> flatten_upd_;
-  std::shared_ptr<tim::vx::Operation> scatternd_;
   std::shared_ptr<tim::vx::Operation> reshape_like_input_;
-  std::shared_ptr<tim::vx::Operation> reshape_pool_output_;
   std::array<std::shared_ptr<tim::vx::Tensor>, INPUT_CNT> in_tensors_;
   std::array<std::shared_ptr<tim::vx::Tensor>, OUTPUT_CNT> out_tensors_;
   uint32_t CalFlattenedShape(const tim::vx::ShapeType& shape) {
