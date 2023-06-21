@@ -96,7 +96,7 @@ bool LiteNativeExecutor::Trigger(bool async) {
   status = vip_wait_task(task_descriptor_);
   if (status != VIP_SUCCESS) {
     VSILOGE("wait task descriptor fail");
-    nbg_gen_capture(networks.size(), networks.data());
+    // nbg_gen_capture(networks.size(), networks.data());
     return false;
   }
   return true;
