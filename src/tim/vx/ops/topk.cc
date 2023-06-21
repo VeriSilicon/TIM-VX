@@ -31,13 +31,15 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-Topk::Topk(Graph* graph, uint32_t k)
+Topk::Topk(Graph* graph, uint32_t k, int32_t axis)
     : BuiltinOp(graph, VSI_NN_OP_TOPK) {
   this->impl()->node()->nn_param.topk.k = k;
+  this->impl()->node()->nn_param.topk.axis = axis;
 }
 
 std::shared_ptr<Operation> Topk::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<Topk>(this->impl()->node()->nn_param.topk.k);
+  return graph->CreateOperation<Topk>(this->impl()->node()->nn_param.topk.k,
+  this->impl()->node()->nn_param.topk.axis);
 }
 
 }  // namespace ops
