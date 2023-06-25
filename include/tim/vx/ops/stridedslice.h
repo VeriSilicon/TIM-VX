@@ -58,6 +58,10 @@ class StridedSlice : public BuiltinOp {
                const std::vector<int32_t> end_dims,
                const std::vector<int32_t> stride_dims, int32_t begin_mask,
                int32_t end_mask, int32_t shrink_axis_mask);
+  StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
+               const std::vector<int32_t> end_dims,
+               const std::vector<int32_t> stride_dims, int32_t begin_mask,
+               int32_t end_mask, int32_t shrink_axis_mask, int32_t new_axis_mask);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
@@ -68,6 +72,7 @@ class StridedSlice : public BuiltinOp {
   int32_t begin_mask_;
   int32_t end_mask_;
   int32_t shrink_axis_mask_;
+  int32_t new_axis_mask_;
 };
 
 }  // namespace ops
