@@ -96,6 +96,34 @@ const std::vector<std::shared_ptr<Tensor>> Conv2d::ConstantInputsTensor() const 
   }
 }
 
+// Handle float16 bias if clang compiler is no less than 15.0.0 version
+#ifdef TIM_VX_OPS_CONV2D_WITH_F16BIAS
+void Conv2d::OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor,
+                                 int32_t input_idx) {
+  if (tensor->GetDataType() == vx::DataType::FLOAT16 &&
+      tensor->IsConstTensor() && impl_->inputs_tensor_.size() == 3) {
+    uint32_t bias_size = 1;
+    for (auto i : tensor->GetShape()) {
+      bias_size *= i;
+    }
+    std::vector<_Float16> in(bias_size);
+    tensor->CopyDataFromTensor(in.data());
+
+    std::vector<float> out(bias_size);
+    for (uint i = 0; i < bias_size; i++) {
+      out[i] = static_cast<float>(in[i]);
+    }
+    TensorSpec fp32bias_spec(tim::vx::DataType::FLOAT32, tensor->GetShape(),
+                             tim::vx::TensorAttribute::CONSTANT);
+    auto out_tensor = impl_->graph_->CreateTensor(fp32bias_spec, out.data());
+
+    impl_->inputs_tensor_[2] = out_tensor;
+    impl_->node()->input.tensors[input_idx] = out_tensor->GetId();
+    impl_->graph_->RenewTensorConsumersMap(tensor, out_tensor, this);
+  }
+}
+#endif
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
