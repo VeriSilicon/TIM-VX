@@ -10,6 +10,8 @@ if(NOT ${TIM_VX_ENABLE_CUSTOM_OP})
 endif()
 
 set(${TARGET_NAME}_SRCS)
+set(LITE_INC_DIRS)
+set(LITE_EXTERNAL_LIBS)
 list(APPEND ${TARGET_NAME}_SRCS
     ${VX_SRC}
     ${OPS_SRC})
@@ -57,10 +59,10 @@ if(TIM_VX_ENABLE_PLATFORM)
         if(NOT VIP_LITE_SDK)
             message(FATAL_ERROR "Please set VIP_LITE_SDK when using lite platform(TIM_VX_ENABLE_PLATFORM_LITE)")
         endif()
-        list(APPEND EXTERNAL_LIBS
+        list(APPEND LITE_EXTERNAL_LIBS
             ${VIP_LITE_SDK}/drivers/libNBGlinker.so
             ${VIP_LITE_SDK}/drivers/libVIPlite.so)
-        list(APPEND INC_DIRS ${VIP_LITE_SDK}/include)
+        list(APPEND LITE_INC_DIRS ${VIP_LITE_SDK}/include)
     endif()
 
     if(TIM_VX_ENABLE_GRPC)
@@ -104,9 +106,7 @@ foreach(src_file ${${TARGET_NAME}_SRCS})
     endif()
 endforeach()
 
-set(EXTERNAL_LIBS)
-set(INC_DIRS)
-list(APPEND INC_DIRS
+list(APPEND LITE_INC_DIRS
     ${PROJECT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/vx
     ${CMAKE_CURRENT_SOURCE_DIR}/transform
@@ -117,12 +117,12 @@ if(${TIM_VX_ENABLE_VIPLITE})
     aux_source_directory(./lite LITE_SRC)
     list(APPEND ${TARGET_NAME}_SRCS
         ${LITE_SRC})
-    list(APPEND EXTERNAL_LIBS ${VIPLITE_DRV_LIBRARIES})
-    list(APPEND INC_DIRS
+    list(APPEND LITE_EXTERNAL_LIBS ${VIPLITE_DRV_LIBRARIES})
+    list(APPEND LITE_INC_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}/lite
         ${VIPLITE_DRV_INCLUDE_DIR})
 endif()
-include_directories(${INC_DIRS})
+include_directories(${LITE_INC_DIRS})
 # convert op list as compile flags so that we can implement compile compatable easier
 if(${TIM_VX_USE_EXTERNAL_OVXLIB})
     file(STRINGS "${OVXLIB_INC}/interface/ops.def" ops_file_content)
@@ -143,9 +143,9 @@ string(REGEX REPLACE "\\)" " " custom_op_as_flags ${custom_op_list_tmp})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${op_as_flags} ${custom_op_as_flags}")
 
 add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS})
-target_include_directories(${TARGET_NAME} PRIVATE ${INC_DIRS})
+target_include_directories(${TARGET_NAME} PRIVATE ${LITE_INC_DIRS})
 target_link_libraries(${TARGET_NAME} PUBLIC
-    -Wl,--no-whole-archive  ${OVXDRV_LIBRARIES} ${EXTERNAL_LIBS})
+    -Wl,--no-whole-archive  ${OVXDRV_LIBRARIES} ${LITE_EXTERNAL_LIBS})
 
 if(${TIM_VX_ENABLE_TENSOR_CACHE})
     add_dependencies(${TARGET_NAME} crypto)
@@ -176,7 +176,7 @@ endif()
 # Install
 install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-    
+
 if(TIM_VX_ENABLE_TENSOR_CACHE)
 install(
     FILES
@@ -235,7 +235,7 @@ if(TIM_VX_ENABLE_TEST)
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
         ${OVXLIB_INCLUDE_DIR}
-        ${INC_DIRS})
+        ${LITE_INC_DIRS})
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()
