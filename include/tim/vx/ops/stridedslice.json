@@ -19,6 +19,11 @@
                 },
                 {"name": "shrink_axis_mask",
                     "dtype": "int32_t"
+                },
+                {"name": "new_axis_mask",
+                    "dtype": "int32_t",
+                    "Optional": "true",
+                    "default": "0"
                 }
             ]
     }
