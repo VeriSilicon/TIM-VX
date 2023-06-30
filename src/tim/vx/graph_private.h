@@ -62,6 +62,9 @@ class GraphImpl : public Graph {
 
   void UpdateTensorConsumersMap(const std::shared_ptr<Tensor>& tensor,
                                 const Operation* op) override;
+  void RenewTensorConsumersMap(const std::shared_ptr<Tensor>& org_tensor,
+                               const std::shared_ptr<Tensor>& dst_tensor,
+                               const Operation* op) override;
   void UpdateTensorProducerMap(const std::shared_ptr<Tensor>& tensor,
                                 const Operation* op) override;
   const std::vector<std::shared_ptr<Operation>> GetConsumersOp(

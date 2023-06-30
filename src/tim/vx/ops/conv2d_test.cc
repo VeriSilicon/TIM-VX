@@ -29,6 +29,81 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/types.h"
 
+#ifdef TIM_VX_OPS_CONV2D_WITH_F16BIAS
+TEST(Conv2d, shape_4_2_1_1_float16_PaddingTest) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({4, 2, 1, 1});   //whcn
+  tim::vx::ShapeType weight_shape({2, 2, 1, 3});  //whio
+  tim::vx::ShapeType bias_shape({weight_shape[3]});
+  tim::vx::ShapeType output_shape(
+      {4, 2, weight_shape[3], input_shape[3]});  //whcn
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT16, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec weight_spec(tim::vx::DataType::FLOAT16, weight_shape,
+                                  tim::vx::TensorAttribute::CONSTANT);
+  tim::vx::TensorSpec bias_spec(tim::vx::DataType::FLOAT16, bias_shape,
+                                tim::vx::TensorAttribute::CONSTANT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT16, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  // Input data  nchw
+  std::vector<_Float16> input_data = {
+      1, 1, 1, 1,  // row = 1
+      2, 2, 3, 2   // row = 2
+  };
+
+  // weight data   oihw
+  std::vector<_Float16> weight_data = {
+      1,  2,  3,  4,  //first 2x2 filter
+      -1, 1,  -1, 1,  // second 2x2 filter
+      -1, -1, 1,  1,  // third 2x2 filter
+  };
+
+  // bias data
+  std::vector<_Float16> bias_data = {1, 2, 3};
+
+  // nchw
+  std::vector<_Float16> golden = {// first channel
+                               18, 22, 21, 8, 7, 9, 8, 3, 2, 3, 1, -1,
+                               // second channel
+                               2, 3, 1, 0, 5, 6, 6, 4, -1, -2, -2, 1};
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
+  auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  auto padding = tim::vx::PadType::SAME;
+  std::array<uint32_t, 2> stride({1, 1});
+  std::array<uint32_t, 2> dilation({0, 0});
+
+  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
+      padding, stride, dilation);
+  (*conv2d)
+      .BindInput(input_tensor)
+      .BindInput(weight_tensor)
+      .BindInput(bias_tensor)
+      .BindOutput(output_tensor);
+
+  EXPECT_TRUE(graph->Compile());
+
+  input_tensor->CopyDataToTensor(input_data.data());
+
+  EXPECT_TRUE(graph->Run());
+
+  uint32_t output_size = 1;
+  for (auto i : output_tensor->GetShape()) {
+    output_size *= i;
+  }
+  std::vector<_Float16> output(output_size);
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden, output, (_Float16)0.1));
+}
+#endif
+
 TEST(Conv2d, shape_4_2_1_1_float32_PaddingTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();

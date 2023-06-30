@@ -80,13 +80,14 @@ class Graph {
   virtual const std::vector<std::shared_ptr<Tensor>> InputsTensor() const = 0;
   virtual const std::vector<std::shared_ptr<Tensor>> OutputsTensor() const = 0;
 
-  virtual void UpdateTensorConsumersMap(
-      const std::shared_ptr<Tensor>& tensor,
-      const Operation* op) = 0;
+  virtual void UpdateTensorConsumersMap(const std::shared_ptr<Tensor>& tensor,
+                                        const Operation* op) = 0;
+  virtual void RenewTensorConsumersMap(
+      const std::shared_ptr<Tensor>& org_tensor,
+      const std::shared_ptr<Tensor>& dst_tensor, const Operation* op) = 0;
 
-  virtual void UpdateTensorProducerMap(
-      const std::shared_ptr<Tensor>& tensor,
-      const Operation* op) = 0;
+  virtual void UpdateTensorProducerMap(const std::shared_ptr<Tensor>& tensor,
+                                       const Operation* op) = 0;
 
   virtual const std::vector<std::shared_ptr<Operation>> GetConsumersOp(
       std::shared_ptr<Tensor> tensor) const = 0;

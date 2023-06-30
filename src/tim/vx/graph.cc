@@ -195,6 +195,22 @@ void GraphImpl::UpdateTensorConsumersMap(const std::shared_ptr<Tensor>& tensor,
   }
 }
 
+void GraphImpl::RenewTensorConsumersMap(
+    const std::shared_ptr<Tensor>& org_tensor,
+    const std::shared_ptr<Tensor>& dst_tensor, const Operation* op) {
+  auto exist_op = std::find_if(
+      op_vector_.begin(), op_vector_.end(),
+      [op](std::shared_ptr<Operation> oper) { return oper.get() == op; });
+  if (exist_op == op_vector_.end()) {
+    return;  //given op cannot be found
+  } else {
+    auto consumer_to_remove = tensor_consumers_.find(org_tensor);
+    if (consumer_to_remove != tensor_consumers_.end())
+      tensor_consumers_.erase(consumer_to_remove);
+    tensor_consumers_[dst_tensor].push_back(*exist_op);
+  }
+}
+
 void GraphImpl::UpdateTensorProducerMap(const std::shared_ptr<Tensor>& tensor,
                                          const Operation* op) {
   for (const auto& added_op : op_vector_) {
