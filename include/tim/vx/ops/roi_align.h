@@ -51,7 +51,7 @@ class RoiAlign : public BuiltinOp {
  public:
   RoiAlign(Graph* graph, int32_t output_height, int32_t output_width,
             float height_ratio, float width_ratio, int32_t height_sample_num,
-            int32_t width_sample_num);
+            int32_t width_sample_num, DataLayout input_layout = DataLayout::WHCN);
 
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;
