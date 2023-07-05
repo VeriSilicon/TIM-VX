@@ -35,9 +35,7 @@
 #include <vector>
 namespace tim {
 namespace vx {
-#ifdef ENABLE_TENSOR_CACHE
 const std::string calculateMd5Secret32(const std::string& src);
-#endif
 class Tensor;
 struct TensorSpec;
 struct DmaBufferDesc;
