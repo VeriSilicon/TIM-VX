@@ -4,17 +4,22 @@
 #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
 void * vsi_nn_dlopen( const char *file, int mode )
 {
+    VSI_UNREFERENCED(file);
+    VSI_UNREFERENCED(mode);
     return NULL;
 }
 
 int vsi_nn_dlclose( void *handle )
 {
+    VSI_UNREFERENCED(handle);
     return -1;
 }
 
 __declspec(noinline)
 void* vsi_nn_dlsym( void *handle, const char *name )
 {
+    VSI_UNREFERENCED(handle);
+    VSI_UNREFERENCED(name);
     return NULL;
 }
 

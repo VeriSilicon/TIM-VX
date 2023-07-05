@@ -62,6 +62,7 @@ static vx_param_description_t _custom_warp_affine_kernel_param_def[] =
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     // Add kererl parameters here
 };
 #define _CUSTOM_WARP_AFFINE_PARAM_NUM  _cnt_of_array( _custom_warp_affine_kernel_param_def )
@@ -97,7 +98,7 @@ static vsi_bool _read_pixel
 
     if (out_of_bounds)
     {
-        *pixel = 205.0f;
+        *pixel = 0.0f;
         return TRUE;
     }
 
@@ -125,6 +126,7 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_nn_kernel_tensor_t tensors[_CPU_IO_NUM] = { NULL };
     vsi_nn_kernel_tensor_attr_t* attr[_CPU_IO_NUM] = { NULL };
     int32_t type = 0;
+    int32_t rgb_type = 0;
     float matrix[6] = {0};
     vsi_size_t i = 0;
     vsi_size_t b = 0;
@@ -135,11 +137,16 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_size_t height = 0;
     vsi_size_t outer_size = 1;
 
+    VSI_UNREFERENCED(node);
+    VSI_UNREFERENCED(param_size);
+
     tensors[0] = (vsi_nn_kernel_tensor_t)param[0];
     tensors[1] = (vsi_nn_kernel_tensor_t)param[1];
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( tensors[0] );
+    CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( tensors[1] );
+    CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
 
     out_elements = vsi_nn_kernel_tensor_attr_get_size( attr[1] );
 
@@ -153,6 +160,7 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[SCALAR_INPUT_TYPE],
         &type);
+    status |= vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[9], &rgb_type);
     CHECK_STATUS_FAIL_GOTO(status, final );
     for (i = 0; i < 6; i++)
     {
@@ -172,34 +180,95 @@ DEF_KERNEL_EXECUTOR(_compute)
     {
         float *src_base = buffer[0] + b * attr[0]->shape->data[0] * attr[0]->shape->data[1];
         float *dst_base = buffer[1] + b * width * height;
-        for (y = 0; y < height; y++)
+
+        if ( rgb_type == VSI_NN_WARP_AFFINE_TYPE_RGB )
         {
-            for (x = 0; x < width; x++)
+            width = width / 3;
+            for (y = 0; y < height; y++)
             {
-                float xf = 0;
-                float yf = 0;
-                float dst = 0;
-
-                _transform_affine(x, y, matrix, &xf, &yf);
-                if (type == VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR)
+                for (x = 0; x < width; x++)
                 {
-                    _read_pixel(src_base, attr[0], xf, yf, &dst);
-                    dst_base[y * width + x] = dst;
+                    float xf = 0;
+                    float yf = 0;
+                    float dst = 0;
+
+                    _transform_affine(x, y, matrix, &xf, &yf);
+
+                    if (type == VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR)
+                    {
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf), floorf(yf), &dst);
+                        dst_base[y * 3 * width + 3 * x] = dst;
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf) + 1, floorf(yf), &dst);
+                        dst_base[y * 3 * width + 3 * x + 1] = dst;
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf) + 2, floorf(yf), &dst);
+                        dst_base[y * 3 * width + 3 * x + 2] = dst;
+                    }
+                    else
+                    {
+                        float tl = 0, tr = 0, bl = 0, br = 0;
+                        float ar = xf - floorf(xf);
+                        float ab = yf - floorf(yf);
+                        float al = 1.0f - ar;
+                        float at = 1.0f - ab;
+
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf), floorf(yf), &tl);
+                        _read_pixel(src_base, attr[0], 3 * (floorf(xf) + 1), floorf(yf), &tr);
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf), floorf(yf) + 1, &bl);
+                        _read_pixel(src_base, attr[0], 3 * (floorf(xf) + 1), floorf(yf) + 1, &br);
+
+                        dst_base[y * 3 * width + 3 * x] =
+                            tl * al * at + tr * ar * at + bl * al * ab + br * ar * ab;
+
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf) + 1, floorf(yf), &tl);
+                        _read_pixel(src_base, attr[0], 3 * (floorf(xf) + 1) + 1, floorf(yf), &tr);
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf) + 1, floorf(yf) + 1, &bl);
+                        _read_pixel(src_base, attr[0], 3 * (floorf(xf) + 1) + 1, floorf(yf) + 1, &br);
+
+                        dst_base[y * 3 * width + 3 * x + 1] =
+                            tl * al * at + tr * ar * at + bl * al * ab + br * ar * ab;
+
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf) + 2, floorf(yf), &tl);
+                        _read_pixel(src_base, attr[0], 3 * (floorf(xf) + 1) + 2, floorf(yf), &tr);
+                        _read_pixel(src_base, attr[0], 3 * floorf(xf) + 2, floorf(yf) + 1, &bl);
+                        _read_pixel(src_base, attr[0], 3 * (floorf(xf) + 1) + 2, floorf(yf) + 1, &br);
+
+                        dst_base[y * 3 * width + 3 * x + 2] =
+                            tl * al * at + tr * ar * at + bl * al * ab + br * ar * ab;
+                    }
                 }
-                else
+            }
+        }
+        else
+        {
+            for (y = 0; y < height; y++)
+            {
+                for (x = 0; x < width; x++)
                 {
-                    float tl = 0, tr = 0, bl = 0, br = 0;
-                    float ar = xf - floorf(xf);
-                    float ab = yf - floorf(yf);
-                    float al = 1.0f - ar;
-                    float at = 1.0f - ab;
+                    float xf = 0;
+                    float yf = 0;
+                    float dst = 0;
 
-                    _read_pixel(src_base, attr[0], floorf(xf), floorf(yf), &tl);
-                    _read_pixel(src_base, attr[0], floorf(xf) + 1, floorf(yf), &tr);
-                    _read_pixel(src_base, attr[0], floorf(xf), floorf(yf) + 1, &bl);
-                    _read_pixel(src_base, attr[0], floorf(xf) + 1, floorf(yf) + 1, &br);
+                    _transform_affine(x, y, matrix, &xf, &yf);
+                    if (type == VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR)
+                    {
+                        _read_pixel(src_base, attr[0], xf, yf, &dst);
+                        dst_base[y * width + x] = dst;
+                    }
+                    else
+                    {
+                        float tl = 0, tr = 0, bl = 0, br = 0;
+                        float ar = xf - floorf(xf);
+                        float ab = yf - floorf(yf);
+                        float al = 1.0f - ar;
+                        float at = 1.0f - ab;
 
-                    dst_base[y * width + x] = tl * al * at + tr * ar * at + bl * al * ab + br * ar * ab;
+                        _read_pixel(src_base, attr[0], floorf(xf), floorf(yf), &tl);
+                        _read_pixel(src_base, attr[0], floorf(xf) + 1, floorf(yf), &tr);
+                        _read_pixel(src_base, attr[0], floorf(xf), floorf(yf) + 1, &bl);
+                        _read_pixel(src_base, attr[0], floorf(xf) + 1, floorf(yf) + 1, &br);
+
+                        dst_base[y * width + x] = tl * al * at + tr * ar * at + bl * al * ab + br * ar * ab;
+                    }
                 }
             }
         }
@@ -233,6 +302,8 @@ static vsi_status _query_kernel
     )
 {
     vsi_status status = VSI_FAILURE;
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  _KERNEL_NAME );
     kernel->info.function    = _compute;
     kernel->info.parameters  = _custom_warp_affine_kernel_param_def;
@@ -260,6 +331,7 @@ static vsi_nn_kernel_node_t _setup
     size_t i = 0;
     size_t buffer_size = 0;
     int32_t type = vsi_nn_kernel_param_get_int32( params, "type");
+    int32_t rgb_type = vsi_nn_kernel_param_get_int32( params, "rgb_type");
     float * buffer = (float*)vsi_nn_kernel_param_get_const_buffer( params, "matrix", &buffer_size );
 
     status = _query_kernel( kernel, inputs, outputs /* Add extra params */ );
@@ -278,6 +350,8 @@ static vsi_nn_kernel_node_t _setup
                 node_params[SCALAR_MATRIX_OFFSET + i] = vsi_nn_kernel_scalar_create(
                         graph, F32, &buffer[i] );
             }
+            node_params[9] = vsi_nn_kernel_scalar_create(
+                graph, I32, &rgb_type );
 
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _CUSTOM_WARP_AFFINE_PARAM_NUM );
@@ -286,6 +360,7 @@ static vsi_nn_kernel_node_t _setup
             {
                 vsi_nn_kernel_scalar_release( &node_params[SCALAR_MATRIX_OFFSET + i] );
             }
+            vsi_nn_kernel_scalar_release( &node_params[9] );
         }
     }
     return node;

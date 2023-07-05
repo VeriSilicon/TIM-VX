@@ -18,6 +18,7 @@ __kernel void gather_I8toI8(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     vxc_char16 src;
@@ -42,6 +43,7 @@ __kernel void gather_U8toU8(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     vxc_uchar16 src;
@@ -66,8 +68,8 @@ __kernel void gather_I16toI16(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
 
-
     int4 indice = read_imagei(input1, coord_in.xy);
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     vxc_short8 src;
@@ -92,6 +94,7 @@ __kernel void gather_F16toF16(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     vxc_short8 src;
@@ -112,6 +115,7 @@ __kernel void gather_I8toI8_axis0(
 {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
     int4 indices = read_imagei(input1, coord.xx);
+    indices = indices >= 0 ? indices : indices + axis_num;
     int2 coord_in = (int2)(indices.x, get_global_id(1));
 
     vxc_char16 src, dst;
@@ -138,6 +142,7 @@ __kernel void gather_U8toU8_axis0(
 {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
     int4 indices = read_imagei(input1, coord.xx);
+    indices = indices >= 0 ? indices : indices + axis_num;
     int2 coord_in = (int2)(indices.x, get_global_id(1));
 
     vxc_uchar16 src, dst;
@@ -164,6 +169,7 @@ __kernel void gather_I16toI16_axis0(
 {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
     int4 indices = read_imagei(input1, coord.xx);
+    indices = indices >= 0 ? indices : indices + axis_num;
     int2 coord_in = (int2)(indices.x, get_global_id(1));
 
     vxc_short8 src, dst;
@@ -190,6 +196,7 @@ __kernel void gather_F16toF16_axis0(
 {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
     int4 indices = read_imagei(input1, coord.xx);
+    indices = indices >= 0 ? indices : indices + axis_num;
     int2 coord_in = (int2)(indices.x, get_global_id(1));
 
     vxc_short8 src, dst;

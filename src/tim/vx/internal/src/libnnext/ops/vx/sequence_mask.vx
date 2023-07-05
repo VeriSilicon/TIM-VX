@@ -21,7 +21,7 @@ __kernel void sequence_mask_##src0_type_name##to##src1_type_name##_2D( \
     short zp = inputZP; \
     VXC_DP4x4(tmpData, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \
                  uniConvert1stUint8SubZpToFp32_4x4); \
-    int index = convert_int_rte(tmpData.s0 * input_scale); \
+    int index = convert_int_rtz(tmpData.s0 * input_scale); \
     int4 data; \
     data = outIdx < index? convert_int_rte(outputVal1) : output_ZP; \
     write_type dst; \
@@ -47,7 +47,7 @@ __kernel void sequence_mask_##src0_type_name##to##src1_type_name( \
     short zp = inputZP; \
     VXC_DP4x4(tmpData, src0, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \
                  uniConvert1stUint8SubZpToFp32_4x4); \
-    int index = convert_int_rte(tmpData.s0 * input_scale); \
+    int index = convert_int_rtz(tmpData.s0 * input_scale); \
     int4 data; \
     data = outIdx < index? convert_int_rte(outputVal1) : output_ZP; \
     write_type dst; \
@@ -73,7 +73,7 @@ __kernel void sequence_mask_F16toF16_2D(
     float4 tmpData;
     VXC_DP4x4(tmpData, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
             UniFP16toFP32Lo4_dp4x4);
-    int index = convert_int_rte(tmpData.x);
+    int index = convert_int_rtz(tmpData.x);
     float4 data;
     data = outIdx < index? outputVal1 : convert_float(output_ZP);
     vxc_short8 dst;
@@ -96,7 +96,7 @@ __kernel void sequence_mask_F16toF16(
     float4 tmpData;
     VXC_DP4x4(tmpData, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
             UniFP16toFP32Lo4_dp4x4);
-    int index = convert_int_rte(tmpData.x);
+    int index = convert_int_rtz(tmpData.x);
     float4 data;
     data = outIdx < index? outputVal1 : convert_float(output_ZP);
     vxc_short8 dst;
@@ -119,7 +119,7 @@ __kernel void sequence_mask_F16toU8_2D(
     float4 tmpData;
     VXC_DP4x4(tmpData, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
             UniFP16toFP32Lo4_dp4x4);
-    int index = convert_int_rte(tmpData.x);
+    int index = convert_int_rtz(tmpData.x);
     int4 data;
     data = outIdx < index? convert_int_rte(outputVal1) : output_ZP;
     vxc_uchar16 dst;
@@ -140,7 +140,7 @@ __kernel void sequence_mask_F16toU8(
     float4 tmpData;
     VXC_DP4x4(tmpData, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
             UniFP16toFP32Lo4_dp4x4);
-    int index = convert_int_rte(tmpData.x);
+    int index = convert_int_rtz(tmpData.x);
     int4 data;
     data = outIdx < index? convert_int_rte(outputVal1) : output_ZP;
     vxc_uchar16 dst;

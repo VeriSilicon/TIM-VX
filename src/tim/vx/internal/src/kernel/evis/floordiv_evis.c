@@ -120,7 +120,7 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
         {0, 0, 0},
         {0, 0, 0}
         };
-    vx_status     status             = VX_FAILURE;
+    vsi_status    status              = VSI_FAILURE;
     vx_tensor     input0              = (vx_tensor)param[0];
     vx_tensor     input1              = (vx_tensor)param[1];
     vx_tensor     output              = (vx_tensor)param[2];
@@ -138,6 +138,8 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
     float                        in0Tail      = 0;
     float                        in1Tail      = 0;
     float                        outZp        = 0;
+
+    VSI_UNREFERENCED(param_size);
 
     input0_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)input0 );
     CHECK_PTR_FAIL_GOTO( input0_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -401,6 +403,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_FLOORDIV_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     vsi_bool image_2d = FALSE;
+
+    VSI_UNREFERENCED(params);
 
     if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )

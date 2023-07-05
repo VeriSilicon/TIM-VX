@@ -109,7 +109,7 @@ DEF_KERNEL_INITIALIZER(_a_times_b_plus_c_initializer)
 {
 #define _PACK_A_TIMES_B_PLUS_C_KEY( IN0_TYPE, IN1_TYPE, IN2_TYPE, OUT_TYPE )    \
         (( IN2_TYPE << 24) | ( IN1_TYPE << 16) | ( IN0_TYPE << 8) | ( OUT_TYPE))
-    vsi_status status = VX_SUCCESS;
+    vsi_status status = VSI_FAILURE;
     // Alignment with a power of two value.
     gpu_param_t gpu_param = {
         3,
@@ -127,6 +127,8 @@ DEF_KERNEL_INITIALIZER(_a_times_b_plus_c_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[4]       = { NULL, NULL, NULL, NULL };
     vsi_size_array_t             *output_shape   = NULL;
     uint32_t pack_key                           = 0;
+
+    VSI_UNREFERENCED(param_size);
 
 
     attr[0]  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)input0);
@@ -330,6 +332,8 @@ static vsi_nn_kernel_node_t _setup
     int32_t  i        = 0;
     vsi_bool ret      = FALSE;
     vsi_nn_tensor_t* reshape_tensors[_IO_NUM] = { NULL };
+
+    VSI_UNREFERENCED(params);
 
     for (i = 0; i < _IO_NUM; i++)
     {

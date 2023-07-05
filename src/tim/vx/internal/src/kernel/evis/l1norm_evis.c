@@ -168,6 +168,8 @@ DEF_KERNEL_INITIALIZER(_l1norm_initializer_axis)
     vsi_nn_kernel_tensor_attr_t *output_attr  = NULL;
     vsi_size_array_t            *output_shape = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output );
     vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[5], &axis);
 
@@ -197,12 +199,12 @@ DEF_KERNEL_INITIALIZER(_l1norm_initializer_axis)
     }
     else if (axis == 1)
     {
-        gpu_param.global_size[0] = (width + gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0];;
+        gpu_param.global_size[0] = (width + gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0];
         gpu_param.global_size[1] = depth;
     }
     else if (axis == 2)
     {
-        gpu_param.global_size[0] = (width + gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0];;
+        gpu_param.global_size[0] = (width + gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0];
         gpu_param.global_size[1] = height;
     }
 

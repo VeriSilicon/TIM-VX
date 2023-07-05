@@ -121,6 +121,9 @@ static vsi_nn_kernel_node_t _setup
                               sizeof(param),
                               outputs[0]->t );
 #endif
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
     if ( NULL == node )
     {
         VSILOGI("Call vxTensorScaleNode fail.(resize)");

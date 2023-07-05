@@ -34,7 +34,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_util.h"
 
@@ -46,6 +46,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -56,6 +58,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -84,7 +89,9 @@ static vsi_bool op_setup
     float max_value = 0;
     float threshold = 0;
     uint32_t max_raw = 0;
-    if( NULL == self )
+    vsi_bool ret = FALSE;
+
+    if ( NULL == self )
     {
         return FALSE;
     }
@@ -101,30 +108,35 @@ static vsi_bool op_setup
     if (alpha == 0 && max_raw == VSI_NN_FLOAT32_INF && threshold == 0)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU, 0, 0);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
     }
     else if (alpha == 1.0f && max_value == 1.0f && threshold == -1.0f)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU1, 0, 0);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
     }
     else if (alpha == 0 && max_value == 6.0f && threshold == 0)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU6, 0, 0);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
     }
     else if (alpha == 0.1 && max_value == VSI_NN_FLOAT32_INF && threshold == 0)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_LEAKY_RELU, 0, 0);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
     }
     else
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU_KERAS_INTERNAL, 0, 0);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
         curr->node->nn_param.relu_keras_internal.max_value = max_value;
@@ -132,9 +144,10 @@ static vsi_bool op_setup
         curr->node->nn_param.relu_keras_internal.threshold = threshold;
     }
 
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
 
-    return TRUE;
+final:
+    return ret;
 }
 
 #ifdef __cplusplus

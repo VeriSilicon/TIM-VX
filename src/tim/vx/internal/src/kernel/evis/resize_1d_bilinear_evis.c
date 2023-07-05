@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 #include "utils/vsi_nn_dtype_util_prv.h"
 
 __BEGIN_DECLS
@@ -855,7 +854,6 @@ DEF_KERNEL_INITIALIZER(_resize_1d_bilinear_initializer)
         else if (F16 == output_dtype)
         {
             status  = vsi_nn_kernel_gpu_add_param( node, "uniExtactHalf8_2x8", &uniExtactHalf8_2x8);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4", &uniRightSubLeft_4x4);
             status |= vsi_nn_kernel_gpu_add_param( node, "uniConvertFp2FP32_left_4x4",
                                                           &uniConvertFp2FP32_left_4x4);
             status |= vsi_nn_kernel_gpu_add_param( node, "uniConvertFp2FP32_right_4x4",
@@ -1187,7 +1185,7 @@ static vsi_nn_tensor_t* _create_scale_tensor
     uint32_t   dims                 = output->attr.dim_num;
     vsi_size_t   batch                = dims > 3 ? output->attr.size[3] : 1;
     vsi_size_t   width                = output->attr.size[0];
-    vsi_size_t   sizes[4]             = {width * 2, 1, 1, batch};
+    vsi_size_t   sizes[4]             = { 0, 0, 0, 0 };
     vsi_size_t   item_count           = width * 2 * batch;
     vsi_size_t   input_width          = input->attr.size[0];
     vsi_size_t   x                    = 0;
@@ -1195,6 +1193,10 @@ static vsi_nn_tensor_t* _create_scale_tensor
     float      width_scale          = 1.0f;
     uint16_t  *scale_data_ptr       = NULL;
 
+    sizes[0] = width * 2;
+    sizes[1] = 1;
+    sizes[2] = 1;
+    sizes[3] = batch;
     if (align_corners && width > 1)
     {
         width_scale = ((vx_float32)(input_width - 1) * 1.0f) / (vx_float32)(width - 1);
@@ -1310,6 +1312,7 @@ static vsi_nn_kernel_node_t _setup
             if (is_run_opt_kernel)
             {
                 scale = _create_scale_tensor(graph, inputs[0], outputs[0], align_corners, half_pixel_centers);
+                CHECK_PTR_FAIL_GOTO( scale, "Create tensor fail.", final );
                 node_params[SCALAR_TENSOR_SCALE] = (vsi_nn_kernel_node_param_t)(scale->t);
                 node_params_num = _RESIZE_1D_BILINEAR_PARAM_NUM;
             }
@@ -1325,16 +1328,18 @@ static vsi_nn_kernel_node_t _setup
             {
                 vsi_nn_kernel_scalar_release( &node_params[SCALAR_SCALE_TYPE] );
             }
-
-            if (is_run_opt_kernel)
-            {
-                if (scale)
-                {
-                    vsi_nn_ReleaseTensor(&scale);
-                }
-            }
         }
     }
+
+final:
+    if (is_run_opt_kernel)
+    {
+        if (scale)
+        {
+            vsi_nn_ReleaseTensor(&scale);
+        }
+    }
+
     return node;
 } /* _setup() */
 

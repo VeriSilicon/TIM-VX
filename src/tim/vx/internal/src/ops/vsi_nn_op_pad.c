@@ -156,6 +156,7 @@ static vsi_status op_compute
         attr.is_const = FALSE;
 
         convert_tensor = vsi_nn_CreateTensor(self->graph, &attr);
+        CHECK_PTR_FAIL_GOTO( convert_tensor, "Create tensor fail.", final );
 
         self->n = vxTensorCopyNode(
             self->graph->g,

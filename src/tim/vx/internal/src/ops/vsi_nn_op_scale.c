@@ -37,7 +37,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_link_list.h"
 #include "utils/vsi_nn_dtype_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)
@@ -49,6 +49,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -59,6 +61,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -71,18 +76,20 @@ static vsi_bool op_setup
     )
 {
     vsi_nn_internal_node_t* curr = NULL;
-    vsi_bool ret = TRUE;
+    vsi_bool ret = FALSE;
 
     vsi_nn_internal_init_node_wksp( node );
 
     curr = vsi_nn_internal_new_node( node, VSI_NN_OP_A_TIMES_B_PLUS_C, node->input.num, node->output.num );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->inputs[0] = inputs[0];
     curr->inputs[1] = inputs[1];
     curr->inputs[2] = inputs[2];
     curr->outputs[0] = outputs[0];
 
-    vsi_nn_internal_setup_node(node, curr);
+    ret = vsi_nn_internal_setup_node(node, curr);
 
+final:
     return ret;
 } /* op_setup() */
 
@@ -94,6 +101,9 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
 

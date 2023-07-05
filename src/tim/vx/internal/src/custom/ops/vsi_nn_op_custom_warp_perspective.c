@@ -78,6 +78,9 @@ static vsi_bool op_check
     )
 {
     /*TODO: Check tensor shapes. */
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 

@@ -749,6 +749,8 @@ static vsi_status op_optimize
     vsi_size_t     shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool       is_same_quant_type = FALSE;
     vsi_bool       is_same_shape = TRUE;
+    vsi_size_t     input_elements = 0;
+    vsi_size_t     output_elements = 0;
 
     /* Only forward run stride_slice's optimize */
     if ( direction == VSI_NN_OPTIMIZE_BACKWARD )
@@ -775,38 +777,49 @@ static vsi_status op_optimize
 
     VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
 
-    if ( NULL == inputs[0]->t )
-    {
-        vsi_nn_TensorReinit( self->graph, inputs[0] );
-    }
-
-    /* Create tensor from view */
-    memcpy( start, (vsi_size_t*)start_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
-    memcpy( end, (vsi_size_t*)stop_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
-    in_view_tensor = vsi_nn_CreateViewTensor(self->graph, start, end, inputs[0]);
-    if ( NULL == in_view_tensor )
-    {
-        VSILOGE( "Create tensor %d from view fail.", i );
-        status = VSI_FAILURE;
-        goto OnError;
-    }
-
     self->nn_param.strided_slice.lcl2_data->is_optimized = TRUE;
 
     is_same_quant_type = _is_same_quant(inputs, outputs);
-    if ( NULL != outputs[0]->t || is_same_quant_type == FALSE)
+    input_elements = vsi_nn_GetElementNum( inputs[0] );
+    output_elements = vsi_nn_GetElementNum( outputs[0] );
+    if (NULL != outputs[0]->t && NULL == inputs[0]->t &&
+        is_same_quant_type && input_elements == output_elements)
     {
-        VSILOGI( "stride slice copy tensor.");
-        // Copy old tensor values to the new address.
-        status = copy_tensor_to_view( self, in_view_tensor, outputs[0], shape, is_same_shape);
-        if ( VSI_FAILURE == status )
-        {
-            goto OnError;
-        }
+        inputs[0]->t = vsi_nn_safe_reshape_tensor( outputs[0]->t,
+            (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num,
+            sizeof(inputs[0]->attr.size[0]) );
     }
     else
     {
-        outputs[0]->t = in_view_tensor;
+        if ( NULL == inputs[0]->t )
+        {
+            vsi_nn_TensorReinit( self->graph, inputs[0] );
+        }
+        /* Create tensor from view */
+        memcpy( start, (vsi_size_t*)start_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
+        memcpy( end, (vsi_size_t*)stop_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
+        in_view_tensor = vsi_nn_CreateViewTensor(self->graph, start, end, inputs[0]);
+        if ( NULL == in_view_tensor )
+        {
+            VSILOGE( "Create tensor %d from view fail.", i );
+            status = VSI_FAILURE;
+            goto OnError;
+        }
+
+        if ( NULL != outputs[0]->t || is_same_quant_type == FALSE)
+        {
+            VSILOGI( "stride slice copy tensor.");
+            // Copy old tensor values to the new address.
+            status = copy_tensor_to_view( self, in_view_tensor, outputs[0], shape, is_same_shape);
+            if ( VSI_FAILURE == status )
+            {
+                goto OnError;
+            }
+        }
+        else
+        {
+            outputs[0]->t = in_view_tensor;
+        }
     }
 
 OnError:
@@ -841,32 +854,32 @@ static vsi_status op_deinit
     vsi_nn_safe_free( params->end_dims );
     vsi_nn_safe_free( params->stride_dims );
 
-    if (lcl2_data->cp_node)
+    if (lcl2_data && lcl2_data->cp_node)
     {
         vxReleaseNode( &lcl2_data->cp_node );
     }
 
-    if (lcl2_data->src_tensor)
+    if (lcl2_data && lcl2_data->src_tensor)
     {
         vxReleaseTensor( &lcl2_data->src_tensor );
     }
 
-    if (lcl2_data->dst_tensor && !lcl2_data->is_same_shape)
+    if (lcl2_data && lcl2_data->dst_tensor && !lcl2_data->is_same_shape)
     {
         vxReleaseTensor( &lcl2_data->dst_tensor );
     }
 
-    if (lcl2_data->begin_dims)
+    if (lcl2_data && lcl2_data->begin_dims)
     {
         free(lcl2_data->begin_dims);
     }
 
-    if (lcl2_data->end_dims)
+    if (lcl2_data && lcl2_data->end_dims)
     {
         free(lcl2_data->end_dims);
     }
 
-    if (lcl2_data->stride_dims)
+    if (lcl2_data && lcl2_data->stride_dims)
     {
         free(lcl2_data->stride_dims);
     }

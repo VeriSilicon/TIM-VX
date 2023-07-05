@@ -55,6 +55,9 @@ static vsi_status op_compute
         VX_CONVERT_POLICY_SATURATE, outputs[0]->t );
     */
 
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+
     if( NULL != self->n )
     {
         status = VSI_SUCCESS;
@@ -69,6 +72,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -80,6 +86,10 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+
     /* TODO: Add code to comput outputs' shape. */
     return TRUE;
 } /* op_setup() */

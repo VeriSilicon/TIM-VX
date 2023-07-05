@@ -33,6 +33,7 @@ extern "C" {
 typedef struct _vsi_nn_topk_param
 {
     uint32_t     k;
+    int32_t      axis;
 } vsi_nn_topk_param;
 
 #ifdef __cplusplus

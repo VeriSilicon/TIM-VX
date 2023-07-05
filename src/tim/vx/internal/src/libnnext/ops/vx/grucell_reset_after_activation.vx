@@ -29,8 +29,8 @@ _viv_uniform VXC_512Bits uniConvertF16_0_4x4;
 _viv_uniform VXC_512Bits uniConvertF16_1_4x4;
 _viv_uniform VXC_512Bits uniExtract8Data_2x8;
 
-#define GRUCELL_F16_F16TOF16(act_name, act_func) \
-__kernel void grucell_reset_after_activation_F16_F16toF16_##act_name( \
+#define GRUCELL_F16_F16TOF16(act_name, act_func, rec_act_name, rec_act_func) \
+__kernel void grucell_reset_after_activation_F16_F16toF16_##act_name##_##rec_act_name( \
     __read_only  image2d_t hstate_in, \
     __read_only  image2d_t input_z_conv, \
     __read_only  image2d_t input_r_conv, \
@@ -62,15 +62,15 @@ __kernel void grucell_reset_after_activation_F16_F16toF16_##act_name( \
  \
     float4 r; \
     VXC_DP4x4(r, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniF16PlusF16_0_4x4); \
-    r = act_func(r); \
+    r = rec_act_func(r); \
     float4 h0, h1; \
     VXC_DP4x4(h1, src2, src2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
     VXC_DP4x4(h0, src4, src4, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
     float4 h = h0 + r * h1; \
     float4 z; \
     VXC_DP4x4(z, src5, src6, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniF16PlusF16_0_4x4); \
-    z = act_func(z); \
-    h = tanh_func(h); \
+    z = rec_act_func(z); \
+    h = act_func(h); \
     float4 h_tm; \
     VXC_DP4x4(h_tm, src3, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
     float4 result = (1 - z) * h + z * h_tm; \
@@ -83,14 +83,15 @@ __kernel void grucell_reset_after_activation_F16_F16toF16_##act_name( \
     VXC_WriteImage(output, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
     VXC_WriteImage(hstate_out, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
 }
-GRUCELL_F16_F16TOF16(SIGMOID, sigmoid_func)
+GRUCELL_F16_F16TOF16(TANH,    tanh_func,    SIGMOID, sigmoid_func)
+GRUCELL_F16_F16TOF16(SIGMOID, sigmoid_func, SIGMOID, sigmoid_func)
 
 _viv_uniform float hstate_in_scale;
 _viv_uniform float hstate_in_tail;
 _viv_uniform float output_scale;
 _viv_uniform float output_zp;
-#define GRUCELL_QNT_F16TO_QNT(name0, name1, act_name, act_func, src0_type, dst_type) \
-__kernel void grucell_reset_after_activation_##name0##_F16to##name1##_##act_name( \
+#define GRUCELL_QNT_F16TO_QNT(name, act_func, rec_act_func, src0_type, dst_type) \
+__kernel void grucell_reset_after_activation_##name( \
     __read_only  image2d_t hstate_in, \
     __read_only  image2d_t input_z_conv, \
     __read_only  image2d_t input_r_conv, \
@@ -122,15 +123,15 @@ __kernel void grucell_reset_after_activation_##name0##_F16to##name1##_##act_name
  \
     float4 r; \
     VXC_DP4x4(r, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniF16PlusF16_0_4x4); \
-    r = act_func(r); \
+    r = rec_act_func(r); \
     float4 h0, h1; \
     VXC_DP4x4(h1, src2, src2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
     VXC_DP4x4(h0, src4, src4, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
     float4 h = h0 + r * h1; \
     float4 z; \
     VXC_DP4x4(z, src5, src6, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniF16PlusF16_0_4x4); \
-    z = act_func(z); \
-    h = tanh_func(h); \
+    z = rec_act_func(z); \
+    h = act_func(h); \
     float4 h_tm; \
     VXC_DP4x4(h_tm, src3, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
     h_tm = h_tm * hstate_in_scale + hstate_in_tail; \
@@ -143,6 +144,9 @@ __kernel void grucell_reset_after_activation_##name0##_F16to##name1##_##act_name
     VXC_WriteImage(output, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
     VXC_WriteImage(hstate_out, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
 }
-GRUCELL_QNT_F16TO_QNT(U8,  U8,  SIGMOID, sigmoid_func, vxc_uchar8, vxc_uchar8)
-GRUCELL_QNT_F16TO_QNT(I8,  I8,  SIGMOID, sigmoid_func, vxc_char8,  vxc_char8)
-GRUCELL_QNT_F16TO_QNT(I16, I16, SIGMOID, sigmoid_func, vxc_short8, vxc_short8)
+GRUCELL_QNT_F16TO_QNT(U8_F16toU8_TANH_SIGMOID,      tanh_func,    sigmoid_func, vxc_uchar8, vxc_uchar8)
+GRUCELL_QNT_F16TO_QNT(I8_F16toI8_TANH_SIGMOID,      tanh_func,    sigmoid_func, vxc_char8,  vxc_char8)
+GRUCELL_QNT_F16TO_QNT(I16_F16toI16_TANH_SIGMOID,    tanh_func,    sigmoid_func, vxc_short8, vxc_short8)
+GRUCELL_QNT_F16TO_QNT(U8_F16toU8_SIGMOID_SIGMOID,   sigmoid_func, sigmoid_func, vxc_uchar8, vxc_uchar8)
+GRUCELL_QNT_F16TO_QNT(I8_F16toI8_SIGMOID_SIGMOID,   sigmoid_func, sigmoid_func, vxc_char8,  vxc_char8)
+GRUCELL_QNT_F16TO_QNT(I16_F16toI16_SIGMOID_SIGMOID, sigmoid_func, sigmoid_func, vxc_short8, vxc_short8)

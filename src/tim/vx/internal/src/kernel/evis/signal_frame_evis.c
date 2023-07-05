@@ -95,7 +95,10 @@ DEF_KERNEL_INITIALIZER(_signal_frame_initializer)
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
     vsi_size_array_t * out_shape          = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr buffer fail.", final );
     out_shape = attr->shape;
 
     gpu_param.global_scale[0] = 16;

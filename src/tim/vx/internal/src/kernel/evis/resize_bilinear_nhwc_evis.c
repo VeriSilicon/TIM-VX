@@ -137,6 +137,8 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_nhwc_initializer)
     vsi_bool    is_3x_up_kernel  = FALSE;
     vsi_bool    is_4x_up_kernel  = FALSE;
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -432,6 +434,8 @@ DEF_KERNEL_INITIALIZER(_bilinear_nhwc_bound_initializer)
     vsi_bool    is_2x_up_kernel  = FALSE;
     vsi_bool    is_3x_up_kernel  = FALSE;
     vsi_bool    is_4x_up_kernel  = FALSE;
+
+    VSI_UNREFERENCED(param_size);
 
 
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );

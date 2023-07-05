@@ -57,6 +57,12 @@ REGISTER_ELTWISE_OPENVX_KERNEL( add )
 {
     vx_node node = vxTensorAddNode( graph->g, inputs[0]->t, inputs[1]->t,
         VX_CONVERT_POLICY_SATURATE, outputs[0]->t );
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     return (vsi_nn_kernel_node_t)node;
 } /* add() */
 
@@ -64,6 +70,11 @@ REGISTER_ELTWISE_OPENVX_KERNEL( sub )
 {
     vx_node node = vxTensorSubtractNode( graph->g, inputs[0]->t, inputs[1]->t,
                 VX_CONVERT_POLICY_SATURATE, outputs[0]->t );
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     return (vsi_nn_kernel_node_t)node;
 } /* sub() */
@@ -74,6 +85,10 @@ REGISTER_ELTWISE_OPENVX_KERNEL( div )
     vsi_enum overflow_policy, rounding_policy;
     vx_scalar scale_s = NULL;
     vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     scale = vsi_nn_kernel_param_get_float32(params, "scale");
     overflow_policy = vsi_nn_kernel_param_get_int32(params, "overflow_policy");
@@ -104,6 +119,10 @@ REGISTER_ELTWISE_OPENVX_KERNEL( mul )
     vsi_enum overflow_policy, rounding_policy;
     vx_scalar scale_s = NULL;
     vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     scale = vsi_nn_kernel_param_get_float32(params, "scale");
     overflow_policy = vsi_nn_kernel_param_get_int32(params, "overflow_policy");

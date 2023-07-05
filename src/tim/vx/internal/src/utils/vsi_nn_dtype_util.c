@@ -408,12 +408,15 @@ vsi_bool vsi_nn_QuantCheck
             VSILOGE("input_fl[%d] + weight_fl[%d] != bias_fl[%d]",
                 input->attr.dtype.fl,
                 weight->attr.dtype.fl,
-                bias->attr.dtype.fl);
+                bias ? bias->attr.dtype.fl : 0);
         }
         break;
     case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
     case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
-    if (weight->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
+    case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
+        if (weight->attr.dtype.qnt_type ==
+                VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC ||
+            weight->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
     {
       ret = vsi_nn_QuantAffinePerchannelCheck(input, weight, bias);
       if(ret == FALSE)
@@ -429,7 +432,7 @@ vsi_bool vsi_nn_QuantCheck
         VSILOGE("input_scale[%.12lf] * weight_scale[%.12lf] != bias_scale[%.12lf]",
           input->attr.dtype.scale,
           weight->attr.dtype.scale,
-          bias->attr.dtype.scale);
+          bias ? bias->attr.dtype.scale : 0);
       }
     }
         break;
@@ -468,6 +471,7 @@ vsi_bool vsi_nn_DtypeCompare
             break;
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
         {
             const float diff = (float)1e-5;
             if (dtype0->zero_point != dtype1->zero_point)
@@ -484,6 +488,7 @@ vsi_bool vsi_nn_DtypeCompare
         }
         case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8:
         {
             const float diff = (float)1e-5;
             int32_t i = 0;

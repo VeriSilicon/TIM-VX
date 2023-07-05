@@ -28,11 +28,13 @@
 
 _INITIALIZER( daemon_start )
 {
+    //VSILOGD("OVXLIB init ... ");
     vsi_nn_kernel_backend_init();
 } /* _daemon_start() */
 
 _DEINITIALIZER( daemon_shutdown )
 {
+    //VSILOGD("OVXLIB shutdown ... ");
     vsi_nn_kernel_backend_deinit();
 } /* vsi_nn_daemen_shutdown() */
 

@@ -46,6 +46,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -56,6 +58,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -68,6 +73,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
 
@@ -98,6 +105,7 @@ static vsi_bool setup_op_shapes
         attr.is_const = TRUE;
 
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
         inputs[RNNCELL_INPUT_H_STATE] = output_tensor->t;
     }
 
@@ -108,6 +116,7 @@ static vsi_bool setup_op_shapes
         memcpy( &attr.dtype, &outputs[RNNCELL_OUTPUT_OUTPUT]->attr.dtype, sizeof( attr.dtype ) );
         attr.vtl = TRUE;
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
         outputs[RNNCELL_OUTPUT_H_STATE] = output_tensor->t;
     }
 
@@ -131,7 +140,10 @@ static vsi_bool setup_op_shapes
             outputs[RNNCELL_OUTPUT_OUTPUT]->attr.size,
             VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
+
     return TRUE;
+final:
+    return FALSE;
 }
 
 static vsi_bool op_setup
@@ -207,6 +219,7 @@ static vsi_bool op_setup
                                     inputs[RNNCELL_INPUT_BIAS_I],
                                     &p->internal_dtype[RNNCELL_QUANTIZE_PARAM_I],
                                     use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(input_gate_fc_outputs, "Create internal tensor failed", final);
         if (inputs[RNNCELL_INPUT_AUX_INPUT] != NULL)
         {
             aux_input_gate_fc_outputs = vsi_nn_rnn_create_tp_fc(self,
@@ -215,6 +228,7 @@ static vsi_bool op_setup
                                             NULL,
                                             &p->internal_dtype[RNNCELL_QUANTIZE_PARAM_AUX],
                                             use_virtual_tensor);
+            CHECK_PTR_FAIL_GOTO(aux_input_gate_fc_outputs, "Create internal tensor failed", final);
         }
     }
     else
@@ -225,6 +239,7 @@ static vsi_bool op_setup
             &kernel_h, &kernel_w);
         input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self, inputs[RNNCELL_INPUT_INPUT],
             p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(input_tensor, "Create internal tensor failed", final);
 
         tmp = vsi_nn_rnn_create_nn_fc(self,
                 input_tensor->t,
@@ -233,9 +248,11 @@ static vsi_bool op_setup
                 kernel_h, kernel_w,
                 &p->internal_dtype[RNNCELL_QUANTIZE_PARAM_I],
                 use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(tmp, "Create internal tensor failed", final);
         /* transpose and reshape output */
         input_gate_fc_outputs = vsi_nn_rnn_process_output_for_nn_fc(self, tmp->t, p->local->multi_batch, kernel_h,
             kernel_w, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(input_gate_fc_outputs, "Create internal tensor failed", final);
         if (inputs[RNNCELL_INPUT_AUX_INPUT] != NULL)
         {
             /* reshape and transpose input */
@@ -245,6 +262,8 @@ static vsi_bool op_setup
             input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self,
                             inputs[RNNCELL_INPUT_AUX_INPUT],
                             p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
+            CHECK_PTR_FAIL_GOTO(input_tensor, "Create internal tensor failed", final);
+
             tmp = vsi_nn_rnn_create_nn_fc(self,
                     input_tensor->t,
                     inputs[RNNCELL_INPUT_AUX_INPUT],
@@ -252,10 +271,13 @@ static vsi_bool op_setup
                     kernel_h, kernel_w,
                     &p->internal_dtype[RNNCELL_QUANTIZE_PARAM_AUX],
                     use_virtual_tensor);
+            CHECK_PTR_FAIL_GOTO(tmp, "Create internal tensor failed", final);
+
             /* transpose and reshape output */
             aux_input_gate_fc_outputs = vsi_nn_rnn_process_output_for_nn_fc(self,
                                             tmp->t, p->local->multi_batch, kernel_h,
                                             kernel_w, use_virtual_tensor);
+            CHECK_PTR_FAIL_GOTO(aux_input_gate_fc_outputs, "Create internal tensor failed", final);
         }
     }
 
@@ -268,6 +290,7 @@ static vsi_bool op_setup
                                     inputs[RNNCELL_INPUT_BIAS_H],
                                     &p->internal_dtype[RNNCELL_QUANTIZE_PARAM_H],
                                     use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(hstate_gate_fc_outputs, "Create internal tensor failed", final);
     }
     else
     {
@@ -277,6 +300,7 @@ static vsi_bool op_setup
         hstate_input_tensor = vsi_nn_rnn_process_input_for_nn_fc(self,
                                 inputs[RNNCELL_INPUT_H_STATE],
                                 p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(hstate_input_tensor, "Create internal tensor failed", final);
 
         tmp = vsi_nn_rnn_create_nn_fc(self,
                 hstate_input_tensor->t,
@@ -285,9 +309,12 @@ static vsi_bool op_setup
                 kernel_h, kernel_w,
                 &p->internal_dtype[RNNCELL_QUANTIZE_PARAM_H],
                 use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(tmp, "Create internal tensor failed", final);
+
         /* transpose and reshape output */
         hstate_gate_fc_outputs = vsi_nn_rnn_process_output_for_nn_fc(self,
             tmp->t, p->local->multi_batch, kernel_h, kernel_w, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(hstate_gate_fc_outputs, "Create internal tensor failed", final);
     }
 
     input_add_hstate_outputs = vsi_nn_rnn_create_tensor_add(self,
@@ -295,14 +322,22 @@ static vsi_bool op_setup
                                     hstate_gate_fc_outputs->t,
                                     &p->internal_dtype[RNNCELL_QUANTIZE_PARAM_I],
                                     use_virtual_tensor);
+    CHECK_PTR_FAIL_GOTO(input_add_hstate_outputs, "Create internal tensor failed", final);
 
     if (inputs[RNNCELL_INPUT_AUX_INPUT] != NULL)
     {
+        if (aux_input_gate_fc_outputs == NULL ||
+            input_add_hstate_outputs == NULL)
+        {
+            return FALSE;
+        }
+
         gate_fc_outputs = vsi_nn_rnn_create_tensor_add(self,
                             input_add_hstate_outputs->t,
                             aux_input_gate_fc_outputs->t,
                             &p->internal_dtype[RNNCELL_QUANTIZE_PARAM_I],
                             use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(gate_fc_outputs, "Create internal tensor failed", final);
     }
     else
     {
@@ -311,6 +346,7 @@ static vsi_bool op_setup
 
     /* activation */
     curr = vsi_nn_internal_new_node( self, vsi_nn_rnn_get_act_op_type(p->activation), 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->node->nn_param.tanh.scale_a = 1.0;
     curr->node->nn_param.tanh.scale_b = 1.0;
     curr->inputs[0] = gate_fc_outputs->t;
@@ -320,12 +356,15 @@ static vsi_bool op_setup
     if (outputs[RNNCELL_OUTPUT_H_STATE] != NULL)
     {
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = outputs[RNNCELL_OUTPUT_OUTPUT];
         curr->outputs[0] = outputs[RNNCELL_OUTPUT_H_STATE];
         vsi_nn_internal_setup_node(self, curr);
     }
 
     return TRUE;
+final:
+    return FALSE;
 } /* op_setup() */
 
 static vsi_status op_deinit

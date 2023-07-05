@@ -18,6 +18,7 @@ __kernel void gather_I8toI8_array(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     Image img1 = create_image_from_image2d(input0, 1);
@@ -46,6 +47,7 @@ __kernel void gather_U8toU8_array(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     Image img1 = create_image_from_image2d(input0, 1);
@@ -74,8 +76,8 @@ __kernel void gather_I16toI16_array(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
 
-
     int4 indice = read_imagei(input1, coord_in.xy);
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     Image img1 = create_image_from_image2d(input0, 2);
@@ -105,6 +107,7 @@ __kernel void gather_F16toF16_array(
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
 
     int4 indice = read_imagei(input1, coord_in.xy);
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     Image img1 = create_image_from_image2d(input0, 2);
@@ -142,6 +145,7 @@ __kernel void gather_##src0_type_name##to##src0_type_name##_axis0_array( \
     uchar* output_ptr = get_image_ptr_from_coord(img2, coord.xy); \
     __global data_type* data_ptr = (__global data_type*)input_ptr; \
     __global write_type* out_ptr = (__global write_type*)output_ptr; \
+    indices = indices >= 0 ? indices : indices + axis_num; \
     src.s0 = data_ptr[indices.x]; \
     src.s1 = data_ptr[indices.y]; \
     src.s2 = data_ptr[indices.z]; \

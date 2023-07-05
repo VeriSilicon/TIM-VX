@@ -37,6 +37,7 @@
 #include "vsi_nn_tensor_util_prv.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)
@@ -116,11 +117,15 @@ static vsi_bool op_setup
         attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
 
         mean_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(mean_tensor, "Create internal tensor failed", final);
         vari_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(vari_tensor, "Create internal tensor failed", final);
 
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_MOMENTS, 0, 0);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         axis_array = (int32_t*)\
             vsi_nn_internal_new_node_param(curr, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(axis_array, curr, "Create internal buffer failed", final);
         axis_array[0] = axis;
 
         curr->node->nn_param.moments.axis = axis_array;
@@ -131,6 +136,7 @@ static vsi_bool op_setup
         vsi_nn_internal_setup_node( self, curr );
 
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_BATCHNORM_SINGLE, 0, 0);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[0];
         curr->inputs[1] = mean_tensor->t;
         curr->inputs[2] = vari_tensor->t;
@@ -138,13 +144,14 @@ static vsi_bool op_setup
         curr->inputs[4] = inputs[1];
         curr->node->nn_param.batchnorm_single.eps = self->nn_param.layernorm.eps;
         curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node( self, curr );
+        ret = vsi_nn_internal_setup_node( self, curr );
     }
     else
     {
         ret = vsi_nn_op_common_setup(self, inputs, outputs);
     }
 
+final:
     return ret;
 }
 

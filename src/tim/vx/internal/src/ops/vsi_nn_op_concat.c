@@ -159,6 +159,8 @@ static vsi_status copy_tensor_to_view
     vsi_status ret;
     vsi_nn_concat_lcl_data * data;
 
+    VSI_UNREFERENCED(axis);
+
     ret = VSI_SUCCESS;
     /* Malloc ptr */
     data = (vsi_nn_concat_lcl_data *)malloc( sizeof(vsi_nn_concat_lcl_data) );

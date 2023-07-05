@@ -197,6 +197,8 @@ DEF_KERNEL_INITIALIZER(_depthwise_conv1d_initializer)
     vx_context                  ctx             = vxGetContext((vx_reference)node);
     uint64_t                    pack_key        = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     memset(&hw_param, 0, sizeof(vx_hardware_caps_params_t));
     status = vxQueryHardwareCaps(ctx, &hw_param, sizeof(vx_hardware_caps_params_t));
     CHECK_STATUS_FAIL_GOTO(status, final);
@@ -729,7 +731,9 @@ static vsi_nn_kernel_node_t _setup
 
     reshape_tensors[0] = inputs[0];
 
-    if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
+    if (inputs[1]->attr.dtype.qnt_type !=
+            VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC &&
+        inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
     {
         shape[0] = inputs[1]->attr.size[0];
         shape[1] = 1;
@@ -811,7 +815,9 @@ static vsi_nn_kernel_node_t _setup
     }
 
 final:
-    if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
+    if (inputs[1]->attr.dtype.qnt_type !=
+            VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC &&
+        inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
     {
         vsi_nn_ReleaseTensor( &reshape_tensors[1] );
     }

@@ -31,6 +31,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 static vsi_status _create_local_tensor
     (
@@ -129,6 +130,7 @@ static vsi_status op_compute
         attr.is_const = TRUE;
         attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
         bias_tensor = vsi_nn_CreateTensor(self->graph, &attr);
+        CHECK_PTR_FAIL_GOTO( bias_tensor, "Create tensor fail.", final );
         param.bias = bias_tensor->t;
     }
 
@@ -145,6 +147,7 @@ static vsi_status op_compute
         status = VSI_SUCCESS;
     }
 
+final:
     if (bias_tensor != NULL) vsi_nn_ReleaseTensor(&bias_tensor);
     return status;
 } /* op_compute() */

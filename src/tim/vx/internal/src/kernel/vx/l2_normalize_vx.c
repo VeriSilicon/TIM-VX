@@ -116,6 +116,10 @@ REGISTER_L2_NORMALIZE_OPENVX_KERNEL( l2_norm )
     if (vx_output) vxReleaseTensor(&vx_output);
 #endif
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     if( NULL == node )
     {
         VSILOGE("Call vxSoftmaxLayer2 fail.(softmax)");

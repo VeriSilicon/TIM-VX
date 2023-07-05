@@ -308,6 +308,8 @@ DEF_KERNEL_INITIALIZER(_comparisons_initializer)
     float    input1Scale                    = 1.0f;
     float    input1Tail                     = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -365,7 +367,6 @@ DEF_KERNEL_INITIALIZER(_comparisons_initializer)
             / gpu_param.global_scale[1]);
     gpu_param.global_size[2] = out_shape->size > 2 ? out_shape->data[2] : 1;
 
-    if (1)
     {
             gpu_dp_inst_t uniExtractInteger_2x8 = {{
                 0x33333333, // TCfg
@@ -475,7 +476,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype;
     vsi_status status = VSI_FAILURE;
     uint32_t key;
-    int i;
+    size_t i;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
@@ -527,6 +528,9 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t new_rank = 0;
     vsi_bool ret = FALSE;
 
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+
     ret = vsi_nn_kernel_optimize_eltwise_shape(
             inputs[0]->attr.size, inputs[0]->attr.dim_num,
             inputs[1]->attr.size, inputs[1]->attr.dim_num,
@@ -543,11 +547,11 @@ static vsi_nn_kernel_node_t _setup
                 outputs[0], shapes[2], new_rank );
 
 #define _swap_tensor(a, b, tmp)  \
-    do { \
+    { \
         tmp = a; \
         a = b; \
         b = tmp; \
-    } while(0)
+    }
 
         if (shapes[1][3] > shapes[0][3] && new_rank == 4)
         {

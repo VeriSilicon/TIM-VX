@@ -136,6 +136,10 @@ static vsi_status VX_CALLBACK _kernel_validator
     vx_meta_format metas[]
     )
 {
+    VSI_UNREFERENCED(node);
+    VSI_UNREFERENCED(parameters);
+    VSI_UNREFERENCED(num);
+    VSI_UNREFERENCED(metas);
     return VSI_SUCCESS;
 } /* _kernel_validator() */
 
@@ -146,6 +150,9 @@ static vsi_status VX_CALLBACK _kernel_initializer
     uint32_t paraNum
     )
 {
+    VSI_UNREFERENCED(nodObj);
+    VSI_UNREFERENCED(paramObj);
+    VSI_UNREFERENCED(paraNum);
     return VSI_SUCCESS;
 } /* _kernel_initializer() */
 
@@ -156,6 +163,9 @@ static vsi_status VX_CALLBACK _kernel_deinitializer
     uint32_t paraNum
     )
 {
+    VSI_UNREFERENCED(nodObj);
+    VSI_UNREFERENCED(paraObj);
+    VSI_UNREFERENCED(paraNum);
     return VSI_SUCCESS;
 } /* _kernel_deinitializer() */
 
@@ -287,6 +297,9 @@ static const uint8_t* _load_internal_executable
     vsi_nn_kernel_type_e type
     )
 {
+    VSI_UNREFERENCED(source_name);
+    VSI_UNREFERENCED(size);
+    VSI_UNREFERENCED(type);
 #if VSI_USE_VXC_BINARY
     switch( type )
     {
@@ -518,8 +531,10 @@ static vx_program _create_program_from_executable
 
     program_info.data = _load_internal_executable(
             source_info->data[0], &program_info.size, kernel->type);
+    CHECK_PTR_FAIL_GOTO( program_info.data, "Create buffer fail.", final );
     program = vxCreateProgramWithBinary( graph->ctx->c,
             (const vx_uint8 *)program_info.data, program_info.size );
+final:
     return program;
 } /* _create_program_from_executable() */
 

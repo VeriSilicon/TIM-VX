@@ -47,7 +47,7 @@ typedef struct _pre_process_rgb888_planar_local_data_t {
  Declare number of input and output.
  */
 #define _INPUT_NUM          (3)
-#define _OUTPUT_NUM         (3)
+#define _OUTPUT_NUM         (1)
 
 static vsi_status op_compute
     (
@@ -59,21 +59,35 @@ static vsi_status op_compute
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
+    vsi_nn_pre_process_rgb888_planar_param * p = NULL;
+
+    p = (vsi_nn_pre_process_rgb888_planar_param *)&(self->nn_param.pre_process_rgb888_planar);
     param = vsi_nn_kernel_param_create();
 
-    vsi_nn_kernel_param_add_int32( param, "scale_x", self->nn_param.pre_process_rgb888_planar.local->scale_x );
-    vsi_nn_kernel_param_add_int32( param, "scale_y", self->nn_param.pre_process_rgb888_planar.local->scale_y );
-    vsi_nn_kernel_param_add_int32( param, "left", self->nn_param.pre_process_rgb888_planar.rect.left );
-    vsi_nn_kernel_param_add_int32( param, "top", self->nn_param.pre_process_rgb888_planar.rect.top );
-    vsi_nn_kernel_param_add_int32( param, "width", self->nn_param.pre_process_rgb888_planar.rect.width );
-    vsi_nn_kernel_param_add_int32( param, "height", self->nn_param.pre_process_rgb888_planar.rect.height );
-    vsi_nn_kernel_param_add_float32( param, "r_mean", self->nn_param.pre_process_rgb888_planar.r_mean );
-    vsi_nn_kernel_param_add_float32( param, "g_mean", self->nn_param.pre_process_rgb888_planar.g_mean );
-    vsi_nn_kernel_param_add_float32( param, "b_mean", self->nn_param.pre_process_rgb888_planar.b_mean );
-    vsi_nn_kernel_param_add_float32( param, "scale", self->nn_param.pre_process_rgb888_planar.scale );
-    vsi_nn_kernel_param_add_int32( param, "enable_copy", self->nn_param.pre_process_rgb888_planar.local->enable_copy );
+    vsi_nn_kernel_param_add_int32( param, "scale_x", p->local->scale_x );
+    vsi_nn_kernel_param_add_int32( param, "scale_y", p->local->scale_y );
+    vsi_nn_kernel_param_add_int32( param, "left", p->rect.left );
+    vsi_nn_kernel_param_add_int32( param, "top", p->rect.top );
+    vsi_nn_kernel_param_add_int32( param, "width", p->rect.width );
+    vsi_nn_kernel_param_add_int32( param, "height", p->rect.height );
+    vsi_nn_kernel_param_add_float32( param, "r_mean", p->r_mean );
+    vsi_nn_kernel_param_add_float32( param, "g_mean", p->g_mean );
+    vsi_nn_kernel_param_add_float32( param, "b_mean", p->b_mean );
+    vsi_nn_kernel_param_add_float32( param, "r_scale", p->r_scale );
+    vsi_nn_kernel_param_add_float32( param, "g_scale", p->g_scale );
+    vsi_nn_kernel_param_add_float32( param, "b_scale", p->b_scale );
+    vsi_nn_kernel_param_add_int32( param, "enable_copy", p->local->enable_copy );
+    vsi_nn_kernel_param_add_int32( param, "reverse", p->reverse_channel );
 
-    n = vsi_nn_kernel_selector( self->graph, "pre_process_rgb888_planar", inputs, 3, outputs, 3, param );
+    if (p->enable_rgb88_planar_nhwc)
+    {
+        n = vsi_nn_kernel_selector( self->graph, "pre_process_rgb888_planar_nhwc", inputs, 3, outputs, 1, param );
+    }
+    else
+    {
+        n = vsi_nn_kernel_selector( self->graph, "pre_process_rgb888_planar", inputs, 3, outputs, 1, param );
+    }
+
     if ( n != NULL )
     {
         self->n = (vx_node)n;
@@ -97,11 +111,11 @@ static vsi_bool op_check
 {
     if (inputs[1] == NULL)
     {
-        BEGIN_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR, 1, 3)
-            IO_TYPE(D_U8, D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM)
-            IO_TYPE(D_U8, D_I8|Q_DFP,  D_I8|Q_DFP,  D_I8|Q_DFP)
-            IO_TYPE(D_U8, D_I16|Q_DFP, D_I16|Q_DFP, D_I16|Q_DFP)
-            IO_TYPE(D_U8, D_F16,       D_F16,       D_F16)
+        BEGIN_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR, 1, 1)
+            IO_TYPE(D_U8, D_U8|Q_ASYM)
+            IO_TYPE(D_U8, D_I8|Q_DFP)
+            IO_TYPE(D_U8, D_I16|Q_DFP)
+            IO_TYPE(D_U8, D_F16)
         END_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR)
 
         if (!VALIDATE_OP_IO_TYPES(PRE_PROCESS_RGB888_PLANAR, self, inputs, 1,
@@ -115,11 +129,11 @@ static vsi_bool op_check
     }
     else
     {
-        BEGIN_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR, 3, 3)
-            IO_TYPE(D_U8, D_U8, D_U8, D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM)
-            IO_TYPE(D_U8, D_U8, D_U8, D_I8|Q_DFP,  D_I8|Q_DFP,  D_I8|Q_DFP)
-            IO_TYPE(D_U8, D_U8, D_U8, D_I16|Q_DFP, D_I16|Q_DFP, D_I16|Q_DFP)
-            IO_TYPE(D_U8, D_U8, D_U8, D_F16,       D_F16,       D_F16)
+        BEGIN_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR, 3, 1)
+            IO_TYPE(D_U8, D_U8, D_U8, D_U8|Q_ASYM)
+            IO_TYPE(D_U8, D_U8, D_U8, D_I8|Q_DFP)
+            IO_TYPE(D_U8, D_U8, D_U8, D_I16|Q_DFP)
+            IO_TYPE(D_U8, D_U8, D_U8, D_F16)
         END_IO_TYPE_DECL(PRE_PROCESS_RGB888_PLANAR)
 
         if (!VALIDATE_OP_IO_TYPES(PRE_PROCESS_RGB888_PLANAR, self, inputs, self->input.num,
@@ -144,6 +158,9 @@ static vsi_bool op_setup
 {
     vsi_nn_pre_process_rgb888_planar_param * p = NULL;
     uint32_t i = 0, j = 0;
+
+    VSI_UNREFERENCED(inputs);
+
     p = (vsi_nn_pre_process_rgb888_planar_param *)&(self->nn_param.pre_process_rgb888_planar);
 
     if (p->rect.width == 0 || p->rect.height == 0)
@@ -163,29 +180,34 @@ static vsi_bool op_setup
         }
     }
 
-    for (j = 0; j < 3; j++)
+
+    if ( VSI_NN_DIM_AUTO == outputs[j]->attr.dim_num )
     {
-        if ( VSI_NN_DIM_AUTO == outputs[j]->attr.dim_num )
+        if (p->output_attr.dim_num > 0)
         {
-            if (p->output_attr.dim_num > 0)
+            outputs[j]->attr.dim_num = p->output_attr.dim_num;
+            for (i = 0; i < p->output_attr.dim_num; i++)
             {
-                outputs[j]->attr.dim_num = p->output_attr.dim_num;
-                for (i = 0; i < p->output_attr.dim_num; i++)
-                {
-                    outputs[j]->attr.dim_num = p->output_attr.dim_num;
-                    outputs[j]->attr.size[i] = p->output_attr.size[i];
-                }
+                outputs[j]->attr.size[i] = p->output_attr.size[i];
             }
-            else
-            {
-                VSILOGE("output dim num cannot be zero!(PRE_PROCESS_RGB888_PLANAR)\n");
-                return FALSE;
-            }
+        }
+        else
+        {
+            VSILOGE("output dim num cannot be zero!(PRE_PROCESS_RGB888_PLANAR)\n");
+            return FALSE;
         }
     }
 
-    p->local->scale_x = (int32_t)((p->rect.width << 15) / outputs[0]->attr.size[0]);
-    p->local->scale_y = (int32_t)((p->rect.height << 15) / outputs[0]->attr.size[1]);
+    if (p->enable_rgb88_planar_nhwc)
+    {
+        p->local->scale_x = (int32_t)((p->rect.width << 15) / outputs[0]->attr.size[1]);
+        p->local->scale_y = (int32_t)((p->rect.height << 15) / outputs[0]->attr.size[2]);
+    }
+    else
+    {
+        p->local->scale_x = (int32_t)((p->rect.width << 15) / outputs[0]->attr.size[0]);
+        p->local->scale_y = (int32_t)((p->rect.height << 15) / outputs[0]->attr.size[1]);
+    }
 
     p->local->enable_copy = ((p->local->scale_x == p->local->scale_y) && (p->local->scale_x == (1 << 15)));
 

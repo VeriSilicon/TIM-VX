@@ -49,7 +49,7 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status = VX_FAILURE;
+    vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_tensor_add_mean_stddev_norm_param * p = NULL;
     float eps;
@@ -113,6 +113,8 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(node);
+
     /* TODO: Add code to comput outputs' shape. */
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {

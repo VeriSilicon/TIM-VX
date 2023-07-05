@@ -124,6 +124,8 @@ DEF_KERNEL_INITIALIZER(_reversesequence_initializer)
     vsi_nn_kernel_tensor_attr_t *input_attr  = NULL;
     vsi_size_array_t            *input_shape = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)input );
     CHECK_PTR_FAIL_GOTO( input_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
 
@@ -161,16 +163,16 @@ static vsi_status _query_kernel
     int32_t batch_axis
     )
 {
-    vsi_status status = VSI_FAILURE;
-    vsi_nn_kernel_dtype_e in_dtype;
-    vsi_nn_kernel_dtype_e out_dtype;
+    vsi_status status                   = VSI_FAILURE;
+    vsi_nn_kernel_dtype_e in_dtype      = 0;
+    vsi_nn_kernel_dtype_e out_dtype     = 0;
     const _kernel_map_type * kernel_map = _reversesequence_kernel_map;
     size_t kernel_map_size              = _cnt_of_array( _reversesequence_kernel_map );
     vx_param_description_t * param_def  = _reversesequence_kernel_param_def;
     vx_kernel_initialize_f  initializer = _reversesequence_initializer;
     vsi_nn_kernel_batch_axis_type_e axis_type = _axis1;
-    uint32_t key;
-    uint32_t i;
+    uint32_t key = 0;
+    size_t i = 0;
 
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
@@ -223,7 +225,7 @@ static vsi_status _query_kernel
         break;
     }
 
-    for ( i = 0; i < (uint32_t)kernel_map_size; i ++ )
+    for ( i = 0; i < kernel_map_size; i ++ )
     {
         if ( kernel_map[i].key == key )
         {
@@ -272,6 +274,13 @@ static vsi_nn_kernel_node_t _setup
     float   inoutScale   = inputScale / outputScale;
     float   inoutTail    = outputTail - inputTail * inoutScale;
 
+    vsi_nn_kernel_tensor_t  reshape_tensor = NULL;
+    vsi_size_t shapes[VSI_NN_MAX_DIM_NUM]  = {1};
+    uint32_t new_rank = 2;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+
     if ( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num )
      || !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
@@ -280,6 +289,11 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
+    shapes[0] = inputs[1]->attr.size[0];
+    shapes[1] = 1;
+
+    reshape_tensor = vsi_nn_kernel_tensor_reshape(inputs[1]->t, shapes, new_rank);
+
     status = _query_kernel( kernel, inputs, outputs, batch_axis );
     if ( VSI_SUCCESS == status)
     {
@@ -287,9 +301,10 @@ static vsi_nn_kernel_node_t _setup
         if ( node )
         {
             /* Set inputs and outputs */
-            uint32_t index = 3;
-            vsi_nn_kernel_node_pack_io( node_params, _REVERSESEQUENCE_PARAM_NUM,
-                    inputs, input_num, outputs, output_num );
+            uint32_t index = 0;
+            node_params[index++] = (vsi_nn_kernel_node_param_t)inputs[0]->t;
+            node_params[index++] = reshape_tensor;
+            node_params[index++] = (vsi_nn_kernel_node_param_t)outputs[0]->t;
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &inoutScale );
             node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &inoutTail );
             /* Pass parameters to node. */
@@ -297,6 +312,11 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &node_params[3] );
             vsi_nn_kernel_scalar_release( &node_params[4] );
         }
+    }
+
+    if (reshape_tensor)
+    {
+        vsi_nn_kernel_tensor_release( &reshape_tensor );
     }
     return node;
 } /* _setup() */

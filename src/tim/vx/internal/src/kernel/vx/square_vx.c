@@ -46,6 +46,11 @@ static vsi_nn_kernel_node_t _setup
 {
     vx_node node = NULL;
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxActivationLayer(
         graph->g,
         inputs[0]->t,

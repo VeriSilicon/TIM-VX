@@ -29,9 +29,11 @@ __write_only image2d_array_t output, \
                float         rMean, \
                float         gMean, \
                float         bMean, \
-               float         f32Var, \
+               float         r_scale, \
                int           reverse_channel, \
-               int           trans \
+               int           trans, \
+               float         g_scale, \
+               float         b_scale \
     ) \
 { \
     int2 ratioXY = (int2)(*xRatio, *yRatio); \
@@ -80,7 +82,7 @@ __write_only image2d_array_t output, \
  \
     float4 bgrMean = (float4)(bMean, gMean, rMean, 0); \
  \
-    bgrMean *= f32Var; \
+    bgrMean *= (float4)(b_scale, g_scale, r_scale, 0); \
  \
     int4 test01, temp1; \
     int4 test02, temp2; \
@@ -113,7 +115,7 @@ __write_only image2d_array_t output, \
  \
     /*convert U8 to dst*/ \
     dst_type dst; \
-    tmp_dst = tmp_dst * f32Var - bgrMean.zzzz; \
+    tmp_dst = tmp_dst * r_scale - bgrMean.zzzz; \
     tmp_dst = tmp_dst * outputScale + outputZP; \
     conv_type dst0; \
     _viv_asm(CONV_RTE, dst0, tmp_dst); \
@@ -140,7 +142,7 @@ __write_only image2d_array_t output, \
     VXC_DP4x4(tmp_dst, u8_dst, u8_dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \
             uniConvertIntergetoF32_4x4); \
  \
-    tmp_dst = tmp_dst * f32Var - bgrMean.y; \
+    tmp_dst = tmp_dst * g_scale - bgrMean.y; \
     tmp_dst = tmp_dst * outputScale + outputZP; \
     _viv_asm(CONV_RTE, dst0, tmp_dst); \
     VXC_DP2x8(dst, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \
@@ -165,7 +167,7 @@ __write_only image2d_array_t output, \
     VXC_DP4x4(tmp_dst, u8_dst, u8_dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \
         uniConvertIntergetoF32_4x4); \
  \
-    tmp_dst = tmp_dst * f32Var - bgrMean.x; \
+    tmp_dst = tmp_dst * b_scale - bgrMean.x; \
     tmp_dst = tmp_dst * outputScale + outputZP; \
     _viv_asm(CONV_RTE, dst0, tmp_dst); \
     VXC_DP2x8(dst, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtract8Data_2x8); \

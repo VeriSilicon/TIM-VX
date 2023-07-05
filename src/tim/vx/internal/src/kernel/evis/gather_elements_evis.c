@@ -51,16 +51,29 @@ typedef enum
 
 #define STR(a) #a
 // Add kernel hashtable here
-#define GATHER_ELEMENTS_HASH_KEY( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, IMG_2D ) \
-        (( AXIS ) | ( IN0_DTYPE << 2 ) | ( IN1_DTYPE << 10 ) | ( OUT_DTYPE << 18 ) | ( IMG_2D << 26 ))
+#define GATHER_ELEMENTS_HASH_KEY( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, IMG_2D , BEYOND_MAXWIDTH) \
+        (( AXIS ) | ( IN0_DTYPE << 2 ) | ( IN1_DTYPE << 10 ) | ( OUT_DTYPE << 18 ) | ( IMG_2D << 26 ) |\
+        (BEYOND_MAXWIDTH << 28))
 #define PACK_KERNEL_3D_MAP( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ) \
-  { GATHER_ELEMENTS_HASH_KEY( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 0 ), \
+  { GATHER_ELEMENTS_HASH_KEY( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 0 , 0), \
   CVIVANTE_NAMESPACE("evis.gather_elements_axis"STR(AXIS)"_"STR(IN0_DTYPE)"_"STR(IN1_DTYPE)"to"STR(OUT_DTYPE)), \
   _GATHER_ELEMENTS_KERNEL_SOURCE}
 
 #define PACK_KERNEL_2D_MAP( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ) \
-  { GATHER_ELEMENTS_HASH_KEY( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 1 ), \
+  { GATHER_ELEMENTS_HASH_KEY( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 1 , 0), \
   CVIVANTE_NAMESPACE("evis.gather_elements_axis"STR(AXIS)"_"STR(IN0_DTYPE)"_"STR(IN1_DTYPE)"to"STR(OUT_DTYPE)"_2D"), \
+  _GATHER_ELEMENTS_KERNEL_SOURCE}
+
+#define PACK_KERNEL_BEYOND_MAXWIDTH_MAP( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ) \
+  { GATHER_ELEMENTS_HASH_KEY( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 0 , 1), \
+  CVIVANTE_NAMESPACE("evis.gather_elements_beyond_maxwidth_axis"STR(AXIS)\
+  "_"STR(IN0_DTYPE)"_"STR(IN1_DTYPE)"to"STR(OUT_DTYPE)), \
+  _GATHER_ELEMENTS_KERNEL_SOURCE}
+
+#define PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE ) \
+  { GATHER_ELEMENTS_HASH_KEY( AXIS, IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 1 , 1), \
+  CVIVANTE_NAMESPACE("evis.gather_elements_beyond_maxwidth_axis"STR(AXIS)\
+  "_"STR(IN0_DTYPE)"_"STR(IN1_DTYPE)"to"STR(OUT_DTYPE)"_2D"), \
   _GATHER_ELEMENTS_KERNEL_SOURCE}
 
 typedef struct
@@ -94,6 +107,32 @@ static const _kernel_map_type _gather_elements_kernel_map[] =
     PACK_KERNEL_2D_MAP( 1, I16, I32, I16 ),
     PACK_KERNEL_2D_MAP( 1, I8,  I32, I8 ),
     PACK_KERNEL_2D_MAP( 1, U8,  I32, U8 ),
+
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 0, F16, I32, F16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 0, I16, I32, I16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 0, I8,  I32, I8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 0, U8,  I32, U8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 1, F16, I32, F16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 1, I16, I32, I16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 1, I8,  I32, I8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 1, U8,  I32, U8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 2, F16, I32, F16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 2, I16, I32, I16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 2, I8,  I32, I8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_MAP( 2, U8,  I32, U8 ),
+
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 0, F16, I32, F16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 0, I16, I32, I16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 0, I8,  I32, I8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 0, U8,  I32, U8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 1, F16, I32, F16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 1, I16, I32, I16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 1, I8,  I32, I8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 1, U8,  I32, U8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 2, F16, I32, F16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 2, I16, I32, I16 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 2, I8,  I32, I8 ),
+    PACK_KERNEL_BEYOND_MAXWIDTH_2D_MAP( 2, U8,  I32, U8 ),
 };
 
 
@@ -128,25 +167,47 @@ DEF_KERNEL_INITIALIZER(_gather_elements_initializer)
         {0, 0, 0},
         {0, 0, 0}
         };
-    vsi_nn_kernel_tensor_attr_t * input_attr  = NULL;
+    vsi_nn_kernel_tensor_attr_t * input_attr0 = NULL;
+    vsi_nn_kernel_tensor_attr_t * input_attr1 = NULL;
     vsi_nn_kernel_tensor_attr_t * output_attr = NULL;
     vsi_size_array_t * out_shape              = NULL;
     int32_t axis = 0;
     int32_t axis_size = 0;
+    uint32_t width0 = 0;
+    uint32_t height0 = 0;
+    uint32_t width1 = 0;
+    uint32_t height1 = 0;
+    uint32_t width_out = 0;
+    uint32_t height_out = 0;
+    uint32_t depth0 = 0;
+    uint32_t depth1 = 0;
 
-    input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
-    CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
+    VSI_UNREFERENCED(param_size);
+
+    input_attr0 = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
+    CHECK_PTR_FAIL_GOTO( input_attr0, "Create tensor attr buffer fail.", final );
+    input_attr1 = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( input_attr1, "Create tensor attr buffer fail.", final );
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
 
     vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[SCALAR_INPUT_AXIS], &axis);
 
     out_shape = output_attr->shape;
-    axis_size = (int32_t)input_attr->shape->data[axis];
+    axis_size = (int32_t)input_attr0->shape->data[axis];
     if (axis == 0)
     {
         gpu_param.global_scale[0] = 4;
     }
+
+    width0 = (uint32_t)input_attr0->shape->data[0];
+    height0 = (uint32_t)input_attr0->shape->data[1];
+    depth0 = input_attr0->shape->size > 2 ? (uint32_t)input_attr0->shape->data[2] : 1;
+    width1 = (uint32_t)input_attr1->shape->data[0];
+    height1 = (uint32_t)input_attr1->shape->data[1];
+    depth1 = input_attr1->shape->size > 2 ? (uint32_t)input_attr1->shape->data[2] : 1;
+    width_out = (uint32_t)output_attr->shape->data[0];
+    height_out = (uint32_t)output_attr->shape->data[1];
 
     gpu_param.dim = (out_shape->size < 3 || 1 == out_shape->data[2]) ? 2 : 3;
     gpu_param.global_size[0] = gpu_align_p2(
@@ -157,13 +218,31 @@ DEF_KERNEL_INITIALIZER(_gather_elements_initializer)
             / gpu_param.global_scale[1]);
     gpu_param.global_size[2] = out_shape->size > 2 ? out_shape->data[2] : 1;
 
+    if (width0 >= GPU_TENSOR_MAX_WIDTH ||
+        width1 >= GPU_TENSOR_MAX_WIDTH ||
+        height0 >= GPU_TENSOR_MAX_WIDTH ||
+        height1 >= GPU_TENSOR_MAX_WIDTH ||
+        depth0 >= GPU_TENSOR_MAX_WIDTH ||
+        depth1 >= GPU_TENSOR_MAX_WIDTH)
+    {
+        gpu_param.global_scale[0] = 1;
+        gpu_param.global_size[0] = out_shape->data[0];
+    }
+
     status  = vsi_nn_kernel_gpu_config( node, &gpu_param );
     status |= vsi_nn_kernel_gpu_add_param( node, "axis_size", &axis_size );
+    status |= vsi_nn_kernel_gpu_add_param( node, "width0", &width0 );
+    status |= vsi_nn_kernel_gpu_add_param( node, "height0", &height0 );
+    status |= vsi_nn_kernel_gpu_add_param( node, "width1", &width1 );
+    status |= vsi_nn_kernel_gpu_add_param( node, "height1", &height1 );
+    status |= vsi_nn_kernel_gpu_add_param( node, "width_out", &width_out );
+    status |= vsi_nn_kernel_gpu_add_param( node, "height_out", &height_out );
     CHECK_STATUS_FAIL_GOTO(status, final );
 
 final:
 #define SAFE_FREE_TENSOR_ATTR(_PTR) if( _PTR ) { vsi_nn_kernel_tensor_attr_release( &_PTR ); _PTR = NULL; }
-    SAFE_FREE_TENSOR_ATTR(input_attr);
+    SAFE_FREE_TENSOR_ATTR(input_attr0);
+    SAFE_FREE_TENSOR_ATTR(input_attr1);
     SAFE_FREE_TENSOR_ATTR(output_attr);
     return status;
 } /* _gather_elements_initializer() */
@@ -190,6 +269,9 @@ static vsi_status _query_kernel
     vx_param_description_t * param_def  = _gather_elements_kernel_param_def;
     vx_kernel_initialize_f  initializer = _gather_elements_initializer;
     int32_t img_2d = (outputs[0]->attr.dim_num < 3 || outputs[0]->attr.size[2] == 1) ? 1 : 0;
+    int32_t beyond_maxwidth = 0;
+    vsi_size_t depth0 = inputs[0]->attr.dim_num > 2 ? inputs[0]->attr.size[2] : 1;
+    vsi_size_t depth1 = inputs[1]->attr.dim_num > 2 ? inputs[1]->attr.size[2] : 1;
 
     uint32_t key;
     uint32_t i;
@@ -207,7 +289,17 @@ static vsi_status _query_kernel
         out_dtype = F16;
     }
 
-    key = GATHER_ELEMENTS_HASH_KEY( axis, in0_dtype, in1_dtype, out_dtype, img_2d );
+    if (inputs[0]->attr.size[0] >= GPU_TENSOR_MAX_WIDTH ||
+        inputs[0]->attr.size[1] >= GPU_TENSOR_MAX_WIDTH ||
+        inputs[1]->attr.size[0] >= GPU_TENSOR_MAX_WIDTH ||
+        inputs[1]->attr.size[1] >= GPU_TENSOR_MAX_WIDTH ||
+        depth0 >= GPU_TENSOR_MAX_WIDTH ||
+        depth1 >= GPU_TENSOR_MAX_WIDTH)
+    {
+        beyond_maxwidth = 1;
+    }
+
+    key = GATHER_ELEMENTS_HASH_KEY( axis, in0_dtype, in1_dtype, out_dtype, img_2d, beyond_maxwidth );
 
     for ( i = 0; i < (uint32_t)kernel_map_size; i ++ )
     {

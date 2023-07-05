@@ -248,6 +248,7 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
     /* TODO: Add code to comput outputs' shape. */
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {

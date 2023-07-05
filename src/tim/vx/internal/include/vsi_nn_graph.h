@@ -362,6 +362,27 @@ OVXLIB_API vsi_nn_tensor_id_t vsi_nn_AddTensorFromHandle
     );
 
 /**
+ * Add a new tensor from view
+ * Create a new tensor from a view and add it to graph.
+ *
+ * @param[in] graph Graph handle.
+ * @param[in] id Required, the id of the parent tensor on which to create view.
+ * @param[in] start The start cooridinates for each dim, 0-based none-negative interger.
+ *             NULL means copy from the idx 0 of each dim.
+ * @param[in] end The end cooridinates for each dim, 0-based none-negative interger.
+ *             NULL means copy to the end of each dim. For the given idx, the end[idx]
+ *             should be greater than start[idx].
+ * @return The new tensor id on success, or VSI_NN_TENSOR_ID_NA otheriwse.
+ */
+OVXLIB_API vsi_nn_tensor_id_t vsi_nn_AddTensorFromView
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_id_t id,
+    vsi_size_t* start,
+    vsi_size_t* end
+    );
+
+/**
  * Attach tensor to graph
  * Attach an exist tensor to graph.
  *

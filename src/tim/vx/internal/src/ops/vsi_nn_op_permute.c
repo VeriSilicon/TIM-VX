@@ -51,6 +51,8 @@ static vsi_bool _is_same_memory_shape
     uint32_t dim_num0 = inputs[0]->attr.dim_num;
     uint32_t dim_num1 = self->nn_param.permute.dim_num;
 
+    VSI_UNREFERENCED(outputs);
+
     if (dim_num0 != dim_num1)
         return FALSE;
 
@@ -101,6 +103,8 @@ static vsi_bool _is_same_quant
     )
 {
     vsi_nn_dtype_t *dtype,*_dtype;
+
+    VSI_UNREFERENCED(self);
 
     dtype = &inputs[0]->attr.dtype;
     _dtype = &outputs[0]->attr.dtype;

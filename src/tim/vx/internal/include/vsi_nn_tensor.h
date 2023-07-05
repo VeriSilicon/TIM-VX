@@ -82,6 +82,10 @@ typedef enum
     VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC = 0x4,
     /** affine perchannel asymmetric */
     VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC = 0x5,
+    /** float8 */
+    VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8 = 0x6,
+    /** perchannel float8 */
+    VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8 = 0x7,
     /** undefined type */
     VSI_NN_QNT_TYPE_NA = 0xff,
 } vsi_nn_qnt_type_e;

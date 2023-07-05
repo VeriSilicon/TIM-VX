@@ -35,8 +35,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_math.h"
-#include "libnnext/vsi_nn_vxkernel.h"
-#include "libnnext/vx_lib_nnext.h"
+#include "vsi_nn_error.h"
 #include "vsi_nn_test.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -103,6 +102,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     if (self->nn_param.space2depth.block_size[0] != self->nn_param.space2depth.block_size[1])
     {
         return vsi_nn_internal_optimize_node(self, direction );
@@ -142,12 +143,13 @@ static vsi_bool op_set_space2depth_internal
     vsi_nn_op_t  type_name
     )
 {
-    vsi_bool retn = TRUE;
+    vsi_bool retn = FALSE;
     vsi_nn_internal_node_t* curr = NULL;
 
     vsi_nn_internal_init_node_wksp( self );
 
     curr = vsi_nn_internal_new_node( self, type_name, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->node->nn_param.space2depth_internal.block_size_x =
                         self->nn_param.space2depth.block_size[0];
     curr->node->nn_param.space2depth_internal.block_size_y =
@@ -156,6 +158,7 @@ static vsi_bool op_set_space2depth_internal
     curr->outputs[0] = outputs[0];
     retn = vsi_nn_internal_setup_node(self, curr);
 
+final:
     return retn;
 }
 

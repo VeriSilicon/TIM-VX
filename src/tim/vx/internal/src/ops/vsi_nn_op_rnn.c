@@ -89,41 +89,43 @@ static vsi_bool op_check
     )
 {
     uint32_t input_idx = 0;
-    do {
+    {
         vsi_bool break_early = FALSE;
 
         // input_idx = 0 : inputs[0].shape = shape(batch_size, input_size)
-        if (input_idx >= self->input.num) break;
+        if (input_idx >= self->input.num) goto continue_point;
         break_early = (inputs[input_idx]->attr.dim_num != 2);
-        if (break_early) break;
+        if (break_early) goto continue_point;
         input_idx ++;
 
         // input_idx = 1 : inputs[1].shape = shape(num_units, input_size)
-        if (input_idx >= self->input.num) break;
+        if (input_idx >= self->input.num) goto continue_point;
         break_early = (inputs[input_idx]->attr.dim_num != 2);
-        if (break_early) break;
+        if (break_early) goto continue_point;
         input_idx ++;
 
         // input_idx = 2 : inputs[2].shape = shape(num_units, num_units)
-        if (input_idx >= self->input.num) break;
+        if (input_idx >= self->input.num) goto continue_point;
         break_early = (inputs[input_idx]->attr.dim_num != 2);
-        if (break_early) break;
+        if (break_early) goto continue_point;
         input_idx ++;
 
         // input_idx = 3 : inputs[3].shape = shape(num_units)
-        if (input_idx >= self->input.num) break;
+        if (input_idx >= self->input.num) goto continue_point;
         break_early = (inputs[input_idx]->attr.dim_num != 1);
-        if (break_early) break;
+        if (break_early) goto continue_point;
         input_idx ++;
 
         // input_idx = 4 : inputs[4].shape = shape(batch_size, num_units)
-        if (input_idx >= self->input.num) break;
+        if (input_idx >= self->input.num) goto continue_point;
         break_early = (inputs[input_idx]->attr.dim_num != 2);
-        if (break_early) break;
+        if (break_early) goto continue_point;
         input_idx ++;
 
         return TRUE;
-    } while(0);
+    }
+
+continue_point:
 
     {
         BEGIN_IO_TYPE_DECL(RNN, 5, 1)
@@ -155,6 +157,8 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+
     if (VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num) {
         outputs[0]->attr.size[0] = inputs[4]->attr.size[0];
         outputs[0]->attr.size[1] = inputs[4]->attr.size[1];

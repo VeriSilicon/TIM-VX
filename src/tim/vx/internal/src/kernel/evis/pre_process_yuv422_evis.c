@@ -99,6 +99,8 @@ static vx_param_description_t vxPreProcessyuv422Kernel_param_def[] =
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
 };
 #define _EVIS_PRE_PROCESS_YUV422_PARAM_NUM    _cnt_of_array(vxPreProcessyuv422Kernel_param_def)
 
@@ -126,12 +128,15 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
     int32_t     order1      = 2;
     uint32_t    width       = 0;
     uint32_t    height      = 0;
-    float       bMean = 0.0f, gMean= 0.0f, rMean = 0.0f, var = 0.0f;
-    float       outputScaleVar = 0.0f;
+    float       bMean = 0.0f, gMean= 0.0f, rMean = 0.0f;
+    float       b_scale = 0.0f, g_scale = 0.0f, r_scale = 0.0f;
+    float       outputScaleVar_b = 0.0f, outputScaleVar_g = 0.0f, outputScaleVar_r = 0.0f;
     float       bMeanScaleVarZp = 0.0f,  gMeanScaleVarZp = 0.0f,  rMeanScaleVarZp = 0.0f;
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     vsi_size_array_t * out_shape = NULL;
+
+    VSI_UNREFERENCED(param_size);
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
@@ -142,9 +147,13 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[8], &bMean);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
-    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[9], &var);
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[9], &r_scale);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[10], &reorder);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[13], &g_scale);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[14], &b_scale);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
@@ -159,10 +168,12 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
         order1 = 0;
     }
 
-    outputScaleVar = output_scale * var;
-    bMeanScaleVarZp = output_zp - bMean * outputScaleVar;
-    gMeanScaleVarZp = output_zp - gMean * outputScaleVar;
-    rMeanScaleVarZp = output_zp - rMean * outputScaleVar;
+    outputScaleVar_b = output_scale * b_scale;
+    outputScaleVar_g = output_scale * g_scale;
+    outputScaleVar_r = output_scale * r_scale;
+    bMeanScaleVarZp = output_zp - bMean * outputScaleVar_b;
+    gMeanScaleVarZp = output_zp - gMean * outputScaleVar_g;
+    rMeanScaleVarZp = output_zp - rMean * outputScaleVar_r;
 
     shaderParam.global_scale[0]  = 4;
     shaderParam.global_scale[1]  = 1;
@@ -245,7 +256,9 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);
         status |= vsi_nn_kernel_gpu_add_param(node, "bOrder", &order1);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractYUVtoShortSub_2x8", &uniExtractYUVtoShortSub_2x8);
-        status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar", &outputScaleVar);
+        status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_b", &outputScaleVar_b);
+        status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_g", &outputScaleVar_g);
+        status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_r", &outputScaleVar_r);
         status |= vsi_nn_kernel_gpu_add_param(node, "bMeanScaleVarZp", &bMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "gMeanScaleVarZp", &gMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "rMeanScaleVarZp", &rMeanScaleVarZp);
@@ -308,12 +321,15 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
     uint32_t    yrIntFloat_16 = 0;
     int32_t     xRatio        = 0;
     int32_t     yRatio        = 0;
-    float       bMean = 0.0f, gMean= 0.0f, rMean = 0.0f, var = 0.0f;
-    float       outputScaleVar = 0.0f;
+    float       bMean = 0.0f, gMean= 0.0f, rMean = 0.0f;
+    float       b_scale = 0.0f, g_scale = 0.0f, r_scale = 0.0f;
+    float       outputScaleVar_b = 0.0f, outputScaleVar_g = 0.0f, outputScaleVar_r = 0.0f;
     float       bMeanScaleVarZp = 0.0f,  gMeanScaleVarZp = 0.0f,  rMeanScaleVarZp = 0.0f;
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     vsi_size_array_t * out_shape = NULL;
+
+    VSI_UNREFERENCED(param_size);
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
@@ -328,9 +344,13 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[8], &bMean);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
-    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[9], &var);
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[9], &r_scale);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[10], &reorder);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[13], &g_scale);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[14], &b_scale);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     out_shape  = attr[0]->shape;
@@ -350,10 +370,12 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
     xrIntFloat_16 = (uint32_t)((roi_width << 16) / width + 1);
     yrIntFloat_16 = (uint32_t)((roi_height << 16) / height + 1);
 
-    outputScaleVar = output_scale * var;
-    bMeanScaleVarZp = output_zp - bMean * outputScaleVar;
-    gMeanScaleVarZp = output_zp - gMean * outputScaleVar;
-    rMeanScaleVarZp = output_zp - rMean * outputScaleVar;
+    outputScaleVar_b = output_scale * b_scale;
+    outputScaleVar_g = output_scale * g_scale;
+    outputScaleVar_r = output_scale * r_scale;
+    bMeanScaleVarZp = output_zp - bMean * outputScaleVar_b;
+    gMeanScaleVarZp = output_zp - gMean * outputScaleVar_g;
+    rMeanScaleVarZp = output_zp - rMean * outputScaleVar_r;
 
     shaderParam.global_scale[0]  = 4;
     shaderParam.global_scale[1]  = 1;
@@ -445,7 +467,9 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertYUV422toR_4x4", &uniConvertYUV422toR_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "xrIntFloat_16", &xrIntFloat_16);
         status |= vsi_nn_kernel_gpu_add_param(node, "yrIntFloat_16", &yrIntFloat_16);
-        status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar", &outputScaleVar);
+        status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_b", &outputScaleVar_b);
+        status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_g", &outputScaleVar_g);
+        status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_r", &outputScaleVar_r);
         status |= vsi_nn_kernel_gpu_add_param(node, "bMeanScaleVarZp", &bMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "gMeanScaleVarZp", &gMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "rMeanScaleVarZp", &rMeanScaleVarZp);
@@ -503,8 +527,10 @@ static vsi_status _query_kernel
     vsi_nn_kernel_convert_type_e convert_type = SCALE;
     vsi_status status = VSI_FAILURE;
     uint32_t key = 0;
-    int i = 0;
+    size_t i = 0;
     vsi_bool enable_copy  = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
+
+    VSI_UNREFERENCED(scale_x);
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
@@ -570,6 +596,9 @@ static vsi_nn_kernel_node_t _setup
     int32_t trans = 0;
     int32_t scale_x  = vsi_nn_kernel_param_get_int32( params, "scale_x" );
 
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+
     if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
@@ -589,7 +618,9 @@ static vsi_nn_kernel_node_t _setup
             float r_mean     = vsi_nn_kernel_param_get_float32( params, "r_mean" );
             float g_mean     = vsi_nn_kernel_param_get_float32( params, "g_mean" );
             float b_mean     = vsi_nn_kernel_param_get_float32( params, "b_mean" );
-            float rgb_scale  = vsi_nn_kernel_param_get_float32( params, "rgb_scale" );
+            float r_scale    = vsi_nn_kernel_param_get_float32( params, "r_scale" );
+            float g_scale    = vsi_nn_kernel_param_get_float32( params, "g_scale" );
+            float b_scale    = vsi_nn_kernel_param_get_float32( params, "b_scale" );
             int32_t reverse  = vsi_nn_kernel_param_get_int32( params, "reverse" );
             int32_t yuv422_type = vsi_nn_kernel_param_get_int32( params, "yuv422_type" );
 
@@ -604,10 +635,12 @@ static vsi_nn_kernel_node_t _setup
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &r_mean );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &g_mean );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &b_mean );
-            tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &rgb_scale );
+            tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &r_scale );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &reverse );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &trans );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &yuv422_type );
+            tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &g_scale );
+            tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &b_scale );
             status = vsi_nn_kernel_node_pass_param( node, tmp_params, _EVIS_PRE_PROCESS_YUV422_PARAM_NUM );
             CHECK_STATUS(status);
             vsi_nn_kernel_scalar_release( &tmp_params[2] );
@@ -621,6 +654,8 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &tmp_params[10] );
             vsi_nn_kernel_scalar_release( &tmp_params[11] );
             vsi_nn_kernel_scalar_release( &tmp_params[12] );
+            vsi_nn_kernel_scalar_release( &tmp_params[13] );
+            vsi_nn_kernel_scalar_release( &tmp_params[14] );
         }
     }
     vsi_safe_release_tensor(reshape_tensors[0]);

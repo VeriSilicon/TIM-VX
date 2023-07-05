@@ -98,7 +98,7 @@ DEF_KERNEL_INITIALIZER(_logical_not_initializer)
     size_t                              param_size
     )
 {
-    vsi_status status = VX_SUCCESS;
+    vsi_status status = VSI_FAILURE;
     // Alignment with a power of two value.
     gpu_param_t gpu_param = {
         3,
@@ -111,6 +111,8 @@ DEF_KERNEL_INITIALIZER(_logical_not_initializer)
     vx_tensor     output            = (vx_tensor)param[1];
     vsi_nn_kernel_tensor_attr_t *output_attr   = NULL;
     vsi_size_array_t             *output_shape  = NULL;
+
+    VSI_UNREFERENCED(param_size);
 
     output_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output);
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -225,6 +227,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_size_t new_rank = 0;
     vsi_bool ret = FALSE;
+
+    VSI_UNREFERENCED(params);
 
     ret = vsi_nn_kernel_optimize_element_shape(
             inputs[0]->attr.size, inputs[0]->attr.dim_num,

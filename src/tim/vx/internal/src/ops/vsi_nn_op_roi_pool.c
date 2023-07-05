@@ -157,6 +157,8 @@ static vsi_status op_optimize
     uint32_t dim;
     vx_tensor rois_tmp;
 
+    VSI_UNREFERENCED(outputs);
+
     rois_tmp = NULL;
     if( direction == VSI_NN_OPTIMIZE_FORWARD && inputs[1]->attr.dim_num == 2 )
     {

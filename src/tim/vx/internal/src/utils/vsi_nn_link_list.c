@@ -27,6 +27,7 @@
 #include "vsi_nn_prv.h"
 #include "utils/vsi_nn_link_list.h"
 #include "vsi_nn_types.h"
+#include "vsi_nn_error.h"
 
 static vsi_nn_link_list_t * _walk_to_start
     (
@@ -239,6 +240,7 @@ vsi_nn_link_list_t * vsi_nn_LinkListNewNode
     )
 {
     vsi_nn_link_list_t *node = (vsi_nn_link_list_t *)malloc(sz);
+    CHECK_PTR_FAIL_GOTO( node, "Create node fail.", final );
     memset(node, 0, sz);
 
     if(init)
@@ -246,6 +248,7 @@ vsi_nn_link_list_t * vsi_nn_LinkListNewNode
         init(node);
     }
 
+final:
     return node;
 } /* vsi_nn_LinkListNewNode() */
 

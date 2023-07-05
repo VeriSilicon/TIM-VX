@@ -167,10 +167,12 @@ DEF_KERNEL_INITIALIZER(_swish_initializer)
         {0, 0, 0}
         };
 
-    vx_status    status             = VX_FAILURE;
+    vsi_status   status             = VSI_FAILURE;
     vx_tensor    output             = (vx_tensor)param[1];
     vsi_nn_kernel_tensor_attr_t * attr_out = NULL;
     vsi_size_array_t * out_shape = NULL;
+
+    VSI_UNREFERENCED(param_size);
 
     attr_out = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output );
     CHECK_PTR_FAIL_GOTO( attr_out, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -292,6 +294,9 @@ static vsi_nn_kernel_node_t _setup
     float   outputZP    = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
     vx_float32  logE    = (vx_float32)(log10(exp(1.0f)) / log10(2.0f));
     vsi_bool ret = FALSE;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
 #if (VX_ACTIVATION_EXT_SUPPORT)
     if (VSI_NN_HW_EVIS_2 == graph->ctx->config.evis.ver)

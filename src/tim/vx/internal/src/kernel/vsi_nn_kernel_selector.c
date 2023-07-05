@@ -68,6 +68,12 @@ KERNEL_SELECTOR( depthwise_conv1d )
         { VSI_NN_KERNEL_TYPE_CL,    3 },
         { VSI_NN_KERNEL_TYPE_CPU,   2 },
         };
+
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(outputs);
+    VSI_UNREFERENCED(output_num);
+
     dilation = dilation == 0 ? 0 : dilation - 1;
     real_kernel = (kernel - 1) * dilation + kernel;
 
@@ -101,6 +107,12 @@ static vsi_status _select
         { VSI_NN_KERNEL_TYPE_CL,    1 },
         { VSI_NN_KERNEL_TYPE_CPU,   0 },
         };
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(outputs);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(params);
     return vsi_nn_kernel_pirority_set( selector, pirority, _cnt_of_array(pirority) );
 } /* _select */
 
@@ -141,5 +153,8 @@ REGISTER_VX_FIRST_KERNEL_SELECTOR(atan)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(atanh)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(acosh)
 REGISTER_VX_FIRST_KERNEL_SELECTOR(inverse_sigmoid)
+#if (VX_TENSOR_SELECT_VX_SUPPORT)
+REGISTER_VX_FIRST_KERNEL_SELECTOR(select)
+#endif
 
 __END_DECLS

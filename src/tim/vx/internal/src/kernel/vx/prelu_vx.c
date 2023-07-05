@@ -95,6 +95,10 @@ REGISTER_PRELU_OPENVX_KERNEL( prelu )
     vx_node node = NULL;
     int32_t is_per_channel_alpha = 0;
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     is_per_channel_alpha = vsi_nn_kernel_param_get_int32(params, "is_per_channel_alpha");
 
     if (!is_per_channel_alpha)

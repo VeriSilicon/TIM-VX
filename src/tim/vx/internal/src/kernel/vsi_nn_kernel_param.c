@@ -62,13 +62,13 @@ typedef struct
 } _param_type;
 
 #define CHECK_PARAM_NULL( ptr, rval, ... ) \
-    do { \
+    { \
         if( ptr == NULL ) { \
             VSILOGE(__VA_ARGS__); \
             VSI_ASSERT(FALSE); \
             return rval; \
         } \
-    } while(0)
+    }
 
 #define _PARAM_ADD_TEMPLATE(TYPE_NAME, TYPE, PARAM_DTYPE) \
     vsi_bool vsi_nn_kernel_param_add_##TYPE_NAME \

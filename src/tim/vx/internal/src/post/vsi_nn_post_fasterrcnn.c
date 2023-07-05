@@ -123,28 +123,29 @@ static vsi_status _fill_fasterrcnn_param
     vsi_nn_fasterrcnn_param_t *param
     )
 {
-    vsi_status status;
+    vsi_status status = VSI_FAILURE;
     uint32_t i;
     vsi_nn_node_t   *node;
     vsi_nn_tensor_t *tensor;
 
     if(NULL == graph || NULL == param)
     {
-        return VSI_FAILURE;
+        return status;
     }
 
-    status = VSI_FAILURE;
     tensor = NULL;
 
     for(i=0; i<graph->node_num; i++)
     {
         node = vsi_nn_GetNode( graph, (vsi_nn_node_id_t)i );
         //printf("i[%u] op[%s]\n", i, vsi_nn_OpGetName(node->op));
-        if(node->op == VSI_NN_OP_PROPOSAL)
+        if (node && node->op == VSI_NN_OP_PROPOSAL)
         {
             memcpy(&param->iminfo, &node->nn_param.proposal.im_info,
                     sizeof(vsi_nn_proposal_im_info));
             tensor = vsi_nn_GetTensor(graph,node->output.tensors[0]);
+            CHECK_PTR_FAIL_GOTO( tensor, "Get tensor fail.", final );
+
             param->rois_num = (uint32_t)tensor->attr.size[1];
         }
     }
@@ -164,6 +165,7 @@ static vsi_status _fill_fasterrcnn_param
     param->classes_num = VSI_NN_FASTERRCNN_CLASSES_NUM;
     param->classes = FASTER_RCNN_CLASSES;
 
+final:
     return status;
 } /* _fill_fasterrcnn_param() */
 
@@ -572,6 +574,7 @@ static vsi_status _fasterrcnn_post_process
                 {
                     box = (vsi_nn_fasterrcnn_box_t *)
                         vsi_nn_LinkListNewNode(sizeof(vsi_nn_fasterrcnn_box_t), _init_box);
+                    CHECK_PTR_FAIL_GOTO( box, "Create box fail.", final );
                     box->score = dets[keep[k]*5+4];
                     box->class_id = i;
                     box->x1 = dets[keep[k]*5+0];

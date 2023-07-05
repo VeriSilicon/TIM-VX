@@ -120,6 +120,8 @@ DEF_KERNEL_INITIALIZER(_grucell_reset_after_activation_initializer)
     vsi_nn_kernel_tensor_t       input      = NULL;
     vsi_nn_kernel_tensor_attr_t* input_attr = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     input = (vsi_nn_kernel_tensor_t)param[GRUCELL_ACT_H_STATE];
 
     input_attr = vsi_nn_kernel_tensor_attr_create( input );

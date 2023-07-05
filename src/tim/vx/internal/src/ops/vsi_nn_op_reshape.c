@@ -124,7 +124,8 @@ static vsi_bool op_setup
         uint32_t i = 0;
         for (i = 0; i < self->nn_param.reshape.dim_num; i++)
         {
-            shape[i] = -1 == self->nn_param.reshape.size[i] ? -1 : (vsi_size_t)self->nn_param.reshape.size[i];
+            shape[i] = (uint32_t)-1 == self->nn_param.reshape.size[i] ? \
+                (vsi_size_t)-1 : (vsi_size_t)self->nn_param.reshape.size[i];
         }
         ret = vsi_nn_CalcReshapeTensor(inputs[0],
             outputs[0],

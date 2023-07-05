@@ -106,6 +106,10 @@ static vsi_nn_kernel_node_t _setup
         goto final;
     }
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
 final:
     if (lut1)
     {
@@ -120,6 +124,14 @@ final:
 
     return (vsi_nn_kernel_node_t)node;
 #else
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(outputs);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(lut_type);
     return NULL;
 #endif
 } /* _setup() */
@@ -190,6 +202,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( abs )
     vx_tensor input = NULL, input0 = NULL;
     vx_tensor output = NULL, output0 = NULL;
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     if (inputs[0]->attr.dim_num > 4)
     {
         input_size[0] = vsi_nn_GetElementNum(inputs[0]) /
@@ -231,6 +248,10 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( linear )
     float a_v = vsi_nn_kernel_param_get_float32( params, "a_v" );
     float b_v = vsi_nn_kernel_param_get_float32( params, "b_v" );
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxActivationLayer(
         graph->g,
         inputs[0]->t,
@@ -246,6 +267,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( linear )
 REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( sigmoid )
 {
     vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     node = vxActivationLayer(
         graph->g,
@@ -265,6 +291,10 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( tanh )
     float scale_a = vsi_nn_kernel_param_get_float32( params, "scale_a" );
     float scale_b = vsi_nn_kernel_param_get_float32( params, "scale_b" );
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxActivationLayer(
         graph->g,
         inputs[0]->t,
@@ -280,6 +310,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( tanh )
 REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( relu1 )
 {
     vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     node = vxActivationLayer(
         graph->g,
@@ -297,6 +332,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( relu6 )
 {
     vx_node node = NULL;
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxActivationLayer(
         graph->g,
         inputs[0]->t,
@@ -312,6 +352,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( relu6 )
 REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( rsqrt )
 {
     vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     node = vxActivationLayer(
         graph->g,
@@ -329,6 +374,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( sqrt )
 {
     vx_node node = NULL;
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxActivationLayer(
         graph->g,
         inputs[0]->t,
@@ -344,6 +394,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( sqrt )
 REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( softrelu )
 {
     vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     node = vxActivationLayer(
         graph->g,

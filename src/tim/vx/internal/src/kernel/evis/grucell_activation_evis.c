@@ -227,6 +227,8 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_initializer)
     vsi_size_array_t * output_shape          = NULL;
     vsi_nn_kernel_tensor_attr_t * attr[4]   = { NULL, NULL, NULL, NULL };
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -635,7 +637,7 @@ static vsi_status _query_kernel
     int32_t input_category,
     int32_t input_layout,
     int32_t use_cudnn,
-    int32_t* param_count,
+    vsi_size_t* param_count,
     int32_t* input_count,
     int32_t* output_count
     /* Add extra params */
@@ -756,7 +758,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t k = 0;
     vsi_size_t input_size = inputs[0]->attr.size[0];
     vsi_size_t batch = inputs[0]->attr.size[1];
-    int32_t param_count = 0;
+    vsi_size_t param_count = 0;
     int32_t input_count = 0;
     int32_t output_count = 0;
     int32_t gate_activation = 0;
@@ -764,6 +766,8 @@ static vsi_nn_kernel_node_t _setup
     int32_t input_category = vsi_nn_kernel_param_get_int32( params, "input_category" );
     int32_t use_cudnn = vsi_nn_kernel_param_get_int32( params, "use_cudnn_implementation" );
     int32_t input_layout = vsi_nn_kernel_param_get_int32( params, "input_layout" );
+
+    VSI_UNREFERENCED(input_num);
 
     gate_activation = vsi_nn_kernel_param_get_int32( params, "gate_activation" );
     candidate_activation = vsi_nn_kernel_param_get_int32( params, "candidate_activation" );
@@ -783,7 +787,9 @@ static vsi_nn_kernel_node_t _setup
     if( VSI_SUCCESS == status)
     {
         _inputs = (vsi_nn_tensor_t**)malloc(input_count * sizeof(vsi_nn_tensor_t**));
+        CHECK_PTR_FAIL_GOTO( _inputs, "Create buffer fail.", final );
         node_params = (vsi_nn_kernel_node_param_t *)malloc(sizeof(vsi_nn_kernel_node_param_t) * param_count);
+        CHECK_PTR_FAIL_GOTO( node_params, "Create buffer fail.", final );
 
         if (use_cudnn)
         {
@@ -896,6 +902,7 @@ static vsi_nn_kernel_node_t _setup
         }
     }
 
+final:
     vsi_nn_safe_free(_inputs);
     vsi_nn_safe_free(node_params);
 

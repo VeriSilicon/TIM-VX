@@ -32,6 +32,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 typedef struct _conv1d_local_data_t {
     vsi_bool use_ext_pad;
@@ -324,12 +325,16 @@ static vsi_bool op_setup
                 memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
                 vsi_nn_internal_init_tensor_attr(&attr, &inputs[0]->attr.dtype, TRUE);
                 tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+                CHECK_PTR_FAIL_GOTO( tensor, "Create tensor fail.", final );
 
                 curr = vsi_nn_internal_new_node(self, VSI_NN_OP_PAD, 0, 0);
+                CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
                 front_data = (uint32_t*)\
                     vsi_nn_internal_new_node_param(curr, sizeof(uint32_t) * inputs[0]->attr.dim_num);
+                CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(front_data, curr, "Create internal buffer failed", final);
                 back_data = (uint32_t*)\
                     vsi_nn_internal_new_node_param(curr, sizeof(uint32_t) * inputs[0]->attr.dim_num);
+                CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(back_data, curr, "Create internal buffer failed", final);
 
                 front_data[0] = p->pad[0];
                 front_data[1] = 0;
@@ -353,6 +358,8 @@ static vsi_bool op_setup
     }
 
     return TRUE;
+final:
+    return FALSE;
 } /* op_setup() */
 
 static vsi_status op_deinit

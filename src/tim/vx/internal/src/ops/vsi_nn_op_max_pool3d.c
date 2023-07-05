@@ -36,6 +36,7 @@
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_link_list.h"
 #include "vsi_nn_internal_node.h"
+#include "vsi_nn_error.h"
 
 typedef struct _max_pool3d_local_data_t {
     int32_t placeholder;
@@ -54,6 +55,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -79,6 +82,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 }
 
@@ -89,7 +94,7 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_bool ret = TRUE;
+    vsi_bool ret = FALSE;
     vsi_nn_max_pool3d_param *p = &(self->nn_param.max_pool3d);
     vsi_size_t ksize[_cnt_of_array(p->ksize)] = {0}, i = 0;
     vsi_size_t pad[_cnt_of_array(p->pad)] = {0};
@@ -173,10 +178,14 @@ static vsi_bool op_setup
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, &inputs[0]->attr.dtype, TRUE);
     input_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(input_tensor, "Create internal tensor failed", final);
     pool2d_0_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(pool2d_0_tensor, "Create internal tensor failed", final);
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     reshape_input_size = vsi_nn_internal_new_node_param(curr,
         VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_input_size, curr, "Create internal buffer failed", final);
     reshape_input_size[0] = inputs[0]->attr.size[0];
     reshape_input_size[1] = inputs[0]->attr.size[1];
     reshape_input_size[2] = 1;
@@ -189,9 +198,10 @@ static vsi_bool op_setup
     curr->node->nn_param.reshape2.dim_num = 4;
     curr->inputs[0] = inputs[0];
     curr->outputs[0] = input_tensor->t;
-    vsi_nn_internal_setup_node( self, curr );
+    ret = vsi_nn_internal_setup_node( self, curr );
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_POOL, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->node->nn_param.pool.ksize[0] = p->ksize[0];
     curr->node->nn_param.pool.ksize[1] = p->ksize[1];
     curr->node->nn_param.pool.stride[0] = p->stride[0];
@@ -205,28 +215,33 @@ static vsi_bool op_setup
     curr->node->nn_param.pool.pad_type = p->pad_type;
     curr->inputs[0] = input_tensor->t;
     curr->outputs[0] = pool2d_0_tensor->t;
-    vsi_nn_internal_setup_node( self, curr );
+    ret &= vsi_nn_internal_setup_node( self, curr );
 
     if (p->ksize[2] == 1 && p->stride[2] == 1 && p->pad[4] == 0 && p->pad[5] == 0)
     {
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.reshape2.size = outputs[0]->attr.size;
         curr->node->nn_param.reshape2.dim_num = outputs[0]->attr.dim_num;
         curr->inputs[0] = pool2d_0_tensor->t;
         curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node( self, curr );
+        ret &= vsi_nn_internal_setup_node( self, curr );
     }
     else
     {
         memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
         vsi_nn_internal_init_tensor_attr(&attr, &inputs[0]->attr.dtype, TRUE);
         reshape_0_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(reshape_0_tensor, "Create internal tensor failed", final);
         pool2d_1_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(pool2d_1_tensor, "Create internal tensor failed", final);
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         reshape_pool_size = vsi_nn_internal_new_node_param(curr,
             VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
-        reshape_pool_size[0] = -1;
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_pool_size, curr, "Create internal buffer failed", final);
+        reshape_pool_size[0] = (vsi_size_t)-1;
         reshape_pool_size[1] = inputs[0]->attr.size[2];
         reshape_pool_size[2] = 1;
         for (i = 3; i < inputs[0]->attr.dim_num; i++)
@@ -238,9 +253,10 @@ static vsi_bool op_setup
         curr->node->nn_param.reshape2.dim_num = 4;
         curr->inputs[0] = pool2d_0_tensor->t;
         curr->outputs[0] = reshape_0_tensor->t;
-        vsi_nn_internal_setup_node( self, curr );
+        ret &= vsi_nn_internal_setup_node( self, curr );
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_POOL, 1, 1 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.pool.ksize[0] = 1;
         curr->node->nn_param.pool.ksize[1] = p->ksize[2];
         curr->node->nn_param.pool.stride[0] = 1;
@@ -254,16 +270,18 @@ static vsi_bool op_setup
         curr->node->nn_param.pool.pad_type = p->pad_type;
         curr->inputs[0] = reshape_0_tensor->t;
         curr->outputs[0] = pool2d_1_tensor->t;
-        vsi_nn_internal_setup_node( self, curr );
+        ret &= vsi_nn_internal_setup_node( self, curr );
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.reshape2.size = outputs[0]->attr.size;
         curr->node->nn_param.reshape2.dim_num = outputs[0]->attr.dim_num;
         curr->inputs[0] = pool2d_1_tensor->t;
         curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node( self, curr );
+        ret &= vsi_nn_internal_setup_node( self, curr );
     }
 
+final:
     return ret;
 } /* op_setup() */
 

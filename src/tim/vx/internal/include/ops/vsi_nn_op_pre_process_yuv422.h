@@ -71,6 +71,10 @@ typedef struct _vsi_nn_pre_process_yuv422_param
     float rgb_scale;
 
     vsi_bool reverse_channel;
+
+    float r_scale;
+    float g_scale;
+    float b_scale;
 } vsi_nn_pre_process_yuv422_param;
 
 #ifdef __cplusplus
