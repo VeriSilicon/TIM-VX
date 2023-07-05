@@ -178,9 +178,9 @@ install(TARGETS ${TARGET_NAME} ${TARGET_NAME}
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 if(TIM_VX_ENABLE_TENSOR_CACHE)
+file(GLOB OPENSSL_H ${openssl-cmake_BINARY_DIR}/usr/local/include/openssl/*.h)
 install(
-    FILES
-        ${openssl-cmake_BINARY_DIR}/usr/local/include/openssl/evp.h
+    FILES ${OPENSSL_H}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/openssl)
 endif()
 install(
