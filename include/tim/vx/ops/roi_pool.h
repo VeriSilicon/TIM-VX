@@ -37,17 +37,17 @@ namespace ops {
  *
  * Select and scale the feature map of each region of interest to a unified output
  * size by max-pooling.
- * 
+ *
  *    pool_type : only support max-pooling  (MAX)
- *    scale : The ratio of image to feature map (Range: 0 < scale <= 1) 
+ *    scale : The ratio of image to feature map (Range: 0 < scale <= 1)
  *    size : The size of roi pooling (height/width)
  *
  */
 
 class RoiPool : public BuiltinOp {
  public:
-  RoiPool(Graph* graph, PoolType type, float scale,
-            const std::array<uint32_t, 2>& size);
+  RoiPool(Graph* graph, PoolType type, float scale, const std::array<uint32_t, 2>& size,
+          DataLayout input_layout = DataLayout::WHCN);
 
   std::shared_ptr<Operation> Clone(
       std::shared_ptr<Graph>& graph) const override;

@@ -32,8 +32,8 @@ namespace vx {
 namespace ops {
 
 RoiPool::RoiPool(Graph* graph, PoolType type, float scale,
-                   const std::array<uint32_t, 2>& size)
-    : BuiltinOp(graph, VSI_NN_OP_ROI_POOL),
+                 const std::array<uint32_t, 2>& size, DataLayout input_layout)
+    : BuiltinOp(graph, VSI_NN_OP_ROI_POOL, 0, 0, input_layout),
       type_(type),
       scale_(scale),
       size_(size) {
@@ -46,7 +46,7 @@ RoiPool::RoiPool(Graph* graph, PoolType type, float scale,
 std::shared_ptr<Operation> RoiPool::Clone(
     std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<RoiPool>(
-      this->type_, this->scale_, this->size_);
+      this->type_, this->scale_, this->size_, this->impl_->layout_);
 }
 
 }  // namespace ops
