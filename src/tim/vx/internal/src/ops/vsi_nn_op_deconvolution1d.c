@@ -264,9 +264,8 @@ static vsi_bool op_setup
         }
         else
         {
-            outputs[0]->attr.size[1] = inputs[1]->attr.size[3];
+            outputs[0]->attr.size[1] = inputs[1]->attr.size[2];
         }
-        outputs[0]->attr.size[1] = nn_param->weights;
         outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
     }
