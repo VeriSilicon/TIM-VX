@@ -19,6 +19,14 @@
                 },
                 {"name":"width_sample_num",
                     "dtype": "int32_t"
+                },
+                {"name": "input_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
                 }
             ]
     }

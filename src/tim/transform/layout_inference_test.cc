@@ -352,3 +352,71 @@ TEST(Resize, bilinear_outputsize) {
     EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
+
+TEST(RoiAlign, nhwc) {
+  auto ctx = tim::vx::Context::Create();
+  auto src_graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({1, 4, 4, 1});  //cwhn
+  tim::vx::ShapeType regions_shape({4, 4});
+  tim::vx::ShapeType batch_index_shape({4});
+  tim::vx::ShapeType output_shape({1, 2, 2, 4});
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec regions_spec(tim::vx::DataType::FLOAT32, regions_shape,
+                                   tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec batch_index_spec(tim::vx::DataType::INT32,
+                                       batch_index_shape,
+                                       tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  std::vector<float> input_data = {-10.0f, -1.0f, 4.0f,  -5.0f, -8.0f, -2.0f,
+                                   9.0f,   1.0f,  7.0f,  -2.0f, 3.0f,  -7.0f,
+                                   -2.0f,  10.0f, -3.0f, 5.0f};
+
+  std::vector<float> regions_data = {2.0f, 2.0f, 4.0f, 4.0f, 0.0f, 0.0f,
+                                     8.0f, 8.0f, 2.0f, 0.0f, 4.0f, 8.0f,
+                                     0.0f, 2.0f, 8.0f, 4.0f};
+
+  std::vector<int32_t> batch_index_data = {0, 0, 0, 0};
+
+  std::vector<float> golden = {
+      0.375f, 5.125f, -0.375f, 2.875f, -0.5f,    -0.3125f, 3.1875f, 1.125f,
+      0.25f,  4.25f,  4.875f,  0.625f, -0.1875f, 1.125f,   0.9375f, -2.625f};
+
+  auto input_tensor = src_graph->CreateTensor(input_spec);
+  auto regions_tensor = src_graph->CreateTensor(regions_spec, regions_data.data());
+  auto batch_index_tensor =
+      src_graph->CreateTensor(batch_index_spec, batch_index_data.data());
+  auto output_tensor = src_graph->CreateTensor(output_spec);
+
+  auto roi_align = src_graph->CreateOperation<tim::vx::ops::RoiAlign>(
+      2, 2, 2.0f, 2.0f, 4, 4, tim::vx::DataLayout::CWHN);
+  (*roi_align)
+      .BindInput(input_tensor)
+      .BindInput(regions_tensor)
+      .BindInput(batch_index_tensor)
+      .BindOutput(output_tensor);
+
+  // Do layout inference
+  auto transform = tim::transform::LayoutInference(src_graph, ctx);
+  auto infer_graph = transform.first;
+  auto graph_io_map = transform.second;
+  infer_graph->Compile();
+
+  auto infer_input = graph_io_map[src_graph->InputsTensor()[0]];
+  auto infer_beta = graph_io_map[src_graph->InputsTensor()[1]];
+  auto infer_gamma = graph_io_map[src_graph->InputsTensor()[2]];
+  auto infer_output = graph_io_map[src_graph->OutputsTensor()[0]];
+
+  infer_input->CopyDataToTensor(input_data.data(), input_data.size() * sizeof(float));
+  infer_beta->CopyDataToTensor(regions_data.data(), regions_data.size() * sizeof(float));
+  infer_gamma->CopyDataToTensor(batch_index_data.data(), batch_index_data.size() * sizeof(float));
+  infer_graph->Run();
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}

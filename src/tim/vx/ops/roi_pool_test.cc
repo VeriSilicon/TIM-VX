@@ -57,7 +57,7 @@ TEST(RoiPool, shape_4_2_1_1_float32) {
   tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT);
 
-  std::vector<float> input_data = {-10.0f, -1.0f, 4.0f,  -5.0f, 
+  std::vector<float> input_data = {-10.0f, -1.0f, 4.0f,  -5.0f,
                                   -8.0f, -2.0f, 9.0f,   1.0f,
                                    7.0f, -2.0f, 3.0f,  -7.0f,
                                    -2.0f,  10.0f, -3.0f, 5.0f};
@@ -66,7 +66,6 @@ TEST(RoiPool, shape_4_2_1_1_float32) {
                                      0.0f, 0.0f, 0.0f, 8.0f, 8.0f,
                                      0.0f, 2.0f, 0.0f, 4.0f, 8.0f,
                                      0.0f, 0.0f, 2.0f, 8.0f, 4.0f};
-
 
   std::vector<float> golden = {
       -2, 9, -2, 3,
@@ -77,17 +76,15 @@ TEST(RoiPool, shape_4_2_1_1_float32) {
   auto input_tensor = graph->CreateTensor(input_spec);
   auto regions_tensor = graph->CreateTensor(regions_spec);
   auto output_tensor = graph->CreateTensor(output_spec);
-  
+
    std::array<uint32_t, 2> size;
-   size[0] = out_height;
-   size[1] = out_width;
+   size[0] = out_width;
+   size[1] = out_height;
   auto roi_pool = graph->CreateOperation<tim::vx::ops::RoiPool>(tim::vx::PoolType::MAX, scale, size);
   (*roi_pool)
       .BindInput(input_tensor)
       .BindInput(regions_tensor)
       .BindOutput(output_tensor);
-
-  
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(input_data.data(), input_data.size()*sizeof(float)));
   EXPECT_TRUE(regions_tensor->CopyDataToTensor(regions_data.data(), regions_data.size()*sizeof(float)));
