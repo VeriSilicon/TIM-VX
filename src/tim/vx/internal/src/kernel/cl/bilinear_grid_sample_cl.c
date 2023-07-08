@@ -128,6 +128,8 @@ DEF_KERNEL_INITIALIZER(_bilinear_grid_sample_initializer)
     vsi_nn_kernel_tensor_attr_t* output_attr = NULL;
     vsi_size_array_t* out_shape = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     output_attr =
         vsi_nn_kernel_tensor_attr_create((vsi_nn_kernel_tensor_t)param[2]);
     CHECK_PTR_FAIL_GOTO(output_attr, "Create tensor attr buffer fail.", final);
@@ -140,9 +142,8 @@ DEF_KERNEL_INITIALIZER(_bilinear_grid_sample_initializer)
 
     gpu_param.dim = 2;
     gpu_param.global_size[0] =
-        gpu_align_p2((out_shape->data[0] + gpu_param.global_scale[0] - 1) /
-                         gpu_param.global_scale[0],
-                     4);
+        (out_shape->data[0] + gpu_param.global_scale[0] - 1) /
+                         gpu_param.global_scale[0];
     gpu_param.global_size[1] =
         ((out_shape->data[1] + gpu_param.global_scale[1] - 1) /
          gpu_param.global_scale[1]);

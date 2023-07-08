@@ -43,6 +43,9 @@ static vsi_status op_compute
     )
 {
     int i;
+
+    VSI_UNREFERENCED(self);
+
     for( i = 0; i < 10; i ++ )
     {
         if( NULL == outputs[i] )
@@ -65,6 +68,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 

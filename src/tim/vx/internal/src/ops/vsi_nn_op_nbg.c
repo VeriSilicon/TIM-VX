@@ -71,13 +71,14 @@ static void _set_io_index
         vxSetParameterByIndex(self->n, idx++, (vx_reference)inputs[i]->t);
         scalar_index = idx;
         param = vxGetParameterByIndex(self->n, scalar_index);
-        vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
-        if (param != NULL)
+
+        if (param)
         {
+            vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
             vxReleaseParameter(&param);
             param = NULL;
-
         }
+
         if (type != VX_TYPE_SCALAR)
         {
             continue;
@@ -92,17 +93,18 @@ static void _set_io_index
                 vx_reference ref = 0;
                 vsi_status status;
                 param = vxGetParameterByIndex(self->n, j);
-                vxQueryParameter(param, VX_PARAMETER_REF, &ref, sizeof(vx_reference));
-                status = vxQueryScalar((vx_scalar)ref, VX_SCALAR_TYPE, &data_type, sizeof(vx_enum));
-                if (status == VX_ERROR_INVALID_REFERENCE)
+
+                if (param)
                 {
-                    vx_scalar scalar = vxCreateScalar(self->graph->ctx->c, VX_TYPE_INT32, 0);
-                    ref = (vx_reference)scalar;
-                    vxSetParameterByIndex(self->n, idx++, ref);
-                    vxReleaseReference(&ref);
-                }
-                if (param != NULL)
-                {
+                    vxQueryParameter(param, VX_PARAMETER_REF, &ref, sizeof(vx_reference));
+                    status = vxQueryScalar((vx_scalar)ref, VX_SCALAR_TYPE, &data_type, sizeof(vx_enum));
+                    if (status == VX_ERROR_INVALID_REFERENCE)
+                    {
+                        vx_scalar scalar = vxCreateScalar(self->graph->ctx->c, VX_TYPE_INT32, 0);
+                        ref = (vx_reference)scalar;
+                        vxSetParameterByIndex(self->n, idx++, ref);
+                        vxReleaseReference(&ref);
+                    }
                     vxReleaseParameter(&param);
                     param = NULL;
                 }
@@ -165,6 +167,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 
@@ -178,6 +183,9 @@ static vsi_bool op_setup
     /*
      * Network Binary Graph node do not need to calculate output shape
      */
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_setup() */
 

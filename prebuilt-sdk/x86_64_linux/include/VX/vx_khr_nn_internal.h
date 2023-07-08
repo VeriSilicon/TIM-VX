@@ -242,6 +242,48 @@ typedef struct _vx_nn_convolution_relu_pooling_params_ext7_t
     vx_bool       isSub;
 } vx_nn_convolution_relu_pooling_params_ext7_t, * vx_nn_convolution_relu_pooling_params_ext7;
 
+typedef struct _vx_nn_fused_sp_params_t
+{
+    vx_enum multi_sp_kernel_type;
+    /*!<for mul>*/
+    vx_scalar mul_scale;
+     /*!<for sp>*/
+    union
+    {
+        struct
+        {
+            vx_scalar linear_a, linear_b;
+        } linear;
+        struct
+        {
+            vx_scalar tanh_a, tanh_b;
+            float a_v, b_v;
+        } tanh_linear;
+        struct
+        {
+            vx_scalar hsigmoid_a, hsigmoid_b;
+        } hsigmoid;
+        struct
+        {
+            vx_scalar clip_a, clip_b;
+        } clip;
+        struct
+        {
+            vx_scalar scalar_a, scalar_b, scalar_c, scalar_d;
+        } params;
+    } scalar_params;
+      /*!<for other kernel>*/
+} vx_nn_fused_sp_params_t, * vx_nn_fused_sp_params;
+
+typedef struct _vx_nn_convolution_relu_pooling_params_sp_ext_t
+{
+    vx_nn_convolution_relu_pooling_params_ext4_t ext4;  /*!< \brief convolution relu pooling params <tt>\ref vx_nn_convolution_relu_pooling_params_ext_t</tt> */
+    vx_object_array inputs_list;
+    vx_object_array outputs_list;
+    vx_nn_fused_sp_params_t sp_param;
+
+} vx_nn_convolution_relu_pooling_params_sp_ext_t, * vx_nn_convolution_relu_pooling_params_sp_ext;
+
 /*! \brief [Graph] Creates a Convolutional Network Convolution and Activation(Relu) and Pooling Layer Node, this fucntion match kronos NN Extension 1.2 verion.
  * \details This function implement Convolutional Network Convolution and Activation(Relu) and Pooling layer.
  *  For fixed-point data types, a fixed point calculation is performed with round and saturate according to the number of accumulator bits. The number of the accumulator bits are implementation defined,
@@ -1128,6 +1170,48 @@ VX_API_ENTRY vx_node VX_API_CALL vxBatchGemmReluPoolingLayer(vx_graph graph,
                                                              vx_scalar trans_c,
                                                              const vx_nn_gemm_relu_pooling_params merge_param,
                                                              vx_tensor output);
+
+/*! \brief  Create a fuse stream process node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input_list input tensor list.
+ * \param [in] input_count input tensor number.
+ * \param [in] output_list output tensor list.
+ * \param [in] output_count output tensor number.
+ * \param [in] params the parameters for multi streamprocessor merging.
+ * \return <tt>\ref vx_node</tt>.
+ * \retval vx_node A node reference. Any possible errors preventing a successful creation
+ * should be checked using <tt>\ref vxGetStatus</tt>
+ * \ingroup group_vision_function_sp
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxFusedSpNode(
+    vx_graph                                graph,
+    vx_tensor*                              input_list,
+    vx_uint32                               input_count,
+    vx_tensor*                              output_list,
+    vx_uint32                               output_count,
+    const vx_nn_fused_sp_params_t *         params
+    );
+
+/*! \brief  Create a conv fuse stream process node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] inputs input tensor.
+ * \param [in] weights_biases [static] Point to WeightBiasesParameter data, vx_weights_biases_parameter is an opaque reference. 
+ * \param [in] convolution_relu_pooling_params [static] Pointer to parameters of type <tt>\ref vx_nn_convolution_relu_pooling_params_t</tt>
+ * \param [in] size_of_convolution_relu_pooling_params [static] Size in bytes of convolution_relu_pooling_params.
+ * \param [in] outputs output tensor.
+ * \return <tt>\ref vx_node</tt>.
+ * \retval vx_node A node reference. Any possible errors preventing a successful creation
+ * should be checked using <tt>\ref vxGetStatus</tt>
+ * \ingroup group_vision_function_sp
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxConvSpNode(
+    vx_graph                                        graph,
+    vx_tensor                                       inputs,
+    vx_weights_biases_parameter                     weights_biases,
+    const vx_nn_convolution_relu_pooling_params_t * convolution_relu_pooling_params,
+    vx_size                                         size_of_convolution_relu_pooling_params,
+    vx_tensor                                       outputs
+);
 
 #ifdef  __cplusplus
 }

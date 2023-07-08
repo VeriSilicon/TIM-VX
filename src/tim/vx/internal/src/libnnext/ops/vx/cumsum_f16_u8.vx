@@ -176,3 +176,135 @@ __kernel void cumsum_F16to##out_name##_axis0_2D( \
 CUMSUM_F16TOQINT_AXIS0_2D(I8,  vxc_half8, vxc_char16)
 CUMSUM_F16TOQINT_AXIS0_2D(I16, vxc_half8, vxc_short8)
 CUMSUM_F16TOQINT_AXIS0_2D(U8,  vxc_half8, vxc_uchar16)
+
+#define CUMSUM_F16TOQINT_EX_REV_AXIS2(out_name, src_type, dst_type) \
+__kernel void cumsum_ex_rev_F16to##out_name##_axis2( \
+    __read_only image2d_array_t   input, \
+    __write_only image2d_array_t  output, \
+    int axis, int exclusive, int rev \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \
+ \
+    vxc_short8 src; \
+    dst_type dst; \
+    vxc_half8 data, sum; \
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \
+    vxc_ushort8 ms0; \
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \
+    if(exclusive == 0 && rev) \
+    { \
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--) \
+        { \
+            VXC_ReadImage2DArray(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, data, src, 16); \
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+            VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+    else if(exclusive && rev == 0) \
+    { \
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+        VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        for(; coord.z < channel - 1;) \
+        { \
+            VXC_ReadImage2DArray(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            coord.z++; \
+            _viv_asm(COPY, data, src, 16); \
+     \
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+            VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+    else if(exclusive && rev) \
+    { \
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+        coord.z = channel - 1; \
+        VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        for(; coord.z > 0;) \
+        { \
+            VXC_ReadImage2DArray(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            coord.z--; \
+            _viv_asm(COPY, data, src, 16); \
+     \
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+            VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+}
+CUMSUM_F16TOQINT_EX_REV_AXIS2(I8,  vxc_half8, vxc_char16)
+CUMSUM_F16TOQINT_EX_REV_AXIS2(I16, vxc_half8, vxc_short8)
+CUMSUM_F16TOQINT_EX_REV_AXIS2(U8,  vxc_half8, vxc_uchar16)
+
+#define CUMSUM_F16TOQINT_EX_REV_AXIS1(out_name, src_type, dst_type) \
+__kernel void cumsum_ex_rev_F16to##out_name##_axis1( \
+    __read_only image2d_array_t   input, \
+    __write_only image2d_array_t  output, \
+    int axis, int exclusive, int rev \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), 0, get_global_id(2), 0); \
+ \
+    vxc_short8 src; \
+    dst_type dst; \
+    vxc_half8 data, sum; \
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \
+    vxc_ushort8 ms0; \
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \
+    if(exclusive == 0 && rev) \
+    { \
+        for(coord.y = height - 1; coord.y >= 0; coord.y--) \
+        { \
+            VXC_ReadImage2DArray(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, data, src, 16); \
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+            VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+    else if(exclusive && rev == 0) \
+    { \
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+        VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        for(; coord.y < height - 1;) \
+        { \
+            VXC_ReadImage2DArray(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            coord.y++; \
+            _viv_asm(COPY, data, src, 16); \
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+            VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+    else if(exclusive && rev) \
+    { \
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+        coord.y = height - 1; \
+        VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        for(; coord.y > 0;) \
+        { \
+            VXC_ReadImage2DArray(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            coord.y--; \
+            _viv_asm(COPY, data, src, 16); \
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+                    uniU8MulAndPostShift_0_Lo_2x8); \
+            VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+}
+CUMSUM_F16TOQINT_EX_REV_AXIS1(I8,  vxc_half8, vxc_char16)
+CUMSUM_F16TOQINT_EX_REV_AXIS1(I16, vxc_half8, vxc_short8)
+CUMSUM_F16TOQINT_EX_REV_AXIS1(U8,  vxc_half8, vxc_uchar16)

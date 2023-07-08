@@ -36,6 +36,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (1)
@@ -47,6 +48,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -72,6 +75,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 }
 
@@ -86,6 +91,7 @@ static vsi_bool op_setup
     int32_t i = 0;
     uint32_t j = 0;
     vsi_nn_internal_node_t* curr = NULL;
+    vsi_bool ret = FALSE;
 
     vsi_nn_internal_init_node_wksp( self );
     p = (vsi_nn_crop_param *)&(self->nn_param.crop);
@@ -96,46 +102,43 @@ static vsi_bool op_setup
         return FALSE;
     }
 
-    if ( VSI_NN_DIM_AUTO != outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        goto final;
-    }
-
-    if (p->dims + p->axis == inputs[0]->attr.dim_num)
-    {
-        for (i = 0; i < p->axis; i++)
+        if (p->dims + p->axis == inputs[0]->attr.dim_num)
         {
-            outputs[0]->attr.size[i] = inputs[0]->attr.size[i];
-        }
-        for (i = p->axis; i < (int32_t)inputs[0]->attr.dim_num; i++)
-        {
-            outputs[0]->attr.size[i] = inputs[1]->attr.size[i];
-        }
-        outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
-    }
-    else
-    {
-        if (p->dims == 1)
-        {
-            for (i = 0; i <= p->axis; i++)
-            {
-                outputs[0]->attr.size[i] = inputs[1]->attr.size[i];
-                p->offset[i] = p->offset[0];
-            }
-            for (i = p->axis + 1; i < (int32_t)inputs[0]->attr.dim_num; i++)
+            for (i = 0; i < p->axis; i++)
             {
                 outputs[0]->attr.size[i] = inputs[0]->attr.size[i];
+            }
+            for (i = p->axis; i < (int32_t)inputs[0]->attr.dim_num; i++)
+            {
+                outputs[0]->attr.size[i] = inputs[1]->attr.size[i];
             }
             outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         }
         else
         {
-            VSILOGE("Invalid parameter: offset dims!\n");
-            return FALSE;
+            if (p->dims == 1)
+            {
+                for (i = 0; i <= p->axis; i++)
+                {
+                    outputs[0]->attr.size[i] = inputs[1]->attr.size[i];
+                    p->offset[i] = p->offset[0];
+                }
+                for (i = p->axis + 1; i < (int32_t)inputs[0]->attr.dim_num; i++)
+                {
+                    outputs[0]->attr.size[i] = inputs[0]->attr.size[i];
+                }
+                outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
+            }
+            else
+            {
+                VSILOGE("Invalid parameter: offset dims!\n");
+                return FALSE;
+            }
         }
     }
 
-final:
     for (j = 0; j < self->nn_param.crop.dims; j++)
     {
         p->lcl_data->begin_dims[j] = (int32_t)self->nn_param.crop.offset[j];
@@ -151,6 +154,7 @@ final:
     }
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_STRIDED_SLICE, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->node->nn_param.strided_slice.begin_dims = p->lcl_data->begin_dims;
     curr->node->nn_param.strided_slice.begin_dims_num = inputs[0]->attr.dim_num;
     curr->node->nn_param.strided_slice.end_dims = p->lcl_data->end_dims;
@@ -163,9 +167,10 @@ final:
     curr->node->nn_param.strided_slice.new_axis_mask = 0;
     curr->inputs[0] = inputs[0];
     curr->outputs[0] = outputs[0];
-    vsi_nn_internal_setup_node( self, curr );
+    ret = vsi_nn_internal_setup_node( self, curr );
 
-    return TRUE;
+final:
+    return ret;
 } /* op_setup() */
 
 static vsi_status op_init

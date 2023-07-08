@@ -22,8 +22,8 @@
 *
 *****************************************************************************/
 
-#ifndef _VSI_NN_OP_BILINEAR_GRID_SAMPLE_H
-#define _VSI_NN_OP_BILINEAR_GRID_SAMPLE_H
+#ifndef _VSI_NN_OP_RESIZE_3D_H
+#define _VSI_NN_OP_RESIZE_3D_H
 
 #include "vsi_nn_types.h"
 
@@ -31,17 +31,19 @@
 extern "C" {
 #endif
 
+typedef struct _vsi_nn_resize_3d_local_data {
+    vsi_bool use_internal_node;
+} vsi_nn_resize_3d_local_data;
 
-typedef struct _vsi_nn_bilinear_grid_sample_param
+typedef struct _vsi_nn_resize_3d_param
 {
-    struct _bilinear_grid_sample_local_data_t* local;
-    vsi_bool align_corners;
-    vsi_nn_pad_mode_e padding_mode;
-    int32_t const_val;
-} vsi_nn_bilinear_grid_sample_param;
-
-_compiler_assert(offsetof(vsi_nn_bilinear_grid_sample_param, local) == 0, \
-    vsi_nn_bilinear_grid_sample_h );
+    vsi_nn_resize_3d_local_data* lcl_data;
+    vsi_enum   type;
+    float      factor;
+    int32_t    size[3];
+    vsi_bool   align_corners;
+    vsi_bool   half_pixel_centers;
+} vsi_nn_resize_3d_param;
 
 #ifdef __cplusplus
 }

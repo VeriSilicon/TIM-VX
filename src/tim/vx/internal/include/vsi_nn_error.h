@@ -31,33 +31,42 @@
 #define VSI_ASSERT( cond )  assert(cond)
 
 #define VSI_CHECK_PTR( pointer, msg, retval ) \
-    do { \
+    { \
         if( pointer == NULL ) { \
             VSILOGD("%s",msg); \
             VSI_ASSERT(FALSE); \
         } \
-    } while(0)
+    }
 
 
-#define CHECK_STATUS_FAIL_GOTO( stat, lbl )  do {\
+#define CHECK_STATUS_FAIL_GOTO( stat, lbl )  {\
     if( VSI_SUCCESS != stat ) {\
         VSILOGE("CHECK STATUS(%d:%s)", (stat), vsi_nn_DescribeStatus(stat));\
         goto lbl;\
     }\
-} while(0)
+}
 
-#define CHECK_STATUS( stat )  do {\
+#define CHECK_STATUS( stat )  {\
     if( VSI_SUCCESS != stat ) {\
         VSILOGE("CHECK STATUS(%d:%s)", (stat), vsi_nn_DescribeStatus(stat));\
     }\
-} while(0)
+}
 
 #define CHECK_PTR_FAIL_GOTO( pointer, msg, lbl ) \
-    do { \
+    { \
         if( pointer == NULL ) { \
             VSILOGD("CHECK POINTER %s", msg); \
             goto lbl; \
         } \
-    } while(0)
+    }
+
+#define CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE( pointer, node, msg, lbl ) \
+    { \
+        if( pointer == NULL ) { \
+            vsi_nn_internal_release_node(&node);\
+            VSILOGD("CHECK POINTER %s", msg); \
+            goto lbl; \
+        } \
+    }
 
 #endif

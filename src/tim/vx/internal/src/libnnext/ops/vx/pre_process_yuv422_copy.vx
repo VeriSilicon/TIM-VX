@@ -3,7 +3,9 @@
 _viv_uniform int bOrder;
 _viv_uniform int rOrder;
 
-_viv_uniform float outputScaleVar;
+_viv_uniform float outputScaleVar_b;
+_viv_uniform float outputScaleVar_g;
+_viv_uniform float outputScaleVar_r;
 _viv_uniform float bMeanScaleVarZp;
 _viv_uniform float gMeanScaleVarZp;
 _viv_uniform float rMeanScaleVarZp;
@@ -27,10 +29,12 @@ __kernel void pre_process_yuv422_copy_##name \
                  float           rMean, \
                  float           gMean, \
                  float           bMean, \
-                 float           var, \
+                 float           r_scale, \
                  int             reverse_channel, \
                  int             trans, \
-                 int             yuv422_type \
+                 int             yuv422_type, \
+                 float           g_scale, \
+                 float           b_scale \
     ) \
 { \
     int gidx = get_global_id(0); \
@@ -60,21 +64,21 @@ __kernel void pre_process_yuv422_copy_##name \
     dst_type dst0; \
     save_type dst; \
     int4 dstPos = (int4)(gidx, gidy, 0, 0); \
-    tmpDstB = tmpDstB * outputScaleVar + bMeanScaleVarZp; \
+    tmpDstB = tmpDstB * outputScaleVar_b + bMeanScaleVarZp; \
     _viv_asm(CONV_RTE, result, tmpDstB); \
     dstPos.z = bOrder; \
     VXC_DP2x8(dst0, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniExtract8Data_2x8); \
     _viv_asm(COPY, dst, dst0, copy_bytes); \
     VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
  \
-    tmpDstG = tmpDstG * outputScaleVar + gMeanScaleVarZp; \
+    tmpDstG = tmpDstG * outputScaleVar_g + gMeanScaleVarZp; \
     _viv_asm(CONV_RTE, result, tmpDstG); \
     dstPos.z = 1; \
     VXC_DP2x8(dst0, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniExtract8Data_2x8); \
     _viv_asm(COPY, dst, dst0, copy_bytes); \
     VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
  \
-    tmpDstR = tmpDstR * outputScaleVar + rMeanScaleVarZp; \
+    tmpDstR = tmpDstR * outputScaleVar_r + rMeanScaleVarZp; \
     _viv_asm(CONV_RTE, result, tmpDstR); \
     dstPos.z = rOrder; \
     VXC_DP2x8(dst0, result, result, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 0), uniExtract8Data_2x8); \

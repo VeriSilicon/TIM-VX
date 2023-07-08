@@ -1,0 +1,153 @@
+
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniDataMeanStddevLo_2x8;
+_viv_uniform VXC_512Bits uniDataMeanStddevHi_2x8;
+
+_viv_uniform float output_scale;
+_viv_uniform float output_zp;
+_viv_uniform VXC_512Bits uni16BitsDataInterleave_0_2x8;
+_viv_uniform VXC_512Bits uni16BitsDataInterleave_1_2x8;
+_viv_uniform VXC_512Bits uni8BitsDataInterleave_0_2x8;
+_viv_uniform VXC_512Bits uni8BitsDataInterleave_1_2x8;
+_viv_uniform VXC_512Bits uni8BitsDataInterleave_2_2x8;
+
+#define PRE_PROCESS_RGB888_PLANAR_COPY_16BITS(dst_name, dst_type, copy_type) \
+__kernel void pre_process_rgb888_planar_copy_U8to##dst_name##_nhwc \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+          global int             *xRatio, \
+          global int             *yRatio, \
+          global int             *xOffset, \
+          global int             *yOffset, \
+                 float           rMean, \
+                 float           gMean, \
+                 float           bMean, \
+                 float           r_scale, \
+                 int             reverse, \
+                 float           g_scale, \
+                 float           b_scale \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
+ \
+    coord.xy += (int2)(*xOffset, *yOffset); \
+    vxc_uchar16 src0, src1, src2; \
+    dst_type dst0, dst1; \
+ \
+    int4 coord_in = (int4)(coord.xy, 0, 0); \
+    VXC_ReadImage2DArray(src0, input, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    coord_in.z ++; \
+    VXC_ReadImage2DArray(src1, input, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    coord_in.z ++; \
+    VXC_ReadImage2DArray(src2, input, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+ \
+    int4 coord_out = coord; \
+    coord_out.z = coord_out.z * 3; \
+    coord_out.x = coord_out.z + 8; \
+    float4 paramData0 = (float4)(rMean * output_scale * r_scale - output_zp, \
+        rMean * r_scale * output_scale - output_zp, \
+        rMean * r_scale * output_scale - output_zp, r_scale * output_scale); \
+ \
+    half4 paramData_f16; \
+    copy_type data0, data1, data2, dst; \
+    _viv_asm(CONV, paramData_f16, paramData0); \
+    VXC_DP2x8(dst0, src0, paramData_f16, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \
+        uniDataMeanStddevLo_2x8); \
+    float4 paramData1 = (float4)(gMean * output_scale * g_scale - output_zp,\
+        gMean * g_scale * output_scale - output_zp, \
+        gMean * g_scale * output_scale - output_zp, g_scale * output_scale); \
+    _viv_asm(CONV, paramData_f16, paramData1); \
+    VXC_DP2x8(dst0, src1, paramData_f16, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), \
+        uniDataMeanStddevLo_2x8); \
+    _viv_asm(COPY, data0, dst0, 16); \
+ \
+    float4 paramData2 = (float4)(bMean * output_scale * b_scale - output_zp, \
+        bMean * b_scale * output_scale - output_zp, \
+        bMean * b_scale * output_scale - output_zp, b_scale * output_scale); \
+    _viv_asm(CONV, paramData_f16, paramData2); \
+    VXC_DP2x8(dst1, src2, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), \
+        uniDataMeanStddevLo_2x8); \
+    _viv_asm(COPY, data1, dst1, 16); \
+    VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uni16BitsDataInterleave_0_2x8); \
+    VXC_WriteImage(output, coord_out.zw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uni16BitsDataInterleave_1_2x8); \
+    VXC_WriteImage(output, coord_out.xw, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+PRE_PROCESS_RGB888_PLANAR_COPY_16BITS(F16, vxc_half8,  vxc_short8)
+PRE_PROCESS_RGB888_PLANAR_COPY_16BITS(I16, vxc_short8, vxc_short8)
+
+#define PRE_PROCESS_GRAY_COPY_8BITS(dst_name, write_type) \
+__kernel void pre_process_rgb888_planar_copy_U8to##dst_name##_nhwc \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+          global int             *xRatio, \
+          global int             *yRatio, \
+          global int             *xOffset, \
+          global int             *yOffset, \
+                 float           rMean, \
+                 float           gMean, \
+                 float           bMean, \
+                 float           r_scale, \
+                 int             reverse, \
+                 int             height, \
+                 float           g_scale, \
+                 float           b_scale \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
+ \
+    coord.xy += (int2) (*xOffset, *yOffset); \
+    vxc_uchar16 src0, src1, src2; \
+    write_type dst0, dst1, dst2, dst3; \
+ \
+    int4 coord_in = (int4)(coord.xy, 0, 0); \
+    VXC_ReadImage2DArray(src0, input, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    coord_in.z ++; \
+    VXC_ReadImage2DArray(src1, input, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    coord_in.z ++; \
+    VXC_ReadImage2DArray(src2, input, coord_in, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+ \
+    int4 coord_out = coord; \
+    coord_out.z = coord_out.z * 3; \
+    coord_out.x = coord_out.z + 16; \
+    float4 paramData0 = (float4)(rMean * r_scale * output_scale - output_zp, \
+        rMean * r_scale * output_scale - output_zp, \
+        rMean * r_scale * output_scale - output_zp, r_scale * output_scale); \
+ \
+    half4 paramData_f16; \
+    _viv_asm(CONV, paramData_f16, paramData0); \
+ \
+    VXC_DP2x8(dst0, src0, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniDataMeanStddevLo_2x8); \
+ \
+    float4 paramData1 = (float4)(gMean * g_scale * output_scale - output_zp, \
+        gMean * g_scale * output_scale - output_zp, \
+        gMean * g_scale * output_scale - output_zp, g_scale * output_scale); \
+    _viv_asm(CONV, paramData_f16, paramData1); \
+ \
+    VXC_DP2x8(dst0, src1, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), \
+        uniDataMeanStddevLo_2x8); \
+ \
+    float4 paramData2 = (float4)(bMean * b_scale * output_scale - output_zp, \
+        bMean * b_scale * output_scale - output_zp, \
+        bMean * b_scale * output_scale - output_zp, b_scale * output_scale); \
+    _viv_asm(CONV, paramData_f16, paramData2); \
+ \
+    VXC_DP2x8(dst1, src2, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uniDataMeanStddevLo_2x8); \
+    VXC_DP2x8(dst2, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uni8BitsDataInterleave_0_2x8); \
+    VXC_DP2x8(dst2, dst0, dst1, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), \
+        uni8BitsDataInterleave_1_2x8); \
+    VXC_DP2x8(dst3, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \
+        uni8BitsDataInterleave_2_2x8); \
+    VXC_WriteImage(output, coord_out.zw, dst2, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    VXC_WriteImage(output, coord_out.xw, dst3, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+PRE_PROCESS_GRAY_COPY_8BITS(U8, vxc_uchar16)
+PRE_PROCESS_GRAY_COPY_8BITS(I8, vxc_char16)

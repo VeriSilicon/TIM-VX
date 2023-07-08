@@ -353,7 +353,7 @@ static vsi_status op_init
     //self->nn_param.conv3d.local = \
     //    (conv3d_local_data_t*)malloc(sizeof(conv3d_local_data_t));
     */
-
+    VSI_UNREFERENCED(self);
     return VSI_SUCCESS;
 } /* op_init() */
 

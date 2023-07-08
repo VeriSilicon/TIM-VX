@@ -123,6 +123,8 @@ DEF_KERNEL_INITIALIZER(_tensorstackconcat_initializer)
     vsi_size_array_t * in_shape             = NULL;
     // Add initializer
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
 
@@ -224,6 +226,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_TENSORSTACKCONCAT_PARAM_NUM];
     vsi_nn_kernel_node_t node = NULL;
     vsi_bool image_2d = FALSE;
+
+    VSI_UNREFERENCED(params);
 
     image_2d = (inputs[0]->attr.dim_num == 2 || inputs[0]->attr.size[2] == 1);
     status = _query_kernel( kernel, inputs, outputs, image_2d );

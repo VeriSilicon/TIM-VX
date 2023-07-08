@@ -129,6 +129,8 @@ static vsi_bool op_setup
     uint32_t i = 0;
     uint32_t indices_dims = inputs[1]->attr.dim_num;
 
+    VSI_UNREFERENCED(self);
+
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;

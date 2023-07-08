@@ -171,6 +171,8 @@ static vsi_bool op_setup
     vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool ret = TRUE;
 
+    VSI_UNREFERENCED(self);
+
     in1_rank = inputs[0]->attr.dim_num;
     in2_rank = inputs[1]->attr.dim_num;
     out_rank = vsi_nn_max( in1_rank, in2_rank );

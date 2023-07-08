@@ -79,6 +79,8 @@ typedef enum
     BOOL8,
     I4,
     U4,
+    FP8_E4M3,
+    FP8_E5M2,
 } VSI_PUBLIC_TYPE vsi_nn_kernel_dtype_e;
 
 typedef enum
@@ -89,6 +91,8 @@ typedef enum
     VSI_NN_KERNEL_QUANT_ASYMM_PERCHANNEL,
     VSI_NN_KERNEL_QUANT_SYMM,
     VSI_NN_KERNEL_QUANT_SYMM_PERCHANNEL,
+    VSI_NN_KERNEL_QUANT_FLOAT8,
+    VSI_NN_KERNEL_QUANT_FLOAT8_PERCHANNEL,
     VSI_NN_KERNEL_QUANT_TYPE_NUM
 } vsi_nn_kernel_quant_type_e;
 
@@ -522,6 +526,10 @@ static VSI_INLINE_API vsi_nn_kernel_dtype_e vsi_nn_kernel_map_dtype
         return BF16;
     case VSI_NN_TYPE_FLOAT32:
         return F32;
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+        return FP8_E4M3;
+    case VSI_NN_TYPE_FLOAT8_E5M2:
+        return FP8_E5M2;
     default:
         VSILOGE("error data type %d", dtype);
         break;
@@ -579,6 +587,8 @@ static VSI_INLINE_API size_t vsi_nn_kernel_dtype_get_bytes
         case I8:
         case U8:
         case BOOL8:
+        case FP8_E4M3:
+        case FP8_E5M2:
             return sizeof(int8_t);
         case I16:
         case U16:
@@ -611,6 +621,8 @@ static VSI_INLINE_API vsi_size_t vsi_nn_kernel_dtype_get_bits
         case I8:
         case U8:
         case BOOL8:
+        case FP8_E4M3:
+        case FP8_E5M2:
             return 8;
         case I16:
         case U16:
@@ -879,7 +891,7 @@ static VSI_INLINE_API void vsi_nn_kernel_tensor_attr_get_stride
     shape = attr->shape->data;
     type_bits = vsi_nn_kernel_dtype_get_bits( attr->dtype );
 
-    if ( type_bits < BITS_PER_BYTE )
+    if ( type_bits < BITS_PER_BYTE && type_bits != 0)
     {
         vsi_size_t i;
 

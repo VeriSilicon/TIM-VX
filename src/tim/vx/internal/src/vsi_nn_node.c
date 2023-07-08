@@ -48,7 +48,7 @@ vsi_nn_node_t * vsi_nn_NewNode
     if(NULL == graph || FALSE == vsi_nn_OpIsValid(op))
     {
         VSILOGE("Create node %s. fail", vsi_nn_OpGetName(op));
-        return NULL;
+        goto final;
     }
 
     node = (vsi_nn_node_t *)malloc( sizeof( vsi_nn_node_t ) );
@@ -73,23 +73,41 @@ vsi_nn_node_t * vsi_nn_NewNode
         node->output.num = (uint32_t)output_num;
         node->output.tensors = (vsi_nn_tensor_id_t *) malloc(
             output_num * sizeof( vsi_nn_tensor_id_t ) );
+        if (NULL == node->output.tensors)
+        {
+            goto final;
+        }
         vsi_nn_InitTensorsId( node->output.tensors, (uint32_t)output_num );
 
         /* init input struct */
         node->input.num = (uint32_t)input_num;
         node->input.tensors = (vsi_nn_tensor_id_t *) malloc(
             input_num * sizeof( vsi_nn_tensor_id_t ) );
+        if (NULL == node->input.tensors)
+        {
+            goto final;
+        }
         vsi_nn_InitTensorsId( node->input.tensors, (uint32_t)input_num );
         node->attr.const_tensor_preload_type = VSI_NN_NODE_PRELOAD_NONE;
         node->attr.enable_op_constraint_check = TRUE;
     }
     else
     {
-        return NULL;
+        goto final;
     }
 
     node->uid = VSI_NN_NODE_UID_NA;
+
     return node;
+final:
+    if (node)
+    {
+        vsi_nn_safe_free(node->output.tensors);
+        vsi_nn_safe_free(node->input.tensors);
+    }
+    vsi_nn_safe_free(node);
+
+    return NULL;
 } /* vsi_nn_NewNode() */
 
 /*
@@ -213,6 +231,8 @@ vsi_status vsi_nn_update_node_attr
     )
 {
     vsi_status status = VSI_FAILURE;
+
+    VSI_UNREFERENCED(node);
 
 #if(defined(VX_PRELOAD_CONST_TENSOR_SUPPORT) && VX_PRELOAD_CONST_TENSOR_SUPPORT)
     if(node)

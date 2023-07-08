@@ -128,6 +128,8 @@ DEF_KERNEL_INITIALIZER(_slice_initializer)
     vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
     vsi_size_array_t * out_shape                 = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
 
@@ -244,6 +246,8 @@ static vsi_nn_kernel_node_t _setup
     float inputTail = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * inputScale;
     float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
     float outputZP = (float)vsi_nn_get_tensor_zero_point(outputs[0]) + 0.5f;
+
+    VSI_UNREFERENCED(params);
 
     outputScale = vsi_abs(outputScale) < 1e-5 ? 0.0f : 1.0f / outputScale;
 

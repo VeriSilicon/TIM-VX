@@ -30,7 +30,7 @@
 extern "C"{
 #endif
 
-#define vsi_nn_LinkListInitRoot(n) do{n = NULL;} while (0);
+#define vsi_nn_LinkListInitRoot(n) {n = NULL;}
 
 typedef struct _vsi_nn_link_list
 {

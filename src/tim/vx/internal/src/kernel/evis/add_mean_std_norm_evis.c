@@ -90,7 +90,7 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
     size_t                              param_size
     )
 {
-    vsi_status status = VX_FAILURE;
+    vsi_status status = VSI_FAILURE;
     // Alignment with a power of two value.
     gpu_param_t gpu_param = {
         2,
@@ -118,6 +118,8 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
     float   rsEps      = 0.0f;
     float   dimRatio   = 0.0f;
     int32_t width      = 0;
+
+    VSI_UNREFERENCED(param_size);
 
     input0_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)input0);
     CHECK_PTR_FAIL_GOTO( input0_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );

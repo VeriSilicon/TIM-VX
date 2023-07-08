@@ -113,6 +113,12 @@ static vsi_size_t eltwise_fill_dim
         vsi_size_t divisor = 0;
         vsi_size_t remainder = 0;
         compute_gpu_divisor( size_output, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
+        if (divisor == 0)
+        {
+            VSILOGE( "divisor might be used in a division by zero." );
+            cost_size =  (vsi_size_t)-1;
+            goto final;
+        }
         remainder = size_output / divisor;
         if( remainder > GPU_TENSOR_MAX_WIDTH || rank >= max_rank )
         {
@@ -152,6 +158,7 @@ static vsi_size_t eltwise_fill_dim
             shape_output[rank + 1] = remainder;
         }
     }
+final:
     return cost_size;
 } /* eltwise_fill_dim() */
 
@@ -177,11 +184,11 @@ vsi_bool vsi_nn_kernel_optimize_eltwise_shape
     eltwise_broadcast_state_e prv_state = ELTWISE_BROADCAST_STATE_EMPTY;
 
 #define _swap_size(a, b, tmp)  \
-    do { \
+    { \
         tmp = a; \
         a = b; \
         b = tmp; \
-    } while(0)
+    }
     for( i = 0; i < rank_output; i++ )
     {
         sx = i < rank_x ? shape_x[i] : 1;
@@ -352,6 +359,12 @@ static vsi_size_t broadcast_fill_dim
         vsi_size_t divisor = 0;
         vsi_size_t remainder = 0;
         compute_gpu_divisor( size_output, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
+        if (divisor == 0)
+        {
+            VSILOGE( "divisor might be used in a division by zero." );
+            cost_size =  (vsi_size_t)-1;
+            goto final;
+        }
         remainder = size_output / divisor;
         if( remainder > GPU_TENSOR_MAX_WIDTH || rank >= max_rank )
         {
@@ -386,6 +399,7 @@ static vsi_size_t broadcast_fill_dim
             shape_output[rank + 1] = remainder;
         }
     }
+final:
     return cost_size;
 } /* broadcast_fill_dim() */
 
@@ -412,11 +426,11 @@ vsi_bool vsi_nn_kernel_optimize_broadcast_shape
     int32_t  prv_state_mask                   = -1;
 
 #define _swap_size(a, b, tmp)  \
-    do { \
+    { \
         tmp = a; \
         a = b; \
         b = tmp; \
-    } while(0)
+    }
 
     if (input_num > MAX_INPUT_NUM)
     {

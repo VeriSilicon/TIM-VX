@@ -37,6 +37,7 @@
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 typedef struct _deconv3d_local_data_t {
     int32_t placeholder;
@@ -135,7 +136,9 @@ void _rotate_weight_data(
     int32_t item_size = vsi_nn_TypeGetBytes(weights->attr.dtype.vx_type);
 
     weight_data = vsi_nn_ConvertTensorToData(graph, weights);
+    CHECK_PTR_FAIL_GOTO( weight_data, "Create weight_data fail.", final );
     buffer = (uint8_t*)malloc(item_size * depth_size * weight_ic * weight_oc);
+    CHECK_PTR_FAIL_GOTO( buffer, "Create buffer fail.", final );
     memset(buffer, 0x00, item_size * depth_size * weight_ic * weight_oc);
     //memcpy(buffer, weight_data, item_size * slice_size * weight_ic * weight_oc);
     for(oc = 0; oc < weight_oc; oc++)
@@ -164,6 +167,8 @@ void _rotate_weight_data(
     }
 
     vsi_nn_CopyDataToTensor( graph, weights, buffer );
+
+final:
     vsi_nn_Free( buffer );
     vsi_nn_safe_free( weight_data );
 }
@@ -263,7 +268,7 @@ static vsi_status op_init
     //self->nn_param.deconv3d.local = \
     //    (deconv3d_local_data_t*)malloc(sizeof(deconv3d_local_data_t));
     */
-
+    VSI_UNREFERENCED(self);
     return VSI_SUCCESS;
 } /* op_init() */
 

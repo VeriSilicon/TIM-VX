@@ -345,16 +345,6 @@ VX_API_ENTRY vx_spinst VX_API_CALL vxCreateSPINST(
     vx_context          context
     );
 
-/*! \brief Creates an internal reference to a spinst data.
- * \param [in] context The reference to the implementation context.
- * \return A spinst data reference.
- * \Any possible errors preventing a successful creation should be checked using <tt>\ref vxGetStatus</tt>.
- * \ingroup group_object_spinst
- */
-VX_API_ENTRY vx_spinst VX_API_CALL vxCreateSPINSTInternal(
-    vx_context          context
-    );
-
 /*! \brief Releases a reference to a external spinst object.
  * The object may not be garbage collected until its total reference count is zero.
  * \param [in] spinst_obj The pointer to the spinst data to release.
@@ -365,19 +355,6 @@ VX_API_ENTRY vx_spinst VX_API_CALL vxCreateSPINSTInternal(
  * \ingroup group_object_spinst
  */
 VX_API_ENTRY vx_status VX_API_CALL vxReleaseSPINST(
-    vx_spinst            *spinst_obj
-    );
-
-/*! \brief Releases a reference to a internal spinst object.
- * The object may not be garbage collected until its total reference count is zero.
- * \param [in] spinst_obj The pointer to the spinst data to release.
- * \post After returning from this function the reference is zeroed.
- * \return A <tt>\ref vx_status_e</tt> enumeration.
- * \retval VX_SUCCESS No errors; all other values indicate failure
- * \retval * An error occurred. See <tt>\ref vx_status_e</tt>.
- * \ingroup group_object_spinst
- */
-VX_API_ENTRY vx_status VX_API_CALL vxReleaseSPINSTInternal(
     vx_spinst            *spinst_obj
     );
 

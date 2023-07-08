@@ -35,9 +35,9 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 
-typedef struct _bilinear_grid_sample_local_data_t {
+typedef struct _custom_tiny_yolov4_postprocess_box_local_data_t {
     int32_t placeholder;
-} bilinear_grid_sample_local_data_t;
+} custom_tiny_yolov4_postprocess_box_local_data_t;
 
 /*
  Declare number of input and output.
@@ -53,26 +53,24 @@ static vsi_status op_compute
     )
 {
     vsi_status status = VSI_FAILURE;
-
-    vsi_nn_kernel_param_t* param = NULL;
-    int32_t align_corners = self->nn_param.bilinear_grid_sample.align_corners;
-    vsi_nn_kernel_node_t n;
+    vsi_nn_kernel_param_t * param = NULL;
+    float bias_0 = self->nn_param.custom_tiny_yolov4_postprocess_box.bias_0;
+    float bias_1 = self->nn_param.custom_tiny_yolov4_postprocess_box.bias_1;
 
     param = vsi_nn_kernel_param_create();
 
-    vsi_nn_kernel_param_add_int32(param, "align_corners", align_corners);
-    n = vsi_nn_kernel_selector(
-        self->graph, "bilinear_grid_sample", inputs, 2, outputs, 1, param);
-    if (n == NULL) {
-        vsi_nn_kernel_param_release(&param);
-        status = VSI_FAILURE;
-        return status;
-    }
-    self->n = (vx_node)n;
-    vsi_nn_kernel_param_release(&param);
-    if (self->n) {
+    vsi_nn_kernel_param_add_float32( param, "bias_0", bias_0 );
+    vsi_nn_kernel_param_add_float32( param, "bias_1", bias_1 );
+
+    self->n = vsi_nn_kernel_selector( self->graph, "tiny_yolov4_postprocess_box",
+        inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
+
+    if ( self->n )
+    {
         status = VSI_SUCCESS;
     }
+
+    vsi_nn_kernel_param_release( &param );
 
     return status;
 } /* op_compute() */
@@ -85,6 +83,9 @@ static vsi_bool op_check
     )
 {
     /*TODO: Check tensor shapes. */
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 
@@ -95,61 +96,36 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    if (NULL == self) {
-        return FALSE;
-    }
+    uint32_t rank = inputs[0]->attr.dim_num;
+    vsi_bool ret = TRUE;
 
-    if (VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num) {
-        outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
-        outputs[0]->attr.size[0] = inputs[1]->attr.size[1];
-        outputs[0]->attr.size[1] = inputs[1]->attr.size[2];
-        outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
-        if (4 == inputs[0]->attr.dim_num) {
-            outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
+    VSI_UNREFERENCED(self);
+
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    {
+        outputs[0]->attr.dim_num = rank;
+        outputs[0]->attr.size[0] = inputs[0]->attr.size[2];
+        outputs[0]->attr.size[1] = inputs[0]->attr.size[0];
+        outputs[0]->attr.size[2] = inputs[0]->attr.size[1];
+        if (rank > 3)
+        {
+            memcpy( &outputs[0]->attr.size[3], &inputs[0]->attr.size[3], (rank - 3) * sizeof(vsi_size_t) );
         }
     }
 
-    return TRUE;
+    return ret;
 } /* op_setup() */
 
-static vsi_status op_init
-    (
-    vsi_nn_node_t* self
-    )
-{
-    /* TODO
-    //self->nn_param.bilinear_grid_sample.local = \
-    //    (bilinear_grid_sample_local_data_t*)malloc(sizeof(bilinear_grid_sample_local_data_t));
-    */
-
-    return VSI_SUCCESS;
-} /* op_init() */
-
-static vsi_status op_deinit
-    (
-    vsi_nn_node_t* self
-    )
-{
-    vsi_status status = VSI_SUCCESS;
-
-    status = vsi_nn_op_common_deinit(self);
-
-    /* TODO
-    //vsi_nn_safe_free(self->nn_param.bilinear_grid_sample.local);
-    */
-
-    return status;
-} /* op_deinit() */
 
 __BEGIN_DECLS
 
 /* Registrar */
 DEF_OP_REG
     (
-    /* op_name    */ BILINEAR_GRID_SAMPLE,
-    /* init       */ op_init,
+    /* op_name    */ CUSTOM_TINY_YOLOV4_POSTPROCESS_BOX,
+    /* init       */ NULL,
     /* compute    */ op_compute,
-    /* deinit     */ op_deinit,
+    /* deinit     */ vsi_nn_op_common_deinit,
     /* check      */ op_check,
     /* setup      */ op_setup,
     /* optimize   */ NULL,

@@ -59,6 +59,7 @@ static vsi_status op_compute
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_const_buffer( param, "matrix", p->matrix, 6 );
     vsi_nn_kernel_param_add_int32( param, "type", p->type);
+    vsi_nn_kernel_param_add_int32( param, "rgb_type", p->rgb_type);
 
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
             "custom_warp_affine",
@@ -78,6 +79,9 @@ static vsi_bool op_check
     )
 {
     /*TODO: Check tensor shapes. */
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 

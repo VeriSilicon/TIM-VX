@@ -51,7 +51,38 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
 
-    status = vsi_nn_internal_compute_node(self);
+    vsi_nn_kernel_param_t* param = NULL;
+    int32_t align_corners = self->nn_param.gridsample.align_corners;
+    vsi_nn_kernel_node_t n;
+    char kernel_name[128];
+
+    param = vsi_nn_kernel_param_create();
+    vsi_nn_kernel_param_add_int32(param, "align_corners", align_corners);
+
+    switch (self->nn_param.gridsample.mode) {
+        case VSI_NN_INTERPOLATION_BILINEAR:
+            snprintf(kernel_name, sizeof(kernel_name), "bilinear_grid_sample");
+            break;
+        case VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR:
+            snprintf(kernel_name, sizeof(kernel_name), "nearest_grid_sample");
+            break;
+        default:
+            break;
+    }
+
+    n = (vx_node)vsi_nn_kernel_selector(
+        self->graph, kernel_name, inputs, 2, outputs, 1, param);
+
+    if (n == NULL) {
+        vsi_nn_kernel_param_release(&param);
+        status = VSI_FAILURE;
+        return status;
+    }
+    self->n = (vx_node)n;
+    vsi_nn_kernel_param_release(&param);
+    if (self->n) {
+        status = VSI_SUCCESS;
+    }
 
     return status;
 } /* op_compute() */
@@ -63,8 +94,12 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
-    if (VSI_NN_INTERPOLATION_BILINEAR != self->nn_param.gridsample.mode) {
-        VSILOGE("Only support bilinear_grid_sample now!");
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+    if ((VSI_NN_INTERPOLATION_BILINEAR != self->nn_param.gridsample.mode) &&
+        (VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR !=
+         self->nn_param.gridsample.mode)) {
+        VSILOGE("Only support bilinear or nearest grid sample mode now!");
         return FALSE;
     }
 
@@ -85,8 +120,6 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_nn_internal_node_t* curr = NULL;
-
     if (NULL == self) {
         return FALSE;
     }
@@ -101,22 +134,6 @@ static vsi_bool op_setup
         }
     }
 
-    if (VSI_NN_INTERPOLATION_BILINEAR == self->nn_param.gridsample.mode) {
-        vsi_nn_internal_init_node_wksp(self);
-        curr = vsi_nn_internal_new_node(
-            self, VSI_NN_OP_BILINEAR_GRID_SAMPLE, 2, 1);
-        curr->node->nn_param.bilinear_grid_sample.align_corners =
-            self->nn_param.gridsample.align_corners;
-        curr->node->nn_param.bilinear_grid_sample.padding_mode =
-            self->nn_param.gridsample.padding_mode;
-        curr->node->nn_param.bilinear_grid_sample.const_val =
-            self->nn_param.gridsample.const_val;
-        curr->inputs[0]  = inputs[0];
-        curr->inputs[1]  = inputs[1];
-        curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node(self, curr);
-    }
-
     return TRUE;
 } /* op_setup() */
 
@@ -129,7 +146,7 @@ static vsi_status op_init
     //self->nn_param.grid_sample.local = \
     //    (grid_sample_local_data_t*)malloc(sizeof(grid_sample_local_data_t));
     */
-
+    VSI_UNREFERENCED(self);
     return VSI_SUCCESS;
 } /* op_init() */
 
@@ -140,7 +157,7 @@ static vsi_status op_deinit
 {
     vsi_status status = VSI_SUCCESS;
 
-    status = vsi_nn_internal_deinit_node_wksp(self);
+    status = vsi_nn_op_common_deinit(self);
 
     return status;
 } /* op_deinit() */

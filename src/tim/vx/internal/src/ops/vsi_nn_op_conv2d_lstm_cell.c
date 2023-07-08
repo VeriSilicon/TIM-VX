@@ -35,7 +35,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
 
@@ -99,8 +99,10 @@ static vsi_nn_internal_tensor_t * create_input_conv
     attr.vtl = TRUE;
     attr.is_const = FALSE;
     input_conv_out = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+    CHECK_PTR_FAIL_GOTO(input_conv_out, "Create internal tensor failed", final);
 
     input_conv = vsi_nn_internal_new_node(self, VSI_NN_OP_CONV2D, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(input_conv, "Create internal node failed", final);
     input_conv->node->nn_param.conv2d.group = 1;
     input_conv->node->nn_param.conv2d.ksize[0] = p->conv2d.ksize[0];
     input_conv->node->nn_param.conv2d.ksize[1] = p->conv2d.ksize[1];
@@ -129,6 +131,7 @@ static vsi_nn_internal_tensor_t * create_input_conv
     // reshape whcn --> xn
     reshape_out = reshape_tensor_to_act(self, input_conv_out->t);
 
+final:
     return reshape_out;
 } /* create_input_conv() */
 
@@ -176,8 +179,10 @@ static vsi_nn_internal_tensor_t * create_recurrent_conv
     attr.vtl = TRUE;
     attr.is_const = FALSE;
     recurrent_conv_out = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+    CHECK_PTR_FAIL_GOTO(recurrent_conv_out, "Create internal tensor failed", final);
 
     recurrent_conv = vsi_nn_internal_new_node(self, VSI_NN_OP_CONV2D, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(recurrent_conv, "Create internal node failed", final);
     recurrent_conv->node->nn_param.conv2d.pad_type = VSI_NN_PAD_SAME;
     recurrent_conv->node->nn_param.conv2d.group = 1;
     recurrent_conv->node->nn_param.conv2d.ksize[0] = p->conv2d.ksize[0];
@@ -203,6 +208,8 @@ static vsi_nn_internal_tensor_t * create_recurrent_conv
 
     // reshape whcn --> xn
     reshape_out = reshape_tensor_to_act(self, recurrent_conv_out->t);
+
+final:
     return reshape_out;
 } /* create_recurrent_conv() */
 
@@ -303,6 +310,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -313,6 +322,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -325,6 +337,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
 
@@ -344,6 +358,7 @@ static vsi_bool op_setup
     vsi_nn_internal_tensor_t * reshape_h_out = NULL;
     vsi_nn_internal_tensor_t * reshape_c_out = NULL;
     vsi_nn_conv2d_lstm_cell_param * p = &self->nn_param.conv2d_lstm_cell;
+    vsi_bool ret = FALSE;
 
     vsi_nn_internal_init_node_wksp( self );
 
@@ -359,6 +374,7 @@ static vsi_bool op_setup
             inputs[CONV2D_LSTM_CELL_IN_KERNEL_I2I + i],
             inputs[CONV2D_LSTM_CELL_IN_BIAS_I + i]
         );
+        CHECK_PTR_FAIL_GOTO(input_conv_outputs[i], "Create internal tensor failed", final);
     }
 
     /* create recurrent convolution */
@@ -369,10 +385,12 @@ static vsi_bool op_setup
             inputs[CONV2D_LSTM_CELL_IN_H_STATE],
             inputs[CONV2D_LSTM_CELL_IN_KERNEL_R2I + i]
         );
+        CHECK_PTR_FAIL_GOTO(recurrent_conv_outputs[i], "Create internal tensor failed", final);
     }
 
     /* activations */
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_LSTMUNIT_ACTIVATION, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->node->nn_param.lstmunit_activation.cell_clip = 0;
     curr->node->nn_param.lstmunit_activation.proj_clip = 0;
     curr->node->nn_param.lstmunit_activation.forget_bias = 0;
@@ -384,6 +402,7 @@ static vsi_bool op_setup
     curr->node->nn_param.lstmunit_activation.recurrent_activation = p->recurrent_activation;
 
     reshape_cell_in = reshape_tensor_to_act(self, inputs[CONV2D_LSTM_CELL_IN_C_STATE]);
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_cell_in, curr, "Create internal tensor failed", final);
     curr->inputs[LSTMUNIT_ACT_CSTATE_IN] = reshape_cell_in->t;
     for(i = 0; i < CONV2D_LSTM_CELL_GATE_NUM; i++)
     {
@@ -392,15 +411,20 @@ static vsi_bool op_setup
         curr->inputs[LSTMUNIT_ACT_HSTATE_FC_I + i] = recurrent_conv_outputs[i]->t;
     }
     reshape_out = reshape_tensor_to_act(self, outputs[CONV2D_LSTM_CELL_OUT_OUTPUT]);
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_out, curr, "Create internal tensor failed", final);
     reshape_h_out = reshape_tensor_to_act(self, outputs[CONV2D_LSTM_CELL_OUT_H_STATE]);
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_h_out, curr, "Create internal tensor failed", final);
     reshape_c_out = reshape_tensor_to_act(self, outputs[CONV2D_LSTM_CELL_OUT_C_STATE]);
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_c_out, curr, "Create internal tensor failed", final);
 
     curr->outputs[LSTMUNIT_ACT_OUTPUT] = reshape_out->t;
     curr->outputs[LSTMUNIT_ACT_CSTATE_OUT] = reshape_c_out->t;
     curr->outputs[LSTMUNIT_ACT_HSTATE_OUT] = reshape_h_out->t;
     vsi_nn_internal_setup_node(self, curr);
 
-    return TRUE;
+    ret = TRUE;
+final:
+    return ret;
 } /* op_setup() */
 
 static vsi_status op_deinit
@@ -419,7 +443,7 @@ static vsi_status op_init
     )
 {
     vsi_status status = VSI_SUCCESS;
-
+    VSI_UNREFERENCED(self);
     return status;
 } /* op_init() */
 

@@ -50,13 +50,22 @@ extern "C" {
     free( _PTR ); _PTR = NULL; }
 
 #define vsi_safe_release_tensor(_t) if(_t){vsi_nn_ReleaseTensor(&(_t)); _t = NULL;}
-
-#define END_OF_VARIADIC_ARGUMENTS       ((size_t)0xbadcaffebadcaffe)
+#if (defined(_WIN32) || defined(__WIN32__) || defined(WIN32))
+    #if defined(_WIN64)
+        #define END_OF_VARIADIC_ARGUMENTS       ((size_t)0xbadcaffebadcaffe)
+    #else
+        #define END_OF_VARIADIC_ARGUMENTS       ((size_t)0xbadcaffe)
+    #endif
+#else
+    #define END_OF_VARIADIC_ARGUMENTS       ((size_t)0xbadcaffebadcaffe)
+#endif
 
 #define FOREACH_ARGS(_args, _next, _arg_type) \
     while(((_arg_type)((size_t)END_OF_VARIADIC_ARGUMENTS)) != (_next = va_arg(_args, _arg_type)))
 
 #define BITS_PER_BYTE 8
+
+#define VSI_UNREFERENCED( param ) ( ( void ) ( param ) )
 
 #define VSI_NN_STRINGIZE(X) VSI_NN_DO_STRINGIZE(X)
 #define VSI_NN_DO_STRINGIZE(X) #X

@@ -28,9 +28,21 @@ _viv_uniform int zp;
 _viv_uniform float outputScale;
 
 __kernel void pre_process_bgra_scale_U8toU8(
-    __read_only image2d_array_t input, __write_only image2d_array_t    output,
-    global int *xRatio, global int * yRatio, global int * xOffset, global int * yOffset,
-    float rMean, float gMean, float bMean, float var, int reverse_channel, int trans)
+         __read_only image2d_array_t  input,
+        __write_only image2d_array_t  output,
+              global int *            xRatio,
+              global int *            yRatio,
+              global int *            xOffset,
+              global int *            yOffset,
+                     float            rMean,
+                     float            gMean,
+                     float            bMean,
+                     float            r_scale,
+                     int              reverse_channel,
+                     int              trans,
+                     float            g_scale,
+                     float            b_scale
+    )
 {
     int4 gidx = get_global_id(0);
     int gidy = get_global_id(1);
@@ -86,6 +98,7 @@ __kernel void pre_process_bgra_scale_U8toU8(
     int4 tmp1, tmp2, result1, result2;
     float4 tmpDst, tmp0;
     float4 mean = (float4)(bMean, gMean, rMean, 0);
+    float4 var = (float4)(b_scale, g_scale, r_scale, 0);
     //tmpFx = (int4)(fx.x, fx.x, fx.x, fx.x);
     int tmpV = 1 << 19;
     vxc_short8 tmpFx;
@@ -148,9 +161,21 @@ __kernel void pre_process_bgra_scale_U8toU8(
 }
 
 __kernel void pre_process_bgra_copy_U8toU8(
-    __read_only image2d_array_t input, __write_only image2d_array_t    output,
-    global int *xRatio, global int * yRatio, global int * xOffset, global int * yOffset,
-    float rMean, float gMean, float bMean, float var, int reverse_channel, int trans)
+         __read_only image2d_array_t  input,
+        __write_only image2d_array_t  output,
+              global int *            xRatio,
+              global int *            yRatio,
+              global int *            xOffset,
+              global int *            yOffset,
+                     float            rMean,
+                     float            gMean,
+                     float            bMean,
+                     float            r_scale,
+                     int              reverse_channel,
+                     int              trans,
+                     float            g_scale,
+                     float            b_scale
+)
 {
     int2 pos = (int2)((get_global_id(0) + (*xOffset)) << 2, get_global_id(1) + (*yOffset));
 
@@ -165,10 +190,10 @@ __kernel void pre_process_bgra_copy_U8toU8(
     VXC_DP4x4(tmpG, lineBGRA0, lineBGRA0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractGfromBgra_4x4);
     VXC_DP4x4(tmpR, lineBGRA0, lineBGRA0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractRfromBgra_4x4);
 
-    tmpDst = (tmpB - bMean) * var;
+    tmpDst = (tmpB - bMean) * b_scale;
     result1 = convert_int4_rte(tmpDst * outputScale + zp);
 
-    tmpDst = (tmpG - gMean) * var;
+    tmpDst = (tmpG - gMean) * g_scale;
     result2 = convert_int4_rte(tmpDst * outputScale + zp);
     VXC_DP2x8(dst, result1, result2, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertInt32toUint8_2x8);
 
@@ -178,7 +203,7 @@ __kernel void pre_process_bgra_copy_U8toU8(
     dstPos.z = 1;
     VXC_WriteImage2DArray(output, dstPos, dst, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0));
 
-    tmpDst = (tmpR - rMean) * var;
+    tmpDst = (tmpR - rMean) * r_scale;
     result1 = convert_int4_rte(tmpDst * outputScale + zp);
     VXC_DP2x8(dst, result1, result1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniConvertInt32toUint8_2x8);
 

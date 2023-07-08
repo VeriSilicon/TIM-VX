@@ -136,6 +136,8 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[3] = { NULL };
     vsi_size_array_t * out_shape = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -190,7 +192,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype;
     vsi_status status = VSI_FAILURE;
     uint32_t key;
-    int i;
+    size_t i;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
@@ -247,6 +249,9 @@ static vsi_nn_kernel_node_t _setup
     float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
     float outputZP = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
     int32_t is_per_channel_alpha = 0;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     is_per_channel_alpha = vsi_nn_kernel_param_get_int32(params, "is_per_channel_alpha");
 

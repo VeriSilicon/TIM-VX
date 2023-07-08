@@ -141,6 +141,8 @@ static vsi_bool op_setup
     vsi_nn_tensorstackconcat_param *p = NULL;
     int32_t axis = 0;
 
+    VSI_UNREFERENCED(outputs);
+
     if ( NULL == self )
     {
         return ret;

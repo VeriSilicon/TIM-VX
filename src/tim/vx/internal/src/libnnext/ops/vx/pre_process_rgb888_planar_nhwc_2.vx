@@ -1,0 +1,57 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uni8BitsDataInterleave_0_2x8;
+_viv_uniform VXC_512Bits uni8BitsDataInterleave_1_2x8;
+_viv_uniform VXC_512Bits uni8BitsDataInterleave_2_2x8;
+
+__kernel void pre_process_rgb888_planar_half_U8toU8_nhwc
+    (
+    __read_only  image2d_array_t input,
+    __write_only image2d_array_t output,
+          global int             *xRatio,
+          global int             *yRatio,
+          global int             *xOffset,
+          global int             *yOffset,
+                 float           rMean,
+                 float           gMean,
+                 float           bMean,
+                 float           r_scale,
+                 int             reverse,
+                 float           g_scale,
+                 float           b_scale
+    )
+{
+    int4 coord_in = (int4)(get_global_id(0), get_global_id(1), 0, 0);
+
+    vxc_uchar16 src0, src1, src2;
+
+    VXC_ReadImage2DArray(src0, input, coord_in, 0,
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    coord_in.z ++;
+    VXC_ReadImage2DArray(src1, input, coord_in, 0,
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    coord_in.z ++;
+    VXC_ReadImage2DArray(src2, input, coord_in, 0,
+        VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    int4 coord;
+    coord.xy = coord_in.xy >> 1;
+
+    coord.x = coord.x * 3;
+    coord.z = coord.x + 16;
+
+    vxc_uchar16 dst0, dst1;
+    src0.lo = src0.s02468ace;
+    src0.hi = src1.s02468ace;
+    src1.lo = src2.s02468ace;
+
+    VXC_DP2x8(dst0, src0, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),
+        uni8BitsDataInterleave_0_2x8);
+    VXC_DP2x8(dst0, src0, src1, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1),
+        uni8BitsDataInterleave_1_2x8);
+    VXC_DP2x8(dst1, src0, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),
+        uni8BitsDataInterleave_2_2x8);
+
+    VXC_WriteImage(output, coord.xy, dst0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.zy, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}

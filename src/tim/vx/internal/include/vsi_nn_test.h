@@ -31,26 +31,26 @@
 extern "C"{
 #endif
 
-#define TEST_CHECK_TENSOR_ID( id, lbl )      do {\
+#define TEST_CHECK_TENSOR_ID( id, lbl )      {\
     if( VSI_NN_TENSOR_ID_NA == id ) {\
         VSILOGE("CHECK TENSOR ID %d", __LINE__);\
         goto lbl;\
         }\
-    } while(0)
+    }
 
-#define TEST_CHECK_PTR( ptr, lbl )      do {\
+#define TEST_CHECK_PTR( ptr, lbl )      {\
     if( NULL == ptr ) {\
         VSILOGE("CHECK PTR %d", __LINE__);\
         goto lbl;\
     }\
-} while(0)
+}
 
-#define TEST_CHECK_STATUS( stat, lbl )  do {\
+#define TEST_CHECK_STATUS( stat, lbl )  {\
     if( VSI_SUCCESS != stat ) {\
         VSILOGE("CHECK STATUS(%d:%s)", (stat), vsi_nn_DescribeStatus(stat));\
         goto lbl;\
     }\
-} while(0)
+}
 
 #if defined(__cplusplus)
 }

@@ -202,6 +202,8 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(outputs);
     //TODO: Check tensor shapes.
     if( inputs[0]->attr.dim_num  < 3)
     {

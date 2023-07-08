@@ -34,7 +34,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -48,6 +48,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -82,19 +84,21 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_bool ret = TRUE;
+    vsi_bool ret = FALSE;
     vsi_nn_internal_node_t* curr = NULL;
 
     vsi_nn_internal_init_node_wksp(self);
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_LINEAR, 0, 0);
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->node->nn_param.linear.a = self->nn_param.dropout.ratio;
     curr->node->nn_param.linear.b = 0;
     curr->inputs[0] = inputs[0];
     curr->outputs[0] = outputs[0];
 
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
 
+final:
     return ret;
 } /* op_init() */
 

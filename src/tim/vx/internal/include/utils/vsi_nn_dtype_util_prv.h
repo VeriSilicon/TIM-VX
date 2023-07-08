@@ -27,6 +27,7 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_math.h"
 #include "vsi_nn_tensor.h"
+#include "vsi_nn_log.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,6 +79,8 @@ static VSI_INLINE_API vsi_bool type_is_signed
     case VSI_NN_TYPE_FLOAT32:
     case VSI_NN_TYPE_FLOAT64:
     case VSI_NN_TYPE_BFLOAT16:
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+    case VSI_NN_TYPE_FLOAT8_E5M2:
         ret = TRUE;
         break;
     default:
@@ -93,9 +96,14 @@ static VSI_INLINE_API uint32_t type_get_bytes
 {
     switch( type )
     {
+    case VSI_NN_TYPE_INT4:
+    case VSI_NN_TYPE_UINT4:
+        return 0;
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_BOOL8:
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+    case VSI_NN_TYPE_FLOAT8_E5M2:
         return 1;
     case VSI_NN_TYPE_INT16:
     case VSI_NN_TYPE_UINT16:
@@ -111,7 +119,8 @@ static VSI_INLINE_API uint32_t type_get_bytes
     case VSI_NN_TYPE_FLOAT64:
         return 8;
     default:
-        return 0;
+        VSILOGE("unsupported type: %d", type);
+        return 1;
     }
 } /* type_get_bytes() */
 
@@ -128,6 +137,8 @@ static VSI_INLINE_API uint32_t type_get_bits
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_BOOL8:
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+    case VSI_NN_TYPE_FLOAT8_E5M2:
         return 8;
     case VSI_NN_TYPE_INT16:
     case VSI_NN_TYPE_UINT16:
@@ -143,7 +154,8 @@ static VSI_INLINE_API uint32_t type_get_bits
     case VSI_NN_TYPE_FLOAT64:
         return 64;
     default:
-        return 0;
+        VSILOGE("unsupported type: %d", type);
+        return 1;
     }
 } /* type_get_bits() */
 
@@ -236,6 +248,7 @@ static VSI_INLINE_API float affine_to_fp32
     )
 {
     float data;
+    VSI_UNREFERENCED(type);
     data = ( (float)val - zero_point ) * scale;
     return data;
 } /* affine_to_fp32() */
@@ -279,6 +292,7 @@ static VSI_INLINE_API float dfp_to_fp32
     )
 {
     float result;
+    VSI_UNREFERENCED(type);
     if( fl > 0 )
     {
         result = (float)val * ( 1.0f / ( (float) ( (int64_t)1 << fl ) ) );
@@ -440,6 +454,139 @@ static VSI_INLINE_API uint16_t fp32_to_bfp16_rtne
     return out;
 } /* fp32_to_bfp16_rtne */
 
+#define FLOAT_BIAS_EXPONENT 127
+#define FLOAT_EXPONENT_SIZE 8
+#define FLOAT_MANTISSA_SIZE  23
+#define FLOAT8_E4M3_BIAS_EXPONENT 7
+#define FLOAT8_E4M3_EXPONENT_SIZE 4
+#define FLOAT8_E4M3_MANTISSA_SIZE 3
+#define FLOAT8_E5M2_BIAS_EXPONENT 15
+#define FLOAT8_E5M2_EXPONENT_SIZE 5
+#define FLOAT8_E5M2_MANTISSA_SIZE 2
+
+static VSI_INLINE_API uint8_t fp32_to_fp8_e4m3(float in, const float scale) {
+    float fp8_f32 = in / scale;
+    int32_t fp8_i32 = *((int32_t*)&fp8_f32);
+    //int32_t mask = (int32_t)(pow(2, 32) - 1 - (pow(2, 23 - 3) - 1));
+    int32_t eps = 1 << (23 - 3 - 1);
+    fp8_i32 += eps;
+    //fp8_i32 &= mask;
+    {
+        int sign = (fp8_i32 >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1;
+        int exp = (fp8_i32 >> FLOAT_MANTISSA_SIZE) & 0xff;
+        int expShiftValue = FLOAT8_E4M3_BIAS_EXPONENT - FLOAT_BIAS_EXPONENT;
+        int mantissa = (fp8_i32 >> (FLOAT_MANTISSA_SIZE - FLOAT8_E4M3_MANTISSA_SIZE)) & 0x7;
+
+        exp = (exp + expShiftValue) & 0xF;
+
+        return (uint8_t)(sign << 7 | exp << 3 | mantissa);
+    }
+} /* fp32_to_fp8_e4m3() */
+
+static VSI_INLINE_API uint8_t fp32_to_fp8_e5m2(float in, const float scale) {
+    float fp8_f32 = in / scale;
+    int32_t fp8_i32 = *((int32_t*)&fp8_f32);
+    //int32_t mask = (int32_t)(pow(2, 32) - 1 - (pow(2, 23 - 2) - 1));
+    int32_t eps = 1 << (23 - 2 - 1);
+    fp8_i32 += eps;
+    //fp8_i32 &= mask;
+    {
+        int sign = (fp8_i32 >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1;
+        int exp = (fp8_i32 >> FLOAT_MANTISSA_SIZE) & 0xff;
+        int expShiftValue = FLOAT8_E5M2_BIAS_EXPONENT - FLOAT_BIAS_EXPONENT;
+        int mantissa = (fp8_i32 >> (FLOAT_MANTISSA_SIZE - FLOAT8_E5M2_MANTISSA_SIZE)) & 0x3;
+
+        exp = (exp + expShiftValue) & 0x1F;
+
+        return (uint8_t)(sign << 7 | exp << 2 | mantissa);
+    }
+} /* fp32_to_fp8_e5m2() */
+
+static VSI_INLINE_API float fp8_e4m3_to_fp32(uint8_t in, const float scale) {
+    float val_fp32;
+
+    uint32_t signOut = 0;
+    uint32_t exponentOut = 0;
+    uint32_t mantissaOut = 0;
+    uint32_t out_u = 0;
+
+    uint32_t signIn;
+    uint32_t exponentIn;
+    uint32_t mantissaIn;
+    int expShiftValue = FLOAT_BIAS_EXPONENT - FLOAT8_E4M3_BIAS_EXPONENT;
+
+    signIn = (in >> (FLOAT8_E4M3_EXPONENT_SIZE + FLOAT8_E4M3_MANTISSA_SIZE)) & 0x1;
+    exponentIn = (in >> FLOAT8_E4M3_MANTISSA_SIZE) & 0xF;
+    mantissaIn = in & 0x7;
+
+    signOut = signIn;
+
+    if (exponentIn == 0 && mantissaIn == 0)
+    {
+        goto final;
+    }
+
+    if (exponentIn == 0xf && mantissaIn == 0x7)
+    {
+        exponentOut = 0xff;
+        mantissaOut = 0x400000;
+        goto final;
+    }
+
+    exponentOut = (exponentIn + expShiftValue) & 0xff;
+    mantissaOut = (mantissaIn << (FLOAT_MANTISSA_SIZE - FLOAT8_E4M3_MANTISSA_SIZE)) & 0x7fffff;
+
+
+final:
+    out_u = signOut << 31 | exponentOut << 23 | mantissaOut;
+    val_fp32 = *((float*)&out_u);
+
+    return val_fp32 * scale;
+} /* fp8_e4m3_to_fp32() */
+
+static VSI_INLINE_API float fp8_e5m2_to_fp32(int8_t in, const float scale) {
+    float val_fp32;
+
+    uint32_t signOut = 0;
+    uint32_t exponentOut = 0;
+    uint32_t mantissaOut = 0;
+    uint32_t out_u = 0;
+
+    uint32_t signIn;
+    uint32_t exponentIn;
+    uint32_t mantissaIn;
+    int expShiftValue = FLOAT_BIAS_EXPONENT - FLOAT8_E5M2_BIAS_EXPONENT;
+
+    signIn = (in >> 7) & 0x1;
+    exponentIn = (in >> 2) & 0x1F;
+    mantissaIn = in & 0x3;
+
+    signOut = signIn;
+
+    if (exponentIn == 0 && mantissaIn == 0)
+    {
+        goto final;
+    }
+
+    if (exponentIn == 0x1f && mantissaIn == 0x3)
+    {
+        exponentOut = 0xff;
+        mantissaOut = 0x400000;
+        goto final;
+    }
+
+
+    exponentOut = (exponentIn + expShiftValue) & 0xff;
+    mantissaOut = (mantissaIn << (FLOAT_MANTISSA_SIZE - FLOAT8_E5M2_MANTISSA_SIZE)) & 0x7fffff;
+
+
+ final:
+    out_u = signOut << 31 | exponentOut << 23 | mantissaOut;
+    val_fp32 = *((float*)&out_u);
+
+    return val_fp32 * scale;
+} /* fp8_e5m2_to_fp32() */
+
 static VSI_INLINE_API vsi_status dtype_to_float32
     (
     uint8_t *src,
@@ -457,6 +604,12 @@ static VSI_INLINE_API vsi_status dtype_to_float32
         break;
     case VSI_NN_TYPE_BFLOAT16:
         *dst = bfp16_to_fp32( *(int16_t *)src );
+        break;
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+        *dst = fp8_e4m3_to_fp32(*(int8_t*)src, src_dtype->scale);
+        break;
+    case VSI_NN_TYPE_FLOAT8_E5M2:
+        *dst = fp8_e5m2_to_fp32(*(int8_t *)src, src_dtype->scale);
         break;
     case VSI_NN_TYPE_INT4:
     case VSI_NN_TYPE_UINT4:
@@ -510,6 +663,12 @@ static VSI_INLINE_API vsi_status float32_to_dtype
         break;
     case VSI_NN_TYPE_BFLOAT16:
         *(int16_t *)dst = fp32_to_bfp16_rtne( src );
+        break;
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+        *(int8_t *)dst = fp32_to_fp8_e4m3(src, dst_dtype->scale);
+        break;
+    case VSI_NN_TYPE_FLOAT8_E5M2:
+        *(int8_t *)dst = fp32_to_fp8_e5m2(src, dst_dtype->scale);
         break;
     case VSI_NN_TYPE_INT4:
     case VSI_NN_TYPE_UINT4:

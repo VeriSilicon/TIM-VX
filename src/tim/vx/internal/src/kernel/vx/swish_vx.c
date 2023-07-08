@@ -62,6 +62,10 @@ REGISTER_SWISH_OPENVX_KERNEL( swish )
     vx_enum function = VX_CONVOLUTIONAL_NETWORK_ACTIVATION_SWISH;
     float   beta        = 1.0f;
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     if (VSI_NN_HW_EVIS_2 == graph->ctx->config.evis.ver)
     {
         swish_type = (vsi_nn_swish_type)vsi_nn_kernel_param_get_int32(params, "type");

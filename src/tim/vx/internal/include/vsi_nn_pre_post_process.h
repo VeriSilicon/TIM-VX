@@ -48,6 +48,7 @@ typedef enum
     VSI_NN_PREPROCESS_IMAGE_RESIZE_BILINEAR,
     VSI_NN_PREPROCESS_IMAGE_RESIZE_NEAREST,
     VSI_NN_PREPROCESS_DTYPE_CONVERT,
+    VSI_NN_PREPROCESS_MEANS_AND_SCALES,
 } vsi_nn_preprocess_type_e;
 
 /**
@@ -150,8 +151,25 @@ typedef struct
     float scale;
 }vsi_nn_process_mean_and_scale_t;
 
+/**
+ * Process mean and scale parameter structure
+ */
+typedef struct
+{
+    /** Mean value for each channel */
+    float* channel_mean;
+    /*Channel length */
+    int32_t channel_len;
+    /** Scale value */
+    float* scale;
+    /** Scale length */
+    int32_t scale_len;
+}vsi_nn_process_means_and_scales_t;
+
 typedef vsi_nn_process_mean_and_scale_t vsi_nn_preprocess_mean_and_scale_t;
+typedef vsi_nn_process_means_and_scales_t vsi_nn_preprocess_means_and_scales_t;
 typedef vsi_nn_process_mean_and_scale_t vsi_nn_postprocess_mean_and_scale_t;
+typedef vsi_nn_process_means_and_scales_t vsi_nn_postprocess_means_and_scales_t;
 
 /**
  * Process permute parameter structure

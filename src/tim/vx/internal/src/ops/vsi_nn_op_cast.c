@@ -37,6 +37,7 @@
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 /*
  Declare number of input and output.
@@ -290,7 +291,7 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_bool ret = TRUE;
+    vsi_bool ret = FALSE;
 
     if ( NULL == self )
     {
@@ -298,7 +299,7 @@ static vsi_bool op_setup
     }
     ret = vsi_nn_op_common_setup(self, inputs, outputs);
 
-    if (  _is_dataconvert_op(self, inputs, outputs) )
+    if ( _is_dataconvert_op(self, inputs, outputs) )
     {
         vsi_nn_internal_node_t* curr = NULL;
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 1, 1);
@@ -309,7 +310,7 @@ static vsi_bool op_setup
         curr->inputs[0]     = inputs[0];
         curr->outputs[0]    = outputs[0];
 
-        vsi_nn_internal_setup_node(self, curr);
+        ret &= vsi_nn_internal_setup_node(self, curr);
     }
 
     return ret;

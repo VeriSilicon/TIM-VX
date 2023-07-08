@@ -42,7 +42,7 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status = VX_FAILURE;
+    vsi_status status = VSI_FAILURE;
     int32_t axis = self->nn_param.l2_normalize.axis;
     vsi_nn_kernel_param_t * param = NULL;
 

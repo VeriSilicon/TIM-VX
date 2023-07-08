@@ -47,7 +47,11 @@ static _binary_tree_t * _new_node
     node = (_binary_tree_t *)malloc(
         sizeof( _binary_tree_t ) );
 
-    memset( node, 0, sizeof( _binary_tree_t ) );
+    if (node)
+    {
+        memset( node, 0, sizeof( _binary_tree_t ) );
+    }
+
     return node;
 } /* _new_node() */
 
@@ -395,6 +399,7 @@ void vsi_nn_hashmap_add
     {
         iter = (vsi_nn_hashmap_item_t *)vsi_nn_LinkListNewNode(
                 sizeof( vsi_nn_hashmap_item_t ), NULL );
+        VSI_ASSERT( iter );
         key_size = strlen( hash_key ) + 1;
         iter->hash_key = (char*)malloc( sizeof(char) * key_size );
         VSI_ASSERT( iter->hash_key );

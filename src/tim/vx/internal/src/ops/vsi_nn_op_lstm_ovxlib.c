@@ -35,9 +35,9 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_rnn_helper.h"
+#include "vsi_nn_error.h"
 
 static vsi_bool setup_op_shapes
     (
@@ -82,6 +82,7 @@ static vsi_bool setup_op_shapes
         attr.is_const = TRUE;
 
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
         inputs[LSTM_INPUT_H_STATE] = output_tensor->t;
     }
 
@@ -96,6 +97,7 @@ static vsi_bool setup_op_shapes
         attr.is_const = TRUE;
 
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
         inputs[LSTM_INPUT_C_STATE] = output_tensor->t;
     }
 
@@ -107,6 +109,7 @@ static vsi_bool setup_op_shapes
         attr.vtl = use_virtual_tensor;
         attr.is_const = FALSE;
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
         outputs[LSTM_OUTPUT_H_STATE] = output_tensor->t;
     }
 
@@ -119,6 +122,7 @@ static vsi_bool setup_op_shapes
         attr.vtl = use_virtual_tensor;
         attr.is_const = FALSE;
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
         outputs[LSTM_OUTPUT_C_STATE] = output_tensor->t;
     }
 
@@ -156,6 +160,8 @@ static vsi_bool setup_op_shapes
     }
 
     return TRUE;
+final:
+    return FALSE;
 }
 
 static vsi_status op_compute
@@ -165,6 +171,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -175,6 +183,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -187,6 +198,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
 
@@ -211,6 +224,8 @@ static vsi_bool op_setup
     uint32_t batch_size = 0;
     uint32_t time_step = 0;
     uint32_t i = 0;
+    vsi_bool ret = FALSE;
+    vsi_status status = VSI_FAILURE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_node_wksp( self );
@@ -235,21 +250,26 @@ static vsi_bool op_setup
         /* transpose to time_major */
         output_tensor = vsi_nn_rnn_transpose_time_major(self,
             inputs[LSTM_INPUT_INPUT], NULL, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
         input_tensor = output_tensor->t;
     }
 
     /* split input tensor */
     split_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * \
         sizeof(vsi_nn_tensor_t *));
+    CHECK_PTR_FAIL_GOTO( split_output_tensors, "Create buffer fail.", final );
     memset( split_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t *));
     lstmunit_reshape_output_tensors = (vsi_nn_tensor_t **)malloc(time_step * \
         sizeof(vsi_nn_tensor_t *));
+    CHECK_PTR_FAIL_GOTO( lstmunit_reshape_output_tensors, "Create buffer fail.", final );
     memset( lstmunit_reshape_output_tensors, 0x00, time_step * sizeof(vsi_nn_tensor_t *));
 
-    vsi_nn_rnn_split_input_tensor(self, input_tensor,
+    status = vsi_nn_rnn_split_input_tensor(self, input_tensor,
         split_output_tensors, time_step, use_virtual_tensor);
+    CHECK_STATUS_FAIL_GOTO(status, final);
 
-    vsi_nn_rnn_data_check_aligned(self, split_output_tensors, time_step, use_virtual_tensor);
+    status = vsi_nn_rnn_data_check_aligned(self, split_output_tensors, time_step, use_virtual_tensor);
+    CHECK_STATUS_FAIL_GOTO(status, final);
 
     last_step_h_state = inputs[LSTM_INPUT_H_STATE];
     last_step_c_state = inputs[LSTM_INPUT_C_STATE];
@@ -263,6 +283,7 @@ static vsi_bool op_setup
         /* reshape for split output */
         output_tensor = vsi_nn_rnn_reshape_split_output(self,
             split_output_tensors[i], batch_size, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
         reshape_output = output_tensor->t;
 
         /* lstmunit output */
@@ -275,6 +296,7 @@ static vsi_bool op_setup
             vsi_nn_internal_init_tensor_attr(&attr,
                 &outputs[LSTM_OUTPUT_OUTPUT]->attr.dtype, use_virtual_tensor);
             output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+            CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
             lstmunit_out0 = output_tensor->t;
         }
 
@@ -284,12 +306,14 @@ static vsi_bool op_setup
             vsi_nn_internal_init_tensor_attr(&attr,
                 &outputs[LSTM_OUTPUT_H_STATE]->attr.dtype, use_virtual_tensor);
             output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+            CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
             lstmunit_out1 = output_tensor->t;
 
             /* lstmunit output c_state */
             vsi_nn_internal_init_tensor_attr(&attr,
                 &outputs[LSTM_OUTPUT_C_STATE]->attr.dtype, use_virtual_tensor);
             output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+            CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
             lstmunit_out2 = output_tensor->t;
         }
         else
@@ -299,6 +323,7 @@ static vsi_bool op_setup
         }
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_LSTMUNIT_OVXLIB, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.lstmunit_ovxlib.activation = curr_param->activation;
         curr->node->nn_param.lstmunit_ovxlib.cell_clip = curr_param->cell_clip;
         curr->node->nn_param.lstmunit_ovxlib.forget_bias = curr_param->forget_bias;
@@ -350,6 +375,7 @@ static vsi_bool op_setup
             /* reshape output to 3-dims */
             output_tensor = vsi_nn_rnn_reshape_cell_output(self,
                 lstmunit_out0, batch_size, use_virtual_tensor);
+            CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
             lstmunit_reshape_output_tensors[i] = output_tensor->t;
         }
     }
@@ -362,19 +388,21 @@ static vsi_bool op_setup
             vsi_nn_internal_init_tensor_attr(&attr,
                 &outputs[LSTM_OUTPUT_OUTPUT]->attr.dtype, use_virtual_tensor);
             output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+            CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
 
             tensor = output_tensor->t;
         }
 
         /* concat */
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, time_step, 1 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.concat.axis = 2;
         for( i = 0; i < time_step; i++ )
         {
             curr->inputs[i] = lstmunit_reshape_output_tensors[i];
         }
         curr->outputs[0] = tensor;
-        vsi_nn_internal_setup_node( self, curr );
+        ret = vsi_nn_internal_setup_node( self, curr );
 
         if( !curr_param->time_major )
         {
@@ -383,11 +411,17 @@ static vsi_bool op_setup
                 tensor, outputs[LSTM_OUTPUT_OUTPUT], use_virtual_tensor);
         }
     }
+    else
+    {
+        /* return_sequences = False, return true to setup lstm node. */
+        ret = TRUE;
+    }
 
+final:
     vsi_nn_safe_free( split_output_tensors );
     vsi_nn_safe_free( lstmunit_reshape_output_tensors );
 
-    return TRUE;
+    return ret;
 } /* op_setup() */
 
 static vsi_status op_deinit

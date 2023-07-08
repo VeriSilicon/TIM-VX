@@ -38,6 +38,7 @@ typedef struct _vsi_nn_custom_warp_affine_param
     const float *matrix;
     vsi_enum type;
     int32_t size[2];
+    vsi_enum rgb_type;
 } vsi_nn_custom_warp_affine_param;
 _compiler_assert(offsetof(vsi_nn_custom_warp_affine_param, local) == 0, \
     vsi_nn_custom_warp_affine_h );

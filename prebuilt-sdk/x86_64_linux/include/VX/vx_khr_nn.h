@@ -395,6 +395,17 @@ enum vx_tensor_lifetime_type_e
     VX_TENSOR_LIFE_TIME_DYNAMIC,
 };
 
+/*! \brief Specifies depthtospace mode
+ * \ingroup group_cnn
+ */
+enum vx_nn_depth_to_space_mode_e
+{
+    /*! \brief DCR(default) for depth-column-row order re-arrangement */
+    VX_NN_DEPTH_TO_SPACE_DCR = 0x0,
+    /*! \brief CRD for column-row-depth order re-arrangement */
+    VX_NN_DEPTH_TO_SPACE_CRD,
+};
+
 typedef struct _vx_nn_convolution_3d_params_t
 {
     vx_int32 padding_w_left;                 /*!< \brief Number of elements added at each side in the left of w dimension of the input. */
@@ -972,6 +983,16 @@ typedef struct _vx_nn_mean_params_t
     vx_int32 keep_dims;        /*!< \brief Keep dims, if positive, retains reduced dims with length 1 */
 } vx_nn_mean_params_t;
 
+/*! \brief Input parameter for reducesum layer
+* \ingroup group_cnn
+*\version 0.5
+*/
+typedef struct _vx_nn_sum_params_t
+{
+    vx_tensor axis;            /*!< \brief 1D axis tensor of reduce dims </tt> */
+    vx_int32 keep_dims;        /*!< \brief Keep dims, if positive, retains reduced dims with length 1 */
+} vx_nn_sum_params_t;
+
 /*! \brief Input parameter for tensor squeeze layer
 * \ingroup group_cnn
 *\version 0.5
@@ -1253,6 +1274,12 @@ typedef struct _vx_nn_reorg_params_ext2_t
     vx_int32 *num_group;
     vx_int32 *axis;
 } vx_nn_reorg_params_ext2_t;
+
+typedef struct _vx_nn_reorg_params_ext3_t
+{
+    vx_nn_reorg_params_ext2_t base;      /*!< \brief vx_nn_reorg_params <tt>\ref vx_nn_reorg_params_t</tt> */
+    vx_enum mode;                        /*!< \brief  [Optional] Only for DEPH2SPACE */
+} vx_nn_reorg_params_ext3_t;
 
 /*! \brief [Graph] Creates a Reorgnization Layer Node, Enhancement of vxReorgLayer, Support both DEPTH to SPACE and SPACE to DEPTH.
  * \param [in] graph The reference to the parent graph.
@@ -1911,6 +1938,21 @@ VX_API_ENTRY vx_node VX_API_CALL vxRPNLayer(
     vx_tensor                   score_output
     );
 
+/*! \brief Input parameters for a lstm activation operation.
+ * \ingroup group_cnn
+ * \version 0.3
+ */
+typedef struct _vx_nn_lstm_activation_params_t
+{
+    vx_int32 is_ln;
+    vx_int32 is_cifg;
+    vx_int32 is_proj;
+    vx_int32 is_hybrid;
+    vx_int32 is_peephole;
+    vx_int32 recurrent_activation;
+    vx_float32 forget_bias;
+} vx_nn_lstm_activation_params_t;
+
 /*! \brief Input parameters for a lstm operation.
  * \ingroup group_cnn
  * \version 0.3
@@ -2115,6 +2157,28 @@ VX_API_ENTRY vx_node VX_API_CALL vxTensorMeanNode(
     vx_size size_of_mean_param,
     vx_tensor outputs);
 
+/*! \brief [Graph] Creates sum layer node.
+* \details
+*    Computes the sum of elements across dimensions of a tensor.
+*
+* \param [in] graph The handle to the graph.
+* \param [in] input A n-D tensor, specifying the input.
+* \param [in] sum_params paraments <tt>\ref vx_nn_sum_params_t </tt>.
+* \param [in] size_of_sum_param [static] The size of the vx_nn_mean_params_t.
+* \param [out] output A n-D tensor of the same type as input.
+* \return <tt> vx_node</tt>.
+* \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+* successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+* \ingroup group_tensor
+* \version 0.5
+*/
+VX_API_ENTRY vx_node VX_API_CALL vxReduceSumNode(
+    vx_graph graph,
+    vx_tensor inputs,
+    const vx_nn_sum_params_t *sum_params,
+    vx_size size_of_sum_param,
+    vx_tensor outputs);
+
 /*! \brief [Graph] Creates squeeze layer node.
 * \details
 *    Remove dimensions of size 1 from the input tensor.
@@ -2287,6 +2351,282 @@ VX_API_ENTRY vx_node VX_API_CALL vxConv3dLayer(vx_graph graph, vx_tensor inputs,
  */
 VX_API_ENTRY vx_node VX_API_CALL vxDeconv3dLayer(vx_graph graph, vx_tensor inputs, vx_tensor weights, vx_tensor biases, const vx_nn_deconvolution_3d_params_t *convolution_params, vx_size size_of_deconv_params, vx_tensor outputs);
 
+/*! \brief [Graph] Creates a layer Normalization Node.
+ * \details Normalize the activations of the previous layer at each batch, i.e. applies a transformation that maintains the mean activation close to 0 and the activation standard deviation close to 1.
+ * \param [in] graph The handle to the graph.
+ * \param [in] eps [static] Float 32. Small value to add to the variance estimate so that we don't divide by zero.(default is 1e-5)
+ * \param [in] axis [static] The axis on which we need do normalize.
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxLayerNormalizationLayer(
+    vx_graph                    graph,
+    vx_float32                  eps,
+    vx_int32                    axis,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Creates a layer instance normalization Node.
+ * \details Normalize the activations of the previous layer at each batch, i.e. applies a transformation that maintains the mean activation close to 0 and the activation standard deviation close to 1.
+ * \param [in] graph The handle to the graph.
+ * \param [in] eps [static] Float 32. Small value to add to the variance estimate so that we don't divide by zero.(default is 1e-5)
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxInstanceNormalizationLayer(
+    vx_graph                    graph,
+    vx_float32                  eps,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Creates a layer instance normalization Node.
+ * \details Normalize the activations of the previous layer at each batch, i.e. applies a transformation that maintains the mean activation close to 0 and the activation standard deviation close to 1.
+ * \param [in] graph The handle to the graph.
+ * \param [in] eps [static] Float 32. Small value to add to the variance estimate so that we don't divide by zero.(default is 1e-5)
+ * \param [in] group_num  [static] Int 32. Number of groups for GN
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxGroupNormalizationLayer(
+    vx_graph                    graph,
+    vx_float32                  eps,
+    vx_int32                    group_num,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Creates a layer logical ops Node.
+ * \details Return the truth value of x AND, XOR,OR y element-wise.
+ * \param [in] graph The handle to the graph.
+ * \param [in] ops_type  [static] Int 32. Operation Type
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxLogicalOpsLayer(
+    vx_graph                    graph,
+    vx_int32                    ops_type,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Creates a layer logical not Node.
+ * \details Return the truth value of not x element-wise.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input [static] The input tensor data.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxLogicalNotLayer(
+    vx_graph                    graph,
+    vx_tensor                   input,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Creates a layer relational Node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] ops_type  [static] Int 32. Operation Type
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxRelationalLayer(
+    vx_graph                    graph,
+    vx_int32                    ops_type,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Computes the max of elements across dimensions of input tensor.
+* \param [in] graph The handle to the graph.
+* \param [in] in input tensor data,
+* \param [in] axis [static] used to determine max across which dimension(dimension 0 means width, etc). If not given, compute the sum across all dimensions.
+* \param [in] keep_dim [static] means if keep the dimesion count.
+* \param [out] out output tensor data.
+* \ingroup group_tensor
+* \return <tt> vx_node</tt>.
+* \retval 0 Node could not be created.
+* \retval * Node handle.
+* \version 0.3
+*/
+VX_API_ENTRY vx_node VX_API_CALL vxTensorReduceMaxNode(
+    vx_graph graph,
+    vx_tensor inputs,
+    vx_tensor axis,
+    vx_bool keep_dims,
+    vx_tensor outputs);
+
+/*! \brief [Graph] Creates a layer minumum Node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxMinimumLayer(
+    vx_graph                    graph,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Creates a layer maximum Node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxMaximumLayer(
+    vx_graph                    graph,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Creates a layer select Node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [out] output [static] The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxTensorSelectLayer(
+    vx_graph                    graph,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_tensor                   output
+    );
+
+/*! \brief [Graph] Creates a layer gru cell activation z h Node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [in] recurrent_activation [static] recurrent activation type.
+ * \param [in] activation [static] activation type.
+ * \param [out] output_list [static] The output tensor data.
+ * \param [out] output_count [static] The output tensor number.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxGruCellActivationZHLayer(
+    vx_graph                    graph,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_int32                    recurrent_activation,
+    vx_int32                    activation,
+    vx_tensor*                  output_list,
+    vx_uint32                   output_count
+    );
+
+/*! \brief [Graph] Creates a layer gru cell h times activation r Node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [in] recurrent_activation [static] recurrent activation type.
+ * \param [out] output_list [static] The output tensor data.
+ * \param [out] output_count [static] The output tensor number.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxGruCellHTimeActivationRLayer(
+    vx_graph                    graph,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_int32                    recurrent_activation,
+    vx_tensor*                  output_list,
+    vx_uint32                   output_count
+    );
+
+/*! \brief [Graph] Creates a layer gru cell reset after activationNode.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [in] recurrent_activation [static] recurrent activation type.
+ * \param [in] activation [static] activation type.
+ * \param [out] output_list [static] The output tensor data.
+ * \param [out] output_count [static] The output tensor number.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxGruCellResetAfterActivationLayer(
+    vx_graph                    graph,
+    vx_tensor*                  input_list,
+    vx_uint32                   input_count,
+    vx_int32                    recurrent_activation,
+    vx_int32                    activation,
+    vx_tensor*                  output_list,
+    vx_uint32                   output_count
+    );
+
+/*! \brief [Graph] Creates a layer lstm activation Node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input_list [static] The input tensor data.
+ * \param [in] input_count [static] The input tensor number.
+ * \param [in] lstm_activation_param <tt>\ref vx_nn_lstm_activation_params_t </tt>.
+ * \param [out] output_list [static] The output tensor data.
+ * \param [out] output_count [static] The output tensor number.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ * \ingroup group_cnn
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxLSTMActivationLayer(
+    vx_graph                                     graph,
+    vx_tensor*                                   input_list,
+    vx_uint32                                    input_count,
+    const vx_nn_lstm_activation_params_t *       lstm_activation_param,
+    vx_tensor*                                   output_list,
+    vx_uint32                                    output_count
+    );
 #ifdef  __cplusplus
 }
 #endif

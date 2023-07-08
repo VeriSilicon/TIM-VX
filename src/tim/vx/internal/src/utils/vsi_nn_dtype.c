@@ -116,6 +116,92 @@ static VSI_INLINE_API void _convert_float_to_bfloat16
     }
 } /* _convert_float_to_bfloat16 */
 
+static VSI_INLINE_API vsi_bool _convert_quant_float8_e4m3_to_float
+    (
+    const uint8_t * buffer,
+    size_t size,
+    const float scale,
+    float * out_buffer
+    )
+{
+    uint32_t i = 0;
+    if( !buffer || !out_buffer )
+    {
+        return FALSE;
+    }
+    for( i = 0; i < size; i ++ )
+    {
+        out_buffer[i] = fp8_e4m3_to_fp32( (uint8_t)buffer[i], scale );
+    }
+
+    return TRUE;
+} /* _convert_quant_float8_e4m3_to_float */
+
+static VSI_INLINE_API vsi_bool _convert_float_to_quant_float8_e4m3
+    (
+    const float * buffer,
+    size_t size,
+    const float scale,
+    uint8_t * out_buffer
+    )
+{
+    uint32_t i = 0;
+    if( !buffer || !out_buffer )
+    {
+        return FALSE;
+    }
+    for( i = 0; i < size; i ++ )
+    {
+        out_buffer[i] = fp32_to_fp8_e4m3( buffer[i], scale );
+    }
+
+    return TRUE;
+} /* _convert_float_to_quant_float8_e4m3 */
+
+static VSI_INLINE_API vsi_bool _convert_quant_float8_e5m2_to_float
+    (
+    const uint8_t * buffer,
+    size_t size,
+    const float scale,
+    float * out_buffer
+    )
+{
+    uint32_t i = 0;
+
+    if( !buffer || !out_buffer )
+    {
+        return FALSE;
+    }
+
+    for( i = 0; i < size; i ++ )
+    {
+        out_buffer[i] = fp8_e5m2_to_fp32( (uint8_t)buffer[i], scale );
+    }
+
+    return TRUE;
+} /* _convert_quant_float8_e5m2_to_float */
+
+static VSI_INLINE_API vsi_bool _convert_float_to_quant_float8_e5m2
+    (
+    const float * buffer,
+    size_t size,
+    const float scale,
+    uint8_t * out_buffer
+    )
+{
+    uint32_t i = 0;
+    if( !buffer || !out_buffer )
+    {
+        return FALSE;
+    }
+    for( i = 0; i < size; i ++ )
+    {
+        out_buffer[i] = fp32_to_fp8_e5m2( buffer[i], scale );
+    }
+
+    return TRUE;
+} /* _convert_float_to_quant_float8_e5m2 */
+
 #define DEF_DTYPE_CONVERT_QUANTIZE( SRC_NAME, SRC_DTYPE, ROUND, MIN, MAX ) \
     vsi_bool vsi_nn_dtype_convert_quantize_##SRC_NAME##_to_float \
         ( \
@@ -177,6 +263,15 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_symm8_perchannel
     int8_t * out_buffer
     )
 {
+    VSI_UNREFERENCED(size);
+    VSI_UNREFERENCED(shape);
+    VSI_UNREFERENCED(rank);
+    VSI_UNREFERENCED(scale);
+    VSI_UNREFERENCED(scale_size);
+    VSI_UNREFERENCED(zero_point);
+    VSI_UNREFERENCED(zero_point_size);
+    VSI_UNREFERENCED(channel_dim);
+
     if( !buffer || !out_buffer )
     {
         return FALSE;
@@ -195,6 +290,15 @@ vsi_bool vsi_nn_dtype_convert_quantize_symm8_perchannel_to_float
     float * out_buffer
     )
 {
+    VSI_UNREFERENCED(size);
+    VSI_UNREFERENCED(shape);
+    VSI_UNREFERENCED(rank);
+    VSI_UNREFERENCED(scale);
+    VSI_UNREFERENCED(scale_size);
+    VSI_UNREFERENCED(zero_point);
+    VSI_UNREFERENCED(zero_point_size);
+    VSI_UNREFERENCED(channel_dim);
+
     if( !buffer || !out_buffer )
     {
         return FALSE;
@@ -270,6 +374,12 @@ vsi_bool vsi_nn_dtype_convert_float_to_quantize_asymm
         case I8:
             return vsi_nn_dtype_convert_float_to_quantize_symm8(
                     buffer, size, scale, zero_point, (int8_t*)out_buffer );
+        case FP8_E4M3:
+            return _convert_float_to_quant_float8_e4m3(
+                    buffer, size, scale, (uint8_t*)out_buffer );
+        case FP8_E5M2:
+            return _convert_float_to_quant_float8_e5m2(
+                    buffer, size, scale, (uint8_t*)out_buffer );
         case I16:
             return vsi_nn_dtype_convert_float_to_quantize_symm16(
                     buffer, size, scale, zero_point, (int16_t*)out_buffer );
@@ -423,6 +533,12 @@ vsi_bool vsi_nn_dtype_convert_quantize_asymm_to_float
         case U8:
             return vsi_nn_dtype_convert_quantize_asymm8_to_float(
                     (const uint8_t *)buffer, size, scale, zero_point, out_buffer );
+        case FP8_E4M3:
+            return _convert_quant_float8_e4m3_to_float(
+                (const uint8_t *)buffer, size, scale, out_buffer );
+        case FP8_E5M2:
+            return _convert_quant_float8_e5m2_to_float(
+                (const uint8_t *)buffer, size, scale, out_buffer );
         case U16:
             return vsi_nn_dtype_convert_quantize_asymm16_to_float(
                 (const uint16_t*)buffer, size, scale, zero_point, out_buffer);

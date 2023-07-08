@@ -111,10 +111,12 @@ DEF_KERNEL_INITIALIZER(_logical_ops_initializer)
         {0, 0, 0},
         {0, 0, 0}
         };
-    vx_status     status             = VX_FAILURE;
-    vx_tensor     output              = (vx_tensor)param[2];
+    vsi_status    status             = VSI_FAILURE;
+    vx_tensor     output             = (vx_tensor)param[2];
     vsi_nn_kernel_tensor_attr_t *output_attr  = NULL;
     vsi_size_array_t             *output_shape = NULL;
+
+    VSI_UNREFERENCED(param_size);
 
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output );
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -250,11 +252,11 @@ static vsi_nn_kernel_node_t _setup
                 outputs[0], shapes[2], new_rank );
 
 #define _swap_tensor(a, b, tmp)  \
-    do { \
+    { \
         tmp = a; \
         a = b; \
         b = tmp; \
-    } while(0)
+    }
 
         if (shapes[1][3] > shapes[0][3] && new_rank == 4)
         {

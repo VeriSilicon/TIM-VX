@@ -56,19 +56,28 @@ static vsi_status op_compute
     vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
     uint32_t new_rank = 0;
     vsi_nn_kernel_param_t * param = NULL;
-    int32_t ksize_x    = (int32_t)self->nn_param.pool.ksize[0];
-    int32_t ksize_y    = (int32_t)self->nn_param.pool.ksize[1];
-    int32_t stride_x   = (int32_t)self->nn_param.pool.stride[0];
-    int32_t stride_y   = (int32_t)self->nn_param.pool.stride[1];
-    int32_t pad_left   = (int32_t)self->nn_param.pool.pad[0];
-    int32_t pad_right  = (int32_t)self->nn_param.pool.pad[1];
-    int32_t pad_top    = (int32_t)self->nn_param.pool.pad[2];
-    int32_t pad_bottom = (int32_t)self->nn_param.pool.pad[3];
+    int32_t ksize_x    = 0;
+    int32_t ksize_y    = 0;
+    int32_t stride_x   = 0;
+    int32_t stride_y   = 0;
+    int32_t pad_left   = 0;
+    int32_t pad_right  = 0;
+    int32_t pad_top    = 0;
+    int32_t pad_bottom = 0;
 
     if ( NULL == self )
     {
         return VSI_FAILURE;
     }
+
+    ksize_x    = (int32_t)self->nn_param.pool.ksize[0];
+    ksize_y    = (int32_t)self->nn_param.pool.ksize[1];
+    stride_x   = (int32_t)self->nn_param.pool.stride[0];
+    stride_y   = (int32_t)self->nn_param.pool.stride[1];
+    pad_left   = (int32_t)self->nn_param.pool.pad[0];
+    pad_right  = (int32_t)self->nn_param.pool.pad[1];
+    pad_top    = (int32_t)self->nn_param.pool.pad[2];
+    pad_bottom = (int32_t)self->nn_param.pool.pad[3];
 
     param = vsi_nn_kernel_param_create();
 

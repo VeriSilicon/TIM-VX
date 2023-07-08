@@ -43,6 +43,7 @@
 #include "vsi_nn_log.h"
 #include "vsi_nn_internal_node.h"
 #include "kernel/vsi_nn_kernel.h"
+#include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (1)
@@ -83,7 +84,7 @@ static vsi_status op_compute
     }
     else
     {
-        char kernel_name[128];
+        char kernel_name[128] = {0};
         vsi_nn_kernel_param_t * param = NULL;
         int32_t align_corners = self->nn_param.resize.align_corners;
         int32_t half_pixel_centers = self->nn_param.resize.half_pixel_centers;
@@ -156,6 +157,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -171,6 +175,7 @@ static vsi_bool op_setup
     float factor = self->nn_param.resize.factor;
     vsi_enum layout = self->nn_param.resize.layout;
     vsi_nn_internal_node_t* curr = NULL;
+    vsi_bool ret = FALSE;
 
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
@@ -220,13 +225,14 @@ static vsi_bool op_setup
 
         vsi_nn_internal_init_node_wksp( self );
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESIZE_INTERNAL, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.resize_internal.align_corners = self->nn_param.resize.align_corners;
         curr->node->nn_param.resize_internal.factor = self->nn_param.resize.factor;
         curr->node->nn_param.resize_internal.half_pixel_centers = self->nn_param.resize.half_pixel_centers;
         curr->node->nn_param.resize_internal.layout = self->nn_param.resize.layout;
         curr->inputs[0]  = inputs[0];
         curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node(self, curr);
+        ret = vsi_nn_internal_setup_node(self, curr);
     }
     else if (_is_same_shape(inputs[0], outputs[0]->attr.size, outputs[0]->attr.dim_num))
     {
@@ -234,12 +240,18 @@ static vsi_bool op_setup
 
         vsi_nn_internal_init_node_wksp( self );
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0]  = inputs[0];
         curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node(self, curr);
+        ret = vsi_nn_internal_setup_node(self, curr);
+    }
+    else
+    {
+        ret = TRUE;
     }
 
-    return TRUE;
+final:
+    return ret;
 } /* op_setup() */
 
 static vsi_status op_deinit

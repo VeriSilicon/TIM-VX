@@ -77,6 +77,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -103,6 +105,7 @@ static vsi_bool op_setup
 {
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_grouped_conv1d_param* p = &self->nn_param.grouped_conv1d;
+    vsi_bool ret = FALSE;
 
     vsi_nn_internal_init_node_wksp(self);
 
@@ -125,7 +128,9 @@ static vsi_bool op_setup
 
     p->local->input = _expand_tensor_dim( self->graph, inputs[0],
             inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
-    if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
+    if (inputs[1]->attr.dtype.qnt_type !=
+            VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC &&
+        inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
     {
         p->local->weight = _expand_tensor_dim( self->graph, inputs[1],
             inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
@@ -159,6 +164,7 @@ static vsi_bool op_setup
 
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_GROUPED_CONV2D, 0, 0);
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->inputs[0] = p->local->input;
     curr->inputs[1] = p->local->weight;
     curr->inputs[2] = inputs[2];
@@ -179,10 +185,10 @@ static vsi_bool op_setup
     curr->node->nn_param.grouped_conv2d.pad_type = p->pad_type;
     curr->node->nn_param.grouped_conv2d.pad_mode = p->pad_mode;
 
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
 
 final:
-    return TRUE;
+    return ret;
 } /* op_setup() */
 
 static vsi_status op_init

@@ -30,7 +30,7 @@ namespace vip {
 Device::Device(uint32_t id) {
     id_ = id;
     graphqueue_ = std::make_unique<GraphQueue> ();
-    worker_ = std::make_unique<Worker> ();;
+    worker_ = std::make_unique<Worker> ();
     ThreadInit();
 }
 
@@ -63,6 +63,9 @@ bool Device::ThreadExit() {
 
 bool Device::GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data) {
     bool status = false;
+    idle_mtx_.lock();
+    submit_num_++;
+    idle_mtx_.unlock();
     status = graphqueue_->Submit(graph, func, data);
     return status;
 }
@@ -72,8 +75,10 @@ bool Device::GraphRemove(const vsi_nn_graph_t* graph) {
 }
 
 void Device::WaitThreadIdle() {
-    ThreadExit();
-    ThreadInit();
+    std::unique_lock<std::mutex> lock(idle_mtx_);
+    while (submit_num_ > 0) {
+        cv_.wait(lock);
+    }
 }
 
 Worker::Worker() {
@@ -108,6 +113,11 @@ void Device::HandleQueue() {
             break;
         }
         worker_->Handle(item);  // run graph
+
+        idle_mtx_.lock();
+        submit_num_--;
+        idle_mtx_.unlock();
+        cv_.notify_one();
     }
 }
 
