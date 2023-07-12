@@ -4,6 +4,11 @@
             [
                 {"name":"k",
                     "dtype": "uint32_t"
+                },
+                {"name":"axis",
+                    "dtype": "uint32_t",
+                    "Optional":"true",
+                    "default":"0"
                 }
             ]
     }

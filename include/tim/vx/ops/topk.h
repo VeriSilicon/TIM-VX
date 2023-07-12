@@ -39,11 +39,12 @@ namespace ops {
  * Finds values and indices of the k largest entries for the last dimension.
  *
  * - k : Number of top elements to look for along the last dimension.
+ * -axis : Dimension on which to do th sort. Default is 0.
  */
 
 class Topk : public BuiltinOp {
  public:
-  Topk(Graph* graph, uint32_t k);
+  Topk(Graph* graph, uint32_t k, int32_t axis = 0);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 };
