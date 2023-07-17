@@ -40,7 +40,8 @@ namespace ops {
  *
  * Input:
  * - input [WHCN or CWHN].
- * - kernel [ WHIcOc ] (Ic: Input Channels. Oc: Output Channels).
+ * - kernel [ WHIcOc ] (Ic: Input Channels. Oc: Output Channels) normally,
+ *   [WHIc(Oc)1] for Depthwise Conv.
  * - bias [ O ]. Optional.
  *
  * Attribute:
@@ -57,8 +58,7 @@ namespace ops {
 
 class Conv2d : public BuiltinOp {
  public:
-  Conv2d(Graph* graph, PadType padding,
-         const std::array<uint32_t, 2>& stride,
+  Conv2d(Graph* graph, PadType padding, const std::array<uint32_t, 2>& stride,
          const std::array<uint32_t, 2>& dilation, int32_t multiplier = 0,
          DataLayout input_layout = DataLayout::WHCN,
          DataLayout kernel_layout = DataLayout::WHIcOc);
@@ -83,9 +83,12 @@ class Conv2d : public BuiltinOp {
 
   DataLayout KernelDataLayout() { return kernel_layout_; }
 
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 
-  const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor() const override;
+  const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor()
+      const override;
+
  protected:
   const uint32_t weights_;
   const PadType padding_;
