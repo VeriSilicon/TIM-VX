@@ -49,9 +49,11 @@ __kernel void pre_process_yuv420_copy_##name \
                  float           rMean, \
                  float           gMean, \
                  float           bMean, \
-                 float           var, \
+                 float           r_scale, \
                  int             reverse_channel, \
-                 int             trans \
+                 int             trans, \
+                 float           g_scale, \
+                 float           b_scale \
     ) \
 { \
     int4 pos = (int4)(get_global_id(0) + (*xOffset), get_global_id(1) + (*yOffset), 0, 0); \
@@ -110,17 +112,23 @@ __kernel void pre_process_yuv420_copy_##name \
     VXC_DP4x4(B, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4); \
     VXC_DP4x4(B, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4); \
  \
-    var *= output_scale; \
-    float4  paramData = (float4)(bMean * var - output_zp, gMean * var - output_zp, \
-        rMean * var - output_zp, var); \
+    float4  paramData = (float4)(bMean * b_scale * output_scale - output_zp,\
+                                 gMean * g_scale * output_scale - output_zp, \
+                                 rMean * r_scale * output_scale - output_zp, b_scale * output_scale); \
     half4 paramData_f16; \
     _viv_asm(CONV, paramData_f16, paramData); \
  \
     VXC_DP2x8(dst0, B, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoB_2x8); \
     VXC_DP2x8(dst0, B, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiB_2x8); \
  \
+    paramData.w = g_scale * output_scale; \
+    _viv_asm(CONV, paramData_f16, paramData); \
+ \
     VXC_DP2x8(dst1, G, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoG_2x8); \
     VXC_DP2x8(dst1, G, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiG_2x8); \
+ \
+    paramData.w = r_scale * output_scale; \
+    _viv_asm(CONV, paramData_f16, paramData); \
  \
     VXC_DP2x8(dst2, R, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoR_2x8); \
     VXC_DP2x8(dst2, R, paramData_f16, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiR_2x8); \
@@ -150,9 +158,11 @@ __kernel void pre_process_yuv420_copy_##name \
                  float           rMean, \
                  float           gMean, \
                  float           bMean, \
-                 float           var, \
+                 float           r_scale, \
                  int             reverse_channel, \
-                 int             trans \
+                 int             trans, \
+                 float           g_scale, \
+                 float           b_scale \
     ) \
 { \
     int4 pos = (int4)(get_global_id(0) + (*xOffset), get_global_id(1) + (*yOffset), 0, 0); \
@@ -202,18 +212,22 @@ __kernel void pre_process_yuv420_copy_##name \
     VXC_DP4x4(B, C2, tmpV, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4); \
     VXC_DP4x4(B, C3, tmpV, VXC_MODIFIER(12, 15, 0, VXC_RM_ToNearestEven, 1), uniCalculateB1st_4x4); \
  \
-    var *= output_scale; \
-    float4  paramData = (float4)(bMean * var - output_zp, gMean * var - output_zp, \
-        rMean * var - output_zp, var); \
+    float4  paramData = (float4)(bMean * b_scale * output_scale - output_zp, \
+                                 gMean * g_scale * output_scale - output_zp, \
+                                 rMean * r_scale * output_scale - output_zp, b_scale * output_scale); \
     half4 paramData_f16; \
     _viv_asm(CONV, paramData_f16, paramData); \
  \
     VXC_DP2x8(dst0, B, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoB_2x8); \
     VXC_DP2x8(dst1, B, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiB_2x8); \
  \
+    paramData.w = g_scale * output_scale; \
+    _viv_asm(CONV, paramData_f16, paramData); \
     VXC_DP2x8(dst2, G, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoG_2x8); \
     VXC_DP2x8(dst3, G, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiG_2x8); \
  \
+    paramData.w = r_scale * output_scale; \
+    _viv_asm(CONV, paramData_f16, paramData); \
     VXC_DP2x8(dst4, R, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8LoR_2x8); \
     VXC_DP2x8(dst5, R, paramData_f16, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniQuantU8toU8HiR_2x8); \
  \

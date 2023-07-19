@@ -194,10 +194,10 @@ static vsi_status update_max_node_io
     vsi_nn_node_id_t *node_list
     )
 {
-    uint32_t i,max_io;
-    vsi_status status;
+    uint32_t i = 0,max_io = 0;
+    vsi_status status = VSI_FAILURE;
     vsi_nn_node_id_t node_id;
-    vsi_nn_node_t   *node;
+    vsi_nn_node_t   *node = NULL;
 
     status = VSI_SUCCESS;
     max_io = VSI_NN_MAX_IO_NUM; /* default max node io */
@@ -205,11 +205,12 @@ static vsi_status update_max_node_io
     {
         node_id = node_list[i];
         node = vsi_nn_GetNode( graph, node_id );
-        if(node->input.num > max_io)
+
+        if (node && node->input.num > max_io)
         {
             max_io = node->input.num;
         }
-        if(node->output.num > max_io)
+        if (node && node->output.num > max_io)
         {
             max_io = node->output.num;
         }
@@ -250,6 +251,8 @@ static vsi_status optimize_node_backward
 
         /* Get inputs, outputs. */
         node = vsi_nn_GetNode( graph, node_id );
+        CHECK_PTR_FAIL_GOTO( node, "Get node fail.", final );
+
         vsi_nn_GetTensors( graph, node->input.tensors,
             node->input.num, inputs );
         vsi_nn_GetTensors( graph, node->output.tensors,
@@ -301,6 +304,8 @@ static vsi_status optimize_node_forward
 
         /* Get inputs, outputs. */
         node = vsi_nn_GetNode( graph, node_id );
+        CHECK_PTR_FAIL_GOTO( node, "Get node fail.", final );
+
         vsi_nn_GetTensors( graph, node->input.tensors,
             node->input.num, inputs );
         vsi_nn_GetTensors( graph, node->output.tensors,
@@ -353,6 +358,8 @@ static vsi_status compute_node
 
         /* Get inputs, outputs. */
         node = vsi_nn_GetNode( graph, node_id );
+        CHECK_PTR_FAIL_GOTO( node, "Get node fail.", final );
+
         vsi_nn_GetTensors( graph, node->input.tensors,
             node->input.num, inputs );
         vsi_nn_GetTensors( graph, node->output.tensors,
@@ -458,6 +465,8 @@ static vsi_status setup_node
 
         /* Get inputs, outputs. */
         node = vsi_nn_GetNode( graph, node_id );
+        CHECK_PTR_FAIL_GOTO( node, "Get node fail.", final );
+
         vsi_nn_GetTensors( graph, node->input.tensors,
             node->input.num, inputs );
         vsi_nn_GetTensors( graph, node->output.tensors,
@@ -525,6 +534,8 @@ static vsi_status set_graph_precision
         memset( outputs, 0, graph->max_node_io * sizeof( vsi_nn_tensor_t * ) );
         /* Get inputs, outputs. */
         node = vsi_nn_GetNode( graph, node_id );
+        CHECK_PTR_FAIL_GOTO( node, "Get node fail.", final );
+
         vsi_nn_GetTensors( graph, node->input.tensors,
             node->input.num, inputs );
         vsi_nn_GetTensors( graph, node->output.tensors,
@@ -559,6 +570,9 @@ vsi_nn_graph_t * vsi_nn_CreateGraph
 {
     vsi_nn_graph_t * graph;
     graph = NULL;
+
+    VSI_UNREFERENCED(max_tensor_num);
+    VSI_UNREFERENCED(max_node_num);
 
     VSILOGI( "%s", vsi_nn_GetVersion() );
 
@@ -1002,6 +1016,70 @@ vsi_nn_tensor_id_t vsi_nn_AddTensorFromHandle
     return _add_tensor(graph, id, attr, data);
 }
 
+vsi_nn_tensor_id_t vsi_nn_AddTensorFromView
+(
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_id_t parent_id,
+    vsi_size_t* start,
+    vsi_size_t* end
+)
+{
+    uint32_t i = 0;
+    vx_tensor view_vxt = NULL;
+    vsi_nn_tensor_t* parent_tensor = NULL;
+    vsi_nn_tensor_t* new_tensor =NULL;
+    vsi_nn_tensor_id_t id = VSI_NN_TENSOR_ID_NA;
+    vsi_nn_tensor_attr_t attr;
+
+    memset(&attr, 0x0, sizeof(vsi_nn_tensor_attr_t));
+    parent_tensor = vsi_nn_GetTensor(graph, parent_id);
+    if (NULL == parent_tensor)
+    {
+        VSILOGE("Create view tensor failed, parent tensor is invalid.");
+        id = VSI_NN_TENSOR_ID_NA;
+        goto final;
+    }
+
+    /* new tensor's all attribuites are inherited from parent tensor except 'size' */
+    attr = parent_tensor->attr;
+    for (i = 0; i < attr.dim_num; i++)
+    {
+        attr.size[i] = end[i] - start[i];
+    }
+    id = _add_tensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
+    if (VSI_NN_TENSOR_ID_NA == id)
+    {
+        VSILOGE("Create view tensor failed, new tensor could not be created.");
+        goto final;
+    }
+
+    new_tensor = vsi_nn_GetTensor(graph, id);
+    if (new_tensor && new_tensor->t)
+    {
+        vxReleaseTensor(&(new_tensor->t));
+    }
+    else
+    {
+        VSILOGE("Create view tensor failed, new tensor or vxTensor is NULL.");
+        id = VSI_NN_TENSOR_ID_NA;
+        goto final;
+    }
+
+    view_vxt = vsi_nn_CreateViewTensor(graph, start, end, parent_tensor);
+    if ( NULL != view_vxt)
+    {
+        new_tensor->t = view_vxt;
+    }
+    else
+    {
+        VSILOGE("Create view tensor failed, view vxTensor could not be created.");
+        id = VSI_NN_TENSOR_ID_NA;
+        goto final;
+    }
+final:
+    return id;
+}
+
 vsi_nn_tensor_id_t vsi_nn_AttachTensorToGraph
     (
     vsi_nn_graph_t       * graph,
@@ -1184,6 +1262,8 @@ vsi_nn_node_t * vsi_nn_AddExternalNode
     vsi_nn_node_id_t id;
     vsi_nn_op_proc_t * node_proc;
 
+    VSI_UNREFERENCED(node_id);
+
     node_proc = (vsi_nn_op_proc_t*)proc;
 
     if( NULL == graph )
@@ -1210,12 +1290,25 @@ vsi_nn_node_t * vsi_nn_AddExternalNode
         node->output.num = node_proc->output_num;
         node->output.tensors = (vsi_nn_tensor_id_t *) malloc(
             node_proc->output_num * sizeof( vsi_nn_tensor_id_t ) );
+        if ( NULL == node->output.tensors )
+        {
+            VSILOGE("Create output tensor id %s. fail", vsi_nn_OpGetName(op));
+            vsi_nn_safe_free(node);
+            return NULL;
+        }
         vsi_nn_InitTensorsId( node->output.tensors, node_proc->output_num );
 
         /* init input struct */
         node->input.num = node_proc->input_num;
         node->input.tensors = (vsi_nn_tensor_id_t *) malloc(
             node_proc->input_num * sizeof( vsi_nn_tensor_id_t ) );
+        if ( NULL == node->input.tensors )
+        {
+            VSILOGE("Create input tensor id %s. fail", vsi_nn_OpGetName(op));
+            vsi_nn_safe_free(node->output.tensors);
+            vsi_nn_safe_free(node);
+            return NULL;
+        }
         vsi_nn_InitTensorsId( node->input.tensors, node_proc->input_num );
         node->attr.const_tensor_preload_type = VSI_NN_NODE_PRELOAD_NONE;
         node->attr.enable_op_constraint_check = TRUE;
@@ -1259,9 +1352,14 @@ vsi_bool vsi_nn_SetGraphInputs
     vsi_bool ret;
     ret = FALSE;
 
-    if( NULL == graph || tensor_num == 0 )
+    if( NULL == graph )
     {
         return ret;
+    }
+
+    if ( tensor_num == 0 )
+    {
+        return TRUE;
     }
 
     graph->input.tensors = (vsi_nn_tensor_id_t *)malloc(
@@ -1317,10 +1415,10 @@ vsi_nn_node_id_t * vsi_nn_SortGraphNode
     vsi_nn_graph_t * graph
     )
 {
-    uint32_t i,j;
-    uint32_t             count;
-    vsi_bool             dirty;
-    vsi_bool             all_tensor_processed;
+    uint32_t i = 0,j = 0;
+    uint32_t             count = 1;
+    vsi_bool             dirty = TRUE;
+    vsi_bool             all_tensor_processed = FALSE;
     vsi_bool           * tensors = NULL;
     vsi_nn_node_id_t   * nodes = NULL;
     vsi_nn_node_id_t   * sorted_nodes = NULL;
@@ -1344,21 +1442,18 @@ vsi_nn_node_id_t * vsi_nn_SortGraphNode
     /* Init variables. */
     tensors = (vsi_bool *)malloc(
         graph->tensor_num * sizeof( vsi_bool ) );
-
-    if( NULL == tensors )
-    {
-        goto _SortGraphNodeFinally;
-    }
+    CHECK_PTR_FAIL_GOTO( tensors, "Create buffer fail.", final );
+    memset(tensors, 0, graph->tensor_num * sizeof( vsi_bool ));
 
     sorted_nodes = (vsi_nn_node_id_t *)malloc(
         graph->node_num * sizeof( vsi_nn_node_id_t ) );
+    CHECK_PTR_FAIL_GOTO( sorted_nodes, "Create buffer fail.", final );
+    memset(sorted_nodes, 0, graph->node_num * sizeof( vsi_nn_node_id_t ));
+
     nodes = (vsi_nn_node_id_t *)malloc(
         graph->node_num * sizeof( vsi_nn_node_id_t ) );
-
-    if( NULL == sorted_nodes || NULL == nodes)
-    {
-        goto _SortGraphNodeFinally;
-    }
+    CHECK_PTR_FAIL_GOTO( nodes, "Create buffer fail.", final );
+    memset(sorted_nodes, 0, graph->node_num * sizeof( vsi_nn_node_id_t ));
 
     for( i = 0; i < graph->tensor_num; i++ )
     {
@@ -1396,6 +1491,8 @@ vsi_nn_node_id_t * vsi_nn_SortGraphNode
         {
             node_id = nodes[i];
             node = vsi_nn_GetNode( graph, node_id );
+            CHECK_PTR_FAIL_GOTO( node, "Get node fail.", final );
+
             all_tensor_processed = TRUE;
             for( j = 0; j < node->input.num; j ++ )
             {
@@ -1439,17 +1536,17 @@ vsi_nn_node_id_t * vsi_nn_SortGraphNode
         }
     } while( count > 0 );
 
-    if( count != 0 )
-    {
-        free( sorted_nodes );
-        sorted_nodes = NULL;
-    }
-
-_SortGraphNodeFinally:
+final:
 
     /* Release memory. */
-    free( tensors );
-    free( nodes );
+    vsi_nn_safe_free( tensors );
+    vsi_nn_safe_free( nodes );
+
+    if ( count != 0 )
+    {
+        vsi_nn_safe_free( sorted_nodes );
+    }
+
     return sorted_nodes;
 } /* vsi_nn_SortGraphNode() */
 
@@ -1479,7 +1576,8 @@ uint32_t vsi_nn_GetNodesByUids
             for( j = 0; j < graph->node_num; j++ )
             {
                 node = vsi_nn_GetNode( graph, (vsi_nn_node_id_t)j );
-                if( node_uids[i] == node->uid )
+
+                if ( node && node_uids[i] == node->uid )
                 {
                     nodes[sz] = (vsi_nn_node_id_t)j;
                     sz ++;
@@ -1496,6 +1594,7 @@ uint32_t vsi_nn_GetNodesByUids
         }
         sz = graph->node_num;
     }
+
     return sz;
 } /* vsi_nn_GetNodesByUids() */
 
@@ -1535,6 +1634,8 @@ void vsi_nn_DumpGraphNodeOutputsEx
     vsi_nn_node_id_t * nodes;
     vsi_nn_node_t    * node;
     vsi_nn_tensor_t  * tensor;
+
+    VSI_UNREFERENCED(data_fmt);
 
     if(vsi_nn_CheckFilePath(path) == FALSE)
     {
@@ -1576,6 +1677,7 @@ void vsi_nn_DumpGraphNodeOutputsEx
     for( i = 0; i < node_num; i++ )
     {
         node = vsi_nn_GetNode( graph, (vsi_nn_node_id_t)i );
+        CHECK_PTR_FAIL_GOTO( node, "Get node fail.", final );
 
         if( node->internal_node_wksp ) /* dump internal nodes if any */
         {
@@ -1611,7 +1713,9 @@ void vsi_nn_DumpGraphNodeOutputsEx
             }
         }
     }
-    free( nodes );
+
+final:
+    vsi_nn_safe_free( nodes );
 } /* vsi_nn_DumpGraphNodeOutputsEx */
 
 void vsi_nn_PrintGraph
@@ -1728,6 +1832,7 @@ void vsi_nn_DumpGraphToJson
 
                         /* tensor only 1 input node */
                         in_node = vsi_nn_GetNode(graph, table[0].node);
+                        CHECK_PTR_FAIL_GOTO( in_node, "Get node fail.", final );
                         if(j == node->input.num - 1)
                         {
                             fprintf(fp, "\"@uid_%u:out%u\" ", in_node->uid, table[0].index);
@@ -1847,6 +1952,7 @@ void vsi_nn_DumpGraphToJson
 
     fprintf(fp, "\t}\n}\n");
 
+final:
     vsi_nn_ReleaseTensorRelevance(graph, tensor_ref);
     fclose(fp);
 } /* vsi_nn_DumpGraphToJson() */
@@ -1959,7 +2065,8 @@ vsi_status vsi_nn_setup_binary_graph_inputs_outputs
     {
         vsi_nn_node_t* node = vsi_nn_GetNode(graph, i);
         uint32_t numParams = 0;
-        if (node->op == VSI_NN_OP_NBG)
+
+        if (node && node->op == VSI_NN_OP_NBG)
         {
             status = vxQueryNode(
                 node->n, VX_NODE_PARAMETERS, &numParams, sizeof(numParams));
@@ -1968,13 +2075,14 @@ vsi_status vsi_nn_setup_binary_graph_inputs_outputs
                 vx_parameter param = 0;
                 vx_enum type = 0;
                 param = vxGetParameterByIndex(node->n, j);
-                status = vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
-                if (type == VX_TYPE_SCALAR)
-                {
-                    num_of_graph_real_inputs++;
-                }
                 if (param != NULL)
                 {
+                    status = vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
+                    if (type == VX_TYPE_SCALAR)
+                    {
+                        num_of_graph_real_inputs++;
+                    }
+
                     vxReleaseParameter(&param);
                     param = NULL;
                 }
@@ -1997,44 +2105,50 @@ vsi_status vsi_nn_setup_binary_graph_inputs_outputs
             for (k = 0; k < graph->node_num; k++)
             {
                 vsi_nn_node_t* node = vsi_nn_GetNode(graph, k);
-                if (node->op == VSI_NN_OP_NBG)
+
+                if (node && node->op == VSI_NN_OP_NBG)
                 {
                     vx_parameter param = 0;
                     vx_reference ref = 0;
                     vx_enum type = 0;
                     uint32_t scalar_index = j;
                     param = vxGetParameterByIndex(node->n, scalar_index);
-                    status = vxQueryParameter(param,
-                                                VX_PARAMETER_TYPE,
-                                                &type,
-                                                sizeof(vx_enum));
+
                     if (param != NULL)
                     {
-                        vxReleaseParameter(&param);
-                        param = NULL;
-                    }
-                    if (type != VX_TYPE_SCALAR)
-                    {
-                        break;
-                    }
-                    for (p = scalar_index; p < scalar_index+4; p++)
-                    {
-                        param = vxGetParameterByIndex(node->n, p);
                         status = vxQueryParameter(param,
                                                     VX_PARAMETER_TYPE,
                                                     &type,
                                                     sizeof(vx_enum));
-                        if (type == VX_TYPE_SCALAR)
+                        vxReleaseParameter(&param);
+                        param = NULL;
+
+                        if (type != VX_TYPE_SCALAR)
                         {
-                            vxQueryParameter(param,
-                                                VX_PARAMETER_REF,
-                                                &ref,
-                                                sizeof(vx_reference));
-                            graph_inputs[j++] = ref;
-                            vxReleaseReference(&ref);
+                            break;
                         }
+                    }
+
+                    for (p = scalar_index; p < scalar_index+4; p++)
+                    {
+                        param = vxGetParameterByIndex(node->n, p);
+
                         if (param != NULL)
                         {
+                            status = vxQueryParameter(param,
+                                                        VX_PARAMETER_TYPE,
+                                                        &type,
+                                                        sizeof(vx_enum));
+                            if (type == VX_TYPE_SCALAR)
+                            {
+                                vxQueryParameter(param,
+                                                    VX_PARAMETER_REF,
+                                                    &ref,
+                                                    sizeof(vx_reference));
+                                graph_inputs[j++] = ref;
+                                vxReleaseReference(&ref);
+                            }
+
                             vxReleaseParameter(&param);
                         }
                     }
@@ -2146,6 +2260,8 @@ void  vsi_nn_get_tensor_consumers
     for(i = 0; i < graph->node_num; i++)
     {
         node = vsi_nn_GetNode(graph, i);
+        CHECK_PTR_FAIL_GOTO( node, "Get node fail.", final );
+
         for(j = 0; j < node->input.num; j++)
         {
             if(node->input.tensors[j] == tensor_id)
@@ -2159,6 +2275,8 @@ void  vsi_nn_get_tensor_consumers
             }
         }
     }
+
+final:
     if(count != NULL)
     {
         *count = nodes_count;
@@ -2177,6 +2295,8 @@ void vsi_nn_get_tensor_provider
     for(i = 0; i < graph->node_num; i++)
     {
         cur_node = vsi_nn_GetNode(graph, i);
+        CHECK_PTR_FAIL_GOTO( cur_node, "Get node fail.", final );
+
         for(j = 0; j < cur_node->output.num; j++)
         {
             if(cur_node->output.tensors[j] == tensor_id)
@@ -2186,6 +2306,9 @@ void vsi_nn_get_tensor_provider
             }
         }
     }
+
+final:
+    return;
 } /* vsi_nn_get_tensor_provider() */
 
 vsi_status vsi_nn_SetGraphPreloadSize
@@ -2197,6 +2320,10 @@ vsi_status vsi_nn_SetGraphPreloadSize
 {
     vsi_status status;
     status = VSI_FAILURE;
+
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(attr);
+    VSI_UNREFERENCED(size);
 
 #if(defined(VX_PRELOAD_CONST_TENSOR_SUPPORT) && VX_PRELOAD_CONST_TENSOR_SUPPORT)
     if(graph && graph->g)
@@ -2259,6 +2386,8 @@ vsi_status vsi_nn_SetGraphPriority
     )
 {
     vsi_status status = VSI_FAILURE;
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(priority);
 #ifdef VX_GRAPH_PREEMPTION_SUPPORT
     if(graph && graph->g)
     {

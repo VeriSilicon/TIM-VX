@@ -94,7 +94,6 @@ std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
               << std::endl;
   }
 
-  uint32_t i = 0;
   for (const auto& o : op_->impl()->OutputsTensor()) {
     auto in_shape = o->GetShape();
     auto out_spec = o->GetSpec();
@@ -104,7 +103,6 @@ std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
     auto t_infer = context_->infer_graph_->CreateTensor(out_spec);
     context_->UpdateTensorMap(o, t_infer);
     outputs_tensor.push_back(t_infer);
-    i++;
   }
   return outputs_tensor;
 }

@@ -5,13 +5,12 @@ _viv_uniform VXC_512Bits uniBilinear_4over3_l10_2x8;
 _viv_uniform VXC_512Bits uniBilinear_4over3_l01_4x4;
 _viv_uniform VXC_512Bits uniBilinear_4over3_l11_4x4;
 _viv_uniform VXC_512Bits uniBilinear_4over3_l21_4x4;
+_viv_uniform int4 rgb_order;
 
 __kernel void pre_process_rgb888_planar_4over3_U8toU8
     (
     __read_only  image2d_array_t input,
-    __write_only image2d_array_t output0,
-    __write_only image2d_array_t output1,
-    __write_only image2d_array_t output2,
+    __write_only image2d_array_t output,
           global int             *xRatio,
           global int             *yRatio,
           global int             *xOffset,
@@ -19,7 +18,11 @@ __kernel void pre_process_rgb888_planar_4over3_U8toU8
                  float           rMean,
                  float           gMean,
                  float           bMean,
-                 float           f32Var
+                 float           r_scale,
+                 int             reverse,
+                 int             height,
+                 float           g_scale,
+                 float           b_scale
     )
 {
     int4 coord_in = (int4)(get_global_id(0), get_global_id(1), 0, 0);
@@ -49,9 +52,11 @@ __kernel void pre_process_rgb888_planar_4over3_U8toU8
     VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1),   uniBilinear_4over3_l11_4x4);
     VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1),  uniBilinear_4over3_l21_4x4);
 
-    VXC_WriteImage(output0, coord_out.xy, dst0, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
-    VXC_WriteImage(output0, coord_out.xz, dst1, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
-    VXC_WriteImage(output0, coord_out.xw, dst2, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    int4 coord_r = coord_out;
+    coord_r.yzw += rgb_order.xxx;
+    VXC_WriteImage(output, coord_r.xy, dst0, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_r.xz, dst1, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_r.xw, dst2, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
 
     VXC_ReadImage2DArray(src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0),
         VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
@@ -72,9 +77,11 @@ __kernel void pre_process_rgb888_planar_4over3_U8toU8
     VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1),   uniBilinear_4over3_l11_4x4);
     VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1),  uniBilinear_4over3_l21_4x4);
 
-    VXC_WriteImage(output1, coord_out.xy, dst0, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
-    VXC_WriteImage(output1, coord_out.xz, dst1, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
-    VXC_WriteImage(output1, coord_out.xw, dst2, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    int4 coord_g = coord_out;
+    coord_g.yzw += rgb_order.yyy;
+    VXC_WriteImage(output, coord_g.xy, dst0, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_g.xz, dst1, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_g.xw, dst2, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
 
     VXC_ReadImage2DArray(src0, input, coord_in, VXC_5BITOFFSET_XY(0, 0),
         VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
@@ -94,17 +101,17 @@ __kernel void pre_process_rgb888_planar_4over3_U8toU8
     VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(4, 7, 0, VXC_RM_ToNearestEven, 1),   uniBilinear_4over3_l11_4x4);
     VXC_DP4x4(dst2, src3, src2, VXC_MODIFIER(8, 11, 0, VXC_RM_ToNearestEven, 1),  uniBilinear_4over3_l21_4x4);
 
-    VXC_WriteImage(output2, coord_out.xy, dst0, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
-    VXC_WriteImage(output2, coord_out.xz, dst1, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
-    VXC_WriteImage(output2, coord_out.xw, dst2, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    int4 coord_b = coord_out;
+    coord_b.yzw += rgb_order.zzz;
+    VXC_WriteImage(output, coord_b.xy, dst0, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_b.xz, dst1, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_b.xw, dst2, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
 }
 
 __kernel void pre_process_rgb888_planar_half_U8toU8
     (
     __read_only  image2d_array_t input,
-    __write_only image2d_array_t output0,
-    __write_only image2d_array_t output1,
-    __write_only image2d_array_t output2,
+    __write_only image2d_array_t output,
           global int             *xRatio,
           global int             *yRatio,
           global int             *xOffset,
@@ -112,7 +119,11 @@ __kernel void pre_process_rgb888_planar_half_U8toU8
                  float           rMean,
                  float           gMean,
                  float           bMean,
-                 float           f32Var
+                 float           r_scale,
+                 int             reverse,
+                 int             height,
+                 float           g_scale,
+                 float           b_scale
     )
 {
     int4 coord_in = (int4)(get_global_id(0), get_global_id(1), 0, 0);
@@ -130,7 +141,9 @@ __kernel void pre_process_rgb888_planar_half_U8toU8
 
     int2 coord = coord_in.xy >> 1;
 
-    VXC_WriteImage(output0, coord, src0.s02468ace, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
-    VXC_WriteImage(output1, coord, src1.s02468ace, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
-    VXC_WriteImage(output2, coord, src2.s02468ace, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    int4 coord_rgb = coord.xyyy;
+    coord_rgb.yzw += rgb_order.xyz;
+    VXC_WriteImage(output, coord_rgb.xy, src0.s02468ace, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_rgb.xz, src1.s02468ace, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord_rgb.xw, src2.s02468ace, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));
 }

@@ -115,6 +115,9 @@ static vsi_bool op_setup
 {
     vsi_nn_pre_process_gray_param * p = NULL;
     uint32_t i = 0;
+
+    VSI_UNREFERENCED(inputs);
+
     p = (vsi_nn_pre_process_gray_param *)&(self->nn_param.pre_process_gray);
 
     if (p->rect.width == 0 || p->rect.height == 0)

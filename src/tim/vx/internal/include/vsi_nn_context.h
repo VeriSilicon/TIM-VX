@@ -78,6 +78,7 @@ typedef struct _vsi_nn_runtime_option_t
     int32_t enable_asymi8_to_u8;
     int32_t enable_dataconvert_optimize;
     int32_t enable_stream_processor;
+    int32_t enable_rgb88_planar_nhwc;
 } vsi_nn_runtime_option_t;
 
 /**

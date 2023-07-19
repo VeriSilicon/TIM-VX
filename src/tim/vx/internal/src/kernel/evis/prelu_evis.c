@@ -142,6 +142,8 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
     vx_context                  ctx       = vxGetContext((vx_reference)node);
     vx_hardware_caps_params_t   hw_param;
 
+    VSI_UNREFERENCED(param_size);
+
     memset(&hw_param, 0, sizeof(vx_hardware_caps_params_t));
     status = vxQueryHardwareCaps(ctx, &hw_param, sizeof(vx_hardware_caps_params_t));
     CHECK_STATUS_FAIL_GOTO(status, final);
@@ -531,7 +533,7 @@ static vsi_status _query_kernel
     vsi_nn_shader_type_e  sh_type = image_2d ? (input_fl >= output_fl ? _2D_OPT : _2D) : _3D;
     vsi_status status = VSI_FAILURE;
     uint32_t key;
-    int i;
+    size_t i;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
@@ -582,6 +584,9 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t new_rank = 0;
     vsi_bool ret;
     int32_t is_per_channel_alpha = 0;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     is_per_channel_alpha = vsi_nn_kernel_param_get_int32(params, "is_per_channel_alpha");
 

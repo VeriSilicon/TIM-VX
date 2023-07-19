@@ -151,6 +151,13 @@ static vsi_status vsi_nn_initOptions
         options->enable_stream_processor = atoi(env_s);
     }
 
+    env_s = NULL;
+    options->enable_rgb88_planar_nhwc = 0;
+    if (vsi_nn_getEnv("VSI_NN_FORCE_RGB888_OUT_NHWC", &env_s) && env_s)
+    {
+        options->enable_rgb88_planar_nhwc = atoi(env_s);
+    }
+
     return VSI_SUCCESS;
 }
 

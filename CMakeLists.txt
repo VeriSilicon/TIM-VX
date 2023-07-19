@@ -16,6 +16,7 @@ option(TIM_VX_ENABLE_PLATFORM_LITE      "Enable lite multi-device support"      
 option(TIM_VX_ENABLE_GRPC               "Enable gPRC support"                   OFF)
 option(TIM_VX_DBG_ENABLE_TENSOR_HNDL    "Enable built-in tensor from handle: use malloced memory instead of VideoMemory by kernel driver" ON)
 option(TIM_VX_ENABLE_TENSOR_CACHE       "Enable tensor cache for const tensor"  OFF)
+option(TIM_VX_ENABLE_API_TRACE          "Enable trace and replay of graph apis" OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)

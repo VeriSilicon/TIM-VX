@@ -31,5 +31,8 @@
 #include "custom/ops/vsi_nn_op_custom_warp_affine.h"
 #include "custom/ops/vsi_nn_op_custom_warp_perspective.h"
 #include "custom/ops/vsi_nn_op_custom_sample.h"
+#include "custom/ops/vsi_nn_op_custom_tiny_yolov4_postprocess.h"
+#include "custom/ops/vsi_nn_op_custom_tiny_yolov4_postprocess_confidence.h"
+#include "custom/ops/vsi_nn_op_custom_tiny_yolov4_postprocess_box.h"
 
 #endif

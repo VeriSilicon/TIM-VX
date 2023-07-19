@@ -148,6 +148,8 @@ DEF_KERNEL_INITIALIZER(_one_hot_initializer)
     int32_t   srcFixPointPos    = 0;
     vsi_nn_kernel_dtype_e input_dtype  = F16;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -422,6 +424,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_tensor_t* rs_tensors[2] = { NULL };
     vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = {{ 0 }};
     int32_t i = 0;
+    size_t j = 0;
     vsi_bool image_2d = FALSE;
     vsi_size_t num_elements = vsi_nn_vxGetTensorElementNum(&inputs[0]->attr);
     vsi_size_t prefix_dim_size = 1;
@@ -505,11 +508,11 @@ final:
         vsi_nn_ReleaseTensor( &rs_tensors[1] );
     }
 
-    for (i = SCALAR_INPUT_SUFFIX_SIZE; i < _ONE_HOT_PARAM_NUM; i++)
+    for (j = SCALAR_INPUT_SUFFIX_SIZE; j < _ONE_HOT_PARAM_NUM; j++)
     {
-        if (node_params[i])
+        if (node_params[j])
         {
-            vsi_nn_kernel_scalar_release( &node_params[i] );
+            vsi_nn_kernel_scalar_release( &node_params[j] );
         }
     }
 

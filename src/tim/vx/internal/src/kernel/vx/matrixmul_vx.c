@@ -63,6 +63,10 @@ REGISTER_BATCH_GEMM_OPENVX_KERNEL( matrixmul )
     vx_scalar trans_a = vxCreateScalar(graph->ctx->c, VX_TYPE_BOOL, &transposeA);
     vx_scalar trans_b = vxCreateScalar(graph->ctx->c, VX_TYPE_BOOL, &transposeB);
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxBatchGemmNode(graph->g,
                       inputs[0]->t,
                       inputs[1]->t,

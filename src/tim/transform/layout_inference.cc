@@ -69,6 +69,8 @@
 #include "ops/broadcast_layout_inference.h"
 #include "ops/unidirectional_rnn_layout_inference.h"
 #include "ops/bidirectional_rnn_layout_inference.h"
+#include "ops/roi_align_layout_inference.h"
+#include "ops/roi_pool_layout_inference.h"
 
 #include <algorithm>
 #include <deque>
@@ -260,6 +262,8 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LRN2, LRN);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_L2_NORMALIZE, L2Normalization);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_INSTANCE_NORM, InstanceNorm);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ROI_ALIGN, RoiAlign);
+    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ROI_POOL, RoiPool);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ADDN, AddN);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PRELU, PRelu);
     REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GATHER, Gather);

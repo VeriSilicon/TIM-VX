@@ -55,6 +55,12 @@ vsi_bool vsi_nn_is_sp_supported_broadcast
         vsi_nn_tensor_t*  output
     );
 
+vsi_bool vsi_nn_kernel_optimize_element_shape_with_max_rank
+    (
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    vsi_size_t* out_shape_x, vsi_size_t* out_rank_x, vsi_size_t max_rank
+    );
+
 #ifdef __cplusplus
 }
 #endif

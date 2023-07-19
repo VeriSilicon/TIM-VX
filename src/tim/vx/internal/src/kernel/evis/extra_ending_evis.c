@@ -97,7 +97,10 @@ DEF_KERNEL_INITIALIZER(_extra_ending_initializer)
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
     vsi_size_array_t * out_shape          = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr buffer fail.", final );
     out_shape = attr->shape;
 
     gpu_param.global_scale[0] = 8;
@@ -135,6 +138,8 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e out_dtype;
     uint32_t key = 0;
     uint32_t i = 0;
+
+    VSI_UNREFERENCED(inputs);
 
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
@@ -185,6 +190,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t  shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
     int32_t i = 0;
+
+    VSI_UNREFERENCED(params);
 
     vsi_nn_kernel_optimize_1d_tensor_shape( (const vsi_size_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num,
         shapes[0], &rank[0]);

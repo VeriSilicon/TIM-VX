@@ -154,7 +154,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_transpose_time_major
     vsi_bool use_virtual_tensor
     );
 
-void vsi_nn_rnn_split_input_tensor
+vsi_status vsi_nn_rnn_split_input_tensor
     (
     vsi_nn_node_t * self,
     vsi_nn_tensor_t * input,
@@ -163,7 +163,7 @@ void vsi_nn_rnn_split_input_tensor
     vsi_bool use_virtual_tensor
     );
 
-void vsi_nn_rnn_data_check_aligned
+vsi_status vsi_nn_rnn_data_check_aligned
     (
     vsi_nn_node_t * self,
     vsi_nn_tensor_t ** input,

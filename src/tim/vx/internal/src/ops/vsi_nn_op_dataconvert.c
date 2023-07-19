@@ -70,6 +70,8 @@ static vsi_bool _is_same_quant
 {
     vsi_nn_dtype_t *dtype,*_dtype;
 
+    VSI_UNREFERENCED(self);
+
     dtype = &inputs[0]->attr.dtype;
     _dtype = &outputs[0]->attr.dtype;
 

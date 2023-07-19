@@ -134,6 +134,8 @@ DEF_KERNEL_INITIALIZER(_roi_align_initializer)
     vsi_size_array_t * rois_shape                = NULL;
     vsi_size_array_t * out_shape                 = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     rois_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( rois_attr, "Create tensor attr buffer fail.", final );
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );

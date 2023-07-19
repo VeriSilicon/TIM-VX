@@ -59,12 +59,14 @@ static vsi_status op_compute
     vsi_size_t new_rank = 0;
     vsi_bool ret;
     vsi_nn_kernel_param_t * param = NULL;
-    int32_t isfmod = (int32_t)self->nn_param.mod.fmod;
+    int32_t isfmod = 0;
 
     if (NULL == self)
     {
         return VSI_FAILURE;
     }
+
+    isfmod = (int32_t)self->nn_param.mod.fmod;
 
     param = vsi_nn_kernel_param_create();
 
@@ -182,6 +184,8 @@ static vsi_bool op_setup
     uint32_t i, out_rank, in1_rank, in2_rank;
     vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool ret = TRUE;
+
+    VSI_UNREFERENCED(self);
 
     in1_rank = inputs[0]->attr.dim_num;
     in2_rank = inputs[1]->attr.dim_num;

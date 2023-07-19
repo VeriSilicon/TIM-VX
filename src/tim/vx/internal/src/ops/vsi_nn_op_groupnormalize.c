@@ -77,6 +77,7 @@ static vsi_bool _is_3d_group_norm
     vsi_nn_tensor_t ** inputs
     )
 {
+    VSI_UNREFERENCED(self);
     if ( 3 == inputs[0]->attr.dim_num )
     {
         return TRUE;

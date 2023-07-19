@@ -188,6 +188,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_initializer)
     vsi_ssize_t       block_size  = 0;
     vsi_ssize_t       height = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
 
@@ -227,7 +229,9 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e input2_dtype = U8;
     vsi_nn_kernel_dtype_e output_dtype = U8;
     uint32_t key = 0;
-    int i = 0;
+    size_t i = 0;
+
+    VSI_UNREFERENCED(coord_dim);
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input2_dtype = vsi_nn_kernel_map_dtype( inputs[2]->attr.dtype.vx_type );
@@ -283,6 +287,9 @@ static vsi_nn_kernel_node_t _setup
     int32_t offsetX = 0, offsetY = 0, offsetZ = 0, offsetW = 0, offset_idx = 0;
     vsi_size_t *input_size = inputs[2]->attr.size;
     uint32_t dims_num = inputs[2]->attr.dim_num;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     if (coord_dim > 4 && input_size[dims_num - 1] > 1)
     {

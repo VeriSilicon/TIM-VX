@@ -95,7 +95,7 @@ static vsi_bool _read_pixel
     )
 {
     vsi_size_t width = attr->shape->data[0];
-    vsi_size_t height = attr->shape->data[1];
+    vsi_size_t height = attr->shape->size > 1 ? attr->shape->data[1] : 1;
     vsi_bool out_of_bounds = (x < 0 || y < 0 || x >= width || y >= height);
     vsi_size_t bx = 0, by = 0;
 
@@ -139,11 +139,16 @@ DEF_KERNEL_EXECUTOR(_compute)
     vsi_size_t height = 0;
     vsi_size_t outer_size = 1;
 
+    VSI_UNREFERENCED(node);
+    VSI_UNREFERENCED(param_size);
+
     tensors[0] = (vsi_nn_kernel_tensor_t)param[0];
     tensors[1] = (vsi_nn_kernel_tensor_t)param[1];
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( tensors[0] );
+    CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( tensors[1] );
+    CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
 
     out_elements = vsi_nn_kernel_tensor_attr_get_size( attr[1] );
 
@@ -237,6 +242,8 @@ static vsi_status _query_kernel
     )
 {
     vsi_status status = VSI_FAILURE;
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  _KERNEL_NAME );
     kernel->info.function    = _compute;
     kernel->info.parameters  = _custom_warp_perspective_kernel_param_def;

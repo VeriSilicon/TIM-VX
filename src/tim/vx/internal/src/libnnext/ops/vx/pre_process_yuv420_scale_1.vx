@@ -48,9 +48,11 @@ __kernel void pre_process_yuv420_scale_##name \
                  float           rMean, \
                  float           gMean, \
                  float           bMean, \
-                 float           var, \
+                 float           r_scale, \
                  int             reverse_channel, \
-                 int             trans \
+                 int             trans, \
+                 float           g_scale, \
+                 float           b_scale \
     ) \
 { \
     int4 gidx = get_global_id(0); \
@@ -201,7 +203,7 @@ __kernel void pre_process_yuv420_scale_##name \
     float4 tmpDst; \
     int4 dstPos = (int4)(get_global_id(0), gidy, 0, 0); \
     VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4); \
-    tmpDst = (tmpDst - bMean) * var; \
+    tmpDst = (tmpDst - bMean) * b_scale; \
     dstPos.z = bOrder; \
     tmpDst = tmpDst * output_scale + output_zp; \
     _viv_asm(CONV_RTE, tmpVal, tmpDst); \
@@ -217,7 +219,7 @@ __kernel void pre_process_yuv420_scale_##name \
     temp2 = fx * tmpData0 + tmpData1; \
     result = fy * temp2 + (temp1 << 10); \
     VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4); \
-    tmpDst = (tmpDst - gMean) * var; \
+    tmpDst = (tmpDst - gMean) * g_scale; \
     dstPos.z = 1; \
     tmpDst = tmpDst * output_scale + output_zp; \
     _viv_asm(CONV_RTE, tmpVal, tmpDst); \
@@ -233,7 +235,7 @@ __kernel void pre_process_yuv420_scale_##name \
     temp2 = fx * tmpData0 + tmpData1; \
     result = fy * temp2 + (temp1 << 10); \
     VXC_DP4x4(tmpDst, result, tmpV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniDescaleU8_4x4); \
-    tmpDst = (tmpDst - rMean) * var; \
+    tmpDst = (tmpDst - rMean) * r_scale; \
     dstPos.z = rOrder; \
     tmpDst = tmpDst * output_scale + output_zp; \
     _viv_asm(CONV_RTE, tmpVal, tmpDst); \

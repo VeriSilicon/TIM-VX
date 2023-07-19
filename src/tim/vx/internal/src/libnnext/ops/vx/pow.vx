@@ -22,8 +22,8 @@ __kernel void pow_##name \
  \
     src0_type src0; \
     copy0_type data0; \
-    src0_type src1; \
-    copy0_type data1; \
+    src1_type src1; \
+    copy1_type data1; \
     VXC_ReadImage2DArray(src0, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
     _viv_asm(COPY, data0, src0, 16); \
     VXC_ReadImage2DArray(src1, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
@@ -94,8 +94,8 @@ __kernel void pow_##name##_2D \
  \
     src0_type src0; \
     copy0_type data0; \
-    src0_type src1; \
-    copy0_type data1; \
+    src1_type src1; \
+    copy1_type data1; \
     VXC_ReadImage(src0, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
     _viv_asm(COPY, data0, src0, 16); \
     VXC_ReadImage(src1, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \

@@ -147,6 +147,8 @@ DEF_KERNEL_INITIALIZER(_preprocess_initializer)
     vsi_nn_kernel_tensor_attr_t* attr[1] = {NULL};
     int32_t width = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
 
@@ -211,6 +213,8 @@ DEF_KERNEL_INITIALIZER(_repeat_initializer)
     int32_t height = 0, width = 0, chn = 0;
     int32_t is1d = 0;
     int32_t axis = 0;
+
+    VSI_UNREFERENCED(param_size);
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
@@ -303,7 +307,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype = U8;
     uint32_t key = 0;
     int32_t is1d = inputs[0]->attr.dim_num == 1 ? 1 : 0;
-    int i = 0;
+    size_t i = 0;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
@@ -453,6 +457,9 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t new_rank[2] = {0, 0};
     int32_t axis  = vsi_nn_kernel_param_get_int32( params, "axis" );
 
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+
     // Check if gpu can support the size
     if ( !vsi_nn_kernel_gpu_check_shape(
         outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
@@ -497,7 +504,7 @@ static vsi_nn_kernel_node_t _setup
     attr.size[1] = 1;
     attr.dim_num = 2;
     tensor_preprocess = vsi_nn_CreateTensor( graph, &attr );
-
+    CHECK_PTR_FAIL_GOTO( tensor_preprocess, "Create tensor fail.", final );
     // preprocess
     tmp_node = vsi_nn_kernel_create_node( graph, kernel_preprocess );
     if (tmp_node)

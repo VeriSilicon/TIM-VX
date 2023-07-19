@@ -48,6 +48,9 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_SUCCESS;
 
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+
 #if defined(VX_DENOISE_POSTPROCESS_SUPPORT) && VX_DENOISE_POSTPROCESS_SUPPORT
     self->n = vxDenoisePostProcesslayer(
         self->graph->g,
@@ -83,6 +86,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 
@@ -93,6 +99,9 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_setup() */
 
@@ -101,6 +110,7 @@ static vsi_status op_init
     vsi_nn_node_t* self
     )
 {
+    VSI_UNREFERENCED(self);
     return VSI_SUCCESS;
 } /* op_init() */
 

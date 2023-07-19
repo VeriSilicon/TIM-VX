@@ -33,6 +33,7 @@ namespace ops {
  * ## Gather
  *
  * Gather slices from input, **axis** according to **indices**.
+ * batch_dims means in which dimension to repeat the value according to indices.
  */
 
 class Gather : public BuiltinOp {

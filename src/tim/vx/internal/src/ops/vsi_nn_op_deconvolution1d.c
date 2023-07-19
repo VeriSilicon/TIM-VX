@@ -64,7 +64,9 @@ static vsi_status op_compute
     weight_attr.size[2] = weight_attr.size[1];
     weight_attr.size[1] = 1;
     weight_attr.dim_num = 4;
-    if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
+    if (inputs[1]->attr.dtype.qnt_type !=
+            VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC &&
+        inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
     {
         weight_tensor = vsi_nn_reshape_tensor( self->graph, inputs[1], weight_attr.size, 4 );
         CHECK_PTR_FAIL_GOTO( weight_tensor, "create tensor fail.", final );
@@ -118,6 +120,7 @@ static vsi_status op_compute
             attr.size[2] = weight_tensor->attr.size[3];
             attr.size[3] = weight_tensor->attr.size[2];
             permute_tensor = vsi_nn_CreateTensor(self->graph, &attr);
+            CHECK_PTR_FAIL_GOTO( permute_tensor, "Create tensor fail.", final );
             self->n = vxTensorPermuteNode( self->graph->g, weight_tensor->t,
                         permute_tensor->t, perm_array, 4);
             if ( NULL == self->n )
@@ -135,6 +138,7 @@ static vsi_status op_compute
         memset(&attr_reverse, 0, sizeof(vsi_nn_tensor_attr_t));
         memcpy(&attr_reverse, &tmp_in_tensor->attr, sizeof(vsi_nn_tensor_attr_t) );
         reverse_tensor = vsi_nn_CreateTensor(self->graph, &attr_reverse);
+        CHECK_PTR_FAIL_GOTO( reverse_tensor, "Create tensor fail.", final );
         para.axis = axis_reverse;
         para.numberOfAxis = 2;
 
@@ -260,9 +264,8 @@ static vsi_bool op_setup
         }
         else
         {
-            outputs[0]->attr.size[1] = inputs[1]->attr.size[3];
+            outputs[0]->attr.size[1] = inputs[1]->attr.size[2];
         }
-        outputs[0]->attr.size[1] = nn_param->weights;
         outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
     }

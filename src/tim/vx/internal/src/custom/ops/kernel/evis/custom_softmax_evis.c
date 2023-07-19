@@ -73,6 +73,8 @@ DEF_KERNEL_INITIALIZER(_softmax_initializer)
         {0, 0, 0},  // local_size: local group size in thread
         {0, 0, 0}}; // global_size: image size in thread
 
+    VSI_UNREFERENCED(param_size);
+
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     if (!attr)
     {
@@ -144,6 +146,8 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t* kernel
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     memmove( &kernel->info, &_kernel_info, sizeof(vx_kernel_description_t) );
 
     vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 2,
@@ -169,6 +173,9 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t backend_params[_CPU_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     int32_t axis = 0;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     axis = vsi_nn_kernel_param_get_int32(params, "axis");
 

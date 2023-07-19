@@ -110,6 +110,8 @@ DEF_KERNEL_INITIALIZER(_grucell_h_times_activation_r_initializer)
     vsi_nn_kernel_tensor_t       output                 = NULL;
     vsi_nn_kernel_tensor_attr_t* output_attr;
 
+    VSI_UNREFERENCED(param_size);
+
     output = (vsi_nn_kernel_tensor_t)param[3];
 
     output_attr = vsi_nn_kernel_tensor_attr_create( output );

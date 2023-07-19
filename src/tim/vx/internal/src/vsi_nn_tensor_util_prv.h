@@ -97,6 +97,16 @@ vsi_bool vsi_nn_is_stream_process_supported_types
     size_t input_num
     );
 
+vsi_bool vsi_nn_is_same_data_type(
+    vsi_nn_tensor_t * src,
+    vsi_nn_tensor_t * dst
+    );
+
+vsi_bool vsi_nn_is_same_quant_type(
+    vsi_nn_tensor_t * src,
+    vsi_nn_tensor_t * dst
+    );
+
 #ifdef __cplusplus
 }
 #endif

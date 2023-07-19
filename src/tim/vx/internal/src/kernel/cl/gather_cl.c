@@ -205,6 +205,9 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
     size_t        input_dims1 = 0;
     size_t        i           = 0;
 
+    VSI_UNREFERENCED(node);
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -264,7 +267,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e input0_dtype = U8;
     vsi_nn_kernel_dtype_e output_dtype = U8;
     uint32_t key = 0;
-    int i = 0;
+    size_t i = 0;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
@@ -333,6 +336,9 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t rs_dim   = batch_dims == 0 ? 2 : 3;
     int32_t is_array    = block_size >= GPU_TENSOR_MAX_WIDTH ? 1 : 0;
     int32_t i           = 0;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     status = cal_gather_tensor_reshape_size(&inputs[0], shapes[0], block_size, batch_dims, 0, &is_array);
     status |= cal_gather_tensor_reshape_size(&inputs[1], shapes[1], 1, batch_dims, 1, &is_array);

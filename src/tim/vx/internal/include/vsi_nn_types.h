@@ -192,6 +192,16 @@ typedef enum
 #else
     VSI_NN_TYPE_BFLOAT16 = 0x81A,
 #endif
+#ifdef VSI_NN_TYPE_FLOAT8_E4M3_SUPPORT
+    VSI_NN_TYPE_FLOAT8_E4M3 = VX_TYPE_FLOAT8_E4M3,
+#else
+    VSI_NN_TYPE_FLOAT8_E4M3 = 0X81E,
+#endif
+#ifdef VSI_NN_TYPE_FLOAT8_E5M2_SUPPORT
+    VSI_NN_TYPE_FLOAT8_E5M2 = VX_TYPE_FLOAT8_E5M2,
+#else
+    VSI_NN_TYPE_FLOAT8_E5M2 = 0X81F,
+#endif
     VSI_NN_TYPE_VDATA = VX_TYPE_USER_STRUCT_START + 0x1,
 
 } VSI_PUBLIC_TYPE vsi_nn_type_e;
@@ -267,6 +277,11 @@ typedef enum _vsi_nn_roi_align_type_e
     VSI_NN_ROI_ALIGN_ANDROID,
     VSI_NN_ROI_ALIGN
 } vsi_nn_roi_align_type_e;
+
+typedef enum _vsi_nn_custom_warp_affine_type_e {
+    VSI_NN_WARP_AFFINE_TYPE_NONE = 0,
+    VSI_NN_WARP_AFFINE_TYPE_RGB
+} vsi_nn_custom_warp_affine_type_e;
 
 /** Deprecated */
 typedef uint32_t vsi_nn_size_t;

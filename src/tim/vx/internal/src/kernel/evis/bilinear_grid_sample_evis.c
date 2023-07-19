@@ -58,8 +58,8 @@ typedef enum
 #define PACK_KERNEL_MAP(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE) \
         {                                                                   \
         BILINEAR_GRID_SAMPLE_HASH_KEY(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE), \
-            CVIVANTE_NAMESPACE("evis.bilinear_grid_sample_" STR(IN0_DTYPE) "_" STR(IN1_DTYPE) "to" STR(OUT_DTYPE)), \
-            _BILINEAR_GRID_SAMPLE_KERNEL_SOURCE(IN0_DTYPE, OUT_DTYPE)     \
+        CVIVANTE_NAMESPACE("evis.bilinear_grid_sample_" STR(IN0_DTYPE) "_" STR(IN1_DTYPE) "to" STR(OUT_DTYPE)), \
+        _BILINEAR_GRID_SAMPLE_KERNEL_SOURCE(IN0_DTYPE, OUT_DTYPE)     \
         }
 
 typedef struct
@@ -138,6 +138,8 @@ DEF_KERNEL_INITIALIZER(_bilinear_grid_sample_initializer)
     int32_t input1ZP        = 0;
     float   output_scale    = 1.0;
     int32_t outputZP        = 0;
+
+    VSI_UNREFERENCED(param_size);
 
     input_attr[0] =
         vsi_nn_kernel_tensor_attr_create((vsi_nn_kernel_tensor_t)param[0]);
@@ -418,14 +420,17 @@ DEF_KERNEL_INITIALIZER(_bilinear_grid_sample_initializer)
             status |= vsi_nn_kernel_gpu_add_param(node, "input_ZP", &input0ZP);
             status |= vsi_nn_kernel_gpu_add_param(node, "uint8Scale", &uint8Scale);
             status |= vsi_nn_kernel_gpu_add_param(node, "output_ZP", &uint8ZP_out);
-            status |= vsi_nn_kernel_gpu_add_param(node, "uniU8SubZPtoFp32_left_4x4", &uniU8SubZPtoFp32_left_4x4);
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniU8SubZPtoFp32_left_4x4",
+            &uniU8SubZPtoFp32_left_4x4);
             status |= vsi_nn_kernel_gpu_add_param(node, "uniU8RightSubLeft_4x4", &uniU8RightSubLeft_4x4);
             status |= vsi_nn_kernel_gpu_add_param(node, "uniExtact8Bit_2x8", &uniExtact8Bit_2x8);
             if (U8 == input1_dtype) {
                 status |= vsi_nn_kernel_gpu_add_param(node, "input1_ZP", &input1ZP);
                 status |= vsi_nn_kernel_gpu_add_param(node, "input1Scale", &input1_scale);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniU8SubZPtoFp32_part0_4x4", &uniU8SubZPtoFp32_part0_4x4);
-                status |= vsi_nn_kernel_gpu_add_param(node, "uniU8SubZPtoFp32_part1_4x4", &uniU8SubZPtoFp32_part1_4x4);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniU8SubZPtoFp32_part0_4x4",
+                &uniU8SubZPtoFp32_part0_4x4);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniU8SubZPtoFp32_part1_4x4",
+                &uniU8SubZPtoFp32_part1_4x4);
             }
             else if (F16 == input1_dtype) {
                 status |= vsi_nn_kernel_gpu_add_param(
@@ -552,9 +557,9 @@ DEF_KERNEL_INITIALIZER(_bilinear_grid_sample_initializer)
     gpu_param.global_scale[2] = 1;
 
     gpu_param.dim = 2;
-    gpu_param.global_size[0] = gpu_align_p2(
+    gpu_param.global_size[0] =
         (out_width + gpu_param.global_scale[0] - 1) /
-         gpu_param.global_scale[0], 4);
+         gpu_param.global_scale[0];
     gpu_param.global_size[1] = ((out_height + gpu_param.global_scale[1] - 1) /
          gpu_param.global_scale[1]);
 

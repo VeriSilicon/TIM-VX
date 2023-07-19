@@ -34,7 +34,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "vsi_nn_internal_node.h"
 
@@ -48,6 +48,8 @@ static vsi_bool _is_same_type
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+
     if(vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
     {
         return FALSE;
@@ -63,6 +65,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -73,6 +77,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -85,6 +92,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
 
@@ -95,7 +104,7 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_bool ret;
+    vsi_bool ret = FALSE;
     uint32_t i;
     uint32_t axis;
     vsi_nn_tensor_attr_t attr;
@@ -112,7 +121,6 @@ static vsi_bool op_setup
         return FALSE;
     }
 
-    ret = TRUE;
     /* output */
     if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
@@ -152,6 +160,7 @@ static vsi_bool op_setup
         self->nn_param.post_process.local.enable_perm == FALSE)
     {
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.reshape2.size = outputs[0]->attr.size;
         curr->node->nn_param.reshape2.dim_num = outputs[0]->attr.dim_num;
         curr->inputs[0] = inputs[POST_PROCESS_INPUT];
@@ -163,6 +172,7 @@ static vsi_bool op_setup
         self->nn_param.post_process.local.enable_perm == FALSE)
     {
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[POST_PROCESS_INPUT];
         curr->outputs[0] = outputs[POST_PROCESS_OUTPUT];
 
@@ -172,6 +182,7 @@ static vsi_bool op_setup
         self->nn_param.post_process.local.enable_perm == TRUE)
     {
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PERMUTE, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.permute.perm = self->nn_param.post_process.perm;
         curr->node->nn_param.permute.dim_num = self->nn_param.post_process.dim_num;
         curr->inputs[0] = inputs[POST_PROCESS_INPUT];
@@ -187,8 +198,10 @@ static vsi_bool op_setup
         attr.vtl = use_virtual_tensor;
         attr.is_const = FALSE;
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PERMUTE, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.permute.perm = self->nn_param.post_process.perm;
         curr->node->nn_param.permute.dim_num = self->nn_param.post_process.dim_num;
         curr->inputs[0] = inputs[POST_PROCESS_INPUT];
@@ -197,12 +210,15 @@ static vsi_bool op_setup
         vsi_nn_internal_setup_node( self, curr );
 
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = output_tensor->t;
         curr->outputs[0] = outputs[POST_PROCESS_OUTPUT];
 
         vsi_nn_internal_setup_node(self, curr);
     }
 
+    ret = TRUE;
+final:
     return ret;
 } /* op_setup() */
 

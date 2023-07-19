@@ -224,6 +224,8 @@ DEF_KERNEL_INITIALIZER(_moments_initializer)
     int32_t axis = 0;
     int32_t axis_num = 1;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
 
@@ -306,7 +308,9 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e input0_dtype = U8;
     vsi_nn_kernel_dtype_e output_dtype = U8;
     uint32_t key = 0;
-    int i = 0;
+    size_t i = 0;
+
+    VSI_UNREFERENCED(params);
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
@@ -380,6 +384,9 @@ static vsi_nn_kernel_node_t _setup
     int32_t input_zp = vsi_nn_get_tensor_zero_point(inputs[0]);
     float input_scale = vsi_nn_get_tensor_scale(inputs[0]);
     float dim_ratio = (float)1.0 / (float)(width * height);
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     axis_num = (int32_t)axis_num_temp;
 

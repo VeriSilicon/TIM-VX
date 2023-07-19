@@ -48,68 +48,15 @@ static vsi_status op_compute
     )
 {
     vsi_status status = VSI_FAILURE;
-    vsi_nn_tensor_t* reshape_tensors[_IO_NUM] = { NULL };
-    vsi_size_t  shapes[_IO_NUM][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
-    vsi_size_t* shapes_ptr[_IO_NUM];
-    vsi_size_t* shapes_in[_INPUT_NUM];
-    vsi_size_t rank_in[_INPUT_NUM];
-    uint32_t new_rank = 0;
-    int32_t  i        = 0;
-    vsi_bool ret = FALSE;
-    vsi_nn_context_t ctx = NULL;
 
     if ( NULL == self )
     {
         return VSI_FAILURE;
     }
 
-    ctx = self->graph->ctx;
-
-    for (i = 0; i < _IO_NUM; i++)
-    {
-        shapes_ptr[i] = shapes[i];
-    }
-
-    for (i = 0; i < _INPUT_NUM; i++)
-    {
-        shapes_in[i] = inputs[i]->attr.size;
-        rank_in[i]   = (vsi_size_t)inputs[i]->attr.dim_num;
-    }
-
-    ret = vsi_nn_kernel_optimize_broadcast_shape(
-            (const vsi_size_t**)shapes_in, rank_in, _INPUT_NUM,
-            outputs[0]->attr.size, outputs[0]->attr.dim_num,
-            shapes_ptr, shapes[_INPUT_NUM], &new_rank);
-
-    if ( ret && !ctx->config.support_stream_processor )
-    {
-        for (i = 0; i < _INPUT_NUM; i++)
-        {
-            reshape_tensors[i] = vsi_nn_reshape_tensor( self->graph,
-                    inputs[i], shapes[i], new_rank );
-        }
-
-        for (i = 0; i < _OUTPUT_NUM; i++)
-        {
-            reshape_tensors[i + _INPUT_NUM] = vsi_nn_reshape_tensor( self->graph,
-                    outputs[i], shapes[i + _INPUT_NUM], new_rank );
-        }
-
-        self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "select",
-                                        &reshape_tensors[0], _INPUT_NUM,
-                                        &reshape_tensors[_INPUT_NUM], _OUTPUT_NUM, NULL );
-
-        for (i = 0; i < _IO_NUM; i++)
-        {
-            vsi_safe_release_tensor( reshape_tensors[i] );
-        }
-    }
-    else
-    {
-        self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "select",
-                                        inputs, _INPUT_NUM,
-                                        outputs, _OUTPUT_NUM, NULL );
-    }
+    self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "select",
+                                    inputs, _INPUT_NUM,
+                                    outputs, _OUTPUT_NUM, NULL );
 
     if ( self->n )
     {
@@ -246,6 +193,8 @@ static vsi_bool op_setup
     vsi_size_t i, out_rank, in0_rank, in1_rank, in2_rank;
     vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool ret = TRUE;
+
+    VSI_UNREFERENCED(self);
 
     in0_rank = inputs[0]->attr.dim_num;
     in1_rank = inputs[1]->attr.dim_num;

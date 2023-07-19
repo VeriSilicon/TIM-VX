@@ -1,0 +1,103 @@
+#pragma OPENCL EXTENSION cl_viv_vx_extension : enable
+#include "cl_viv_vx_ext.h"
+
+#define logE    (1.44269502f)
+
+float4 sigmoid4(float4 x)
+{
+    x *= -logE;
+    x = 1 + exp2(x);
+    return 1 / x;
+}
+
+float4 exp4(float4 x)
+{
+    x *= logE;
+    return exp2(x);
+}
+
+#define CONST0      (1.0499999523162842f)
+#define CONST1      (0.0250000003725290f)
+
+_viv_uniform VXC_512Bits uniDatatoFloat32_0_4x4;
+_viv_uniform VXC_512Bits uniDatatoFloat32_1_4x4;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform VXC_512Bits uniDataTranspose_0_2x8;
+_viv_uniform VXC_512Bits uniDataTranspose_1_2x8;
+_viv_uniform float input0_scale;
+_viv_uniform float input0_tail;
+_viv_uniform float input1_scale;
+_viv_uniform float input1_tail;
+_viv_uniform float output_scale;
+_viv_uniform float output_zp;
+_viv_uniform float CONST2;
+__kernel void tiny_yolov4_postprocess_box_U8_U8toU8
+    (
+    __read_only  image2d_array_t  input0,
+    __read_only  image2d_array_t  input1,
+    __write_only image2d_array_t  output,
+                 float            bias_0,
+                 float            bias_1
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(0));
+
+    vxc_uchar16 src0, src1, src2, src3;
+    VXC_ReadImage(src0, input0, coord.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src0, input0, coord.xy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src1, input0, coord.xy, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src1, input0, coord.xy, VXC_5BITOFFSET_XY(0, 3), VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0));
+
+    VXC_ReadImage(src2, input1, coord.xy, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src3, input1, coord.xy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    coord.zw += (int2)(2, 3);
+
+    float4 data0, data1, data2, data3, data;
+    VXC_DP4x4(data0, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFloat32_0_4x4);
+    data0 = data0 * input0_scale + input0_tail;
+    data0 = sigmoid4(data0);
+    data0 = data0 * CONST0 - CONST1;
+
+    VXC_DP4x4(data, src2, src2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFloat32_0_4x4);
+    data = data * input1_scale + input1_tail;
+    data0 = data0 * CONST2 + data * CONST2;
+
+    VXC_DP4x4(data1, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFloat32_1_4x4);
+    data1 = data1 * input0_scale + input0_tail;
+    data1 = sigmoid4(data1);
+    data1 = data1 * CONST0 - CONST1;
+
+    VXC_DP4x4(data, src3, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFloat32_0_4x4);
+    data = data * input1_scale + input1_tail;
+    data1 = data1 * CONST2 + data * CONST2;
+
+    VXC_DP4x4(data2, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFloat32_0_4x4);
+    data2 = data2 * input0_scale + input0_tail;
+    data2 = exp4(data2) * bias_0;
+
+    VXC_DP4x4(data3, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDatatoFloat32_1_4x4);
+    data3 = data3 * input0_scale + input0_tail;
+    data3 = exp4(data3) * bias_1;
+
+    data0 = data0 * output_scale + output_zp;
+    data1 = data1 * output_scale + output_zp;
+
+    int4 dst0 = convert_int4_rte(data0);
+    int4 dst1 = convert_int4_rte(data1);
+    VXC_DP2x8(src1, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8);
+    data2 = data2 * output_scale + output_zp;
+    data3 = data3 * output_scale + output_zp;
+    dst0 = convert_int4_rte(data2);
+    dst1 = convert_int4_rte(data3);
+    VXC_DP2x8(src1, dst0, dst1, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8);
+
+    VXC_DP2x8(src0, src1, src1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniDataTranspose_0_2x8);
+    VXC_DP2x8(src0, src1, src1, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1), uniDataTranspose_1_2x8);
+
+    VXC_WriteImage(output, coord.yx, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    coord.x ++;
+    VXC_WriteImage(output, coord.yx, src0, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.yz, src0, VXC_MODIFIER(8, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.yw, src0, VXC_MODIFIER(12, 15, 0, VXC_RM_TowardZero, 0));
+}

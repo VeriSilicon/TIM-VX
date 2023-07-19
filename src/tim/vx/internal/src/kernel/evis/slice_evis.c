@@ -162,6 +162,8 @@ DEF_KERNEL_INITIALIZER(_slice_initializer)
     int32_t   is_samefl       = 0;
     uint32_t  pack_key        = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
@@ -408,6 +410,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t input_batch = inputs[0]->attr.dim_num > 3 ? inputs[0]->attr.size[3] : 1;
     vsi_size_t output_batch = outputs[0]->attr.dim_num > 3 ? outputs[0]->attr.size[3] : 1;
     vsi_bool is_same_quant = FALSE;
+
+    VSI_UNREFERENCED(params);
 
     vsi_nn_kernel_optimize_1d_tensor_shape( (const vsi_size_t*)inputs[0]->attr.size, inputs[0]->attr.dim_num,
         shapes[0], &rank[0]);

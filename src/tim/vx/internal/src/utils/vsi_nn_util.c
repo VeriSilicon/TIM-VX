@@ -306,7 +306,7 @@ vsi_size_t vsi_nn_GetStrideSizeBySize
     type_bits = vsi_nn_TypeGetBits( type);
     stride[0] = type_bits / BITS_PER_BYTE;
     total_bytes = stride[0];
-    if( type_bits < BITS_PER_BYTE )
+    if( type_bits < BITS_PER_BYTE && type_bits != 0 )
     {
         total_bytes = 1;
         if( size[0] % (BITS_PER_BYTE / type_bits) == 0 )
@@ -375,6 +375,8 @@ float vsi_nn_DataAsFloat32
         val = (float)((int8_t*)data)[0];
         break;
     case VSI_NN_TYPE_UINT8:
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+    case VSI_NN_TYPE_FLOAT8_E5M2:
         val = (float)data[0];
         break;
     case VSI_NN_TYPE_INT16:
@@ -600,6 +602,8 @@ void vsi_nn_ComputePadWithPadType
     vsi_size_t   * out_pad
     )
 {
+    VSI_UNREFERENCED(in_dim_num);
+    VSI_UNREFERENCED(rounding);
     vsi_nn_compute_padding(in_shape, ksize, stride, NULL, pad_type, out_pad);
 } /* vsi_nn_ComputePadWithPadType() */
 
@@ -651,6 +655,8 @@ void vsi_nn_ComputePadWithPadTypeForConv1D
     vsi_size_t   * out_pad
     )
 {
+    VSI_UNREFERENCED(in_dim_num);
+    VSI_UNREFERENCED(rounding);
     vsi_nn_compute_padding_conv1d(in_shape, ksize, stride, NULL, pad_type, out_pad);
 } /* vsi_nn_ComputePadWithPadTypeForConv1D() */
 
@@ -708,9 +714,10 @@ vsi_bool vsi_nn_CreateTensorGroup
     vsi_size_t end[VSI_NN_MAX_DIM_NUM];
     vsi_nn_tensor_attr_t attr;
 
-    if( NULL == graph || NULL == in_tensor
+    if ( NULL == graph || NULL == in_tensor
         || NULL == out_tensors || 0 == group_number
-        || 0 == in_tensor->attr.size[axis] )
+        || axis >= VSI_NN_MAX_DIM_NUM ||
+        0 == in_tensor->attr.size[axis] )
     {
         VSILOGW( "Create tensor group fail." );
         return FALSE;
@@ -733,13 +740,14 @@ vsi_bool vsi_nn_CreateTensorGroup
     end[2] = in_tensor->attr.size[2];
     end[3] = in_tensor->attr.size[3];
     end[axis] = 0;
-
     for( i = 0; i <  group_number; i ++ )
     {
         start[axis] = end[axis];
         end[axis] += sz;
 #ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
-        if ( attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC )
+        if (attr.dtype.qnt_type ==
+                VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC ||
+            attr.dtype.qnt_type == VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
         {
             attr.dtype.scales = in_tensor->attr.dtype.scales + sz * i;
             attr.dtype.scale_dim = (int32_t)sz;
@@ -835,6 +843,7 @@ int32_t vsi_nn_Mkdir
     int32_t mode
     )
 {
+    VSI_UNREFERENCED(mode);
     if(NULL == path)
     {
         return -1;
@@ -906,6 +915,10 @@ uint8_t * vsi_nn_MallocAlignedBuffer
     sz = sizeof(aligned_header) + mem_size +
         align_start_size + align_block_size + END_GUARD_SIZE;
     raw_addr = (uint8_t *)malloc( sz * sizeof( uint8_t ) );
+    if (raw_addr == NULL)
+    {
+        return NULL;
+    }
     memset(raw_addr, 0, sizeof( uint8_t ) * sz);
     p = raw_addr + sizeof(aligned_header);
 
@@ -1175,6 +1188,7 @@ vsi_bool vsi_nn_is_same_quant_type(
             break;
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
         {
             const float diff = (float)1e-5;
             if (src_dtype->zero_point != dst_dtype->zero_point)
@@ -1190,6 +1204,7 @@ vsi_bool vsi_nn_is_same_quant_type(
         }
         case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8:
         {
             const float diff = (float)1e-5;
             int32_t i = 0;
@@ -1340,6 +1355,7 @@ float vsi_nn_get_tensor_scale
             break;
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
             scale = tensor->attr.dtype.scale;
             break;
     default:
@@ -1359,6 +1375,7 @@ int32_t vsi_nn_get_tensor_zero_point
     switch (tensor->attr.dtype.qnt_type)
     {
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
             zero_point = 0;
             break;
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
@@ -1407,6 +1424,14 @@ void vsi_nn_get_tensor_clamp_min_max
     {
         *clampMin = - zero_point;
         *clampMax = 65535 - zero_point;
+    }
+    else if (vx_type == VSI_NN_TYPE_FLOAT8_E4M3) {
+        *clampMin = -448;
+        *clampMax = 448;
+    }
+    else if (vx_type == VSI_NN_TYPE_FLOAT8_E5M2) {
+        *clampMin = -57344;
+        *clampMax = 57344;
     }
     else
     {

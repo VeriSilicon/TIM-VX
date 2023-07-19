@@ -34,6 +34,7 @@
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_constraint_check.h"
 #include "vsi_nn_kernel_prv.h"
+#include "vsi_nn_error.h"
 
 static int32_t _get_input_num
     (
@@ -91,6 +92,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -101,6 +104,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 
@@ -112,6 +118,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
 
@@ -122,7 +130,7 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_bool ret = TRUE;
+    vsi_bool ret = FALSE;
     uint32_t i;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_node_t* curr = NULL;
@@ -134,6 +142,12 @@ static vsi_bool op_setup
 
     input_num = _get_input_num(self, inputs);
 
+    if (input_num < 2)
+    {
+        VSILOGE( "Wrong input tensor number = %u.", input_num );
+        return FALSE;
+    }
+
     is_sp_supported = vsi_nn_is_sp_supported_broadcast(self->graph, inputs, input_num, outputs[0]);
 
     for(i = 0; i < input_num -1; i++)
@@ -142,6 +156,7 @@ static vsi_bool op_setup
 
         /* setup input for each add */
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_ADD, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         if(i == 0)
         {
             curr->inputs[0] = inputs[i];
@@ -174,6 +189,7 @@ static vsi_bool op_setup
             }
 
             temp_output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+            CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(temp_output_tensor, curr, "Create internal tensor failed", final);
 
             curr->outputs[0] = temp_output_tensor->t;
         }
@@ -182,8 +198,10 @@ static vsi_bool op_setup
             curr->outputs[0] = outputs[0];
         }
 
-        vsi_nn_internal_setup_node( self, curr );
+        ret = vsi_nn_internal_setup_node( self, curr );
     }
+
+final:
     return ret;
 } /* op_setup() */
 

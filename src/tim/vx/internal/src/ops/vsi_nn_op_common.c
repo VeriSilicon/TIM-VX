@@ -38,6 +38,9 @@ vsi_status vsi_nn_op_common_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     //TODO: assert_always()
     return VSI_FAILURE;
 } /* op_common_init() */
@@ -64,6 +67,7 @@ vsi_bool vsi_nn_op_common_setup
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(node);
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
@@ -81,5 +85,8 @@ vsi_status vsi_nn_op_common_optimize
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(node);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return VSI_SUCCESS;
 } /* op_common_optimize() */

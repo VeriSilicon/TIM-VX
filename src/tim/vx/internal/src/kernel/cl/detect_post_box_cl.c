@@ -126,6 +126,9 @@ DEF_KERNEL_INITIALIZER(_detect_post_box_initializer)
     vsi_nn_kernel_tensor_attr_t * input_attr   = NULL;
     vsi_size_array_t * in_shape                 = NULL;
 
+    VSI_UNREFERENCED(param_size);
+    VSI_UNREFERENCED(node);
+
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
     in_shape  = input_attr->shape;

@@ -1,0 +1,332 @@
+/****************************************************************************
+*
+*    Copyright (c) 2020 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************/
+
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include "vsi_nn_types.h"
+#include "vsi_nn_tensor.h"
+#include "vsi_nn_graph.h"
+#include "vsi_nn_log.h"
+#include "vsi_nn_error.h"
+#include "vsi_nn_prv.h"
+#include "vsi_nn_tensor_util.h"
+#include "utils/vsi_nn_util.h"
+#include "kernel/vsi_nn_kernel.h"
+#include "libnnext/vx_lib_nnext.h"
+
+__BEGIN_DECLS
+
+/*
+ * Define kernel meta.
+ */
+typedef enum
+{
+    INTERNAL_KERNEL_RESIZE_3D_NEAREST,
+} _internal_kernel_e;
+
+#define _RESIZE_3D_NEAREST_KERNEL_SOURCE      "resize_3d_nearest"
+
+#define STR(a) #a
+// Add kernel hashtable here
+#define RESIZE_3D_NEAREST_HASH_KEY( IN_DTYPE, OUT_DTYPE ) \
+        (( IN_DTYPE << 8 ) | ( OUT_DTYPE ))
+
+#define PACK_KERNEL_MAP( IN_DTYPE, OUT_DTYPE ) \
+        { RESIZE_3D_NEAREST_HASH_KEY( IN_DTYPE, OUT_DTYPE ), \
+          CVIVANTE_NAMESPACE("cl.resize_3d_nearest_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)), \
+          _RESIZE_3D_NEAREST_KERNEL_SOURCE }
+
+typedef struct
+{
+    uint32_t key;
+    char * function_name;
+    const char * source_name;
+} _kernel_map_type;
+
+static const _kernel_map_type _resize_3d_nearest_kernel_map[] =
+{
+    PACK_KERNEL_MAP( F32, F32),
+    PACK_KERNEL_MAP( F32, U8),
+    PACK_KERNEL_MAP( U8,  F32),
+    PACK_KERNEL_MAP( U8,  U8),
+    PACK_KERNEL_MAP( I8,  I8),
+    PACK_KERNEL_MAP( BF16,BF16),
+};
+
+
+
+
+/*
+ * Kernel params
+ */
+static vx_param_description_t _resize_3d_nearest_kernel_param_def[] =
+{
+    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+};
+
+#define _RESIZE_3D_NEAREST_PARAM_NUM  _cnt_of_array( _resize_3d_nearest_kernel_param_def )
+
+
+/*
+ * Kernel initializer
+ */
+DEF_KERNEL_INITIALIZER(_resize_3d_nearest_initializer)
+    (
+    vsi_nn_kernel_node_t                node,
+    const vsi_nn_kernel_node_param_t  * param,
+    size_t                              param_size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t gpu_param = {
+        3,
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+        };
+    vsi_nn_kernel_tensor_attr_t * output_attr   = NULL;
+    vsi_size_array_t * out_shape                 = NULL;
+
+    VSI_UNREFERENCED(param_size);
+
+    output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
+    CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
+
+    out_shape  = output_attr->shape;
+
+    gpu_param.global_scale[0]  = 1;
+    gpu_param.global_scale[1]  = 1;
+    gpu_param.global_scale[2]  = 1;
+
+    gpu_param.dim = 3;
+    gpu_param.global_size[0] = gpu_align_p2(
+            (out_shape->data[0] + gpu_param.global_scale[0] - 1)
+            / gpu_param.global_scale[0], 4);
+    gpu_param.global_size[1] = (
+            (out_shape->data[1] + gpu_param.global_scale[1] - 1)
+            / gpu_param.global_scale[1]);
+    gpu_param.global_size[2] = out_shape->data[2];
+    status = vsi_nn_kernel_gpu_config( node, &gpu_param );
+
+final:
+#define SAFE_FREE_TENSOR_ATTR(_PTR) if( _PTR ) { vsi_nn_kernel_tensor_attr_release( &_PTR ); _PTR = NULL; }
+    SAFE_FREE_TENSOR_ATTR(output_attr);
+    return status;
+} /* _resize_3d_nearest_initializer() */
+
+
+
+/*
+ * Query kernel
+ */
+static vsi_status _query_kernel
+    (
+    vsi_nn_kernel_t * kernel,
+    vsi_nn_tensor_t * const * const inputs,
+    vsi_nn_tensor_t * const * const outputs
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    vsi_nn_kernel_dtype_e in_dtype;
+    vsi_nn_kernel_dtype_e out_dtype;
+    const _kernel_map_type * kernel_map = _resize_3d_nearest_kernel_map;
+    size_t kernel_map_size              = _cnt_of_array( _resize_3d_nearest_kernel_map );
+    vx_param_description_t * param_def  = _resize_3d_nearest_kernel_param_def;
+    size_t param_def_size               = _cnt_of_array( _resize_3d_nearest_kernel_param_def );
+    vx_kernel_initialize_f  initializer = _resize_3d_nearest_initializer;
+
+    uint32_t key;
+    uint32_t i;
+
+    in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
+    out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    if (F16 == in_dtype)
+    {
+        in_dtype = F32;
+    }
+    if (F16 == out_dtype)
+    {
+        out_dtype = F32;
+    }
+
+    if (I16 == in_dtype)
+    {
+        in_dtype = I8;
+    }
+    if (I16 == out_dtype)
+    {
+        out_dtype = I8;
+    }
+
+    key = RESIZE_3D_NEAREST_HASH_KEY( in_dtype, out_dtype );
+
+    for( i = 0; i < (uint32_t)kernel_map_size; i ++ )
+    {
+        if( kernel_map[i].key == key )
+        {
+            break;
+        }
+    }
+    if( i < (uint32_t)kernel_map_size )
+    {
+        snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  kernel_map[i].function_name );
+        kernel->info.parameters  = param_def;
+        kernel->info.numParams   = (uint32_t)param_def_size;
+        kernel->info.initialize  = initializer;
+        // Register code source
+        vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 1,
+                kernel_map[i].source_name );
+        // Register binary source
+        vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_EXECUTABLE, 1,
+                kernel_map[i].source_name );
+        status = VSI_SUCCESS;
+    }
+    return status;
+} /* _query_kernel() */
+
+
+static vsi_nn_kernel_node_t _setup
+    (
+    vsi_nn_graph_t              * graph,
+    vsi_nn_tensor_t            ** inputs,
+    size_t                        input_num,
+    vsi_nn_tensor_t            ** outputs,
+    size_t                        output_num,
+    const vsi_nn_kernel_param_t * params,
+    vsi_nn_kernel_t             * kernel
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    vsi_nn_kernel_node_param_t node_params[_RESIZE_3D_NEAREST_PARAM_NUM] = {NULL};
+    vsi_nn_kernel_node_t node = NULL;
+    int32_t align_corners       = vsi_nn_kernel_param_get_int32( params, "align_corners" );
+    int32_t half_pixel_centers  = vsi_nn_kernel_param_get_int32( params, "half_pixel_centers" );
+    vsi_size_t in_width     = inputs[0]->attr.size[0];
+    vsi_size_t in_height    = inputs[0]->attr.size[1];
+    vsi_size_t in_depth     = inputs[0]->attr.size[2];
+    vsi_size_t out_width    = outputs[0]->attr.size[0];
+    vsi_size_t out_height   = outputs[0]->attr.size[1];
+    vsi_size_t out_depth    = outputs[0]->attr.size[2];
+    float   input_zp     = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
+    float   input_scale  = vsi_nn_get_tensor_scale(inputs[0]);
+    float   output_scale = input_scale / vsi_nn_get_tensor_scale(outputs[0]);
+    float   output_tail  = (float)vsi_nn_get_tensor_zero_point(outputs[0]) - input_zp * output_scale;
+    float   half_pixel_value = 0.0f;
+    float   round_value    = 0.0f;
+    float   scale_factor_x = 0.0f;
+    float   scale_factor_y = 0.0f;
+    float   scale_factor_z = 0.0f;
+
+    if (align_corners && out_width > 1)
+    {
+        scale_factor_x = ((vx_float32)(in_width - 1) * 1.0f) / (vx_float32)(out_width - 1);
+    }
+    else
+    {
+        scale_factor_x = ((vx_float32)in_width * 1.0f) / (vx_float32)out_width;
+    }
+
+    if (align_corners && out_height > 1)
+    {
+        scale_factor_y = ((vx_float32)(in_height - 1) * 1.0f) / (vx_float32)(out_height - 1);
+    }
+    else
+    {
+        scale_factor_y = ((vx_float32)in_height * 1.0f) / (vx_float32)out_height;
+    }
+
+    if (align_corners && out_depth > 1)
+    {
+        scale_factor_z = ((vx_float32)(in_depth - 1) * 1.0f) / (vx_float32)(out_depth - 1);
+    }
+    else
+    {
+        scale_factor_z = ((vx_float32)in_depth * 1.0f) / (vx_float32)out_depth;
+    }
+
+    if (align_corners)
+    {
+        round_value = 0.5f;
+    }
+    else
+    {
+        round_value = 0.0f;
+    }
+
+    if (half_pixel_centers)
+    {
+        half_pixel_value = 0.5f;
+    }
+    else
+    {
+        half_pixel_value = 0.0f;
+    }
+
+    status = _query_kernel( kernel, inputs, outputs );
+    if( VSI_SUCCESS == status)
+    {
+        node = vsi_nn_kernel_create_node( graph, kernel );
+        if( node )
+        {
+            size_t node_params_num = _RESIZE_3D_NEAREST_PARAM_NUM;
+            /* Set inputs and outputs */
+            vsi_nn_kernel_node_pack_io( node_params, _RESIZE_3D_NEAREST_PARAM_NUM,
+                    inputs, input_num, outputs, output_num );
+            node_params[2]     = vsi_nn_kernel_scalar_create( graph, F32, &scale_factor_x );
+            node_params[3]     = vsi_nn_kernel_scalar_create( graph, F32, &scale_factor_y );
+            node_params[4]     = vsi_nn_kernel_scalar_create( graph, F32, &scale_factor_z );
+            node_params[5]     = vsi_nn_kernel_scalar_create( graph, F32, &half_pixel_value );
+            node_params[6]     = vsi_nn_kernel_scalar_create( graph, F32, &round_value );
+            node_params[7]  = vsi_nn_kernel_scalar_create( graph, F32, &output_scale );
+            node_params[8]  = vsi_nn_kernel_scalar_create(graph, F32, &output_tail );
+
+            /* Pass parameters to node. */
+            status  = vsi_nn_kernel_node_pass_param( node, node_params, node_params_num );
+            vsi_nn_kernel_scalar_release( &node_params[2] );
+            vsi_nn_kernel_scalar_release( &node_params[3] );
+            vsi_nn_kernel_scalar_release( &node_params[4] );
+            vsi_nn_kernel_scalar_release( &node_params[5] );
+            vsi_nn_kernel_scalar_release( &node_params[6] );
+            vsi_nn_kernel_scalar_release( &node_params[7] );
+            vsi_nn_kernel_scalar_release( &node_params[8] );
+        }
+    }
+    return node;
+} /* _setup() */
+
+__END_DECLS
+
+REGISTER_BACKEND_CL( resize_3d_nearest, _setup )

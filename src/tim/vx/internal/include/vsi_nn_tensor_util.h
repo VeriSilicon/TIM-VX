@@ -734,13 +734,15 @@ vsi_status vsi_nn_copy_tensor_veiw_patch
 /**
  * OVXLIB internal tensor util api
  * A wrapper api for OpenVX vxCopyTensorPatch
- * Allows the application to copy whole tensor patch from/into an tensor object.
+ * Allows the application to copy partial/whole tensor patch from/into an tensor object.
  *
  * @param[in] tensor OpenVX Tensor handle.
  * @param[in] attr OVXLIB Tensor attr.
  * @param[in] user_ptr The address of the memory location where to store the requested data.
  * @param[in] usage This declares the effect of the copy with regard to the tensor object
  *            support VX_READ_ONLY or VX_WRITE_ONLY
+ * @param[in] start The start cooridinates for each dim. NULL means copy from the idx 0 of each dim.
+ * @param[in] end The end cooridinates for each dim. NULL means copy to the end of each dim.
  * @return VSI_SUCCESS on success, or error core otherwise.
  */
 vsi_status vsi_nn_copy_tensor_patch
@@ -748,7 +750,9 @@ vsi_status vsi_nn_copy_tensor_patch
     vx_tensor tensor,
     vsi_nn_tensor_attr_t *attr,
     void * user_ptr,
-    vsi_enum usage
+    vsi_enum usage,
+    vsi_size_t* start,
+    vsi_size_t* end
     );
 
 /**

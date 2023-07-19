@@ -246,6 +246,8 @@ DEF_KERNEL_INITIALIZER(_groupnorm_sums_initializer)
     float sum_x2_tail1 = 1;
     float work_item_pixels = 1;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -381,6 +383,8 @@ DEF_KERNEL_INITIALIZER(_groupnorm_means_initializer)
     int32_t chn = 0;
     int32_t group_stride = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
 
@@ -449,6 +453,8 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
     float output_zp = 0;
     int32_t height = 0, width = 0, chn = 0;
     int32_t is2D = 0;
+
+    VSI_UNREFERENCED(param_size);
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
@@ -776,6 +782,9 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t group_size = inputs[0]->attr.size[2] / group_num;
     float group_ratio = 1.0f / (inputs[0]->attr.size[0] * inputs[0]->attr.size[1] * group_size);
 
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+
     // Check if gpu can support the size
     if ( !vsi_nn_kernel_gpu_check_shape(
         outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
@@ -898,11 +907,11 @@ static vsi_nn_kernel_node_t _setup
     if (node)
     {
         uint32_t index = 0;
-        int32_t  pStride = 0;
+        float  pStride = 0;
         if (!is2D_flg)
         {
-            pStride = (int32_t)(inputs[1]->attr.size[0] / new_shape[1]);
-            rSpaceOrg = 1.0f / (new_shape[0] / pStride);
+            pStride = (float)inputs[1]->attr.size[0] / (float)new_shape[1];
+            rSpaceOrg = pStride < 1.0f ? 0.0f : 1.0f / (new_shape[0] / pStride);
         }
         node_params[index++] = rs_input;
         node_params[index++] = (vsi_nn_kernel_node_param_t)inputs[1]->t;
@@ -912,7 +921,7 @@ static vsi_nn_kernel_node_t _setup
         node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &eps );
         node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &is2D_flg );
         node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &rSpaceOrg );
-        node_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &pStride );
+        node_params[index++] = vsi_nn_kernel_scalar_create( graph, F32, &pStride );
 
         status  = vsi_nn_kernel_node_pass_param( node, node_params,
             _GROUPNORM_PARAM_NUM );

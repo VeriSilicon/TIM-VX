@@ -112,6 +112,8 @@ static vsi_bool _log_softmax_op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(kernel_name);
+
     /* TODO: Add code to comput outputs' shape. */
     if( NULL == self )
     {

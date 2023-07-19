@@ -477,6 +477,8 @@ enum vx_type_e {
     VX_TYPE_SPINST          = 0x81B,/*!< \brief A <tt>\ref vx_spinst</tt>. */
     VX_TYPE_INT4            = 0x81C,/*!< \brief A <tt>\ref signed 4bits tensor.</tt>. */
     VX_TYPE_UINT4           = 0x81D,/*!< \brief A <tt>\ref unsigned 4bits tensor.</tt>. */
+    VX_TYPE_FLOAT8_E4M3     = 0x81E,/*!< \brief A <tt>\ref vx_float8_e4m3</tt>. */
+    VX_TYPE_FLOAT8_E5M2     = 0x81F,/*!< \brief A <tt>\ref vx_float8_e5m2</tt>. */
 };
 
 /*! \brief The enumeration of all status codes.
@@ -803,6 +805,8 @@ enum vx_convert_policy_e {
     VX_CONVERT_POLICY_WRAP = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_CONVERT_POLICY) + 0x0,
     /*! \brief Results are saturated to the bit depth of the output operand. */
     VX_CONVERT_POLICY_SATURATE = VX_ENUM_BASE(VX_ID_KHRONOS, VX_ENUM_CONVERT_POLICY) + 0x1,
+    /*! \brief Results preserve infinity and nan value. */
+    VX_CONVERT_POLICY_INF = VX_ENUM_BASE(VX_ID_VIVANTE, VX_ENUM_CONVERT_POLICY) + 0x0,
 };
 
 /*! \brief Based on the VX_DF_IMAGE definition.

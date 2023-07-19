@@ -56,7 +56,9 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_float32( param, "r_mean", self->nn_param.pre_process_nv12.r_mean );
     vsi_nn_kernel_param_add_float32( param, "g_mean", self->nn_param.pre_process_nv12.g_mean );
     vsi_nn_kernel_param_add_float32( param, "b_mean", self->nn_param.pre_process_nv12.b_mean );
-    vsi_nn_kernel_param_add_float32( param, "rgb_scale", self->nn_param.pre_process_nv12.rgb_scale );
+    vsi_nn_kernel_param_add_float32( param, "r_scale", self->nn_param.pre_process_nv12.r_scale );
+    vsi_nn_kernel_param_add_float32( param, "g_scale", self->nn_param.pre_process_nv12.g_scale );
+    vsi_nn_kernel_param_add_float32( param, "b_scale", self->nn_param.pre_process_nv12.b_scale );
     vsi_nn_kernel_param_add_int32( param, "reverse", self->nn_param.pre_process_nv12.reverse_channel );
     vsi_nn_kernel_param_add_int32( param, "enable_perm", self->nn_param.pre_process_nv12.local->enable_perm );
     vsi_nn_kernel_param_add_int32( param, "enable_copy", self->nn_param.pre_process_nv12.local->enable_copy );
@@ -113,6 +115,9 @@ static vsi_bool op_setup
     /* TODO: Add code to comput outputs' shape. */
     vsi_nn_pre_process_nv12_param * p = NULL;
     uint32_t i = 0;
+
+    VSI_UNREFERENCED(inputs);
+
     p = (vsi_nn_pre_process_nv12_param *)&(self->nn_param.pre_process_nv12);
 
     if (p->rect.width == 0 || p->rect.height == 0)

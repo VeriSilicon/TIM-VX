@@ -65,7 +65,8 @@ typedef enum _LSTMUNIT_nn_activation_e
 #define LSTMUNIT_ACTIVATION_HASH_KEY(_is_ln, _is_cifg, _is_proj, _is_hybrid, _is_peephole, \
 _input_type, _output_type, _cell_type, _rec_act) \
 ((_is_ln << 31) | (_is_cifg << 30) | (_is_proj << 29) | (_is_hybrid << 28) | (_is_peephole << 27) \
-| (_input_type << 23) | (_output_type << 19) | (_cell_type << 15) | (_rec_act << 10))
+| (((uint32_t)_input_type) << 23) | (((uint32_t)_output_type) << 19) | (((uint32_t)_cell_type) << 15) \
+| (_rec_act << 10))
 
 #define LSTMUNIT_ACTIVATION_SOURCE_NAME(_ln_cifg_proj_hybrid_, _input_type) \
     "lstmunit_activation_"#_ln_cifg_proj_hybrid_"_"#_input_type

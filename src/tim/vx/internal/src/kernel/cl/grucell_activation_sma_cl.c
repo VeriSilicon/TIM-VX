@@ -91,6 +91,10 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_sma_initializer)
     )
 {
     vsi_status status = VSI_FAILURE;
+
+    VSI_UNREFERENCED(node);
+    VSI_UNREFERENCED(param);
+    VSI_UNREFERENCED(param_size);
     // vsi_nn_kernel_tensor_attr * attr[2] = { NULL };
     // attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     // attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -171,6 +175,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_GRUCELL_ACTIVATION_SMA_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
+
+    VSI_UNREFERENCED(params);
 
     /*
     // Check if gpu can support the size

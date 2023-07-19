@@ -158,8 +158,32 @@ static vsi_status op_compute
 
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_int32( param, "axis", axis );
-    n = vsi_nn_kernel_selector( self->graph, "repeat",
-                    tmp_inputs, _INPUT_NUM, tmp_output, _OUTPUT_NUM, param );
+
+    if (vsi_nn_is_same_type(inputs[0], outputs[0]) == FALSE)
+    {
+        vsi_nn_tensor_t* temp_tensors = NULL;
+        vsi_nn_tensor_attr_t attr;
+        VSILOGW("repeat is no_range_change operation! \
+            Insert DataConvert Operation when the quantization parameters of input and output are inconsistent!");
+
+        memcpy( &attr, &tmp_output[0]->attr, sizeof(attr));
+        memcpy( &attr.dtype, &tmp_inputs[0]->attr.dtype, sizeof(attr.dtype));
+        attr.is_const = FALSE;
+        attr.vtl = TRUE;
+        temp_tensors = vsi_nn_CreateTensor( self->graph, &attr );
+
+        vsi_nn_kernel_selector( self->graph, "repeat",
+                        tmp_inputs, _INPUT_NUM, &temp_tensors, _OUTPUT_NUM, param );
+
+        n = vxTensorCopyNode( self->graph->g, temp_tensors->t, tmp_output[0]->t);
+        vsi_safe_release_tensor(temp_tensors);
+    }
+    else
+    {
+        n = vsi_nn_kernel_selector( self->graph, "repeat",
+                        tmp_inputs, _INPUT_NUM, tmp_output, _OUTPUT_NUM, param );
+    }
+
     if ( n != NULL )
     {
         self->n = (vx_node)n;

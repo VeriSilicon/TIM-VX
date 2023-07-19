@@ -1340,6 +1340,21 @@ VX_API_ENTRY vx_status VX_API_CALL vxAssignNodeCallback(vx_node node, vx_nodecom
  */
 VX_API_ENTRY vx_nodecomplete_f VX_API_CALL vxRetrieveNodeCallback(vx_node node);
 
+/*! \brief Assigns a callback to a node.
+ * If a callback already exists in this node, this function must return an error
+ * and the user may clear the callback by passing a NULL pointer as the callback.
+ * \param [in] node The reference to the node.
+ * \param [in] callback The callback to associate with completion of this
+ * specific node.
+ * \warning This must be used with <b><i>extreme</i></b> caution as it can \e ruin
+ * optimizations in the power/performance efficiency of a graph.
+ * \return A <tt>\ref vx_status_e</tt> enumeration.
+ * \retval VX_SUCCESS Callback assigned; any other value indicates failure.
+ * \retval VX_ERROR_INVALID_REFERENCE node is not a valid <tt>\ref vx_node</tt> reference.
+ * \ingroup group_node_callback
+ */
+VX_API_ENTRY vx_status VX_API_CALL vxAssignNodeQueryCallback(vx_node node, vx_nodequery_f callback);
+
 /*! \brief Sets the node target to the provided value. A success invalidates the graph
  * that the node belongs to (<tt>\ref vxVerifyGraph</tt> must be called before the next execution)
  * \param [in] node  The reference to the <tt>\ref vx_node</tt> object.

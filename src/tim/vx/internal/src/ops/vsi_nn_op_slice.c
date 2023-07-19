@@ -37,6 +37,7 @@
 #include "kernel/vsi_nn_kernel.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 #define _ARG_NUM            (3)
 #define _INPUT_NUM          (1)
@@ -136,6 +137,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     if (self->input.num > 1)
     {
         return VSI_SUCCESS;
@@ -153,9 +156,10 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_nn_slice_param * p;
+    vsi_nn_slice_param * p = NULL;
     vsi_nn_internal_node_t* curr = NULL;
-    uint32_t i;
+    uint32_t i = 0;
+    vsi_bool ret = FALSE;
 
     if (self->nn_param.slice.dims == 0)
     {
@@ -187,6 +191,7 @@ static vsi_bool op_setup
     }
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_STRIDED_SLICE, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->node->nn_param.strided_slice.begin_dims = p->lcl_data->begin_dims;
     curr->node->nn_param.strided_slice.begin_dims_num = inputs[0]->attr.dim_num;
     curr->node->nn_param.strided_slice.end_dims = p->lcl_data->end_dims;
@@ -199,9 +204,10 @@ static vsi_bool op_setup
     curr->node->nn_param.strided_slice.new_axis_mask = 0;
     curr->inputs[0] = inputs[0];
     curr->outputs[0] = outputs[0];
-    vsi_nn_internal_setup_node( self, curr );
+    ret = vsi_nn_internal_setup_node( self, curr );
 
-    return TRUE;
+final:
+    return ret;
 } /* op_setup() */
 
 

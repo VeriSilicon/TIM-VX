@@ -20,6 +20,7 @@ __kernel void gather_batch_U8toU8(
     {
         int4 indice = read_imagei(input1, coord_idx);
         coord_idx.y++;
+        indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
         coord_in.y = gidz * axis_num + indice.x;
 
         uint4 data = read_imageui(input0, coord_in);
@@ -51,6 +52,7 @@ __kernel void gather_batch_F16toF16(
     {
         int4 indice = read_imagei(input1, coord_idx);
         coord_idx.y++;
+        indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
         coord_in.y = gidz * axis_num + indice.x;
 
         float4 data = read_imagef(input0, coord_in);
@@ -82,6 +84,7 @@ __kernel void gather_batch_I32toI32(
     {
         int4 indice = read_imagei(input1, coord_idx);
         coord_idx.y++;
+        indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
         coord_in.y = gidz * axis_num + indice.x;
 
         int4 data = read_imagei(input0, coord_in);
@@ -113,6 +116,7 @@ __kernel void gather_batch_F32toF32(
     {
         int4 indice = read_imagei(input1, coord_idx);
         coord_idx.y++;
+        indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
         coord_in.y = gidz * axis_num + indice.x;
 
         float4 data = read_imagef(input0, coord_in);

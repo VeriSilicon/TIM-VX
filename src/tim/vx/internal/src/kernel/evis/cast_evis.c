@@ -150,6 +150,8 @@ DEF_KERNEL_INITIALIZER(_cast_initializer)
     vsi_nn_kernel_tensor_attr_t * input_attr    = NULL;
     vsi_size_array_t * out_shape                 = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
 
@@ -288,6 +290,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_CAST_PARAM_NUM] = {NULL};
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
+
+    VSI_UNREFERENCED(params);
 
     if( !vsi_nn_kernel_gpu_check_shape( inputs[0]->attr.size,
                 inputs[0]->attr.dim_num ) )

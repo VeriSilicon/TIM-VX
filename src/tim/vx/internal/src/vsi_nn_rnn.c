@@ -31,6 +31,7 @@
 #include "utils/vsi_nn_util.h"
 #include "vsi_nn_rnn_prv.h"
 #include "vsi_nn_internal_node.h"
+#include "vsi_nn_error.h"
 
 /**********************************************************
 * MACROS
@@ -54,6 +55,12 @@ static vsi_status internal_buffer_init
     vsi_size_t    data_size   = 0;
     uint8_t*    data        = NULL;
 
+    if( NULL == tensor )
+    {
+        VSILOGE("input tensor is NULL.");
+        return status;
+    }
+
     if( TRUE == tensor->attr.vtl )
     {
         VSILOGE("Internal tensors cannot be dumpped.");
@@ -72,7 +79,7 @@ static vsi_status internal_buffer_init
     stride = vsi_nn_TypeGetBytes( tensor->attr.dtype.vx_type );
 
     data = (uint8_t *)malloc(data_size);
-    if( NULL == buffer )
+    if ( NULL == data )
     {
         VSILOGE("Out of memoery.");
         goto error;
@@ -136,6 +143,11 @@ static vsi_status internal_buffer_copy_to_tensor
     }
 
     tensor = vsi_nn_GetTensor( graph, tensorid );
+    if ( NULL == tensor )
+    {
+        VSILOGE("tensor is NULL.");
+        return status;
+    }
     request_data_size = vsi_nn_GetTensorSize( tensor->attr.size, tensor->attr.dim_num, tensor->attr.dtype.vx_type );
     if( request_data_size != buffer->data_size )
     {
@@ -167,6 +179,7 @@ static vsi_status internal_buffer_copy_from_tensor
     }
 
     tensor = vsi_nn_GetTensor( graph, tensorid );
+    CHECK_PTR_FAIL_GOTO( tensor, "Get tensor fail.", final );
     request_data_size = vsi_nn_GetTensorSize( tensor->attr.size, tensor->attr.dim_num, tensor->attr.dtype.vx_type );
     if( request_data_size != buffer->data_size )
     {
@@ -181,6 +194,7 @@ static vsi_status internal_buffer_copy_from_tensor
         status = VSI_SUCCESS;
     }
 
+final:
     vsi_nn_safe_free( data );
 
     return status;
@@ -366,6 +380,8 @@ vsi_status vsi_nn_rnn_InitWksp
         memcpy( &cur_conn->connection, &connections[i], sizeof( connections[i] ) );
 
         output_tensor = vsi_nn_GetTensor( graph, cur_conn->connection.output );
+        CHECK_PTR_FAIL_GOTO( output_tensor, "Get tensor fail.", OnError );
+
         for( j = 0; j < VSI_NN_MAX_RNN_CONNECTION_INPUTS; j++ )
         {
             if( VSI_NN_TENSOR_ID_NA == cur_conn->connection.inputs[j] )
@@ -374,6 +390,8 @@ vsi_status vsi_nn_rnn_InitWksp
             }
             /* make sure input tensors have the same size and dtype with output tensor */
             input_tensor = vsi_nn_GetTensor( graph, cur_conn->connection.inputs[j] );
+            CHECK_PTR_FAIL_GOTO( input_tensor, "Get tensor fail.", OnError );
+
             if( output_tensor->attr.dim_num != input_tensor->attr.dim_num
                 || output_tensor->attr.dtype.vx_type != input_tensor->attr.dtype.vx_type
                 || 0 != memcmp(output_tensor->attr.size, input_tensor->attr.size,
@@ -399,6 +417,8 @@ vsi_status vsi_nn_rnn_InitWksp
         if( cur_conn->connection_inputs_count == 1 )
         {
             input_tensor = vsi_nn_GetTensor( graph, cur_conn->connection.inputs[0] );
+            CHECK_PTR_FAIL_GOTO( input_tensor, "Get tensor fail.", OnError );
+
             if( output_tensor && output_tensor->attr.is_created_from_handle
                 && input_tensor && input_tensor->attr.is_created_from_handle )
             {
@@ -421,7 +441,7 @@ vsi_status vsi_nn_rnn_InitWksp
 
 OnError:
     vsi_nn_safe_free( cur_conn );
-    return status;
+    return VSI_FAILURE;
 } /* vsi_nn_rnn_InitWksp() */
 
 vsi_status vsi_nn_rnn_ResetBuffers

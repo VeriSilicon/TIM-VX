@@ -59,10 +59,12 @@ REGISTER_SOFTMAX_OPENVX_KERNEL( softmax )
     vx_node node = NULL;
     float beta = vsi_nn_kernel_param_get_float32(params, "beta");
     vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
+#if !VX_STREAM_PROCESSOR_SUPPORT
     vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = { { 0 } };
     uint32_t rank_in = 0;
-    int32_t axis = vsi_nn_kernel_param_get_int32(params, "axis");
     int32_t new_axis = 0;
+#endif
+    int32_t axis = vsi_nn_kernel_param_get_int32(params, "axis");
     size_t size = sizeof(vx_nn_softmax_params_t);
 #ifdef VX_SOFTMAX_AXIS_PARAMETER_SUPPORT
     vx_nn_softmax_params_ext_t paramExt;
@@ -78,6 +80,17 @@ REGISTER_SOFTMAX_OPENVX_KERNEL( softmax )
     base.beta = beta;
 #endif
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+#if VX_STREAM_PROCESSOR_SUPPORT
+    node = vxSoftmaxLayer2( graph->g,
+        inputs[0]->t,
+        param,
+        size,
+        outputs[0]->t);
+#else
     vsi_nn_kernel_optimize_softmax_shape(
        inputs[0]->attr.size, inputs[0]->attr.dim_num, axis,
        shapes[0], &rank_in, &new_axis);
@@ -108,13 +121,14 @@ REGISTER_SOFTMAX_OPENVX_KERNEL( softmax )
         param,
         size,
         reshape_tensors[1]->t);
+#endif
     if( NULL == node )
     {
         VSILOGE("Call vxSoftmaxLayer2 fail.(softmax)");
     }
 
-    vsi_nn_ReleaseTensor( &reshape_tensors[0] );
-    vsi_nn_ReleaseTensor( &reshape_tensors[1] );
+    vsi_safe_release_tensor( reshape_tensors[0] );
+    vsi_safe_release_tensor( reshape_tensors[1] );
 
     return (vsi_nn_kernel_node_t)node;
 } /* softmax() */

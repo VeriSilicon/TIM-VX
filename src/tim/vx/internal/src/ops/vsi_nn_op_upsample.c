@@ -35,7 +35,6 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
 #include "ops/vsi_nn_op_upsample.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel_eltwise.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -144,17 +143,20 @@ static vsi_status op_compute
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
     vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
     uint32_t new_rank = 0;
-    vsi_bool ret;
+    vsi_bool ret = FALSE;
     vsi_nn_kernel_param_t * param = NULL;
-    int32_t scale_x  = (int32_t)self->nn_param.upsample.scale[0];
-    int32_t scale_y  = (int32_t)self->nn_param.upsample.scale[1];
+    int32_t scale_x  = 0;
+    int32_t scale_y  = 0;
 
     if( NULL == self )
     {
         return VSI_FAILURE;
     }
 
-    param =vsi_nn_kernel_param_create();
+    scale_x  = (int32_t)self->nn_param.upsample.scale[0];
+    scale_y  = (int32_t)self->nn_param.upsample.scale[1];
+
+    param = vsi_nn_kernel_param_create();
 
     ret = vsi_nn_upsample_optimize_shape(self,
             (vsi_ssize_t*)inputs[0]->attr.size,  (vsi_ssize_t*)inputs[1]->attr.size,
@@ -164,7 +166,7 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "scale_x",  scale_x );
     vsi_nn_kernel_param_add_int32( param, "scale_y",  scale_y );
 
-    if( ret )
+    if ( ret )
     {
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
                 inputs[0],  shapes[0], new_rank );
@@ -180,7 +182,7 @@ static vsi_status op_compute
         vsi_nn_ReleaseTensor( &reshape_tensors[2] );
     }
 
-    if( self->n )
+    if ( self->n )
     {
         status = VSI_SUCCESS;
     }

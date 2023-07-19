@@ -164,6 +164,8 @@ static vsi_bool op_setup
 {
     vsi_size_t i = 0;
 
+    VSI_UNREFERENCED(self);
+
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;

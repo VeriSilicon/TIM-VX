@@ -111,6 +111,8 @@ DEF_KERNEL_INITIALIZER(_reduceall_internal_initializer)
     vsi_size_array_t * output_shape             = NULL;
     int32_t  axisSize = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );

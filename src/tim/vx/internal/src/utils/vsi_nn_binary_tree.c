@@ -34,8 +34,11 @@ static vsi_nn_binary_tree_t * _new_node
 
     node = (vsi_nn_binary_tree_t *)malloc(
         sizeof( vsi_nn_binary_tree_t ) );
+    if (node)
+    {
+        memset( node, 0, sizeof( vsi_nn_binary_tree_t ) );
+    }
 
-    memset( node, 0, sizeof( vsi_nn_binary_tree_t ) );
     return node;
 } /* _new_node() */
 
@@ -181,7 +184,7 @@ void vsi_nn_BinaryTreeRemoveNode
     vsi_nn_binary_tree_key_t key
     )
 {
-    if( NULL == root && NULL != *root )
+    if ( NULL != root )
     {
         return;
     }

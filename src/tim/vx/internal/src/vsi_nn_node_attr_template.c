@@ -205,13 +205,14 @@ static _node_template s_template[] =
     /* MAXUNPOOL */             NULL,
     /* REVERSESEQUENCE */       NULL,
     /* LPNORM */                NULL,
+    /* RESIZE_3D */                NULL,
 };
 //_compiler_assert( _cnt_of_array(s_template) == VSI_NN_OP_NUM, vsi_nn_node_attr_template_c );
 
 void vsi_nn_apply_node_attr_template
     ( vsi_nn_node_t * node )
 {
-    if( node->op >= _cnt_of_array( s_template ) )
+    if( node->op >= (vsi_nn_op_t)_cnt_of_array( s_template ) )
     {
         VSILOGW( "Unsupport operation id %d.", node->op );
         return;
