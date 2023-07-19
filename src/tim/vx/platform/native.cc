@@ -23,6 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/platform/native.h"
 #include "native_device_private.h"
+#include "tim/vx/ops/nbg.h"
 
 namespace tim {
 namespace vx {
@@ -103,9 +104,13 @@ std::shared_ptr<IExecutor> IExecutable::Executor() const {
 NativeExecutable::NativeExecutable(const std::shared_ptr<IExecutor>& executor,
                                    const std::vector<char>& nb_buf,
                                    size_t inputs, size_t outputs) {
+  CompileOption opt;
+  opt.setDeviceId(executor->Device()->Id());
+
   executor_ = executor;
   context_ = executor->Contex();
-  nb_graph_ = context_->CreateGraph();
+  nb_graph_ = context_->CreateGraph(opt);
+
   nb_buf_ = nb_buf;
   nb_node_ = nb_graph_->CreateOperation<tim::vx::ops::NBG>(nb_buf_.data(),
                                                            inputs, outputs);
@@ -269,11 +274,11 @@ bool NativeExecutor::Trigger(bool async) {
 
 std::shared_ptr<IExecutable> NativeExecutor::Compile(
     const std::shared_ptr<Graph>& graph) {
-  GraphImpl* graphimp =
-      dynamic_cast<GraphImpl*>(graph.get());  // hack to downcast
-  IDevice::device_id_t id = device_->Id();
-  vxSetGraphAttribute(graphimp->graph()->g, VX_GRAPH_DEVICE_INDEX_VIV,
-                      (void*)(&id), sizeof(id));
+
+  CompileOption option;
+  option.setDeviceId(device_->Id());
+  graph->SetCompileOption(option);
+
   size_t bin_size = -1;
   graph->CompileToBinary(nullptr, &bin_size);
   std::vector<char> nb_buf;

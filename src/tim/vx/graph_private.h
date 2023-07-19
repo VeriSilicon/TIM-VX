@@ -49,6 +49,9 @@ class GraphImpl : public Graph {
   const std::string CalculateCacheKey(const TensorSpec& spec, const void* data);
   std::map<std::string, std::shared_ptr<tim::vx::Tensor>>& GetTensorCacheMap();
 #endif
+
+  void SetCompileOption(const CompileOption& new_option) override;
+
   /// Return the low-level graph object
   vsi_nn_graph_t* graph();
   void AddInput(vsi_nn_tensor_id_t id);

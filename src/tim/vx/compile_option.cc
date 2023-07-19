@@ -34,6 +34,9 @@ struct CompileOptionImpl {
   using RelaxModeType = std::tuple<std::string, bool, bool, bool>;
   CompileOptionImpl() {
     relax_mode_ = RelaxModeType(std::string("RelaxMode"), false, false, false);
+    #if defined(ENABLE_PLATFORM)
+    device_id_ = 0;
+    #endif
   }
 
   bool RelaxMode() const {
@@ -46,6 +49,17 @@ struct CompileOptionImpl {
                                     : std::get<3>(relax_mode_);
   }
 
+#if defined(ENABLE_PLATFORM)
+  void setDeviceId(::tim::vx::platform::IDevice::device_id_t device) {
+    device_id_ = device;
+  }
+  ::tim::vx::platform::IDevice::device_id_t getDeviceId() {
+    return device_id_;
+  }
+
+  ::tim::vx::platform::IDevice::device_id_t device_id_;
+#endif
+
   RelaxModeType relax_mode_;
 };
 
@@ -56,5 +70,17 @@ bool CompileOption::isRelaxMode() const { return this->impl_->RelaxMode(); }
 bool CompileOption::setRelaxMode(bool enable) {
   return this->impl_->RelaxMode() = enable;
 }
+
+#if defined(ENABLE_PLATFORM)
+  void CompileOption::setDeviceId(::tim::vx::platform::IDevice::device_id_t device) {
+    this->impl_->setDeviceId(device);
+  }
+
+  ::tim::vx::platform::IDevice::device_id_t CompileOption::getDeviceId() {
+    return this->impl_->getDeviceId();
+  }
+
+
+#endif
 }  // namespace vx
 }  // namespace tim

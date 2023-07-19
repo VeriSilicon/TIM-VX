@@ -31,7 +31,6 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/tensor.h"
 #include "tim/vx/context.h"
-#include "tim/vx/ops/nbg.h"
 
 namespace tim {
 namespace vx {
