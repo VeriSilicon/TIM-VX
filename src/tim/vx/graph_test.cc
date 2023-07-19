@@ -90,3 +90,65 @@ TEST(graph, gen_binary_graph_with_simple_add) {
     EXPECT_TRUE(nbg_out->CopyDataFromTensor(&output));
     EXPECT_EQ(output, expected_out);
 }
+
+#ifdef ENABLE_API_TRACE
+#define API_REPLAYER_IMPLEMENTATION
+#define API_TRACER_IMPLEMENTATION
+#define TARGET_NAMESPACE_NAME "tim::vx"
+#include "tim/experimental/trace/trace_tvx.h"
+
+namespace tvx = trace;
+
+TEST(graph, trace_test) {
+    auto ctx = tvx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tvx::ShapeType io_shape({1,2,2,1});
+    tvx::TensorSpec input_spec(tvx::DataType::FLOAT32, io_shape, tvx::TensorAttribute::INPUT);
+    tvx::TensorSpec output_spec(tvx::DataType::FLOAT32, io_shape, tvx::TensorAttribute::OUTPUT);
+    auto input_t0 = graph->CreateTensor(input_spec);
+    auto input_t1 = graph->CreateTensor(input_spec);
+    auto input_t2 = graph->CreateTensor(input_spec);
+    auto output_t0 = graph->CreateTensor(output_spec);
+
+    auto reshape = graph->CreateOperation<tvx::ops::Reshape>(io_shape);
+    (*reshape).BindInput(input_t0).BindOutput(input_t1);
+    auto add = graph->CreateOperation<tvx::ops::Add>();
+    (*add).BindInputs({input_t0, input_t2}).BindOutputs({output_t0});
+
+    size_t bin_size = -1;
+    EXPECT_TRUE(graph->CompileToBinary(nullptr, &bin_size));
+    EXPECT_NE(bin_size, -1);
+    std::vector<char> nbg_buf(bin_size);
+
+    // generate binary graph does't require input data
+    EXPECT_TRUE(graph->CompileToBinary(nbg_buf.data(), &bin_size));
+
+    // binary graph compilation doesn't impact current graph's execution
+    std::vector<float> in = {1.1f, 2.2f, 3.3f, 4.4f};
+    std::vector<float> expected_out = {2.2f, 4.4f, 6.6f, 8.8f};;
+    EXPECT_TRUE(input_t0->CopyDataToTensor(in.data(), sizeof(float) * in.size()));
+    EXPECT_TRUE(input_t2->CopyDataToTensor(in.data(), sizeof(float) * in.size()));
+
+    EXPECT_TRUE(graph->Run());
+    std::vector<float> output(in.size());
+    EXPECT_TRUE(output_t0->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(output, expected_out);
+
+}
+
+TEST(graph, replay_test) {
+    /* 
+     * Copy trace_log.cc in the root dir of tim-vx, rename with trace_log.rpl.cc
+     * and copy the trace_bin.bin file to the runtime workspace,
+     * rename with trace_bin.rpl.bin
+     */
+
+    #include "trace_log.rpl.cc"
+    // manual compile and run the selected graph, like:
+    // graph_12->Compile();
+    // graph_12->Run();
+    // Last rebuild unit-test and execute this case
+}
+
+#endif /* #ifdef ENABLE_API_TRACE */

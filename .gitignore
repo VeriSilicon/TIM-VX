@@ -338,3 +338,9 @@ ASALocalRun/
 build/
 *_build/
 .DS_Store
+
+# experimental api trace
+trace_log.cc
+trace_bin.bin
+trace_log.rpl.cc
+trace_bin.rpl.bin

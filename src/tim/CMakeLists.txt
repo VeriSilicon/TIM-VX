@@ -227,6 +227,10 @@ endif()
 if(TIM_VX_ENABLE_TEST)
     include(GoogleTest)
 
+    if(TIM_VX_ENABLE_API_TRACE)
+        add_definitions("-DENABLE_API_TRACE")
+    endif()
+
     add_executable(unit_test ${${TARGET_NAME}_TEST_SRCS})
     target_link_libraries(unit_test PRIVATE
         -Wl,--whole-archive ${TARGET_NAME}
@@ -235,7 +239,9 @@ if(TIM_VX_ENABLE_TEST)
         ${PROJECT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vx
         ${OVXLIB_INCLUDE_DIR}
-        ${LITE_INC_DIRS})
+        ${LITE_INC_DIRS}
+        ${PROJECT_SOURCE_DIR}
+    )
 
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()
