@@ -42,10 +42,14 @@ class Tensor;
 struct TensorSpec;
 struct DmaBufferDesc;
 class Operation;
+class CompileOption;
 
 class Graph {
  public:
   virtual ~Graph() {}
+
+  /// Attach CompileOption
+  virtual void SetCompileOption(const CompileOption&) = 0;
 
   /// Create a tensor with given `TensorSpec`
   virtual std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
