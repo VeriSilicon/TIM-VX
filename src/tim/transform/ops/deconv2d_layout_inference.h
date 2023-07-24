@@ -67,8 +67,8 @@ class DeConv2dLayoutInfer : public OpLayoutInfer {
       case vx::DataLayout::IcWHOc:  // Support nnapi & tflite Kernel Layout
         weight_required_pv = std::make_shared<PermuteVector<4>>(kIcWHOc2WHIcOc);
         break;
-      default: // Default set to IWHO for compatibility with previous APIs
-        weight_required_pv = std::make_shared<PermuteVector<4>>(kIcWHOc2WHIcOc);
+      default:
+        weight_required_pv = std::make_shared<PermuteVector<4>>();
         break;
     }
 

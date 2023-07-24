@@ -52,7 +52,8 @@ TEST(StridedSlice, endmask_2_shrinkmask_2) {
   std::array<uint32_t, 2> dilation({1, 1});
 
   auto op1 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op1)
       .BindInputs({input_tensor, kernel_tensor})
       .BindOutputs({conv2dout_tensor});
@@ -118,7 +119,8 @@ TEST(StridedSlice, endmask_6_shrinkmask_5) {
   std::array<uint32_t, 2> dilation({1, 1});
 
   auto op1 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op1)
       .BindInputs({input_tensor, kernel_tensor})
       .BindOutputs({conv2dout_tensor});
@@ -187,7 +189,8 @@ TEST(StridedSlice, endmask_1_shrinkmask_1) {
   std::array<uint32_t, 2> dilation({1, 1});
 
   auto op1 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op1)
       .BindInputs({input_tensor, kernel_tensor})
       .BindOutputs({conv2dout_tensor});
@@ -254,7 +257,8 @@ TEST(StridedSlice, beginmask_9_endmask_15) {
   std::array<uint32_t, 2> dilation({1, 1});
 
   auto op1 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op1)
       .BindInputs({input_tensor, kernel_tensor})
       .BindOutputs({conv2dout_tensor});
