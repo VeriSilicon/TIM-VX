@@ -21,39 +21,11 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_COMPILE_OPTION_H_
-#define TIM_VX_COMPILE_OPTION_H_
-
-#include <map>
-#include <memory>
-
-#if defined(ENABLE_PLATFORM)
-#include "platform/platform.h"
-#endif
-
-namespace tim {
-namespace vx {
-struct CompileOptionImpl;
-class CompileOption {
- public:
-  CompileOption();
-  ~CompileOption(){};
-
-  bool isRelaxMode() const;
-  bool setRelaxMode(bool enable = false);
-
-#if defined(ENABLE_PLATFORM)
-  void setDeviceId(::tim::vx::platform::IDevice::device_id_t device);
-  ::tim::vx::platform::IDevice::device_id_t getDeviceId();
-#endif
-
-  static CompileOption DefaultOptions;
-
- private:
-  // option can have dafult values
-  std::shared_ptr<CompileOptionImpl> impl_;
-};
-}  // namespace vx
-}  // namespace tim
-
-#endif
+#ifndef TIM_EXPERIMENTAL_TRACE_TRACE_TVX_H_
+#define TIM_EXPERIMENTAL_TRACE_TRACE_TVX_H_
+#include "tim/experimental/trace/tvx/context.h"
+#include "tim/experimental/trace/tvx/graph.h"
+#include "tim/experimental/trace/tvx/ops.h"
+#include "tim/experimental/trace/tvx/tensor.h"
+#include "tim/experimental/trace/tvx/types.h"
+#endif // TIM_EXPERIMENTAL_TRACE_TRACE_TVX_H_

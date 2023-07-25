@@ -46,7 +46,8 @@ TEST(Stack, DISABLED_LayoutinferernceTest_1) {
   std::array<uint32_t, 2> dilation({1, 1});
 
   auto op1 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op1)
       .BindInputs({input_tensor, kernel_tensor})
       .BindOutputs({conv2dout_tensor});
@@ -115,7 +116,8 @@ TEST(Stack, LayoutinferernceTest_2) {
   std::array<uint32_t, 2> dilation({1, 1});
 
   auto op1 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op1)
       .BindInputs({input_tensor, kernel_tensor})
       .BindOutputs({conv2dout_tensor});
@@ -188,12 +190,14 @@ TEST(Stack, LayoutinferernceTest_3) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({1, 1});
   auto op1 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op1)
       .BindInputs({input_tensor, kernel_tensor})
       .BindOutputs({conv2dout_tensor});
   auto op11 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op11)
       .BindInputs({input2_tensor, kernel2_tensor})
       .BindOutputs({conv2dout2_tensor});

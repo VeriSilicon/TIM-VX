@@ -21,39 +21,38 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_COMPILE_OPTION_H_
-#define TIM_VX_COMPILE_OPTION_H_
+#ifndef TIM_EXPERIMENTAL_TRACE_TVX_CONTEXT_H_
+#define TIM_EXPERIMENTAL_TRACE_TVX_CONTEXT_H_
+#include "tim/vx/context.h"
+#include "tim/experimental/trace/tvx/graph.h"
+#include "tim/experimental/trace/tracer.h"
 
-#include <map>
-#include <memory>
+namespace trace {
 
-#if defined(ENABLE_PLATFORM)
-#include "platform/platform.h"
-#endif
+namespace target = ::tim::vx;
 
-namespace tim {
-namespace vx {
-struct CompileOptionImpl;
-class CompileOption {
- public:
-  CompileOption();
-  ~CompileOption(){};
+struct Context : public TraceClassBase<target::Context> {
+  DEF_INTERFACE_CONSTRUCTOR(Context)
 
-  bool isRelaxMode() const;
-  bool setRelaxMode(bool enable = false);
+  DEF_MEMFN_SP(Graph, CreateGraph)
 
-#if defined(ENABLE_PLATFORM)
-  void setDeviceId(::tim::vx::platform::IDevice::device_id_t device);
-  ::tim::vx::platform::IDevice::device_id_t getDeviceId();
-#endif
+  DEF_TRACED_API(bool, isClOnly)
 
-  static CompileOption DefaultOptions;
-
- private:
-  // option can have dafult values
-  std::shared_ptr<CompileOptionImpl> impl_;
+  static inline std::shared_ptr<Context> Create() {
+    std::string obj_name = Tracer::allocate_obj_name("ctx_");
+    std::string pf(__PRETTY_FUNCTION__);
+    pf.replace(pf.rfind("trace"), 5, target_namespace_name_);
+    char log_msg[1024] = {0};
+    snprintf(log_msg, 1024, "auto %s =%s;\n", obj_name.c_str(),
+            pf.substr(pf.rfind(" "), pf.size()).c_str());
+    Tracer::logging_msg(log_msg);
+    auto obj = std::make_shared<Context>(target::Context::Create());
+    Tracer::insert_obj_name(static_cast<void*>(
+        obj->TraceGetImplSp().get()), obj_name);
+    return obj;
+  }
 };
-}  // namespace vx
-}  // namespace tim
 
-#endif
+} /* namespace trace */
+
+#endif // TIM_EXPERIMENTAL_TRACE_TVX_CONTEXT_H_

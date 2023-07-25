@@ -150,6 +150,10 @@ std::shared_ptr<Tensor> GraphImpl::GetTensorFromCache(const TensorSpec& spec, co
 }
 #endif
 
+void GraphImpl::SetCompileOption(const CompileOption& new_options) {
+  options_ = new_options;
+}
+
 vsi_nn_graph_t* GraphImpl::graph() { return graph_; }
 
 void GraphImpl::AddInput(vsi_nn_tensor_id_t id) {
@@ -320,6 +324,12 @@ bool GraphImpl::Setup() {
             "mode which will have better performance but lower precesion");
   }
   vsi_nn_SetGraphFastMode(graph_, is_fast_mode);
+
+  #if defined(ENABLE_PLATFORM)
+  auto id = options_.getDeviceId();
+  vxSetGraphAttribute(graph_->g, VX_GRAPH_DEVICE_INDEX_VIV,
+                      (void*)(&id), sizeof(id));
+  #endif
 
   std::call_once(setio_once_, [&status, this]() {
     status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(),

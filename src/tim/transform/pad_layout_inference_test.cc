@@ -42,7 +42,8 @@ TEST(Pad, layout_inference) {
   std::array<uint32_t, 2> dilation({1, 1});
 
   auto op1 = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN);
+      tim::vx::PadType::VALID, stride, dilation, 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*op1)
       .BindInputs({input_tensor, kernel_tensor})
       .BindOutputs({conv2dout_tensor});

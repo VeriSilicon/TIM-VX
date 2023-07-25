@@ -36,7 +36,8 @@ TEST(LayoutInference, simple_conv2d) {
       kernel_shape[0], tim::vx::PadType::AUTO,
       std::array<uint32_t, 2>({kernel_shape[2], kernel_shape[1]}),
       std::array<uint32_t, 2>({1, 1}), std::array<uint32_t, 2>({0, 0}),
-      std::array<uint32_t, 4>({0, 0, 0, 0}), 0, tim::vx::DataLayout::CWHN);
+      std::array<uint32_t, 4>({0, 0, 0, 0}), 0, tim::vx::DataLayout::CWHN,
+      tim::vx::DataLayout::IcWHOc);
   (*conv2d).BindInputs({input, kernel, bias}).BindOutput(output);
   // Do layout inference
   auto transform = tim::transform::LayoutInference(src_graph, ctx);

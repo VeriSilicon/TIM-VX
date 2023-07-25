@@ -21,39 +21,36 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_COMPILE_OPTION_H_
-#define TIM_VX_COMPILE_OPTION_H_
+#ifndef TIM_EXPERIMENTAL_TRACE_TVX_TYPES_H_
+#define TIM_EXPERIMENTAL_TRACE_TVX_TYPES_H_
+#include "tim/vx/types.h"
 
-#include <map>
-#include <memory>
+namespace trace {
 
-#if defined(ENABLE_PLATFORM)
-#include "platform/platform.h"
-#endif
+namespace target = ::tim::vx;
 
-namespace tim {
-namespace vx {
-struct CompileOptionImpl;
-class CompileOption {
- public:
-  CompileOption();
-  ~CompileOption(){};
+using ShapeType = std::vector<uint32_t>;
 
-  bool isRelaxMode() const;
-  bool setRelaxMode(bool enable = false);
+using DataType = target::DataType;
 
-#if defined(ENABLE_PLATFORM)
-  void setDeviceId(::tim::vx::platform::IDevice::device_id_t device);
-  ::tim::vx::platform::IDevice::device_id_t getDeviceId();
-#endif
+using QuantType = target::QuantType;
 
-  static CompileOption DefaultOptions;
+using TensorAttribute = target::TensorAttribute;
 
- private:
-  // option can have dafult values
-  std::shared_ptr<CompileOptionImpl> impl_;
-};
-}  // namespace vx
-}  // namespace tim
+using PadType = target::PadType;
 
-#endif
+using PoolType = target::PoolType;
+
+using RoundType = target::RoundType;
+
+using OverflowPolicy = target::OverflowPolicy;
+
+using RoundingPolicy = target::RoundingPolicy;
+
+using ResizeType = target::ResizeType;
+
+using DataLayout = target::DataLayout;
+
+} /* namespace trace */
+
+#endif // TIM_EXPERIMENTAL_TRACE_TVX_TYPES_H_
