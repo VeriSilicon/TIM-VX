@@ -48,7 +48,7 @@ TEST(localresponsenormalization, axis_0_shape_6_1_1_1_float) {
                                              in_data.size() * sizeof(float)));
 
   int radius = 2;
-  int size = radius * 2;
+  int size = radius * 2 + 1;
   float alpha = 4.0, beta = 0.5, bias = 9.0;
   auto op = graph->CreateOperation<tim::vx::ops::LocalResponseNormalization>(
       size, alpha, beta, bias, 0);
@@ -88,7 +88,7 @@ TEST(localresponsenormalization, axis_1_shape_2_6_float) {
                                              in_data.size() * sizeof(float)));
 
   int radius = 2;
-  int size = radius * 2;
+  int size = radius * 2 + 1;
   float alpha = 4.0, beta = 0.5, bias = 9.0;
   auto op = graph->CreateOperation<tim::vx::ops::LocalResponseNormalization>(
       size, alpha, beta, bias, 1);
