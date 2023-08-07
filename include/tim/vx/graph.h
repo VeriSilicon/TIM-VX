@@ -33,6 +33,7 @@
 #endif
 #include <memory>
 #include <vector>
+#include <map>
 namespace tim {
 namespace vx {
 #ifdef ENABLE_TENSOR_CACHE
@@ -61,7 +62,7 @@ class Graph {
   /// Create a tensor with given `TensorSpec`.
   /// spec.attr_ must be TensorAttribute::Input or Output
   virtual std::shared_ptr<Tensor> CreateIOTensor(const TensorSpec& spec,
-                                               void* data = nullptr) = 0;
+                                                 void* data = nullptr) = 0;
 
   /// Create a placeholder tensor for optional inputs of operations
   virtual std::shared_ptr<Tensor> CreateTensorPlaceHolder() = 0;
@@ -102,6 +103,12 @@ class Graph {
   virtual void PrintGraph() const = 0;
 
   const std::vector<std::shared_ptr<Tensor>> GetConstantInputs() const;
+  virtual std::vector<std::shared_ptr<Operation>>& OpVector() = 0;
+  virtual std::map<std::shared_ptr<Tensor>,
+                   std::vector<std::shared_ptr<Operation>>>&
+  TensorConsumer() = 0;
+  virtual std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>>&
+  TensorProducer() = 0;
 
  protected:
   std::vector<std::shared_ptr<tim::vx::Operation>> op_vector_;

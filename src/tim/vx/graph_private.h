@@ -42,10 +42,12 @@ namespace vx {
 
 class GraphImpl : public Graph {
  public:
-  GraphImpl(ContextImpl* context, const CompileOption& options = CompileOption::DefaultOptions);
+  GraphImpl(ContextImpl* context,
+            const CompileOption& options = CompileOption::DefaultOptions);
   ~GraphImpl();
 #ifdef ENABLE_TENSOR_CACHE
-  std::shared_ptr<Tensor> GetTensorFromCache(const TensorSpec& spec, const void* data);
+  std::shared_ptr<Tensor> GetTensorFromCache(const TensorSpec& spec,
+                                             const void* data);
   const std::string CalculateCacheKey(const TensorSpec& spec, const void* data);
   std::map<std::string, std::shared_ptr<tim::vx::Tensor>>& GetTensorCacheMap();
 #endif
@@ -62,14 +64,18 @@ class GraphImpl : public Graph {
 
   const std::vector<std::shared_ptr<Tensor>> InputsTensor() const override;
   const std::vector<std::shared_ptr<Tensor>> OutputsTensor() const override;
-
+  std::vector<std::shared_ptr<Operation>>& OpVector() override;
+  std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>>&
+  TensorConsumer() override;
+  std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>>&
+  TensorProducer() override;
   void UpdateTensorConsumersMap(const std::shared_ptr<Tensor>& tensor,
                                 const Operation* op) override;
   void RenewTensorConsumersMap(const std::shared_ptr<Tensor>& org_tensor,
                                const std::shared_ptr<Tensor>& dst_tensor,
                                const Operation* op) override;
   void UpdateTensorProducerMap(const std::shared_ptr<Tensor>& tensor,
-                                const Operation* op) override;
+                               const Operation* op) override;
   const std::vector<std::shared_ptr<Operation>> GetConsumersOp(
       std::shared_ptr<Tensor> tensor) const override;
   std::shared_ptr<Operation> GetProducerOp(
@@ -82,7 +88,7 @@ class GraphImpl : public Graph {
   std::shared_ptr<Tensor> CreateTensor(const TensorSpec& spec,
                                        const DmaBufferDesc& dmafd) override;
   std::shared_ptr<Tensor> CreateIOTensor(const TensorSpec& spec,
-                                       void* data = nullptr) override;
+                                         void* data = nullptr) override;
   std::shared_ptr<Tensor> CreateTensorPlaceHolder() override;
 
   bool Compile() override;
@@ -106,14 +112,17 @@ class GraphImpl : public Graph {
   int32_t not_consumed_input_cnt_;
   std::vector<std::shared_ptr<Tensor>> outputs_tensor_;
   int32_t not_consumed_output_cnt_;
-  std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>> tensor_consumers_;
-  std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>> tensor_producer_;
+  std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>>
+      tensor_consumers_;
+  std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>>
+      tensor_producer_;
 #ifdef ENABLE_TENSOR_CACHE
   std::map<std::string, std::shared_ptr<tim::vx::Tensor>> cached_tensor_;
 #endif
   CompileOption options_;
+
  private:
- /// Setup graph
+  /// Setup graph
   bool Setup();
 };
 
