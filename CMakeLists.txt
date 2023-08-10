@@ -98,6 +98,8 @@ if(TIM_VX_ENABLE_TEST)
         FetchContent_Populate(googletest)
         add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
     endif()
+
+    include_directories(third_party/half)
 endif()
 
 if(TIM_VX_ENABLE_GRPC)
