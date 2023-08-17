@@ -52,6 +52,7 @@ struct Quantization : public TraceClassBase<target::Quantization> {
   DEF_TRACED_API(QuantType&, Type)
 
   // DEF_TRACED_API(const QuantType&, Type)
+  // lack of macro to def readonly apis
   template <class R = const QuantType &, class... Args>
   typename std::enable_if_t<is_not_traced_obj_like<R>::value, R> Type(
       Args... params) const {
@@ -70,9 +71,12 @@ struct Quantization : public TraceClassBase<target::Quantization> {
     return boost::hana::unpack(params_impl, api_impl);
   }
 
+  DEF_TRACED_API(Quantization&, SetType)
+
   DEF_TRACED_API(int32_t&, ChannelDim)
 
   // DEF_TRACED_API(const int32_t&, ChannelDim)
+  // lack of macro to def readonly apis
   template <class R = const int32_t &, class... Args>
   typename std::enable_if_t<is_not_traced_obj_like<R>::value, R> ChannelDim(
       Args... params) const {
@@ -95,9 +99,12 @@ struct Quantization : public TraceClassBase<target::Quantization> {
 
   DEF_TRACED_API(std::vector<float>&, Scales)
 
+  DEF_TRACED_API(Quantization&, SetScales)
+
   DEF_TRACED_API(std::vector<int32_t>&, ZeroPoints)
 
   // DEF_TRACED_API(const std::vector<int32_t>&, ZeroPoints)
+  // lack of macro to def readonly apis
   template <class R = const std::vector<int32_t> &, class... Args>
   typename std::enable_if_t<is_not_traced_obj_like<R>::value, R> ZeroPoints(
       Args... params) const {

@@ -130,9 +130,10 @@ struct Graph : public TraceClassBase<target::Graph> {
     Tracer::amend_last_msg_cache(");\n");
     Tracer::msg_cache_sync_to_file();
 
+    // ToDo: the feature to use fake network weights need further refine.
     #if 1 /* if use fake input data */
     if (param_0.TraceGetImpl().GetTensorAttribute() == 
-        TensorAttribute::TRANSIENT && param_1 == nullptr) {
+        TensorAttribute::CONSTANT && param_1 == nullptr) {
       auto fake_vec_name = Tracer::allocate_obj_name("fake_vec_");
       switch (param_0.TraceGetImpl().GetDataType()) {
       case DataType::INT32:
@@ -313,7 +314,7 @@ struct Graph : public TraceClassBase<target::Graph> {
 
   DEF_TRACED_API(void, UpdateTensorProducerMap)
 
-  // DEF_TRACED_API(cosnt std::vector<std::shared_ptr<Operation>>, GetConsumersOp)
+  // DEF_TRACED_API(const std::vector<std::shared_ptr<Operation>>, GetConsumersOp)
 
   // DEF_TRACED_API(std::shared_ptr<Operation>, GetProducerOp)
 
@@ -329,21 +330,27 @@ struct Graph : public TraceClassBase<target::Graph> {
   std::vector<TensorSpec> spec_keeper_;
 
   DECL_CREATE_OPS(TVX_OPS_SEQ)
-  DECL_CREATE_OP_IMPL_(_, _, Pad)
-  DECL_CREATE_OP_IMPL_(_, _, PadV2)
+  DECL_CREATE_OP_IMPL_(_, _, Pad)   // there are enums defined in the op
+  DECL_CREATE_OP_IMPL_(_, _, PadV2) // there are enums defined in the op
 
 };
-#define SPECIAL_MACRO_(params)                                               \
-  std::string buf_name = Tracer::allocate_obj_name("nbg_buf_vec_");          \
-  FILE* nbg_dumped = fopen("network_binary_graph.nb", "r");                  \
-  fseek(nbg_dumped, 0L, SEEK_END);                                           \
-  uint32_t count = ftell(nbg_dumped);                                        \
-  fclose(nbg_dumped);                                                        \
-  uint32_t offset = Tracer::dump_data(                                       \
-      BOOST_PP_SEQ_ELEM(0, params), sizeof(char), count);                    \
-  Tracer::insert_before_last_msg_cache("std::vector<char> " + buf_name +     \
-      " = trace::Replayer::get_vector<char>(" + std::to_string(offset)  +    \
-      "," + std::to_string(count) + ");\n");                                 \
+// For the NBG op, has no good enough way to get the nbg buffer size in the
+// scope of `CreateOperation<tim::vx::ops::NBG>(buf, inp_num, out_num)`, so
+// we enable `export VIV_VX_ENABLE_DUMP_NBG=1` to dump nbg at first, then read
+// it's size.
+// The best solution is make nbg buf self-analytic the size.
+// ToDo: push nbg team provide an api to self-analytic the nbg size.
+#define SPECIAL_MACRO_(params)                                                 \
+  std::string buf_name = Tracer::allocate_obj_name("nbg_buf_vec_");            \
+  FILE* nbg_dumped = fopen("network_binary_graph.nb", "r");                    \
+  fseek(nbg_dumped, 0L, SEEK_END);                                             \
+  uint32_t count = ftell(nbg_dumped);                                          \
+  fclose(nbg_dumped);                                                          \
+  uint32_t offset = Tracer::dump_data(                                         \
+      BOOST_PP_SEQ_ELEM(0, params), sizeof(char), count);                      \
+  Tracer::insert_before_last_msg_cache("std::vector<char> " + buf_name +       \
+      " = trace::Replayer::get_vector<char>(" + std::to_string(offset) +       \
+      "," + std::to_string(count) + ");\n");                                   \
   Tracer::insert_params_log_cache(buf_name + ".data()", 0);
 
 SPECIALIZATION_CREATE_OP(NBG, ((const char*))((size_t))((size_t)),

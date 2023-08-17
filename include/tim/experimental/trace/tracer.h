@@ -780,7 +780,7 @@ static const char* target_namespace_name_ = TARGET_NAMESPACE_NAME;
     std::string obj_name =                                                     \
         Tracer::allocate_obj_name(Tracer::get_obj_prefix(#class_name));        \
     Tracer::logging_msg("auto %s = %s::%s();\n", obj_name.c_str(),             \
-        target_namespace_name_, __FUNCTION__);                                  \
+        target_namespace_name_, __FUNCTION__);                                 \
     impl_ = std::make_shared<target::class_name>();                            \
     Tracer::insert_traced_obj(                                                 \
         static_cast<void*>(impl_.get()), static_cast<void*>(this));            \
@@ -873,7 +873,7 @@ static const char* target_namespace_name_ = TARGET_NAMESPACE_NAME;
       Args... params) {                                                        \
     std::string this_obj_name = TraceGetObjName();                             \
     Tracer::push_back_msg_cache(                                               \
-        this_obj_name + "->" + __FUNCTION__ + "(");                            \
+        this_obj_name + "." + __FUNCTION__ + "(");                             \
     Tracer::clear_params_log_cache();                                          \
     boost::hana::tuple<Args...> params_tuple = {params...};                    \
     boost::hana::for_each(params_tuple, [&] (auto x) {                         \
