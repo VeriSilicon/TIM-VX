@@ -134,8 +134,10 @@ cc_binary(
 cc_test (
     name = "unit_test",
     copts = ["-std=c++14", "-Werror"],
+    includes = ["third_party/half"],
     srcs = [
         "src/tim/vx/test_utils.h",
+        "third_party/half/half.hpp"
     ] + glob(["src/tim/**/*_test.cc"]),
     deps = [
         "@gtest//:gtest",

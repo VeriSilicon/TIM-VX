@@ -44,49 +44,49 @@ namespace vx {
 #define MD5_SECRET_LEN_16 (16)
 #define MD5_BYTE_STRING_LEN (4)
 const std::string calculateMd5Secret32(const std::string& src) {
-    std::string md5String;
-    EVP_MD_CTX *mdctx;
-    const EVP_MD *md;
-    uint32_t md_len;
-    unsigned char md_value[MD5_SECRET_LEN_16] = {0};
-    char tmp[MD5_BYTE_STRING_LEN] = {0};
+  std::string md5String;
+  EVP_MD_CTX* mdctx;
+  const EVP_MD* md;
+  uint32_t md_len;
+  unsigned char md_value[MD5_SECRET_LEN_16] = {0};
+  char tmp[MD5_BYTE_STRING_LEN] = {0};
 
-    md = EVP_md5();
-    if (md == NULL) {
-      printf("Unknown EVP_md5 message.");
-    }
-    mdctx = EVP_MD_CTX_new();
-    if (!EVP_DigestInit_ex(mdctx, md, NULL)) {
-      printf("EVP_MD_CTX initialization failed.");
-      EVP_MD_CTX_free(mdctx);
-    }
-    if (!EVP_DigestUpdate(mdctx, src.c_str(), src.size())) {
-      printf("EVP_MD_CTX update failed.");
-      EVP_MD_CTX_free(mdctx);
-    }
-    if (!EVP_DigestFinal_ex(mdctx, md_value, &md_len)) {
-      printf("EVP_MD_CTX finalization failed.");
-      EVP_MD_CTX_free(mdctx);
-    }
-    EVP_MD_CTX_free(mdctx);
-
-    for (int i = 0; i < MD5_SECRET_LEN_16; ++i) {
-      memset(tmp, 0x00, sizeof(tmp));
-      snprintf(tmp, sizeof(tmp), "%02X", md_value[i]);
-      md5String += tmp;
-    }
-    return md5String;
+  md = EVP_md5();
+  if (md == NULL) {
+    printf("Unknown EVP_md5 message.");
   }
+  mdctx = EVP_MD_CTX_new();
+  if (!EVP_DigestInit_ex(mdctx, md, NULL)) {
+    printf("EVP_MD_CTX initialization failed.");
+    EVP_MD_CTX_free(mdctx);
+  }
+  if (!EVP_DigestUpdate(mdctx, src.c_str(), src.size())) {
+    printf("EVP_MD_CTX update failed.");
+    EVP_MD_CTX_free(mdctx);
+  }
+  if (!EVP_DigestFinal_ex(mdctx, md_value, &md_len)) {
+    printf("EVP_MD_CTX finalization failed.");
+    EVP_MD_CTX_free(mdctx);
+  }
+  EVP_MD_CTX_free(mdctx);
+
+  for (int i = 0; i < MD5_SECRET_LEN_16; ++i) {
+    memset(tmp, 0x00, sizeof(tmp));
+    snprintf(tmp, sizeof(tmp), "%02X", md_value[i]);
+    md5String += tmp;
+  }
+  return md5String;
+}
 #endif
 
 const std::vector<std::shared_ptr<Tensor>> Graph::GetConstantInputs() const {
-    std::vector<std::shared_ptr<Tensor>> const_inputs;
-    for (auto op : op_vector_) {
-      auto const_i = op->ConstantInputsTensor();
-      const_inputs.insert(const_inputs.end(), const_i.begin(), const_i.end());
-    }
-    return const_inputs;
+  std::vector<std::shared_ptr<Tensor>> const_inputs;
+  for (auto op : op_vector_) {
+    auto const_i = op->ConstantInputsTensor();
+    const_inputs.insert(const_inputs.end(), const_i.begin(), const_i.end());
   }
+  return const_inputs;
+}
 
 GraphImpl::GraphImpl(ContextImpl* context, const CompileOption& options)
     : context_(context),
@@ -94,16 +94,18 @@ GraphImpl::GraphImpl(ContextImpl* context, const CompileOption& options)
       tensor_placeholder_(nullptr),
       not_consumed_input_cnt_(0),
       not_consumed_output_cnt_(0),
-      options_(options){}
+      options_(options) {}
 
 GraphImpl::~GraphImpl() { vsi_nn_ReleaseGraph(&graph_); }
 
 #ifdef ENABLE_TENSOR_CACHE
-std::map<std::string, std::shared_ptr<tim::vx::Tensor>>& GraphImpl::GetTensorCacheMap() {
+std::map<std::string, std::shared_ptr<tim::vx::Tensor>>&
+GraphImpl::GetTensorCacheMap() {
   return cached_tensor_;
 }
 
-const std::string GraphImpl::CalculateCacheKey(const TensorSpec& spec, const void* data) {
+const std::string GraphImpl::CalculateCacheKey(const TensorSpec& spec,
+                                               const void* data) {
   std::string md5_key;
   uint32_t data_size = 1;
   for (auto it = spec.shape_.begin(); it != spec.shape_.end(); ++it) {
@@ -135,12 +137,15 @@ const std::string GraphImpl::CalculateCacheKey(const TensorSpec& spec, const voi
   return md5_key;
 }
 
-std::shared_ptr<Tensor> GraphImpl::GetTensorFromCache(const TensorSpec& spec, const void* data) {
+std::shared_ptr<Tensor> GraphImpl::GetTensorFromCache(const TensorSpec& spec,
+                                                      const void* data) {
   std::shared_ptr<tim::vx::Tensor> tensor;
   std::string md5_key = CalculateCacheKey(spec, data);
   if (GetTensorCacheMap().find(md5_key) != GetTensorCacheMap().end() &&
-      GetTensorCacheMap()[md5_key]->GetQuantization().Scales() == spec.quantization_.Scales() &&
-      GetTensorCacheMap()[md5_key]->GetQuantization().ZeroPoints() == spec.quantization_.ZeroPoints()) {
+      GetTensorCacheMap()[md5_key]->GetQuantization().Scales() ==
+          spec.quantization_.Scales() &&
+      GetTensorCacheMap()[md5_key]->GetQuantization().ZeroPoints() ==
+          spec.quantization_.ZeroPoints()) {
     tensor = GetTensorCacheMap()[md5_key];
   } else {
     tensor = std::make_shared<TensorImpl>(this, spec, data);
@@ -149,6 +154,10 @@ std::shared_ptr<Tensor> GraphImpl::GetTensorFromCache(const TensorSpec& spec, co
   return tensor;
 }
 #endif
+
+void GraphImpl::SetCompileOption(const CompileOption& new_options) {
+  options_ = new_options;
+}
 
 vsi_nn_graph_t* GraphImpl::graph() { return graph_; }
 
@@ -186,6 +195,20 @@ const std::vector<std::shared_ptr<Tensor>> GraphImpl::OutputsTensor() const {
   return outputs_tensor_;
 }
 
+std::vector<std::shared_ptr<Operation>>& GraphImpl::OpVector() {
+  return op_vector_;
+}
+
+std::map<std::shared_ptr<Tensor>, std::vector<std::shared_ptr<Operation>>>&
+GraphImpl::TensorConsumer() {
+  return tensor_consumers_;
+}
+
+std::map<std::shared_ptr<Tensor>, std::shared_ptr<Operation>>&
+GraphImpl::TensorProducer() {
+  return tensor_producer_;
+}
+
 void GraphImpl::UpdateTensorConsumersMap(const std::shared_ptr<Tensor>& tensor,
                                          const Operation* op) {
   for (const auto& added_op : op_vector_) {
@@ -212,7 +235,7 @@ void GraphImpl::RenewTensorConsumersMap(
 }
 
 void GraphImpl::UpdateTensorProducerMap(const std::shared_ptr<Tensor>& tensor,
-                                         const Operation* op) {
+                                        const Operation* op) {
   for (const auto& added_op : op_vector_) {
     if (added_op.get() == op) {
       tensor_producer_[tensor] = added_op;
@@ -232,7 +255,7 @@ const std::vector<std::shared_ptr<Operation>> GraphImpl::GetConsumersOp(
 }
 
 std::shared_ptr<Operation> GraphImpl::GetProducerOp(
-    std::shared_ptr<Tensor> tensor)  {
+    std::shared_ptr<Tensor> tensor) {
   auto producer = tensor_producer_.find(tensor);
   if (tensor_producer_.end() != producer) {
     return producer->second;
@@ -282,7 +305,7 @@ std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
 }
 
 std::shared_ptr<Tensor> GraphImpl::CreateIOTensor(const TensorSpec& spec,
-                                                void* data) {
+                                                  void* data) {
   auto tensor = std::make_shared<TensorImpl>(this, spec, data);
   if (spec.attr_ & TensorAttribute::INPUT) {
     this->AddInput(tensor);
@@ -316,10 +339,17 @@ bool GraphImpl::Setup() {
 
   bool is_fast_mode = options_.isRelaxMode();
   if (is_fast_mode) {
-    VSILOGW("Important notice: float model executed in bfloat16 "
-            "mode which will have better performance but lower precesion");
+    VSILOGW(
+        "Important notice: float model executed in bfloat16 "
+        "mode which will have better performance but lower precesion");
   }
   vsi_nn_SetGraphFastMode(graph_, is_fast_mode);
+
+#if defined(ENABLE_PLATFORM)
+  auto id = options_.getDeviceId();
+  vxSetGraphAttribute(graph_->g, VX_GRAPH_DEVICE_INDEX_VIV, (void*)(&id),
+                      sizeof(id));
+#endif
 
   std::call_once(setio_once_, [&status, this]() {
     status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(),
@@ -336,12 +366,16 @@ bool GraphImpl::Setup() {
 
 bool GraphImpl::Compile() {
   bool status = true;
-  if (not_consumed_input_cnt_ > 0 ) {
+  if (not_consumed_input_cnt_ > 0) {
     // Tensor can bind to different operations
-    VSILOGW("Graph has free input, INPUT tensor may be created but not consumed.");
+    VSILOGW(
+        "Graph has free input, INPUT tensor may be created but not "
+        "consumed.");
   }
   if (not_consumed_output_cnt_ != 0) {
-    VSILOGW("Graph has free output, OUTPUT tensor may be created but not consumed.");
+    VSILOGW(
+        "Graph has free output, OUTPUT tensor may be created but not "
+        "consumed.");
   }
   status = Setup();
   std::call_once(verify_graph_once_, [&status, this]() {

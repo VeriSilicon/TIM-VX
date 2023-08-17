@@ -28,11 +28,12 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/types.h"
+#include "third_party/half/half.hpp"
 
-#ifdef TIM_VX_OPS_CONV2D_WITH_F16BIAS
 TEST(Conv2d, shape_4_2_1_1_float16_PaddingTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
+  using namespace half_float::literal;
 
   tim::vx::ShapeType input_shape({4, 2, 1, 1});   //whcn
   tim::vx::ShapeType weight_shape({2, 2, 1, 3});  //whio
@@ -50,26 +51,29 @@ TEST(Conv2d, shape_4_2_1_1_float16_PaddingTest) {
                                   tim::vx::TensorAttribute::OUTPUT);
 
   // Input data  nchw
-  std::vector<_Float16> input_data = {
-      1, 1, 1, 1,  // row = 1
-      2, 2, 3, 2   // row = 2
+
+  std::vector<half_float::half> input_data = {
+      1.0_h, 1.0_h, 1.0_h, 1.0_h,  // row = 1
+      2.0_h, 2.0_h, 3.0_h, 2.0_h   // row = 2
   };
 
   // weight data   oihw
-  std::vector<_Float16> weight_data = {
-      1,  2,  3,  4,  //first 2x2 filter
-      -1, 1,  -1, 1,  // second 2x2 filter
-      -1, -1, 1,  1,  // third 2x2 filter
+  std::vector<half_float::half> weight_data = {
+      1.0_h,  2.0_h,  3.0_h,  4.0_h,  //first 2x2 filter
+      -1.0_h, 1.0_h,  -1.0_h, 1.0_h,  // second 2x2 filter
+      -1.0_h, -1.0_h, 1.0_h,  1.0_h,  // third 2x2 filter
   };
 
   // bias data
-  std::vector<_Float16> bias_data = {1, 2, 3};
+  std::vector<half_float::half> bias_data = {1.0_h, 2.0_h, 3.0_h};
 
-  // nchw
-  std::vector<_Float16> golden = {// first channel
-                               18, 22, 21, 8, 7, 9, 8, 3, 2, 3, 1, -1,
-                               // second channel
-                               2, 3, 1, 0, 5, 6, 6, 4, -1, -2, -2, 1};
+  std::vector<half_float::half> golden = {
+      // first channel
+      18.0_h, 22.0_h, 21.0_h, 8.0_h, 7.0_h, 9.0_h, 8.0_h, 3.0_h, 2.0_h, 3.0_h,
+      1.0_h, -1.0_h,
+      // second channel
+      2.0_h, 3.0_h, 1.0_h, 0.0_h, 5.0_h, 6.0_h, 6.0_h, 4.0_h, -1.0_h, -2.0_h,
+      -2.0_h, 1.0_h};
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
@@ -80,8 +84,8 @@ TEST(Conv2d, shape_4_2_1_1_float16_PaddingTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -98,11 +102,10 @@ TEST(Conv2d, shape_4_2_1_1_float16_PaddingTest) {
   for (auto i : output_tensor->GetShape()) {
     output_size *= i;
   }
-  std::vector<_Float16> output(output_size);
+  std::vector<half_float::half> output(output_size);
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  EXPECT_TRUE(ArraysMatch(golden, output, (_Float16)0.1));
+  EXPECT_TRUE(ArraysMatch(golden, output, (half_float::half)0.1));
 }
-#endif
 
 TEST(Conv2d, shape_4_2_1_1_float32_PaddingTest) {
   auto ctx = tim::vx::Context::Create();
@@ -155,8 +158,8 @@ TEST(Conv2d, shape_4_2_1_1_float32_PaddingTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -224,8 +227,8 @@ TEST(Conv2d, shape_4_2_2_2_float32_PointwiseTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -295,8 +298,8 @@ TEST(Conv2d, shape_4_2_1_2_float32_SimpleTest) {
   std::array<uint32_t, 2> stride({2, 2});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -361,8 +364,8 @@ TEST(Conv2d, shape_4_2_2_2_float32_SimpleChannelsTest) {
   std::array<uint32_t, 2> stride({2, 2});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -432,8 +435,8 @@ TEST(Conv2d, shape_6_3_1_1_float32_SimpleAnisotropicStridesTest) {
   std::array<uint32_t, 2> stride({3, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -497,8 +500,8 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -562,8 +565,8 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedConstFilterTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -627,8 +630,8 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedBiasTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -691,8 +694,8 @@ TEST(Conv2d, shape_4_3_1_1_float32_HandCalculatedValidTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -759,8 +762,8 @@ TEST(Conv2d, DISABLED_shape_4_2_2_2_float32_DisabledPointwiseMultifilterTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -827,8 +830,8 @@ TEST(Conv2d, shape_9_9_1_1_float32_SimpleDilationTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({3, 3});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -893,8 +896,8 @@ TEST(Conv2d, shape_4_2_1_2_float32_StrideTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -958,8 +961,8 @@ TEST(Conv2d, shape_4_2_1_2_float32_InputAndFilterSameWidthHeightTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1011,13 +1014,13 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest1) {
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -1047,8 +1050,8 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest1) {
 
   std::vector<u_int8_t> input_data =
       Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
-  std::vector<u_int8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
+  std::vector<u_int8_t> weight_data = Quantize<uint8_t>(
+      weight_data_float, scales_weight[0], zero_point_input[0]);
   std::vector<int32_t> bias_data =
       Quantize<int32_t>(bias_data_float, scales_bias[0], zero_point_bias[0]);
   std::vector<u_int8_t> golden =
@@ -1062,8 +1065,8 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest1) {
   std::array<uint32_t, 2> stride({2, 2});
   std::array<uint32_t, 2> dilation({1, 1});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1094,8 +1097,8 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest2) {
   tim::vx::ShapeType output_shape(
       {2, 1, weight_shape[3], input_shape[3]});  //whcn
 
-  float input_min = -128.5, input_max = 128, weight_min = -128.5, weight_max = 128,
-        output_min = -127, output_max = 128;
+  float input_min = -128.5, input_max = 128, weight_min = -128.5,
+        weight_max = 128, output_min = -127, output_max = 128;
 
   std::pair<float, int32_t> scales_zp;
 
@@ -1115,13 +1118,13 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest2) {
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -1151,8 +1154,8 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest2) {
 
   std::vector<u_int8_t> input_data =
       Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
-  std::vector<u_int8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
+  std::vector<u_int8_t> weight_data = Quantize<uint8_t>(
+      weight_data_float, scales_weight[0], zero_point_input[0]);
   std::vector<int32_t> bias_data =
       Quantize<int32_t>(bias_data_float, scales_bias[0], zero_point_bias[0]);
   std::vector<u_int8_t> golden =
@@ -1167,8 +1170,8 @@ TEST(Conv2d, shape_4_2_1_2_uint8_QuantizedTest2) {
   std::array<uint32_t, 2> stride({2, 2});
   std::array<uint32_t, 2> dilation({1, 1});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1220,13 +1223,13 @@ TEST(Conv2d, shape_6_3_1_1_uint8_AnisotropicStridesQuantizedTest) {
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -1255,8 +1258,8 @@ TEST(Conv2d, shape_6_3_1_1_uint8_AnisotropicStridesQuantizedTest) {
 
   std::vector<u_int8_t> input_data =
       Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
-  std::vector<u_int8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
+  std::vector<u_int8_t> weight_data = Quantize<uint8_t>(
+      weight_data_float, scales_weight[0], zero_point_input[0]);
   std::vector<int32_t> bias_data =
       Quantize<int32_t>(bias_data_float, scales_bias[0], zero_point_bias[0]);
   std::vector<u_int8_t> golden =
@@ -1271,8 +1274,8 @@ TEST(Conv2d, shape_6_3_1_1_uint8_AnisotropicStridesQuantizedTest) {
   std::array<uint32_t, 2> stride({3, 1});
   std::array<uint32_t, 2> dilation({1, 1});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1324,13 +1327,13 @@ TEST(Conv2d, shape_9_9_1_1_uint8_DilationQuantizedTest) {
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -1362,8 +1365,8 @@ TEST(Conv2d, shape_9_9_1_1_uint8_DilationQuantizedTest) {
 
   std::vector<u_int8_t> input_data =
       Quantize<uint8_t>(input_data_float, scales_input[0], zero_point_input[0]);
-  std::vector<u_int8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
+  std::vector<u_int8_t> weight_data = Quantize<uint8_t>(
+      weight_data_float, scales_weight[0], zero_point_input[0]);
   std::vector<int32_t> bias_data =
       Quantize<int32_t>(bias_data_float, scales_bias[0], zero_point_bias[0]);
   std::vector<u_int8_t> golden =
@@ -1378,8 +1381,8 @@ TEST(Conv2d, shape_9_9_1_1_uint8_DilationQuantizedTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({3, 3});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1431,13 +1434,13 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerTensorTest) {
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -1481,8 +1484,8 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerTensorTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({1, 1});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1527,7 +1530,7 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerChannelTest) {
   std::vector<int32_t> zero_point_weight = {0, 0};
 
   std::vector<float> scales_bias = {scales_input[0] * scales_weight[0],
-                                   scales_input[0] * scales_weight[1]};
+                                    scales_input[0] * scales_weight[1]};
   std::vector<int32_t> zero_point_bias = {0, 0};
 
   scales_zp = QuantizationParams<int8_t>(output_min, output_max);
@@ -1535,13 +1538,13 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerChannelTest) {
   std::vector<int32_t> zero_point_output = {scales_zp.second};
 
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    3, scales_weight, zero_point_weight);
+                                     3, scales_weight, zero_point_weight);
   tim::vx::Quantization quant_bias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
-                                  scales_bias, zero_point_bias);
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -1583,8 +1586,8 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerChannelTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({1, 1});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1609,12 +1612,12 @@ TEST(Conv2d, shape_3_2_2_1_int8_QuantizedPerChannelTest) {
 TEST(Conv2d, shape_w_h_128_1_ksize_1_1_stride_2_int8_QuantizedPerChannelTest) {
   std::map<uint32_t, std::vector<uint32_t>> input_shape_list;
   input_shape_list[32] = {18, 20, 22, 26, 28, 30, 34, 36, 38,
-                        42, 44, 46, 50, 52, 54, 58, 60, 62};
+                          42, 44, 46, 50, 52, 54, 58, 60, 62};
   input_shape_list[63] = {18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58, 62};
   input_shape_list[95] = {18, 20, 22, 26, 28, 30, 34, 36, 38,
-                        42, 44, 46, 50, 52, 54, 58, 60, 62};
+                          42, 44, 46, 50, 52, 54, 58, 60, 62};
   input_shape_list[96] = {18, 20, 22, 26, 28, 30, 34, 36, 38,
-                        42, 44, 46, 50, 52, 54, 58, 60, 62};
+                          42, 44, 46, 50, 52, 54, 58, 60, 62};
   tim::vx::ShapeType input_shape({2, 2, 128, 1});     //whcn
   tim::vx::ShapeType weight_shape({1, 1, 128, 256});  //whio
   tim::vx::ShapeType bias_shape({weight_shape[3]});
@@ -1642,13 +1645,13 @@ TEST(Conv2d, shape_w_h_128_1_ksize_1_1_stride_2_int8_QuantizedPerChannelTest) {
   std::vector<int32_t> zero_point_output = {-1};
 
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    3, scales_weight, zero_point_weight);
+                                     3, scales_weight, zero_point_weight);
   tim::vx::Quantization quant_bias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
-                                  scales_bias, zero_point_bias);
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   uint32_t weight_size =
       weight_shape[0] * weight_shape[1] * weight_shape[2] * weight_shape[3];
@@ -1699,8 +1702,8 @@ TEST(Conv2d, shape_w_h_128_1_ksize_1_1_stride_2_int8_QuantizedPerChannelTest) {
       for (uint32_t i = 0; i < golden_size; i++) {
         golden_float[i] = 129;
       }
-      std::vector<int8_t> golden =
-          Quantize<int8_t>(golden_float, scales_output[0], zero_point_output[0]);
+      std::vector<int8_t> golden = Quantize<int8_t>(
+          golden_float, scales_output[0], zero_point_output[0]);
 
       auto ctx = tim::vx::Context::Create();
       auto graph = ctx->CreateGraph();
@@ -1738,28 +1741,30 @@ TEST(Conv2d, shape_w_h_128_1_ksize_1_1_stride_2_int8_QuantizedPerChannelTest) {
   }
 }
 
-TEST(Conv2d, shape_4_2_2_2_int16_DFPQuantizedTest){
+TEST(Conv2d, shape_4_2_2_2_int16_DFPQuantizedTest) {
   auto ctx = tim::vx::Context::Create();
-  if(ctx->isClOnly()) GTEST_SKIP();
+  if (ctx->isClOnly()) GTEST_SKIP();
   auto graph = ctx->CreateGraph();
   tim::vx::ShapeType input_shape({4, 2, 2, 2});   //whcn
   tim::vx::ShapeType weight_shape({1, 1, 2, 1});  //whio
   tim::vx::ShapeType bias_shape({weight_shape[3]});
   tim::vx::ShapeType output_shape(
       {4, 2, weight_shape[3], input_shape[3]});  //whcn
-  int8_t fl_input = 9, fl_weight= 8,  fl_output = 8;
-  tim::vx::Quantization quant_input(tim::vx::QuantType::DYNAMIC_FIXED_POINT, fl_input);
-  tim::vx::Quantization quant_weight(tim::vx::QuantType::DYNAMIC_FIXED_POINT, fl_weight);
-  tim::vx::Quantization quant_output(tim::vx::QuantType::DYNAMIC_FIXED_POINT, fl_output);
+  int8_t fl_input = 9, fl_weight = 8, fl_output = 8;
+  tim::vx::Quantization quant_input(tim::vx::QuantType::DYNAMIC_FIXED_POINT,
+                                    fl_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::DYNAMIC_FIXED_POINT,
+                                     fl_weight);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::DYNAMIC_FIXED_POINT,
+                                     fl_output);
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT16, input_shape,
-                                     tim::vx::TensorAttribute::INPUT,
-                                     quant_input);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::INT16, weight_shape,
-                                      tim::vx::TensorAttribute::CONSTANT,
-                                      quant_weight);
+                                  tim::vx::TensorAttribute::CONSTANT,
+                                  quant_weight);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::INT16, output_shape,
-                                      tim::vx::TensorAttribute::OUTPUT,
-                                      quant_output);
+                                  tim::vx::TensorAttribute::OUTPUT,
+                                  quant_output);
 
   // Input data  float
   std::vector<float> input_data_float = {
@@ -1767,25 +1772,23 @@ TEST(Conv2d, shape_4_2_2_2_int16_DFPQuantizedTest){
       0.5, 1,   1.5, 2,   0.5, 1, 1.5, 2, 0.5, 1,   1.5, 2,   0.5, 1, 1.5, 2};
 
   // weight data   float
-  std::vector<float> weight_data_float= {
+  std::vector<float> weight_data_float = {
       1, 2  // first filter
   };
   //input data(dfp16)
-  std::vector<int16_t> input_data = {
-      256,256,256,256, 512,512,512,512, 256,256,256,256,512,512,512,512,
-      256,512,768,1024,256,512,768,1024,256,512,768,1024,256,512,768,1024
-  };
+  std::vector<int16_t> input_data = {256, 256, 256, 256,  512, 512, 512, 512,
+                                     256, 256, 256, 256,  512, 512, 512, 512,
+                                     256, 512, 768, 1024, 256, 512, 768, 1024,
+                                     256, 512, 768, 1024, 256, 512, 768, 1024};
   //weight data(dfp16)
-  std::vector<int16_t> weight_data = {
-      256,512
-  };
+  std::vector<int16_t> weight_data = {256, 512};
   // bias data
   std::vector<int64_t> bias_data = {0};
   //golden
   std::vector<float> golden = {1.5, 1.5, 1.5, 1.5, 3,   3, 3,   3,
                                1.5, 3,   4.5, 6,   1.5, 3, 4.5, 6};
 
-  auto input_tensor = graph->CreateTensor(input_spec,input_data.data());
+  auto input_tensor = graph->CreateTensor(input_spec, input_data.data());
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
   auto output_tensor = graph->CreateTensor(output_spec);
 
@@ -1793,8 +1796,8 @@ TEST(Conv2d, shape_4_2_2_2_int16_DFPQuantizedTest){
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1812,16 +1815,16 @@ TEST(Conv2d, shape_4_2_2_2_int16_DFPQuantizedTest){
   }
   std::vector<int16_t> output(output_size);
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
- //transform output(int16) to fp
+  //transform output(int16) to fp
   std::vector<float> f;
-  for(const auto& q : output){
-    f.push_back( q / (float)((int64_t)1 << fl_output));
+  for (const auto& q : output) {
+    f.push_back(q / (float)((int64_t)1 << fl_output));
   }
   EXPECT_EQ(golden, f);
 }
 TEST(Conv2d, shape_4_2_1_1_int16_DFPQuantizedTest) {
   auto ctx = tim::vx::Context::Create();
-  if(ctx->isClOnly()) GTEST_SKIP();
+  if (ctx->isClOnly()) GTEST_SKIP();
   auto graph = ctx->CreateGraph();
 
   tim::vx::ShapeType input_shape({4, 2, 1, 1});   //whcn
@@ -1829,32 +1832,34 @@ TEST(Conv2d, shape_4_2_1_1_int16_DFPQuantizedTest) {
   tim::vx::ShapeType bias_shape({weight_shape[3]});
   tim::vx::ShapeType output_shape(
       {4, 2, weight_shape[3], input_shape[3]});  //whcn
-  int8_t fl_input = 9, fl_weight = 8, fl_bias = 17,fl_output = 8;
+  int8_t fl_input = 9, fl_weight = 8, fl_bias = 17, fl_output = 8;
 
-  tim::vx::Quantization quant_input(tim::vx::QuantType::DYNAMIC_FIXED_POINT, fl_input);
-  tim::vx::Quantization quant_weight(tim::vx::QuantType::DYNAMIC_FIXED_POINT, fl_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::DYNAMIC_FIXED_POINT, fl_bias);
-  tim::vx::Quantization quant_output(tim::vx::QuantType::DYNAMIC_FIXED_POINT, fl_output);
+  tim::vx::Quantization quant_input(tim::vx::QuantType::DYNAMIC_FIXED_POINT,
+                                    fl_input);
+  tim::vx::Quantization quant_weight(tim::vx::QuantType::DYNAMIC_FIXED_POINT,
+                                     fl_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::DYNAMIC_FIXED_POINT,
+                                   fl_bias);
+  tim::vx::Quantization quant_output(tim::vx::QuantType::DYNAMIC_FIXED_POINT,
+                                     fl_output);
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT16, input_shape,
-                                     tim::vx::TensorAttribute::INPUT,
-                                     quant_input);
+                                 tim::vx::TensorAttribute::INPUT, quant_input);
   tim::vx::TensorSpec weight_spec(tim::vx::DataType::INT16, weight_shape,
-                                      tim::vx::TensorAttribute::CONSTANT,
-                                      quant_weight);
+                                  tim::vx::TensorAttribute::CONSTANT,
+                                  quant_weight);
   tim::vx::TensorSpec bias_spec(tim::vx::DataType::INT64, bias_shape,
-                                      tim::vx::TensorAttribute::CONSTANT,
-                                      quant_bias);
+                                tim::vx::TensorAttribute::CONSTANT, quant_bias);
   tim::vx::TensorSpec output_spec(tim::vx::DataType::INT16, output_shape,
-                                      tim::vx::TensorAttribute::OUTPUT,
-                                      quant_output);
+                                  tim::vx::TensorAttribute::OUTPUT,
+                                  quant_output);
   // Input data  nchw
-  std::vector<float> input_data_float= {
+  std::vector<float> input_data_float = {
       1, 1, 1, 1,  // row = 1
       2, 2, 3, 2   // row = 2
   };
 
   // weight data   oihw
-  std::vector<float> weight_data_float= {
+  std::vector<float> weight_data_float = {
       1,  2,  3,  4,  //first 2x2 filter
       -1, 1,  -1, 1,  // second 2x2 filter
       -1, -1, 1,  1,  // third 2x2 filter
@@ -1865,24 +1870,18 @@ TEST(Conv2d, shape_4_2_1_1_int16_DFPQuantizedTest) {
 
   // nchw
   std::vector<float> golden = {// first channel
-                               18, 22, 21, 8,  7, 9, 8, 3,
+                               18, 22, 21, 8, 7, 9, 8, 3,
                                // second channel
-                               2,  3,  1,  -1, 2, 3, 1, 0,
+                               2, 3, 1, -1, 2, 3, 1, 0,
                                // third channel
-                               5,  6,  6,  4, -1, -2, -2, 1};
+                               5, 6, 6, 4, -1, -2, -2, 1};
 
-  std::vector<int16_t> input_data = {
-    512, 512, 512, 512,
-    1024,1024,1536,1024
-  };
-  std::vector<int16_t> weight_data = {
-    256,512,768,1024,
-    -256,256,-256,256,
-    -256,-256,256,256
-  };
-  std::vector<int64_t> bias_data = {
-    1<<fl_bias, 2*(1<<fl_bias),3*(1<<fl_bias)
-  };
+  std::vector<int16_t> input_data = {512,  512,  512,  512,
+                                     1024, 1024, 1536, 1024};
+  std::vector<int16_t> weight_data = {256,  512, 768,  1024, -256, 256,
+                                      -256, 256, -256, -256, 256,  256};
+  std::vector<int64_t> bias_data = {1 << fl_bias, 2 * (1 << fl_bias),
+                                    3 * (1 << fl_bias)};
 
   auto input_tensor = graph->CreateTensor(input_spec, input_data.data());
   auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
@@ -1894,8 +1893,8 @@ TEST(Conv2d, shape_4_2_1_1_int16_DFPQuantizedTest) {
   std::array<uint32_t, 2> stride({1, 1});
   std::array<uint32_t, 2> dilation({0, 0});
 
-  auto conv2d = graph->CreateOperation<tim::vx::ops::Conv2d>(
-      padding, stride, dilation);
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(padding, stride, dilation);
   (*conv2d)
       .BindInput(input_tensor)
       .BindInput(weight_tensor)
@@ -1916,8 +1915,8 @@ TEST(Conv2d, shape_4_2_1_1_int16_DFPQuantizedTest) {
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   //transform output(int16) to fp
   std::vector<float> f;
-  for(const auto& q : output){
-    f.push_back( q / (float)((int64_t)1 << fl_output));
+  for (const auto& q : output) {
+    f.push_back(q / (float)((int64_t)1 << fl_output));
   }
   EXPECT_EQ(golden, f);
 }
@@ -1926,7 +1925,7 @@ TEST(Conv2d, kernel_bigger_than_input_SAME) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({2, 3, 1, 1});  //whcn
+  tim::vx::ShapeType input_shape({2, 3, 1, 1});   //whcn
   tim::vx::ShapeType kernel_shape({3, 2, 1, 1});  //whio
   tim::vx::ShapeType bias_shape({1});
   tim::vx::ShapeType output_shape({2, 3, 1, 1});
@@ -1939,13 +1938,16 @@ TEST(Conv2d, kernel_bigger_than_input_SAME) {
   tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
                                   tim::vx::TensorAttribute::OUTPUT);
 
-  std::vector<float> input_data = {1.0f, 3.0f, 4.0f, 2.0f, 2.0f, 3.0f,
-                                };
-  std::vector<float> weight = {100.0f, 20.0f, 1.0f, 200.0f, 10.0f, 2.0f,
-                               };
+  std::vector<float> input_data = {
+      1.0f, 3.0f, 4.0f, 2.0f, 2.0f, 3.0f,
+  };
+  std::vector<float> weight = {
+      100.0f, 20.0f, 1.0f, 200.0f, 10.0f, 2.0f,
+  };
   std::vector<float> bias = {500.0f};
-  std::vector<float> golden = {567.0f,  1480.0f, 608.0f,  1370.0f,
-                               543.0f,  760.0f, };
+  std::vector<float> golden = {
+      567.0f, 1480.0f, 608.0f, 1370.0f, 543.0f, 760.0f,
+  };
   auto input_tensor = graph->CreateTensor(input_spec);
   auto weight_tensor = graph->CreateTensor(kernel_spec, weight.data());
   auto bias_tensor = graph->CreateTensor(bias_spec, bias.data());
@@ -1956,7 +1958,9 @@ TEST(Conv2d, kernel_bigger_than_input_SAME) {
   auto op = graph->CreateOperation<tim::vx::ops::Conv2d>(
       tim::vx::PadType::SAME, strides, dilations, 0, tim::vx::DataLayout::WHCN,
       tim::vx::DataLayout::IcWHOc);
-  (*op).BindInputs({input_tensor, weight_tensor, bias_tensor}).BindOutputs({output_tensor});
+  (*op)
+      .BindInputs({input_tensor, weight_tensor, bias_tensor})
+      .BindOutputs({output_tensor});
 
   EXPECT_TRUE(graph->Compile());
 

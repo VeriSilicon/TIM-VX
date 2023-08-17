@@ -28,6 +28,10 @@ if(${TIM_VX_CODE_COVERAGE})
     set(CMAKE_C_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage")
 endif()
 
+if(${TIM_VX_ENABLE_PLATFORM})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PLATFORM")
+endif()
+
 if(${TIM_VX_ENABLE_PLATFORM_LITE})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PLATFORM_LITE")
 endif()
@@ -94,6 +98,8 @@ if(TIM_VX_ENABLE_TEST)
         FetchContent_Populate(googletest)
         add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
     endif()
+
+    include_directories(third_party/half)
 endif()
 
 if(TIM_VX_ENABLE_GRPC)

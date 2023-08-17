@@ -1,0 +1,309 @@
+name: self-hosted build and check
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    branches: [ main ]
+    
+jobs:
+  self-PC-build:
+    runs-on: 
+      - self-hosted
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Compilation Process
+        run: |
+          current_date=`date -d "8 hours" +%Y%m%d"_"%H%M`
+          cp -rvf ${{ github.workspace }} /home/vip_sqa/build
+          cd /home/vip_sqa/build
+
+          rm -rf /home/vip_sqa/build_case/result/*
+
+          docker run -id -v /home/vip_sqa/build:/GPU_SQA/build -v /home/vip_sqa/build_case:/GPU_SQA/to_test --name ${current_date} gpu_sqa
+          docker exec ${current_date} bash -c "cd /GPU_SQA/script; source build_case.sh ${current_date}; chmod 777 -R /GPU_SQA/to_test/${current_date}; rm -rf /GPU_SQA/build/*"
+          docker stop ${current_date}
+          docker rm ${current_date}
+         
+
+  TIM-VX:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build]
+
+    steps:
+      - name: check_TIM-VX_result
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/TIM-VX_unit_test_qua.txt ]];then
+                  total_num=`cat /home/vip_sqa/build_case/result/TIM-VX_unit_test_qua.txt | grep "Total" | awk -F ':' '{print $2}' | sed 's/ //g'`
+                  pass_num=`cat /home/vip_sqa/build_case/result/TIM-VX_unit_test_qua.txt | grep "Pass" | awk -F ':' '{print $2}' | sed 's/ //g'`
+                  known_issue_num=`cat /home/vip_sqa/build_case/result/TIM-VX_unit_test_qua.txt | grep "known_issue" | awk -F ':' '{print $2}' | sed 's/ //g'`
+                  if [[ "$(($pass_num+$known_issue_num))" == "$total_num" ]];then
+                      break
+                  else
+                      exit 1
+                  fi
+              fi
+              echo 'Waiting for the results of TIM-VX. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+          
+  inception_v3_quant:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_inception_v3_quant.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_inception_v3_quant.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+    
+  mobilenet_v2_b8_quant:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_mobilenet_v2_b8_quant.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_mobilenet_v2_b8_quant.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Wait a minute.'
+              sleep 60
+          done
+
+  mobilenet_v2_quant:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_mobilenet_v2_quant.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_mobilenet_v2_quant.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+
+  mobilenet_v3_b4_quant:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_mobilenet_v3_b4_quant.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_mobilenet_v3_b4_quant.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+
+  mobilenet_v3_quant:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_mobilenet_v3_quant.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_mobilenet_v3_quant.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+
+  mv3_depth_quant:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_mv3_depth_quant.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_mv3_depth_quant.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+
+  resnet_quant:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_resnet_quant.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_quant.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+
+  tfhub-efficientdet-lite0:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_tfhub-efficientdet-lite0.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_tfhub-efficientdet-lite0.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+
+  tfhub-efficientdet-lite1:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_tfhub-efficientdet-lite1.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_tfhub-efficientdet-lite1.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+  
+  tfhub-efficientdet-lite2:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_tfhub-efficientdet-lite2.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_tfhub-efficientdet-lite2.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done
+
+  yolo_v4_tiny_quant:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX]
+    
+    steps:
+      - name: check_tflite-vx-delegate_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/public_model_yolo_v4_tiny_quant.txt ]];then
+                  if [[ `grep -inE "fail|GPU hang|Memory fault|Out of memory|Call trace|aborted|Segmentation fault" /home/vip_sqa/build_case/result/public_model_yolo_v4_tiny_quant.txt` ]];then
+                      exit 1
+                  else
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done     
+          
+  private_model:
+    runs-on: 
+      - self-hosted
+    needs: [self-PC-build,TIM-VX,yolo_v4_tiny_quant,tfhub-efficientdet-lite2,tfhub-efficientdet-lite1,tfhub-efficientdet-lite0,resnet_quant,mv3_depth_quant,mobilenet_v3_quant,mobilenet_v3_b4_quant,mobilenet_v2_quant,mobilenet_v2_b8_quant,inception_v3_quant]
+    
+    steps:
+      - name: check_tflite-vx-delegate_private_model
+        run: |
+          while true
+          do
+              if [[ -e /home/vip_sqa/build_case/result/private_model_qua.txt ]];then
+                  crash_num=`cat /home/vip_sqa/build_case/result/private_model_qua.txt | grep -i "crash" | awk -F ':' '{print $2}' | sed 's/ //g'`
+                  fail_num=`cat /home/vip_sqa/build_case/result/private_model_qua.txt | grep -i "fail" | awk -F ':' '{print $2}' | sed 's/ //g'`
+                  if [[ "$crash_num" -gt 0 || "$fail_num" -gt 0 ]];then
+                      exit 1
+                  else
+                      echo "tflite-vx-delegate_private_model successful."
+                      break
+                  fi
+              fi
+              echo 'Waiting for the results of tflite-vx-delegate_model. Waiting 1 minutes for next check...'
+              sleep 60
+          done 

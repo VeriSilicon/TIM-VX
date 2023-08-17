@@ -99,12 +99,9 @@ class Conv2d : public BuiltinOp {
   const int32_t multiplier_;
   const DataLayout kernel_layout_;
 
-#if defined(__clang__) && (__clang_major__ >= 15)
-#define TIM_VX_OPS_CONV2D_WITH_F16BIAS 1
  private:
   void OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor,
                            int32_t input_idx) override;
-#endif
 };
 
 }  // namespace ops

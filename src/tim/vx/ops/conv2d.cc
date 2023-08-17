@@ -42,8 +42,8 @@ Conv2d::Conv2d(Graph* graph, const std::array<uint32_t, 4> pad,
                const std::array<uint32_t, 2>& stride,
                const std::array<uint32_t, 2>& dilation, int32_t multiplier,
                DataLayout input_layout, DataLayout kernel_layout)
-    : Conv2d(graph, 0, PadType::AUTO, {0, 0}, stride, dilation, pad,
-             multiplier, input_layout, kernel_layout) {}
+    : Conv2d(graph, 0, PadType::AUTO, {0, 0}, stride, dilation, pad, multiplier,
+             input_layout, kernel_layout) {}
 
 Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
                const std::array<uint32_t, 2>& ksize,
@@ -88,41 +88,33 @@ std::shared_ptr<Operation> Conv2d::Clone(std::shared_ptr<Graph>& graph) const {
       this->kernel_layout_);
 }
 
-const std::vector<std::shared_ptr<Tensor>> Conv2d::ConstantInputsTensor() const {
-   if (this->IsAllInputsConst()) {
+const std::vector<std::shared_ptr<Tensor>> Conv2d::ConstantInputsTensor()
+    const {
+  if (this->IsAllInputsConst()) {
     return {this->impl_->inputs_tensor_[0]};
   } else {
     return {};
   }
 }
 
-// Handle float16 bias if clang compiler is no less than 15.0.0 version
-#ifdef TIM_VX_OPS_CONV2D_WITH_F16BIAS
+// Handle float16 bias
 void Conv2d::OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor,
                                  int32_t input_idx) {
   if (tensor->GetDataType() == vx::DataType::FLOAT16 &&
       tensor->IsConstTensor() && impl_->inputs_tensor_.size() == 3) {
-    uint32_t bias_size = 1;
-    for (auto i : tensor->GetShape()) {
-      bias_size *= i;
-    }
-    std::vector<_Float16> in(bias_size);
-    tensor->CopyDataFromTensor(in.data());
+    float* float32_bias = tensor->ConvertTensorToFloat32Data();
 
-    std::vector<float> out(bias_size);
-    for (uint i = 0; i < bias_size; i++) {
-      out[i] = static_cast<float>(in[i]);
-    }
     TensorSpec fp32bias_spec(tim::vx::DataType::FLOAT32, tensor->GetShape(),
                              tim::vx::TensorAttribute::CONSTANT);
-    auto out_tensor = impl_->graph_->CreateTensor(fp32bias_spec, out.data());
+
+    auto out_tensor = impl_->graph_->CreateTensor(fp32bias_spec, float32_bias);
+    vsi_nn_Free(float32_bias);
 
     impl_->inputs_tensor_[2] = out_tensor;
     impl_->node()->input.tensors[input_idx] = out_tensor->GetId();
     impl_->graph_->RenewTensorConsumersMap(tensor, out_tensor, this);
   }
 }
-#endif
 
 }  // namespace ops
 }  // namespace vx
