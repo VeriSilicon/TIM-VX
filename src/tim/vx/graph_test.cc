@@ -92,14 +92,16 @@ TEST(graph, gen_binary_graph_with_simple_add) {
 }
 
 #ifdef ENABLE_API_TRACE
-#define API_REPLAYER_IMPLEMENTATION
-#define API_TRACER_IMPLEMENTATION
+#define API_REPLAYER_IMPLEMENTATION // enable static members in api replayer
+#define API_TRACER_IMPLEMENTATION   // enable static members in api tracer
 #define TARGET_NAMESPACE_NAME "tim::vx"
 #include "tim/experimental/trace/trace_tvx.h"
 
 namespace tvx = trace;
 
 TEST(graph, trace_test) {
+    // Replace all tim::vx name space with tvx, tvx can be alias of trace
+    // namespace.
     auto ctx = tvx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -135,6 +137,13 @@ TEST(graph, trace_test) {
     EXPECT_TRUE(output_t0->CopyDataFromTensor(output.data()));
     EXPECT_EQ(output, expected_out);
 
+    // extra test for Quantization apis
+    tvx::Quantization quant0;
+    quant0.SetType(tvx::QuantType::ASYMMETRIC);
+    quant0.SetChannelDim(1);
+    quant0.SetScales(std::vector<float>({0.2, 0.3}));
+    quant0.SetZeroPoints(std::vector<int32_t>({2, 3}));
+
 }
 
 TEST(graph, replay_test) {
@@ -144,7 +153,7 @@ TEST(graph, replay_test) {
      * rename with trace_bin.rpl.bin
      */
 
-    #include "trace_log.rpl.cc"
+    // #include "trace_log.rpl.cc"
     // manual compile and run the selected graph, like:
     // graph_12->Compile();
     // graph_12->Run();
