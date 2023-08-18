@@ -213,6 +213,62 @@ float* TensorImpl::ConvertTensorToFloat32Data() {
       graph_->graph(), vsi_nn_GetTensor(graph_->graph(), id_));
 }
 
+bool TensorImpl::SwapHandle(void* new_ptr, bool is_new_ptr_malloc_by_ovxlib,
+                            void** old_ptr) {
+  bool retn = true;
+  if (VSI_NN_TENSOR_ID_NA != id_) {
+    retn = false;
+    vsi_nn_tensor_t* tensor = vsi_nn_GetTensor(graph_->graph(), id_);
+    if (tensor && tensor->attr.is_created_from_handle) {
+      retn = (VSI_SUCCESS == vsi_nn_SwapHandle(tensor, new_ptr,
+                                               is_new_ptr_malloc_by_ovxlib,
+                                               old_ptr));
+      if (!retn) {
+        VSILOGE("SwapHandle fail");
+      }
+    }
+  }
+  return retn;
+}
+
+bool TensorImpl::SwapHandle(std::shared_ptr<tim::vx::Tensor> tensor) {
+  bool retn = true;
+  if (VSI_NN_TENSOR_ID_NA != id_) {
+    retn = false;
+    vsi_nn_tensor_t* tensor0 = vsi_nn_GetTensor(graph_->graph(), id_);
+    vsi_nn_tensor_t* tensor1 =
+        vsi_nn_GetTensor(graph_->graph(), tensor->GetId());
+    if (tensor0 && tensor0->attr.is_created_from_handle && tensor1 &&
+        tensor1->attr.is_created_from_handle) {
+      retn = (VSI_SUCCESS == vsi_nn_SwapTensorHandle(tensor0, tensor1));
+      if (!retn) {
+        VSILOGE("SwapHandle fail");
+      }
+    }
+  }
+  return retn;
+}
+
+#ifdef VSI_SWAP_HANDLE_CACHE_SUPPORT
+bool TensorImpl::SwapHandleWithCache(std::shared_ptr<tim::vx::Tensor> tensor) {
+  bool retn = true;
+  if (VSI_NN_TENSOR_ID_NA != id_) {
+    retn = false;
+    vsi_nn_tensor_t* tensor0 = vsi_nn_GetTensor(graph_->graph(), id_);
+    vsi_nn_tensor_t* tensor1 =
+        vsi_nn_GetTensor(graph_->graph(), tensor->GetId());
+    if (tensor0 && tensor0->attr.is_created_from_handle && tensor1 &&
+        tensor1->attr.is_created_from_handle) {
+      retn = (VSI_SUCCESS == vsi_nn_SwapTensorHandleWithCache(graph_->graph(), tensor0, tensor1));
+      if (!retn) {
+        VSILOGE("SwapHandle fail");
+      }
+    }
+  }
+  return retn;
+}
+#endif
+
 bool TensorImpl::FlushCacheForHandle() {
   if (!(spec_.attr_ & TensorAttribute::INPUT)) {
     return false;
