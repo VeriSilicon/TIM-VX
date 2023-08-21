@@ -208,6 +208,9 @@ void vsi_nn_PrintNode
             " %d,", node->input.tensors[i] );
     }
     count --;
+    if (count >= _MAX_PRINT_BUF_SZ) {
+        return;
+    }
     count += snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
         "%s", " ], [out:" );
     for( i = 0; i < node->output.num; i ++ )
@@ -220,6 +223,9 @@ void vsi_nn_PrintNode
             " %d,", node->output.tensors[i] );
     }
     count --;
+    if (count >= _MAX_PRINT_BUF_SZ) {
+        return;
+    }
     count += snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
         "%s", " ]" );
     VSILOGI( "(%16s)node[%u] %s [%08x]", vsi_nn_OpGetName(node->op), id, buf, node->n );
