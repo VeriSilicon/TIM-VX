@@ -153,6 +153,8 @@
   (UnidirectionalSequenceRnnExt)                                               \
   (Unstack)                                                                    \
   (Conv3d)                                                                     \
+  (CumSum)                                                                     \
+  (LocalResponseNormalization)                                                 \
   (CustomOpBase)                                                               \
   (Topk)                                                                       \
   (BidirectionalSequenceLstm)                                                  \
