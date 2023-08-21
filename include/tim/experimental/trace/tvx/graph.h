@@ -108,7 +108,7 @@ struct Graph : public TraceClassBase<target::Graph> {
       uint32_t offset =                                                        \
           Tracer::dump_data(                                                   \
               BOOST_PP_SEQ_ELEM(1, params), sizeof(char), count);              \
-      LOGGING_POINTER_MSG(offset, count, 0)                                    \
+      LOGGING_POINTER_MSG(offset, count, 1)                                    \
     }
 
   // DEF_MEMFN_SP(Tensor,
