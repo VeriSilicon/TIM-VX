@@ -29,6 +29,8 @@ namespace vx {
 
 enum class DataType {
   UNKNOWN,
+  INT4,
+  UINT4,
   INT8,
   UINT8,
   INT16,
