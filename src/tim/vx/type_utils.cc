@@ -27,6 +27,10 @@ namespace tim {
 namespace vx {
 vsi_nn_type_e TranslateDataType(DataType dtype) {
   switch (dtype) {
+    case DataType::INT4:
+        return VSI_NN_TYPE_INT4;
+    case DataType::UINT4:
+        return VSI_NN_TYPE_UINT4;
     case DataType::INT8:
       return VSI_NN_TYPE_INT8;
     case DataType::UINT8:
