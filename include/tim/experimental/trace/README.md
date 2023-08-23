@@ -7,8 +7,9 @@ There is a simple case using api trace in `src/tim/vx/graph_test.cc` which named
 1. You need set the cmake option `-DTIM_VX_ENABLE_API_TRACE=1` at first, and rebuild;
 2. Setting up the run time environments for tim-vx, then execute `$build/install/bin/unit-test --gtest_filter=*trace_test*`;
 3. `trace_log.cc` and `trace_bin.bin` will generate in the workspace, first one is the tim-vx code record the all api calls and function's runtime parameters, second one is serializable data like std::vector data. You can set the environment `TRACE_DUMP_PREFIX` to control will to dump those file;
-4. Copy `trace_log.cc` to the root of tim-vx source code, and rename it with `trace_log.rpl.cc`, then follow the guide in `src/tim/vx/graph_test.cc`.
+4. Copy `trace_log.cc` to the root of tim-vx source code, and rename it with `trace_log.rpl.cc`, then follow the guide in `src/tim/vx/graph_test.cc`: test case - **replay_test**.
 5. Rebuild unit-test, execute `$build/install/bin/unit-test --gtest_filter=*replay_test*`, you will get the exactly same result with traced execution.
+**Caution**: if your boost library version lower than 1.61.0, you can't compile tracer because lack of boost.hana library, but you can still comiple the replayer code(disable ENABLE_API_TRACE).
 
 ## Coding work
 ApiTracer was implemented by warp original Apis in traced Apis, they got same class names, same function names, but different namespace. So you need implement the traced Apis for specific programs at first.

@@ -23,8 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
-#include "tim/vx/ops/elementwise.h"
-#include "tim/vx/ops/nbg.h"
+#include "tim/vx/ops.h"
 
 #include "gtest/gtest.h"
 
@@ -91,8 +90,9 @@ TEST(graph, gen_binary_graph_with_simple_add) {
     EXPECT_EQ(output, expected_out);
 }
 
+// You can disable compile trace_test if only need replay
+// #undef ENABLE_API_TRACE
 #ifdef ENABLE_API_TRACE
-#define API_REPLAYER_IMPLEMENTATION // enable static members in api replayer
 #define API_TRACER_IMPLEMENTATION   // enable static members in api tracer
 #define TARGET_NAMESPACE_NAME "tim::vx"
 #include "tim/experimental/trace/trace_tvx.h"
@@ -145,19 +145,28 @@ TEST(graph, trace_test) {
     quant0.SetZeroPoints(std::vector<int32_t>({2, 3}));
 
 }
+#endif /* #ifdef ENABLE_API_TRACE */
 
+
+/*******************************************************************************
+ * How to replay a trace_log.cc:
+ * 1. Copy trace_log.cc in the root dir of tim-vx, rename with trace_log.rpl.cc
+ * 2. And copy the trace_bin.bin file to the runtime workspace,
+ *    rename with trace_bin.rpl.bin
+ * 3. (optional) Add compile and run api call for specific graph
+ * 4. Set follows 0->1 and re-compile.
+ ******************************************************************************/
+#if 0
+#define API_REPLAYER_IMPLEMENTATION // enable static members in api replayer
+#include "tim/experimental/trace/replayer.h"
 TEST(graph, replay_test) {
-    /* 
-     * Copy trace_log.cc in the root dir of tim-vx, rename with trace_log.rpl.cc
-     * and copy the trace_bin.bin file to the runtime workspace,
-     * rename with trace_bin.rpl.bin
-     */
-
-    // #include "trace_log.rpl.cc"
-    // manual compile and run the selected graph, like:
+    #include "trace_log.rpl.cc"
+    // Manual compile and run the selected graph if those api calls not exist.
+    // Like:
     // graph_12->Compile();
     // graph_12->Run();
-    // Last rebuild unit-test and execute this case
+    // Last rebuild unit-test and execute this case with:
+    // `$build/install/bin/unit-test --gtest_filter=*replay_test*`
 }
 
-#endif /* #ifdef ENABLE_API_TRACE */
+#endif /* #if 0 */
