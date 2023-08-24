@@ -29,8 +29,6 @@ namespace vx {
 
 enum class DataType {
   UNKNOWN,
-  INT4,
-  UINT4,
   INT8,
   UINT8,
   INT16,
@@ -40,7 +38,9 @@ enum class DataType {
   INT64,
   FLOAT16,
   FLOAT32,
-  BOOL8
+  BOOL8,
+  INT4,
+  UINT4
 };
 
 enum class QuantType { NONE, ASYMMETRIC, SYMMETRIC_PER_CHANNEL, DYNAMIC_FIXED_POINT };
