@@ -34,7 +34,7 @@ struct TensorSpec {
 
   TensorSpec& SetDataType(DataType datatype);
 
-  TensorSpec& SetShape(ShapeType& shape);
+  TensorSpec& SetShape(const ShapeType& shape);
 
   TensorSpec& SetAttribute(TensorAttribute attr);
   ...

@@ -401,7 +401,7 @@ TensorSpec& TensorSpec::SetDataType(DataType datatype) {
   return *this;
 }
 
-TensorSpec& TensorSpec::SetShape(ShapeType& shape) {
+TensorSpec& TensorSpec::SetShape(const ShapeType& shape) {
   this->shape_ = shape;
   return *this;
 }
