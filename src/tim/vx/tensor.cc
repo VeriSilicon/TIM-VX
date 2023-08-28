@@ -249,8 +249,8 @@ bool TensorImpl::SwapHandle(std::shared_ptr<tim::vx::Tensor> tensor) {
   return retn;
 }
 
-#ifdef VSI_SWAP_HANDLE_CACHE_SUPPORT
 bool TensorImpl::SwapHandleWithCache(std::shared_ptr<tim::vx::Tensor> tensor) {
+#ifdef VSI_SWAP_HANDLE_CACHE_SUPPORT
   bool retn = true;
   if (VSI_NN_TENSOR_ID_NA != id_) {
     retn = false;
@@ -266,8 +266,12 @@ bool TensorImpl::SwapHandleWithCache(std::shared_ptr<tim::vx::Tensor> tensor) {
     }
   }
   return retn;
-}
+#else
+  (void)tensor;
+  VSILOGE("Your ovxlib DO NOT support vsi_nn_SwapTensorHandleWithCache API");
+  return false;
 #endif
+}
 
 bool TensorImpl::FlushCacheForHandle() {
   if (!(spec_.attr_ & TensorAttribute::INPUT)) {
