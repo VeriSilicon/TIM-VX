@@ -149,6 +149,12 @@ class Tensor {
   virtual bool CopyDataToTensor(const void* data,
                                 uint32_t size_in_bytes = 0) = 0;
   virtual bool CopyDataFromTensor(void* data) = 0;
+  virtual bool SwapHandle(void* new_ptr, bool is_new_ptr_malloc_by_ovxlib,
+                          void** old_ptr) = 0;
+  virtual bool SwapHandle(std::shared_ptr<tim::vx::Tensor> tensor) = 0;
+#ifdef VSI_SWAP_HANDLE_CACHE_SUPPORT
+  virtual bool SwapHandleWithCache(std::shared_ptr<tim::vx::Tensor> tensor) = 0;
+#endif
   virtual bool FlushCacheForHandle() = 0;
   virtual bool InvalidateCacheForHandle() = 0;
   virtual void* map(bool invalidate_cpu_cache = false) = 0;
