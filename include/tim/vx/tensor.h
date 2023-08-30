@@ -102,6 +102,8 @@ struct TensorSpec {
 
   TensorSpec(const TensorSpec& other);
 
+  bool operator==(const TensorSpec& other_spec) const;
+
   TensorSpec& operator=(const TensorSpec& other);
 
   TensorSpec& SetDataType(DataType datatype);

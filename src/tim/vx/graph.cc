@@ -142,10 +142,7 @@ std::shared_ptr<Tensor> GraphImpl::GetTensorFromCache(const TensorSpec& spec,
   std::shared_ptr<tim::vx::Tensor> tensor;
   std::string md5_key = CalculateCacheKey(spec, data);
   if (GetTensorCacheMap().find(md5_key) != GetTensorCacheMap().end() &&
-      GetTensorCacheMap()[md5_key]->GetQuantization().Scales() ==
-          spec.quantization_.Scales() &&
-      GetTensorCacheMap()[md5_key]->GetQuantization().ZeroPoints() ==
-          spec.quantization_.ZeroPoints()) {
+      GetTensorCacheMap()[md5_key]->GetSpec() == spec) {
     tensor = GetTensorCacheMap()[md5_key];
   } else {
     tensor = std::make_shared<TensorImpl>(this, spec, data);

@@ -508,6 +508,15 @@ int64_t TensorSpec::GetByteSize() const {
   return GetElementNum() * GetElementByteSize();
 }
 
+bool TensorSpec::operator==(const TensorSpec& other_spec) const {
+  if (datatype_ == other_spec.datatype_ && shape_ == other_spec.shape_ &&
+      attr_ == other_spec.attr_ && quantization_ == other_spec.quantization_) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool Quantization::operator==(const Quantization& other_quant) const {
   if (type_ != tim::vx::QuantType::DYNAMIC_FIXED_POINT) {
     if (type_ == other_quant.type_ && scales_ == other_quant.scales_ &&
