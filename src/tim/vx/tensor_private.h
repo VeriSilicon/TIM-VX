@@ -51,9 +51,7 @@ class TensorImpl : public Tensor {
   bool SwapHandle(void* new_ptr, bool is_new_ptr_malloc_by_ovxlib,
                   void** old_ptr) override;
   bool SwapHandle(std::shared_ptr<tim::vx::Tensor> tensor) override;
-#ifdef VSI_SWAP_HANDLE_CACHE_SUPPORT
   bool SwapHandleWithCache(std::shared_ptr<tim::vx::Tensor> tensor) override;
-#endif
   bool FlushCacheForHandle() override;
   bool InvalidateCacheForHandle() override;
   void* map(bool invalidate_cpu_cache = false) override;
@@ -101,12 +99,10 @@ class TensorPlaceholder : public Tensor {
     (void)tensor;
     return false;
   }
-#ifdef VSI_SWAP_HANDLE_CACHE_SUPPORT
   bool SwapHandleWithCache(std::shared_ptr<tim::vx::Tensor> tensor) override {
     (void)tensor;
     return false;
   }
-#endif
   bool InvalidateCacheForHandle() override { return false; }
   bool FlushCacheForHandle() override { return false; }
   void* map(bool invalidate_cpu_cache = false) override {
