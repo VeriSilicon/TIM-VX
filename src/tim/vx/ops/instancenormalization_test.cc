@@ -32,7 +32,7 @@ TEST(InstanceNorm, shape_2_2_2_2_float) {
     auto graph = ctx->CreateGraph();
 
     tim::vx::ShapeType io_shape({2, 2, 2, 2}); //nchw
-    tim::vx::ShapeType param_shape({1});
+    tim::vx::ShapeType param_shape({2});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
                             io_shape, tim::vx::TensorAttribute::INPUT);
     tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
@@ -48,8 +48,8 @@ TEST(InstanceNorm, shape_2_2_2_2_float) {
     std::vector<float> in_data = {
         0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 2.0f, 4.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 2.0f, -2.0f, 4.0f
     };
-    std::vector<float> gamma = {1.0f};
-    std::vector<float> beta = {0};
+    std::vector<float> gamma = {1.0f, 1.0f};
+    std::vector<float> beta = {.0f, .0f};
     std::vector<float> golden = {
         0.0f, 0.0f, 0.0f, 0.0f, -1.1470304f, -0.22940612f, -0.22940612f, 1.6058424f, 0.99995005f,
         -0.99995005f, -0.99995005f, 0.99995005f, -0.7337929f, 0.52413774f, -1.1531031f, 1.3627582f
