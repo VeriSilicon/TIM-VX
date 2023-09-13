@@ -45,6 +45,24 @@ std::shared_ptr<Operation> FullyConnected::Clone(
   return graph->CreateOperation<FullyConnected>(this->axis_, this->weights_);
 }
 
+void FullyConnected::OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor,
+                           int32_t input_idx) {
+  if (tensor->GetDataType() == vx::DataType::FLOAT16 &&
+      tensor->IsConstTensor() && impl_->inputs_tensor_.size() == 3) {
+    float* float32_bias = tensor->ConvertTensorToFloat32Data();
+
+    TensorSpec fp32bias_spec(tim::vx::DataType::FLOAT32, tensor->GetShape(),
+                             tim::vx::TensorAttribute::CONSTANT);
+
+    auto out_tensor = impl_->graph_->CreateTensor(fp32bias_spec, float32_bias);
+    vsi_nn_Free(float32_bias);
+
+    impl_->inputs_tensor_[2] = out_tensor;
+    impl_->node()->input.tensors[input_idx] = out_tensor->GetId();
+    impl_->graph_->RenewTensorConsumersMap(tensor, out_tensor, this);
+  }
+}
+
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim

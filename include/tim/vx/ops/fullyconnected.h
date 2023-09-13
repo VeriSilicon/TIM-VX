@@ -33,8 +33,8 @@ namespace ops {
  * ## FullyConnected
  *
  * Denotes a fully (densely) connected layer, which connects all elements in the
- * input tensor with each element in the output tensor. 
- * 
+ * input tensor with each element in the output tensor.
+ *
  * - axis: Describes the axis of the inputs when coerced to 2D.
  * - weights: the output channel number for weight tensor.
  */
@@ -49,6 +49,9 @@ class FullyConnected : public BuiltinOp {
  protected:
   uint32_t axis_;
   uint32_t weights_;
+ private:
+  void OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor,
+                           int32_t input_idx) override;
 };
 
 }  // namespace ops
