@@ -44,10 +44,11 @@ class SliceLayoutInfer : public OpLayoutInfer {
     uint32_t dims = op_->impl()->node()->nn_param.slice.dims;
     const uint32_t* start_ptr = op_->impl()->node()->nn_param.slice.start;
     const uint32_t* length_ptr = op_->impl()->node()->nn_param.slice.length;
-    std::vector<int32_t> start(dims);
-    std::vector<int32_t> length(dims);
-    memcpy(start.data(), start_ptr, dims * sizeof(uint32_t));
-    memcpy(length.data(), length_ptr, dims * sizeof(uint32_t));
+    int rank = src_input->GetShape().size();
+    std::vector<int32_t> start(rank);
+    std::vector<int32_t> length(rank);
+    memcpy(start.data(), start_ptr, rank * sizeof(uint32_t));
+    memcpy(length.data(), length_ptr, rank * sizeof(uint32_t));
     start = MapMultipleAxis(input_pv->AsStdVec(), start);
     length = MapMultipleAxis(input_pv->AsStdVec(), length);
 
