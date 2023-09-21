@@ -1410,6 +1410,24 @@ vsi_bool vsi_nn_SetGraphOutputs
     return ret;
 } /* vsi_nn_SetGraphOutputs() */
 
+vsi_status vsi_nn_SetParameterByIndex
+    (
+    vsi_nn_node_t    * node,
+    uint32_t           idx,
+    vsi_nn_tensor_t  * tensor
+    )
+{
+    vsi_status status;
+    status = VSI_FAILURE;
+
+    status = vxSetParameterByIndex( node->n, idx, (vx_reference)tensor->t );
+    if( VSI_SUCCESS != status )
+    {
+        VSILOGE( "Set parameter %d for node[%08x] fail!", idx, node->n );
+    }
+    return status;
+} /* vsi_nn_SetParameterByIndex() */
+
 vsi_nn_node_id_t * vsi_nn_SortGraphNode
     (
     vsi_nn_graph_t * graph

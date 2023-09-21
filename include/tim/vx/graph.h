@@ -100,6 +100,9 @@ class Graph {
   virtual std::shared_ptr<Operation> GetProducerOp(
       std::shared_ptr<Tensor> tensor) = 0;
 
+  virtual bool SetParameterByIndex(std::shared_ptr<Operation>& op, uint32_t idx,
+                                   std::shared_ptr<Tensor>& tensor) = 0;
+
   virtual void PrintGraph() const = 0;
 
   const std::vector<std::shared_ptr<Tensor>> GetConstantInputs() const;

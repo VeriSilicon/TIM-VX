@@ -80,6 +80,9 @@ class GraphImpl : public Graph {
       std::shared_ptr<Tensor> tensor) const override;
   std::shared_ptr<Operation> GetProducerOp(
       std::shared_ptr<Tensor> tensor) override;
+  bool SetParameterByIndex(std::shared_ptr<Operation>& op, uint32_t idx,
+                                   std::shared_ptr<Tensor>& tensor) override;
+
 
   void PrintGraph() const override;
 

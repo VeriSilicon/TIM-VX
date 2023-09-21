@@ -262,6 +262,16 @@ std::shared_ptr<Operation> GraphImpl::GetProducerOp(
   }
 }
 
+bool GraphImpl::SetParameterByIndex(std::shared_ptr<Operation>& op, uint32_t idx,
+                         std::shared_ptr<Tensor>& tensor) {
+  vsi_nn_tensor_t* vsi_tensor = vsi_nn_GetTensor(graph_, tensor->GetId());
+  bool retn = (VSI_SUCCESS == vsi_nn_SetParameterByIndex(op->impl()->node(), idx, vsi_tensor));
+  if (!retn) {
+    VSILOGE("SetParameterByIndex fail");
+  }
+  return retn;
+}
+
 void GraphImpl::PrintGraph() const { vsi_nn_PrintGraph(this->graph_); }
 
 std::shared_ptr<Tensor> GraphImpl::CreateTensor(const TensorSpec& spec,
