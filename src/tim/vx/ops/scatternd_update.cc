@@ -30,14 +30,12 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-ScatterND_Update::ScatterND_Update(Graph* graph, const std::vector<uint32_t>& shape)
-    : BuiltinOp(graph, VSI_NN_OP_SCATTER_ND_UPDATE), shape_(shape) {
-  this->impl()->node()->nn_param.scatter_nd.dim_num = shape_.size();
-  this->impl()->node()->nn_param.scatter_nd.shape = shape_.data();
+ScatterND_Update::ScatterND_Update(Graph* graph)
+    : BuiltinOp(graph, VSI_NN_OP_SCATTER_ND_UPDATE) {
 }
 
 std::shared_ptr<Operation> ScatterND_Update::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<ScatterND_Update>(this->shape_);
+  return graph->CreateOperation<ScatterND_Update>();
 }
 
 }  // namespace ops

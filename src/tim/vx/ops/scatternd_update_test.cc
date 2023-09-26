@@ -60,8 +60,7 @@ TEST(ScatterND_Update, shape_8) {
         indices_data.data(), indices_data.size()*sizeof(int32_t)));
     EXPECT_TRUE(updates_tensor->CopyDataToTensor(
         updates_data.data(), updates_data.size()*sizeof(float)));
-    std::vector<uint32_t> shape = {8};
-    auto op = graph->CreateOperation<tim::vx::ops::ScatterND_Update>(shape);
+    auto op = graph->CreateOperation<tim::vx::ops::ScatterND_Update>();
     (*op).BindInputs({input_tensor, indices_tensor, updates_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
