@@ -21,31 +21,23 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef TIM_VX_OPS_SCATTERND_UPDATE_H_
-#define TIM_VX_OPS_SCATTERND_UPDATE_H_
-#include "tim/vx/builtin_op.h"
+#include "tim/vx/ops/scatternd_onnx_v16.h"
+
+#include "builtin_op_impl.h"
+#include "vsi_nn_pub.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
-/**
- * ## ScatterND_Update
- *
- * Scatter updates into a new tensor according to indices.
- *
- * - shape : The shape of the resulting tensor. 
- */
+ScatterND_ONNX_V16::ScatterND_Update(Graph* graph)
+    : BuiltinOp(graph, VSI_NN_OP_SCATTER_ND_UPDATE) {
+}
 
-class ScatterND_Update : public BuiltinOp {
- public:
-  ScatterND_Update(Graph* graph);
-
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
-};
+std::shared_ptr<Operation> ScatterND_ONNX_V16::Clone(std::shared_ptr<Graph>& graph) const {
+  return graph->CreateOperation<ScatterND_Update>();
+}
 
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
-
-#endif /* TIM_VX_OPS_SCATTERND_UPDATE_H_ */

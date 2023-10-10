@@ -23,11 +23,11 @@
 *****************************************************************************/
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
-#include "tim/vx/ops/scatternd_update.h"
+#include "tim/vx/ops/scatternd_onnx_v16.h"
 
 #include "gtest/gtest.h"
 
-TEST(ScatterND_Update, shape_8) {
+TEST(ScatterND_ONNX_V16, shape_8) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -60,7 +60,7 @@ TEST(ScatterND_Update, shape_8) {
         indices_data.data(), indices_data.size()*sizeof(int32_t)));
     EXPECT_TRUE(updates_tensor->CopyDataToTensor(
         updates_data.data(), updates_data.size()*sizeof(float)));
-    auto op = graph->CreateOperation<tim::vx::ops::ScatterND_Update>();
+    auto op = graph->CreateOperation<tim::vx::ops::ScatterND_ONNX_V16>();
     (*op).BindInputs({input_tensor, indices_tensor, updates_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
