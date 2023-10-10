@@ -30,12 +30,12 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-ScatterND_ONNX_V16::ScatterND_Update(Graph* graph)
+ScatterND_ONNX_V16::ScatterND_ONNX_V16(Graph* graph)
     : BuiltinOp(graph, VSI_NN_OP_SCATTER_ND_UPDATE) {
 }
 
 std::shared_ptr<Operation> ScatterND_ONNX_V16::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<ScatterND_Update>();
+  return graph->CreateOperation<ScatterND_ONNX_V16>();
 }
 
 }  // namespace ops
