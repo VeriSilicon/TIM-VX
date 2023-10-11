@@ -108,5 +108,6 @@
 #include "tim/vx/ops/max_pool3d.h"
 #include "tim/vx/ops/unidirectional_sequence_gru.h"
 #include "tim/vx/ops/grucell.h"
+#include "tim/vx/ops/scatternd_onnx_v16.h"
 
 #endif /* TIM_VX_OPS_H_ */
