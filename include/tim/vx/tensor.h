@@ -161,7 +161,9 @@ class Tensor {
   virtual void unmap() = 0;
   virtual bool IsPlaceHolder() = 0;
   virtual bool IsConstTensor() = 0;
+  virtual bool IsScalar() = 0;
   virtual bool SaveTensorToTextByFp32(std::string filename) = 0;
+  virtual void SetScalar(int8_t is_scalar) = 0;
   virtual void* ConvertTensorToData(uint8_t* tensorData) = 0;
   virtual float* ConvertTensorToFloat32Data() = 0;
 };

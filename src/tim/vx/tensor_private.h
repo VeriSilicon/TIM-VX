@@ -60,9 +60,14 @@ class TensorImpl : public Tensor {
   bool IsConstTensor() override {
     return spec_.attr_ == tim::vx::TensorAttribute::CONSTANT;
   }
+  bool IsScalar() override {
+    return vsi_nn_GetTensorIsScalar(vsi_nn_GetTensor(graph_->graph(), id_));
+  }
   bool SaveTensorToTextByFp32(std::string filename) override;
   void* ConvertTensorToData(uint8_t* tensorData) override;
   float* ConvertTensorToFloat32Data() override;
+  void SetScalar(int8_t is_scalar) override;
+
   GraphImpl* graph_;
   vsi_nn_tensor_id_t id_;
   TensorSpec spec_;
@@ -114,6 +119,9 @@ class TensorPlaceholder : public Tensor {
   bool IsConstTensor() override {
     return spec_.attr_ == tim::vx::TensorAttribute::CONSTANT;
   }
+  bool IsScalar() override {
+    return false;
+  }
   bool SaveTensorToTextByFp32(std::string filename) override {
     (void)filename;
     return false;
@@ -124,6 +132,7 @@ class TensorPlaceholder : public Tensor {
   }
   float* ConvertTensorToFloat32Data() override { return nullptr; }
 
+  void SetScalar(int8_t is_scalar) override { (void) is_scalar; return; }
   vsi_nn_tensor_id_t id_;
   TensorSpec spec_;
 };
