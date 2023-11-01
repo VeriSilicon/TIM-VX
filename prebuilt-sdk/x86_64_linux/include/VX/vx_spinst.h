@@ -193,6 +193,7 @@ typedef enum _vx_sp_attribute_e
     VX_SP_ATTRIBUTE_RESHAPE_ARRAY, /* bit layout | output:24-29 | input3:18-23 | input2:12-17 | input1:6-11 | input0:0-5 | */
     VX_SP_ATTRIBUTE_ALIGN_SP_CORE_AXIS,
     VX_SP_ATTRIBUTE_KEEP_TILE_SIZE,
+    VX_SP_ATTRIBUTE_BROADCAST_AXIS,
 
     VX_SP_ATTRIBUTE_TOTAL_COUNT,
 }
@@ -332,6 +333,19 @@ typedef enum _vx_sp_attribute_keep_tile_size_e
     VX_SP_ATTRIBUTE_KEEP_TILE_SIZE_WITH_AXIS_XY,
 }
 vx_sp_attribute_keep_tile_size_e;
+
+typedef enum _vx_sp_attribute_broadcast_axis_e
+{
+    VX_SP_ATTRIBUTE_BROADCAST_ON_AXIS_NONE = 0,
+    VX_SP_ATTRIBUTE_BROADCAST_ON_AXIS_X,
+    VX_SP_ATTRIBUTE_BROADCAST_ON_AXIS_Y,
+    VX_SP_ATTRIBUTE_BROADCAST_ON_AXIS_Z,
+    VX_SP_ATTRIBUTE_BROADCAST_ON_AXIS_XY,
+    VX_SP_ATTRIBUTE_BROADCAST_ON_AXIS_YZ,
+    VX_SP_ATTRIBUTE_BROADCAST_ON_AXIS_XZ,
+    VX_SP_ATTRIBUTE_BROADCAST_ON_AXIS_XYZ,
+}
+vx_sp_attribute_broadcast_axis_e;
 
 /**********************************************************************************************/
 

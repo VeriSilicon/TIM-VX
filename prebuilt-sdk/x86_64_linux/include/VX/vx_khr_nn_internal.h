@@ -269,6 +269,12 @@ typedef struct _vx_nn_fused_sp_params_t
         } clip;
         struct
         {
+            vx_scalar eps_a;
+            vx_float32 eps;
+            vx_int32 axis;
+        } rms_norm;
+        struct
+        {
             vx_scalar scalar_a, scalar_b, scalar_c, scalar_d;
         } params;
     } scalar_params;
@@ -1146,6 +1152,15 @@ typedef struct _vx_nn_gemm_relu_pooling_params_t
     vx_float32 const_multiplier;                            /*!< \brief  const multiplier */
 } vx_nn_gemm_relu_pooling_params_t, * vx_nn_gemm_relu_pooling_params;
 
+typedef struct _vx_nn_gemm_relu_pooling_params_ext_t
+{
+    vx_nn_gemm_relu_pooling_params_t base; /*!< \brief gemm relu pooling params <tt>\ref vx_nn_gemm_relu_pooling_params_t</tt> */
+    vx_object_array inputs_list;           /*!< \brief  streamProcessor input array */
+    vx_object_array outputs_list;          /*!< \brief  streamProcessor output array */
+    vx_nn_fused_sp_params_t  sp_param;            /*!< \brief  stresmProcessor instruction object*/
+} vx_nn_gemm_relu_pooling_params_ext_t, * vx_nn_gemm_relu_pooling_params_ext;
+
+
 /*! \brief Create a batch gemm node, the calcution formula is output = matrix_a * matrix_b + matrix_c.
  * \param [in] graph The reference to the graph.
  * \param [in] matrix_a The first input tensor.
@@ -1170,6 +1185,61 @@ VX_API_ENTRY vx_node VX_API_CALL vxBatchGemmReluPoolingLayer(vx_graph graph,
                                                              vx_scalar trans_c,
                                                              const vx_nn_gemm_relu_pooling_params merge_param,
                                                              vx_tensor output);
+
+/*! \brief Create a batch gemm node, the calcution formula is output = matrix_a * matrix_b + matrix_c.
+ * \param [in] graph The reference to the graph.
+ * \param [in] matrix_a The first input tensor.
+ * \param [in] matrix_b The second input tensor. Must be in the same data type and batch count as first input tensor.
+ * \param [in] matrix_c The third input tensor. Must be in the same data type and batch count as first input tensor. [optional]
+ * \param [in] trans_a If true, the matrix_a has been transposed before calcution.
+ * \param [in] trans_b If true, the matrix_b has been transposed before calcution.
+ * \param [in] trans_c If true, the matrix_c has been transposed before calcution. [optional]
+ * \param [in] merge_param the parameters for gemm + op merging, refer to vx_nn_gemm_relu_pooling_params_t and vx_nn_gemm_relu_pooling_params_ext_t.
+ * \param [in] size of merge_param.
+ * \param [out] output The output tensor. Output dimension must agree the formula in the description.
+ * \return <tt>\ref vx_node</tt>.
+ * \retval vx_node A node reference. Any possible errors preventing a successful creation
+ * should be checked using <tt>\ref vxGetStatus</tt>
+ * \ingroup group_vision_function_gemm
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxBatchGemmReluPoolingLayer2(vx_graph graph,
+                                                              vx_tensor matrix_a,
+                                                              vx_tensor matrix_b,
+                                                              vx_tensor matrix_c,
+                                                              vx_scalar trans_a,
+                                                              vx_scalar trans_b,
+                                                              vx_scalar trans_c,
+                                                              const vx_nn_gemm_relu_pooling_params merge_param,
+                                                              vx_size size_of_nn_gemm_relu_pooling_params,
+                                                              vx_tensor output);
+
+/*! \brief Create a batch gemm node, the calcution formula is output = matrix_a * matrix_b + matrix_c.
+ * \param [in] graph The reference to the graph.
+ * \param [in] matrix_a The first input tensor.
+ * \param [in] matrix_b The second input tensor. Must be in the same data type and batch count as first input tensor.
+ * \param [in] matrix_c The third input tensor. Must be in the same data type and batch count as first input tensor. [optional]
+ * \param [in] trans_a If true, the matrix_a has been transposed before calcution.
+ * \param [in] trans_b If true, the matrix_b has been transposed before calcution.
+ * \param [in] trans_c If true, the matrix_c has been transposed before calcution. [optional]
+ * \param [in] merge_param the parameters for gemm + op merging
+ * \param [in] size_of_gemm_relu_pooling_params [static] Size in bytes of merge_param.
+ * \param [out] output The output tensor. Output dimension must agree the formula in the description.
+ * \return <tt>\ref vx_node</tt>.
+ * \retval vx_node A node reference. Any possible errors preventing a successful creation
+ * should be checked using <tt>\ref vxGetStatus</tt>
+ * \ingroup group_vision_function_gemm
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxBatchGemmReluPoolingSpLayer(vx_graph graph,
+                                                             vx_tensor matrix_a,
+                                                             vx_tensor matrix_b,
+                                                             vx_tensor matrix_c,
+                                                             vx_scalar trans_a,
+                                                             vx_scalar trans_b,
+                                                             vx_scalar trans_c,
+                                                             const vx_nn_gemm_relu_pooling_params merge_param,
+                                                             vx_size size_of_gemm_relu_pooling_params,
+                                                             vx_tensor output);
+
 
 /*! \brief  Create a fuse stream process node.
  * \param [in] graph The handle to the graph.

@@ -27,6 +27,7 @@
 
 #ifndef __VX_KHR_COMPATIBLE_H__
 #define __VX_KHR_COMPATIBLE_H__
+#endif
 /*
  VX_DECONVOLUTION_WEIGHT_LAYOUT_COMPATIBLE_KHRONOS is used to distingush deconvolution weight layout
  [value]
@@ -248,6 +249,36 @@ VX_STREAM_PROCESSOR_SUPPORT is used to declare that vsi openvx driver can suppor
 #endif
 
 /*
+ VX_GRAPH_V500_DMA_SUPPOPRT is used to declare driver support V500 DMA.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_GRAPH_V500_DMA_SUPPOPRT
+#define VX_GRAPH_V500_DMA_SUPPOPRT 1
+#endif
+
+/*
+ VX_GRAPH_V500_RGB2RAW_REFOUTPUTCROP_SUPPOPRT is used to declare driver support V500 RGB2Raw & RefOutCropping feature.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_GRAPH_V500_RGB2RAW_REFOUTPUTCROP_SUPPOPRT
+#define VX_GRAPH_V500_RGB2RAW_REFOUTPUTCROP_SUPPOPRT 1
+#endif
+
+/*
+ VX_GRAPH_V500_EXTRACTOR_FILLER_CROP_SUPPORT is used to declare driver support V500 DMA extractor/filler cropping setting.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_GRAPH_V500_EXTRACTOR_FILLER_CROP_SUPPORT
+#define VX_GRAPH_V500_EXTRACTOR_FILLER_CROP_SUPPORT 1
+#endif
+
+/*
  VX_ACTIVATION_EXT2_SUPPORT is used to declare that ACTIVATION can support sign, hard_sigmoid, neg, clip, exp, sin, cos,
  log, mish, gelu, hgelu, elu, selu, celu, rcp, softsign, atan, atanh, acosh, inverse sigmoid, round and erf.
  [value]
@@ -396,6 +427,107 @@ VX_DEPTH2SPACE_CRD_MODE_SUPPORT is used to declare that SPACE2DEPTH can support 
 */
 #ifndef VX_LSTM_ACTIVATION_SUPPORT
 #define VX_LSTM_ACTIVATION_SUPPORT 1
+#endif
+
+#ifndef VX_GRAPH_TRANSFORM_OPTION_SUPPORT
+#define VX_GRAPH_TRANSFORM_OPTION_SUPPORT 1
+#endif
+
+/*
+ VX_GRAPH_V500_NEW_DPP_SUPPORT is used to declare driver support V500 new DPP parameter setting.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_GRAPH_V500_NEW_DPP_SUPPORT
+#define VX_GRAPH_V500_NEW_DPP_SUPPORT 1
+#endif
+
+/*
+ VX_GRAPH_V500_UNALIGNED_HEIGHT_SUPPORT is used to declare driver support unaligned dma in/out height.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_GRAPH_V500_UNALIGNED_HEIGHT_SUPPORT
+#define VX_GRAPH_V500_UNALIGNED_HEIGHT_SUPPORT 1
+#endif
+
+/*
+ VX_GRAPH_V500_STRIPES_MEMORY_ALIGNMENT_SUPPORT is used to declare driver support strips memory alignment requirememt.
+*/
+#ifndef VX_GRAPH_V500_STRIPES_MEMORY_ALIGNMENT_SUPPORT
+#define VX_GRAPH_V500_STRIPES_MEMORY_ALIGNMENT_SUPPORT 1
+
+/*
+VX_TENSOR_POW_API_SUPPORT is used to declare that vsi openvx driver can support vxTensorPowNode API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_POW_API_SUPPORT
+#define VX_TENSOR_POW_API_SUPPORT 1
+#endif
+
+/*
+VX_TENSOR_GATHER_API_SUPPORT is used to declare that vsi openvx driver can support vxTensorGatherNode API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_GATHER_API_SUPPORT
+#define VX_TENSOR_GATHER_API_SUPPORT 1
+#endif
+
+/*
+VX_RELATIONAL_OPS_VX_SUPPORT_EXT is used to declare that vsi openvx driver can support vxRelationalLayer API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_RELATIONAL_OPS_VX_SUPPORT_EXT
+#define VX_RELATIONAL_OPS_VX_SUPPORT_EXT 1
+
+#endif
+
+/*
+VX_TENSOR_POW_API_SUPPORT is used to declare that vsi openvx driver can support vxTensorPOWNode API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_POW_API_SUPPORT
+#define VX_TENSOR_POW_API_SUPPORT 1
+#endif
+
+/*
+VX_TENSOR_GATHER_API_SUPPORT is used to declare that vsi openvx driver can support vxTensorGatherNode API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_GATHER_API_SUPPORT
+#define VX_TENSOR_GATHER_API_SUPPORT 1
+#endif
+
+/*
+VX_TENSOR_TILE_API_SUPPORT is used to declare that vsi openvx driver can support vxTensorTileNode API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_TILE_API_SUPPORT
+#define VX_TENSOR_TILE_API_SUPPORT 1
+#endif
+
+/*
+VX_RELATIONAL_OPS_VX_SUPPORT_EXT is used to declare that vsi openvx driver can support vxRelationalLayer API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_RELATIONAL_OPS_VX_SUPPORT_EXT
+#define VX_RELATIONAL_OPS_VX_SUPPORT_EXT 1
 #endif
 
 #endif /* __VX_KHR_COMPATIBLE_H__ */

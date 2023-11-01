@@ -65,6 +65,8 @@ enum vx_graph_attribute_internal_type_e
     VX_GRAPH_PROCESS_FPS                          = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0x9,
     /*This parameter.come from customer, not used by unify driver but lite driver*/
     VX_GRAPH_CUSTOMER_PARAMETER_FOR_NBG           = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0xA,
+    VX_GRAPH_V500_DMA_CONFIG_PARAMETER            = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0xB,
+    VX_GRAPH_VSI_TRANSFORM_OPTIONS                = VX_ATTRIBUTE_BASE(VX_ID_VIVANTE, VX_TYPE_GRAPH) + 0xC,
 };
 
 /*! \brief Size Alignment of User Memory
@@ -455,6 +457,15 @@ typedef struct _vx_nn_deconvolution_3d_params_t
     vx_enum rounding_policy;                /*!< \brief A <tt> VX_TYPE_ENUM</tt> of the <tt> vx_round_policy_e</tt> enumeration. */
     vx_enum down_scale_size_rounding;       /*!< \brief Rounding method for calculating output dimensions. See <tt>\ref vx_nn_rounding_type_e</tt> */
 }vx_nn_deconvolution_3d_params_t;
+
+typedef enum _vx_nn_relation_ops_type_t {
+    VX_RELATION_OPS_GREAT = 0,
+    VX_RELATION_OPS_OPS_GREAT_EQUAL,
+    VX_RELATION_OPS_OPS_LESS,
+    VX_RELATION_OPS_OPS_LESS_EQUAL,
+    VX_RELATION_OPS_OPS_NOT_EQUAL,
+    VX_RELATION_OPS_OPS_EQUAL,
+} vx_nn_relation_op_type_t;
 
 /*==============================================================================
     TENSOR DATA FUNCTIONS

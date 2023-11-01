@@ -997,6 +997,55 @@ VX_API_ENTRY vx_node VX_API_CALL vxStreamProcessorNode(
     vx_lut_params               lut_params
     );
 
+/*! \brief [Graph] Creates a tensor pow node to perform input^y.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input The input tensor
+ * \param [in] y The power param.
+ * \param [out] output The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxTensorPowNode(
+    vx_graph graph,
+    vx_tensor input,
+    vx_tensor y,
+    vx_tensor out);
+
+/*! \brief [Graph] Creates a tensor gather node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input The input tensor
+ * \param [in] indices The indices param.
+ * \param [in] axis The axis param.
+ * \param [in] batch_dims The batch_dims param.
+ * \param [out] output The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxTensorGatherNode(
+    vx_graph graph,
+    vx_tensor input,
+    vx_tensor indices,
+    vx_int32 axis,
+    vx_int32 batch_dims,
+    vx_tensor out);
+
+/*! \brief [Graph] Creates a tensor tile node.
+ * \param [in] graph The handle to the graph.
+ * \param [in] input The input tensor
+ * \param [in] multiples The multiples param.
+ * \param [out] output The output tensor data.
+ * \return <tt> vx_node</tt>.
+ * \returns A node reference <tt>\ref vx_node</tt>. Any possible errors preventing a
+ * successful creation should be checked using <tt>\ref vxGetStatus</tt>.
+ */
+VX_API_ENTRY vx_node VX_API_CALL vxTensorTileNode(
+    vx_graph graph,
+    vx_tensor input,
+    vx_tensor multiples,
+    vx_tensor out);
+
 #ifdef __cplusplus
 }
 #endif
