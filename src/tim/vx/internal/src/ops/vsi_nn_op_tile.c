@@ -38,7 +38,7 @@
 #include "utils/vsi_nn_constraint_check.h"
 
 /*
- Declare number of input and output.
+ Declare number of input and output .
  */
 
 static vsi_bool _is_supported_axis(vsi_size_t* multiples, vsi_size_t multiples_num)
@@ -77,14 +77,16 @@ static vsi_status _tile_op_compute
     vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
     vsi_size_t new_rank                      = 0;
     vsi_bool   ret                          = FALSE;
+    uint32_t i                              = 0;
     vsi_size_t* multiples                   = (vsi_size_t*)self->nn_param.tile.multiples;
-    vsi_nn_tensor_t* temp_tensors[2]        = { NULL };
-    vsi_nn_tensor_t* reshape_tensors[2]     = { NULL };
+    vsi_nn_tensor_t* temp_tensors[3]        = { NULL };
+    vsi_nn_tensor_t* reshape_tensors[3]     = { NULL };
+    int32_t   multiples_value[VSI_NN_MAX_DIM_NUM] = {0};
     vsi_nn_tensor_attr_t attr;
 
     if (vsi_nn_is_same_type(inputs[0], outputs[0]) == FALSE)
     {
-        VSILOGW("tile is no_range_change operation! \
+        VSILOGW(" tile is no_range_change operation! \
             Insert DataConvert Operation when the quantization parameters\
             of input and output are inconsistent!");
 
@@ -92,17 +94,17 @@ static vsi_status _tile_op_compute
         memcpy( &attr.dtype, &inputs[0]->attr.dtype, sizeof(attr.dtype));
         attr.is_const = FALSE;
         attr.vtl = TRUE;
-        temp_tensors[1] = vsi_nn_CreateTensor( self->graph, &attr );
+        temp_tensors[2] = vsi_nn_CreateTensor( self->graph, &attr );
     }
     else
     {
-        temp_tensors[1] = outputs[0];
+        temp_tensors[2] = outputs[0];
     }
 
     ret = vsi_nn_kernel_optimize_tile_shape(
             inputs[0]->attr.size, inputs[0]->attr.dim_num,
             multiples, inputs[0]->attr.dim_num,
-            temp_tensors[1]->attr.size, temp_tensors[1]->attr.dim_num,
+            temp_tensors[2]->attr.size, temp_tensors[2]->attr.dim_num,
             shapes[0], shapes[1], shapes[2], &new_rank );
 
     if (ret)
@@ -111,9 +113,9 @@ static vsi_status _tile_op_compute
         {
             reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph, inputs[0],\
                 shapes[0], (vsi_size_t)new_rank );
-            reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph, temp_tensors[1],\
+            reshape_tensors[2] = vsi_nn_reshape_tensor( self->graph, temp_tensors[2],\
                 shapes[2], (vsi_size_t)new_rank );
-            if (reshape_tensors[0] == NULL || reshape_tensors[1] == NULL)
+            if (reshape_tensors[0] == NULL || reshape_tensors[2] == NULL)
             {
                 VSILOGE("reshape tensor failed!");
                 status = VSI_FAILURE;
@@ -123,32 +125,89 @@ static vsi_status _tile_op_compute
             memcpy( &attr, &reshape_tensors[0]->attr, sizeof(attr));
             attr.is_const = FALSE;
             attr.vtl = TRUE;
-            attr.size[0] = reshape_tensors[1]->attr.size[0];
-            attr.size[1] = reshape_tensors[1]->attr.size[1];
-
+            attr.size[0] = reshape_tensors[2]->attr.size[0];
+            attr.size[1] = reshape_tensors[2]->attr.size[1];
             temp_tensors[0] = vsi_nn_CreateTensor( self->graph, &attr );
 
+            memset( &attr, 0 , sizeof(vsi_nn_tensor_attr_t) );
+            attr.dtype.vx_type = VSI_NN_TYPE_INT32;
+            attr.is_const = FALSE;
+            attr.vtl = FALSE;
+            attr.size[0] = new_rank;
+            attr.dim_num = 1;
+
+            multiples_value[0] = (int32_t)shapes[1][0];
+            multiples_value[1] = (int32_t)shapes[1][1];
+            for (i = 0; i < new_rank; i++)
+            {
+                multiples_value[i] = 1;
+            }
+            reshape_tensors[1] = vsi_nn_CreateTensorFromData(self->graph, (uint8_t *)multiples_value, &attr);
+            if (reshape_tensors[1] == NULL)
+            {
+                VSILOGE("vsi_nn_CreateTensorFromData failed!");
+                status = VSI_FAILURE;
+                goto final;
+            }
+
+            multiples_value[0] = 1;
+            multiples_value[1] = 1;
+            for (i = 0; i < new_rank; i++)
+            {
+                multiples_value[i] = (int32_t)shapes[1][i];
+            }
+
+            temp_tensors[1] = vsi_nn_CreateTensorFromData(self->graph, (uint8_t *)multiples_value, &attr);
+
+            if (temp_tensors[1] == NULL)
+            {
+                VSILOGE("vsi_nn_CreateTensorFromData failed!");
+                status = VSI_FAILURE;
+                goto final;
+            }
+
             self->n = (vx_node)vsi_nn_kernel_selector(
-                self->graph, kernel_name, &reshape_tensors[0], 1, &temp_tensors[0], 1, NULL);
+                self->graph, kernel_name, &reshape_tensors[0], 2, &temp_tensors[0], 1, NULL);
             self->n = (vx_node)vsi_nn_kernel_selector(
-                self->graph, kernel_name, &temp_tensors[0], 1, &reshape_tensors[1], 1, NULL);
+                self->graph, kernel_name, &temp_tensors[0], 2, &reshape_tensors[2], 1, NULL);
 
         }
         else
         {
             reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph, inputs[0],\
                 shapes[0], (vsi_size_t)new_rank );
-            reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph, temp_tensors[1],\
+            reshape_tensors[2] = vsi_nn_reshape_tensor( self->graph, temp_tensors[2],\
                 shapes[2], (vsi_size_t)new_rank );
-            if (reshape_tensors[0] == NULL || reshape_tensors[1] == NULL)
+            if (reshape_tensors[0] == NULL || reshape_tensors[2] == NULL)
             {
                 VSILOGE("reshape tensor failed!");
                 status = VSI_FAILURE;
                 goto final;
             }
 
+            memset( &attr, 0 , sizeof(vsi_nn_tensor_attr_t) );
+            attr.dtype.vx_type = VSI_NN_TYPE_INT32;
+            attr.is_const = TRUE;
+            attr.vtl = FALSE;
+            attr.size[0] = new_rank;
+            attr.dim_num = 1;
+
+            multiples_value[0] = (int32_t)shapes[1][0];
+            multiples_value[1] = (int32_t)shapes[1][1];
+            multiples_value[2] = (int32_t)shapes[1][2];
+            multiples_value[3] = (int32_t)shapes[1][3];
+
+            reshape_tensors[1] = vsi_nn_CreateTensorFromData(self->graph, (uint8_t *)multiples_value, &attr);
+
+            if (reshape_tensors[1] == NULL)
+            {
+                VSILOGE("vsi_nn_CreateTensorFromData failed!");
+                status = VSI_FAILURE;
+                goto final;
+            }
+
             self->n = (vx_node)vsi_nn_kernel_selector( self->graph, kernel_name,\
-                &reshape_tensors[0], 1, &reshape_tensors[1], 1, NULL );
+                &reshape_tensors[0], 2, &reshape_tensors[2], 1, NULL );
         }
     }
 
@@ -160,11 +219,13 @@ static vsi_status _tile_op_compute
 final:
     vsi_safe_release_tensor(reshape_tensors[0]);
     vsi_safe_release_tensor(reshape_tensors[1]);
+    vsi_safe_release_tensor(reshape_tensors[2]);
     vsi_safe_release_tensor(temp_tensors[0]);
+    vsi_safe_release_tensor(temp_tensors[1]);
     if (vsi_nn_is_same_type(inputs[0], outputs[0]) == FALSE)
     {
-        self->n = vxTensorCopyNode( self->graph->g, temp_tensors[1]->t, outputs[0]->t);
-        vsi_safe_release_tensor(temp_tensors[1]);
+        self->n = vxTensorCopyNode( self->graph->g, temp_tensors[2]->t, outputs[0]->t);
+        vsi_safe_release_tensor(temp_tensors[2]);
     }
 
     return status;

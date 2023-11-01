@@ -39,7 +39,7 @@ vx_tensor vsi_nn_CreateRawTensorFromData
     vsi_nn_tensor_attr_t * attr
     );
 
-vsi_status vsi_nn_OptimizeGraph
+OVXLIB_API vsi_status vsi_nn_OptimizeGraph
     (
     vsi_nn_graph_t* graph,
     vsi_bool *dirty

@@ -299,7 +299,7 @@ static vsi_bool op_setup
     }
     ret = vsi_nn_op_common_setup(self, inputs, outputs);
 
-    if ( _is_dataconvert_op(self, inputs, outputs) )
+    if ( _is_dataconvert_op(self, inputs, outputs) && ret )
     {
         vsi_nn_internal_node_t* curr = NULL;
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 1, 1);

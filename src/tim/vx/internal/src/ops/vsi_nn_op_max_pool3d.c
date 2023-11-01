@@ -74,6 +74,20 @@ static vsi_bool op_check
     return ret;
 } /* op_check() */
 
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+
+    self->nn_param.max_pool3d.dilation[0] = 1;
+    self->nn_param.max_pool3d.dilation[1] = 1;
+    self->nn_param.max_pool3d.dilation[2] = 1;
+
+    return status;
+} /* op_init() */
+
 static vsi_status op_optimize
     (
     vsi_nn_node_t * self,
@@ -120,7 +134,7 @@ static vsi_bool op_setup
         inputs[0]->attr.size,
         ksize,
         p->stride,
-        NULL,
+        p->dilation,
         p->pad_type,
         pad
         );
@@ -142,7 +156,7 @@ static vsi_bool op_setup
         p->ksize[0],
         &p->pad[0],
         p->stride[0],
-        0,
+        p->dilation[0],
         p->round_type
         );
 
@@ -152,7 +166,7 @@ static vsi_bool op_setup
         p->ksize[1],
         &p->pad[2],
         p->stride[1],
-        0,
+        p->dilation[1],
         p->round_type
         );
 
@@ -162,7 +176,7 @@ static vsi_bool op_setup
         p->ksize[2],
         &p->pad[4],
         p->stride[2],
-        0,
+        p->dilation[2],
         p->round_type
         );
 
@@ -210,6 +224,8 @@ static vsi_bool op_setup
     curr->node->nn_param.pool.pad[1] = p->pad[1];
     curr->node->nn_param.pool.pad[2] = p->pad[2];
     curr->node->nn_param.pool.pad[3] = p->pad[3];
+    curr->node->nn_param.pool.dilation[0] = p->dilation[0];
+    curr->node->nn_param.pool.dilation[1] = p->dilation[1];
     curr->node->nn_param.pool.type = VX_CONVOLUTIONAL_NETWORK_POOLING_MAX;
     curr->node->nn_param.pool.round_type = p->round_type;
     curr->node->nn_param.pool.pad_type = p->pad_type;
@@ -265,6 +281,8 @@ static vsi_bool op_setup
         curr->node->nn_param.pool.pad[1] = 0;
         curr->node->nn_param.pool.pad[2] = p->pad[4];
         curr->node->nn_param.pool.pad[3] = p->pad[5];
+        curr->node->nn_param.pool.dilation[0] = 1;
+        curr->node->nn_param.pool.dilation[1] = p->dilation[2];
         curr->node->nn_param.pool.type = VX_CONVOLUTIONAL_NETWORK_POOLING_MAX;
         curr->node->nn_param.pool.round_type = p->round_type;
         curr->node->nn_param.pool.pad_type = p->pad_type;
@@ -305,7 +323,7 @@ __BEGIN_DECLS
 DEF_OP_REG
     (
     /* op_name    */ MAX_POOL3D,
-    /* init       */ NULL,
+    /* init       */ op_init,
     /* compute    */ op_compute,
     /* deinit     */ op_deinit,
     /* check      */ op_check,

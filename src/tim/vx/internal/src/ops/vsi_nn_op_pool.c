@@ -34,6 +34,7 @@
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
+#include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
 static vsi_bool _is_pool1d
@@ -112,13 +113,42 @@ static vsi_status op_compute
         params.stride_y = self->nn_param.pool.stride[1];
     }
 
-    self->n = vxPoolingLayer2(
-        self->graph->g,
-        tmp_inputs[0]->t,
-        (vx_nn_pooling_params_t *)&params,
-        sizeof( params ),
-        tmp_outputs[0]->t
-        );
+    if (self->nn_param.pool.type == VX_NN_POOLING_MAX
+         && (self->nn_param.pool.dilation[0] > 1 || self->nn_param.pool.dilation[1] > 1))
+    {
+        vsi_nn_kernel_param_t * tmpParam = NULL;
+        int32_t pool_type = 0;
+        tmpParam = vsi_nn_kernel_param_create();
+
+        vsi_nn_kernel_param_add_int32( tmpParam, "pool_type", pool_type );
+        vsi_nn_kernel_param_add_int32( tmpParam, "pool_size_x", params.base.pool_size_x );
+        vsi_nn_kernel_param_add_int32( tmpParam, "pool_size_y", params.base.pool_size_y );
+        vsi_nn_kernel_param_add_int32( tmpParam, "pool_pad_x_left", params.base.pool_pad_x_left );
+        vsi_nn_kernel_param_add_int32( tmpParam, "pool_pad_x_right", params.base.pool_pad_x_right );
+        vsi_nn_kernel_param_add_int32( tmpParam, "pool_pad_y_top", params.base.pool_pad_y_top );
+        vsi_nn_kernel_param_add_int32( tmpParam, "pool_pad_y_bottom", params.base.pool_pad_y_bottom );
+        vsi_nn_kernel_param_add_int32( tmpParam, "stride_x", params.stride_x );
+        vsi_nn_kernel_param_add_int32( tmpParam, "stride_y", params.stride_y );
+        vsi_nn_kernel_param_add_int32( tmpParam, "dilation_x", self->nn_param.pool.dilation[0] );
+        vsi_nn_kernel_param_add_int32( tmpParam, "dilation_y", self->nn_param.pool.dilation[1] );
+
+        self->n = vsi_nn_kernel_selector( self->graph, "pool", tmp_inputs, 1, tmp_outputs, 1, tmpParam );
+
+        if (tmpParam != NULL)
+        {
+            vsi_nn_kernel_param_release( &tmpParam );
+        }
+    }
+    else
+    {
+        self->n = vxPoolingLayer2(
+            self->graph->g,
+            tmp_inputs[0]->t,
+            (vx_nn_pooling_params_t *)&params,
+            sizeof( params ),
+            tmp_outputs[0]->t
+            );
+    }
 
     if ( NULL != self->n )
     {
@@ -269,6 +299,9 @@ static vsi_status op_init
     self->nn_param.pool.local->reshaped_input = NULL;
     self->nn_param.pool.local->reshaped_output = NULL;
 
+    self->nn_param.pool.dilation[0] = 1;
+    self->nn_param.pool.dilation[1] = 1;
+
     return status;
 } /* op_init() */
 
@@ -315,7 +348,7 @@ static vsi_bool op_setup
             inputs[0]->attr.size,
             ksize,
             self->nn_param.pool.stride,
-            NULL,
+            self->nn_param.pool.dilation,
             self->nn_param.pool.pad_type,
             pad
         );
@@ -335,7 +368,7 @@ static vsi_bool op_setup
             self->nn_param.pool.ksize[0],
             &self->nn_param.pool.pad[0],
             self->nn_param.pool.stride[0],
-            0,
+            self->nn_param.pool.dilation[0],
             self->nn_param.pool.round_type
             );
 
@@ -348,7 +381,7 @@ static vsi_bool op_setup
             inputs[0]->attr.size,
             ksize,
             self->nn_param.pool.stride,
-            NULL,
+            self->nn_param.pool.dilation,
             self->nn_param.pool.pad_type,
             pad
         );
@@ -368,7 +401,7 @@ static vsi_bool op_setup
             self->nn_param.pool.ksize[0],
             &self->nn_param.pool.pad[0],
             self->nn_param.pool.stride[0],
-            0,
+            self->nn_param.pool.dilation[0],
             self->nn_param.pool.round_type
             );
 
@@ -378,7 +411,7 @@ static vsi_bool op_setup
             self->nn_param.pool.ksize[1],
             &self->nn_param.pool.pad[2],
             self->nn_param.pool.stride[1],
-            0,
+            self->nn_param.pool.dilation[1],
             self->nn_param.pool.round_type
             );
 

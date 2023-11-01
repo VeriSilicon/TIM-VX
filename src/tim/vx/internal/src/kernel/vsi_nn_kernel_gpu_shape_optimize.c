@@ -479,6 +479,7 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
     vsi_size_t* temp_shape_y            = NULL;
     vsi_size_t* temp_shape_output       = NULL;
     vsi_size_t  temp_rank               = 0;
+    vsi_bool    exceed_maxsize          = FALSE;
 
 #define _swap_size(a, b, tmp)  \
     { \
@@ -489,6 +490,27 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
 
     VSI_UNREFERENCED(rank_x);
     VSI_UNREFERENCED(rank);
+
+    for (i = 0; i < rank_output; i++)
+    {
+        if (shape_output[i] > GPU_TENSOR_MAX_WIDTH)
+        {
+            exceed_maxsize = TRUE;
+        }
+    }
+
+    if (exceed_maxsize)
+    {
+        for (i = 0; i < rank_output; i++)
+        {
+            out_shape_x[i] = shape_x[i];
+            out_shape_y[i] = multiples[i];
+            out_shape_output[i] = shape_output[i];
+        }
+        *out_rank_output = rank_output;
+        ret = TRUE;
+        goto final;
+    }
 
     temp_shape_x = (vsi_size_t*)malloc(rank * sizeof(vsi_size_t));
     if (temp_shape_x == NULL)

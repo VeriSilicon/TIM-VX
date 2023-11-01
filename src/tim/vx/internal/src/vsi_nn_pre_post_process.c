@@ -181,10 +181,11 @@ static void _set_preproc_node_norm_params
         {
             vsi_nn_preprocess_mean_and_scale_t* means_and_single_scale =
             (vsi_nn_preprocess_mean_and_scale_t*)mean_and_scale;
+            node->nn_param.pre_process.norm.scale = means_and_single_scale->scale;
             node->nn_param.pre_process.norm2.scale[0] = means_and_single_scale->scale;
             node->nn_param.pre_process.norm2.scale[1] = means_and_single_scale->scale;
             node->nn_param.pre_process.norm2.scale[2] = means_and_single_scale->scale;
-            for(i = 0; i < means_and_single_scale->channel_len; i++)
+            for (i = 0; i < means_and_single_scale->channel_len; i++)
             {
                 node->nn_param.pre_process.norm.mean[i] = means_and_single_scale->channel_mean[i];
             }
@@ -836,6 +837,30 @@ vsi_status vsi_nn_AddBinaryGraphInputsWithCropParam
     uint32_t enable_nodes_count
 )
 {
+    vsi_bool* crop_set_start_only = NULL;
+    vsi_status status = VSI_FAILURE;
+    crop_set_start_only = (vsi_bool*)malloc(enable_nodes_count * sizeof(vsi_bool));
+    TEST_CHECK_PTR( crop_set_start_only, final );
+    memset(crop_set_start_only, 0, enable_nodes_count * sizeof(vsi_bool));
+    status = vsi_nn_AddBinaryGraphInputsWithCropParamForCropOnly(graph, enable_nodes,
+                                                                 crop_set_start_only, enable_nodes_count);
+final:
+    if(crop_set_start_only)
+    {
+        free(crop_set_start_only);
+        crop_set_start_only = NULL;
+    }
+    return status;
+} /* vs_nn_AddBinaryGraphInputsWithCropParam() */
+
+vsi_status vsi_nn_AddBinaryGraphInputsWithCropParamForCropOnly
+(
+    vsi_nn_graph_t* graph,
+    vsi_nn_node_id_t* enable_nodes,
+    vsi_bool* crop_set_start_only,
+    uint32_t enable_nodes_count
+)
+{
     uint32_t i, j, k, idx, p;
     vsi_status status = VSI_FAILURE;
     uint32_t num_of_graph_inputs;
@@ -905,7 +930,14 @@ vsi_status vsi_nn_AddBinaryGraphInputsWithCropParam
                         //}
                         //else
                         //{
-                        num_of_graph_real_inputs += 4;
+                        if (crop_set_start_only[j])
+                        {
+                            num_of_graph_real_inputs += 2;
+                        }
+                        else
+                        {
+                            num_of_graph_real_inputs += 4;
+                        }
                         //}
                     }
                 }
@@ -1010,14 +1042,27 @@ vsi_status vsi_nn_AddBinaryGraphInputsWithCropParam
                                                       VX_SCALAR_TYPE,
                                                       &data_type,
                                                       sizeof(vx_enum));
-                                        /*scale_x,scale_y,left,top are int32
-                                         * and index <4 type,mean and
-                                         * scarlar are float*/
-                                        if (data_type != VX_TYPE_INT32 ||
-                                            scalar_index >= 4)
-                                            continue;
-                                        graph_inputs[j++] = ref;
-                                        scalar_index++;
+                                        /*corp w, h, start_x, start_y are int32 type,
+                                         * and index <4 , mean and scale are float*/
+                                        if (crop_set_start_only[k])
+                                        {
+                                            if (data_type != VX_TYPE_INT32)
+                                                continue;
+                                            if (scalar_index < 4 && scalar_index >=2)
+                                            {
+                                                graph_inputs[j++] = ref;
+                                            }
+                                            scalar_index++;
+                                        }
+                                        else
+                                        {
+                                            if (data_type == VX_TYPE_INT32 &&
+                                                scalar_index < 4)
+                                            {
+                                                graph_inputs[j++] = ref;
+                                                scalar_index++;
+                                            }
+                                        }
                                     }
                                 }
                                 break;
@@ -1055,7 +1100,6 @@ vsi_status vsi_nn_AddBinaryGraphInputsWithCropParam
     graph_outputs = (vx_reference*)malloc(num_of_graph_real_outputs * sizeof(vx_reference));
     TEST_CHECK_PTR( graph_outputs, final );
     memset(graph_outputs,  0, num_of_graph_real_outputs * sizeof(vx_reference));
-
     for (i = 0, j = 0; i < num_of_graph_outputs; i++)
     {
         tensor = vsi_nn_GetTensor(graph, graph->output.tensors[i]);
@@ -1099,7 +1143,7 @@ final:
         free(graph_outputs);
     }
     return status;
-} /* vs_nn_AddBinaryGraphInputsWithCropParam() */
+} /* vsi_nn_AddBinaryGraphInputsWithCropParamForCropOnly() */
 
 vsi_status vsi_nn_UpdateCropParamsForBinaryGraph
 (
@@ -1116,8 +1160,10 @@ vsi_status vsi_nn_UpdateCropParamsForBinaryGraph
     uint32_t i, j;
     uint32_t numParams = 0;
     int32_t scalar_value[4] = {0};
+    uint32_t scalar_value_idx = 0;
     vsi_status status = VSI_SUCCESS;
     uint32_t input_idx = enabled_crop_input_idx;
+    uint32_t scalar_num = 0;
     scalar_value[0] = (int32_t)((crop_w << 15) / dst_w);
     scalar_value[1] = (int32_t)((crop_h << 15) / dst_h);
     scalar_value[2] = start_x; /*rgb start_x*3, rgb start_x*4*/
@@ -1130,35 +1176,23 @@ vsi_status vsi_nn_UpdateCropParamsForBinaryGraph
         {
             vx_parameter param = 0;
             vx_enum type = 0;
+            vx_enum direction = 0;
             vx_reference ref = 0;
             uint32_t scalar_idx = 0;
-            uint32_t scalar_value_idx = 0;
+            uint32_t scalar_start_idx = 0;
+            uint32_t scalar_end_idx = 0;
             int32_t temp_value = 0;
+            uint32_t cur_input_index = 0;
             status |= vxQueryNode(node->n, VX_NODE_PARAMETERS, &numParams, sizeof(numParams));
-            for (j = 0; j < numParams; j++)
-            {
-                param = vxGetParameterByIndex(node->n, j);
-
-                if (param)
-                {
-                    status |= vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
-                    if (type == VX_TYPE_SCALAR)
-                    {
-                        scalar_idx = j;
-                        break;
-                    }
-                }
-            }
             while (input_idx > 0)
             {
-                uint32_t tensor_idx = scalar_idx + 4;
-                for (j = tensor_idx; j < numParams; j++)
+                for (j = cur_input_index; j < numParams; j++)
                 {
+
                     param = vxGetParameterByIndex(node->n, j);
                     if (param)
                     {
-                        status |= vxQueryParameter(
-                            param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
+                        status |= vxQueryParameter(param,  VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
                         if (type == VX_TYPE_SCALAR)
                         {
                             scalar_idx = j;
@@ -1166,9 +1200,54 @@ vsi_status vsi_nn_UpdateCropParamsForBinaryGraph
                         }
                     }
                 }
-                input_idx--;
+                for (j = scalar_idx; j < numParams; j++)
+                {
+                    param = vxGetParameterByIndex(node->n, j);
+                    if (param)
+                    {
+                        status |= vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
+                        status |= vxQueryParameter(param,VX_PARAMETER_DIRECTION, &direction,sizeof(vx_enum));
+                        if (type == VX_TYPE_TENSOR && direction == VX_INPUT)
+                        {
+                            cur_input_index = j;
+                            input_idx--;
+                            break;
+                        }
+                    }
+                }
             }
-            for (j = scalar_idx; j < scalar_idx + 4; j++)
+            for (j = cur_input_index; j < numParams; j++)
+            {
+                param = vxGetParameterByIndex(node->n, j);
+                if(param)
+                {
+                    status |= vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
+                    if (type == VX_TYPE_SCALAR)
+                    {
+                        scalar_start_idx = j;
+                        break;
+                    }
+                }
+            }
+            for (j = scalar_start_idx; j < numParams; j++)
+            {
+                param = vxGetParameterByIndex(node->n, j);
+                if (param)
+                {
+                    status |= vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
+                    if (type == VX_TYPE_TENSOR)
+                    {
+                        scalar_end_idx = j - 1;
+                        break;
+                    }
+                }
+            }
+            scalar_num = scalar_end_idx - scalar_start_idx + 1;
+            if (scalar_num == 2)
+            {
+                scalar_value_idx = 2;
+            }
+            for (j = scalar_start_idx; j < scalar_end_idx + 1; j++)
             {
                 temp_value = scalar_value[scalar_value_idx++];
                 param = vxGetParameterByIndex(node->n, j);
@@ -1183,7 +1262,8 @@ vsi_status vsi_nn_UpdateCropParamsForBinaryGraph
                     }
                 }
             }
-
+            vxReleaseParameter(&param);
+            param = NULL;
         }
     }
     return status;

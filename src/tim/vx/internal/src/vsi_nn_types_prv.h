@@ -33,6 +33,21 @@
 extern "C"{
 #endif
 
+typedef struct _vsi_nn_swap_handle_cache_item
+{
+    vsi_nn_link_list_t link_list;
+    vsi_nn_node_t* node;
+    vsi_nn_tensor_t* tensor;
+    uint32_t idx;
+} vsi_nn_swap_handle_cache_item_t;
+
+typedef struct _vsi_nn_swap_handle_cache
+{
+    int8_t is_feature_on;
+    int8_t is_cached;
+    vsi_nn_swap_handle_cache_item_t* cache_list;
+} vsi_nn_swap_handle_cache_t;
+
 /**
  * Internal Graph structure, internal use only.
  */
@@ -42,6 +57,7 @@ typedef struct _vsi_nn_graph_prv
     vsi_nn_graph_t pog;
 
     // Add graph internal attribute here...
+    vsi_nn_swap_handle_cache_t swap_handle_cache;
 } vsi_nn_graph_prv_t;
 
 /** Internal Node structure, internal use only. */
@@ -49,6 +65,12 @@ typedef struct _vsi_nn_node_prv
 {
     /** Public Ovxlib Node(pon)*/
     vsi_nn_node_t pon;
+
+    /** some op will adjust its const tensors in op_setup,
+     * this field is to indicate whether the const tensors
+     * are processed in op_setup phase, this adjustment cannot
+     * be done more than once */
+    int8_t processed;
 
     // Add node internal attribute here...
 } vsi_nn_node_prv_t;
@@ -66,6 +88,12 @@ typedef struct _vsi_nn_tensor_prv
 
     /** is scalar*/
     int8_t is_scalar;
+
+    /** some op will adjust its const tensors in op_setup,
+     * this field is to indicate whether the const tensors
+     * are processed in op_setup phase, this adjustment cannot
+     * be done more than once */
+    int8_t processed;
 
     // Add tensor internal attribute here...
 } vsi_nn_tensor_prv_t;

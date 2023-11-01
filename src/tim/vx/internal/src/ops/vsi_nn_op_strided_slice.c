@@ -315,7 +315,9 @@ static vsi_status op_compute
     {
         vsi_size_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
         uint32_t dims = inputs[0]->attr.dim_num;
-        int32_t  shrink_axis_mask = params->shrink_axis_mask;
+        int32_t shrink_axis_mask = params->shrink_axis_mask;
+        int32_t new_axis_mask = params->new_axis_mask;
+        int32_t num_add_axis = params->num_add_axis;
 
         memset(&param, 0, sizeof(vx_nn_stride_slice_params_t));
 
@@ -384,20 +386,26 @@ static vsi_status op_compute
         memset(&sizes, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
         memcpy(&sizes, &outputs[0]->attr.size, sizeof(int32_t) * outputs[0]->attr.dim_num);
 
-        if (shrink_axis_mask && p->shrink_axis_mask == 0)
+        if ((shrink_axis_mask && p->shrink_axis_mask == 0) ||
+            new_axis_mask)
         {
             uint32_t i = 0;
-            uint32_t j = 0;
+            uint32_t j = 0, idx = 0;
 
-            for (i = 0; i < inputs[0]->attr.dim_num; i++)
+            for (i = 0; i < inputs[0]->attr.dim_num + num_add_axis; i++)
             {
-                if (shrink_axis_mask & (1 << i))
+                if ( new_axis_mask & (1 << i) )
                 {
-                    sizes[i] = 1;
+                    j ++;
+                    continue;
+                }
+                else if (shrink_axis_mask & (1 << i))
+                {
+                    sizes[idx ++] = 1;
                 }
                 else
                 {
-                    sizes[i] = outputs[0]->attr.size[j ++];
+                    sizes[idx ++] = outputs[0]->attr.size[j ++];
                 }
             }
         }
@@ -588,6 +596,7 @@ static vsi_bool _build_strided_slice_params(vsi_nn_strided_slice_param * op_para
         }
     }
 
+    params->new_axis_mask = new_axis_mask;
     new_axis_mask = _reverse_mask_bits(new_axis_mask, output_dims);
 
     params->num_add_axis = num_add_axis;
@@ -789,7 +798,7 @@ static vsi_status op_optimize
             (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num,
             sizeof(inputs[0]->attr.size[0]) );
     }
-    else
+    else if (inputs[0]->attr.dim_num == outputs[0]->attr.dim_num)
     {
         if ( NULL == inputs[0]->t )
         {
@@ -820,6 +829,10 @@ static vsi_status op_optimize
         {
             outputs[0]->t = in_view_tensor;
         }
+    }
+    else
+    {
+        self->nn_param.strided_slice.lcl2_data->is_optimized = FALSE;
     }
 
 OnError:

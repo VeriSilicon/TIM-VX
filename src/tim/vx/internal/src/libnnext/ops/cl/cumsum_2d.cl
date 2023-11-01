@@ -85,12 +85,15 @@ __kernel void cumsum_U8toU8_axis1_2D(
     uint4 sum = (uint4)(0);
     uint4 dst = (uint4)(0);
 
+    int tmp_zp = convert_int_rte(output_zp);
+    dst.x = convert_uint_sat(tmp_zp);
+
     float cnt = 0;
 
     if(exclusive && rev)
     {
         coord.w = height - 1;
-        write_imageui(output, coord.zw, sum);
+        write_imageui(output, coord.zw, dst);
         for(coord.y = height - 1; coord.y > 0; coord.y--)
         {
             uint4 data = read_imageui(input, coord.xy);
@@ -107,7 +110,7 @@ __kernel void cumsum_U8toU8_axis1_2D(
     }
     else if(exclusive)
     {
-        write_imageui(output, coord.zw, sum);
+        write_imageui(output, coord.zw, dst);
         for(coord.y = 0; coord.y < height - 1; coord.y++)
         {
             uint4 data = read_imageui(input, coord.xy);
@@ -173,6 +176,8 @@ __kernel void cumsum_F32toU8_axis1_2D(
 
     float4 sum = (float4)(0);
     uint4 dst = (uint4)(0);
+    int tmp_zp = convert_int_rte(output_zp);
+    dst.x = convert_uint_sat(tmp_zp);
 
     float cnt = 0;
 
@@ -331,13 +336,16 @@ __kernel void cumsum_U8toU8_axis0_2D(
     uint4 sum = (uint4)(0);
     uint4 dst = (uint4)(0);
 
+    int tmp_zp = convert_int_rte(output_zp);
+    dst.x = convert_uint_sat(tmp_zp);
+
     float cnt = 0.0f;
 
     if(exclusive && rev)
     {
         coord.x = width - 1;
         coord.z = coord.x;
-        write_imageui(output, coord.zw, sum);
+        write_imageui(output, coord.zw, dst);
         for(; coord.x > 0; coord.x--)
         {
             uint4 data = read_imageui(input, coord.xy);
@@ -355,7 +363,7 @@ __kernel void cumsum_U8toU8_axis0_2D(
     else if(exclusive)
     {
         coord.z = 0;
-        write_imageui(output, coord.zw, sum);
+        write_imageui(output, coord.zw, dst);
         for(coord.x = 0; coord.x < width - 1; coord.x++)
         {
             uint4 data = read_imageui(input, coord.xy);
@@ -421,9 +429,10 @@ __kernel void cumsum_F32toU8_axis0_2D(
 
     float4 sum = (float4)(0);
     uint4 dst = (uint4)(0);
+    int tmp_zp = convert_int_rte(output_zp);
+    dst.x = convert_uint_sat(tmp_zp);
 
     float cnt = 0.0f;
-
     if(exclusive && rev)
     {
         coord.x = width - 1;

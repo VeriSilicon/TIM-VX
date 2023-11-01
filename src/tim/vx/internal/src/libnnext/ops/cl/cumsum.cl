@@ -88,6 +88,8 @@ __kernel void cumsum_##name##toU8_axis2( \
  \
     src_type sum = (src_type)(0); \
     uint4 dst = (uint4)(0); \
+    int tmp_zp = convert_int_rte(output_zp); \
+    dst.x = convert_uint_sat(tmp_zp); \
  \
     float cnt = 0.0f; \
  \
@@ -252,6 +254,8 @@ __kernel void cumsum_##name##toU8_axis1( \
  \
     src_type sum = (src_type)(0); \
     uint4 dst = (uint4)(0); \
+    int tmp_zp = convert_int_rte(output_zp); \
+    dst.x = convert_uint_sat(tmp_zp); \
  \
     float cnt = 0; \
  \
@@ -416,6 +420,8 @@ __kernel void cumsum_##name##toU8_axis0( \
  \
     src_type sum = (src_type)(0); \
     uint4 dst = (uint4)(0); \
+    int tmp_zp = convert_int_rte(output_zp); \
+    dst.x = convert_uint_sat(tmp_zp); \
  \
     float cnt = 0; \
  \

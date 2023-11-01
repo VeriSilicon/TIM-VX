@@ -80,9 +80,11 @@ typedef struct
 
 static const _kernel_map_type _grucell_activation_sma_kernel_map[] =
 {
-    PACK_KERNEL_MAP(F16, F16,  F16,  F16),
+    PACK_KERNEL_MAP(F16,  F16,  F16,  F16),
+    PACK_KERNEL_MAP(BF16, BF16, BF16, BF16),
 
-    PACK_KERNEL_MAP_2D(F16, F16, F16, F16),
+    PACK_KERNEL_MAP_2D(F16,  F16,  F16,  F16),
+    PACK_KERNEL_MAP_2D(BF16, BF16, BF16, BF16),
 };
 
 /*
@@ -198,6 +200,45 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_sma_initializer)
             status |= vsi_nn_kernel_gpu_add_param( node,
                     "uniA_Minus_B_2x8", &uniA_Minus_B_2x8 );
             CHECK_STATUS_FAIL_GOTO(status, final );
+        }
+        break;
+        case _PACK_A_GRUCELL_ACTIVATION_SMA_KEY(BF16, BF16, BF16, BF16):
+        {
+                gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+                    0x11111111, // TCfg
+                    0x01010101, // ASelt
+                    0x01050004, 0x03070206, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+                gpu_dp_inst_t uniConvBF16toF32_Part1_2x8 = {{
+                    0x11111111, // TCfg
+                    0x01010101, // ASelt
+                    0x05050404, 0x07070606, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16 };
+                gpu_dp_inst_t uniExtractOddData_2x8 = {{
+                    0x11111111, // TCfg
+                    0x11110000, // ASelt
+                    0x07050301, 0x07050301, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+
+                status  = vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part1_2x8", &uniConvBF16toF32_Part1_2x8);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
+                CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
     default:

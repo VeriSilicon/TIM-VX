@@ -234,6 +234,10 @@ static vsi_bool op_setup_default
     {
         attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
     }
+    else if (inputs[GRUCELL_IN_H_STATE]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16)
+    {
+        attr.dtype.vx_type = VSI_NN_TYPE_BFLOAT16;
+    }
     else
     {
         attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;

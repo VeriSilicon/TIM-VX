@@ -532,10 +532,10 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_special_ref_initializer)
         width = (width + 15) / 16;
     }
 
-    input0_zp     = attr[0]->asymm.zero_point;
-    input0_scale  = attr[0]->asymm.scale;
-    output_zp     = attr[1]->asymm.zero_point;
-    output_scale  = 1.0f / attr[1]->asymm.scale;
+    input0_zp     = attr[0]->zero_point;
+    input0_scale  = attr[0]->scale;
+    output_zp     = attr[1]->zero_point;
+    output_scale  = 1.0f / attr[1]->scale;
 
     gpu_param.global_scale[0]  = 1;
     gpu_param.global_scale[1]  = 1;
@@ -670,10 +670,10 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_special_update_initializer)
     update_width = (int32_t)(attr[1]->shape->data[0]);
     index_num    = (int32_t)(attr[0]->shape->data[1]);
 
-    input1_zp     = attr[1]->asymm.zero_point;
-    input1_scale  = attr[1]->asymm.scale;
-    output_zp     = attr[2]->asymm.zero_point;
-    output_scale  = 1.0f / attr[2]->asymm.scale;
+    input1_zp     = attr[1]->zero_point;
+    input1_scale  = attr[1]->scale;
+    output_zp     = attr[2]->zero_point;
+    output_scale  = 1.0f / attr[2]->scale;
 
     if (coord_dim == 5)
     {
@@ -916,10 +916,10 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_reset_initializer)
     }
     width = element_size / 8;
 
-    input_zp0     = attr[0]->asymm.zero_point;
-    input_scale0  = attr[0]->asymm.scale;
-    output_zp     = attr[1]->asymm.zero_point;
-    output_scale  = attr[1]->asymm.scale;
+    input_zp0     = attr[0]->zero_point;
+    input_scale0  = attr[0]->scale;
+    output_zp     = attr[1]->zero_point;
+    output_scale  = attr[1]->scale;
 
     if (attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE)
     {
@@ -933,9 +933,14 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_reset_initializer)
     gpu_param.global_scale[0]  = 1;
     gpu_param.global_scale[1]  = 1;
     gpu_param.global_scale[2]  = 1;
-
-    gpu_param.global_size[0]   = gpu_align_p2((width + gpu_param.global_scale[0] - 1)
-                                        / gpu_param.global_scale[0], 4);
+    if (element_size < 8)
+    {
+        gpu_param.global_size[0]   = element_size;
+    }
+    else
+    {
+        gpu_param.global_size[0]   = width;
+    }
     gpu_param.global_size[1]   = 1;
     gpu_param.global_size[2]   = 1;
 
@@ -1006,7 +1011,7 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_update_initializer)
     int32_t     coord_dim  = 0;
     int32_t     strides[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t     coord_strides[8]  = {0};
-    int32_t     *coord_strides1 = coord_strides + 4;
+    int32_t     coord_strides1[4] = {0};
     int32_t     input2_zp = 0;
     int32_t     i = 0;
 
@@ -1046,13 +1051,14 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_update_initializer)
         width = block_size / 4;
     }
 
-    input2_zp     = attr[1]->asymm.zero_point;
+    input2_zp     = attr[1]->zero_point;
 
     coord_strides[coord_dim - 1] = 1;
     for (i = 0; i < coord_dim - 1; i++)
     {
         coord_strides[i] = strides[coord_dim - 2 - i];
     }
+    memcpy(coord_strides1, coord_strides + 4, 4 * sizeof(int32_t));
 
     gpu_param.global_scale[0]  = 1;
     gpu_param.global_scale[1]  = 1;
@@ -1165,7 +1171,7 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_ref_initializer)
     int32_t     coord_dim  = 0;
     int32_t     strides[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t     coord_strides[8]  = {0};
-    int32_t     *coord_strides1 = coord_strides + 4;
+    int32_t     coord_strides1[4] = {0};
     float       output_zp = 0;
     float       input_scale = 1.0f;
     float       output_scale = 1.0f;
@@ -1202,9 +1208,9 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_ref_initializer)
     update_width = (int32_t)(attr[1]->shape->data[0]);
     index_num    = (int32_t)(attr[0]->shape->data[1]);
 
-    input_scale  = attr[1]->asymm.scale;
-    output_scale = attr[2]->asymm.scale;
-    output_zp    = (float)attr[2]->asymm.zero_point;
+    input_scale  = attr[1]->scale;
+    output_scale = attr[2]->scale;
+    output_zp    = (float)attr[2]->zero_point;
     if (attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE)
     {
         input_scale = 1.0f;
@@ -1220,6 +1226,7 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_ref_initializer)
     {
         coord_strides[i] = strides[coord_dim - 2 - i];
     }
+    memcpy(coord_strides1, coord_strides + 4, 4 * sizeof(int32_t));
 
     width = block_size;
     if (block_size % 4 == 0)
@@ -1337,9 +1344,14 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_copy_initializer)
     gpu_param.global_scale[0]  = 1;
     gpu_param.global_scale[1]  = 1;
     gpu_param.global_scale[2]  = 1;
-
-    gpu_param.global_size[0]   = gpu_align_p2((width + gpu_param.global_scale[0] - 1)
-                                        / gpu_param.global_scale[0], 4);
+    if (element_size < 8)
+    {
+        gpu_param.global_size[0]   = element_size;
+    }
+    else
+    {
+        gpu_param.global_size[0]   = width;
+    }
     gpu_param.global_size[1]   = 1;
     gpu_param.global_size[2]   = 1;
 

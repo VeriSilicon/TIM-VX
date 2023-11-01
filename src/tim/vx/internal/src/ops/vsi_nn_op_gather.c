@@ -50,36 +50,12 @@ static vsi_status op_compute
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
-    uint32_t i = 0;
-    vsi_size_t block_size = 1, block_num = 1, axis_num = 0, indices_num = 1;
     int32_t axis = self->nn_param.gather.axis;
     int32_t batch_dims = self->nn_param.gather.batch_dims;
-    vsi_size_t *input_size = inputs[0]->attr.size;
-    uint32_t r_rank = vsi_nn_GetTensorIsScalar(inputs[0]) ? 0 : inputs[0]->attr.dim_num;
-    uint32_t q_rank = vsi_nn_GetTensorIsScalar(inputs[1]) ? 0 : inputs[1]->attr.dim_num;
 
     param = vsi_nn_kernel_param_create();
 
-    for (i = 0; i < (uint32_t)axis; ++i)
-    {
-        block_size *= input_size[i];
-    }
-
-    axis_num = input_size[axis];
-    for (i = axis + 1; i < r_rank - batch_dims; ++i)
-    {
-        block_num *= input_size[i];
-    }
-    for (i = 0; i < q_rank - batch_dims; ++i)
-    {
-        indices_num *= inputs[1]->attr.size[i];
-    }
-
-    vsi_nn_kernel_param_add_int32( param, "block_size", (int32_t)block_size );
-    vsi_nn_kernel_param_add_int32( param, "block_num", (int32_t)block_num );
-    vsi_nn_kernel_param_add_int32( param, "axis_num", (int32_t)axis_num );
     vsi_nn_kernel_param_add_int32( param, "axis", (int32_t)axis );
-    vsi_nn_kernel_param_add_int32( param, "indices_num", (int32_t)indices_num );
     vsi_nn_kernel_param_add_int32( param, "batch_dims", (int32_t)batch_dims );
 
     if (vsi_nn_is_same_data_type(inputs[0], outputs[0]) == FALSE ||

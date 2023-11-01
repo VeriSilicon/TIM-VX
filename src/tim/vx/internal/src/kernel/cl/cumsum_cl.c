@@ -297,21 +297,13 @@ static vsi_nn_kernel_node_t _setup
 
     if (axis < 0)
     {
-        axis_new = 0;
-        shapes[0][0] = 1;
-        shapes[0][1] = 1;
-        for (i = 0; i < inputs[0]->attr.dim_num; i++)
-        {
-            shapes[0][0] *= inputs[0]->attr.size[i];
-        }
-        rs_dim = 2;
+        axis += (int32_t)inputs[0]->attr.dim_num;
     }
-    else
-    {
-        vsi_nn_kernel_optimize_softmax_shape(
-                    inputs[0]->attr.size, inputs[0]->attr.dim_num, axis,
-                    shapes[0], &rs_dim, &axis_new);
-    }
+
+    vsi_nn_kernel_optimize_softmax_shape(
+                inputs[0]->attr.size, inputs[0]->attr.dim_num, axis,
+                shapes[0], &rs_dim, &axis_new);
+
     if (rs_dim > 3)
     {
         return NULL;

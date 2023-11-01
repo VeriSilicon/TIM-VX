@@ -1,0 +1,283 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;
+_viv_uniform VXC_512Bits uniConvF16toFp32_4x4;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+
+_viv_uniform float inout_scale;
+_viv_uniform float inout_tail;
+
+_viv_uniform int width;
+_viv_uniform int height;
+
+#define MAXPOOL_QINT(in_name, out_name, src_type, dst_type, max_val) \
+__kernel void maxpool_##in_name##to##out_name( \
+     __read_only  image2d_array_t input, \
+     __write_only image2d_array_t output, \
+     int stride_x, int stride_y, int pad_x, int pad_y, \
+     int kernel_dia_x, int kernel_dia_y, int dilation_x, int dilation_y) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0); \
+    int2 pos_start = coord_out.xy * (int2)(stride_x, stride_y) - (int2)(pad_x, pad_y); \
+    int4 coord_in = coord_out; \
+    int2 pos_end = pos_start + (int2)(kernel_dia_x, kernel_dia_y); \
+    for(; pos_start.x < 0;) \
+    { \
+        pos_start.x += dilation_x; \
+    } \
+    for(; pos_start.y < 0;) \
+    { \
+        pos_start.y += dilation_y; \
+    } \
+    pos_end = min(pos_end, (int2)(width, height)); \
+ \
+    src_type src0; \
+    dst_type maxVal; \
+    maxVal.x = max_val; \
+ \
+    int8 input_desc; \
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+    int baseAddr_a = (int)coord_in.z * input_desc.s4 + input_desc.s0; \
+    _viv_asm(MOV, coord_in.w, baseAddr_a); \
+ \
+    for(coord_in.y = pos_start.y; coord_in.y < pos_end.y; coord_in.y += dilation_y) \
+    { \
+        for(coord_in.x = pos_start.x; coord_in.x < pos_end.x;) \
+        { \
+            VXC_OP4(img_load_3d, src0, input, coord_in.xywz, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+            coord_in.x += dilation_x; \
+            VXC_VertMax3_Integer(maxVal, src0, src0, maxVal, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+ \
+    float4 fValTmp; \
+    fValTmp.x = maxVal.x * inout_scale + inout_tail; \
+    int4 i4Val = convert_int4_rte(fValTmp); \
+    VXC_DP2x8(maxVal, i4Val, i4Val, VXC_MODIFIER(0, 0, 0, VXC_RM_ToNearestEven, 1), \
+            uniConvertInt32toUint8_2x8); \
+    VXC_WriteImage2DArray(output, coord_out, maxVal, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+MAXPOOL_QINT(U8,  U8,  vxc_uchar8, vxc_uchar8, 0)
+MAXPOOL_QINT(I8,  I8,  vxc_char8,  vxc_char8, -128)
+MAXPOOL_QINT(I16, I16, vxc_short8, vxc_short8, -32768)
+
+__kernel void maxpool_F16toF16(
+     __read_only  image2d_array_t input,
+     __write_only image2d_array_t output,
+     int stride_x, int stride_y, int pad_x, int pad_y,
+     int kernel_dia_x, int kernel_dia_y, int dilation_x, int dilation_y)
+{
+    int gidx = get_global_id(0);
+    int gidy = get_global_id(1);
+    int gidz = get_global_id(2);
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0);
+    int2 pos_start = coord_out.xy * (int2)(stride_x, stride_y) - (int2)(pad_x, pad_y);
+    int4 coord_in = coord_out;
+    int2 pos_end = pos_start + (int2)(kernel_dia_x, kernel_dia_y);
+    for(; pos_start.x < 0;)
+    {
+        pos_start.x += dilation_x;
+    }
+    for(; pos_start.y < 0;)
+    {
+        pos_start.y += dilation_y;
+    }
+    pos_end = min(pos_end, (int2)(width, height));
+
+    vxc_short8 data0;
+    vxc_half8 maxVal, src0;
+
+    int8 input_desc;
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));
+    int baseAddr_a = (int)coord_in.z * input_desc.s4 + input_desc.s0;
+    _viv_asm(MOV, coord_in.w, baseAddr_a);
+    coord_in.xy = pos_start;
+
+    VXC_OP4(img_load_3d, data0, input, coord_in.xywz, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, maxVal, data0, 16);
+
+    for(coord_in.y = pos_start.y; coord_in.y < pos_end.y; coord_in.y += dilation_y)
+    {
+        for(coord_in.x = pos_start.x; coord_in.x < pos_end.x;)
+        {
+            VXC_OP4(img_load_3d, data0, input, coord_in.xywz, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+            coord_in.x += dilation_x;
+            _viv_asm(COPY, src0, data0, 16);
+            VXC_VertMax3_Half(maxVal, src0, src0, maxVal, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+        }
+    }
+    _viv_asm(COPY, data0, maxVal, 16);
+    VXC_WriteImage2DArray(output, coord_out, data0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+#define MAXPOOL_F16_TO_QINT(out_name, dst_type) \
+__kernel void maxpool_F16to##out_name( \
+     __read_only  image2d_array_t input, \
+     __write_only image2d_array_t output, \
+     int stride_x, int stride_y, int pad_x, int pad_y, \
+     int kernel_dia_x, int kernel_dia_y, int dilation_x, int dilation_y) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0); \
+    int2 pos_start = coord_out.xy * (int2)(stride_x, stride_y) - (int2)(pad_x, pad_y); \
+    int4 coord_in = coord_out; \
+    int2 pos_end = pos_start + (int2)(kernel_dia_x, kernel_dia_y); \
+    for(; pos_start.x < 0;) \
+    { \
+        pos_start.x += dilation_x; \
+    } \
+    for(; pos_start.y < 0;) \
+    { \
+        pos_start.y += dilation_y; \
+    } \
+    pos_end = min(pos_end, (int2)(width, height)); \
+ \
+    vxc_short8 data0; \
+    vxc_half8 maxVal, src0; \
+ \
+    int8 input_desc; \
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+    int baseAddr_a = (int)coord_in.z * input_desc.s4 + input_desc.s0; \
+    _viv_asm(MOV, coord_in.w, baseAddr_a); \
+    coord_in.xy = pos_start; \
+ \
+    VXC_OP4(img_load_3d, data0, input, coord_in.xywz, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, maxVal, data0, 16); \
+ \
+    for(coord_in.y = pos_start.y; coord_in.y < pos_end.y; coord_in.y += dilation_y) \
+    { \
+        for(coord_in.x = pos_start.x; coord_in.x < pos_end.x;) \
+        { \
+            VXC_OP4(img_load_3d, data0, input, coord_in.xywz, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+            coord_in.x += dilation_x; \
+            _viv_asm(COPY, src0, data0, 16); \
+            VXC_VertMax3_Half(maxVal, src0, src0, maxVal, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+    float4 fValTmp; \
+    VXC_DP4x4(fValTmp, maxVal, maxVal, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniConvF16toFp32_4x4); \
+    fValTmp.x = fValTmp.x * inout_scale + inout_tail; \
+    int4 i4Val = convert_int4_rte(fValTmp); \
+    dst_type dst; \
+    VXC_DP2x8(dst, i4Val, i4Val, VXC_MODIFIER(0, 0, 0, VXC_RM_ToNearestEven, 1), \
+                uniConvertInt32toUint8_2x8); \
+    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+
+MAXPOOL_F16_TO_QINT(U8,  vxc_uchar8)
+MAXPOOL_F16_TO_QINT(I8,  vxc_char8)
+MAXPOOL_F16_TO_QINT(I16, vxc_short8)
+
+#define MAXPOOL_QINT_TO_F16(in_name, src_type, max_val) \
+__kernel void maxpool_##in_name##toF16( \
+     __read_only  image2d_array_t input, \
+     __write_only image2d_array_t output, \
+     int stride_x, int stride_y, int pad_x, int pad_y, \
+     int kernel_dia_x, int kernel_dia_y, int dilation_x, int dilation_y) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    int gidz = get_global_id(2); \
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0); \
+    int2 pos_start = coord_out.xy * (int2)(stride_x, stride_y) - (int2)(pad_x, pad_y); \
+    int4 coord_in = coord_out; \
+    int2 pos_end = pos_start + (int2)(kernel_dia_x, kernel_dia_y); \
+    for(; pos_start.x < 0;) \
+    { \
+        pos_start.x += dilation_x; \
+    } \
+    for(; pos_start.y < 0;) \
+    { \
+        pos_start.y += dilation_y; \
+    } \
+    pos_end = min(pos_end, (int2)(width, height)); \
+ \
+    src_type src0, maxVal; \
+    maxVal.x = max_val; \
+ \
+    int8 input_desc; \
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+    int baseAddr_a = (int)coord_in.z * input_desc.s4 + input_desc.s0; \
+    _viv_asm(MOV, coord_in.w, baseAddr_a); \
+ \
+    for(coord_in.y = pos_start.y; coord_in.y < pos_end.y; coord_in.y += dilation_y) \
+    { \
+        for(coord_in.x = pos_start.x; coord_in.x < pos_end.x;) \
+        { \
+            VXC_OP4(img_load_3d, src0, input, coord_in.xywz, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+            coord_in.x += dilation_x; \
+            VXC_VertMax3_Integer(maxVal, src0, src0, maxVal, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+ \
+    float4 fValTmp; \
+    fValTmp.x = maxVal.x * inout_scale + inout_tail; \
+    half4 h4Val; \
+    _viv_asm(CONV, h4Val, fValTmp); \
+    vxc_short8 dst; \
+    _viv_asm(COPY, dst, h4Val, 4); \
+    VXC_WriteImage2DArray(output, coord_out, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+}
+MAXPOOL_QINT_TO_F16(U8,  vxc_uchar8, 0)
+MAXPOOL_QINT_TO_F16(I8,  vxc_char8,  -128)
+MAXPOOL_QINT_TO_F16(I16, vxc_short8, -32768)
+
+__kernel void maxpool_BF16toBF16(
+     __read_only  image2d_array_t input,
+     __write_only image2d_array_t output,
+     int stride_x, int stride_y, int pad_x, int pad_y,
+     int kernel_dia_x, int kernel_dia_y, int dilation_x, int dilation_y)
+{
+    int gidx = get_global_id(0);
+    int gidy = get_global_id(1);
+    int gidz = get_global_id(2);
+    int4 coord_out = (int4)(gidx, gidy, gidz, 0);
+    int2 pos_start = coord_out.xy * (int2)(stride_x, stride_y) - (int2)(pad_x, pad_y);
+    int4 coord_in = coord_out;
+    int2 pos_end = pos_start + (int2)(kernel_dia_x, kernel_dia_y);
+    for(; pos_start.x < 0;)
+    {
+        pos_start.x += dilation_x;
+    }
+    for(; pos_start.y < 0;)
+    {
+        pos_start.y += dilation_y;
+    }
+    pos_end = min(pos_end, (int2)(width, height));
+
+    vxc_short8 data0, val0;
+    float4 maxVal, src0;
+
+    int8 input_desc;
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc));
+    int baseAddr_a = (int)coord_in.z * input_desc.s4 + input_desc.s0;
+    _viv_asm(MOV, coord_in.w, baseAddr_a);
+    coord_in.xy = pos_start;
+
+    VXC_OP4(img_load_3d, data0, input, coord_in.xywz, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
+
+    VXC_DP2x8(val0, data0, zero, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);
+    _viv_asm(COPY, maxVal, val0, 4);
+
+    for(coord_in.y = pos_start.y; coord_in.y < pos_end.y; coord_in.y += dilation_y)
+    {
+        for(coord_in.x = pos_start.x; coord_in.x < pos_end.x;)
+        {
+            VXC_OP4(img_load_3d, data0, input, coord_in.xywz, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+            coord_in.x += dilation_x;
+            VXC_DP2x8(val0, data0, zero, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);
+            _viv_asm(COPY, src0, val0, 4);
+            maxVal = max(src0, maxVal);
+        }
+    }
+    _viv_asm(COPY, data0, maxVal, 16);
+    VXC_DP2x8(val0, data0, data0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+    VXC_WriteImage2DArray(output, coord_out, val0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}

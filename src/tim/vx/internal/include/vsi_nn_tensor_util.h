@@ -614,6 +614,13 @@ OVXLIB_API vsi_status vsi_nn_SwapTensorHandle
     vsi_nn_tensor_t * tensor1
     );
 
+OVXLIB_API vsi_status vsi_nn_SwapTensorHandleWithCache
+    (
+    vsi_nn_graph_t  * graph,
+    vsi_nn_tensor_t * tensor0,
+    vsi_nn_tensor_t * tensor1
+    );
+
 OVXLIB_API vsi_size_t vsi_nn_vxGetTensorElementNum
     (
     vsi_nn_tensor_attr_t *attr

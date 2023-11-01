@@ -41,6 +41,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "vsi_nn_graph_optimization.h"
 #include "vsi_nn_error.h"
+#include "vsi_nn_types_prv.h"
 
 static vsi_status _set_reference_node_name
     (
@@ -102,15 +103,71 @@ final:
     return status;
 } /* _set_reference_tensor_name() */
 
+static vsi_status _set_parameter_for_swap_handle
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_node_t* node,
+    vsi_nn_tensor_t* tensor,
+    uint32_t idx
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    vsi_nn_swap_handle_cache_item_t* item = NULL;
+    status = vxSetParameterByIndex( node->n, idx, (vx_reference)tensor->t );
+    if( VSI_SUCCESS != status )
+    {
+        VSILOGE( "Set parameter %d for node[%08x] fail!", idx, node->n );
+        goto final;
+    }
+    tensor->is_swapped = FALSE;
+
+    if (!((vsi_nn_graph_prv_t*)graph)->swap_handle_cache.is_feature_on) {
+       goto final;
+    }
+
+    item = (vsi_nn_swap_handle_cache_item_t *)
+        malloc( sizeof(vsi_nn_swap_handle_cache_item_t) );
+    if( NULL == item )
+    {
+        VSILOGE( "Create swap handle cache item fail." );
+        goto final;
+    }
+
+    memset( item, 0, sizeof(vsi_nn_swap_handle_cache_item_t) );
+    item->node = node;
+    item->idx = idx;
+    item->tensor = tensor;
+    vsi_nn_LinkListPushStart(
+        (vsi_nn_link_list_t **)&(((vsi_nn_graph_prv_t*)graph)->swap_handle_cache.cache_list),
+        (vsi_nn_link_list_t *)item );
+
+final:
+    return status;
+} /* _set_parameter_for_swap_handle() */
+
 static vsi_status _check_swapped_tensors
     (
-    const vsi_nn_graph_t* graph
+    vsi_nn_graph_t* graph
     )
 {
     uint32_t i = 0;
     vsi_status status = VSI_SUCCESS;
 
     VSILOGD("Check swapped tensors");
+    if (((vsi_nn_graph_prv_t*)graph)->swap_handle_cache.is_feature_on
+        && ((vsi_nn_graph_prv_t*)graph)->swap_handle_cache.is_cached)
+    {
+        vsi_nn_swap_handle_cache_item_t* cur_item =
+            ((vsi_nn_graph_prv_t*)graph)->swap_handle_cache.cache_list;
+        while( NULL != cur_item && VSI_SUCCESS == status )
+        {
+            status = vxSetParameterByIndex( cur_item->node->n, cur_item->idx,
+                (vx_reference)(cur_item->tensor->t) );
+            cur_item = (vsi_nn_swap_handle_cache_item_t *)
+                vsi_nn_LinkListNext( (vsi_nn_link_list_t *)cur_item );
+        }
+        goto final;
+    }
     for( i = 0; i < graph->node_num; i++ )
     {
         vsi_nn_node_t* node = vsi_nn_GetNode( graph, (vsi_nn_node_id_t)i );
@@ -127,13 +184,12 @@ static vsi_status _check_swapped_tensors
                 tensor = vsi_nn_GetTensor( graph, node->input.tensors[j] );
                 if( tensor && tensor->is_swapped )
                 {
-                    status = vxSetParameterByIndex( node->n, idx, (vx_reference)tensor->t );
+                    status = _set_parameter_for_swap_handle(graph, node, tensor, idx);
                     if( VSI_SUCCESS != status )
                     {
-                        VSILOGE( "Set input parameter %d for node[%08x] fail!", idx, node->n );
+                        VSILOGE( "_set_parameter_for_swap_handle for input fail!");
                         goto final;
                     }
-                    tensor->is_swapped = FALSE;
                 }
                 idx++;
             }
@@ -143,17 +199,21 @@ static vsi_status _check_swapped_tensors
                 tensor = vsi_nn_GetTensor( graph, node->output.tensors[j] );
                 if( tensor && tensor->is_swapped )
                 {
-                    status = vxSetParameterByIndex( node->n, idx, (vx_reference)tensor->t );
+                    status = _set_parameter_for_swap_handle(graph, node, tensor, idx);
                     if( VSI_SUCCESS != status )
                     {
-                        VSILOGE( "Set output parameter %d for node[%08x] fail!", idx, node->n );
+                        VSILOGE( "_set_parameter_for_swap_handle for output fail!");
                         goto final;
                     }
-                    tensor->is_swapped = FALSE;
                 }
                 idx++;
             }
         }
+    }
+
+    if (NULL != ((vsi_nn_graph_prv_t*)graph)->swap_handle_cache.cache_list)
+    {
+        ((vsi_nn_graph_prv_t*)graph)->swap_handle_cache.is_cached = TRUE;
     }
 
 final:
@@ -581,10 +641,10 @@ vsi_nn_graph_t * vsi_nn_CreateGraph
         return graph;
     }
 
-    graph = (vsi_nn_graph_t *)malloc( sizeof( vsi_nn_graph_t ) );
+    graph = (vsi_nn_graph_t *)malloc( sizeof( vsi_nn_graph_prv_t ) );
     if( NULL != graph )
     {
-        memset( graph, 0, sizeof( vsi_nn_graph_t ) );
+        memset( graph, 0, sizeof( vsi_nn_graph_prv_t ) );
         graph->g = vxCreateGraph( ctx->c );
         if( NULL != graph->g )
         {
@@ -668,6 +728,16 @@ void vsi_nn_ReleaseGraph
         if( NULL != ptr->rnn_wksp )
         {
             vsi_nn_rnn_DeinitWksp( ptr );
+        }
+        if( NULL != ((vsi_nn_graph_prv_t*)ptr)->swap_handle_cache.cache_list )
+        {
+            vsi_nn_swap_handle_cache_item_t* item = ((vsi_nn_graph_prv_t*)ptr)->swap_handle_cache.cache_list;
+            while( NULL != item )
+            {
+                vsi_nn_swap_handle_cache_item_t* tmp = (vsi_nn_swap_handle_cache_item_t *)
+                    vsi_nn_LinkListPopStart( (vsi_nn_link_list_t **)&item );
+                free( tmp );
+            }
         }
         free( ptr );
         *graph = NULL;
@@ -814,7 +884,7 @@ vsi_status vsi_nn_VerifyGraph
 
 vsi_status vsi_nn_RunGraph
     (
-    const vsi_nn_graph_t * graph
+    vsi_nn_graph_t * graph
     )
 {
     vsi_status status;
@@ -1160,7 +1230,7 @@ vsi_nn_node_t * vsi_nn_GetNode
         node = vsi_nn_MapGet( graph->node_table, (vsi_nn_map_key_t)id );
     }
     return node;
-} /* vsi_nn_GetTensor() */
+} /* vsi_nn_GetNode() */
 
 void vsi_nn_GetTensors
     (
@@ -2547,3 +2617,25 @@ final:
     vsi_nn_safe_free(data);
     return status;
 } /* vsi_nn_ExecuteGraphLoop() */
+
+
+vsi_status vsi_nn_SetGraphTransformOption
+    (
+    vsi_nn_graph_t* graph,
+    const char* ctrl_str,
+    size_t size
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(ctrl_str);
+    VSI_UNREFERENCED(size);
+#ifdef VX_GRAPH_TRANSFORM_OPTION_SUPPORT
+
+    if(graph && graph->g)
+    {
+        status = vxSetGraphAttribute(graph->g, VX_GRAPH_VSI_TRANSFORM_OPTIONS, ctrl_str, size);
+    }
+#endif
+    return status;
+}

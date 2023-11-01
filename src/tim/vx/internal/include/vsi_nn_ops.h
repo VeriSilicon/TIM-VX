@@ -268,7 +268,7 @@ vsi_status vsi_nn_OpOptimize
  *
  * @return VSI_SUCCESS on success, or error code otherwise.
  */
-vsi_bool vsi_nn_OpCheck
+OVXLIB_API vsi_bool vsi_nn_OpCheck
     (
     vsi_nn_op_t op,
     vsi_nn_node_t * node,
