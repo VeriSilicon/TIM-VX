@@ -36,6 +36,7 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "libnnext/vx_lib_nnext.h"
+#include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 
 __BEGIN_DECLS
 
@@ -1576,21 +1577,22 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t tmp_params[_MATRIX_MUL_CROSS_PARAM_NUM] = { NULL };
     vsi_nn_kernel_node_t node = NULL;
     vsi_nn_kernel_tensor_t rs_input = NULL, rs_output = NULL;
+    vsi_nn_tensor_t*  tmp_inputs[2]  = {NULL};
+    vsi_nn_tensor_t*  tmp_outputs[1] = {NULL};
     int32_t transposeA  = vsi_nn_kernel_param_get_int32( params, "transposeA" );
     int32_t transposeB  = vsi_nn_kernel_param_get_int32( params, "transposeB" );
     int32_t adjointA  = vsi_nn_kernel_param_get_int32( params, "adjointA" );
     int32_t adjointB  = vsi_nn_kernel_param_get_int32( params, "adjointB" );
-    uint32_t cross_flg  = vsi_nn_kernel_param_get_int32( params, "cross_flg" );
-    size_t tmp_size = 0;
-    uint32_t* size_axis_in_out = NULL;
-    uint32_t* stride_axis_in_out = NULL;
+    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
+    uint32_t new_rank[3] = {0};
     vsi_size_t M = inputs[0]->attr.size[1];
     vsi_size_t K = inputs[0]->attr.size[0];
     vsi_size_t N = inputs[1]->attr.size[0];
     vsi_size_t depthA = 1, depthB = 1;
 
-    size_axis_in_out = (uint32_t *)vsi_nn_kernel_param_get_buffer( params, "size_axis_inner_outer", &tmp_size);
-    stride_axis_in_out = (uint32_t *)vsi_nn_kernel_param_get_buffer( params, "stride_axis_inner_outer", &tmp_size);
+    uint32_t cross_flg = 0;
+    uint32_t size_axis_in_out[3] = {0};
+    uint32_t stride_axis_in_out[9] = {0};
 
     VSI_UNREFERENCED(input_num);
     VSI_UNREFERENCED(output_num);
@@ -1609,35 +1611,62 @@ static vsi_nn_kernel_node_t _setup
         return NULL;
     }
 
+    status = vsi_nn_kernel_optimize_matrixmul_broadcast_shape(
+                                       inputs[0]->attr.size,
+                                       inputs[1]->attr.size,
+                                       outputs[0]->attr.size,
+                                       inputs[0]->attr.dim_num,
+                                       inputs[1]->attr.dim_num,
+                                       outputs[0]->attr.dim_num,
+                                       shapes[0], shapes[1], shapes[2], new_rank,
+                                       &cross_flg, size_axis_in_out, stride_axis_in_out);
+    if (status)
+    {
+        tmp_inputs[0] = vsi_nn_reshape_tensor(graph, inputs[0], shapes[0], new_rank[0]);
+        tmp_inputs[1] = vsi_nn_reshape_tensor(graph, inputs[1], shapes[1], new_rank[1]);
+        tmp_outputs[0] = vsi_nn_reshape_tensor(graph, outputs[0], shapes[2], new_rank[2]);
+
+        M = tmp_inputs[0]->attr.size[1];
+        K = tmp_inputs[0]->attr.size[0];
+        N = tmp_inputs[1]->attr.size[0];
+    }
+    else
+    {
+        VSILOGE("illegal inputs shape");
+        status = VSI_FAILURE;
+        goto final;
+    }
+
     if (transposeA)
     {
-        K = inputs[0]->attr.size[1];
-        M = inputs[0]->attr.size[0];
+        K = tmp_inputs[0]->attr.size[1];
+        M = tmp_inputs[0]->attr.size[0];
     }
     else if (transposeB)
     {
-        N = inputs[1]->attr.size[1];
+        N = tmp_inputs[1]->attr.size[1];
     }
 
-    depthA = inputs[0]->attr.dim_num > 2 ? inputs[0]->attr.size[2] : 1;
-    depthB = inputs[1]->attr.dim_num > 2 ? inputs[1]->attr.size[2] : 1;
+    depthA = tmp_inputs[0]->attr.dim_num > 2 ? tmp_inputs[0]->attr.size[2] : 1;
+    depthB = tmp_inputs[1]->attr.dim_num > 2 ? tmp_inputs[1]->attr.size[2] : 1;
+
     if (M == 1 && depthB == 1 && depthA > 1)
     {
         vsi_size_t  shape[VSI_NN_MAX_DIM_NUM] = {0};
-        shape[0] = inputs[0]->attr.size[0];
-        shape[1] = inputs[0]->attr.size[2];
+        shape[0] = tmp_inputs[0]->attr.size[0];
+        shape[1] = tmp_inputs[0]->attr.size[2];
         shape[2] = 1;
-        shape[3] = inputs[0]->attr.dim_num > 3 ? inputs[0]->attr.size[3] : 1;
-        rs_input = vsi_nn_kernel_tensor_reshape( inputs[0]->t, shape, 4 );
+        shape[3] = tmp_inputs[0]->attr.dim_num > 3 ? tmp_inputs[0]->attr.size[3] : 1;
+        rs_input = vsi_nn_kernel_tensor_reshape( tmp_inputs[0]->t, shape, 4 );
 
-        shape[0] = outputs[0]->attr.size[0];
-        shape[1] = outputs[0]->attr.size[2];
+        shape[0] = tmp_outputs[0]->attr.size[0];
+        shape[1] = tmp_outputs[0]->attr.size[2];
         shape[2] = 1;
-        shape[3] = outputs[0]->attr.dim_num > 3 ? outputs[0]->attr.size[3] : 1;
-        rs_output = vsi_nn_kernel_tensor_reshape( outputs[0]->t, shape, 4 );
+        shape[3] = tmp_outputs[0]->attr.dim_num > 3 ? tmp_outputs[0]->attr.size[3] : 1;
+        rs_output = vsi_nn_kernel_tensor_reshape( tmp_outputs[0]->t, shape, 4 );
     }
 
-    status = _query_kernel( inputs, outputs, kernel, transposeA, transposeB, cross_flg );
+    status = _query_kernel( tmp_inputs, tmp_outputs, kernel, transposeA, transposeB, cross_flg );
     if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
@@ -1649,13 +1678,13 @@ static vsi_nn_kernel_node_t _setup
             if (rs_input)
             {
                 tmp_params[0] = rs_input;
-                tmp_params[1] = (vsi_nn_kernel_node_param_t)(inputs[1]->t);
+                tmp_params[1] = (vsi_nn_kernel_node_param_t)(tmp_inputs[1]->t);
                 tmp_params[2] = rs_output;
             }
             else
             {
                 vsi_nn_kernel_node_pack_io( tmp_params, param_num,
-                        inputs, 2, outputs, 1 );
+                        tmp_inputs, 2, tmp_outputs, 1 );
             }
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &transposeA );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &transposeB );
@@ -1725,6 +1754,10 @@ static vsi_nn_kernel_node_t _setup
             }
         }
     }
+final:
+    vsi_safe_release_tensor( tmp_inputs[0] );
+    vsi_safe_release_tensor( tmp_inputs[1] );
+    vsi_safe_release_tensor( tmp_outputs[0] );
     if (rs_input)
     {
         vsi_nn_kernel_tensor_release( &rs_input );

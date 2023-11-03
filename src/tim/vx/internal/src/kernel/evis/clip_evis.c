@@ -590,7 +590,7 @@ static vsi_nn_kernel_node_t _setup
     ret = vsi_nn_kernel_optimize_element_shape(
         inputs[0]->attr.size, inputs[0]->attr.dim_num, shape, &new_rank);
 
-    if ( ret )
+    if ( !ret )
     {
         return NULL;
     }

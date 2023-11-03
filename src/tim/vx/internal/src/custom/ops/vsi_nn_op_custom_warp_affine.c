@@ -42,7 +42,7 @@ typedef struct _custom_warp_affine_local_data_t {
 /*
  Declare number of input and output.
  */
-#define _INPUT_NUM          (1)
+#define _INPUT_NUM          (2)
 #define _OUTPUT_NUM         (1)
 
 static vsi_status op_compute
@@ -63,7 +63,7 @@ static vsi_status op_compute
 
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
             "custom_warp_affine",
-            inputs, 1,
+            inputs, 2,
             outputs, 1, param );
 
     vsi_nn_kernel_param_release( &param );

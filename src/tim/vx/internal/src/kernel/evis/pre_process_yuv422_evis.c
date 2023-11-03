@@ -249,6 +249,18 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
             0x00000001, 0x00000001, 0x00000001, 0x00000001,
             0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
         }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvertUchartoFp32_4x4 = {{
+            0x01010101,  // TCfg
+            0x00000000,  // ASelt
+            0x00010000,
+            0x00030002,  // ABin
+            0x02020202,  // BSelt
+            0x00000000,
+            0x00000000,  // BBin
+            0x00000400,  // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000  // Constant
+        }, GPU_DP_TYPE_16 };
 
         status = vsi_nn_kernel_gpu_add_param(node, "uniConvertYUV422toB_4x4", &uniConvertYUV422toB_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertYUV422toG_4x4", &uniConvertYUV422toG_4x4);
@@ -262,6 +274,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_copy_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "bMeanScaleVarZp", &bMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "gMeanScaleVarZp", &gMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "rMeanScaleVarZp", &rMeanScaleVarZp);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertUchartoFp32_4x4", &uniConvertUchartoFp32_4x4);
+        CHECK_STATUS_FAIL_GOTO(status, OnError);
         switch( attr[0]->dtype )
         {
         case U8:
@@ -461,6 +475,18 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
                 0x00000001, 0x00000001, 0x00000001, 0x00000001,
                 0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
         }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvertUchartoFp32_4x4 = {{
+                0x01010101,  // TCfg
+                0x00000000,  // ASelt
+                0x00010000,
+                0x00030002,  // ABin
+                0x02020202,  // BSelt
+                0x00000000,
+                0x00000000,  // BBin
+                0x00000400,  // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000000, 0x00000001, 0x00000000,
+                0x00000001, 0x00000000, 0x00000001, 0x00000000  // Constant
+        }, GPU_DP_TYPE_16 };
 
         status = vsi_nn_kernel_gpu_add_param(node, "uniConvertYUV422toB_4x4", &uniConvertYUV422toB_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertYUV422toG_4x4", &uniConvertYUV422toG_4x4);
@@ -477,6 +503,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_yuv422_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractYtoShortSub16_4x4", &uniExtractYtoShortSub16_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);
         status |= vsi_nn_kernel_gpu_add_param(node, "bOrder", &order1);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertUchartoFp32_4x4", &uniConvertUchartoFp32_4x4);
         CHECK_STATUS_FAIL_GOTO(status, OnError );
 
         switch( attr[0]->dtype )

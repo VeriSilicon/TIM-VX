@@ -3,6 +3,9 @@
 #define logE        (1.44269502f)
 #define twoLogE     (logE * 2.0f)
 
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+
 float4 sigmoid_func(float4 x)
 {
     x *= -logE;
@@ -98,3 +101,39 @@ GRUCELL_QNT_F16TO_F16(I16, SIGMOID,  sigmoid_func, vxc_short8)
 GRUCELL_QNT_F16TO_F16(U8,  HSIGMOID, hard_sigmoid, vxc_uchar8)
 GRUCELL_QNT_F16TO_F16(I8,  HSIGMOID, hard_sigmoid, vxc_char8)
 GRUCELL_QNT_F16TO_F16(I16, HSIGMOID, hard_sigmoid, vxc_short8)
+
+#define GRUCELL_BF16(act_name, act_func) \
+__kernel void grucell_h_times_activation_r_BF16_BF16toBF16_##act_name( \
+    __read_only  image2d_t hstate_in, \
+    __read_only  image2d_t input_r_conv, \
+    __read_only  image2d_t hstate_r_conv, \
+    __write_only image2d_t output \
+    ) \
+{ \
+    int2 coord_in = (int2)(get_global_id(0), get_global_id(1)); \
+    vxc_short8 v0, v1, v2, v3, data0, data1; \
+    float4 src0, src1, src2, src3; \
+    VXC_ReadImage(v0, input_r_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(v1, hstate_r_conv, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(v3, hstate_in, coord_in, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0); \
+    VXC_DP2x8(data0, v0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), \
+                         uniConvBF16toF32_Part0_2x8); \
+    _viv_asm(COPY, src0, data0, 16); \
+    VXC_DP2x8(data1, v1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), \
+                         uniConvBF16toF32_Part0_2x8); \
+    _viv_asm(COPY, src1, data1, 16); \
+    VXC_DP2x8(data0, v3, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), \
+                         uniConvBF16toF32_Part0_2x8); \
+    _viv_asm(COPY, src3, data0, 16); \
+ \
+    float4 r; \
+    r = src0 + src1; \
+    r = act_func(r); \
+    float4 result = r * src3; \
+    _viv_asm(COPY, v0, result, 16); \
+    VXC_DP2x8(data0, v0, v0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8); \
+    VXC_WriteImage(output, coord_in, data0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+}
+GRUCELL_BF16(SIGMOID,  sigmoid_func)
+GRUCELL_BF16(HSIGMOID, hard_sigmoid)

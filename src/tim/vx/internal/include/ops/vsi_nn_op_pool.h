@@ -50,6 +50,7 @@ typedef struct _vsi_nn_pool_param
     vsi_nn_pad_e pad_type;
     /* poolwithargmax layer local data structure */
     vsi_nn_pool_lcl_data *local;
+    uint32_t     dilation[2];
 } vsi_nn_pool_param;
 
 #ifdef __cplusplus

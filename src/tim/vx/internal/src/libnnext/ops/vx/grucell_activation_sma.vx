@@ -3,6 +3,11 @@
 _viv_uniform VXC_512Bits uniA_Minus_B_2x8;
 _viv_uniform VXC_512Bits uniA_Times_B_2x8;
 _viv_uniform VXC_512Bits uniA_Plus_B_2x8;
+
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+
 __kernel void grucell_activation_sma_F16_F16_F16toF16
     (
     __read_only image2d_array_t   input0,
@@ -61,3 +66,101 @@ __kernel void grucell_activation_sma_F16_F16_F16toF16_2D
     VXC_WriteImage(h_status, coord, dst, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
 }
 
+__kernel void grucell_activation_sma_BF16_BF16_BF16toBF16
+    (
+    __read_only image2d_array_t   input0,
+    __read_only image2d_array_t   input1,
+    __read_only image2d_array_t   input2,
+    __write_only image2d_array_t  output,
+    __write_only image2d_array_t  h_status
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+
+    float4 src0, src00, src1, src11, src2, src22, minus, minus1, dst, dst1;
+    vxc_ushort8 vec0, vec1, vec2, data0, data1;
+
+    VXC_ReadImage2DArray(vec0, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage2DArray(vec1, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage2DArray(vec2, input2, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);
+    VXC_DP2x8(data0, vec0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part0_2x8);
+    VXC_DP2x8(data1, vec0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, src0, data0, 16);
+    _viv_asm(COPY, src00, data1, 16);
+    VXC_DP2x8(data0, vec1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part0_2x8);
+    VXC_DP2x8(data1, vec1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, src1, data0, 16);
+    _viv_asm(COPY, src11, data1, 16);
+    VXC_DP2x8(data0, vec2, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part0_2x8);
+    VXC_DP2x8(data1, vec2, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, src2, data0, 16);
+    _viv_asm(COPY, src22, data1, 16);
+
+    minus = src0 - src1;
+    minus1 = src00 - src11;
+
+    dst = minus * src2 + src1;
+    dst1 = minus1 * src22 + src11;
+    _viv_asm(COPY, vec0, dst, 16);
+    _viv_asm(COPY, vec1, dst1, 16);
+    VXC_DP2x8(data0, vec0, vec1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+
+    VXC_WriteImage2DArray(output, coord, data0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+    VXC_WriteImage(h_status, coord, data0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+}
+
+__kernel void grucell_activation_sma_BF16_BF16_BF16toBF16_2D
+    (
+    __read_only image2d_array_t   input0,
+    __read_only image2d_array_t   input1,
+    __read_only image2d_array_t   input2,
+    __write_only image2d_array_t  output,
+    __write_only image2d_array_t  h_status
+    )
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+
+    float4 src0, src00, src1, src11, src2, src22, minus, minus1, dst, dst1;
+    vxc_ushort8 vec0, vec1, vec2, data0, data1;
+
+    VXC_ReadImage(vec0, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(vec1, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(vec2, input2, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);
+    VXC_DP2x8(data0, vec0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part0_2x8);
+    VXC_DP2x8(data1, vec0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, src0, data0, 16);
+    _viv_asm(COPY, src00, data1, 16);
+    VXC_DP2x8(data0, vec1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part0_2x8);
+    VXC_DP2x8(data1, vec1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, src1, data0, 16);
+    _viv_asm(COPY, src11, data1, 16);
+    VXC_DP2x8(data0, vec2, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part0_2x8);
+    VXC_DP2x8(data1, vec2, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),
+                        uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, src2, data0, 16);
+    _viv_asm(COPY, src22, data1, 16);
+
+    minus = src0 - src1;
+    minus1 = src00 - src11;
+
+    dst = minus * src2 + src1;
+    dst1 = minus1 * src22 + src11;
+    _viv_asm(COPY, vec0, dst, 16);
+    _viv_asm(COPY, vec1, dst1, 16);
+    VXC_DP2x8(data0, vec0, vec1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+    VXC_WriteImage(output, coord, data0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+    VXC_WriteImage(h_status, coord, data0, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0));
+}

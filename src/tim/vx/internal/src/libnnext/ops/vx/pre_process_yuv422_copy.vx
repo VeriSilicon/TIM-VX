@@ -16,6 +16,7 @@ _viv_uniform VXC_512Bits uniConvertYUV422toR_4x4;
 
 _viv_uniform VXC_512Bits uniExtract8Data_2x8;
 _viv_uniform VXC_512Bits uniExtractYUVtoShortSub_2x8;
+_viv_uniform VXC_512Bits uniConvertUchartoFp32_4x4;
 
 #define YUV422_COPY_SH_IMPL(name, dst_type, conv_type, save_type, copy_bytes) \
 __kernel void pre_process_yuv422_copy_##name \
@@ -54,11 +55,21 @@ __kernel void pre_process_yuv422_copy_##name \
     } \
  \
     float4 tmpDstB, tmpDstG, tmpDstR; \
+    vxc_uchar4 DstB_uchar, DstG_uchar, DstR_uchar; \
     vxc_short2 value = (vxc_short2)(128,16); \
     VXC_DP2x8(tmpYUV, YUV, value, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractYUVtoShortSub_2x8); \
-    VXC_DP4x4(tmpDstB, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toB_4x4); \
-    VXC_DP4x4(tmpDstG, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toG_4x4); \
-    VXC_DP4x4(tmpDstR, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertYUV422toR_4x4); \
+    VXC_DP4x4(DstB_uchar, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1),\
+                                          uniConvertYUV422toB_4x4); \
+    VXC_DP4x4(DstG_uchar, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1),\
+                                          uniConvertYUV422toG_4x4); \
+    VXC_DP4x4(DstR_uchar, tmpYUV, tmpYUV, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1),\
+                                          uniConvertYUV422toR_4x4); \
+    VXC_DP4x4(tmpDstB, DstB_uchar, DstB_uchar, \
+              VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertUchartoFp32_4x4); \
+    VXC_DP4x4(tmpDstG, DstG_uchar, DstG_uchar, \
+              VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertUchartoFp32_4x4); \
+    VXC_DP4x4(tmpDstR, DstR_uchar, DstR_uchar, \
+              VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertUchartoFp32_4x4); \
  \
     conv_type result; \
     dst_type dst0; \

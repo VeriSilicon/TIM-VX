@@ -84,7 +84,7 @@ void Device::WaitThreadIdle() {
 Worker::Worker() {
 }
 
-void Worker::RunGraph(const vsi_nn_graph_t* graph) {
+void Worker::RunGraph(vsi_nn_graph_t* graph) {
     vsi_nn_RunGraph(graph);
 }
 

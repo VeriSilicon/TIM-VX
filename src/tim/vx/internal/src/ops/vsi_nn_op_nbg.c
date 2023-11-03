@@ -59,61 +59,50 @@ static void _set_io_index
     vsi_nn_tensor_t** outputs
 )
 {
-    uint32_t idx, i, j;
-
-    idx = 0;
-    for (i = 0; i < self->input.num; i++)
+    uint32_t i;
+    uint32_t input_idx = 0;
+    uint32_t output_idx = 0;
+    uint32_t numParams;
+    vxQueryNode(self->n, VX_NODE_PARAMETERS, &numParams, sizeof(numParams));
+    for ( i = 0; i<numParams; i++)
     {
-        uint32_t scalar_index=0;
         vx_parameter param = 0;
-        vx_enum type = 0;
-
-        vxSetParameterByIndex(self->n, idx++, (vx_reference)inputs[i]->t);
-        scalar_index = idx;
-        param = vxGetParameterByIndex(self->n, scalar_index);
-
-        if (param)
+        param = vxGetParameterByIndex(self->n, i);
+        if(param)
         {
+            vx_enum type = 0;
+            vx_enum direction = 0;
             vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
+            vxQueryParameter(param, VX_PARAMETER_DIRECTION, &direction, sizeof(vx_enum));
+            if (type == VX_TYPE_TENSOR && direction == VX_INPUT)
+            {
+                vxSetParameterByIndex(self->n, i, (vx_reference)inputs[input_idx++]->t);
+            }
+            else if(type == VX_TYPE_SCALAR && direction == VX_INPUT)
+            {
+                vx_reference ref = 0;
+                vsi_status status;
+                vx_enum data_type = 0;
+                vxQueryParameter(param, VX_PARAMETER_REF, &ref, sizeof(vx_reference));
+                status = vxQueryScalar((vx_scalar)ref,
+                                       VX_SCALAR_TYPE,
+                                       &data_type,
+                                       sizeof(vx_enum));
+                if (status == VX_ERROR_INVALID_REFERENCE)
+                {
+                    vx_scalar scalar = vxCreateScalar(self->graph->ctx->c, VX_TYPE_INT32, 0);
+                    ref = (vx_reference)scalar;
+                    vxSetParameterByIndex(self->n, i, ref);
+                    vxReleaseReference(&ref);
+                }
+            }
+            else   //output
+            {
+                vxSetParameterByIndex(self->n, i, (vx_reference)outputs[output_idx++]->t);
+            }
             vxReleaseParameter(&param);
             param = NULL;
         }
-
-        if (type != VX_TYPE_SCALAR)
-        {
-            continue;
-        }
-        else
-        {
-
-            /* 4 crop scalar parameters input */
-            for (j = scalar_index; j < scalar_index + 4; j++)
-            {
-                vx_enum data_type = 0;
-                vx_reference ref = 0;
-                vsi_status status;
-                param = vxGetParameterByIndex(self->n, j);
-
-                if (param)
-                {
-                    vxQueryParameter(param, VX_PARAMETER_REF, &ref, sizeof(vx_reference));
-                    status = vxQueryScalar((vx_scalar)ref, VX_SCALAR_TYPE, &data_type, sizeof(vx_enum));
-                    if (status == VX_ERROR_INVALID_REFERENCE)
-                    {
-                        vx_scalar scalar = vxCreateScalar(self->graph->ctx->c, VX_TYPE_INT32, 0);
-                        ref = (vx_reference)scalar;
-                        vxSetParameterByIndex(self->n, idx++, ref);
-                        vxReleaseReference(&ref);
-                    }
-                    vxReleaseParameter(&param);
-                    param = NULL;
-                }
-            }
-        }
-    }
-    for (i = 0; i < self->output.num; i++)
-    {
-        vxSetParameterByIndex(self->n, idx++, (vx_reference)outputs[i]->t);
     }
 }
 

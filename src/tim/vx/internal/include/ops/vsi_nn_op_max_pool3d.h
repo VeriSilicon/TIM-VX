@@ -44,6 +44,7 @@ typedef struct _vsi_nn_max_pool3d_param
     uint32_t     pad[6];
     /* Pad type default value shall be AUTO */
     vsi_nn_pad_e pad_type;
+    uint32_t     dilation[3];
 } vsi_nn_max_pool3d_param;
 _compiler_assert(offsetof(vsi_nn_max_pool3d_param, local) == 0, \
     vsi_nn_max_pool3d_h );

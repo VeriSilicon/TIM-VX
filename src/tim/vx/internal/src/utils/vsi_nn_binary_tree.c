@@ -184,7 +184,7 @@ void vsi_nn_BinaryTreeRemoveNode
     vsi_nn_binary_tree_key_t key
     )
 {
-    if ( NULL != root )
+    if ( NULL == root )
     {
         return;
     }

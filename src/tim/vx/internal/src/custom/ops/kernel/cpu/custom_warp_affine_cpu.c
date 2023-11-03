@@ -42,7 +42,7 @@ __BEGIN_DECLS
 /*
  * Define kernel meta.
  */
-#define _INPUT_NUM          (1)
+#define _INPUT_NUM          (2)
 #define _OUTPUT_NUM         (1)
 #define _CPU_IO_NUM         (_INPUT_NUM + _OUTPUT_NUM)
 #define _KERNEL_NAME        CVIVANTE_NAMESPACE("cpu.custom_warp_affine")
@@ -54,6 +54,7 @@ __BEGIN_DECLS
 static vx_param_description_t _custom_warp_affine_kernel_param_def[] =
 {
     {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_TENSOR, VX_PARAMETER_STATE_OPTIONAL},
     {VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
@@ -66,8 +67,9 @@ static vx_param_description_t _custom_warp_affine_kernel_param_def[] =
     // Add kererl parameters here
 };
 #define _CUSTOM_WARP_AFFINE_PARAM_NUM  _cnt_of_array( _custom_warp_affine_kernel_param_def )
-#define SCALAR_INPUT_TYPE       (2)
-#define SCALAR_MATRIX_OFFSET    (3)
+#define SCALAR_INPUT_TYPE       (3)
+#define SCALAR_MATRIX_OFFSET    (4)
+#define SCALAR_INPUT_RGB_TYPE   (10)
 
 static void _transform_affine
     (
@@ -142,44 +144,60 @@ DEF_KERNEL_EXECUTOR(_compute)
 
     tensors[0] = (vsi_nn_kernel_tensor_t)param[0];
     tensors[1] = (vsi_nn_kernel_tensor_t)param[1];
+    tensors[2] = (vsi_nn_kernel_tensor_t)param[2];
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( tensors[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
-    attr[1] = vsi_nn_kernel_tensor_attr_create( tensors[1] );
-    CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
+    attr[2] = vsi_nn_kernel_tensor_attr_create( tensors[2] );
+    CHECK_PTR_FAIL_GOTO( attr[2], "Create tensor attr buffer fail.", final );
 
-    out_elements = vsi_nn_kernel_tensor_attr_get_size( attr[1] );
+    out_elements = vsi_nn_kernel_tensor_attr_get_size( attr[2] );
 
     /* alloc the float32 data buffer */
-    buffer[1] = (float *)malloc(out_elements * sizeof(float));
-    CHECK_PTR_FAIL_GOTO( buffer[1], "Create input buffer fail.", final );
-    memset(buffer[1], 0, out_elements * sizeof(float));
-
     buffer[0] = (float*)vsi_nn_kernel_tensor_create_buffer( tensors[0], attr[0], TRUE );
     CHECK_PTR_FAIL_GOTO( buffer[0], "Create input buffer fail.", final );
 
+    if (tensors[1])
+    {
+        attr[1] = vsi_nn_kernel_tensor_attr_create( tensors[1] );
+        CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
+        buffer[1] = (float*)vsi_nn_kernel_tensor_create_buffer( tensors[1], attr[1], TRUE );
+        CHECK_PTR_FAIL_GOTO( buffer[1], "Create input buffer fail.", final );
+    }
+
+    buffer[2] = (float *)malloc(out_elements * sizeof(float));
+    CHECK_PTR_FAIL_GOTO( buffer[2], "Create input buffer fail.", final );
+    memset(buffer[2], 0, out_elements * sizeof(float));
+
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[SCALAR_INPUT_TYPE],
         &type);
-    status |= vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[9], &rgb_type);
+    status |= vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[SCALAR_INPUT_RGB_TYPE], &rgb_type);
     CHECK_STATUS_FAIL_GOTO(status, final );
     for (i = 0; i < 6; i++)
     {
-        status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[SCALAR_MATRIX_OFFSET + i],
-            &matrix[i]);
-        CHECK_STATUS_FAIL_GOTO(status, final );
+        if (buffer[1] == NULL)
+        {
+            status = vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[SCALAR_MATRIX_OFFSET + i],
+                &matrix[i]);
+            CHECK_STATUS_FAIL_GOTO(status, final );
+        }
+        else
+        {
+            matrix[i] = buffer[1][i];
+        }
     }
 
-    width = attr[1]->shape->data[0];
-    height = attr[1]->shape->data[1];
-    for(i = 2; i < (vsi_size_t)attr[1]->shape->size; ++i)
+    width = attr[2]->shape->data[0];
+    height = attr[2]->shape->data[1];
+    for(i = 2; i < (vsi_size_t)attr[2]->shape->size; ++i)
     {
-        outer_size *= attr[1]->shape->data[i];
+        outer_size *= attr[2]->shape->data[i];
     }
     // Do something
     for (b = 0; b < outer_size; b++)
     {
         float *src_base = buffer[0] + b * attr[0]->shape->data[0] * attr[0]->shape->data[1];
-        float *dst_base = buffer[1] + b * width * height;
+        float *dst_base = buffer[2] + b * width * height;
 
         if ( rgb_type == VSI_NN_WARP_AFFINE_TYPE_RGB )
         {
@@ -274,8 +292,8 @@ DEF_KERNEL_EXECUTOR(_compute)
         }
     }
 
-    status = vsi_nn_kernel_tensor_write_from_float( tensors[1], attr[1],
-            buffer[1], out_elements );
+    status = vsi_nn_kernel_tensor_write_from_float( tensors[2], attr[2],
+            buffer[2], out_elements );
     CHECK_STATUS_FAIL_GOTO( status, final );
 final:
     for( i = 0; i < _CPU_IO_NUM; i ++ )
@@ -350,7 +368,7 @@ static vsi_nn_kernel_node_t _setup
                 node_params[SCALAR_MATRIX_OFFSET + i] = vsi_nn_kernel_scalar_create(
                         graph, F32, &buffer[i] );
             }
-            node_params[9] = vsi_nn_kernel_scalar_create(
+            node_params[SCALAR_INPUT_RGB_TYPE] = vsi_nn_kernel_scalar_create(
                 graph, I32, &rgb_type );
 
             /* Pass parameters to node. */
@@ -360,7 +378,7 @@ static vsi_nn_kernel_node_t _setup
             {
                 vsi_nn_kernel_scalar_release( &node_params[SCALAR_MATRIX_OFFSET + i] );
             }
-            vsi_nn_kernel_scalar_release( &node_params[9] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_RGB_TYPE] );
         }
     }
     return node;

@@ -1,6 +1,8 @@
 #include "cl_viv_vx_ext.h"
 
 _viv_uniform int indices_num;
+_viv_uniform int remainder;
+_viv_uniform int width;
 _viv_uniform VXC_512Bits uniExtraCopyDpKeepinEvis_2x8;
 
 __kernel void gather_I8toI8_array(
@@ -131,10 +133,12 @@ __kernel void gather_##src0_type_name##to##src0_type_name##_axis0_array( \
     int axis_num \
     ) \
 { \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \
+ \
+    if (coord.x >= width) return; \
     Image img0 = create_image_from_image2d(input0, 1); \
     Image img1 = create_image_from_image2d(input1, 4); \
     Image img2 = create_image_from_image2d(output, 1); \
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \
     uchar* index_ptr = get_image_ptr_from_coord(img1, coord.xz); \
     __global int* index = (__global int*)index_ptr; \
     int4 indices = vload4(0, index); \
@@ -146,10 +150,30 @@ __kernel void gather_##src0_type_name##to##src0_type_name##_axis0_array( \
     __global data_type* data_ptr = (__global data_type*)input_ptr; \
     __global write_type* out_ptr = (__global write_type*)output_ptr; \
     indices = indices >= 0 ? indices : indices + axis_num; \
-    src.s0 = data_ptr[indices.x]; \
-    src.s1 = data_ptr[indices.y]; \
-    src.s2 = data_ptr[indices.z]; \
-    src.s3 = data_ptr[indices.w]; \
+    if (coord.x + remainder < width) \
+    { \
+        src.s0 = data_ptr[indices.x]; \
+        src.s1 = data_ptr[indices.y]; \
+        src.s2 = data_ptr[indices.z]; \
+        src.s3 = data_ptr[indices.w]; \
+    } \
+    else \
+    { \
+        __global data_type* out_ptr_remainder = (__global data_type*)output_ptr; \
+        switch (remainder) \
+        { \
+            case 3: \
+                out_ptr_remainder[2] = data_ptr[indices.z]; \
+            case 2: \
+                out_ptr_remainder[1] = data_ptr[indices.y]; \
+            case 1: \
+                out_ptr_remainder[0] = data_ptr[indices.x]; \
+                break; \
+            default: \
+                break; \
+        } \
+        return; \
+    } \
  \
     VXC_DP2x8(dst, src, src, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), \
                      uniExtraCopyDpKeepinEvis_2x8); \

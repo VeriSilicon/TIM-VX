@@ -47,11 +47,10 @@ typedef enum
 } _internal_kernel_e;
 
 #define _GRUCELL_ACTIVATION_KERNEL_SOURCE               "grucell_activation"
-#define _GRUCELL_ACTIVATION_KERNEL_NAME                 CVIVANTE_NAMESPACE("evis.grucell_activation")
 
 #define _CDNN_KERNEL_SOURCE0          "grucell_cdnn_activation"
 #define _CDNN_KERNEL_SOURCE1          "grucell_cdnn_activation_u8"
-#define _GRUCELL_ACTIVATION_CDNN_KERNEL_NAME            CVIVANTE_NAMESPACE("evis.grucell_cdnn_activation")
+#define _KERNEL_SOURCE2               "grucell_cdnn_activation_bf16"
 
 typedef enum _batch_fisrt_layerout_e
 {
@@ -114,6 +113,11 @@ static const _kernel_map_type _grucell_activation_kernel_map[] =
     PACK_KERNEL_MAP( U8, U8, U8, U8,     hsigmoid, VSI_NN_ACT_TANH, CN),
     PACK_KERNEL_MAP( F16, F16, F16, F16, hsigmoid, VSI_NN_ACT_TANH, CN),
     PACK_KERNEL_MAP( F16, F16, F16, U8,  hsigmoid, VSI_NN_ACT_TANH, CN),
+
+    PACK_KERNEL_MAP( BF16, BF16, BF16, BF16, sigmoid,  VSI_NN_ACT_TANH, NC),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, BF16, sigmoid,  VSI_NN_ACT_TANH, CN),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, BF16, hsigmoid, VSI_NN_ACT_TANH, NC),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, BF16, hsigmoid, VSI_NN_ACT_TANH, CN),
 };
 
 static const _kernel_map_type _grucell_cunn_sep_activation_kernel_map[] =
@@ -130,6 +134,12 @@ static const _kernel_map_type _grucell_cunn_sep_activation_kernel_map[] =
     PACK_KERNEL_CDNN_SEP_MAP( U8, U8, U8, U8, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN, _CDNN_KERNEL_SOURCE1 ),
 
     PACK_KERNEL_CDNN_SEP_MAP( U8, U8, U8, U8, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN_FULL, _CDNN_KERNEL_SOURCE1 ),
+
+    PACK_KERNEL_CDNN_SEP_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, NC, _KERNEL_SOURCE2 ),
+
+    PACK_KERNEL_CDNN_SEP_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN, _KERNEL_SOURCE2 ),
+
+    PACK_KERNEL_CDNN_SEP_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN_FULL, _KERNEL_SOURCE2 ),
 };
 
 static const _kernel_map_type _grucell_cunn_activation_kernel_map[] =
@@ -142,6 +152,10 @@ static const _kernel_map_type _grucell_cunn_activation_kernel_map[] =
     PACK_KERNEL_CDNN_MAP( U8, U8, U8, U8, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, NC, _CDNN_KERNEL_SOURCE1 ),
 
     PACK_KERNEL_CDNN_MAP( U8, U8, U8, U8, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN, _CDNN_KERNEL_SOURCE1 ),
+
+    PACK_KERNEL_CDNN_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, NC, _KERNEL_SOURCE2 ),
+
+    PACK_KERNEL_CDNN_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN, _KERNEL_SOURCE2 ),
 };
 
 /*
@@ -322,6 +336,37 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_initializer)
                         "tensorScale", &tensorScale );
                 CHECK_STATUS_FAIL_GOTO(status, final );
             }
+            break;
+        case _PACK_SELECT_KEY(BF16, BF16, BF16, BF16):
+            {
+                gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+                    0x11111111, // TCfg
+                    0x01010101, // ASelt
+                    0x01050004, 0x03070206, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+                gpu_dp_inst_t uniExtractOddData_2x8 = {{
+                    0x11111111, // TCfg
+                    0x11110000, // ASelt
+                    0x07050301, 0x07050301, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+
+                status  = vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
+                status |= vsi_nn_kernel_gpu_add_param( node, "tensorZP", &tensorZP );
+                status |= vsi_nn_kernel_gpu_add_param( node, "tensorScale", &tensorScale );
+                CHECK_STATUS_FAIL_GOTO(status, final );
+            }
+            break;
     default:
         break;
     }
@@ -601,6 +646,34 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_cdnn_initializer)
                         "output_scale", &output_scale );
                 status |= vsi_nn_kernel_gpu_add_param( node,
                         "output_zp", &output_zp );
+                CHECK_STATUS_FAIL_GOTO(status, final );
+            }
+            break;
+        case _PACK_SELECT_KEY(BF16, BF16, BF16, BF16):
+            {
+                gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+                    0x11111111, // TCfg
+                    0x01010101, // ASelt
+                    0x01050004, 0x03070206, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+                gpu_dp_inst_t uniExtractOddData_2x8 = {{
+                    0x11111111, // TCfg
+                    0x11110000, // ASelt
+                    0x07050301, 0x07050301, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+
+                status  = vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
                 CHECK_STATUS_FAIL_GOTO(status, final );
             }
             break;

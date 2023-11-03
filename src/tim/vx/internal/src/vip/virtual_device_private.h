@@ -75,7 +75,7 @@ class Worker{
         Worker();
         ~Worker(){};
         void Handle(const QueueItem& item);
-        void RunGraph(const vsi_nn_graph_t* graph);
+        void RunGraph(vsi_nn_graph_t* graph);
     protected:
 };
 

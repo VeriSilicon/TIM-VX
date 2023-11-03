@@ -30,11 +30,20 @@
 extern "C" {
 #endif
 
+typedef struct _vsi_nn_moments_lcl_data
+{
+    vsi_bool use_internal_node;
+    uint32_t perm[VSI_NN_MAX_DIM_NUM];
+    int32_t axis[VSI_NN_MAX_DIM_NUM];
+} vsi_nn_moments_lcl_data;
+
 typedef struct _vsi_nn_moments_param
 {
     const int32_t*  axis;
     int32_t         axis_num;
     vsi_bool        keep_dim;
+
+    vsi_nn_moments_lcl_data *lcl_data;
 } vsi_nn_moments_param;
 
 #ifdef __cplusplus

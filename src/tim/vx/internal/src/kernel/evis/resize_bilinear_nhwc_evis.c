@@ -664,9 +664,15 @@ static vsi_nn_kernel_node_t _setup
     hashkeys[1] = BILINEAR_NHWC_BOUND_HASH_KEY( in_dtype, out_dtype, (vsi_size_t)up_scale );
 
     status = _query_kernel( ikernels[0], hashkeys[0], 0);
-    CHECK_STATUS_FAIL_GOTO(status, final );
+    if (status != VSI_SUCCESS)
+    {
+        goto final;
+    }
     status = _query_kernel( kernel, hashkeys[1], 1);
-    CHECK_STATUS_FAIL_GOTO(status, final );
+    if (status != VSI_SUCCESS)
+    {
+        goto final;
+    }
 
     shapes[0][0] = depth * inputs[0]->attr.size[1];
     shapes[0][1] = inputs[0]->attr.size[2];

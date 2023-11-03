@@ -117,6 +117,17 @@ static vx_param_description_t vxPreProcessNv12Kernel_param_def[] =
 };
 #define _EVIS_PRE_PROCESS_NV12_PARAM_NUM          _cnt_of_array(vxPreProcessNv12Kernel_param_def)
 
+static vsi_bool _check_nv12_type_from_env()
+{
+    vsi_bool ret = FALSE;
+    char* env_s = vsi_nn_getenv("VSI_NN_ENABLE_OCV_NV12");
+    if (env_s)
+    {
+        ret = TRUE;
+    }
+    return ret;
+}
+
 DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
     (
     vsi_nn_kernel_node_t node,
@@ -145,6 +156,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     vsi_size_array_t * out_shape = NULL;
+    vsi_bool ocv_nv12 = _check_nv12_type_from_env();
 
     VSI_UNREFERENCED(param_size);
 
@@ -208,7 +220,6 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
                 0x00000000, 0x00000000, 0x00000000, 0x00000000,
                 0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
-
         gpu_dp_inst_t uniConvertNV12toB_4x4 = {{
                 0x05050505, // TCfg
                 0x04040404, // ASelt
@@ -239,6 +250,17 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
                 0x3da03c00, 0x00000000, 0x3da03c00, 0x00000000,
                 0x3da03c00, 0x00000000, 0x3da03c00, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniExtractYtoShortSub16_2x8 = {{
+                0x11111111, // TCfg
+                0x00000000, // ASelt
+                0x03020100, 0x07060504, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000400, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+
         gpu_dp_inst_t uniExtractUVtoCharSub128_2x8 = {{
             0x99999999, // TCfg
             0x44444444, // ASelt
@@ -259,6 +281,61 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
             0x00000001, 0x00000001, 0x00000001, 0x00000001,
             0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
         }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvertUchartoFp32_4x4 = {{
+            0x01010101,  // TCfg
+            0x00000000,  // ASelt
+            0x00010000,
+            0x00030002,  // ABin
+            0x02020202,  // BSelt
+            0x00000000,
+            0x00000000,  // BBin
+            0x00000400,  // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000  // Constant
+        }, GPU_DP_TYPE_16 };
+
+        if (ocv_nv12)
+        {
+            uniConvertNV12toB_4x4.data[2] = 0x00010000;
+            uniConvertNV12toB_4x4.data[3] = 0x00230022;
+            uniConvertNV12toB_4x4.data[8] = 0x40093ca7;
+            uniConvertNV12toB_4x4.data[10] = 0x40093ca7;
+            uniConvertNV12toB_4x4.data[12] = 0x40093ca7;
+            uniConvertNV12toB_4x4.data[14] = 0x40093ca7;
+
+            uniConvertNV12toG_4x4.data[2] = 0x01010100;
+            uniConvertNV12toG_4x4.data[3] = 0x03230322;
+            uniConvertNV12toG_4x4.data[8] = 0x36413ca7;
+            uniConvertNV12toG_4x4.data[9] = 0x00003a81;
+            uniConvertNV12toG_4x4.data[10] = 0x36413ca7;
+            uniConvertNV12toG_4x4.data[11] = 0x00003a81;
+            uniConvertNV12toG_4x4.data[12] = 0x36413ca7;
+            uniConvertNV12toG_4x4.data[13] = 0x00003a81;
+            uniConvertNV12toG_4x4.data[14] = 0x36413ca7;
+            uniConvertNV12toG_4x4.data[15] = 0x00003a81;
+
+            uniConvertNV12toR_4x4.data[2] = 0x00110010;
+            uniConvertNV12toR_4x4.data[3] = 0x00330032;
+            uniConvertNV12toR_4x4.data[8] = 0x3e623ca7;
+            uniConvertNV12toR_4x4.data[10] = 0x3e623ca7;
+            uniConvertNV12toR_4x4.data[12] = 0x3e623ca7;
+            uniConvertNV12toR_4x4.data[14] = 0x3e623ca7;
+
+            uniExtractUVtoCharSub128_2x8.data[2] = 0x03020100;
+            uniExtractUVtoCharSub128_2x8.data[3] = 0x07060504;
+
+            uniExtractYtoShortSub16_2x8.data[0] = 0x99999999;
+            uniExtractYtoShortSub16_2x8.data[1] = 0x44444444;
+            uniExtractYtoShortSub16_2x8.data[4] = 0xaaaaaaaa;
+            uniExtractYtoShortSub16_2x8.data[8] = 0x00010001;
+            uniExtractYtoShortSub16_2x8.data[9] = 0x00010001;
+            uniExtractYtoShortSub16_2x8.data[10] = 0x00010001;
+            uniExtractYtoShortSub16_2x8.data[11] = 0x00010001;
+            uniExtractYtoShortSub16_2x8.data[12] = 0x00010001;
+            uniExtractYtoShortSub16_2x8.data[13] = 0x00010001;
+            uniExtractYtoShortSub16_2x8.data[14] = 0x00010001;
+            uniExtractYtoShortSub16_2x8.data[15] = 0x00010001;
+        }
 
         status = vsi_nn_kernel_gpu_add_param(node, "uniConvertNV12toB_4x4", &uniConvertNV12toB_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertNV12toG_4x4", &uniConvertNV12toG_4x4);
@@ -266,12 +343,15 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_copy_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);
         status |= vsi_nn_kernel_gpu_add_param(node, "bOrder", &order1);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractUVtoCharSub128_2x8", &uniExtractUVtoCharSub128_2x8);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractYtoShortSub16_2x8", &uniExtractYtoShortSub16_2x8);
         status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_b", &outputScaleVar_b);
         status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_g", &outputScaleVar_g);
         status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_r", &outputScaleVar_r);
         status |= vsi_nn_kernel_gpu_add_param(node, "bMeanScaleVarZp", &bMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "gMeanScaleVarZp", &gMeanScaleVarZp);
         status |= vsi_nn_kernel_gpu_add_param(node, "rMeanScaleVarZp", &rMeanScaleVarZp);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertUchartoFp32_4x4", &uniConvertUchartoFp32_4x4);
+        CHECK_STATUS_FAIL_GOTO(status, OnError);
         switch( attr[0]->dtype )
         {
         case U8:
@@ -335,6 +415,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
     float       outputScaleVar_b = 0.0f, outputScaleVar_g = 0.0f, outputScaleVar_r = 0.0f;
     float       bMeanScaleVarZp = 0.0f,  gMeanScaleVarZp = 0.0f,  rMeanScaleVarZp = 0.0f;
     float       resize     = 0.0f;
+    vsi_bool ocv_nv12 = _check_nv12_type_from_env();
 
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
     vsi_size_array_t * out_shape = NULL;
@@ -445,6 +526,17 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
                 0x3da03c00, 0x00000000, 0x3da03c00, 0x00000000,
                 0x3da03c00, 0x00000000, 0x3da03c00, 0x00000000 // Constant
         }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvertYtoShortSub16_2x8 = {{
+                0x11111111, // TCfg
+                0x00000000, // ASelt
+                0x03020100, 0x07060504, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000400, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+
         gpu_dp_inst_t uniConvertHalftoFp16_2x8 = {{
             0x11111111, // TCfg
             0x11110000, // ASelt
@@ -487,11 +579,64 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
             0x00000000, 0x00010000, 0x00000000, 0x00010000,
             0x00000000, 0x00010000, 0x00000000, 0x00010000 // Constant
         }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniConvertUchartoFp32_4x4 = {{
+            0x01010101,  // TCfg
+            0x00000000,  // ASelt
+            0x00010000,
+            0x00030002,  // ABin
+            0x02020202,  // BSelt
+            0x00000000,
+            0x00000000,  // BBin
+            0x00000400,  // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000  // Constant
+        }, GPU_DP_TYPE_16 };
+
+        if (ocv_nv12)
+        {
+            uniConvertNV12toB_4x4.data[2] = 0x00010000;
+            uniConvertNV12toB_4x4.data[3] = 0x00230022;
+            uniConvertNV12toB_4x4.data[8] = 0x40093ca7;
+            uniConvertNV12toB_4x4.data[10] = 0x40093ca7;
+            uniConvertNV12toB_4x4.data[12] = 0x40093ca7;
+            uniConvertNV12toB_4x4.data[14] = 0x40093ca7;
+
+            uniConvertNV12toG_4x4.data[2] = 0x01010100;
+            uniConvertNV12toG_4x4.data[3] = 0x03230322;
+            uniConvertNV12toG_4x4.data[8] = 0x36413ca7;
+            uniConvertNV12toG_4x4.data[9] = 0x00003a81;
+            uniConvertNV12toG_4x4.data[10] = 0x36413ca7;
+            uniConvertNV12toG_4x4.data[11] = 0x00003a81;
+            uniConvertNV12toG_4x4.data[12] = 0x36413ca7;
+            uniConvertNV12toG_4x4.data[13] = 0x00003a81;
+            uniConvertNV12toG_4x4.data[14] = 0x36413ca7;
+            uniConvertNV12toG_4x4.data[15] = 0x00003a81;
+
+            uniConvertNV12toR_4x4.data[2] = 0x00110010;
+            uniConvertNV12toR_4x4.data[3] = 0x00330032;
+            uniConvertNV12toR_4x4.data[8] = 0x3e623ca7;
+            uniConvertNV12toR_4x4.data[10] = 0x3e623ca7;
+            uniConvertNV12toR_4x4.data[12] = 0x3e623ca7;
+            uniConvertNV12toR_4x4.data[14] = 0x3e623ca7;
+
+            uniConvertYtoShortSub16_2x8.data[0] = 0x99999999;
+            uniConvertYtoShortSub16_2x8.data[1] = 0x44444444;
+            uniConvertYtoShortSub16_2x8.data[4] = 0xaaaaaaaa;
+            uniConvertYtoShortSub16_2x8.data[8] = 0x00010001;
+            uniConvertYtoShortSub16_2x8.data[9] = 0x00010001;
+            uniConvertYtoShortSub16_2x8.data[10] = 0x00010001;
+            uniConvertYtoShortSub16_2x8.data[11] = 0x00010001;
+            uniConvertYtoShortSub16_2x8.data[12] = 0x00010001;
+            uniConvertYtoShortSub16_2x8.data[13] = 0x00010001;
+            uniConvertYtoShortSub16_2x8.data[14] = 0x00010001;
+            uniConvertYtoShortSub16_2x8.data[15] = 0x00010001;
+        }
 
         status = vsi_nn_kernel_gpu_add_param(node, "uniConvertNV12toB_4x4", &uniConvertNV12toB_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertNV12toG_4x4", &uniConvertNV12toG_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertNV12toR_4x4", &uniConvertNV12toR_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertUVtoCharSub128_2x8", &uniConvertUVtoCharSub128_2x8);
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertYtoShortSub16_2x8", &uniConvertYtoShortSub16_2x8);
         status |= vsi_nn_kernel_gpu_add_param(node, "xrIntFloat_16", &xrIntFloat_16);
         status |= vsi_nn_kernel_gpu_add_param(node, "yrIntFloat_16", &yrIntFloat_16);
         status |= vsi_nn_kernel_gpu_add_param(node, "outputScaleVar_b", &outputScaleVar_b);
@@ -506,6 +651,7 @@ DEF_KERNEL_INITIALIZER(_pre_process_nv12_initializer)
             status |= vsi_nn_kernel_gpu_add_param(node, "uniCalculateYShift_2x8", &uniCalculateYShift_2x8);
             status |= vsi_nn_kernel_gpu_add_param(node, "uniCalculateUVShift_2x8", &uniCalculateUVShift_2x8);
         }
+        status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertUchartoFp32_4x4", &uniConvertUchartoFp32_4x4);
         CHECK_STATUS_FAIL_GOTO(status, OnError );
 
         status |= vsi_nn_kernel_gpu_add_param(node, "rOrder", &reorder);

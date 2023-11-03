@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_node.h"
@@ -410,8 +411,11 @@ static vsi_bool op_setup
     * */
     if( VSI_NN_DIM_FMT_NHWC == inputs[1]->attr.dtype.fmt )
     {
-        vsi_nn_TransposeTensor( self->graph, inputs[1], perm, 4, NULL );
-        inputs[1]->attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
+        if (!((vsi_nn_tensor_prv_t*)inputs[1])->processed)
+        {
+            vsi_nn_TransposeTensor(self->graph, inputs[1], perm, 4, NULL);
+            inputs[1]->attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
+        }
     }
 
 #ifdef VX_CONVERT_POLICY_WRAP_ENABLE
@@ -424,21 +428,29 @@ static vsi_bool op_setup
 #ifdef VX_DECONVOLUTION_WEIGHT_LAYOUT_COMPATIBLE_KHRONOS
     if ( vsi_nn_compareVersion(self->graph, 1, 1, 21) == -1 && TRUE == inputs[1]->attr.is_const)
     {
-        /* whnc->whcn */
-        vsi_nn_PermuteTensor( self->graph, inputs[1], perm1, 4 );
+        if (!((vsi_nn_tensor_prv_t*)inputs[1])->processed) {
+            /* whnc->whcn */
+            vsi_nn_PermuteTensor(self->graph, inputs[1], perm1, 4);
+        }
     }
     /* Rotate 180 degrees for weights data */
     if (TRUE == inputs[1]->attr.is_const)
     {
-        vsi_nn_reshuffle_weight_data(self->graph, inputs[1]);
+        if (!((vsi_nn_tensor_prv_t*)inputs[1])->processed) {
+            vsi_nn_reshuffle_weight_data(self->graph, inputs[1]);
+        }
     }
 #else
     if ( vsi_nn_compareVersion(self->graph, 1, 1, 21) >= 0 && TRUE == inputs[1]->attr.is_const)
     {
         /* whcn->whnc */
-        vsi_nn_PermuteTensor( self->graph, inputs[1], perm1, 4 );
+        if (!((vsi_nn_tensor_prv_t*)inputs[1])->processed) {
+            vsi_nn_PermuteTensor(self->graph, inputs[1], perm1, 4);
+        }
     }
 #endif
+
+    ((vsi_nn_tensor_prv_t*)inputs[1])->processed = TRUE;
 
     nn_param = &self->nn_param.deconv;
 

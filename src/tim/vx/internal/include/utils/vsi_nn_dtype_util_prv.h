@@ -466,77 +466,148 @@ static VSI_INLINE_API uint16_t fp32_to_bfp16_rtne
 
 static VSI_INLINE_API uint8_t fp32_to_fp8_e4m3(float in, const float scale) {
     float fp8_f32 = in / scale;
-    int32_t fp8_i32 = *((int32_t*)&fp8_f32);
-    //int32_t mask = (int32_t)(pow(2, 32) - 1 - (pow(2, 23 - 3) - 1));
-    int32_t eps = 1 << (23 - 3 - 1);
-    fp8_i32 += eps;
-    //fp8_i32 &= mask;
-    {
-        int sign = (fp8_i32 >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1;
-        int exp = (fp8_i32 >> FLOAT_MANTISSA_SIZE) & 0xff;
-        int expShiftValue = FLOAT8_E4M3_BIAS_EXPONENT - FLOAT_BIAS_EXPONENT;
-        int mantissa = (fp8_i32 >> (FLOAT_MANTISSA_SIZE - FLOAT8_E4M3_MANTISSA_SIZE)) & 0x7;
+    int32_t in_val = *((int32_t*)&fp8_f32);
 
-        exp = (exp + expShiftValue) & 0xF;
+    uint32_t in_sign = (in_val >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1; /* bit 31 is sign */
+    uint32_t in_exp = (in_val >> FLOAT_MANTISSA_SIZE) & 0xFF; /* bit[30: 24] is exp */
+    uint32_t in_man = (in_val & 0x7FFFFF);   /* low 23 bits is man */
 
-        return (uint8_t)(sign << 7 | exp << 3 | mantissa);
+    uint32_t out_sign = in_sign;
+    int32_t out_exp = (in_exp + FLOAT8_E4M3_BIAS_EXPONENT - FLOAT_BIAS_EXPONENT); /* in_exp - fp32bias + SE4M3 bias */
+    uint32_t man_rounding = 0, out_man = 0, out_val = 0;
+
+    man_rounding = (in_man + 0x80000) >> 20; /* manrounding is 3 bits */
+    if (((man_rounding >> 3) && 0x1) == 1) {
+        /* when in_man like 0b11_1, exp += 1, mantissa is 0*/
+        out_exp += 1;
     }
+
+    /* Clamp Denorm to zero */
+    if (out_exp <= 0) {
+        out_exp = 0;
+        man_rounding = 0;
+        out_sign = 0;
+    }
+
+    out_man = man_rounding & 0x7; /* keep low 3 bits of man */
+    /* overflow policy */
+    if (out_exp >= 16 || (out_exp == 15 && out_man == 7)) {
+        out_exp = 15;
+        out_man = 6;
+#if 0
+        if (mode == VX_CONVERT_POLICY_SATURATE) {
+            out_exp = 15;
+            out_man = 6;
+        } else if (mode == VX_CONVERT_POLICY_INF) {
+            out_exp = 15;
+            out_man = 7;
+        } else {
+            vxmASSERT(0 && "Error overflow mode!\n");
+        }
+#endif
+    }
+    out_val = (out_sign << 7) | (out_exp << 3) | out_man;
+    return (uint8_t)(out_val & 0xFF);
 } /* fp32_to_fp8_e4m3() */
 
 static VSI_INLINE_API uint8_t fp32_to_fp8_e5m2(float in, const float scale) {
     float fp8_f32 = in / scale;
-    int32_t fp8_i32 = *((int32_t*)&fp8_f32);
-    //int32_t mask = (int32_t)(pow(2, 32) - 1 - (pow(2, 23 - 2) - 1));
-    int32_t eps = 1 << (23 - 2 - 1);
-    fp8_i32 += eps;
-    //fp8_i32 &= mask;
-    {
-        int sign = (fp8_i32 >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1;
-        int exp = (fp8_i32 >> FLOAT_MANTISSA_SIZE) & 0xff;
-        int expShiftValue = FLOAT8_E5M2_BIAS_EXPONENT - FLOAT_BIAS_EXPONENT;
-        int mantissa = (fp8_i32 >> (FLOAT_MANTISSA_SIZE - FLOAT8_E5M2_MANTISSA_SIZE)) & 0x3;
+    int32_t in_val = *((int32_t*)&fp8_f32);
+    uint32_t in_sign = (in_val >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1; /* bit 31 is sign */
+    uint32_t in_exp = (in_val >> FLOAT_MANTISSA_SIZE) & 0xFF; /* bit[30: 24] is exp */
+    uint32_t in_man = (in_val & 0x7FFFFF);   /* low 23 bits is man */
 
-        exp = (exp + expShiftValue) & 0x1F;
+    uint32_t out_sign = in_sign;
+    int32_t out_exp = (in_exp + FLOAT8_E5M2_BIAS_EXPONENT - FLOAT_BIAS_EXPONENT); /* in_exp - fp32bias + SE5M2 bias */
+    uint32_t man_rounding = 0, out_man = 0, out_val = 0;
 
-        return (uint8_t)(sign << 7 | exp << 2 | mantissa);
+    man_rounding = (in_man + 0x100000) >> 21; /* manrounding is 2 bits */
+    if (((man_rounding >> 2) && 0x1) == 1) {
+        /* when in_man like 0b11, exp += 1, mantissa is 0*/
+        out_exp += 1;
     }
+
+    /* Clamp Denorm to zero */
+    if (out_exp <= 0) {
+        out_exp = 0;
+        man_rounding = 0;
+        out_sign = 0;
+    }
+
+    out_man = man_rounding & 0x3; /* keep low 9 bits of man */
+    /* overflow policy */
+    if (out_exp >= 31) {
+        out_exp = 30;
+        out_man = 3;
+#if 0
+        if (mode == VX_CONVERT_POLICY_SATURATE) {
+            out_exp = 30;
+            out_man = 3;
+        } else if (mode == VX_CONVERT_POLICY_INF) {
+            out_exp = 31;
+            out_man = 0;
+        } else {
+            vxmASSERT(0 && "Error overflow mode!\n");
+        }
+#endif
+    }
+    out_val = (out_sign << 7) | (out_exp << 2) | out_man;
+    return (uint8_t)(out_val & 0xFF);
 } /* fp32_to_fp8_e5m2() */
 
 static VSI_INLINE_API float fp8_e4m3_to_fp32(uint8_t in, const float scale) {
     float val_fp32;
-
     uint32_t signOut = 0;
     uint32_t exponentOut = 0;
     uint32_t mantissaOut = 0;
     uint32_t out_u = 0;
 
-    uint32_t signIn;
-    uint32_t exponentIn;
-    uint32_t mantissaIn;
-    int expShiftValue = FLOAT_BIAS_EXPONENT - FLOAT8_E4M3_BIAS_EXPONENT;
-
-    signIn = (in >> (FLOAT8_E4M3_EXPONENT_SIZE + FLOAT8_E4M3_MANTISSA_SIZE)) & 0x1;
-    exponentIn = (in >> FLOAT8_E4M3_MANTISSA_SIZE) & 0xF;
-    mantissaIn = in & 0x7;
-
-    signOut = signIn;
-
-    if (exponentIn == 0 && mantissaIn == 0)
     {
-        goto final;
+        uint32_t signIn;
+        uint32_t exponentIn;
+        uint32_t mantissaIn;
+        uint32_t expShiftValue = FLOAT_BIAS_EXPONENT - FLOAT8_E4M3_BIAS_EXPONENT;
+        //uint32_t i = 0;
+        //uint32_t intMsk = 0x4;
+
+        signIn = (in >> (FLOAT8_E4M3_EXPONENT_SIZE + FLOAT8_E4M3_MANTISSA_SIZE)) & 0x1;
+        exponentIn = (in >> FLOAT8_E4M3_MANTISSA_SIZE) & 0xF;
+        mantissaIn = in & 0x7;
+
+        signOut = signIn;
+
+        /* clamp subnorm*/
+        if (exponentIn == 0) {
+            goto final;
+        }
+        /*
+        if (exponentIn == 0 && mantissaIn == 0)
+        {
+            break;
+        }
+        else if (exponentIn == 0)
+        {
+            while (!(mantissaIn & intMsk))
+            {
+                intMsk >>= 1;
+                ++i;
+            }
+            exponentOut = (exponentIn + expShiftValue - i) & 0xff;
+            mantissaIn  = ((mantissaIn ^ intMsk) << (i + 1));
+            mantissaOut = (mantissaIn << (FLOAT_MATISSA_SIZE - FLOAT8_E4M3_MANTISSA_SIZE)) & 0x7fffff;
+            break;
+        }
+        */
+
+        if (exponentIn == 0xf && mantissaIn == 0x7) {
+            exponentOut = 0xff;
+            mantissaOut = 0x400000;
+            goto final;
+        }
+
+        exponentOut = (exponentIn + expShiftValue) & 0xff;
+        mantissaOut = (mantissaIn << (FLOAT_MANTISSA_SIZE - FLOAT8_E4M3_MANTISSA_SIZE)) & 0x7fffff;
     }
-
-    if (exponentIn == 0xf && mantissaIn == 0x7)
-    {
-        exponentOut = 0xff;
-        mantissaOut = 0x400000;
-        goto final;
-    }
-
-    exponentOut = (exponentIn + expShiftValue) & 0xff;
-    mantissaOut = (mantissaIn << (FLOAT_MANTISSA_SIZE - FLOAT8_E4M3_MANTISSA_SIZE)) & 0x7fffff;
-
-
 final:
     out_u = signOut << 31 | exponentOut << 23 | mantissaOut;
     val_fp32 = *((float*)&out_u);
@@ -546,44 +617,60 @@ final:
 
 static VSI_INLINE_API float fp8_e5m2_to_fp32(int8_t in, const float scale) {
     float val_fp32;
-
     uint32_t signOut = 0;
     uint32_t exponentOut = 0;
     uint32_t mantissaOut = 0;
     uint32_t out_u = 0;
 
-    uint32_t signIn;
-    uint32_t exponentIn;
-    uint32_t mantissaIn;
-    int expShiftValue = FLOAT_BIAS_EXPONENT - FLOAT8_E5M2_BIAS_EXPONENT;
-
-    signIn = (in >> 7) & 0x1;
-    exponentIn = (in >> 2) & 0x1F;
-    mantissaIn = in & 0x3;
-
-    signOut = signIn;
-
-    if (exponentIn == 0 && mantissaIn == 0)
     {
-        goto final;
+        uint32_t signIn;
+        uint32_t exponentIn;
+        uint32_t mantissaIn;
+        uint32_t expShiftValue = FLOAT_BIAS_EXPONENT - FLOAT8_E5M2_BIAS_EXPONENT;
+        //uint32_t i = 0;
+        //uint32_t intMsk = 0x2;
+
+        signIn = (in >> (FLOAT8_E5M2_EXPONENT_SIZE + FLOAT8_E5M2_MANTISSA_SIZE)) & 0x1;
+        exponentIn = (in >> FLOAT8_E5M2_MANTISSA_SIZE) & 0x1F;
+        mantissaIn = in & 0x3;
+
+        signOut = signIn;
+
+        /* clamp subnorm*/
+        if (exponentIn == 0) {
+            goto final;
+        }
+        /*
+        if (exponentIn == 0 && mantissaIn == 0)
+        {
+            break;
+        }
+        else if (exponentIn == 0)
+        {
+            while (!(mantissaIn & intMsk))
+            {
+                intMsk >>= 1;
+                ++i;
+            }
+            exponentOut = (exponentIn + expShiftValue - i) & 0xff;
+            mantissaIn = ((mantissaIn ^ intMsk) << (i + 1));
+            mantissaOut = (mantissaIn << (FLOAT_MATISSA_SIZE - FLOAT8_E5M2_MANTISSA_SIZE)) & 0x7fffff;
+            break;
+        }
+        */
+
+        if (exponentIn == 0x1f && mantissaIn == 0x3) {
+            exponentOut = 0xff;
+            mantissaOut = 0x400000;
+            goto final;
+        }
+
+        exponentOut = (exponentIn + expShiftValue) & 0xff;
+        mantissaOut = (mantissaIn << (FLOAT_MANTISSA_SIZE - FLOAT8_E5M2_MANTISSA_SIZE)) & 0x7fffff;
     }
-
-    if (exponentIn == 0x1f && mantissaIn == 0x3)
-    {
-        exponentOut = 0xff;
-        mantissaOut = 0x400000;
-        goto final;
-    }
-
-
-    exponentOut = (exponentIn + expShiftValue) & 0xff;
-    mantissaOut = (mantissaIn << (FLOAT_MANTISSA_SIZE - FLOAT8_E5M2_MANTISSA_SIZE)) & 0x7fffff;
-
-
- final:
+final:
     out_u = signOut << 31 | exponentOut << 23 | mantissaOut;
     val_fp32 = *((float*)&out_u);
-
     return val_fp32 * scale;
 } /* fp8_e5m2_to_fp32() */
 

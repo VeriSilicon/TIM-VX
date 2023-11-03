@@ -128,6 +128,9 @@ static vsi_bool _is_tensorview_support
 #ifdef VSI_CONCAT_ENHANCE_SUPPORT
     // Driver support concat optimize in all dimensions.
     ret = TRUE;
+
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(outputs);
 #else
     /*
         If the concat op need to be optimized to tensor view, the memory must be continues.

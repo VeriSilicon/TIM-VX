@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_node.h"
@@ -216,8 +217,11 @@ static vsi_bool op_setup
     if( VSI_NN_DIM_FMT_NHWC == inputs[1]->attr.dtype.fmt &&
         VSI_NN_TYPE_VDATA != inputs[1]->attr.dtype.vx_type )
     {
-        vsi_nn_TransposeTensor( self->graph, inputs[1], perm, 4, NULL );
-        inputs[1]->attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
+        if (!((vsi_nn_tensor_prv_t*)inputs[1])->processed)
+        {
+            vsi_nn_TransposeTensor(self->graph, inputs[1], perm, 4, NULL);
+            inputs[1]->attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
+        }
     }
 
 #ifdef VX_CONVERT_POLICY_WRAP_ENABLE
@@ -226,6 +230,8 @@ static vsi_bool op_setup
         self->vx_param.overflow_policy = VX_CONVERT_POLICY_SATURATE;
     }
 #endif
+
+    ((vsi_nn_tensor_prv_t*)inputs[1])->processed = TRUE;
 
     nn_param = &self->nn_param.conv2d;
 

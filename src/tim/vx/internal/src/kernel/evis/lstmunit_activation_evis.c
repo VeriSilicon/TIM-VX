@@ -439,6 +439,32 @@ static const _kernel_map_type _lstmunit_activation_kernel_map[] =
         GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 1, 0, 0, U8,  I16, F16, HARD_SIGMOID, SP)
         GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 1, 0, 0, U8,  I8,  F16, HARD_SIGMOID, SP)
         GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 1, 0, 0, U8,  U8,  F16, HARD_SIGMOID, SP)
+
+        /* BF16 type */
+        GEN_LSTMUNIT_STRUCT_ITEMS(1, 1, 1, 0, 0, BF16, BF16, BF16, SIGMOID, CLP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(1, 0, 1, 0, 0, BF16, BF16, BF16, SIGMOID, LP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(1, 1, 0, 0, 0, BF16, BF16, BF16, SIGMOID, CL)
+        GEN_LSTMUNIT_STRUCT_ITEMS(1, 0, 0, 0, 0, BF16, BF16, BF16, SIGMOID, L)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 1, 1, 0, BF16, BF16, BF16, SIGMOID, BP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 0, 1, 0, BF16, BF16, BF16, SIGMOID, B)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 1, 1, 1, 0, BF16, BF16, BF16, SIGMOID, CBP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 1, 0, 1, 0, BF16, BF16, BF16, SIGMOID, CB)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 1, 0, 0, BF16, BF16, BF16, SIGMOID, SP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 0, 0, 0, BF16, BF16, BF16, SIGMOID, S)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 1, 1, 0, 0, BF16, BF16, BF16, SIGMOID, CSP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 1, 0, 0, 0, BF16, BF16, BF16, SIGMOID, CS)
+        GEN_LSTMUNIT_STRUCT_ITEMS(1, 1, 1, 0, 0, BF16, BF16, BF16, HARD_SIGMOID, CLP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(1, 0, 1, 0, 0, BF16, BF16, BF16, HARD_SIGMOID, LP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(1, 1, 0, 0, 0, BF16, BF16, BF16, HARD_SIGMOID, CL)
+        GEN_LSTMUNIT_STRUCT_ITEMS(1, 0, 0, 0, 0, BF16, BF16, BF16, HARD_SIGMOID, L)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 1, 1, 0, BF16, BF16, BF16, HARD_SIGMOID, BP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 0, 1, 0, BF16, BF16, BF16, HARD_SIGMOID, B)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 1, 1, 1, 0, BF16, BF16, BF16, HARD_SIGMOID, CBP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 1, 0, 1, 0, BF16, BF16, BF16, HARD_SIGMOID, CB)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 1, 0, 0, BF16, BF16, BF16, HARD_SIGMOID, SP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 0, 0, 0, 0, BF16, BF16, BF16, HARD_SIGMOID, S)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 1, 1, 0, 0, BF16, BF16, BF16, HARD_SIGMOID, CSP)
+        GEN_LSTMUNIT_STRUCT_ITEMS(0, 1, 0, 0, 0, BF16, BF16, BF16, HARD_SIGMOID, CS)
 };
 
 
@@ -1135,6 +1161,26 @@ DEF_KERNEL_INITIALIZER(_lstmunit_activation_initializer)
             0x00000001, 0x00000000, 0x00000001, 0x00000000,
             0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+            0x11111111, // TCfg
+            0x01010101, // ASelt
+            0x01050004, 0x03070206, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniExtractOddData_2x8 = {{
+            0x11111111, // TCfg
+            0x11110000, // ASelt
+            0x07050301, 0x07050301, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16};
 
         if (dstQuantType == VSI_NN_KERNEL_QUANT_DFP)
         {
@@ -1152,31 +1198,41 @@ DEF_KERNEL_INITIALIZER(_lstmunit_activation_initializer)
 
         if ( cellFormat == F16 )
         {
-            vsi_nn_kernel_gpu_add_param(node, "uniExtractHalf4_4x4", &uniExtractHalf4_4x4);
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractHalf4_4x4", &uniExtractHalf4_4x4);
         }
 
         if ( dstFormat == F16 )
         {
-            vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractHalf8_2x8);
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractHalf8_2x8);
+        }
+        else if ( dstFormat != BF16 )
+        {
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractInteger_2x8);
+        }
+
+        if ( cellFormat == BF16 && dstFormat == BF16)
+        {
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
         }
         else
         {
-            vsi_nn_kernel_gpu_add_param(node, "uniExtract8Data_2x8", &uniExtractInteger_2x8);
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniFp16toFp32_4x4", &uniFp16toFp32_4x4);
         }
+        CHECK_STATUS_FAIL_GOTO(status, final );
 
-        vsi_nn_kernel_gpu_add_param(node, "uniFp16toFp32_4x4", &uniFp16toFp32_4x4);
-        vsi_nn_kernel_gpu_add_param(node, "logE", &logE);
-        vsi_nn_kernel_gpu_add_param(node, "twoLogE", &twoLogE);
-        vsi_nn_kernel_gpu_add_param(node, "outputScale", &outputScale);
-        vsi_nn_kernel_gpu_add_param(node, "outputZP", &outputZP);
-        vsi_nn_kernel_gpu_add_param(node, "forget_bias", &forget_bias);
-        vsi_nn_kernel_gpu_add_param(node, "clip_Min_F", clip_Min_F);
-        vsi_nn_kernel_gpu_add_param(node, "clip_Max_F", clip_Max_F);
-
+        status = vsi_nn_kernel_gpu_add_param(node, "logE", &logE);
+        status |= vsi_nn_kernel_gpu_add_param(node, "twoLogE", &twoLogE);
+        status |= vsi_nn_kernel_gpu_add_param(node, "outputScale", &outputScale);
+        status |= vsi_nn_kernel_gpu_add_param(node, "outputZP", &outputZP);
+        status |= vsi_nn_kernel_gpu_add_param(node, "forget_bias", &forget_bias);
+        status |= vsi_nn_kernel_gpu_add_param(node, "clip_Min_F", clip_Min_F);
+        status |= vsi_nn_kernel_gpu_add_param(node, "clip_Max_F", clip_Max_F);
         if ( !_is_ln && input_attr[S_INPUT_FC_F]->dtype == F16 )
         {
-            vsi_nn_kernel_gpu_add_param(node, "uniFp16AddFp16toFp32_4x4", &uniFp16AddFp16toFp32_4x4);
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniFp16AddFp16toFp32_4x4", &uniFp16AddFp16toFp32_4x4);
         }
+        CHECK_STATUS_FAIL_GOTO(status, final );
 
         if (input_attr[S_INPUT_FC_F]->dtype == U8 &&
             input_attr[S_INPUT_FC_F]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
@@ -1380,8 +1436,8 @@ static vsi_status _query_kernel
     vx_param_description_t * param_def  = NULL;
     size_t param_def_size               = _LSTMUNIT_ACTIVATION_MAX_PARAM_NUM;
     vx_kernel_initialize_f  initializer = _lstmunit_activation_initializer;
-    uint32_t key;
-    uint32_t i;
+    uint32_t key = 0;
+    uint32_t i = 0;
 
     set_vx_param_description_t( lstm_activation, &param_def );
 

@@ -54,20 +54,11 @@ static vsi_status op_compute
     vsi_status             status            = VSI_FAILURE;
     vsi_nn_kernel_param_t *param             = NULL;
     vsi_nn_kernel_node_t   n                 = NULL;
-    vsi_nn_tensor_t *      tmp_inputs[2]     = {NULL};
-    vsi_nn_tensor_t *      tmp_outputs[1]    = {NULL};
-    uint32_t               new_rank[3]       = {0};
-    vsi_bool               ret               = FALSE;
-    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
 
     int32_t transposeA  = self->nn_param.matrixmul.transpose[0];
     int32_t transposeB  = self->nn_param.matrixmul.transpose[1];
     int32_t adjointA    = self->nn_param.matrixmul.adjoint[0];
     int32_t adjointB    = self->nn_param.matrixmul.adjoint[1];
-
-    uint32_t cross_flg = 0;
-    uint32_t size_axis_inner_outer[3] = {0};
-    uint32_t stride_axis_inner_outer[9] = {0};
 
     param = vsi_nn_kernel_param_create();
 
@@ -76,51 +67,17 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "adjointA", adjointA );
     vsi_nn_kernel_param_add_int32( param, "adjointB", adjointB );
 
-
-    ret = vsi_nn_kernel_optimize_matrixmul_broadcast_shape(
-                                       inputs[0]->attr.size,
-                                       inputs[1]->attr.size,
-                                       outputs[0]->attr.size,
-                                       inputs[0]->attr.dim_num,
-                                       inputs[1]->attr.dim_num,
-                                       outputs[0]->attr.dim_num,
-                                       shapes[0], shapes[1], shapes[2], new_rank,
-                                       &cross_flg, size_axis_inner_outer, stride_axis_inner_outer);
-
-    if (ret)
-    {
-        vsi_nn_kernel_param_add_int32( param, "cross_flg", cross_flg );
-        vsi_nn_kernel_param_add_buffer( param, "size_axis_inner_outer", size_axis_inner_outer, 3);
-        vsi_nn_kernel_param_add_buffer( param, "stride_axis_inner_outer", stride_axis_inner_outer, 9);
-
-        tmp_inputs[0] = vsi_nn_reshape_tensor(self->graph, inputs[0], shapes[0], new_rank[0]);
-        tmp_inputs[1] = vsi_nn_reshape_tensor(self->graph, inputs[1], shapes[1], new_rank[1]);
-        tmp_outputs[0] = vsi_nn_reshape_tensor(self->graph, outputs[0], shapes[2], new_rank[2]);
-    }
-    else
-    {
-        VSILOGE("illegal inputs shape");
-        status = VSI_FAILURE;
-        goto final;
-    }
-
-
-    n = vsi_nn_kernel_selector( self->graph, "matrixmul", tmp_inputs, 2, tmp_outputs, 1, param );
+    n = vsi_nn_kernel_selector( self->graph, "matrixmul", inputs, 2, outputs, 1, param );
     if ( n != NULL )
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;
     }
 
-final:
     if (param != NULL)
     {
         vsi_nn_kernel_param_release( &param );
     }
-
-    vsi_safe_release_tensor( tmp_inputs[0] );
-    vsi_safe_release_tensor( tmp_inputs[1] );
-    vsi_safe_release_tensor( tmp_outputs[0] );
 
     return status;
 } /* op_compute() */

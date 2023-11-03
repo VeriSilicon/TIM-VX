@@ -35,7 +35,6 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -1572,8 +1571,8 @@ static vsi_nn_kernel_node_t _setup
 
     if (outputs[LSTMUNIT_ACT_OUTPUT] && VSI_NN_TYPE_UINT8 == outputs[LSTMUNIT_ACT_OUTPUT]->attr.dtype.vx_type)
     {
-        scale_val[8] = 1.0f / vsi_nn_get_tensor_scale(inputs[LSTMUNIT_ACT_OUTPUT]);
-        tail_val[8]  = (float)vsi_nn_get_tensor_zero_point(inputs[LSTMUNIT_ACT_OUTPUT]);
+        scale_val[8] = 1.0f / vsi_nn_get_tensor_scale(outputs[LSTMUNIT_ACT_OUTPUT]);
+        tail_val[8]  = (float)vsi_nn_get_tensor_zero_point(outputs[LSTMUNIT_ACT_OUTPUT]);
     }
 
     if( VSI_SUCCESS == status)

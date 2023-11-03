@@ -241,7 +241,7 @@ OVXLIB_API vsi_status vsi_nn_VerifyGraph
  */
 OVXLIB_API vsi_status vsi_nn_RunGraph
     (
-    const vsi_nn_graph_t * graph
+    vsi_nn_graph_t * graph
     );
 
 /**
@@ -273,7 +273,7 @@ OVXLIB_API vsi_status vsi_nn_AsyncRunGraph
 
 OVXLIB_API vsi_status vsi_nn_AsyncRunWait
     (
-        vsi_nn_graph_t * graph
+    vsi_nn_graph_t * graph
     );
 
 /**
@@ -556,7 +556,7 @@ OVXLIB_API vsi_bool vsi_nn_SetGraphOutputs
  * @param[in] graph Graph handle
  * @param[in] id Node id to be removed.
  */
-void vsi_nn_RemoveNode
+OVXLIB_API void vsi_nn_RemoveNode
     (
     vsi_nn_graph_t      * graph,
     vsi_nn_node_id_t      id
@@ -788,6 +788,14 @@ OVXLIB_API vsi_status vsi_nn_ExecuteGraphLoop
     vsi_nn_graph_t* graph,
     vsi_nn_tensor_t *max_iteration_tensor
     );
+
+OVXLIB_API vsi_status vsi_nn_SetGraphTransformOption
+    (
+    vsi_nn_graph_t* graph,
+    const char* ctrl_str,
+    size_t size
+    );
+
 #ifdef __cplusplus
 }
 #endif

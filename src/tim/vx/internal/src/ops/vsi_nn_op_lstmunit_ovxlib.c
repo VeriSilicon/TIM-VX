@@ -374,6 +374,17 @@ static vsi_bool op_setup
         }
     }
 
+    for ( i = ifco_start_index; i < LSTMUNIT_IFCO_GATE_COUNT; i++)
+    {
+        if (inputs[LSTMUNIT_INPUT_WEIGHT_I2I + i] != NULL
+            && p->internal_dtype[LSTMUNIT_QUANTIZE_PARAM_I2I + i].qnt_type == VSI_NN_QNT_TYPE_NONE
+            && p->internal_dtype[LSTMUNIT_QUANTIZE_PARAM_I2I + i].vx_type == VSI_NN_TYPE_NONE
+            && inputs[LSTMUNIT_INPUT_WEIGHT_I2I + i]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16)
+        {
+            p->internal_dtype[LSTMUNIT_QUANTIZE_PARAM_I2I + i] = inputs[LSTMUNIT_INPUT_WEIGHT_I2I + i]->attr.dtype;
+        }
+    }
+
     /* Input FC */
     if( is_input_fc_on_tp )
     {

@@ -37,6 +37,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "vsi_nn_error.h"
+#include "vsi_nn_tensor_util_prv.h"
 
 #define _ARG_NUM            (6)
 #define _INPUT_NUM          (1)
@@ -171,6 +172,11 @@ static vsi_bool _check_is_sp_supported_type
 
     if ( !self->graph->ctx->config.support_stream_processor ||
          (type != VSI_NN_REDUCE_SUM && type != VSI_NN_REDUCE_MEAN && type != VSI_NN_REDUCE_MAX) )
+    {
+        return FALSE;
+    }
+
+    if (vsi_nn_is_stream_process_supported_types(self->graph, &input, 1) == FALSE)
     {
         return FALSE;
     }
@@ -850,7 +856,10 @@ static vsi_bool op_set_sp_reduce_internal
     vsi_nn_internal_init_node_wksp( self );
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
-    vsi_nn_internal_init_tensor_attr(&attr, &inputs[0]->attr.dtype, use_virtual_tensor);
+    memcpy(&attr.dtype, &inputs[0]->attr.dtype, sizeof(vsi_nn_dtype_t));
+    attr.dim_num = VSI_NN_DIM_AUTO;
+    attr.vtl = use_virtual_tensor;
+    attr.is_const = FALSE;
     tensor1 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
     CHECK_PTR_FAIL_GOTO(tensor1, "Create internal tensor failed", final);
 

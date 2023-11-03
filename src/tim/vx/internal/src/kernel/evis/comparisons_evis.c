@@ -349,7 +349,7 @@ DEF_KERNEL_INITIALIZER(_comparisons_initializer)
             input1Scale = (float)((int64_t)1 << -fl);
         }
     }
-    else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
+    else if( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
     {
         input1Scale  = attr[1]->asymm.scale;
         input1Tail = 0 - attr[1]->asymm.zero_point * input1Scale;
