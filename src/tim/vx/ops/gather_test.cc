@@ -113,3 +113,85 @@ TEST(Gather, shape_2_2_indices_2) {
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   EXPECT_EQ(golden, output);
 }
+
+TEST(Gather, scalar_index_input2D) {
+  auto ctx = tim::vx::Context::Create();
+
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType in_shape({5,2});
+  tim::vx::ShapeType index_shape({1});
+  tim::vx::ShapeType out_shape({5});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, in_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec index_spec(tim::vx::DataType::INT32, index_shape,
+                                   tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, out_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto index_tensor = graph->CreateTensor(index_spec);
+  index_tensor->SetScalar(1);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<float> in_data = {
+    1,2,3,4,5,
+    6,7,8,9,10};
+
+  std::vector<int32_t> index = {1};
+  std::vector<float> golden = {6,7,8,9,10};
+
+  EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+  EXPECT_TRUE(index_tensor->CopyDataToTensor(index.data(), index.size()));
+  auto op = graph->CreateOperation<tim::vx::ops::Gather>(1, 0);
+  (*op).BindInputs({input_tensor, index_tensor}).BindOutputs({output_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
+
+TEST(Gather, scalar_index_input1D) {
+  auto ctx = tim::vx::Context::Create();
+
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType in_shape({5});
+  tim::vx::ShapeType index_shape({1});
+  tim::vx::ShapeType out_shape({});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, in_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec index_spec(tim::vx::DataType::INT32, index_shape,
+                                   tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec gatherout_spec(tim::vx::DataType::FLOAT32, out_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, out_shape,
+                                   tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto index_tensor = graph->CreateTensor(index_spec);
+  index_tensor->SetScalar(1);
+  auto gatherout_tensor = graph->CreateTensor(gatherout_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<float> in_data = {
+    1,2,3,4,5};
+
+  std::vector<int32_t> index = {1};
+  std::vector<float> golden = {2};
+
+  EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()));
+  EXPECT_TRUE(index_tensor->CopyDataToTensor(index.data(), index.size()));
+  auto gather = graph->CreateOperation<tim::vx::ops::Gather>(0);
+  (*gather).BindInputs({input_tensor, index_tensor}).BindOutputs({gatherout_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(gatherout_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}

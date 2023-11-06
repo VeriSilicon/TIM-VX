@@ -213,6 +213,14 @@ float* TensorImpl::ConvertTensorToFloat32Data() {
       graph_->graph(), vsi_nn_GetTensor(graph_->graph(), id_));
 }
 
+void TensorImpl::SetScalar(int8_t is_scalar) {
+  bool retn = vsi_nn_SetTensorIsScalar(vsi_nn_GetTensor(graph_->graph(), id_),is_scalar);
+  if (retn != VSI_SUCCESS) {
+    VSILOGE("Setting scalar fail!");
+  }
+  return;
+}
+
 bool TensorImpl::SwapHandle(void* new_ptr, bool is_new_ptr_malloc_by_ovxlib,
                             void** old_ptr) {
   bool retn = true;
