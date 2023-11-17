@@ -35,6 +35,7 @@ std::shared_ptr<tim::vx::Tensor> make_empty_tensor(
 TEST(GRUCell, unit_4) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
+  float tolerance = ctx->hasSP() ? 1e-4f : 1e-5f;
 
   uint32_t num_units = 2;
   uint32_t feature = 4;
@@ -118,5 +119,5 @@ TEST(GRUCell, unit_4) {
 
   std::vector<float> output(golden.size());
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+  EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }

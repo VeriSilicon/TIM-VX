@@ -37,7 +37,8 @@ class ContextImpl : public Context {
   std::shared_ptr<Graph> CreateGraph() override;
   std::shared_ptr<Graph> CreateGraph(const CompileOption&) override;
   bool isClOnly() override;
-  
+  bool hasSP() override;
+
  protected:
   vsi_nn_context_t context_;
 };
