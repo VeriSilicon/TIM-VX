@@ -58,5 +58,9 @@ bool ContextImpl::isClOnly() {
     return VSI_NN_HW_EVIS_NONE == context_->config.evis.ver;
 }
 
+bool ContextImpl::hasSP() {
+    return 0 != context_->config.support_stream_processor;
+}
+
 }  // namespace vx
 }  // namespace tim

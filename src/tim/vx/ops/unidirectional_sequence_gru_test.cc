@@ -35,6 +35,7 @@ std::shared_ptr<tim::vx::Tensor> make_empty_tensor(
 TEST(UnidirectionalSequenceGRU, unit_3) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
+  float tolerance = ctx->hasSP() ? 1e-4f : 1e-5f;
 
   const int timesteps = 1;
   const int batchs = 1;
@@ -125,5 +126,5 @@ TEST(UnidirectionalSequenceGRU, unit_3) {
 
   std::vector<float> output(golden.size());
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }

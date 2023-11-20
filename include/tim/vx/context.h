@@ -38,6 +38,7 @@ class Context {
   virtual std::shared_ptr<Graph> CreateGraph(const CompileOption& options) = 0;
 
   virtual bool isClOnly() = 0;
+  virtual bool hasSP() = 0;
 
   static std::shared_ptr<Context> Create();
 };

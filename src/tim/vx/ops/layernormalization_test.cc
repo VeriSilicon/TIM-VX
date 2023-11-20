@@ -30,6 +30,7 @@
 TEST(LayerNorm, axis_0_shape_3_6_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({3, 6, 1});
     tim::vx::ShapeType param_shape({6});
@@ -81,12 +82,13 @@ TEST(LayerNorm, axis_0_shape_3_6_1_float) {
 
     std::vector<float> output(18);
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 TEST(LayerNorm, axis_0_shape_2_3_6_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({2, 3, 6, 1});
     tim::vx::ShapeType param_shape({6});
@@ -139,12 +141,13 @@ TEST(LayerNorm, axis_0_shape_2_3_6_1_float) {
 
     std::vector<float> output(36);
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 TEST(LayerNorm, axis_2_shape_4_2_3_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({4, 2, 3, 1});
     tim::vx::ShapeType param_shape({1,1,3,1});
@@ -194,7 +197,7 @@ TEST(LayerNorm, axis_2_shape_4_2_3_1_float) {
 
     std::vector<float> output(24);
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 #if 0

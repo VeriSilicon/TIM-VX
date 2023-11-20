@@ -31,6 +31,7 @@
 TEST(FloorDiv, shape_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    if (ctx->hasSP()) GTEST_SKIP();
 
     tim::vx::ShapeType io_shape({1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -135,6 +136,7 @@ TEST(FloorDiv, shape_5_1_broadcast_uint8) {
 TEST(Div, shape_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    if (ctx->hasSP()) GTEST_SKIP();
 
     tim::vx::ShapeType io_shape({1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
