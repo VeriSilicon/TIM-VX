@@ -229,30 +229,30 @@ TEST(InstanceNorm, nhwc) {
   auto src_graph = ctx->CreateGraph();
 
   tim::vx::ShapeType io_shape({2, 2, 2, 2}); //nhwc
-    tim::vx::ShapeType param_shape({1});
-    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+  tim::vx::ShapeType param_shape({2});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
                             io_shape, tim::vx::TensorAttribute::INPUT);
-    tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
+  tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
                             param_shape, tim::vx::TensorAttribute::INPUT);
-    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
                             io_shape, tim::vx::TensorAttribute::OUTPUT);
 
-    auto input_tensor = src_graph->CreateTensor(input_spec);
-    auto beta_tensor = src_graph->CreateTensor(param_spec);
-    auto gamma_tensor = src_graph->CreateTensor(param_spec);
-    auto output_tensor = src_graph->CreateTensor(output_spec);
+  auto input_tensor = src_graph->CreateTensor(input_spec);
+  auto beta_tensor = src_graph->CreateTensor(param_spec);
+  auto gamma_tensor = src_graph->CreateTensor(param_spec);
+  auto output_tensor = src_graph->CreateTensor(output_spec);
 
-    std::vector<float> in_data = {
-        0.0f, 1.0f, 0.0f, 2.0f, 0.0f, 2.0f, 0.0f, 4.0f, 1.0f, -1.0f, -1.0f, 2.0f, -1.0f, -2.0f, 1.0f, 4.0f
-    };
-    std::vector<float> beta = {0};
-    std::vector<float> gamma = {1.0f};
-    std::vector<float> golden = {
-        0.0f, -1.1470304f, 0.0f, -0.22940612f, 0.0f, -0.22940612f, 0.0f, 1.6058424f, 0.99995005f,
-        -0.7337929f, -0.99995005f, 0.52413774f, -0.99995005f, -1.1531031f, 0.99995005f, 1.3627582f,
-    };
-    auto op = src_graph->CreateOperation<tim::vx::ops::InstanceNormalization>(1e-4f, tim::vx::DataLayout::CWHN);
-    (*op).BindInputs({input_tensor, beta_tensor, gamma_tensor}).BindOutputs({output_tensor});
+  std::vector<float> in_data = {
+    0.0f, 1.0f, 0.0f, 2.0f, 0.0f, 2.0f, 0.0f, 4.0f, 1.0f, -1.0f, -1.0f, 2.0f, -1.0f, -2.0f, 1.0f, 4.0f
+  };
+  std::vector<float> beta = {0,0};
+  std::vector<float> gamma = {1.0f,1.0f};
+  std::vector<float> golden = {
+    0.0f, -1.1470304f, 0.0f, -0.22940612f, 0.0f, -0.22940612f, 0.0f, 1.6058424f, 0.99995005f,
+    -0.7337929f, -0.99995005f, 0.52413774f, -0.99995005f, -1.1531031f, 0.99995005f, 1.3627582f,
+  };
+  auto op = src_graph->CreateOperation<tim::vx::ops::InstanceNormalization>(1e-4f, tim::vx::DataLayout::CWHN);
+  (*op).BindInputs({input_tensor, beta_tensor, gamma_tensor}).BindOutputs({output_tensor});
   // Do layout inference
   auto transform = tim::transform::LayoutInference(src_graph, ctx);
   auto infer_graph = transform.first;
