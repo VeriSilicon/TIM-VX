@@ -462,6 +462,7 @@ TEST(SoftSign, shape_5_1_fp32) {
 TEST(HardSwish, 40_f32) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
+  float tolerance = ctx->hasSP() ? 1e-3f : 1e-5f;
 
   tim::vx::ShapeType io_shape({40});
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, io_shape,
@@ -500,5 +501,5 @@ TEST(HardSwish, 40_f32) {
   EXPECT_TRUE(graph->Run());
   std::vector<float> output(40);
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+  EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }

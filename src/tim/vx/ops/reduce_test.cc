@@ -30,6 +30,7 @@
 TEST(Reduce_sum, NotKeepDims) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
+  float tolerance = ctx->hasSP() ? 0.01568627544 : 1e-5f;
 
   tim::vx::ShapeType input_shape({2, 3, 1});
   tim::vx::ShapeType output_shape({2, 1});
@@ -75,12 +76,13 @@ TEST(Reduce_sum, NotKeepDims) {
 
   std::vector<float> output(golden.size());
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+  EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 TEST(Reduce_sum, KeepDims) {
   auto ctx = tim::vx::Context::Create();
   if (ctx->isClOnly()) GTEST_SKIP();
+  float tolerance = ctx->hasSP() ? 0.01568627544 : 1e-5f;
 
   auto graph = ctx->CreateGraph();
   tim::vx::ShapeType input_shape({2, 3});
@@ -127,7 +129,7 @@ TEST(Reduce_sum, KeepDims) {
 
   std::vector<float> output(golden.size());
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-  EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+  EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 TEST(Reduce_all, KeepDims) {
