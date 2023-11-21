@@ -12,6 +12,7 @@
 TEST(RNNCell, layout_infer_align) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
+  float tolerance = ctx->hasSP() ? 1e-4f : 1e-5f;
 
   uint32_t input_size = 3, batch_size = 2, num_units = 4;
 
@@ -99,13 +100,14 @@ TEST(RNNCell, layout_infer_align) {
   std::vector<uint8_t> state_out(state_out_golden.size());
   EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
   EXPECT_TRUE(infer_output_state->CopyDataFromTensor(state_out.data()));
-  EXPECT_TRUE(ArraysMatch(output_golden, output, 1e-5f));
+  EXPECT_TRUE(ArraysMatch(output_golden, output, tolerance));
   EXPECT_EQ(state_out_golden, state_out);
 }
 
 TEST(RNNCell, layout_infer_notalign) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
+  float tolerance = ctx->hasSP() ? 1e-4f : 1e-5f;
 
   uint32_t input_size = 3, batch_size = 2, num_units = 4;
 
@@ -200,6 +202,6 @@ TEST(RNNCell, layout_infer_notalign) {
   std::vector<uint8_t> state_out(state_out_golden.size());
   EXPECT_TRUE(infer_output->CopyDataFromTensor(output.data()));
   EXPECT_TRUE(infer_output_state->CopyDataFromTensor(state_out.data()));
-  EXPECT_TRUE(ArraysMatch(output_golden, output, 1e-5f));
+  EXPECT_TRUE(ArraysMatch(output_golden, output, tolerance));
   EXPECT_EQ(state_out_golden, state_out);
 }
