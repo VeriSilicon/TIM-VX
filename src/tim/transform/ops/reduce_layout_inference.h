@@ -45,21 +45,23 @@ class ReduceLayoutInfer : public OpLayoutInfer {
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensor) override {
     auto t_src = op_->impl()->InputsTensor()[0];
     auto pv = context_->GetPermuteVector(op_->impl()->InputsTensor()[0]);
-    std::set<int32_t> axis_set; //Same value as new_axis, convenient for searching
+    std::set<int32_t> axis_set; // Save unique axis values
     std::vector<int32_t> new_axis, pv_reduced;
-    for (uint32_t i = 0; i < op_->impl()->node()->nn_param.reduce.axis_num;
-         ++i) {
+    uint32_t axis_num = op_->impl()->node()->nn_param.reduce.axis_num;
+    for (uint32_t i = 0; i < axis_num; ++i) {
       int32_t axis = op_->impl()->node()->nn_param.reduce.axis[i];
       if (axis < 0) {
         axis += pv->Rank();
       }
       axis = MapAxis(pv->AsStdVec(), axis);
+      // Save unique axis values for calculating pv length
       axis_set.insert(axis);
       new_axis.push_back(axis);
     }
     auto reduce = context_->infer_graph_->CreateOperation<OpType>(
         new_axis, op_->impl()->node()->nn_param.reduce.keep_dim);
     (*reduce).BindInput(context_->GetMapedTensor(t_src));
+
     if (op_->impl()->node()->nn_param.reduce.keep_dim) {
       auto otensor_infer = CreateOutputsTensor(pv);
       (*reduce).BindOutput(otensor_infer[0]);

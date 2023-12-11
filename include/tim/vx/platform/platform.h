@@ -59,7 +59,11 @@ std::shared_ptr<IExecutable> CreateExecutableSet(
 class IDevice {
  public:
   using device_id_t = uint32_t;
+  #ifdef __ANDROID_NDK__
+  typedef bool (*async_callback)(const void*);
+  #else
   using async_callback = std::function<bool(const void*)>;
+  #endif
   using data_t = const void*;
   virtual ~IDevice(){};
   virtual bool Submit(const std::shared_ptr<Graph>& graph) = 0;

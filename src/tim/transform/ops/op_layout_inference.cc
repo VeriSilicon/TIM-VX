@@ -231,11 +231,13 @@ OpLayoutInfer::AlignPermuteVectorForElementWise() {
   auto src_inputs = op_->impl()->InputsTensor();
   std::shared_ptr<IPermuteVector> required_pv = nullptr;
   std::shared_ptr<vx::Tensor> ref_input;
+  int32_t ref_rank = 0;
   for (const auto& in : src_inputs) {
-    if (!in->IsConstTensor()) {
+    int32_t rank = in->GetShape().size();
+    if (!in->IsConstTensor() && rank > ref_rank) {
       required_pv = context_->GetPermuteVector(in);
       ref_input = in;
-      break;
+      ref_rank = rank;
     }
   }
 
@@ -297,14 +299,11 @@ void OpLayoutInfer::ReverseInputsPermuteVector() {
 std::vector<uint32_t> OpLayoutInfer::GetExpandedShape(
     const std::vector<uint32_t>& ref_shape,
     const std::vector<uint32_t>& origin_shape) {
-  std::vector<uint32_t> expanded_shape;
-  for (uint32_t i = 0, j = 0; i < ref_shape.size(); ++i) {
-    if (ref_shape[i] == origin_shape[j] && j < origin_shape.size()) {
-      expanded_shape.push_back(origin_shape[j]);
-      ++j;
-    } else {
-      expanded_shape.push_back(1);
-    }
+  std::vector<uint32_t> expanded_shape(origin_shape);
+  int32_t ref_rank = ref_shape.size();
+  int32_t origin_rank = origin_shape.size();
+  for (int32_t i = 0; i < ref_rank; ++i) {
+    if (i >= origin_rank) expanded_shape.push_back(1);
   }
   return expanded_shape;
 }
