@@ -48,6 +48,8 @@ class Operation {
       uint32_t accumulator_bits = 0);
   std::unique_ptr<OpImpl>& impl();
   const std::unique_ptr<OpImpl>& impl() const;
+  const uint32_t& uid() const;
+
   virtual const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor() const;
 
  protected:
