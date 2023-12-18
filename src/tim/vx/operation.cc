@@ -38,6 +38,7 @@ Operation::~Operation() {}
 
 std::unique_ptr<OpImpl>& Operation::impl() { return impl_; }
 const std::unique_ptr<OpImpl>& Operation::impl() const { return impl_; }
+const uint32_t& Operation::uid() const { return impl_->node()->uid; }
 
 Operation& Operation::BindInput(const std::shared_ptr<Tensor>& tensor) {
   impl_->BindInput(tensor);
