@@ -246,4 +246,21 @@ if(TIM_VX_ENABLE_TEST)
     install(TARGETS unit_test DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endif()
 
+if(TIM_VX_ENABLE_NODE_TRACE)
+    include(FetchContent)
+    FetchContent_Declare(
+            jsoncpp
+            GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp.git
+            GIT_TAG        master
+    )
+
+    FetchContent_GetProperties(jsoncpp)
+    if(NOT jsoncpp_POPULATED)
+        FetchContent_Populate(jsoncpp)
+        add_subdirectory(${jsoncpp_SOURCE_DIR} ${jsoncpp_BINARY_DIR})
+    endif()
+    target_link_libraries(${TARGET_NAME} PUBLIC ${jsoncpp_BINARY_DIR}/src/lib_json/libjsoncpp.so)
+    target_include_directories(${TARGET_NAME} PUBLIC ${jsoncpp_SOURCE_DIR}/include)
+endif()
+
 add_subdirectory("utils")
