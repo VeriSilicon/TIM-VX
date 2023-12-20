@@ -60,7 +60,7 @@ class ReduceLayoutInfer : public OpLayoutInfer {
     }
     auto reduce = context_->infer_graph_->CreateOperation<OpType>(
         new_axis, op_->impl()->node()->nn_param.reduce.keep_dim);
-    (*reduce).BindInput(context_->GetMapedTensor(t_src));
+    (*reduce).BindInput(context_->GetMappedTensor(t_src));
 
     if (op_->impl()->node()->nn_param.reduce.keep_dim) {
       auto otensor_infer = CreateOutputsTensor(pv);

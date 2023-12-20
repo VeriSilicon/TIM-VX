@@ -72,7 +72,7 @@ class BidirectionalRnnLayoutInfer : public OpLayoutInfer {
 
 
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*cloned_op).BindInput(context_->GetMapedTensor(i_src));
+      (*cloned_op).BindInput(context_->GetMappedTensor(i_src));
     }
 
     

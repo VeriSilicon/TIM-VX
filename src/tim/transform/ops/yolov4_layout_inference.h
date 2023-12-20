@@ -53,7 +53,7 @@ class Yolov4LayoutInfer : public OpLayoutInfer {
         context_->SetPermuteVector(i_src, MakeShared(4));
         context_->UpdateTensorMap(i_src, i_infer);
       } 
-      (*cloned_op).BindInput(context_->GetMapedTensor(i_src));
+      (*cloned_op).BindInput(context_->GetMappedTensor(i_src));
     }
 
     std::vector<std::shared_ptr<IPermuteVector>> required_pv_lst;

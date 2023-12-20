@@ -42,7 +42,7 @@ void OpLayoutInfer::OnOutputs(
         std::find(graph_outputs.cbegin(), graph_outputs.cend(), out)) {
       auto pv = context_->GetPermuteVector(out);
       if (!pv->IsAligned()) {
-        auto perm_out = InsertPermute(context_->GetMapedTensor(out),
+        auto perm_out = InsertPermute(context_->GetMappedTensor(out),
                                       pv->Reverse(), true, out);
         context_->UpdateTensorMap(out, perm_out);
       }
@@ -100,7 +100,7 @@ std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
 
     std::shared_ptr<vx::Tensor> t_infer;
     if (out_spec.GetTensorAttribute() == vx::OUTPUT) {
-      t_infer = context_->GetMapedTensor(o);
+      t_infer = context_->GetMappedTensor(o);
     } else {
       t_infer = context_->infer_graph_->CreateTensor(out_spec);
       context_->UpdateTensorMap(o, t_infer);
@@ -128,7 +128,7 @@ std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
 
     std::shared_ptr<vx::Tensor> t_infer;
     if (out_spec.GetTensorAttribute() == vx::OUTPUT) {
-      t_infer = context_->GetMapedTensor(o);
+      t_infer = context_->GetMappedTensor(o);
     } else {
       t_infer = context_->infer_graph_->CreateTensor(out_spec);
       context_->UpdateTensorMap(o, t_infer);
@@ -226,9 +226,9 @@ OpLayoutInfer::AlignPermuteVectorForMutilInputs() {
       } else {
         auto final_pv =
             context_->GetPermuteVector(i_src)->Reverse()->Add(required_pv);
-        final_pv->IsAligned() ? perm_out = context_->GetMapedTensor(i_src)
+        final_pv->IsAligned() ? perm_out = context_->GetMappedTensor(i_src)
                               : perm_out = InsertPermute(
-                                    context_->GetMapedTensor(i_src), final_pv);
+                                    context_->GetMappedTensor(i_src), final_pv);
       }
       context_->UpdateTensorMap(i_src, perm_out);
       context_->SetPermuteVector(i_src, required_pv);
@@ -274,8 +274,8 @@ OpLayoutInfer::AlignPermuteVectorForElementWise() {
       auto final_pv =
           context_->GetPermuteVector(i_src)->Reverse()->Add(required_pv);
       final_pv->IsAligned()
-          ? perm_out = context_->GetMapedTensor(i_src)
-          : perm_out = InsertPermute(context_->GetMapedTensor(i_src), final_pv);
+          ? perm_out = context_->GetMappedTensor(i_src)
+          : perm_out = InsertPermute(context_->GetMappedTensor(i_src), final_pv);
     }
     context_->UpdateTensorMap(i_src, perm_out);
     context_->SetPermuteVector(i_src, required_pv);
@@ -295,7 +295,7 @@ void OpLayoutInfer::ReverseInputsPermuteVector() {
             i_src->GetSpec(), (const void*)dataRef.data());
         input_pv = MakeShared(i_src->GetShape().size());
       } else {
-        perm_out = context_->GetMapedTensor(i_src);
+        perm_out = context_->GetMappedTensor(i_src);
         input_pv = context_->GetPermuteVector(i_src);
         if (!input_pv->IsAligned()) {
           perm_out = InsertPermute(perm_out, input_pv->Reverse());

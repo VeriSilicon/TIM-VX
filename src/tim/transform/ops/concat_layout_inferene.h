@@ -47,7 +47,7 @@ class ConcatLayoutInfer : public OpLayoutInfer {
     auto concat = context_->infer_graph_->CreateOperation<vx::ops::Concat>(
         axis, op_->impl()->InputsTensor().size());
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*concat).BindInput(context_->GetMapedTensor(i_src));
+      (*concat).BindInput(context_->GetMappedTensor(i_src));
     }
     auto out_infer = CreateOutputsTensor(required_pv);
     (*concat).BindOutput(out_infer[0]);

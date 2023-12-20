@@ -79,10 +79,10 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
     auto final_pv = input_pv->Reverse()->Add(required_pv);
     if (!final_pv->IsAligned()) {
       infer_input =
-          InsertPermute(context_->GetMapedTensor(input_tensors[0]), final_pv);
+          InsertPermute(context_->GetMappedTensor(input_tensors[0]), final_pv);
       context_->SetPermuteVector(input_tensors[0], required_pv);
     } else {
-      infer_input = context_->GetMapedTensor(input_tensors[0]);
+      infer_input = context_->GetMappedTensor(input_tensors[0]);
       context_->SetPermuteVector(input_tensors[0], input_pv);
     }
     context_->UpdateTensorMap(input_tensors[0], infer_input);
@@ -104,10 +104,10 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
       auto final_pv = weight_pv->Reverse()->Add(weight_required_pv);
       if (!final_pv->IsAligned()) {
         infer_weight =
-            InsertPermute(context_->GetMapedTensor(input_tensors[1]), final_pv);
+            InsertPermute(context_->GetMappedTensor(input_tensors[1]), final_pv);
         context_->SetPermuteVector(input_tensors[1], weight_required_pv);
       } else {
-        infer_weight = context_->GetMapedTensor(input_tensors[1]);
+        infer_weight = context_->GetMappedTensor(input_tensors[1]);
         context_->SetPermuteVector(input_tensors[1], weight_pv);
       }
       context_->UpdateTensorMap(input_tensors[1], infer_weight);
@@ -121,7 +121,7 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
         infer_bias = context_->infer_graph_->CreateTensor(
             input_tensors[2]->GetSpec(), (const void*)dataRef.data());
       } else {
-        infer_bias = context_->GetMapedTensor(input_tensors[2]);
+        infer_bias = context_->GetMappedTensor(input_tensors[2]);
       }
       auto bias_pv = MakeShared(1);
       context_->UpdateTensorMap(input_tensors[2], infer_bias);
@@ -131,7 +131,7 @@ class GroupedConv2dLayoutInfer : public OpLayoutInfer {
     auto grouped_conv2d = op_->Clone(context_->infer_graph_);
     auto otensor_infer = CreateOutputsTensor(required_pv);
     for (const auto& i_src : input_tensors) {
-      (*grouped_conv2d).BindInput(context_->GetMapedTensor(i_src));
+      (*grouped_conv2d).BindInput(context_->GetMappedTensor(i_src));
     }
     (*grouped_conv2d).BindOutput(otensor_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);

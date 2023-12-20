@@ -44,7 +44,7 @@ class AddNLayoutInfer : public OpLayoutInfer {
     auto addn = op_->Clone(context_->infer_graph_);
 
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*addn).BindInput(context_->GetMapedTensor(i_src));
+      (*addn).BindInput(context_->GetMappedTensor(i_src));
     }
     auto infer_out = CreateOutputsTensor(required_pv);
     (*addn).BindOutput(infer_out[0]);

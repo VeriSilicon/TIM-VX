@@ -42,7 +42,7 @@ class SelectLayoutInfer : public OpLayoutInfer {
     auto select = context_->infer_graph_->CreateOperation<vx::ops::Select>();
     auto infer_out = CreateOutputsTensor(required_pv);
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-        (*select).BindInput(context_->GetMapedTensor(i_src));
+        (*select).BindInput(context_->GetMappedTensor(i_src));
     }
     (*select).BindOutput(infer_out[0]);
 

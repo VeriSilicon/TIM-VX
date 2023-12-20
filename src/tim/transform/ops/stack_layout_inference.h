@@ -53,7 +53,7 @@ class StackLayoutInfer : public OpLayoutInfer {
     auto aligninput_pv = AlignPermuteVectorForMutilInputs();
 
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*stack).BindInput(context_->GetMapedTensor(i_src));
+      (*stack).BindInput(context_->GetMappedTensor(i_src));
     }
 
     if (axis < 0) {

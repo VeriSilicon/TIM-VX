@@ -22,7 +22,7 @@ class LayoutInferContext {
   bool IsReadyForInfer(const std::shared_ptr<vx::Operation>& op) const;
   void UpdateTensorMap(const std::shared_ptr<vx::Tensor>& t_src,
                        const std::shared_ptr<vx::Tensor>& t_layout);
-  std::shared_ptr<vx::Tensor> GetMapedTensor(
+  std::shared_ptr<vx::Tensor> GetMappedTensor(
       const std::shared_ptr<vx::Tensor>& t_src) const;
   std::shared_ptr<vx::Tensor> GetMappedGraphInputTensor(
       const std::shared_ptr<vx::Tensor>& t_src) const;

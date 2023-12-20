@@ -61,7 +61,7 @@ class PadV2LayoutInfer : public OpLayoutInfer {
     auto pad_v2 = context_->infer_graph_->CreateOperation<vx::ops::PadV2>(
         front_size, back_size, pad_value);
     auto out_infer = CreateOutputsTensor(input_pv);
-    (*pad_v2).BindInput(context_->GetMapedTensor(i_src));
+    (*pad_v2).BindInput(context_->GetMappedTensor(i_src));
     (*pad_v2).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);

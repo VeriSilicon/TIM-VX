@@ -51,7 +51,7 @@ class ActivationLayoutInfer : public OpLayoutInfer {
     auto activation = op_->Clone(context_->infer_graph_);
     auto out_infer = CreateOutputsTensor(input_pv);
     (*activation)
-        .BindInput(context_->GetMapedTensor(i_src))
+        .BindInput(context_->GetMappedTensor(i_src))
         .BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
@@ -107,7 +107,7 @@ class PReluLayoutInfer : public OpLayoutInfer {
             context_->infer_graph_->CreateOperation<vx::ops::Reshape>(
                 boardcast_shape);
         (*reshape)
-            .BindInput(context_->GetMapedTensor(src_slope))
+            .BindInput(context_->GetMappedTensor(src_slope))
             .BindOutput(reshape_out);
         context_->UpdateTensorMap(src_slope, reshape_out);
       }
@@ -130,8 +130,8 @@ class PReluLayoutInfer : public OpLayoutInfer {
     auto out_infer = CreateOutputsTensor(input_pv);
 
     (*prelu)
-        .BindInput(context_->GetMapedTensor(src_input))
-        .BindInput(context_->GetMapedTensor(src_slope));
+        .BindInput(context_->GetMappedTensor(src_input))
+        .BindInput(context_->GetMappedTensor(src_slope));
     (*prelu).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);

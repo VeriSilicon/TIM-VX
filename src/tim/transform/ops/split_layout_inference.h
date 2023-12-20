@@ -51,7 +51,7 @@ class SplitLayoutInfer : public OpLayoutInfer {
     auto split =
         context_->infer_graph_->CreateOperation<vx::ops::Split>(axis, slices);
     auto infer_out = CreateOutputsTensor(input_pv);
-    (*split).BindInput(context_->GetMapedTensor(input_tensor));
+    (*split).BindInput(context_->GetMappedTensor(input_tensor));
     (*split).BindOutputs(infer_out);
     for (const auto& out : op_->impl()->OutputsTensor()) {
         context_->SetPermuteVector(out, input_pv);

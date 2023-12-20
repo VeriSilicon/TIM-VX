@@ -47,7 +47,7 @@ class L2NormalizationLayoutInfer : public OpLayoutInfer {
     auto l2norm =
         context_->infer_graph_->CreateOperation<vx::ops::L2Normalization>(axis);
     auto infer_out = CreateOutputsTensor(input_pv);
-    (*l2norm).BindInput(context_->GetMapedTensor(src_input));
+    (*l2norm).BindInput(context_->GetMappedTensor(src_input));
     (*l2norm).BindOutput(infer_out[0]);
 
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
