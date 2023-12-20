@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/onehot.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 OneHot::OneHot(Graph* graph, int32_t depth, float on_value, float off_value,
                int32_t axis)
-    : DirectMapOp(graph, VSI_NN_OP_ONE_HOT),
+    : BuiltinOp(graph, VSI_NN_OP_ONE_HOT),
       depth_(depth),
       on_value_(on_value),
       off_value_(off_value),

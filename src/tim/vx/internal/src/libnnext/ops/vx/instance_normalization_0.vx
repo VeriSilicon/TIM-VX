@@ -1,0 +1,277 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int width;
+
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+_viv_uniform VXC_512Bits uniSum_X_X2_16x2;
+_viv_uniform float input_scale;
+_viv_uniform float input_scale2;
+_viv_uniform float sum_x_tail;
+_viv_uniform float sum_x2_tail0;
+_viv_uniform float sum_x2_tail1;
+
+_viv_uniform VXC_512Bits uniSumX_16x1;
+_viv_uniform VXC_512Bits uniSumX2_16x1;
+
+#define INSTANCE_NORM_SUMS_8BITS_IMPL(name, src_type) \
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_sums_##name( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+                 float eps, int height) \
+{ \
+    int gidx = get_global_id(0) << 4; \
+    int lidx = get_local_id(0); \
+    int gidz = get_global_id(1); \
+    int4 coord = (int4)(gidx, 0, gidz, gidz); \
+    src_type src0; \
+    float2 sums_f32 = 0; \
+    int2 sums = 0, sum_x_x2; \
+ \
+    __local float lcl_sum[16]; \
+    __local float lcl_sqr[16]; \
+    int8 input_desc; \
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+    int baseAddr_a = (int)get_global_id(1) * input_desc.s4 + input_desc.s0; \
+    _viv_asm(MOV, coord.z, baseAddr_a); \
+    if(gidx < width) \
+    { \
+        for(coord.y = 0; coord.y < height;) \
+        { \
+            VXC_OP4(img_load_3d, src0, input, coord, 0, \
+                    VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+            coord.y++; \
+            VXC_DP16x1(sum_x_x2, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumX_16x1); \
+            VXC_DP16x1(sum_x_x2, src0, src0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0), uniSumX2_16x1); \
+            sums = sums + sum_x_x2; \
+        } \
+        sums_f32 = convert_float2(sums); \
+        sums_f32.y = sums_f32.y * input_scale2 + sum_x2_tail0 + sum_x2_tail1 * sums_f32.x; \
+        sums_f32.x = sums_f32.x * input_scale + sum_x_tail; \
+    } \
+    lcl_sum[lidx] = sums_f32.x; \
+    lcl_sqr[lidx] = sums_f32.y; \
+    barrier(CLK_LOCAL_MEM_FENCE); \
+ \
+    int4 coord_out = (int4)(get_group_id(0) << 2, gidz, 0, 0); \
+    if(lidx == 0) \
+    { \
+        float4 one = (float4)(1, 1, 1, 1); \
+        __local float4* tmp_sum = (__local float4*)lcl_sum; \
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr; \
+        float sum = 0, sqr = 0; \
+        for(int i = 0; i < 4; i++) \
+        { \
+            sum += dot(tmp_sum[i], one); \
+            sqr += dot(tmp_sqr[i], one); \
+        } \
+        float4 data = (float4)(sum, sqr, 0, 0); \
+        write_imagef(output, coord_out, data); \
+    } \
+}
+INSTANCE_NORM_SUMS_8BITS_IMPL(U8, vxc_uchar16)
+INSTANCE_NORM_SUMS_8BITS_IMPL(I8, vxc_char16)
+
+#define INSTANCE_NORM_SUMS_8BITS_IMPL_2D(name, src_type) \
+__kernel __attribute__((reqd_work_group_size(16, 1, 1))) void instance_norm_sums_##name##_2D( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+                 float eps, int height) \
+{ \
+    int gidx = get_global_id(0) << 4; \
+    int lidx = get_local_id(0); \
+    int gidz = get_global_id(1); \
+    int gidy = gidz * height; \
+ \
+    int2 coord = (int2)(gidx, gidy); \
+    src_type src0; \
+    float2 sums_f32 = 0; \
+    int2 sums = 0, sum_x_x2; \
+    int endH = gidy + height; \
+ \
+    __local float lcl_sum[16]; \
+    __local float lcl_sqr[16]; \
+    if (gidx < width) \
+    { \
+        for(; coord.y < endH;) \
+        { \
+            VXC_ReadImage(src0, input, coord, 0,  \
+                             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+            coord.y++; \
+            VXC_DP16x1(sum_x_x2, src0, src0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniSumX_16x1); \
+            VXC_DP16x1(sum_x_x2, src0, src0, VXC_MODIFIER(1, 1, 0, VXC_RM_TowardZero, 0), uniSumX2_16x1); \
+            sums = sums + sum_x_x2; \
+        } \
+        sums_f32 = convert_float2(sums); \
+        sums_f32.y = sums_f32.y * input_scale2 + sum_x2_tail0 + sum_x2_tail1 * sums_f32.x; \
+        sums_f32.x = sums_f32.x * input_scale + sum_x_tail; \
+    } \
+    lcl_sum[lidx] = sums_f32.x; \
+    lcl_sqr[lidx] = sums_f32.y; \
+    barrier(CLK_LOCAL_MEM_FENCE); \
+ \
+    int4 coord_out = (int4)(get_group_id(0) << 2, gidz, 0, 0); \
+    if(lidx == 0) \
+    { \
+        float4 one = (float4)(1, 1, 1, 1); \
+        __local float4* tmp_sum = (__local float4*)lcl_sum; \
+        __local float4* tmp_sqr = (__local float4*)lcl_sqr; \
+        float sum = 0, sqr = 0; \
+        for(int i = 0; i < 4; i++) \
+        { \
+            sum += dot(tmp_sum[i], one); \
+            sqr += dot(tmp_sqr[i], one); \
+        } \
+        float4 data = (float4)(sum, sqr, 0, 0); \
+        write_imagef(output, coord_out, data); \
+    } \
+}
+INSTANCE_NORM_SUMS_8BITS_IMPL_2D(U8, vxc_uchar16)
+INSTANCE_NORM_SUMS_8BITS_IMPL_2D(I8, vxc_char16)
+
+__kernel void instance_norm_means
+(
+    __read_only  image2d_t sums,
+    __read_only  image2d_t bias,
+    __read_only  image2d_t scale,
+    __write_only image2d_t means,
+                 float     eps,
+                 float     in_time_out_scale,
+                 float     input_zp,
+                 float     output_scale,
+                 float     output_zp,
+                 float     inv_multiplier,
+                 int       group_num
+)
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+
+    Image sums_img = create_image_from_image2d(sums, 4);
+    float4 *sums_ptr = (float4 *)get_image_ptr_from_coord(sums_img, coord);
+
+    float alpha = read_imagef(scale, coord).x;
+    float beta = read_imagef(bias, coord).x;
+
+    float4 mean_var = sums_ptr[0];
+    for(int i = 1; i < group_num;)
+    {
+        mean_var += sums_ptr[i];
+        i ++;
+    }
+
+    mean_var *= inv_multiplier;
+    mean_var.s1 = mean_var.s1 - mean_var.s0 * mean_var.s0 + eps;
+    mean_var.s1 = rsqrt(mean_var.s1);
+
+    alpha = alpha * mean_var.y;
+
+    float4 dst;
+    dst.x = in_time_out_scale * alpha;
+    beta = (beta - alpha * mean_var.x) * output_scale + output_zp;
+    dst.y = beta - input_zp * dst.x;
+
+    Image means_img = create_image_from_image2d(means, 4);
+    float4 *means_ptr = (float4 *)get_image_ptr_from_coord(means_img, coord);
+    means_ptr[0] = dst.xyxy;
+}
+
+_viv_uniform VXC_512Bits uniDataToFP32_0_4x4;
+_viv_uniform VXC_512Bits uniDataToFP32_1_4x4;
+_viv_uniform VXC_512Bits uniDataToFP32_2_4x4;
+_viv_uniform VXC_512Bits uniDataToFP32_3_4x4;
+#define INSTANCE_NORM_8BITS_IMPL(name, src_type, dst_type) \
+__kernel void instance_norm_##name( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_t       means, \
+    __write_only image2d_array_t output, \
+                 int height) \
+{ \
+    int gidz = get_global_id(1); \
+    int4 coord = (int4)(get_global_id(0), 0, gidz, gidz); \
+    int4 coord_in = (int4)(get_global_id(0), 0, gidz, gidz); \
+    int2 coord_para = (int2)(0, gidz); \
+    src_type src0; \
+    dst_type dst; \
+    float4 coef; \
+ \
+    coef = read_imagef(means, coord_para); \
+    int4 tmpVal0, tmpVal1; \
+    float4  tmpData0, tmpData1, tmpData2, tmpData3, norm; \
+ \
+    int8 input_desc, output_desc; \
+    _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+    int baseAddr_a = (int)get_global_id(1) * input_desc.s4 + input_desc.s0; \
+    _viv_asm(MOV, coord_in.z, baseAddr_a); \
+    _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
+    int baseAddr = (int)get_global_id(1) * output_desc.s4 + output_desc.s0; \
+    _viv_asm(MOV, coord.z, baseAddr); \
+ \
+    for(coord.y = 0; coord.y < height; coord.y++) \
+    { \
+    VXC_OP4(img_load_3d, src0, input, coord_in, 0, \
+                    VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    coord_in.y ++; \
+    VXC_DP4x4(tmpData0, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_0_4x4); \
+    VXC_DP4x4(tmpData1, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_1_4x4); \
+    VXC_DP4x4(tmpData2, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_2_4x4); \
+    VXC_DP4x4(tmpData3, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_3_4x4); \
+    norm = tmpData0 * coef.x + coef.y; \
+    tmpVal0 = convert_int4_rte(norm); \
+    norm = tmpData1 * coef.x + coef.y; \
+    tmpVal1 = convert_int4_rte(norm); \
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    norm = tmpData2 * coef.x + coef.y; \
+    tmpVal0 = convert_int4_rte(norm); \
+    norm = tmpData3 * coef.x + coef.y; \
+    tmpVal1 = convert_int4_rte(norm); \
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    VXC_OP4_NoDest(img_store_3d, output, coord, dst, VXC_MODIFIER(0, 15, 0,VXC_RM_TowardZero, 0)); \
+    } \
+}
+INSTANCE_NORM_8BITS_IMPL(U8_F32toU8, vxc_uchar16, vxc_uchar16)
+INSTANCE_NORM_8BITS_IMPL(I8_F32toI8, vxc_char16,  vxc_char16)
+
+#define INSTANCE_NORM_8BITS_IMPL_2D(name, src_type, dst_type) \
+__kernel void instance_norm_##name##_2D( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_t       means, \
+    __write_only image2d_array_t output, \
+                 int height) \
+{ \
+    int gidz = get_global_id(1); \
+    int gidy = gidz * height; \
+    int4 coord; \
+    int2 coord_para = (int2)(0, gidz); \
+    int endH = gidy + height; \
+    src_type src0; \
+    dst_type dst; \
+    float4 coef; \
+ \
+    coef = read_imagef(means, coord_para); \
+    int4 tmpVal0, tmpVal1; \
+    float4  tmpData0, tmpData1, tmpData2, tmpData3, norm; \
+ \
+    coord = (int4)(get_global_id(0), gidy, gidy - 1, gidy - 1); \
+ \
+    for(; coord.y < endH; ) \
+    { \
+    VXC_ReadImage(src0, input, coord.xy, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    coord.yz++; \
+    VXC_DP4x4(tmpData0, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_0_4x4); \
+    VXC_DP4x4(tmpData1, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_1_4x4); \
+    VXC_DP4x4(tmpData2, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_2_4x4); \
+    VXC_DP4x4(tmpData3, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_3_4x4); \
+    norm = tmpData0 * coef.x + coef.y; \
+    tmpVal0 = convert_int4_rte(norm); \
+    norm = tmpData1 * coef.x + coef.y; \
+    tmpVal1 = convert_int4_rte(norm); \
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    norm = tmpData2 * coef.x + coef.y; \
+    tmpVal0 = convert_int4_rte(norm); \
+    norm = tmpData3 * coef.x + coef.y; \
+    tmpVal1 = convert_int4_rte(norm); \
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    VXC_WriteImage(output, coord.xz, dst, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    } \
+}
+INSTANCE_NORM_8BITS_IMPL_2D(U8_F32toU8, vxc_uchar16, vxc_uchar16)
+INSTANCE_NORM_8BITS_IMPL_2D(I8_F32toI8, vxc_char16,  vxc_char16)

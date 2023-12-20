@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@
 
 #include "ops/op_layout_inference.h"
 #include "permute_vector.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 namespace tim {
 namespace transform {
@@ -56,14 +56,21 @@ class TransposeLayoutInfer : public OpLayoutInfer {
     IPermuteVectorPtr final_pv = input_pv->Reverse()->Add(perm_pv);
 
     if (final_pv->IsAligned()) {
-      //skip transpose op by treating its input as its output.
-      context_->UpdateTensorMap(op_->impl()->OutputsTensor()[0], infer_input);
+      //skip transpose op by insert a dummy reshape
+      // context_->UpdateTensorMap(op_->impl()->OutputsTensor()[0], infer_input);
+      auto reshape_op =
+          context_->infer_graph_->CreateOperation<tim::vx::ops::Reshape>(
+              op_->impl()->OutputsTensor()[0]->GetShape());
+      reshape_op->BindInput(infer_input);
+      auto reshape_out = CreateOutputsTensor(final_pv);
+      reshape_op->BindOutput(reshape_out[0]);
     } else {
       auto transpose_op =
           context_->infer_graph_->CreateOperation<tim::vx::ops::Transpose>(
               final_pv->AsStdVec());
       transpose_op->BindInput(infer_input);
-      auto infer_out = CreateOutputsTensor(final_pv);
+      //  The layout after final_pv permute is the default sequence
+      auto infer_out = CreateOutputsTensor(MakeShared(perm.size()));
       transpose_op->BindOutput(infer_out[0]);
     }
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], MakeShared(perm.size()));

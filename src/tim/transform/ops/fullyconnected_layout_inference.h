@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@
 
 #include "ops/op_layout_inference.h"
 #include "permute_vector.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 namespace tim {
 namespace transform {
@@ -41,12 +41,18 @@ class FullyConnectedLayoutInfer : public OpLayoutInfer {
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-
+    /* vx_delegate has reshaped the input to two-dimensional when mapping,
+       The axis of 2-dimensional fc can only be 0. */
     auto input_tensors = op_->impl()->InputsTensor();
+    if(!context_->GetPermuteVector(input_tensors[0])->IsAligned()){
+      ReverseInputsPermuteVector();
+    }
     for (const auto& in : input_tensors) {
       if (in->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(in->GetSpec().GetByteSize());
+        in->CopyDataFromTensor(dataRef.data());
         auto infer_tensor = context_->infer_graph_->CreateTensor(in->GetSpec(),
-                                                            in->GetDataRef());
+                                                            (const void*)dataRef.data());
         auto trans_pv = MakeShared(in->GetShape().size());
 
         context_->UpdateTensorMap(in, infer_tensor);

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/simple_operations.h"
+#include "test_utils.h"
 
 #include "gtest/gtest.h"
 #include <cstdlib>
@@ -47,6 +48,66 @@ TEST(Floor, shape_5_1_fp32) {
     EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
 
     auto add = graph->CreateOperation<tim::vx::ops::Floor>();
+    (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+    std::vector<float> output(5, 0);
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(golden, output);
+}
+
+TEST(Round, shape_15_1_fp32) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType io_shape({15, 1});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = { 0.1, 0.5, 0.9, 1.2, 1.5,
+            1.8, 2.3, 2.5, 2.7, -1.1,
+            -1.5, -1.9, -2.2, -2.5, -2.8 };
+    std::vector<float> golden = {0., 0., 1., 1., 2.,
+            2., 2., 2., 3., -1.,
+            -2., -2., -2., -2., -3. };
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
+
+    auto add = graph->CreateOperation<tim::vx::ops::Round>();
+    (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+    std::vector<float> output(15, 0);
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(golden, output);
+}
+
+TEST(Ceil, shape_5_1_fp32) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType io_shape({5, 1});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = { -2.5, -0.1, 0, 0.55, std::numeric_limits<float>::infinity() };
+    std::vector<float> golden = {-2, 0, 0, 1, std::numeric_limits<float>::infinity() };
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
+
+    auto add = graph->CreateOperation<tim::vx::ops::Ceil>();
     (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});
 
     EXPECT_TRUE(graph->Compile());
@@ -172,4 +233,32 @@ TEST(DataConvert, requantize_shape_2_3_asym_u8) {
     std::vector<uint8_t> output(6, 0);
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     EXPECT_EQ(golden, output);
+}
+
+TEST(Rcp, shape_5_1_fp32) {
+   auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType io_shape({5, 1});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = { -2.5, -0.1, 0, 0.55, std::numeric_limits<float>::infinity() };
+    std::vector<float> golden = {-0.4, -10, std::numeric_limits<float>::infinity(), 1.81818, 0.};
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size()*4));
+
+    auto add = graph->CreateOperation<tim::vx::ops::Rcp>();
+    (*add).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+    std::vector<float> output(5, 0);
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }

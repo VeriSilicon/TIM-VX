@@ -59,6 +59,24 @@ static int32_t _get_input_num
     return num;
 }
 
+static vsi_bool _has_norm_input
+    (
+    vsi_nn_node_t   * self,
+    vsi_nn_tensor_t ** inputs
+    )
+{
+    uint32_t i,num;
+    num = _get_input_num(self, inputs);
+    for(i = 0; i < num; i++)
+    {
+        if(inputs[i]->attr.vtl == FALSE && inputs[i]->attr.is_const == FALSE)
+        {
+            return TRUE;
+        }
+    }
+    return FALSE;
+} /* _has_norm_input() */
+
 static vsi_bool _is_same_quant
     (
     vsi_nn_node_t   * self,
@@ -99,21 +117,28 @@ static vsi_bool _is_same_quant
     return TRUE;
 } /* _is_same_quant */
 
-static vsi_bool _is_highest_dimension
+static vsi_bool _is_tensorview_support
     (
     vsi_nn_node_t   * self,
     vsi_nn_tensor_t ** outputs
     )
 {
     vsi_bool ret = FALSE;
-    uint32_t axis = self->nn_param.concat.axis;
-    uint32_t dim = outputs[0]->attr.dim_num;
 
+#ifdef VSI_CONCAT_ENHANCE_SUPPORT
+    // Driver support concat optimize in all dimensions.
+    ret = TRUE;
+
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(outputs);
+#else
     /*
         If the concat op need to be optimized to tensor view, the memory must be continues.
         1. axis is in the highest dimension
         2. the highest dimension is 1, and axis is in the second highest dimension
     */
+    uint32_t axis = self->nn_param.concat.axis;
+    uint32_t dim = outputs[0]->attr.dim_num;
     if(axis == dim - 1)
     {
         ret = TRUE;
@@ -122,8 +147,9 @@ static vsi_bool _is_highest_dimension
     {
         ret = TRUE;
     }
+#endif
     return ret;
-} /* _is_highest_dimension() */
+} /* _is_tensorview_support() */
 
 static vsi_status copy_tensor_to_view
     (
@@ -135,6 +161,8 @@ static vsi_status copy_tensor_to_view
 {
     vsi_status ret;
     vsi_nn_concat_lcl_data * data;
+
+    VSI_UNREFERENCED(axis);
 
     ret = VSI_SUCCESS;
     /* Malloc ptr */
@@ -244,7 +272,9 @@ static vsi_status op_compute
 
     status = VSI_SUCCESS;
     self->n = NULL;
-    if(_is_highest_dimension(self, outputs) && _is_same_quant(self, inputs, outputs)
+    if(_is_tensorview_support(self, outputs)
+        && _is_same_quant(self, inputs, outputs)
+        && (_has_norm_input(self, inputs) == FALSE)
         && self->graph->ctx->options.enable_concat_optimize)
     {
         iter = self->nn_param.concat.lcl_data;
@@ -398,8 +428,9 @@ static vsi_status op_optimize
 
     status = VSI_SUCCESS;
     /* we don't create tensor view if the axis is not the highest dimension */
-    if (_is_highest_dimension(self, outputs) == FALSE ||
+    if (_is_tensorview_support(self, outputs) == FALSE ||
         _is_same_quant(self, inputs, outputs) == FALSE ||
+        _has_norm_input(self, inputs) == TRUE ||
         self->graph->ctx->options.enable_concat_optimize == 0)
     {
         return status;

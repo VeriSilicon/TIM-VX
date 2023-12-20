@@ -1,0 +1,20 @@
+{
+    "InstanceNormalization":{
+        "parameters":
+            [
+                {"name": "eps",
+                 "dtype": "float",
+                 "Optional": "true",
+                 "default": "1e-5f"
+                },
+                {"name": "input_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
+                }
+            ]
+    }
+}

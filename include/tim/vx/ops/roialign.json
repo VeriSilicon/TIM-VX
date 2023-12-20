@@ -1,0 +1,33 @@
+{
+    "RoiAlign":{
+        "parameters":
+            [
+                {"name":"output_height",
+                    "dtype": "int32_t"
+                },
+                {"name":"output_weight",
+                    "dtype": "int32_t"
+                },
+                {"name":"height_ratio",
+                    "dtype": "float"
+                },
+                {"name":"width_ratio",
+                    "dtype": "float"
+                },
+                {"name":"height_sample_num",
+                    "dtype": "int32_t"
+                },
+                {"name":"width_sample_num",
+                    "dtype": "int32_t"
+                },
+                {"name": "input_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
+                }
+            ]
+    }
+}

@@ -42,6 +42,8 @@ extern "C" {
 #define vsi_clamp(x, min, max)      vsi_nn_clamp(x, min, max)
 #define vsi_rtne(x)                 vsi_rint(x)
 
+#define VSI_NN_INT32_MAX            (0x7FFFFFFF)
+
 #define VSI_NN_FLOAT32_INF          (0x7F800000)
 #define VSI_NN_FLOAT32_NAN          (0x7FC00000)
 #define VSI_NN_FLOAT64_INF          (0x7FF0000000000000)
@@ -51,16 +53,17 @@ extern "C" {
 #define DEFINE_ARRAY_TYPE( NAME, TYPE ) \
     typedef struct { \
         size_t size; \
-        TYPE data[0]; \
+        TYPE *data; \
     } vsi_##NAME##_array_t; \
-    static inline vsi_##NAME##_array_t * vsi_##NAME##_array_create( size_t size ) { \
-        vsi_##NAME##_array_t * array = (vsi_##NAME##_array_t *)malloc( \
-                sizeof(vsi_##NAME##_array_t) + sizeof(TYPE) * size ); \
+    static VSI_INLINE_API vsi_##NAME##_array_t * vsi_##NAME##_array_create( size_t size ) { \
+        vsi_##NAME##_array_t * array = NULL; \
+        array = (vsi_##NAME##_array_t *)malloc( sizeof(vsi_##NAME##_array_t) + sizeof(TYPE) * size ); \
         if (array == NULL) return NULL; \
+        array->data = (TYPE *)(((TYPE**)(&(array->data))) + 1); \
         array->size = size; \
         return array; \
     } \
-    static inline void vsi_##NAME##_array_release( vsi_##NAME##_array_t ** array ) \
+    static VSI_INLINE_API void vsi_##NAME##_array_release( vsi_##NAME##_array_t ** array ) \
         { \
             if( array && *array ) { \
                 free( *array ); \
@@ -167,7 +170,7 @@ void vsi_nn_random_uniform_transform
     uint32_t len
     );
 
-static inline double copy_sign
+static VSI_INLINE_API double copy_sign
     (
     double number,
     double sign
@@ -177,7 +180,7 @@ static inline double copy_sign
     return (sign > 0) ? value : (-value);
 } /* copy_sign() */
 
-static inline float simple_round
+static VSI_INLINE_API float simple_round
     (
     float x
     )
@@ -185,7 +188,7 @@ static inline float simple_round
     return (float) copy_sign(floorf(fabsf(x) + 0.5f), x);
 } /* simple_round() */
 
-static inline double vsi_rint
+static VSI_INLINE_API double vsi_rint
     (
     double x
     )

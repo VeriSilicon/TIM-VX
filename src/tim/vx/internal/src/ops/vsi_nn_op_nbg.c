@@ -53,22 +53,56 @@ static const char *_get_vx_nbg_type
 }
 
 static void _set_io_index
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
+(
+    vsi_nn_node_t* self,
+    vsi_nn_tensor_t** inputs,
+    vsi_nn_tensor_t** outputs
+)
 {
-    uint32_t idx,i;
-
-    idx = 0;
-    for(i = 0; i < self->input.num; i++)
+    uint32_t i;
+    uint32_t input_idx = 0;
+    uint32_t output_idx = 0;
+    uint32_t numParams;
+    vxQueryNode(self->n, VX_NODE_PARAMETERS, &numParams, sizeof(numParams));
+    for ( i = 0; i<numParams; i++)
     {
-        vxSetParameterByIndex(self->n, idx++, (vx_reference)inputs[i]->t);
-    }
-    for(i = 0; i < self->output.num; i++)
-    {
-        vxSetParameterByIndex(self->n, idx++, (vx_reference)outputs[i]->t);
+        vx_parameter param = 0;
+        param = vxGetParameterByIndex(self->n, i);
+        if(param)
+        {
+            vx_enum type = 0;
+            vx_enum direction = 0;
+            vxQueryParameter(param, VX_PARAMETER_TYPE, &type, sizeof(vx_enum));
+            vxQueryParameter(param, VX_PARAMETER_DIRECTION, &direction, sizeof(vx_enum));
+            if (type == VX_TYPE_TENSOR && direction == VX_INPUT)
+            {
+                vxSetParameterByIndex(self->n, i, (vx_reference)inputs[input_idx++]->t);
+            }
+            else if(type == VX_TYPE_SCALAR && direction == VX_INPUT)
+            {
+                vx_reference ref = 0;
+                vsi_status status;
+                vx_enum data_type = 0;
+                vxQueryParameter(param, VX_PARAMETER_REF, &ref, sizeof(vx_reference));
+                status = vxQueryScalar((vx_scalar)ref,
+                                       VX_SCALAR_TYPE,
+                                       &data_type,
+                                       sizeof(vx_enum));
+                if (status == VX_ERROR_INVALID_REFERENCE)
+                {
+                    vx_scalar scalar = vxCreateScalar(self->graph->ctx->c, VX_TYPE_INT32, 0);
+                    ref = (vx_reference)scalar;
+                    vxSetParameterByIndex(self->n, i, ref);
+                    vxReleaseReference(&ref);
+                }
+            }
+            else   //output
+            {
+                vxSetParameterByIndex(self->n, i, (vx_reference)outputs[output_idx++]->t);
+            }
+            vxReleaseParameter(&param);
+            param = NULL;
+        }
     }
 }
 
@@ -103,7 +137,7 @@ static vsi_status op_compute
         );
     if(NULL == node)
     {
-        vxReleaseKernel(&kernel);
+        vxRemoveKernel(kernel);
         return status;
     }
 
@@ -122,6 +156,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 
@@ -135,6 +172,9 @@ static vsi_bool op_setup
     /*
      * Network Binary Graph node do not need to calculate output shape
      */
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_setup() */
 
@@ -148,7 +188,7 @@ static vsi_status op_deinit
     kernel = self->nn_param.nbg.local.kernel;
     if(kernel)
     {
-        vxReleaseKernel(&kernel);
+        vxRemoveKernel(kernel);
         kernel = self->nn_param.nbg.local.kernel = NULL;
     }
     vsi_nn_op_common_deinit(self);

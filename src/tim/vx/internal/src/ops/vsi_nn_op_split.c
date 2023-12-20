@@ -37,6 +37,7 @@
 #include "utils/vsi_nn_link_list.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 static vsi_status op_compute
     (
@@ -45,6 +46,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -62,7 +65,7 @@ static vsi_bool op_check
 
     /* compute the output tensor number */
     num = (uint32_t)(self->output.num - 1);
-    while( NULL == outputs[num] )
+    while ( NULL == outputs[num] )
     {
         num --;
     }
@@ -70,37 +73,37 @@ static vsi_bool op_check
 
     ret = TRUE;
     /* 1. check the input tensor number */
-    if(self->input.num != 1)
+    if (self->input.num != 1)
     {
         VSILOGE("The split layer input num must be 1, here is %u\n", self->input.num);
         return FALSE;
     }
 
     /* 2. check output tensor number */
-    if(slices_num == 0)
+    if (slices_num == 0)
     {
         uint32_t remaind = inputs[0]->attr.size[axis] % num;
-        if(remaind != 0)
+        if (remaind != 0)
         {
             VSILOGE("Can not average the input tensor %u shape\n", axis);
             return FALSE;
         }
     }
-    else if(slices_num != num)
+    else if (slices_num != num)
     {
         VSILOGE( "slices num %u != output tensor num %u\n", slices_num, num);
         return FALSE;
     }
 
     /* 3. check output tensor shape and dimensions */
-    for( i = 0; i < num; i ++ )
+    for ( i = 0; i < num; i ++ )
     {
         /* the virtual tensor shape has not been calculated yet */
-        if(outputs[i]->attr.vtl == TRUE
+        if (outputs[i]->attr.vtl == TRUE
             || outputs[i]->attr.dim_num == VSI_NN_DIM_AUTO)
             continue;
 
-        if( outputs[i]->attr.dim_num != inputs[0]->attr.dim_num )
+        if ( outputs[i]->attr.dim_num != inputs[0]->attr.dim_num )
         {
             VSILOGE( "Split dims num(%d vs %d)",
                 outputs[i]->attr.dim_num,
@@ -109,14 +112,14 @@ static vsi_bool op_check
             break;
         }
 
-        for( j = 0; j < outputs[i]->attr.dim_num; j ++ )
+        for ( j = 0; j < outputs[i]->attr.dim_num; j ++ )
         {
-            if( axis == j )
+            if ( axis == j )
             {
                 continue;
             }
 
-            if( outputs[i]->attr.size[j] != inputs[0]->attr.size[j] )
+            if ( outputs[i]->attr.size[j] != inputs[0]->attr.size[j] )
             {
                 VSILOGE( "Split dims size(%d vs %d)",
                     outputs[i]->attr.size[j],
@@ -126,12 +129,12 @@ static vsi_bool op_check
             }
         }
 
-        if( FALSE == ret )
+        if ( FALSE == ret )
         {
             break;
         }
     }
-    for(i = 0; i < num; i++)
+    for (i = 0; i < num; i++)
     {
         BEGIN_IO_TYPE_DECL(SPLIT, 1, 1)
             IO_TYPE(D_F16,  D_F16)
@@ -161,7 +164,7 @@ static vsi_bool op_check
             /* HW 9.0 */
             IO_TYPE(D_BF16, D_BF16)
         END_IO_TYPE_DECL(SPLIT)
-        if(!VALIDATE_OP_IO_TYPES(SPLIT, self, inputs, 1, &outputs[i], 1)) {
+        if (!VALIDATE_OP_IO_TYPES(SPLIT, self, inputs, 1, &outputs[i], 1)) {
             char* desc = generate_op_io_types_desc(inputs, 1, &outputs[i], 1);
             VSILOGE("Inputs/Outputs data type not support: %s", desc);
             destroy_op_io_types_desc(desc);
@@ -178,9 +181,9 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_bool ret;
-    uint32_t i,num;
-    vsi_size_t average;
+    vsi_bool ret = FALSE;
+    uint32_t i = 0, num = 0;
+    vsi_size_t average = 1;
     vsi_size_t start[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_size_t end[VSI_NN_MAX_DIM_NUM] = { 0 };
     uint32_t axis = self->nn_param.split.axis;
@@ -189,11 +192,9 @@ static vsi_bool op_setup
     vsi_nn_split_param * p = NULL;
     vsi_nn_internal_node_t* curr = NULL;
 
-    ret = TRUE;
-    average = 1;
     /* compute the output tensor number */
     num = (uint32_t)(self->output.num - 1);
-    while( NULL == outputs[num] )
+    while ( NULL == outputs[num] )
     {
         num --;
     }
@@ -202,7 +203,7 @@ static vsi_bool op_setup
     p = &(self->nn_param.split);
     vsi_nn_internal_init_node_wksp( self );
 
-    if(slices_num == 0)
+    if (slices_num == 0)
     {
         average = inputs[0]->attr.size[axis] / num;
     }
@@ -211,7 +212,7 @@ static vsi_bool op_setup
     {
         p->lcl_data->stride_dims[i] = 1;
     }
-    for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    for (i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
     {
         end[i] = inputs[0]->attr.size[i];
     }
@@ -231,12 +232,13 @@ static vsi_bool op_setup
             outputs[i]->attr.size[j] = inputs[0]->attr.size[j];
         }
         outputs[i]->attr.size[axis] = end[axis] - start[axis];
-        for(j = 0; j < VSI_NN_MAX_DIM_NUM; j++)
+        for (j = 0; j < VSI_NN_MAX_DIM_NUM; j++)
         {
             p->lcl_data->begin_dims[j] = (int32_t)start[j];
             p->lcl_data->end_dims[j] = (int32_t)end[j];
         }
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_STRIDED_SLICE, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.strided_slice.begin_dims = p->lcl_data->begin_dims;
         curr->node->nn_param.strided_slice.begin_dims_num = inputs[0]->attr.dim_num;
         curr->node->nn_param.strided_slice.end_dims = p->lcl_data->end_dims;
@@ -249,10 +251,12 @@ static vsi_bool op_setup
         curr->node->nn_param.strided_slice.new_axis_mask = 0;
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[i];
-        vsi_nn_internal_setup_node( self, curr );
+        ret = vsi_nn_internal_setup_node( self, curr );
     }
 
     return ret;
+final:
+    return FALSE;
 } /* op_setup() */
 
 static vsi_status op_init
@@ -309,28 +313,12 @@ static vsi_status op_deinit
 
     p = &(self->nn_param.split);
 
-    if (p->lcl_data->begin_dims)
+    if (p && p->lcl_data)
     {
-        free(p->lcl_data->begin_dims);
-        p->lcl_data->begin_dims = NULL;
-    }
-
-    if (p->lcl_data->end_dims)
-    {
-        free(p->lcl_data->end_dims);
-        p->lcl_data->end_dims = NULL;
-    }
-
-    if (p->lcl_data->stride_dims)
-    {
-        free(p->lcl_data->stride_dims);
-        p->lcl_data->stride_dims = NULL;
-    }
-
-    if (p->lcl_data)
-    {
-        free(p->lcl_data);
-        p->lcl_data = NULL;
+        vsi_nn_safe_free(p->lcl_data->begin_dims);
+        vsi_nn_safe_free(p->lcl_data->end_dims);
+        vsi_nn_safe_free(p->lcl_data->stride_dims);
+        vsi_nn_safe_free(p->lcl_data);
     }
 
     vsi_nn_internal_deinit_node_wksp( self );
@@ -346,6 +334,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 }
 
@@ -368,4 +358,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

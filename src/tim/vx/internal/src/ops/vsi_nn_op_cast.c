@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <string.h>
 #include <stdlib.h>
 
@@ -38,6 +37,7 @@
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 /*
  Declare number of input and output.
@@ -154,13 +154,25 @@ static vsi_bool op_check
         IO_TYPE(D_U32,        D_U32)
         IO_TYPE(D_U32,        D_BOOL8)
         IO_TYPE(D_F16,        D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_I16|Q_SYM)
         IO_TYPE(D_F16,        D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_I8|Q_SYM)
         IO_TYPE(D_F16,        D_U8|Q_ASYM)
         IO_TYPE(D_F16,        D_BOOL8)
         IO_TYPE(D_I16|Q_DFP,  D_F16)
         IO_TYPE(D_I16|Q_DFP,  D_I8|Q_DFP)
         IO_TYPE(D_I16|Q_DFP,  D_U8|Q_ASYM)
         IO_TYPE(D_I16|Q_DFP,  D_BOOL8)
+        IO_TYPE(D_I16|Q_ASYM, D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM, D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_ASYM, D_BOOL8)
+        IO_TYPE(D_I16|Q_SYM,  D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_I8|Q_DFP)
+        IO_TYPE(D_I16|Q_SYM,  D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,  D_BOOL8)
         IO_TYPE(D_I16,        D_F16)
         IO_TYPE(D_I16,        D_I8|Q_DFP)
         IO_TYPE(D_I16,        D_U8|Q_ASYM)
@@ -172,6 +184,14 @@ static vsi_bool op_check
         IO_TYPE(D_I8|Q_DFP,   D_I16|Q_DFP)
         IO_TYPE(D_I8|Q_DFP,   D_U8|Q_ASYM)
         IO_TYPE(D_I8|Q_DFP,   D_BOOL8)
+        IO_TYPE(D_I8|Q_ASYM,  D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,  D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_BOOL8)
+        IO_TYPE(D_I8|Q_SYM,   D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_I16|Q_DFP)
+        IO_TYPE(D_I8|Q_SYM,   D_U8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_BOOL8)
         IO_TYPE(D_I8,         D_F16)
         IO_TYPE(D_I8,         D_I16|Q_DFP)
         IO_TYPE(D_I8,         D_U8|Q_ASYM)
@@ -191,10 +211,18 @@ static vsi_bool op_check
         IO_TYPE(D_U8,         D_U32)
         IO_TYPE(D_U8,         D_F32)
         IO_TYPE(D_F32,        D_I16|Q_DFP)
+        IO_TYPE(D_F32,        D_I16|Q_ASYM)
+        IO_TYPE(D_F32,        D_I16|Q_SYM)
         IO_TYPE(D_F32,        D_I8|Q_DFP)
+        IO_TYPE(D_F32,        D_I8|Q_ASYM)
+        IO_TYPE(D_F32,        D_I8|Q_SYM)
         IO_TYPE(D_F32,        D_U8|Q_ASYM)
         IO_TYPE(D_I32,        D_I16|Q_DFP)
+        IO_TYPE(D_I32,        D_I16|Q_ASYM)
+        IO_TYPE(D_I32,        D_I16|Q_SYM)
         IO_TYPE(D_I32,        D_I8|Q_DFP)
+        IO_TYPE(D_I32,        D_I8|Q_ASYM)
+        IO_TYPE(D_I32,        D_I8|Q_SYM)
         IO_TYPE(D_I32,        D_U8|Q_ASYM)
         IO_TYPE(D_F16,        D_F32)
         IO_TYPE(D_F16,        D_I32)
@@ -204,7 +232,11 @@ static vsi_bool op_check
         IO_TYPE(D_F16,        D_F16)
         IO_TYPE(D_BOOL8,      D_F16)
         IO_TYPE(D_BOOL8,      D_I16|Q_DFP)
+        IO_TYPE(D_BOOL8,      D_I16|Q_ASYM)
+        IO_TYPE(D_BOOL8,      D_I16|Q_SYM)
         IO_TYPE(D_BOOL8,      D_I8|Q_DFP)
+        IO_TYPE(D_BOOL8,      D_I8|Q_ASYM)
+        IO_TYPE(D_BOOL8,      D_I8|Q_SYM)
         IO_TYPE(D_BOOL8,      D_U8|Q_ASYM)
         IO_TYPE(D_BOOL8,      D_BOOL8)
         IO_TYPE(D_BOOL8,      D_I16)
@@ -212,12 +244,16 @@ static vsi_bool op_check
         IO_TYPE(D_BOOL8,      D_U8)
         IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
         IO_TYPE(D_I8|Q_DFP,   D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_I8|Q_SYM)
         IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM, D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,  D_I16|Q_SYM)
         IO_TYPE(D_U8|Q_ASYM,  D_F32)
         IO_TYPE(D_U8|Q_ASYM,  D_I32)
         IO_TYPE(D_BF16,       D_BF16)
     END_IO_TYPE_DECL(CAST)
-    if(!VALIDATE_OP_IO_TYPES(CAST, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(CAST, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -227,7 +263,6 @@ static vsi_bool op_check
 
     return TRUE;
 } /* op_check() */
-
 
 static vsi_status op_optimize
     (
@@ -249,7 +284,6 @@ static vsi_status op_optimize
     return status;
 } /* op_optimize() */
 
-
 static vsi_bool op_setup
     (
     vsi_nn_node_t * self,
@@ -257,7 +291,7 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_bool ret = TRUE;
+    vsi_bool ret = FALSE;
 
     if ( NULL == self )
     {
@@ -265,7 +299,7 @@ static vsi_bool op_setup
     }
     ret = vsi_nn_op_common_setup(self, inputs, outputs);
 
-    if (  _is_dataconvert_op(self, inputs, outputs) )
+    if ( _is_dataconvert_op(self, inputs, outputs) && ret )
     {
         vsi_nn_internal_node_t* curr = NULL;
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 1, 1);
@@ -276,7 +310,7 @@ static vsi_bool op_setup
         curr->inputs[0]     = inputs[0];
         curr->outputs[0]    = outputs[0];
 
-        vsi_nn_internal_setup_node(self, curr);
+        ret &= vsi_nn_internal_setup_node(self, curr);
     }
 
     return ret;

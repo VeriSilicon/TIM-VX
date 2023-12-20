@@ -30,6 +30,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_dtype_util.h"
+#include "vsi_nn_error.h"
 
 #define REGISTER_PAD2_OPENVX_KERNEL( kernel_name )   \
     static vsi_nn_kernel_node_t _##kernel_name##setup \
@@ -65,7 +66,12 @@ REGISTER_PAD2_OPENVX_KERNEL( pad2 )
     int32_t pad_front_array[VSI_NN_MAX_DIM_NUM] = {0};
     int32_t pad_back_array[VSI_NN_MAX_DIM_NUM] = {0};
     vsi_nn_tensor_t *convert_tensor = NULL;
+    vsi_bool release_intermediate_tensor = TRUE;
     float const_val = vsi_nn_kernel_param_get_float32(params, "const_val");
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     memset(&param, 0, sizeof(param));
     memset(pad_front_array, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
@@ -89,6 +95,7 @@ REGISTER_PAD2_OPENVX_KERNEL( pad2 )
         attr.is_const = FALSE;
 
         convert_tensor = vsi_nn_CreateTensor(graph, &attr);
+        CHECK_PTR_FAIL_GOTO( convert_tensor, "Create tensor fail.", final );
 
         node = vxTensorCopyNode(
             graph->g,
@@ -98,14 +105,19 @@ REGISTER_PAD2_OPENVX_KERNEL( pad2 )
     }
     else
     {
-        convert_tensor = vsi_nn_reshape_tensor( graph,
-            inputs[0], inputs[0]->attr.size, inputs[0]->attr.dim_num );
+        convert_tensor = inputs[0];
+        release_intermediate_tensor = FALSE;
     }
 
     node = vxTensorPadNode( graph->g, convert_tensor->t, outputs[0]->t, &param, sizeof(param) );
 
+final:
     vxReleaseScalar( &param.pad_const );
-    vsi_safe_release_tensor(convert_tensor);
+
+    if (release_intermediate_tensor)
+    {
+        vsi_safe_release_tensor(convert_tensor);
+    }
 
     return (vsi_nn_kernel_node_t)node;
 } /* pad2() */

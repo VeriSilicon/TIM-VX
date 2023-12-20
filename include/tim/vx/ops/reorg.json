@@ -1,0 +1,10 @@
+{
+    "Reorg":{
+        "parameters":
+            [
+                {"name":"stride",
+                    "dtype": "uint32_t"
+                }
+            ]
+    }
+}

@@ -1,0 +1,13 @@
+{
+    "Concat":{
+        "parameters":
+            [
+                {"name": "axis",
+                 "dtype": "uint32_t"
+                },
+                {"name": "input_cnt",
+                 "dtype": "int"
+                }
+            ]
+    }
+}

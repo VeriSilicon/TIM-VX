@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 #include "tim/vx/types.h"
 
 namespace tim {
@@ -43,7 +43,7 @@ namespace ops {
  * - spectrogram_length : corresponds to the fixed-size of the memory.
  */
 
-class Svdf : public DirectMapOp {
+class Svdf : public BuiltinOp {
  public:
   Svdf(Graph* graph, int32_t rank, int32_t num_units, int32_t spectrogram_length);
 

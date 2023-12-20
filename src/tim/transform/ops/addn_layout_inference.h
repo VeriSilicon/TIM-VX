@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 #define TIM_LAYOUT_INFER_ADDN_LAYOUT_INFERENCE_H_
 
 #include "ops/op_layout_inference.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "tim/vx/ops/addn.h"
 
 namespace tim {

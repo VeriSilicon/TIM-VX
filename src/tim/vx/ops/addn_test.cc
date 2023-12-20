@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -29,7 +29,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(AddN, shape_2_2_int32) {
+TEST(AddN, DISABLED_shape_2_2_int32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 

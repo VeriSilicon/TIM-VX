@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/logsoftmax.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 LogSoftmax::LogSoftmax(Graph* graph, int32_t axis, float beta)
-    : DirectMapOp(graph, VSI_NN_OP_LOG_SOFTMAX), axis_(axis), beta_(beta) {
+    : BuiltinOp(graph, VSI_NN_OP_LOG_SOFTMAX), axis_(axis), beta_(beta) {
   this->impl()->node()->nn_param.log_softmax.betaValue = beta_;
   this->impl()->node()->nn_param.log_softmax.axis = axis_;
 }

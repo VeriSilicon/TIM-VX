@@ -95,6 +95,8 @@ DEF_KERNEL_INITIALIZER(_signal_frame_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
     vsi_size_array_t * out_shape = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -198,6 +200,9 @@ static vsi_nn_kernel_node_t _setup
     int32_t i = 0;
     vsi_nn_tensor_t* rs_tensors[2] = { NULL };
     vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = {{ 0 }};
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     for (i = 0; i < axis; i++)
     {

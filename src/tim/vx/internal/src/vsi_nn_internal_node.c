@@ -36,15 +36,14 @@
 #include "vsi_nn_test.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_util.h"
-#include "utils/vsi_nn_vdata.h"
 #include "utils/vsi_nn_map.h"
 
 /**********************************************************
 * MACROS
 **********************************************************/
-#define LINKLIST_APPEND( _HEAD, _ITEM ) do {                \
+#define LINKLIST_APPEND( _HEAD, _ITEM ) {                \
     vsi_nn_LinkListPushEnd((vsi_nn_link_list_t **)&(_HEAD), \
-    (vsi_nn_link_list_t *)(_ITEM) ); } while( 0 )
+    (vsi_nn_link_list_t *)(_ITEM) ); }
 
 #define WKSP(_NODE_PTR) ((vsi_nn_internal_node_wksp_t *)    \
     ((_NODE_PTR)->internal_node_wksp))
@@ -215,6 +214,7 @@ vsi_nn_internal_tensor_t* vsi_nn_internal_create_zero_bias_tensor
     {
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
             scale = input_attr->dtype.scale;
             break;
 
@@ -236,6 +236,7 @@ vsi_nn_internal_tensor_t* vsi_nn_internal_create_zero_bias_tensor
     {
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
             attr.dtype.scale = weight_attr->dtype.scale * scale;
             attr.dtype.zero_point = 0;
             attr.dtype.qnt_type = weight_attr->dtype.qnt_type;
@@ -703,22 +704,48 @@ vsi_status vsi_nn_internal_optimize_node
 {
     vsi_status status = VSI_SUCCESS;
     vsi_nn_internal_node_t* curr = NULL;
+    int32_t n = 0;
 
     curr = WKSP(node)->nodes;
-    while( NULL != curr )
+    n = (int32_t)vsi_nn_LinkListGetNodeNumber((vsi_nn_link_list_t *)WKSP(node));
+
+    if (direction == VSI_NN_OPTIMIZE_BACKWARD)
     {
-        VSILOGD("Optimize node uid[%u] sub_uid[%u] op[%s]",
-            node->uid, curr->node->uid, vsi_nn_OpGetName(curr->node->op));
+        int32_t i = 0;
 
-        status = vsi_nn_OpOptimize( curr->node->op, curr->node,
-            curr->inputs, curr->outputs, direction );
-        if( VSI_SUCCESS != status )
+        for ( i = n - 1; i >= 0; i-- )
         {
-            VSILOGE("op_optimize fail %d", curr->node->op);
-            break;
-        }
+            curr = (vsi_nn_internal_node_t *)vsi_nn_LinkListGetIndexNode((vsi_nn_link_list_t *)WKSP(node), i);
+            VSILOGD("Optimize backward for node uid[%u] sub_uid[%u] op[%s]",
+                node->uid, curr->node->uid, vsi_nn_OpGetName(curr->node->op));
 
-        curr = (vsi_nn_internal_node_t *)vsi_nn_LinkListNext( (vsi_nn_link_list_t *)curr );
+            status = vsi_nn_OpOptimize( curr->node->op, curr->node,
+                curr->inputs, curr->outputs, direction );
+            if ( VSI_SUCCESS != status )
+            {
+                VSILOGE("op_optimize backward fail %d", curr->node->op);
+                break;
+            }
+
+        }
+    }
+    else
+    {
+        while( NULL != curr )
+        {
+            VSILOGD("Optimize forward for node uid[%u] sub_uid[%u] op[%s]",
+                node->uid, curr->node->uid, vsi_nn_OpGetName(curr->node->op));
+
+            status = vsi_nn_OpOptimize( curr->node->op, curr->node,
+                curr->inputs, curr->outputs, direction );
+            if( VSI_SUCCESS != status )
+            {
+                VSILOGE("op_optimize forward fail %d", curr->node->op);
+                break;
+            }
+
+            curr = (vsi_nn_internal_node_t *)vsi_nn_LinkListNext( (vsi_nn_link_list_t *)curr );
+        }
     }
 
     return status;

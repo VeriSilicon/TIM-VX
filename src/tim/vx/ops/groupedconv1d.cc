@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/groupedconv1d.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -41,7 +41,7 @@ GroupedConv1d::GroupedConv1d(Graph* graph, PadType padding,
                              std::array<uint32_t, 2> pad, const uint32_t stride,
                              const uint32_t dilation, uint32_t group,
                              DataLayout input_layout, DataLayout kernel_layout)
-    : DirectMapOp(graph, VSI_NN_OP_GROUPED_CONV1D, 3, 1, input_layout),
+    : BuiltinOp(graph, VSI_NN_OP_GROUPED_CONV1D, 3, 1, input_layout),
       padding_(padding),
       pad_(pad),
       stride_(stride),

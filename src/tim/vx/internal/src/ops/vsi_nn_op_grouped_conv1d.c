@@ -37,6 +37,7 @@
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)
@@ -76,6 +77,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -102,6 +105,7 @@ static vsi_bool op_setup
 {
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_grouped_conv1d_param* p = &self->nn_param.grouped_conv1d;
+    vsi_bool ret = FALSE;
 
     vsi_nn_internal_init_node_wksp(self);
 
@@ -124,13 +128,43 @@ static vsi_bool op_setup
 
     p->local->input = _expand_tensor_dim( self->graph, inputs[0],
             inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
-    p->local->weight = _expand_tensor_dim( self->graph, inputs[1],
+    if (inputs[1]->attr.dtype.qnt_type !=
+            VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC &&
+        inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
+    {
+        p->local->weight = _expand_tensor_dim( self->graph, inputs[1],
             inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
+    }
+    else
+    {
+        uint32_t i = 0;
+        uint8_t * data = NULL;
+        vsi_nn_tensor_attr_t attr;
+
+        data = vsi_nn_ConvertTensorToData( self->graph, inputs[1] );
+        CHECK_PTR_FAIL_GOTO( data, "Convert data fail.", final );
+
+        memcpy(&attr, &inputs[1]->attr, sizeof(vsi_nn_tensor_attr_t));
+
+        attr.size[0] = 1;
+        attr.size[1] = inputs[1]->attr.size[0];
+        for (i = 2; i <= inputs[1]->attr.dim_num; i++)
+        {
+            attr.size[i] = inputs[1]->attr.size[i - 1];
+        }
+        attr.dim_num = inputs[1]->attr.dim_num + 1;
+        attr.dtype.channel_dim = inputs[1]->attr.dtype.channel_dim + 1;
+
+        p->local->weight = vsi_nn_CreateTensorFromData(self->graph, data, &attr);
+        vsi_nn_safe_free( data );
+    }
+
     p->local->output = _expand_tensor_dim( self->graph, outputs[0],
             outputs[0]->attr.size, outputs[0]->attr.dim_num, 0 );
 
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_GROUPED_CONV2D, 0, 0);
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->inputs[0] = p->local->input;
     curr->inputs[1] = p->local->weight;
     curr->inputs[2] = inputs[2];
@@ -140,8 +174,8 @@ static vsi_bool op_setup
     curr->node->nn_param.grouped_conv2d.dilation[0] = 1;
     curr->node->nn_param.grouped_conv2d.dilation[1] = p->dilation;
     curr->node->nn_param.grouped_conv2d.pad[0] = 0;
-    curr->node->nn_param.grouped_conv2d.pad[1] = p->pad[0];
-    curr->node->nn_param.grouped_conv2d.pad[2] = 0;
+    curr->node->nn_param.grouped_conv2d.pad[1] = 0;
+    curr->node->nn_param.grouped_conv2d.pad[2] = p->pad[0];
     curr->node->nn_param.grouped_conv2d.pad[3] = p->pad[1];
     curr->node->nn_param.grouped_conv2d.stride[0] = 1;
     curr->node->nn_param.grouped_conv2d.stride[1] = p->stride;
@@ -149,10 +183,12 @@ static vsi_bool op_setup
     curr->node->nn_param.grouped_conv2d.multiplier = p->multiplier;
     curr->node->nn_param.grouped_conv2d.weights = p->weights;
     curr->node->nn_param.grouped_conv2d.pad_type = p->pad_type;
+    curr->node->nn_param.grouped_conv2d.pad_mode = p->pad_mode;
 
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
 
-    return TRUE;
+final:
+    return ret;
 } /* op_setup() */
 
 static vsi_status op_init

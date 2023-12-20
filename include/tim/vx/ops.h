@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -29,6 +29,8 @@
 #include "tim/vx/ops/arg.h"
 #include "tim/vx/ops/batch2space.h"
 #include "tim/vx/ops/batchnorm.h"
+#include "tim/vx/ops/bidirectional_sequence_rnn.h"
+#include "tim/vx/ops/bidirectional_sequence_rnn_ext.h"
 #include "tim/vx/ops/broadcast.h"
 #include "tim/vx/ops/clip.h"
 #include "tim/vx/ops/concat.h"
@@ -42,6 +44,7 @@
 #include "tim/vx/ops/erf.h"
 #include "tim/vx/ops/fullyconnected.h"
 #include "tim/vx/ops/gather.h"
+#include "tim/vx/ops/gather_elements.h"
 #include "tim/vx/ops/gathernd.h"
 #include "tim/vx/ops/groupedconv2d.h"
 #include "tim/vx/ops/instancenormalization.h"
@@ -52,11 +55,15 @@
 #include "tim/vx/ops/logsoftmax.h"
 #include "tim/vx/ops/matmul.h"
 #include "tim/vx/ops/maxpoolwithargmax.h"
+#include "tim/vx/ops/maxpoolwithargmax2.h"
+#include "tim/vx/ops/maxpoolgrad.h"
 #include "tim/vx/ops/maxunpool2d.h"
 #include "tim/vx/ops/moments.h"
 #include "tim/vx/ops/nbg.h"
 #include "tim/vx/ops/onehot.h"
 #include "tim/vx/ops/pad.h"
+#include "tim/vx/ops/pad_v2.h"
+#include "tim/vx/ops/pool1d.h"
 #include "tim/vx/ops/pool2d.h"
 #include "tim/vx/ops/reduce.h"
 #include "tim/vx/ops/relational_operations.h"
@@ -66,6 +73,8 @@
 #include "tim/vx/ops/resize.h"
 #include "tim/vx/ops/reverse.h"
 #include "tim/vx/ops/rnn_cell.h"
+#include "tim/vx/ops/roi_align.h"
+#include "tim/vx/ops/roi_pool.h"
 #include "tim/vx/ops/scatternd.h"
 #include "tim/vx/ops/select.h"
 #include "tim/vx/ops/shuffle_channel.h"
@@ -84,8 +93,21 @@
 #include "tim/vx/ops/tile.h"
 #include "tim/vx/ops/transpose.h"
 #include "tim/vx/ops/unidirectional_sequence_lstm.h"
+#include "tim/vx/ops/unidirectional_sequence_rnn.h"
+#include "tim/vx/ops/unidirectional_sequence_rnn_ext.h"
 #include "tim/vx/ops/unstack.h"
 #include "tim/vx/ops/conv3d.h"
 #include "tim/vx/ops/custom_base.h"
+#include "tim/vx/ops/topk.h"
+#include "tim/vx/ops/tiny_yolov4_postprocess.h"
+#include "tim/vx/ops/bidirectional_sequence_lstm.h"
+#include "tim/vx/ops/hashtable_lookup.h"
+#include "tim/vx/ops/embedding_lookup.h"
+#include "tim/vx/ops/cumsum.h"
+#include "tim/vx/ops/mod.h"
+#include "tim/vx/ops/max_pool3d.h"
+#include "tim/vx/ops/unidirectional_sequence_gru.h"
+#include "tim/vx/ops/grucell.h"
+#include "tim/vx/ops/scatternd_onnx_v16.h"
 
 #endif /* TIM_VX_OPS_H_ */

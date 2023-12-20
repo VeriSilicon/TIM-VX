@@ -120,12 +120,14 @@ static vsi_bool _argmaxmin_op_setup
     )
 {
     int32_t axis = 0;
+    vsi_bool keep_dims = FALSE;
     vsi_bool ret = TRUE;
 
     if (strcmp(kernel_name, "argmax") == 0)
     {
         vsi_nn_argmax_param * p = &(self->nn_param.argmax);
         axis = p->axis;
+        keep_dims = p->keep_dims;
 
         if (axis < 0)
         {
@@ -137,6 +139,7 @@ static vsi_bool _argmaxmin_op_setup
     {
         vsi_nn_argmin_param * p = &(self->nn_param.argmin);
         axis = p->axis;
+        keep_dims = p->keep_dims;
 
         if (axis < 0)
         {
@@ -145,19 +148,31 @@ static vsi_bool _argmaxmin_op_setup
         }
     }
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         uint32_t i = 0;
-        outputs[0]->attr.dim_num = inputs[0]->attr.dim_num - 1;
+        uint32_t i_rank = inputs[0]->attr.dim_num;
+        uint32_t o_rank = keep_dims ? i_rank : i_rank - 1;
+        int8_t   is_scalar = o_rank == 0;
 
-        for (i = 0; i < (uint32_t)axis; i++)
+        outputs[0]->attr.dim_num = is_scalar ? 1 : o_rank;
+        vsi_nn_SetTensorIsScalar(outputs[0], is_scalar);
+
+        for (i = 0; i < inputs[0]->attr.dim_num; i++)
         {
-            outputs[0]->attr.size[i] = inputs[0]->attr.size[i];
+            outputs[0]->attr.size[i] = is_scalar ? 1 : inputs[0]->attr.size[i];
         }
 
-        for (i = axis; i < outputs[0]->attr.dim_num; i++)
+        if (keep_dims)
         {
-            outputs[0]->attr.size[i] = inputs[0]->attr.size[i + 1];
+            outputs[0]->attr.size[(uint32_t)axis] = 1;
+        }
+        else
+        {
+            for (i = axis; i < outputs[0]->attr.dim_num; i++)
+            {
+                outputs[0]->attr.size[i] = is_scalar ? 1 : inputs[0]->attr.size[i + 1];
+            }
         }
 
         if (inputs[0]->attr.dim_num == 1)
@@ -179,18 +194,17 @@ static vsi_status _argmaxmin_op_init
 {
     vsi_status status = VSI_SUCCESS;
 
-    if (vsi_nn_compareVersion(self->graph, 1, 1, 11) == -1)
+    if (strcmp(kernel_name, "argmax") == 0)
     {
-        if (strcmp(kernel_name, "argmax") == 0)
-        {
-            vsi_nn_argmax_param * p = &(self->nn_param.argmax);
-            p->axis = 2;
-        }
-        else
-        {
-            vsi_nn_argmin_param * p = &(self->nn_param.argmin);
-            p->axis = 2;
-        }
+        vsi_nn_argmax_param* p = &(self->nn_param.argmax);
+        p->axis = 2;
+        p->keep_dims = FALSE;
+    }
+    else
+    {
+        vsi_nn_argmin_param* p = &(self->nn_param.argmin);
+        p->axis = 2;
+        p->keep_dims = FALSE;
     }
 
     return status;
@@ -220,6 +234,7 @@ static vsi_bool op_check
         IO_TYPE(D_F32,          D_I16)
         IO_TYPE(D_F16,          D_I32)
         IO_TYPE(D_I32,          D_I32)
+        IO_TYPE(D_I32,          D_I16)
         IO_TYPE(D_I8|Q_DFP,     D_I32)
         IO_TYPE(D_U8|Q_ASYM,    D_I32)
         IO_TYPE(D_I8|Q_ASYM,    D_U8)

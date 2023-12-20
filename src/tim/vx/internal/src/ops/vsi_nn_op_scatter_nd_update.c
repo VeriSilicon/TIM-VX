@@ -58,18 +58,13 @@ static vsi_status op_compute
     {
         coord_dim = (uint32_t)inputs[1]->attr.size[0];
     }
-    if ( coord_dim > 4 && input_size[dims_num - 1] > 1)
-    {
-        CHECK_STATUS(status);
-        return status;
-    }
     for (i = 0; i < inputs[1]->attr.dim_num; i++)
     {
         idx_num *= (uint32_t)inputs[1]->attr.size[i];
     }
     idx_num /= coord_dim;
 
-    param =vsi_nn_kernel_param_create();
+    param = vsi_nn_kernel_param_create();
 
     for (i = 0; i < dims_num; ++i)
     {
@@ -145,6 +140,8 @@ static vsi_bool op_setup
 {
     /* TODO: Add code to comput outputs' shape. */
     uint32_t i = 0;
+
+    VSI_UNREFERENCED(self);
 
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {

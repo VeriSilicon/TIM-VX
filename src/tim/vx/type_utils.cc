@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,10 @@ namespace tim {
 namespace vx {
 vsi_nn_type_e TranslateDataType(DataType dtype) {
   switch (dtype) {
+    case DataType::INT4:
+        return VSI_NN_TYPE_INT4;
+    case DataType::UINT4:
+        return VSI_NN_TYPE_UINT4;
     case DataType::INT8:
       return VSI_NN_TYPE_INT8;
     case DataType::UINT8:
@@ -39,6 +43,8 @@ vsi_nn_type_e TranslateDataType(DataType dtype) {
       return VSI_NN_TYPE_INT32;
     case DataType::UINT32:
       return VSI_NN_TYPE_UINT32;
+    case DataType::INT64:
+      return VSI_NN_TYPE_INT64;
     case DataType::FLOAT16:
       return VSI_NN_TYPE_FLOAT16;
     case DataType::FLOAT32:
@@ -59,6 +65,8 @@ vsi_nn_qnt_type_e TranslateQuantType(QuantType qtype) {
       return VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     case QuantType::SYMMETRIC_PER_CHANNEL:
       return VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC;
+    case QuantType::DYNAMIC_FIXED_POINT:
+      return VSI_NN_QNT_TYPE_DFP;
     default:
       break;
   }
@@ -73,8 +81,8 @@ vsi_nn_pad_e TranslatePadType(PadType pad) {
       return VSI_NN_PAD_VALID;
     case PadType::SAME:
       return VSI_NN_PAD_SAME;
-
     default:
+      VSILOGE("PadType not support.");
       break;
   }
   return VSI_NN_PAD_AUTO;
@@ -159,6 +167,7 @@ vsi_enum TranslateResizeType(ResizeType type) {
 }
 
 vx_bool_e ToVxBool(bool val) { return val ? vx_true_e : vx_false_e; }
+vsi_bool TranslateToVsibool(bool val) { return val? TRUE : FALSE; }
 
 }  // namespace vx
 }  // namespace tim

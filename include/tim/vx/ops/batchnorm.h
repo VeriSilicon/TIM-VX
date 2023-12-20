@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef OVXLIBXX_OPERATIONS_BATCHNORM_H_
 #define OVXLIBXX_OPERATIONS_BATCHNORM_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -40,7 +40,7 @@ namespace ops {
  * $$y_i=\gamma\hat x_i+\beta\equiv BN_{\gamma,\beta}(x_i)$$
  */
 
-class BatchNorm : public DirectMapOp {
+class BatchNorm : public BuiltinOp {
   public:
     BatchNorm(Graph* graph, float eps, DataLayout input_layout = DataLayout::WHCN);
 

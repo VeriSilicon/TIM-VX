@@ -48,6 +48,10 @@ static vsi_nn_kernel_node_t _setup
     vx_node node = NULL;
     float eps = vsi_nn_kernel_param_get_float32( params, "eps" );
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxBatchNormalizationLayer(
         graph->g,
         eps,

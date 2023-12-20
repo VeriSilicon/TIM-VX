@@ -1,0 +1,10 @@
+{
+    "GatherElements":{
+        "parameters":
+            [
+                {"name": "axis",
+                 "dtype": "int32_t"
+                }
+            ]
+    }
+}

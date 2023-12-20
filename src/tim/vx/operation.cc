@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -38,10 +38,12 @@ Operation::~Operation() {}
 
 std::unique_ptr<OpImpl>& Operation::impl() { return impl_; }
 const std::unique_ptr<OpImpl>& Operation::impl() const { return impl_; }
+const uint32_t& Operation::uid() const { return impl_->node()->uid; }
 
 Operation& Operation::BindInput(const std::shared_ptr<Tensor>& tensor) {
   impl_->BindInput(tensor);
   impl_->graph_->UpdateTensorConsumersMap(tensor, this);
+  OnBindInputPostProc(tensor, impl_->input_tensor_index - 1);
   return *this;
 }
 
@@ -54,9 +56,8 @@ Operation& Operation::BindOutput(const std::shared_ptr<Tensor>& tensor) {
 Operation& Operation::SetRoundingPolicy(
     OverflowPolicy overflow_policy, RoundingPolicy rounding_policy,
     RoundType down_scale_size_rounding, uint32_t accumulator_bits) {
-  // impl_->SetRoundingPolicy(overflow_policy, rounding_policy,
-  //                          down_scale_size_rounding, accumulator_bits);
-  (void) overflow_policy;(void) rounding_policy;(void) down_scale_size_rounding;(void) accumulator_bits;
+  impl_->SetRoundingPolicy(overflow_policy, rounding_policy,
+                           down_scale_size_rounding, accumulator_bits);
   return *this;
 }
 
@@ -89,6 +90,10 @@ const std::vector<std::shared_ptr<Tensor>> Operation::ConstantInputsTensor() con
   } else {
     return {};
   }
+}
+void Operation::OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor, int32_t input_idx){
+  (void) tensor;
+  (void) input_idx;
 }
 
 }  // namespace vx

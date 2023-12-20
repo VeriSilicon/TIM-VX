@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/matmul.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 #include "type_utils.h"
 
@@ -33,7 +33,7 @@ namespace ops {
 
 Matmul::Matmul(Graph* graph, bool transpose_a, bool transpose_b,
     bool adjoint_a, bool adjoint_b)
-    : DirectMapOp(graph, VSI_NN_OP_MATRIXMUL), transpose_a_(transpose_a),
+    : BuiltinOp(graph, VSI_NN_OP_MATRIXMUL), transpose_a_(transpose_a),
     transpose_b_(transpose_b), adjoint_a_(adjoint_a), adjoint_b_(adjoint_b) {
   this->impl()->node()->nn_param.matrixmul.transpose[0] = ToVxBool(transpose_a_);
   this->impl()->node()->nn_param.matrixmul.transpose[1] = ToVxBool(transpose_b_);

@@ -53,6 +53,8 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_lut_params lut_param;
 
+    memset(&lut_param, 0, sizeof(lut_param));
+
     lut_param.act_type = lut_type;
     if (lut_type == VSI_NN_KERNEL_LUT_RELU_KERAS)
     {
@@ -73,6 +75,11 @@ static vsi_nn_kernel_node_t _setup
     else if (lut_type == VSI_NN_KERNEL_LUT_CELU)
     {
         lut_param.params[0] = vsi_nn_kernel_param_get_float32( params, "alpha" );
+    }
+    else if (lut_type == VSI_NN_KERNEL_LUT_ACOSH)
+    {
+        lut_param.pwl_sign_remove_support = TRUE;
+        lut_param.clamp_min = 0;
     }
 
     if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT32   ||
@@ -99,6 +106,10 @@ static vsi_nn_kernel_node_t _setup
         goto final;
     }
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
 final:
     if (lut1)
     {
@@ -113,6 +124,14 @@ final:
 
     return (vsi_nn_kernel_node_t)node;
 #else
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(outputs);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(lut_type);
     return NULL;
 #endif
 } /* _setup() */
@@ -146,6 +165,9 @@ REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( erf,          VSI_NN_KERNEL_LUT_ERF )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( relu_keras,   VSI_NN_KERNEL_LUT_RELU_KERAS )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( clip,         VSI_NN_KERNEL_LUT_CLIP )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( celu,         VSI_NN_KERNEL_LUT_CELU )
+REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( rcp,          VSI_NN_KERNEL_LUT_RCP )
+REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( softsign,     VSI_NN_KERNEL_LUT_SOFTSIGN )
+REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( atan,         VSI_NN_KERNEL_LUT_ATAN )
 
 #undef REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL
 
@@ -179,6 +201,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( abs )
     uint32_t dims = 0;
     vx_tensor input = NULL, input0 = NULL;
     vx_tensor output = NULL, output0 = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     if (inputs[0]->attr.dim_num > 4)
     {
@@ -221,6 +248,10 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( linear )
     float a_v = vsi_nn_kernel_param_get_float32( params, "a_v" );
     float b_v = vsi_nn_kernel_param_get_float32( params, "b_v" );
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxActivationLayer(
         graph->g,
         inputs[0]->t,
@@ -236,6 +267,11 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( linear )
 REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( sigmoid )
 {
     vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
 
     node = vxActivationLayer(
         graph->g,
@@ -255,6 +291,10 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( tanh )
     float scale_a = vsi_nn_kernel_param_get_float32( params, "scale_a" );
     float scale_b = vsi_nn_kernel_param_get_float32( params, "scale_b" );
 
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
     node = vxActivationLayer(
         graph->g,
         inputs[0]->t,
@@ -266,5 +306,110 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( tanh )
 
     return (vsi_nn_kernel_node_t)node;
 } /* tanh() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( relu1 )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_RELU1,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* relu1() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( relu6 )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_RELU6,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* relu6() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( rsqrt )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_RSQRT,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* rsqrt() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( sqrt )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_SQRT,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* sqrt() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( softrelu )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_SOFTRELU,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* softrelu() */
 
 #undef REGISTER_ELTWISE_UNARY_OPENVX_KERNEL

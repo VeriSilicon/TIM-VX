@@ -83,7 +83,7 @@ static vsi_status _try_set_high_presision_tensor
     return status;
 }
 
-static vsi_bool _is_3d_batchnorm
+static vsi_bool _require_reshape
     (
     vsi_nn_node_t * self,
     vsi_nn_tensor_t ** inputs
@@ -96,17 +96,7 @@ static vsi_bool _is_3d_batchnorm
     {
         return FALSE;
     }
-    else
-    {
-        if ( 3 == inputs[0]->attr.dim_num )
-        {
-            return TRUE;
-        }
-        else
-        {
-            return FALSE;
-        }
-    }
+    return (3 == inputs[0]->attr.dim_num)||(5 == inputs[0]->attr.dim_num);
 }
 
 static vsi_bool _is_dynamic_batchnorm
@@ -141,7 +131,7 @@ static vsi_status _static_batchnorm
         VSILOGE("Set tensor attr of high presision fail");
         return status;
     }
-    if(_is_3d_batchnorm(self, inputs))
+    if(_require_reshape(self, inputs))
     {
         reshape_tensors[0] = self->nn_param.batch_norm.local->reshaped_input;
         reshape_tensors[5] = self->nn_param.batch_norm.local->reshaped_output;
@@ -175,6 +165,39 @@ static vsi_status _static_batchnorm
     return status;
 }
 
+static void _expand_dims_for_param
+    (
+    vsi_nn_tensor_attr_t* attr,
+    uint32_t dim_num,
+    vsi_size_t* shapes_expand
+    )
+{
+    uint32_t i = 0;
+
+    if (attr->dim_num == 1 && dim_num > 2)
+    {
+        /* [C] reshape to [1, 1, C, 1] */
+        for (i = 0; i < dim_num; i++)
+        {
+            if (i == dim_num - 2)
+            {
+                shapes_expand[i] = attr->size[0];
+            }
+            else
+            {
+                shapes_expand[i] = 1;
+            }
+        }
+    }
+    else
+    {
+        for (i = 0; i < attr->dim_num; i++)
+        {
+            shapes_expand[i] = attr->size[i];
+        }
+    }
+}
+
 static vsi_status _dynamic_batchnorm
     (
     vsi_nn_node_t * self,
@@ -185,7 +208,8 @@ static vsi_status _dynamic_batchnorm
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_size_t  shapes[4][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
-    vsi_size_t* shapes_ptr[4] = {NULL};
+    vsi_size_t  shapes_expand[2][VSI_NN_MAX_DIM_NUM] = {{ 0 }};
+    vsi_size_t  *shapes_ptr[4] = {NULL};
     vsi_size_t  *shapes_in[3] = {NULL};
     vsi_size_t rank_in[3] = {0};
     uint32_t new_rank = 0;
@@ -197,11 +221,16 @@ static vsi_status _dynamic_batchnorm
     vsi_nn_kernel_param_add_float32( param, "eps", self->nn_param.batch_norm.eps );
 
     rank_in[0] = (vsi_size_t)inputs[0]->attr.dim_num;
-    rank_in[1] = (vsi_size_t)inputs[1]->attr.dim_num;
-    rank_in[2] = (vsi_size_t)inputs[3]->attr.dim_num;
+    rank_in[1] = (vsi_size_t)inputs[0]->attr.dim_num;
+    rank_in[2] = (vsi_size_t)inputs[0]->attr.dim_num;
+
+    /* [C] reshape to [1, 1, C, 1] if need */
+    _expand_dims_for_param(&(inputs[1]->attr), inputs[0]->attr.dim_num, shapes_expand[0]);
+    _expand_dims_for_param(&(inputs[3]->attr), inputs[0]->attr.dim_num, shapes_expand[1]);
+
     shapes_in[0] = inputs[0]->attr.size;
-    shapes_in[1] = inputs[1]->attr.size;
-    shapes_in[2] = inputs[3]->attr.size;
+    shapes_in[1] = shapes_expand[0];
+    shapes_in[2] = shapes_expand[1];
     for (i = 0; i < 4; i++)
     {
         shapes_ptr[i] = shapes[i];
@@ -298,7 +327,7 @@ static vsi_status op_optimize
     char tensor_name[128];
 
     dim = inputs[0]->attr.dim_num;
-    if(_is_3d_batchnorm(self, inputs) == FALSE)
+    if(_require_reshape(self, inputs) == FALSE)
     {
         return VSI_SUCCESS;
     }
@@ -308,11 +337,21 @@ static vsi_status op_optimize
         reshape 3d input (xcn) --> 4d input (whcn)
         reshape 3d output(xcn) --> 4d output(whcn)
     */
-    shape[0] = inputs[0]->attr.size[0];
-    shape[1] = 1;
-    shape[2] = inputs[0]->attr.size[1];
-    shape[3] = inputs[0]->attr.size[2];
     dim = 4;
+    if (3 == inputs[0]->attr.dim_num)
+    {
+        shape[0] = inputs[0]->attr.size[0];
+        shape[1] = 1;
+        shape[2] = inputs[0]->attr.size[1];
+        shape[3] = inputs[0]->attr.size[2];
+    }
+    else if (5 == inputs[0]->attr.dim_num)
+    {
+        shape[0] = inputs[0]->attr.size[0] * inputs[0]->attr.size[1];
+        shape[1] = inputs[0]->attr.size[2];
+        shape[2] = inputs[0]->attr.size[3];
+        shape[3] = inputs[0]->attr.size[4];
+    }
     local = self->nn_param.batch_norm.local;
     if (VSI_NN_OPTIMIZE_BACKWARD == direction)
     {
@@ -350,19 +389,19 @@ static vsi_bool _dynamic_check
 
     /* check inputs outputs data type */
     BEGIN_IO_TYPE_DECL(BATCHNORM_SINGLE, 5, 1)
-        IO_TYPE(D_F16, D_F16, D_F16, D_F16, D_F32, D_U8|Q_ASYM)
-        IO_TYPE(D_F16, D_F16, D_F16, D_F16, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_F16, D_F16, D_F16, D_F16, D_F32, D_I8|Q_DFP)
-        IO_TYPE(D_F16, D_F16, D_F16, D_F16, D_F32, D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16, D_F16, D_F32, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16, D_F16, D_F32, D_F16)
-        IO_TYPE(D_I8|Q_DFP, D_F16, D_F16, D_F16, D_F32, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP, D_F16, D_F16, D_F16, D_F32, D_F16)
-        IO_TYPE(D_I16|Q_DFP, D_F16, D_F16, D_F16, D_F32, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_F16, D_F16, D_F16, D_F32, D_F16)
-        IO_TYPE(D_F32, D_F32, D_F32, D_F32, D_F32, D_F32)
-        IO_TYPE(D_F16, D_F32, D_F32, D_F32, D_F32, D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F32, D_F32, D_F32, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_F16,          D_F16, D_F16, D_F16, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_F16,          D_F16, D_F16, D_F16, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_F16,          D_F16, D_F16, D_F16, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_F16,          D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16, D_F16, D_F16, D_F32, D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_I8|Q_DFP,     D_F16, D_F16, D_F16, D_F32, D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,     D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_I16|Q_DFP,    D_F16, D_F16, D_F16, D_F32, D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,    D_F16, D_F16, D_F16, D_F32, D_F16)
+        IO_TYPE(D_F32,          D_F32, D_F32, D_F32, D_F32, D_F32)
+        IO_TYPE(D_F16,          D_F32, D_F32, D_F32, D_F32, D_F16)
+        IO_TYPE(D_U8|Q_ASYM,    D_F32, D_F32, D_F32, D_F32, D_U8|Q_ASYM)
     END_IO_TYPE_DECL(BATCHNORM_SINGLE)
     if(!VALIDATE_OP_IO_TYPES(BATCHNORM_SINGLE, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
@@ -399,24 +438,33 @@ static vsi_bool _static_check
     )
 {
     BEGIN_IO_TYPE_DECL(BATCH_NORM, 5, 1)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F32, D_F32,  D_F32)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F32, D_F32,  D_F16)
-        IO_TYPE(D_F32,  D_F32,  D_F32,  D_F32, D_F32,  D_F32)
-        IO_TYPE(D_F32,  D_F32,  D_F32,  D_F32, D_F32,  D_F16)
-        IO_TYPE(D_F32,  D_F32,  D_F32,  D_F32, D_F32,  D_BF16)
-        IO_TYPE(D_BF16, D_F32,  D_F32,  D_F32, D_F32,  D_BF16)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F32, D_F32,  D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_ASYM)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_DFP)
-        IO_TYPE(D_F16,  D_F32,  D_F32,  D_F32, D_F32,  D_I16|Q_DFP)
-        IO_TYPE(D_I8|Q_ASYM, D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_ASYM)
-        IO_TYPE(D_I8|Q_DFP,  D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_ASYM, D_F32,  D_F32,  D_F32, D_F32,  D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_F32,  D_F32,  D_F32, D_F32,  D_F16)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_F32)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_F16)
+        IO_TYPE(D_F32,        D_F32,  D_F32,  D_F32, D_F32,  D_F32)
+        IO_TYPE(D_F32,        D_F32,  D_F32,  D_F32, D_F32,  D_F16)
+        IO_TYPE(D_F32,        D_F32,  D_F32,  D_F32, D_F32,  D_BF16)
+        IO_TYPE(D_BF16,       D_F32,  D_F32,  D_F32, D_F32,  D_BF16)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_U8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_DFP)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_SYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_I16|Q_ASYM)
+        IO_TYPE(D_F16,        D_F32,  D_F32,  D_F32, D_F32,  D_I16|Q_SYM)
+        IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_F32,  D_F32,  D_F32, D_F32,  D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_DFP,   D_F32,  D_F32,  D_F32, D_F32,  D_F16)
+        IO_TYPE(D_I8|Q_ASYM,  D_F32,  D_F32,  D_F32, D_F32,  D_F16)
+        IO_TYPE(D_I8|Q_SYM,   D_F32,  D_F32,  D_F32, D_F32,  D_F16)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F32,  D_F32, D_F32,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F32,  D_F32, D_F32,  D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F32,  D_F32, D_F32,  D_I16|Q_SYM)
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F32,  D_F32, D_F32,  D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F32,  D_F32,  D_F32, D_F32,  D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F32,  D_F32,  D_F32, D_F32,  D_F16)
+        IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F32,  D_F32, D_F32,  D_F16)
+        IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F32,  D_F32, D_F32,  D_F16)
+        IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F32,  D_F32, D_F32,  D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_F32,  D_F32,  D_F32, D_F32,  D_F16)
     END_IO_TYPE_DECL(BATCH_NORM)
     if (!VALIDATE_OP_IO_TYPES(BATCH_NORM, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -461,7 +509,7 @@ static vsi_bool op_setup
             VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
 
-    if(_is_3d_batchnorm(self, inputs))
+    if(_require_reshape(self, inputs))
     {
         local = (vsi_nn_batcnnorm_lcl_data *)malloc(sizeof(vsi_nn_batcnnorm_lcl_data));
         if(NULL == local)

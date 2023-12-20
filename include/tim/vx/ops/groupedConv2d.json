@@ -1,0 +1,37 @@
+{
+    "GroupedConv2d":{
+        "parameters":
+            [
+                {"name": "pad",
+                    "dtype": "std::array<uint32_t,4>"
+                },
+                {"name": "strides",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "dilation",
+                    "dtype": "std::array<uint32_t,2>"
+                },
+                {"name": "group_number",
+                    "dtype": "int32_t"
+                },
+                {"name": "input_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHCN",
+                    "range":["tim::vx::DataLayout::ANY",
+                             "tim::vx::DataLayout::WHCN",
+                             "tim::vx::DataLayout::CWHN"]
+                },
+                {"name": "kernel_layout",
+                    "dtype": "tim::vx::DataLayout",
+                    "Optional": "true",
+                    "default": "tim::vx::DataLayout::WHIO",
+                    "range":["tim::vx::DataLayout::IWHO",
+                             "tim::vx::DataLayout::OIWH",
+                             "tim::vx::DataLayout::IOWH",
+                             "tim::vx::DataLayout::WHIO"]
+                }
+
+            ]
+    }
+}

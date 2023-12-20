@@ -94,6 +94,8 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(node);
+
     if( outputs[0]->attr.dim_num == VSI_NN_DIM_AUTO )
     {
         outputs[0]->attr.dim_num = inputs[2]->attr.dim_num;

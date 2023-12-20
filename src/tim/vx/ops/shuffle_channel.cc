@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -21,7 +21,7 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "tim/vx/ops/shuffle_channel.h"
 #include "vsi_nn_pub.h"
 namespace tim {
@@ -30,7 +30,7 @@ namespace ops {
 
 ShuffleChannel::ShuffleChannel(Graph* graph, int32_t num_groups,
                                  int32_t index_axis)
-    : DirectMapOp(graph, VSI_NN_OP_SHUFFLECHANNEL, 1, 1) {
+    : BuiltinOp(graph, VSI_NN_OP_SHUFFLECHANNEL, 1, 1) {
   this->impl()->node()->nn_param.shufflechannel.group_number = num_groups;
   this->impl()->node()->nn_param.shufflechannel.axis = index_axis;
 }

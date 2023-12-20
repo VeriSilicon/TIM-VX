@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef OVXLIBXX_OPERATIONS_BROADCAST_H_
 #define OVXLIBXX_OPERATIONS_BROADCAST_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -36,14 +36,14 @@ namespace ops {
  *
  * Input:
  * - input.
- * 
+ *
  * Attribute:
  * - shape: the shape which broadcast to.
- * - dimensions(optional): Which dimension in the target shape each dimension 
+ * - dimensions(optional): Which dimension in the target shape each dimension
  *   of the operand shape corresponds to. For BroadcastInDim.
  */
 
-class Broadcast : public DirectMapOp {
+class Broadcast : public BuiltinOp {
   public:
     Broadcast(Graph* graph, const std::vector<int32_t>& shape, const std::vector<int32_t>& dimensions = {});
 
@@ -51,7 +51,7 @@ class Broadcast : public DirectMapOp {
 
    protected:
     const std::vector<int32_t> shape_;
-    const std::vector<int32_t> dimensions_;
+    std::vector<int32_t> dimensions_;
 };
 
 }  // namespace ops

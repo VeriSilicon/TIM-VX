@@ -1,0 +1,10 @@
+{
+    "Prelu":{
+        "parameters":
+            [
+                {"name":"axis",
+                    "dtype": "int"
+                }
+            ]
+    }
+}

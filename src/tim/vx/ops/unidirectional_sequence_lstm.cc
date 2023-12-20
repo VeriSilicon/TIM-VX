@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/unidirectional_sequence_lstm.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -53,7 +53,7 @@ UnidirectionalSequenceLstm::UnidirectionalSequenceLstm(
     Graph* graph, float cell_clip, float proj_clip, ActivationType act_type,
     float forget_bias, bool time_major, ActivationType recurrent_act_type,
     bool return_sequences)
-    : DirectMapOp(graph, VSI_NN_OP_LSTM_OVXLIB, LSTM_INPUT_CNT, LSTM_OUTPUT_CNT),
+    : BuiltinOp(graph, VSI_NN_OP_LSTM_OVXLIB, LSTM_INPUT_CNT, LSTM_OUTPUT_CNT),
       act_type_(act_type),
       recurrent_act_type_(recurrent_act_type) {
   this->impl()->node()->nn_param.lstm_ovxlib.cell_clip = cell_clip;

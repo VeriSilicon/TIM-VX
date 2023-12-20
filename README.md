@@ -1,8 +1,8 @@
 
 
 # TIM-VX - Tensor Interface Module
-![Bazel.VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml/badge.svg)
-![CMake.VSim.X86.UnitTest](https://github.com/VeriSilicon/TIM-VX/actions/workflows/cmake_x86_vsim_unit_test.yml/badge.svg)
+[![bazel_x86_vsim_unit_test](https://github.com/VeriSilicon/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml/badge.svg)](https://github.com/VeriSilicon/TIM-VX/actions/workflows/bazel_x86_vsim_unit_test.yml)
+[![cmake_x86_vsim](https://github.com/VeriSilicon/TIM-VX/workflows/cmake_x86_vsim/badge.svg)](https://github.com/VeriSilicon/TIM-VX/actions/workflows/cmake_x86_vsim.yml)
 
 - [TIM-VX - Tensor Interface Module](#tim-vx---tensor-interface-module)
   - [Framework Support](#framework-support)
@@ -34,7 +34,7 @@ Main Features
 - [Tengine](https://github.com/OAID/Tengine) (Official)
 - [TVM](https://github.com/VeriSilicon/tvm) (Fork)
 - [Paddle-Lite](https://github.com/PaddlePaddle/Paddle-Lite) (Official)
-- [OpenCV](https://github.com/opencv/opencv/pull/21036) (Offical)
+- [OpenCV](https://github.com/opencv/opencv/wiki/TIM-VX-Backend-For-Running-OpenCV-On-NPU) (Offical)
 - MLIR Dialect (In development)
 
 Feel free to raise a github issue if you wish to add TIM-VX for other frameworks.
@@ -70,7 +70,7 @@ All install files (both headers and *.so) is located in : `host_build/install`
 cmake options:
 
 | option name | Summary | Default |
-| ----- | ----- | ----- | 
+| ----- | ----- | ----- |
 |`TIM_VX_ENABLE_TEST`| Enable unit test case for public APIs and ops | OFF |
 |`TIM_VX_ENABLE_LAYOUT_INFER`| Build with tensor data layout inference support| ON |
 |`TIM_VX_USE_EXTERNAL_OVXLIB`| Replace internal with a prebuilt libovxlib library | OFF |
@@ -79,6 +79,12 @@ cmake options:
 |`EXTERNAL_VIV_SDK`| Give external vivante openvx driver libraries | Not set|
 |`TIM_VX_BUILD_EXAMPLES`| Build example applications | OFF |
 |`TIM_VX_ENABLE_40BIT` | Enable large memory (over 4G) support in NPU driver | OFF |
+|`TIM_VX_ENABLE_PLATFORM` | Enable multi devices support | OFF |
+|`TIM_VX_ENABLE_PLATFORM_LITE` | Enable lite multi-device support, only work when `TIM_VX_ENABLE_PLATFORM`=ON | OFF |
+|`VIP_LITE_SDK` | full path to VIPLite sdk, required when `TIM_VX_ENABLE_PLATFORM_LITE`=ON | Not set |
+|`TIM_VX_ENABLE_GRPC` | Enable gPRC support, only work when `TIM_VX_ENABLE_PLATFORM`=ON | OFF |
+|`TIM_VX_DBG_ENABLE_TENSOR_HNDL` | Enable built-in tensor from handle | ON |
+|`TIM_VX_ENABLE_TENSOR_CACHE` | Enable tensor cache for const tensor, check [OpenSSL build notes](docs/openssl_build.md) | OFF |
 
 ----
 Run unit test:
@@ -87,7 +93,7 @@ Run unit test:
 cd host_build/src/tim
 
 export LD_LIBRARY_PATH=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib:<path to libgtest_main.so>:$LD_LIBRARY_PATH
-export VIVANTE_SDK_DIR=`pwd`/../../../prebuilt-sdk/x86_64_linux/lib
+export VIVANTE_SDK_DIR=`pwd`/../../../prebuilt-sdk/x86_64_linux/
 export VSIMULATOR_CONFIG=<hardware name should get from chip vendor>
 # if you want to debug wit gdb, please set
 export DISABLE_IDE_DEBUG=1
@@ -109,7 +115,7 @@ export DISABLE_IDE_DEBUG=1
 1. prepare toolchain file follow cmake standard
 2. make sure cross build low-level driver with toolchain separately, we need the sdk from the low-level driver
 3. add ```-DEXTERNAL_VIV_SDK=<low-level-driver/out/sdk>``` to cmake definitions, also remember ```-DCMAKE_TOOLCHAIN_FILE=<Toolchain_Config>```
-4. or for using a buildroot toolchain with extrnal VIV-SDK add: 
+4. or for using a buildroot toolchain with extrnal VIV-SDK add:
    ```cmake
    -DCONFIG=BUILDROOT -DCMAKE_SYSROOT=${CMAKE_SYSROOT} -DEXTERNAL_VIV_SDK=${BUILDROOT_SYSROOT}
    ```
@@ -158,4 +164,4 @@ A311D | Khadas - VIM3 | [A311D datasheet](https://dl.khadas.com/Hardware/VIM3/Da
 S905D3 | Khadas - VIM3L | [S905D3](https://dl.khadas.com/Hardware/VIM3/Datasheet/S905D3_datasheet_0.2_Wesion.pdf) , [BSP](https://dl.khadas.com/Firmware/VIM3L/Ubuntu/EMMC/VIM3L_Ubuntu-server-focal_Linux-4.9_arm64_EMMC_V0.9-20200530.7z)
 
 # Support
-Create issue on github or email to ML_Support@verisilicon.com
+Create issue on github or email to ML_Support at verisilicon dot com

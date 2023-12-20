@@ -213,6 +213,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 
@@ -277,6 +280,8 @@ static vsi_status op_optimize
     uint32_t dim;
     vx_tensor rois_tmp, score_tmp;
 
+    VSI_UNREFERENCED(inputs);
+
     rois_tmp = NULL, score_tmp = NULL;
     if( direction == VSI_NN_OPTIMIZE_BACKWARD )
     {
@@ -326,16 +331,20 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    vx_tensor rois = self->nn_param.proposal.local.rois;
-    vx_tensor score = self->nn_param.proposal.local.score;
-    if( NULL != self && NULL != self->n )
+    vx_tensor rois = NULL;
+    vx_tensor score = NULL;
+
+    if ( NULL != self && NULL != self->n )
     {
-        if(rois)
+        rois = self->nn_param.proposal.local.rois;
+        score = self->nn_param.proposal.local.score;
+
+        if (rois)
         {
             vxReleaseTensor(&rois);
             rois = NULL;
         }
-        if(score)
+        if (score)
         {
             vxReleaseTensor(&score);
             score = NULL;
@@ -343,6 +352,11 @@ static vsi_status op_deinit
         vxReleaseNode( &self->n );
         self->n = NULL;
     }
+    else
+    {
+        return VSI_FAILURE;
+    }
+
     return VSI_SUCCESS;
 }
 

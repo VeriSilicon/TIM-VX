@@ -38,6 +38,7 @@ typedef struct _vsi_nn_roi_align_param
     float width_ratio;
     int32_t height_sample_num;
     int32_t width_sample_num;
+    vsi_nn_roi_align_type_e platform_type;
 } vsi_nn_roi_align_param;
 
 #ifdef __cplusplus

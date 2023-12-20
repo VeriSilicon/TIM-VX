@@ -35,11 +35,11 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "vsi_nn_internal_node.h"
-#include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "utils/vsi_nn_dtype_util.h"
+#include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (1)
@@ -62,36 +62,17 @@ static vsi_status op_compute
     }
     else
     {
-        vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
-        vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
-        vsi_size_t new_rank = 0;
-        vsi_bool ret;
         vsi_nn_kernel_param_t * param = NULL;
 
         param = vsi_nn_kernel_param_create();
 
-        ret = vsi_nn_kernel_optimize_element_shape(
-                inputs[0]->attr.size, inputs[0]->attr.dim_num,
-                shape, &new_rank );
-
         vsi_nn_kernel_param_add_float32( param, "min_value",  min_value );
         vsi_nn_kernel_param_add_float32( param, "max_value",  max_value );
 
-        if ( ret )
-        {
-            reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                    inputs[0], shape, new_rank );
-            reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                    outputs[0], shape, new_rank );
-
-            self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
-                    "clip",
-                    &reshape_tensors[0], 1,
-                    &reshape_tensors[1], 1, param );
-
-            vsi_safe_release_tensor( reshape_tensors[0] );
-            vsi_safe_release_tensor( reshape_tensors[1] );
-        }
+        self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+                "clip",
+                inputs, 1,
+                outputs, 1, param );
 
         if ( self->n )
         {
@@ -151,6 +132,16 @@ static vsi_bool op_check
         IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
         IO_TYPE(D_I16|Q_SYM,    D_F16)
         IO_TYPE(D_BF16,         D_BF16)
+
+        /* HW 9.1.1 */
+        IO_TYPE(D_U4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_U4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_U4|Q_ASYM,    D_I4|Q_SYM)
+        IO_TYPE(D_U4|Q_SYM,     D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,     D_I4|Q_SYM)
+
     END_IO_TYPE_DECL(CLIP)
     if (!VALIDATE_OP_IO_TYPES(CLIP, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -204,7 +195,7 @@ static vsi_bool op_setup
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_bool ret = TRUE;
+    vsi_bool ret = FALSE;
     vsi_nn_internal_node_t* curr = NULL;
     float min = self->nn_param.clip.min;
     float max = self->nn_param.clip.max;
@@ -234,11 +225,12 @@ static vsi_bool op_setup
         {
             curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 0, 0);
         }
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
 
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
 
-        vsi_nn_internal_setup_node(self, curr);
+        ret = vsi_nn_internal_setup_node(self, curr);
 
         self->nn_param.clip.local2->is_internal_node = TRUE;
     }
@@ -246,9 +238,10 @@ static vsi_bool op_setup
     {
         ret = vsi_nn_op_common_setup(self, inputs, outputs);
     }
+
+final:
     return ret;
 } /* op_init() */
-
 
 #ifdef __cplusplus
 extern "C" {

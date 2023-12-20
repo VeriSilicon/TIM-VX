@@ -101,6 +101,7 @@ static vsi_bool op_check
         IO_TYPE(D_F32,  D_F32, D_F16)
         IO_TYPE(D_F32,  D_F32, D_F32)
         IO_TYPE(D_BF16, D_BF16, D_F32)
+        IO_TYPE(D_BF16, D_BF16, D_BF16)
         IO_TYPE(D_F32,  D_F32,  D_BF16)
 
         /* HW 9.0 */
@@ -155,6 +156,8 @@ static vsi_status op_optimize
     vsi_size_t size[VSI_NN_MAX_DIM_NUM];
     uint32_t dim;
     vx_tensor rois_tmp;
+
+    VSI_UNREFERENCED(outputs);
 
     rois_tmp = NULL;
     if( direction == VSI_NN_OPTIMIZE_FORWARD && inputs[1]->attr.dim_num == 2 )

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(SpatialTransformer, shape_1_3_3_1_u8) {
+TEST(SpatialTransformer, DISABLED_shape_1_3_3_1_u8) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 

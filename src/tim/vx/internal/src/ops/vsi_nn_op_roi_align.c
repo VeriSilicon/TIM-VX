@@ -54,12 +54,14 @@ static vsi_status op_compute
     float height_ratio = self->nn_param.roi_align.height_ratio;
     int32_t width_sample_num = self->nn_param.roi_align.width_sample_num;
     int32_t height_sample_num = self->nn_param.roi_align.height_sample_num;
+    int32_t platform_type = self->nn_param.roi_align.platform_type;
 
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_float32( param, "width_ratio",  width_ratio );
     vsi_nn_kernel_param_add_float32( param, "height_ratio",  height_ratio );
     vsi_nn_kernel_param_add_int32( param, "width_sample_num",  width_sample_num );
     vsi_nn_kernel_param_add_int32( param, "height_sample_num",  height_sample_num );
+    vsi_nn_kernel_param_add_int32( param, "platform_type",  platform_type );
 
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
         "roi_align",
@@ -83,9 +85,24 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    BEGIN_IO_TYPE_DECL(ROI_ALIGN, 3, 1)
+        IO_TYPE(D_F16,       D_F16,         D_I32, D_F16)
+        IO_TYPE(D_F16,       D_F16,         D_I32, D_F32)
+        IO_TYPE(D_F16,       D_F32,         D_I32, D_F16)
+        IO_TYPE(D_F32,       D_F32,         D_I32, D_F32)
+        IO_TYPE(D_U8|Q_ASYM, D_U16|Q_ASYM,  D_I32, D_U8|Q_ASYM)
+    END_IO_TYPE_DECL(ROI_ALIGN)
+    if (!VALIDATE_OP_IO_TYPES(ROI_ALIGN, self, inputs, self->input.num, outputs, self->output.num))
+    {
+        char* desc = generate_op_io_types_desc(inputs,
+                self->input.num, outputs, self->output.num);
+        VSILOGE("Inputs/Outputs data type not support: %s", desc);
+        destroy_op_io_types_desc(desc);
+        return FALSE;
+    }
+
     return TRUE;
 } /* op_check() */
-
 
 static vsi_bool op_setup
     (
@@ -106,6 +123,17 @@ static vsi_bool op_setup
     }
 
     return TRUE;
+}
+
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    self->nn_param.roi_align.platform_type = VSI_NN_ROI_ALIGN_ANDROID;
+
+    return status;
 } /* op_init() */
 
 
@@ -116,7 +144,7 @@ extern "C" {
 DEF_OP_REG
     (
     /* op_name    */ ROI_ALIGN,
-    /* init       */ NULL,
+    /* init       */ op_init,
     /* compute    */ op_compute,
     /* deinit     */ vsi_nn_op_common_deinit,
     /* check      */ op_check,

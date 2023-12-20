@@ -21,13 +21,14 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-#ifndef _VIP_VIRTUAL_DEVICE_PRIVARE_H
+#ifndef _VIP_VIRTUAL_DEVICE_PRIVATE_H
 #define _VIP_VIRTUAL_DEVICE_PRIVATE_H
 
 #include <memory>
 #include <queue>
 #include <vector>
 #include <map>
+#include <array>
 #include <thread>
 #include <iostream>
 #include <mutex>
@@ -74,7 +75,7 @@ class Worker{
         Worker();
         ~Worker(){};
         void Handle(const QueueItem& item);
-        void RunGraph(const vsi_nn_graph_t* graph);
+        void RunGraph(vsi_nn_graph_t* graph);
     protected:
 };
 
@@ -98,6 +99,9 @@ class Device {
         std::array<std::thread, 2> threads_;
         std::unique_ptr<GraphQueue> graphqueue_;
         std::unique_ptr<Worker> worker_;
+        std::condition_variable cv_;
+        std::mutex idle_mtx_;
+        int submit_num_ = 0;
 };
 
 }  // namespace vip

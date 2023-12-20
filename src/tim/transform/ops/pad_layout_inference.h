@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@
 
 #include "ops/op_layout_inference.h"
 #include "permute_vector.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 namespace tim {
 namespace transform {
 class PadLayoutInfer : public OpLayoutInfer {
@@ -51,13 +51,17 @@ class PadLayoutInfer : public OpLayoutInfer {
            sizeof(uint32_t) * dim_num);
     memcpy(back_size.data(), op_->impl()->node()->nn_param.pad.back_size,
            sizeof(uint32_t) * dim_num);
+    int32_t pad_value = op_->impl()->node()->nn_param.pad.const_val;
+    auto pad_mode = (tim::vx::ops::Pad::pad_mode_type)op_->impl()->node()->nn_param.pad.mode;
 
     if (!input_pv->IsAligned()) {
       front_size = MapMultipleAxis(input_pv->AsStdVec(), front_size);
       back_size = MapMultipleAxis(input_pv->AsStdVec(), back_size);
     }
 
-    auto pad = op_->Clone(context_->infer_graph_);
+    auto pad = context_->infer_graph_->CreateOperation<vx::ops::Pad>(
+        front_size, back_size, pad_value, pad_mode);
+
     auto out_infer = CreateOutputsTensor(input_pv);
     (*pad).BindInput(context_->GetMapedTensor(i_src));
     (*pad).BindOutput(out_infer[0]);

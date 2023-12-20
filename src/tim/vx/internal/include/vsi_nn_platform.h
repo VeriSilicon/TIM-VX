@@ -26,13 +26,6 @@
 
 #include "vsi_nn_feature_config.h"
 
-#ifdef VSI_40BIT_VA_SUPPORT
-#ifdef VX_VA40_EXT_SUPPORT
-#undef VX_VA40_EXT_SUPPORT
-#endif
-#define VX_VA40_EXT_SUPPORT 1
-#endif
-
 #include <VX/vx_khr_cnn.h>
 #include <VX/vx_helper.h>
 #include <VX/vx_ext_program.h>
@@ -47,13 +40,5 @@
     This is a compatibility head file for backward compatibility OpenVX 1.1 spec
 */
 #include "vsi_nn_compatibility.h"
-
-#if defined(__cplusplus)
-extern "C"{
-#endif
-
-#if defined(__cplusplus)
-}
-#endif
 
 #endif

@@ -15,6 +15,8 @@ __kernel void gather_U8toU8(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     uint4 data = read_imageui(input0, coord_in.zw);
@@ -40,6 +42,8 @@ __kernel void gather_F16toF16(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     float4 data = read_imagef(input0, coord_in.zw);
@@ -65,6 +69,8 @@ __kernel void gather_I32toI32(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     int4 data = read_imagei(input0, coord_in.zw);
@@ -90,6 +96,8 @@ __kernel void gather_F32toF32(
 
     int4 coord_in = (int4)(gidy, 0, gidx, 0);
     int4 indice = read_imagei(input1, coord_in.xy);
+
+    indice.x = indice.x >= 0 ? indice.x : indice.x + axis_num;
     coord_in.w = gidz * axis_num + indice.x;
 
     float4 data = read_imagef(input0, coord_in.zw);

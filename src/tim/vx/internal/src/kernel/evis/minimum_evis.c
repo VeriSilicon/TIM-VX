@@ -153,6 +153,8 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
     vsi_size_array_t * out_shape = NULL;
     uint32_t pack_key;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -202,7 +204,7 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
 
     if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
-        int32_t fl = (uint8_t)attr[2]->dfp.fl;
+        int32_t fl = attr[2]->dfp.fl;
         if (fl > 0)
         {
             output_scale = (float) ((int64_t)1 << fl);
@@ -404,7 +406,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype;
     vsi_status status = VSI_FAILURE;
     uint32_t key;
-    int i;
+    size_t i;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
@@ -452,6 +454,10 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_tensor_t* tmp_inputs[2] = { NULL };
     vsi_nn_type_e dtype1 = inputs[0]->attr.dtype.vx_type;
     vsi_nn_type_e dtype2 = inputs[1]->attr.dtype.vx_type;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(params);
 
     if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )

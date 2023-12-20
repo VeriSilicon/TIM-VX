@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -31,6 +31,7 @@
 TEST(RNNCell, shape_3_2_4_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 1e-4f : 1e-5f;
 
     uint32_t input_size = 3, batch_size = 2, num_units = 4;
 
@@ -118,13 +119,14 @@ TEST(RNNCell, shape_3_2_4_float) {
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     EXPECT_TRUE(state_out_tensor->CopyDataFromTensor(state_out.data()));
 
-    EXPECT_TRUE(ArraysMatch(output_golden, output,1e-5f));
+    EXPECT_TRUE(ArraysMatch(output_golden, output, tolerance));
     EXPECT_EQ(state_out_golden, state_out);
 }
 
 TEST(RNNCell, seperate) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 1e-4f : 1e-5f;
     std::vector<float> in_data = {
         0.12609188,  0.46347019, 0.89598465,
         0.35867718,  0.36897406, 0.73463392,
@@ -236,6 +238,6 @@ TEST(RNNCell, seperate) {
     std::vector<uint8_t> state_out(state_out_golden.size());
     EXPECT_TRUE(activation_out_tensor->CopyDataFromTensor(output.data()));
     EXPECT_TRUE(convert_tensor->CopyDataFromTensor(state_out.data()));
-    EXPECT_TRUE(ArraysMatch(output_golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(output_golden, output, tolerance));
     EXPECT_EQ(state_out_golden, state_out);
 }

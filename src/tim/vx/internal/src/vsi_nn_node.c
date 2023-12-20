@@ -32,6 +32,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "utils/vsi_nn_util.h"
 
 vsi_nn_node_t * vsi_nn_NewNode
@@ -42,54 +43,72 @@ vsi_nn_node_t * vsi_nn_NewNode
     vsi_size_t         output_num
     )
 {
-    vsi_nn_node_t * node;
+    vsi_nn_node_prv_t* node;
 
     node = NULL;
     if(NULL == graph || FALSE == vsi_nn_OpIsValid(op))
     {
         VSILOGE("Create node %s. fail", vsi_nn_OpGetName(op));
-        return NULL;
+        goto final;
     }
 
-    node = (vsi_nn_node_t *)malloc( sizeof( vsi_nn_node_t ) );
+    node = (vsi_nn_node_prv_t *)malloc( sizeof( vsi_nn_node_prv_t ) );
     if( NULL != node )
     {
-        memset( node, 0, sizeof( vsi_nn_node_t ) );
-        node->graph = graph;
-        node->op = op;
-        node->vx_param.overflow_policy = VX_CONVERT_POLICY_SATURATE;
-        node->vx_param.rounding_policy = VX_ROUND_POLICY_TO_ZERO;
-        node->vx_param.down_scale_size_rounding = VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR;
+        memset( node, 0, sizeof( vsi_nn_node_prv_t ) );
+        node->pon.graph = graph;
+        node->pon.op = op;
+        node->pon.vx_param.overflow_policy = VX_CONVERT_POLICY_SATURATE;
+        node->pon.vx_param.rounding_policy = VX_ROUND_POLICY_TO_ZERO;
+        node->pon.vx_param.down_scale_size_rounding = VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR;
 
         /* init op */
-        vsi_nn_OpInit( node->op, node );
+        vsi_nn_OpInit( node->pon.op, &node->pon );
 
         if( 0 == input_num && 0 == output_num )
             {
-            vsi_nn_OpGetIoNum( op, node, &input_num, &output_num );
+            vsi_nn_OpGetIoNum( op, &node->pon, &input_num, &output_num );
             }
 
         /* init output struct */
-        node->output.num = (uint32_t)output_num;
-        node->output.tensors = (vsi_nn_tensor_id_t *) malloc(
+        node->pon.output.num = (uint32_t)output_num;
+        node->pon.output.tensors = (vsi_nn_tensor_id_t *) malloc(
             output_num * sizeof( vsi_nn_tensor_id_t ) );
-        vsi_nn_InitTensorsId( node->output.tensors, (uint32_t)output_num );
+        if (NULL == node->pon.output.tensors)
+        {
+            goto final;
+        }
+        vsi_nn_InitTensorsId( node->pon.output.tensors, (uint32_t)output_num );
 
         /* init input struct */
-        node->input.num = (uint32_t)input_num;
-        node->input.tensors = (vsi_nn_tensor_id_t *) malloc(
+        node->pon.input.num = (uint32_t)input_num;
+        node->pon.input.tensors = (vsi_nn_tensor_id_t *) malloc(
             input_num * sizeof( vsi_nn_tensor_id_t ) );
-        vsi_nn_InitTensorsId( node->input.tensors, (uint32_t)input_num );
-        node->attr.const_tensor_preload_type = VSI_NN_NODE_PRELOAD_NONE;
-        node->attr.enable_op_constraint_check = TRUE;
+        if (NULL == node->pon.input.tensors)
+        {
+            goto final;
+        }
+        vsi_nn_InitTensorsId( node->pon.input.tensors, (uint32_t)input_num );
+        node->pon.attr.const_tensor_preload_type = VSI_NN_NODE_PRELOAD_NONE;
+        node->pon.attr.enable_op_constraint_check = TRUE;
     }
     else
     {
-        return NULL;
+        goto final;
     }
 
-    node->uid = VSI_NN_NODE_UID_NA;
-    return node;
+    node->pon.uid = VSI_NN_NODE_UID_NA;
+
+    return (vsi_nn_node_t*)node;
+final:
+    if (node)
+    {
+        vsi_nn_safe_free(node->pon.output.tensors);
+        vsi_nn_safe_free(node->pon.input.tensors);
+    }
+    vsi_nn_safe_free(node);
+
+    return NULL;
 } /* vsi_nn_NewNode() */
 
 /*
@@ -109,18 +128,18 @@ void vsi_nn_ReleaseNode
     vsi_nn_node_t ** node
     )
 {
-    vsi_nn_node_t * ptr;
-    ptr = (NULL != node) ? *node : NULL;
+    vsi_nn_node_prv_t* ptr;
+    ptr = (NULL != node) ? (vsi_nn_node_prv_t*)*node : NULL;
     if( NULL != ptr)
     {
-        vsi_nn_OpDeinit( ptr->op, ptr );
-        if( NULL != ptr->input.tensors )
+        vsi_nn_OpDeinit( ptr->pon.op, &ptr->pon );
+        if( NULL != ptr->pon.input.tensors )
         {
-            free( ptr->input.tensors );
+            free( ptr->pon.input.tensors );
         }
-        if( NULL != ptr->output.tensors )
+        if( NULL != ptr->pon.output.tensors )
         {
-            free( ptr->output.tensors );
+            free( ptr->pon.output.tensors );
         }
         free( ptr );
         *node = NULL;
@@ -174,6 +193,8 @@ void vsi_nn_PrintNode
     uint32_t i;
     int count;
     char buf[_MAX_PRINT_BUF_SZ];
+    vsi_bool is_out_of_bound = FALSE;
+    int temp = 0;
 
     if( NULL == node )
     {
@@ -182,28 +203,43 @@ void vsi_nn_PrintNode
     count = snprintf( &buf[0], _MAX_PRINT_BUF_SZ, "%s", "[in:" );
     for( i = 0; i < node->input.num; i ++ )
     {
-        if( count >= _MAX_PRINT_BUF_SZ )
-        {
-            break;
-        }
-        count += snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
+        temp = snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
             " %d,", node->input.tensors[i] );
+        if ( temp >= _MAX_PRINT_BUF_SZ - count || temp == -1 )
+        {
+            is_out_of_bound = TRUE;
+            goto final;
+        }
+        count += temp;
     }
-    count --;
-    count += snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
+    temp = snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
         "%s", " ], [out:" );
+    if ( temp >= _MAX_PRINT_BUF_SZ - count || temp == -1 )
+    {
+            is_out_of_bound = TRUE;
+            goto final;
+    }
+    count += temp;
     for( i = 0; i < node->output.num; i ++ )
     {
-        if( count >= _MAX_PRINT_BUF_SZ )
+        /* -3 means reserve memory for ending symbols --" ]" */
+        temp = snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count - 3,
+            " %d,", node->input.tensors[i] );
+        if ( temp >= _MAX_PRINT_BUF_SZ - count - 3 || temp == -1 )
         {
-            break;
+            is_out_of_bound = TRUE;
+            goto final;
         }
-        count += snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
-            " %d,", node->output.tensors[i] );
+        count += temp;
     }
-    count --;
     count += snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
         "%s", " ]" );
+final:
+    if ( is_out_of_bound )
+    {
+        VSILOGW("Buffer is already full, cannot print all messages for (%16s)node[%u] [%08x]",
+            vsi_nn_OpGetName(node->op), id, node->n );
+    }
     VSILOGI( "(%16s)node[%u] %s [%08x]", vsi_nn_OpGetName(node->op), id, buf, node->n );
 } /* vsi_nn_PrintNode() */
 
@@ -213,6 +249,8 @@ vsi_status vsi_nn_update_node_attr
     )
 {
     vsi_status status = VSI_FAILURE;
+
+    VSI_UNREFERENCED(node);
 
 #if(defined(VX_PRELOAD_CONST_TENSOR_SUPPORT) && VX_PRELOAD_CONST_TENSOR_SUPPORT)
     if(node)

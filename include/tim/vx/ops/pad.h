@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPERATION_PAD_H_
 #define TIM_VX_OPERATION_PAD_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -34,13 +34,13 @@ namespace ops {
  *
  * Pads a tensor.
  *
- * - const_val : the value to pad.
+ * - const_val : the int32 value to pad.
  * - pad_mode : the mode of pad.
  * - front_size : Add pad values to the left and top.
  * - back_size : Add pad values to the right and bottom.
  */
 
-class Pad : public DirectMapOp {
+class Pad : public BuiltinOp {
  public:
   typedef enum {
     // signature

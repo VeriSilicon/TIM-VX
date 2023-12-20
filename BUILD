@@ -18,8 +18,22 @@ cc_library(
     strip_include_prefix = "include"
 )
 
+genrule(
+    name = "gen_vsi_feat_ops_def",
+    srcs = ["//src/tim/vx/internal:include/interface/ops.def"],
+    outs = ["vsi_feat_ops_def.h"],
+    cmd = "./$(location gen_vsi_feat_ops_def.sh) $(SRCS) > \"$(OUTS)\"",
+    tools = ["gen_vsi_feat_ops_def.sh"]
+)
+
+cc_library(
+    name = "vsi_feat_ops_def",
+    hdrs = [":gen_vsi_feat_ops_def"]
+)
+
 cc_library(
     name = "tim-vx_interface",
+    defines = ["BUILD_WITH_BAZEL"],
     copts = ["-std=c++14", "-Werror", "-fvisibility=default", "-pthread"],
     includes = [
         "include",
@@ -28,7 +42,7 @@ cc_library(
     ],
     hdrs = [
         "include/tim/vx/context.h",
-        "include/tim/vx/direct_map_op.h",
+        "include/tim/vx/builtin_op.h",
         "include/tim/vx/graph.h",
         "include/tim/vx/operation.h",
         "include/tim/vx/ops.h",
@@ -45,9 +59,9 @@ cc_library(
         "src/tim/vx/compile_option.cc",
         "src/tim/vx/graph_private.h",
         "src/tim/vx/graph.cc",
-        "src/tim/vx/direct_map_op_impl.cc",
-        "src/tim/vx/direct_map_op.cc",
-        "src/tim/vx/direct_map_op_impl.h",
+        "src/tim/vx/builtin_op_impl.cc",
+        "src/tim/vx/builtin_op.cc",
+        "src/tim/vx/builtin_op_impl.h",
         "src/tim/vx/op_impl.cc",
         "src/tim/vx/op_impl.h",
         "src/tim/vx/operation.cc",
@@ -64,6 +78,7 @@ cc_library(
         ], exclude = ["src/tim/vx/ops/*_test.cc"]
     ) + glob(["src/tim/transform/ops/*.*"]),
     deps = [
+        ":vsi_feat_ops_def",
         "//src/tim/vx/internal:ovxlibimpl",
     ],
     linkstatic = True,
@@ -119,8 +134,10 @@ cc_binary(
 cc_test (
     name = "unit_test",
     copts = ["-std=c++14", "-Werror"],
+    includes = ["third_party/half"],
     srcs = [
         "src/tim/vx/test_utils.h",
+        "third_party/half/half.hpp"
     ] + glob(["src/tim/**/*_test.cc"]),
     deps = [
         "@gtest//:gtest",

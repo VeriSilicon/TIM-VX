@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -30,6 +30,7 @@
 TEST(LayerNorm, axis_0_shape_3_6_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({3, 6, 1});
     tim::vx::ShapeType param_shape({6});
@@ -81,12 +82,13 @@ TEST(LayerNorm, axis_0_shape_3_6_1_float) {
 
     std::vector<float> output(18);
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 TEST(LayerNorm, axis_0_shape_2_3_6_1_float) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({2, 3, 6, 1});
     tim::vx::ShapeType param_shape({6});
@@ -139,7 +141,63 @@ TEST(LayerNorm, axis_0_shape_2_3_6_1_float) {
 
     std::vector<float> output(36);
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
+}
+
+TEST(LayerNorm, axis_2_shape_4_2_3_1_float) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
+
+    tim::vx::ShapeType io_shape({4, 2, 3, 1});
+    tim::vx::ShapeType param_shape({1,1,3,1});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
+                            param_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto gamma_tensor = graph->CreateTensor(param_spec);
+    auto beta_tensor = graph->CreateTensor(param_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = {
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12,
+        13, 14, 15, 16,
+        17, 18, 19, 20,
+        21, 22, 23, 24};
+    std::vector<float> gamma = {
+        1.0f, 1.0f, 1.0f
+    };
+    std::vector<float> beta = {
+        .0f, .0f, .0f
+    };
+    std::vector<float> golden = {
+        -1.22473, -1.22473, -1.22473, -1.22473,
+        -1.22473, -1.22473, -1.22473, -1.22473,
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+         1.22473, 1.22473, 1.22473, 1.22473,
+         1.22473, 1.22473, 1.22473, 1.22473
+    };
+
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
+    EXPECT_TRUE(gamma_tensor->CopyDataToTensor(gamma.data(), gamma.size() * sizeof(float)));
+    EXPECT_TRUE(beta_tensor->CopyDataToTensor(beta.data(), beta.size() * sizeof(float)));
+
+    auto op = graph->CreateOperation<tim::vx::ops::LayerNormalization>(2, 0.001);
+    (*op).BindInputs({input_tensor, beta_tensor, gamma_tensor}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(24);
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 #if 0

@@ -56,7 +56,9 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_float32( param, "r_mean", self->nn_param.pre_process_yuv420.r_mean );
     vsi_nn_kernel_param_add_float32( param, "g_mean", self->nn_param.pre_process_yuv420.g_mean );
     vsi_nn_kernel_param_add_float32( param, "b_mean", self->nn_param.pre_process_yuv420.b_mean );
-    vsi_nn_kernel_param_add_float32( param, "rgb_scale", self->nn_param.pre_process_yuv420.rgb_scale );
+    vsi_nn_kernel_param_add_float32( param, "r_scale", self->nn_param.pre_process_yuv420.r_scale );
+    vsi_nn_kernel_param_add_float32( param, "g_scale", self->nn_param.pre_process_yuv420.g_scale );
+    vsi_nn_kernel_param_add_float32( param, "b_scale", self->nn_param.pre_process_yuv420.b_scale );
     vsi_nn_kernel_param_add_int32( param, "reverse", self->nn_param.pre_process_yuv420.reverse_channel );
     vsi_nn_kernel_param_add_int32( param, "enable_perm", self->nn_param.pre_process_yuv420.local.enable_perm );
     vsi_nn_kernel_param_add_int32( param, "enable_copy", self->nn_param.pre_process_yuv420.local.enable_copy );
@@ -87,10 +89,10 @@ static vsi_bool op_check
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM, D_I8|Q_DFP)
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM, D_I16|Q_DFP)
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM, D_F16)
-        IO_TYPE(D_U8, D_U8, D_U8, D_U8|Q_ASYM)
-        IO_TYPE(D_U8, D_U8, D_U8, D_I8|Q_DFP)
-        IO_TYPE(D_U8, D_U8, D_U8, D_I16|Q_DFP)
-        IO_TYPE(D_U8, D_U8, D_U8, D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM, D_I8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM, D_I8|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM, D_I16|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM, D_I16|Q_SYM)
     END_IO_TYPE_DECL(PRE_PROCESS_YUV420)
     if(!VALIDATE_OP_IO_TYPES(PRE_PROCESS_YUV420, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
@@ -113,6 +115,9 @@ static vsi_bool op_setup
     /* TODO: Add code to comput outputs' shape. */
     vsi_nn_pre_process_yuv420_param * p = NULL;
     uint32_t i = 0;
+
+    VSI_UNREFERENCED(inputs);
+
     p = (vsi_nn_pre_process_yuv420_param *)&(self->nn_param.pre_process_yuv420);
 
     if (p->rect.width == 0 || p->rect.height == 0)

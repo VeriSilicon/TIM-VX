@@ -1,0 +1,10 @@
+{
+    "Reshape":{
+        "parameters":
+            [
+                {"name": "size",
+                    "dtype": "std::vector<uint32_t>"
+                }
+            ]
+    }
+}

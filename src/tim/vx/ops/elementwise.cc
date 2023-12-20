@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/elementwise.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 #define DEFINE_ELEMENTWISE_OP(NAME, VSI_OP_CODE)                        \
-  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE, 2, 1) {}     \
+  NAME::NAME(Graph* graph) : BuiltinOp(graph, VSI_OP_CODE, 2, 1) {}     \
   std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
       const {                                                           \
     return graph->CreateOperation<NAME>();                              \
@@ -47,7 +47,7 @@ DEFINE_ELEMENTWISE_OP(FloorDiv, VSI_NN_OP_FLOORDIV)
 #undef DEFINE_ELEMENTWISE_OP
 
 Multiply::Multiply(Graph* graph, float scale)
-  : DirectMapOp(graph, VSI_NN_OP_MULTIPLY, 2, 1) {
+  : BuiltinOp(graph, VSI_NN_OP_MULTIPLY, 2, 1) {
     this->impl()->node()->nn_param.multiply.scale = scale;
 }
 
@@ -58,7 +58,7 @@ std::shared_ptr<Operation> Multiply::Clone(
 }
 
 Div::Div(Graph* graph, float scale)
-  : DirectMapOp(graph, VSI_NN_OP_DIVIDE, 2, 1) {
+  : BuiltinOp(graph, VSI_NN_OP_DIVIDE, 2, 1) {
     this->impl()->node()->nn_param.divide.scale = scale;
 }
 

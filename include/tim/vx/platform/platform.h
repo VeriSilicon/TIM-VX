@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2022 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,6 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/tensor.h"
 #include "tim/vx/context.h"
-#include "tim/vx/ops/nbg.h"
 
 namespace tim {
 namespace vx {
@@ -39,7 +38,7 @@ namespace vx {
 class Graph;
 class Context;
 
-namespace ops{
+namespace ops {
 class NBG;
 }
 
@@ -51,13 +50,20 @@ class ExecutableSet;
 class IExecutor;
 class ITensorHandle;
 
-std::shared_ptr<IExecutable> Compile(const std::shared_ptr<Graph>& graph, const std::shared_ptr<IExecutor>& executor);
-std::shared_ptr<IExecutable> CreateExecutableSet(const std::vector<std::shared_ptr<IExecutable>>& executables);
+std::shared_ptr<IExecutable> Compile(
+    const std::shared_ptr<Graph>& graph,
+    const std::shared_ptr<IExecutor>& executor);
+std::shared_ptr<IExecutable> CreateExecutableSet(
+    const std::vector<std::shared_ptr<IExecutable>>& executables);
 
 class IDevice {
  public:
   using device_id_t = uint32_t;
-  using async_callback = std::function<bool (const void*)>;
+  #ifdef __ANDROID_NDK__
+  typedef bool (*async_callback)(const void*);
+  #else
+  using async_callback = std::function<bool(const void*)>;
+  #endif
   using data_t = const void*;
   virtual ~IDevice(){};
   virtual bool Submit(const std::shared_ptr<Graph>& graph) = 0;
@@ -65,6 +71,7 @@ class IDevice {
   device_id_t Id() const;
   virtual void WaitDeviceIdle() = 0;
   virtual bool DeviceExit() = 0;
+  virtual void RemoteReset();
 
  protected:
   device_id_t device_id_;
@@ -74,9 +81,12 @@ class IExecutor {
  public:
   using task = std::weak_ptr<IExecutable>;
   virtual ~IExecutor(){};
-  virtual bool Submit(const std::shared_ptr<IExecutable>& executable, const std::shared_ptr<IExecutable>& ref, bool after=true) = 0;
+  virtual bool Submit(const std::shared_ptr<IExecutable>& executable,
+                      const std::shared_ptr<IExecutable>& ref,
+                      bool after = true) = 0;
   virtual bool Trigger(bool async = false) = 0;  // todo: async=true
-  virtual std::shared_ptr<IExecutable> Compile(const std::shared_ptr<Graph>& graph) = 0;
+  virtual std::shared_ptr<IExecutable> Compile(
+      const std::shared_ptr<Graph>& graph) = 0;
   virtual std::shared_ptr<IDevice> Device() const;
   virtual std::shared_ptr<Context> Contex() const;
 
@@ -86,17 +96,20 @@ class IExecutor {
   std::shared_ptr<Context> context_;
 };
 
-class IExecutable : public std::enable_shared_from_this<IExecutable>{
+class IExecutable : public std::enable_shared_from_this<IExecutable> {
  public:
   virtual ~IExecutable(){};
   virtual void SetInput(const std::shared_ptr<ITensorHandle>& th) = 0;
   virtual void SetOutput(const std::shared_ptr<ITensorHandle>& th) = 0;
-  virtual void GetOutput(const std::vector<std::shared_ptr<ITensorHandle>>& th) = 0;  // for remote
-  virtual bool Submit(const std::shared_ptr<IExecutable>& ref, bool after = true) = 0;
+  virtual void GetOutput(
+      const std::vector<std::shared_ptr<ITensorHandle>>& th) = 0;  // for remote
+  virtual bool Submit(const std::shared_ptr<IExecutable>& ref,
+                      bool after = true) = 0;
   virtual bool Trigger(bool async = false) = 0;  // todo: async=true
   virtual bool Verify() = 0;
   virtual std::shared_ptr<Graph> NBGraph() const;
-  virtual std::shared_ptr<ITensorHandle> AllocateTensor(const TensorSpec& tensor_spec) = 0;
+  virtual std::shared_ptr<ITensorHandle> AllocateTensor(
+      const TensorSpec& tensor_spec) = 0;
   virtual std::shared_ptr<IExecutor> Executor() const;
 
  protected:
@@ -105,33 +118,34 @@ class IExecutable : public std::enable_shared_from_this<IExecutable>{
   std::shared_ptr<Graph> nb_graph_;
 };
 
-class ExecutableSet : public IExecutable{
+class ExecutableSet : public IExecutable {
  public:
   ExecutableSet(const std::vector<std::shared_ptr<IExecutable>>& executables);
   void SetInput(const std::shared_ptr<ITensorHandle>& th) override;
   void SetOutput(const std::shared_ptr<ITensorHandle>& th) override;
-  void GetOutput(const std::vector<std::shared_ptr<ITensorHandle>>& th) override;
-  bool Submit(const std::shared_ptr<IExecutable>& ref, bool after = true) override;
+  void GetOutput(
+      const std::vector<std::shared_ptr<ITensorHandle>>& th) override;
+  bool Submit(const std::shared_ptr<IExecutable>& ref,
+              bool after = true) override;
   bool Trigger(bool async = false) override;
   bool Verify() override;
-  std::shared_ptr<ITensorHandle> AllocateTensor(const TensorSpec& tensor_spec) override;
+  std::shared_ptr<ITensorHandle> AllocateTensor(
+      const TensorSpec& tensor_spec) override;
   std::vector<std::shared_ptr<IExecutable>> Executables() const;
-  
+
  protected:
   std::vector<std::shared_ptr<IExecutable>> executables_;
-
 };
 
 class ITensorHandle {
  public:
   virtual ~ITensorHandle(){};
   virtual bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) = 0;
-  virtual bool CopyTensorToData(void* data) = 0;
+  virtual bool CopyDataFromTensor(void* data) = 0;
   virtual std::shared_ptr<Tensor> GetTensor() const;
 
  protected:
   std::shared_ptr<Tensor> tensor_;
-
 };
 
 }  // namespace platform

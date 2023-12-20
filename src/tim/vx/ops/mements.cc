@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/moments.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -31,7 +31,7 @@ namespace tim {
 namespace vx {
 namespace ops {
 Moments::Moments(Graph* graph, const std::vector<int32_t>& axes, bool keep_dims)
-    : DirectMapOp(graph, VSI_NN_OP_MOMENTS), axes_(axes), keep_dims_(keep_dims) {
+    : BuiltinOp(graph, VSI_NN_OP_MOMENTS), axes_(axes), keep_dims_(keep_dims) {
   this->impl()->node()->nn_param.moments.axis = axes_.data();
   this->impl()->node()->nn_param.moments.axis_num = axes_.size();
   this->impl()->node()->nn_param.moments.keep_dim = ToVxBool(keep_dims_);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -25,10 +25,12 @@
 #define TIM_LAYOUT_INFER_ACTIVATION_LAYOUT_INFERENCE_H_
 
 #include "tim/vx/ops/activations.h"
+#include "tim/vx/ops/reshape.h"
 
 #include "ops/op_layout_inference.h"
 #include "permute_vector.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
+#include "tim/vx/ops/transpose.h"
 
 namespace tim {
 namespace transform {
@@ -65,15 +67,71 @@ class PReluLayoutInfer : public OpLayoutInfer {
 
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    ReverseInputsPermuteVector();
     auto src_input = op_->impl()->InputsTensor()[0];
+    auto input_shape = src_input->GetShape();
+    auto src_slope = op_->impl()->InputsTensor()[1];
+    auto slope_shape = src_slope->GetShape();
     auto input_pv = context_->GetPermuteVector(src_input);
-    auto prelu = context_->infer_graph_->CreateOperation<vx::ops::Prelu>(
-        op_->impl()->node()->nn_param.prelu.axis);
-    auto out_infer = CreateOutputsTensor(input_pv);
-    for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*prelu).BindInput(context_->GetMapedTensor(i_src));
+    std::vector<uint32_t> boardcast_shape;
+    if (slope_shape.size() != 1) {  // Need to be transposed along with the input
+      for (uint32_t i = 0; i < input_shape.size(); ++i) {
+        if (i < slope_shape.size()) {
+          boardcast_shape.push_back(slope_shape[i]);
+        } else {
+          boardcast_shape.push_back(1);
+        }
+      }
+
+      if (src_slope->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(src_slope->GetSpec().GetByteSize());
+        src_slope->CopyDataFromTensor(dataRef.data());
+        auto infer_slope_spec = src_slope->GetSpec();
+        infer_slope_spec.SetShape(boardcast_shape);
+        auto infer_slope = context_->infer_graph_->CreateTensor(
+            infer_slope_spec, (const void*)dataRef.data());
+
+        if (!input_pv->IsAligned()) {
+          //The dimension of slop is already the same as input, directly use input_pv to convert
+          auto out_slope = PermuteConstTensor(infer_slope, input_pv);
+          context_->UpdateTensorMap(src_slope, out_slope);
+        } else {
+          context_->UpdateTensorMap(src_slope, infer_slope);
+        }
+      } else {
+        auto infer_slope_spec = src_slope->GetSpec().AsTransientSpec();
+        auto reshape_out =
+            context_->infer_graph_->CreateTensor(infer_slope_spec);
+        boardcast_shape =
+            MapMultipleAxis(input_pv->AsStdVec(), boardcast_shape);
+        auto reshape =
+            context_->infer_graph_->CreateOperation<vx::ops::Reshape>(
+                boardcast_shape);
+        (*reshape)
+            .BindInput(context_->GetMapedTensor(src_slope))
+            .BindOutput(reshape_out);
+        context_->UpdateTensorMap(src_slope, reshape_out);
+      }
+      context_->SetPermuteVector(src_slope, input_pv);
+    } else {  // 1d slope tensor need not transpose
+      if (src_slope->IsConstTensor()) {
+        std::vector<uint8_t> dataRef(src_slope->GetSpec().GetByteSize());
+        src_slope->CopyDataFromTensor(dataRef.data());
+        auto infer_slope_spec = src_slope->GetSpec();
+        auto infer_slope = context_->infer_graph_->CreateTensor(
+            infer_slope_spec, (const void*)dataRef.data());
+        context_->UpdateTensorMap(src_slope, infer_slope);
+        context_->SetPermuteVector(src_slope, MakeShared(1));
+      }
     }
+
+    auto axis =
+        MapAxis(input_pv->AsStdVec(), op_->impl()->node()->nn_param.prelu.axis);
+    auto prelu = context_->infer_graph_->CreateOperation<vx::ops::Prelu>(axis);
+    auto out_infer = CreateOutputsTensor(input_pv);
+
+    (*prelu)
+        .BindInput(context_->GetMapedTensor(src_input))
+        .BindInput(context_->GetMapedTensor(src_slope));
     (*prelu).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);

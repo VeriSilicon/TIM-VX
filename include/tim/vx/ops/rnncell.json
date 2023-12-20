@@ -1,0 +1,17 @@
+{
+    "RNNCell":{
+        "parameters":
+            [
+                {"name": "activation",
+                    "dtype": "tim::vx::ops::RNNCell::ActivationType",
+                    "range": ["tim::vx::ops::RNNCell::ActivationType::kNONE",
+                              "tim::vx::ops::RNNCell::ActivationType::kRELU",
+                              "tim::vx::ops::RNNCell::ActivationType::kRELU1",
+                              "tim::vx::ops::RNNCell::ActivationType::kRELU6",
+                              "tim::vx::ops::RNNCell::ActivationType::kTANH",
+                              "tim::vx::ops::RNNCell::ActivationType::kSIGMOID",
+                              "tim::vx::ops::RNNCell::ActivationType::kHARDSIGMOID"]
+                }
+            ]
+    }
+}

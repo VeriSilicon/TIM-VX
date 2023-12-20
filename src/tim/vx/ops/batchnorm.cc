@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/batchnorm.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 BatchNorm::BatchNorm(Graph* graph, float eps, DataLayout input_layout)
-    : DirectMapOp(graph, VSI_NN_OP_BATCH_NORM, 0, 0, input_layout), eps_(eps) {
+    : BuiltinOp(graph, VSI_NN_OP_BATCH_NORM, 0, 0, input_layout), eps_(eps) {
   this->impl()->node()->nn_param.batch_norm.eps = eps_;
 }
 

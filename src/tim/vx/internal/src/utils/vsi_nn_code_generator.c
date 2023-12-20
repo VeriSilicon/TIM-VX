@@ -444,6 +444,29 @@ static _op_param_gen_t s_op_gen[] =
     /* GATHER_ELEMENTS */       NULL,
     /* SELU */                  NULL,
     /* CELU */                  NULL,
+    /* MAX_POOL3D */            NULL,
+    /* RCP */                   NULL,
+    /* SIGN */                  NULL,
+    /* SOFTSIGN */              NULL,
+    /* CUMSUM */                NULL,
+    /* MAXPOOLWITHARGMAX */     NULL,
+    /* MOD */                   NULL,
+    /* LPPOOL */                NULL,
+    /* SCATTER_ELEMENTS */      NULL,
+    /* PRE_PROCESS_YUV422 */    NULL,
+    /* BUCKETIZE */             NULL,
+    /* GLOBALLPPOOL */          NULL,
+    /* AVG_POOL3D */            NULL,
+    /* ATAN */                  NULL,
+    /* ATANH */                 NULL,
+    /* ACOSH */                 NULL,
+    /* MAXUNPOOL */             NULL,
+    /* REVERSESEQUENCE */       NULL,
+    /* INVERSE_SIGMOID */       NULL,
+    /* GRID_SAMPLE */           NULL,
+    /* LPNORM */                NULL,
+    /* RESIZE_3D */             NULL,
+    /* REDUCEL2 */              NULL,
 };
 _compiler_assert( _cnt_of_array(s_op_gen) == VSI_NN_OP_NUM, vsi_nn_code_generator_c );
 
@@ -527,6 +550,10 @@ void vsi_nn_GenGraphCCode
             node_id = i;
         }
         node = vsi_nn_GetNode( graph, node_id );
+        if (node == NULL)
+        {
+            continue;
+        }
         _write_code( "node[%u] = vsi_nn_AppendNode( graph, %#x, NULL );",
             i, node->op );
         for( j = 0; j < node->input.num; j ++ )
@@ -546,7 +573,7 @@ void vsi_nn_GenGraphCCode
             }
         }
         // write node params
-        if( node->op < _cnt_of_array( s_op_gen ) )
+        if( node->op < (vsi_nn_op_t)_cnt_of_array( s_op_gen ) )
         {
             if( NULL != s_op_gen[node->op] )
             {

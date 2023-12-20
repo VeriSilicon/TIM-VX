@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_RESIZE1D_H_
 #define TIM_VX_OPS_RESIZE1D_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -44,7 +44,7 @@ namespace ops {
  * - target_height / target_width : output height / width. DO NOT use it with factor together.
  */
 
-class Resize1d : public DirectMapOp {
+class Resize1d : public BuiltinOp {
  public:
   Resize1d(Graph* graph, ResizeType type, float factor, bool align_corners,
          bool half_pixel_centers, int target_size,

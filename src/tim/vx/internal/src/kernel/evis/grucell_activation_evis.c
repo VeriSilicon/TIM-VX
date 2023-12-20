@@ -47,11 +47,10 @@ typedef enum
 } _internal_kernel_e;
 
 #define _GRUCELL_ACTIVATION_KERNEL_SOURCE               "grucell_activation"
-#define _GRUCELL_ACTIVATION_KERNEL_NAME                 CVIVANTE_NAMESPACE("evis.grucell_activation")
 
 #define _CDNN_KERNEL_SOURCE0          "grucell_cdnn_activation"
 #define _CDNN_KERNEL_SOURCE1          "grucell_cdnn_activation_u8"
-#define _GRUCELL_ACTIVATION_CDNN_KERNEL_NAME            CVIVANTE_NAMESPACE("evis.grucell_cdnn_activation")
+#define _KERNEL_SOURCE2               "grucell_cdnn_activation_bf16"
 
 typedef enum _batch_fisrt_layerout_e
 {
@@ -114,6 +113,11 @@ static const _kernel_map_type _grucell_activation_kernel_map[] =
     PACK_KERNEL_MAP( U8, U8, U8, U8,     hsigmoid, VSI_NN_ACT_TANH, CN),
     PACK_KERNEL_MAP( F16, F16, F16, F16, hsigmoid, VSI_NN_ACT_TANH, CN),
     PACK_KERNEL_MAP( F16, F16, F16, U8,  hsigmoid, VSI_NN_ACT_TANH, CN),
+
+    PACK_KERNEL_MAP( BF16, BF16, BF16, BF16, sigmoid,  VSI_NN_ACT_TANH, NC),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, BF16, sigmoid,  VSI_NN_ACT_TANH, CN),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, BF16, hsigmoid, VSI_NN_ACT_TANH, NC),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, BF16, hsigmoid, VSI_NN_ACT_TANH, CN),
 };
 
 static const _kernel_map_type _grucell_cunn_sep_activation_kernel_map[] =
@@ -130,6 +134,12 @@ static const _kernel_map_type _grucell_cunn_sep_activation_kernel_map[] =
     PACK_KERNEL_CDNN_SEP_MAP( U8, U8, U8, U8, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN, _CDNN_KERNEL_SOURCE1 ),
 
     PACK_KERNEL_CDNN_SEP_MAP( U8, U8, U8, U8, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN_FULL, _CDNN_KERNEL_SOURCE1 ),
+
+    PACK_KERNEL_CDNN_SEP_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, NC, _KERNEL_SOURCE2 ),
+
+    PACK_KERNEL_CDNN_SEP_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN, _KERNEL_SOURCE2 ),
+
+    PACK_KERNEL_CDNN_SEP_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN_FULL, _KERNEL_SOURCE2 ),
 };
 
 static const _kernel_map_type _grucell_cunn_activation_kernel_map[] =
@@ -142,6 +152,10 @@ static const _kernel_map_type _grucell_cunn_activation_kernel_map[] =
     PACK_KERNEL_CDNN_MAP( U8, U8, U8, U8, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, NC, _CDNN_KERNEL_SOURCE1 ),
 
     PACK_KERNEL_CDNN_MAP( U8, U8, U8, U8, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN, _CDNN_KERNEL_SOURCE1 ),
+
+    PACK_KERNEL_CDNN_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, NC, _KERNEL_SOURCE2 ),
+
+    PACK_KERNEL_CDNN_MAP( BF16, BF16, BF16, BF16, VSI_NN_ACT_SIGMOID, VSI_NN_ACT_TANH, CN, _KERNEL_SOURCE2 ),
 };
 
 /*
@@ -226,6 +240,8 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_initializer)
     uint32_t  pack_key                      = 0;
     vsi_size_array_t * output_shape          = NULL;
     vsi_nn_kernel_tensor_attr_t * attr[4]   = { NULL, NULL, NULL, NULL };
+
+    VSI_UNREFERENCED(param_size);
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
@@ -320,6 +336,37 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_initializer)
                         "tensorScale", &tensorScale );
                 CHECK_STATUS_FAIL_GOTO(status, final );
             }
+            break;
+        case _PACK_SELECT_KEY(BF16, BF16, BF16, BF16):
+            {
+                gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+                    0x11111111, // TCfg
+                    0x01010101, // ASelt
+                    0x01050004, 0x03070206, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+                gpu_dp_inst_t uniExtractOddData_2x8 = {{
+                    0x11111111, // TCfg
+                    0x11110000, // ASelt
+                    0x07050301, 0x07050301, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+
+                status  = vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
+                status |= vsi_nn_kernel_gpu_add_param( node, "tensorZP", &tensorZP );
+                status |= vsi_nn_kernel_gpu_add_param( node, "tensorScale", &tensorScale );
+                CHECK_STATUS_FAIL_GOTO(status, final );
+            }
+            break;
     default:
         break;
     }
@@ -602,6 +649,34 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_cdnn_initializer)
                 CHECK_STATUS_FAIL_GOTO(status, final );
             }
             break;
+        case _PACK_SELECT_KEY(BF16, BF16, BF16, BF16):
+            {
+                gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+                    0x11111111, // TCfg
+                    0x01010101, // ASelt
+                    0x01050004, 0x03070206, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+                gpu_dp_inst_t uniExtractOddData_2x8 = {{
+                    0x11111111, // TCfg
+                    0x11110000, // ASelt
+                    0x07050301, 0x07050301, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+
+                status  = vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
+                CHECK_STATUS_FAIL_GOTO(status, final );
+            }
+            break;
     default:
         break;
     }
@@ -635,7 +710,7 @@ static vsi_status _query_kernel
     int32_t input_category,
     int32_t input_layout,
     int32_t use_cudnn,
-    int32_t* param_count,
+    vsi_size_t* param_count,
     int32_t* input_count,
     int32_t* output_count
     /* Add extra params */
@@ -756,7 +831,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t k = 0;
     vsi_size_t input_size = inputs[0]->attr.size[0];
     vsi_size_t batch = inputs[0]->attr.size[1];
-    int32_t param_count = 0;
+    vsi_size_t param_count = 0;
     int32_t input_count = 0;
     int32_t output_count = 0;
     int32_t gate_activation = 0;
@@ -764,6 +839,8 @@ static vsi_nn_kernel_node_t _setup
     int32_t input_category = vsi_nn_kernel_param_get_int32( params, "input_category" );
     int32_t use_cudnn = vsi_nn_kernel_param_get_int32( params, "use_cudnn_implementation" );
     int32_t input_layout = vsi_nn_kernel_param_get_int32( params, "input_layout" );
+
+    VSI_UNREFERENCED(input_num);
 
     gate_activation = vsi_nn_kernel_param_get_int32( params, "gate_activation" );
     candidate_activation = vsi_nn_kernel_param_get_int32( params, "candidate_activation" );
@@ -783,7 +860,9 @@ static vsi_nn_kernel_node_t _setup
     if( VSI_SUCCESS == status)
     {
         _inputs = (vsi_nn_tensor_t**)malloc(input_count * sizeof(vsi_nn_tensor_t**));
+        CHECK_PTR_FAIL_GOTO( _inputs, "Create buffer fail.", final );
         node_params = (vsi_nn_kernel_node_param_t *)malloc(sizeof(vsi_nn_kernel_node_param_t) * param_count);
+        CHECK_PTR_FAIL_GOTO( node_params, "Create buffer fail.", final );
 
         if (use_cudnn)
         {
@@ -896,6 +975,7 @@ static vsi_nn_kernel_node_t _setup
         }
     }
 
+final:
     vsi_nn_safe_free(_inputs);
     vsi_nn_safe_free(node_params);
 

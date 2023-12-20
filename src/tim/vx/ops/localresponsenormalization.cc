@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/localresponsenormalization.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -33,13 +33,13 @@ LocalResponseNormalization::LocalResponseNormalization(Graph* graph,
                                                        uint32_t size,
                                                        float alpha, float beta,
                                                        float bias, int32_t axis)
-    : DirectMapOp(graph, VSI_NN_OP_LRN2),
+    : BuiltinOp(graph, VSI_NN_OP_LRN2),
       size_(size),
       alpha_(alpha),
       beta_(beta),
       bias_(bias),
       axis_(axis) {
-  this->impl()->node()->nn_param.lrn.size = size_ * 2 + 1;
+  this->impl()->node()->nn_param.lrn.size = size_;
   this->impl()->node()->nn_param.lrn.alpha = alpha_;
   this->impl()->node()->nn_param.lrn.beta = beta_;
   this->impl()->node()->nn_param.lrn.bias = bias_;

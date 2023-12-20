@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/logical.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 #define DEFINE_LOGICAL_OP(NAME, VSI_OP_CODE)           \
   Logical##NAME::Logical##NAME(Graph* graph)           \
-      : DirectMapOp(graph, VSI_NN_OP_LOGICAL_OPS) {      \
+      : BuiltinOp(graph, VSI_NN_OP_LOGICAL_OPS) {      \
     this->impl()->node()->nn_param.relational_ops.op = \
         VSI_NN_LOGICAL_##VSI_OP_CODE;                  \
   }                                                    \

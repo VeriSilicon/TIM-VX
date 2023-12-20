@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 
 #include <cassert>
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -50,7 +50,7 @@ DeConv2d::DeConv2d(Graph* graph, int32_t oc_count, PadType pad_type,
     const uint32_t group,
     DataLayout input_layout,
     DataLayout kernel_layout)
-  : DirectMapOp(graph, VSI_NN_OP_DECONVOLUTION, 0, 0, input_layout),
+  : BuiltinOp(graph, VSI_NN_OP_DECONVOLUTION, 0, 0, input_layout),
     oc_count_(oc_count),
     pad_type_(pad_type),
     ksize_(ksize),

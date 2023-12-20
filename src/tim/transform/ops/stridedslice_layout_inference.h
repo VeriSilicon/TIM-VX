@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@
 
 #include "ops/op_layout_inference.h"
 #include "permute_vector.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 namespace tim {
 namespace transform {
@@ -47,6 +47,8 @@ class StridedSliceLayoutInfer : public OpLayoutInfer {
     int32_t end_mask = op_->impl()->node()->nn_param.strided_slice.end_mask;
     int32_t shrink_axis_mask =
         op_->impl()->node()->nn_param.strided_slice.shrink_axis_mask;
+    int32_t new_axis_mask =
+        op_->impl()->node()->nn_param.strided_slice.new_axis_mask;
     uint32_t begin_dims_num =
         op_->impl()->node()->nn_param.strided_slice.begin_dims_num;
     std::vector<int32_t> begin_dims(begin_dims_num);
@@ -66,45 +68,51 @@ class StridedSliceLayoutInfer : public OpLayoutInfer {
            op_->impl()->node()->nn_param.strided_slice.stride_dims,
            stride_dims_num * sizeof(uint32_t));
 
-    begin_dims = MapMultipleAxis(input_pv->AsStdVec(), begin_dims);
-    end_dims = MapMultipleAxis(input_pv->AsStdVec(), end_dims);
-    stride_dims = MapMultipleAxis(input_pv->AsStdVec(), stride_dims);
+    if (!new_axis_mask) {
+      begin_dims = MapMultipleAxis(input_pv->AsStdVec(), begin_dims);
+      end_dims = MapMultipleAxis(input_pv->AsStdVec(), end_dims);
+      stride_dims = MapMultipleAxis(input_pv->AsStdVec(), stride_dims);
 
-    shrink_axis_mask = MapMask(input_pv->AsStdVec(), shrink_axis_mask);
-    begin_mask = MapMask(input_pv->AsStdVec(), begin_mask);
-    end_mask = MapMask(input_pv->AsStdVec(), end_mask);
-    auto strided_slice =
-        context_->infer_graph_->CreateOperation<vx::ops::StridedSlice>(
-            begin_dims, end_dims, stride_dims, begin_mask, end_mask,
-            shrink_axis_mask);
-    // The following is the normalized dimension calculation
-    std::set<uint32_t> remaind_set;
-    std::vector<uint32_t> remaind_axis;
-    for (uint32_t i = 0; i < input_pv->AsStdVec().size(); ++i)
-      if ((shrink_axis_mask & (1 << i)) == 0) {
-        remaind_axis.push_back(
-            input_pv->AsStdVec()
-                [i]);  // Store unnormalized dimensionality reduction pv values
-        remaind_set.insert(input_pv->AsStdVec()[i]);
-      }
-    // Traverse the input pv to find a dimension smaller than the current remaining dimension
-    auto out_pv = MakeShared(remaind_axis.size());
-    for (uint32_t i = 0; i < remaind_axis.size(); ++i) {
-      uint32_t cnt = 0;
-      for (uint32_t j = 0; j < input_pv->AsStdVec().size(); j++) {
-        if (input_pv->AsStdVec()[j] < remaind_axis[i] &&
-            remaind_set.end() == remaind_set.find(input_pv->AsStdVec()[j])) {
-          cnt++;  // Record the number of dimensions smaller than the current dimension
+      shrink_axis_mask = MapMask(input_pv->AsStdVec(), shrink_axis_mask);
+      begin_mask = MapMask(input_pv->AsStdVec(), begin_mask);
+      end_mask = MapMask(input_pv->AsStdVec(), end_mask);
+      auto strided_slice =
+          context_->infer_graph_->CreateOperation<vx::ops::StridedSlice>(
+              begin_dims, end_dims, stride_dims, begin_mask, end_mask,
+              shrink_axis_mask);
+      // The following is the normalized dimension calculation
+      std::set<uint32_t> remained_set;
+      std::vector<uint32_t> remained_axis;
+      for (uint32_t i = 0; i < input_pv->AsStdVec().size(); ++i)
+        if ((shrink_axis_mask & (1 << i)) == 0) {
+          remained_axis.push_back(
+              input_pv->AsStdVec()
+                  [i]);  // Store unnormalized dimensionality reduction pv values
+          remained_set.insert(input_pv->AsStdVec()[i]);
         }
+      // Traverse the input pv to find a dimension smaller than the current remaining dimension
+      auto out_pv = MakeShared(remained_axis.size());
+      for (uint32_t i = 0; i < remained_axis.size(); ++i) {
+        uint32_t cnt = 0;
+        for (uint32_t j = 0; j < input_pv->AsStdVec().size(); j++) {
+          if (input_pv->AsStdVec()[j] < remained_axis[i] &&
+              remained_set.end() ==
+                  remained_set.find(input_pv->AsStdVec()[j])) {
+            cnt++;  // Record the number of dimensions smaller than the current dimension
+          }
+        }
+        out_pv->At(i) = remained_axis[i] - cnt;
       }
-      out_pv->At(i) = remaind_axis[i] - cnt;
-    }
 
-    auto infer_out = CreateOutputsTensor(out_pv);
-    (*strided_slice).BindInput(context_->GetMapedTensor(src_input));
-    (*strided_slice).BindOutput(infer_out[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], out_pv);
-    next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
+      auto infer_out = CreateOutputsTensor(out_pv);
+      (*strided_slice).BindInput(context_->GetMapedTensor(src_input));
+      (*strided_slice).BindOutput(infer_out[0]);
+      context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], out_pv);
+      next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
+    } else {  //TODO
+      VSILOGE("ERROR: implement not supported yet for new_axis_mask !=0");
+      assert(false);
+    }
   }
 };
 }  // namespace transform

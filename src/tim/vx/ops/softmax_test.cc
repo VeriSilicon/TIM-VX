@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2022 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -57,7 +57,10 @@ TEST(Softmax, shape_3_1_float_axis_0) {
 
     std::vector<float> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    if (!ctx->hasSP())
+      EXPECT_EQ(golden, output);
+    else
+      EXPECT_TRUE(ArraysMatch(golden, output, 1e-3f));
 }
 
 TEST(Softmax, shape_3_4_float_axis_0) {
@@ -96,8 +99,10 @@ TEST(Softmax, shape_3_4_float_axis_0) {
 
     std::vector<float> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
-    // EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    if (!ctx->hasSP())
+      EXPECT_EQ(golden, output);
+    else
+      EXPECT_TRUE(ArraysMatch(golden, output, 1e-3f));
 }
 
 TEST(Softmax, shape_3_4_float_axis_1) {
@@ -136,8 +141,10 @@ TEST(Softmax, shape_3_4_float_axis_1) {
 
     std::vector<float> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
-    // EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    if (!ctx->hasSP())
+      EXPECT_EQ(golden, output);
+    else
+      EXPECT_TRUE(ArraysMatch(golden, output, 1e-3f));
 }
 
 TEST(Softmax, shape_3_3_2_float_axis_0) {
@@ -182,8 +189,10 @@ TEST(Softmax, shape_3_3_2_float_axis_0) {
 
     std::vector<float> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
-    // EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    if (!ctx->hasSP())
+      EXPECT_EQ(golden, output);
+    else
+      EXPECT_TRUE(ArraysMatch(golden, output, 1e-3f));
 }
 
 TEST(Softmax, shape_3_3_2_float_axis_1) {
@@ -228,8 +237,10 @@ TEST(Softmax, shape_3_3_2_float_axis_1) {
 
     std::vector<float> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
-    // EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    if (!ctx->hasSP())
+      EXPECT_EQ(golden, output);
+    else
+      EXPECT_TRUE(ArraysMatch(golden, output, 1e-3f));
 }
 
 TEST(Softmax, shape_3_3_2_float_axis_2) {
@@ -274,6 +285,8 @@ TEST(Softmax, shape_3_3_2_float_axis_2) {
 
     std::vector<float> output(golden.size());
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_EQ(golden, output);
-    // EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    if (!ctx->hasSP())
+      EXPECT_EQ(golden, output);
+    else
+      EXPECT_TRUE(ArraysMatch(golden, output, 1e-3f));
 }

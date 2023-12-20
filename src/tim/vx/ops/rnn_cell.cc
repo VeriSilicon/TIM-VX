@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -98,10 +98,9 @@ class RNNCellImpl : public OpImpl {
 
   RNNCellImpl& BindOutput(const std::shared_ptr<Tensor>& tensor) override {
     out_tensors_[output_tensor_index] = tensor;
-
-    tanh_->BindOutput(out_tensors_[OUT]);
-    data_convert_->BindInput(out_tensors_[OUT]);
     if (this->output_tensor_index == OUT_CNT - 1) {
+      tanh_->BindOutput(out_tensors_[OUT]);
+      data_convert_->BindInput(out_tensors_[OUT]);
       data_convert_->BindOutput(out_tensors_[STATE_OUT]);
     }
     this->output_tensor_index++;

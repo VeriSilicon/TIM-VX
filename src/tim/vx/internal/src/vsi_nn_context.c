@@ -60,8 +60,17 @@ static vsi_status query_hardware_caps
     memset(&paramExt2, 0, sizeof(vx_hardware_caps_params_ext2_t));
     status = vxQueryHardwareCaps(context->c, (vx_hardware_caps_params_t*)(&paramExt2),
                 sizeof(vx_hardware_caps_params_ext2_t));
-    context->config.support_stream_processor = paramExt.supportStreamProcessor;
-    context->config.sp_exec_count = paramExt2.streamProcessorExecCount;
+    if (context->options.enable_stream_processor)
+    {
+        context->config.support_stream_processor = paramExt.supportStreamProcessor;
+        context->config.sp_exec_count = paramExt2.streamProcessorExecCount;
+        context->config.sp_vector_depth = paramExt2.streamProcessorVectorSize;
+        if (context->config.sp_exec_count > 0)
+        {
+            context->config.sp_per_core_vector_depth =
+                context->config.sp_vector_depth / context->config.sp_exec_count;
+        }
+    }
 #endif
 
 #endif
@@ -128,6 +137,27 @@ static vsi_status vsi_nn_initOptions
         options->enable_asymi8_to_u8 = atoi(env_s);
     }
 
+    env_s = NULL;
+    options->enable_dataconvert_optimize = 1;
+    if (vsi_nn_getEnv("VSI_NN_ENABLE_DATACONVERT_OPTIMIZE", &env_s) && env_s)
+    {
+        options->enable_dataconvert_optimize = atoi(env_s);
+    }
+
+    env_s = NULL;
+    options->enable_stream_processor = 1;
+    if (vsi_nn_getEnv("VSI_VX_ENABLE_STREAM_PROCESSOR", &env_s) && env_s)
+    {
+        options->enable_stream_processor = atoi(env_s);
+    }
+
+    env_s = NULL;
+    options->enable_rgb88_planar_nhwc = 0;
+    if (vsi_nn_getEnv("VSI_NN_FORCE_RGB888_OUT_NHWC", &env_s) && env_s)
+    {
+        options->enable_rgb88_planar_nhwc = atoi(env_s);
+    }
+
     return VSI_SUCCESS;
 }
 
@@ -151,13 +181,14 @@ vsi_nn_context_t vsi_nn_CreateContext
 
     memset(context, 0, sizeof(struct _vsi_nn_context_t));
     context->c = c;
-    if(query_hardware_caps(context) != VSI_SUCCESS)
+
+    if (vsi_nn_initOptions(&context->options) != VSI_SUCCESS)
     {
         vsi_nn_ReleaseContext(&context);
         return NULL;
     }
 
-    if (vsi_nn_initOptions(&context->options) != VSI_SUCCESS)
+    if (query_hardware_caps(context) != VSI_SUCCESS)
     {
         vsi_nn_ReleaseContext(&context);
         return NULL;

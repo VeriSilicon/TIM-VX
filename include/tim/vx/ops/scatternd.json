@@ -1,0 +1,10 @@
+{
+    "ScatterND":{
+        "parameters":
+            [
+                {"name":"shape",
+                    "dtype": "std::vector<uint32_t>"
+                }
+            ]
+    }
+}

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -34,9 +34,13 @@ class Graph;
 class Context {
  public:
   virtual ~Context() {}
-  static std::shared_ptr<Context> Create();
   virtual std::shared_ptr<Graph> CreateGraph() = 0;
   virtual std::shared_ptr<Graph> CreateGraph(const CompileOption& options) = 0;
+
+  virtual bool isClOnly() = 0;
+  virtual bool hasSP() = 0;
+
+  static std::shared_ptr<Context> Create();
 };
 
 }  // namespace vx

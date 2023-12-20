@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SIGNALFRAME_H_
 #define TIM_VX_OPS_SIGNALFRAME_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -39,7 +39,7 @@ namespace ops {
  * ```
  */
 
-class SignalFrame : public DirectMapOp {
+class SignalFrame : public BuiltinOp {
   public:
    SignalFrame(Graph* graph, uint32_t window_length, uint32_t step, uint32_t pad_end=0,
       uint32_t axis=0);

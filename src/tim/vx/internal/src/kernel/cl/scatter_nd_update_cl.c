@@ -108,15 +108,15 @@ static vsi_status cal_scatter_nd_update_tensor_reshape_size
         return status;
     }
 
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     newDim[0] = 0;
-    for(i = 0; i < dims_num; ++i)
+    for (i = 0; i < dims_num; ++i)
     {
         elementCnt *= input_size[i];
     }
 
-    for(i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
+    for (i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
     {
         sizes[i] = 1;
     }
@@ -188,6 +188,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_initializer)
     vsi_ssize_t       block_size  = 0;
     vsi_ssize_t       height = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[3] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
 
@@ -227,7 +229,9 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e input2_dtype = U8;
     vsi_nn_kernel_dtype_e output_dtype = U8;
     uint32_t key = 0;
-    int i = 0;
+    size_t i = 0;
+
+    VSI_UNREFERENCED(coord_dim);
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     input2_dtype = vsi_nn_kernel_map_dtype( inputs[2]->attr.dtype.vx_type );
@@ -235,7 +239,7 @@ static vsi_status _query_kernel
 
     key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, input2_dtype, output_dtype, 0 );
 
-    for( i = 0; i < _cnt_of_array(scatter_nd_update_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(scatter_nd_update_map); i ++ )
     {
         if ( scatter_nd_update_map[i].key == key )
         {
@@ -281,6 +285,16 @@ static vsi_nn_kernel_node_t _setup
     int32_t rs_in_dim = 0, rs_idx_dim = 0, rs_out_dim = 0;
     vsi_size_t width = 0, area = 0, vol = 0;
     int32_t offsetX = 0, offsetY = 0, offsetZ = 0, offsetW = 0, offset_idx = 0;
+    vsi_size_t *input_size = inputs[2]->attr.size;
+    uint32_t dims_num = inputs[2]->attr.dim_num;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+
+    if (coord_dim > 4 && input_size[dims_num - 1] > 1)
+    {
+        return NULL;
+    }
 
     status = cal_scatter_nd_update_tensor_reshape_size(&inputs[1], shapes[0],
                     coord_dim, 0, NULL, NULL, NULL, &rs_in_dim);
@@ -373,4 +387,3 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( scatter_nd_update, _setup )
-

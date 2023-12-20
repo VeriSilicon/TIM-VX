@@ -113,6 +113,8 @@ static const _kernel_map_type _swish_kernel_map[] =
     SWISH_PACK_KERNEL_MAP_2D(U8,  U8),
     SWISH_PACK_KERNEL_MAP(I32,  I32),
     SWISH_PACK_KERNEL_MAP_2D(I32,  I32),
+    SWISH_PACK_KERNEL_MAP(F32,  U8),
+    SWISH_PACK_KERNEL_MAP_2D(F32,  U8),
     HSWISH_PACK_KERNEL_FLOAT_MAP(F32,  F32),
     HSWISH_PACK_KERNEL_FLOAT_MAP_2D(F32,  F32),
     HSWISH_PACK_KERNEL_FLOAT_MAP(F16,  F16),
@@ -165,10 +167,12 @@ DEF_KERNEL_INITIALIZER(_swish_initializer)
         {0, 0, 0}
         };
 
-    vx_status    status             = VX_FAILURE;
+    vsi_status   status             = VSI_FAILURE;
     vx_tensor    output             = (vx_tensor)param[1];
     vsi_nn_kernel_tensor_attr_t * attr_out = NULL;
     vsi_size_array_t * out_shape = NULL;
+
+    VSI_UNREFERENCED(param_size);
 
     attr_out = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output );
     CHECK_PTR_FAIL_GOTO( attr_out, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -221,6 +225,11 @@ static vsi_status _query_kernel
 
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
+
+    if (in_dtype == F16)
+        in_dtype = F32;
+    if (out_dtype == F16)
+        out_dtype = F32;
 
     key = SWISH_HASH_KEY(swish_type, in_dtype, out_dtype, image_2d);
 
@@ -285,6 +294,9 @@ static vsi_nn_kernel_node_t _setup
     float   outputZP    = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
     vx_float32  logE    = (vx_float32)(log10(exp(1.0f)) / log10(2.0f));
     vsi_bool ret = FALSE;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
 #if (VX_ACTIVATION_EXT_SUPPORT)
     if (VSI_NN_HW_EVIS_2 == graph->ctx->config.evis.ver)

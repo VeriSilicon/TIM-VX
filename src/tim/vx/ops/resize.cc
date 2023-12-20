@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/resize.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -34,7 +34,7 @@ namespace ops {
 Resize::Resize(Graph* graph, ResizeType type, float factor, bool align_corners,
                bool half_pixel_centers, int target_height, int target_width,
                DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_RESIZE, 0, 0, layout),
+    : BuiltinOp(graph, VSI_NN_OP_RESIZE, 0, 0, layout),
       type_(type),
       factor_(factor),
       align_corners_(align_corners),

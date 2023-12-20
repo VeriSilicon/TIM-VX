@@ -31,7 +31,7 @@
 extern "C"{
 #endif
 
-#ifdef _MSC_VER
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
 #define snprintf(buffer, count, format, ...) \
     _snprintf_s(buffer, count, _TRUNCATE, format, ##__VA_ARGS__)
 #define vsnprintf(buffer, count, format, args) \
@@ -46,7 +46,7 @@ typedef enum _vsi_nn_log_level_e
     VSI_NN_LOG_WARN,
     VSI_NN_LOG_INFO,
     VSI_NN_LOG_DEBUG
-}vsi_nn_log_level_e;
+} VSI_PUBLIC_TYPE vsi_nn_log_level_e;
 
 #define VSI_NN_MAX_DEBUG_BUFFER_LEN 1024
 #define VSILOGE( fmt, ... ) \

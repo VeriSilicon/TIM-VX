@@ -173,7 +173,7 @@ VX_DECONV_3D_API_SUPPORT is used to declare that vsi openvx driver can support d
  1: support
 */
 #ifndef VX_DECONV_3D_API_SUPPORT
-#define VX_DECONV_3D_API_SUPPORT 0
+#define VX_DECONV_3D_API_SUPPORT 1
 #endif
 
 /*
@@ -194,6 +194,208 @@ VX_DECONV_3D_API_SUPPORT is used to declare that vsi openvx driver can support d
 */
 #ifndef VX_TENSOR_STRIDE_X_BITS_SUPPORT
 #define VX_TENSOR_STRIDE_X_BITS_SUPPORT 1
+#endif
+
+/*
+VX_REMOVE_RESHAPE_SUPPORT is used to declare if graph opt support to remove reshape op, if support, it's not need to remove reshape in ovxlib.
+ 0: not support
+ 1: support
+*/
+/*
+#ifndef VX_REMOVE_RESHAPE_SUPPORT
+#define VX_REMOVE_RESHAPE_SUPPORT 0
+#endif
+*/
+
+/*
+VX_STREAM_PROCESSOR_SUPPORT is used to declare that vsi openvx driver can support vxStreamProcessorNode API
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_STREAM_PROCESSOR_SUPPORT
+#define VX_STREAM_PROCESSOR_SUPPORT 1
+#endif
+
+/*
+ VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL is used to declare that this tensor connect to fixed DMA channel.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL
+#define VX_TENSOR_MEMORY_CONNECT_DMA_CHANNEL 1
+#endif
+
+/*
+ VX_SCALE_EXTRA_PARAMETER_SUPPORT is used to declare that RESIZE can support align_cornor and half_pixel_center parameter
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_SCALE_EXTRA_PARAMETER_SUPPORT
+#define VX_SCALE_EXTRA_PARAMETER_SUPPORT 1
+#endif
+
+/*
+ VX_INVALIDATE_HANDLE_SUPPORT is used to declare that we refined vxSwapTensorHandle API to follow KHR OpenVX 1.3 spec: tensor don't maintain handle internally if new_ptr is NULL.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_INVALIDATE_HANDLE_SUPPORT
+#define VX_INVALIDATE_HANDLE_SUPPORT 1
+#endif
+
+/*
+ VX_ACTIVATION_EXT2_SUPPORT is used to declare that ACTIVATION can support sign, hard_sigmoid, neg, clip, exp, sin, cos,
+ log, mish, gelu, hgelu, elu, selu, celu, rcp, softsign, atan, atanh, acosh, inverse sigmoid, round and erf.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_ACTIVATION_EXT2_SUPPORT
+#define VX_ACTIVATION_EXT2_SUPPORT 1
+#endif
+
+/*
+ VX_TENSORVIEW_ON_ANY_DIM is used to declare that ovxlib can do optimization for all concat node(all dimision) to tensor view if possiable, not only channel.
+ [value]
+ 0: disable
+ 1: enable
+*/
+#ifndef VX_TENSORVIEW_ON_ANY_DIM
+#define VX_TENSORVIEW_ON_ANY_DIM 0
+#endif
+
+/*
+VX_DEPTH2SPACE_CRD_MODE_SUPPORT is used to declare that SPACE2DEPTH can support CRD mode
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_DEPTH2SPACE_CRD_MODE_SUPPORT
+#define VX_DEPTH2SPACE_CRD_MODE_SUPPORT 1
+#endif
+
+/*
+ VX_LAYER_NORMALIZATION_VX_SUPPORT is used to declare driver support layer normalization layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_LAYER_NORMALIZATION_VX_SUPPORT
+#define VX_LAYER_NORMALIZATION_VX_SUPPORT 1
+#endif
+
+/*
+ VX_LAYER_NORMALIZATION_VX_SUPPORT is used to declare driver support layer normalization layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_INSTANCE_NORMALIZATION_VX_SUPPORT
+#define VX_INSTANCE_NORMALIZATION_VX_SUPPORT 1
+#endif
+
+/*
+ VX_GROUP_NORMALIZATION_VX_SUPPORT is used to declare driver support layer normalization layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_GROUP_NORMALIZATION_VX_SUPPORT
+#define VX_GROUP_NORMALIZATION_VX_SUPPORT 1
+#endif
+
+/*
+ VX_LOGICAL_VX_SUPPORT is used to declare driver support layer logical related layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_LOGICAL_VX_SUPPORT
+#define VX_LOGICAL_VX_SUPPORT 1
+#endif
+
+/*
+ VX_RELATIONAL_OPS_VX_SUPPORT is used to declare driver support layer relational related layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_RELATIONAL_OPS_VX_SUPPORT
+#define VX_RELATIONAL_OPS_VX_SUPPORT 1
+#endif
+
+/*
+ VX_REDUCE_MAX_VX_SUPPORT is used to declare driver support layer reduce max layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_REDUCE_MAX_VX_SUPPORT
+#define VX_REDUCE_MAX_VX_SUPPORT 1
+#endif
+
+/*
+ VX_REDUCE_MEAN_VX_SUPPORT is used to declare driver support layer reduce mean layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_REDUCE_MEAN_VX_SUPPORT
+#define VX_REDUCE_MEAN_VX_SUPPORT 1
+#endif
+
+/*
+ VX_REDUCE_SUM_VX_SUPPORT is used to declare driver support layer reduce sum layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_REDUCE_SUM_VX_SUPPORT
+#define VX_REDUCE_SUM_VX_SUPPORT 1
+#endif
+
+/*
+ VX_MAX_MIN_IMUM_VX_SUPPORT is used to declare driver support maximum and minimum layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_MAX_MIN_IMUM_VX_SUPPORT
+#define VX_MAX_MIN_IMUM_VX_SUPPORT 1
+#endif
+
+/*
+ VX_TENSOR_SELECR_VX_SUPPORT is used to declare driver support tensor select layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_TENSOR_SELECT_VX_SUPPORT
+#define VX_TENSOR_SELECT_VX_SUPPORT 1
+#endif
+
+/*
+ VX_GRU_CELL_VX_SUPPORT is used to declare driver support gru cell layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_GRU_CELL_VX_SUPPORT
+#define VX_GRU_CELL_VX_SUPPORT 1
+#endif
+
+/*
+ VX_LSTM_ACTIVATION_SUPPORT is used to declare driver support gru cell layer.
+ [value]
+ 0: not support
+ 1: support
+*/
+#ifndef VX_LSTM_ACTIVATION_SUPPORT
+#define VX_LSTM_ACTIVATION_SUPPORT 1
 #endif
 
 #endif /* __VX_KHR_COMPATIBLE_H__ */

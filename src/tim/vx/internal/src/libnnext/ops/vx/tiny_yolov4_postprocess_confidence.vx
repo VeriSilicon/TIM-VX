@@ -1,0 +1,54 @@
+#pragma OPENCL EXTENSION cl_viv_vx_extension : enable
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniU8TimesU8_0_4x4;
+_viv_uniform VXC_512Bits uniU8PlusU8_trans_0_2x8;
+_viv_uniform VXC_512Bits uniU8PlusU8_trans_1_2x8;
+_viv_uniform VXC_512Bits uniU16TimesMultiplier_PostShift_2x8;
+_viv_uniform int output_zp;
+
+__kernel void tiny_yolov4_postprocess_conf_U8toU8
+(
+    __read_only  image2d_t input,
+    __write_only image2d_t output
+)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, get_global_id(0));
+
+    vxc_uchar16 src0, src1, src2, src3, src4;
+
+    VXC_ReadImage(src0, input, coord.wz, VXC_5BITOFFSET_XY(0, 0), VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
+
+    vxc_ushort8 data0, data1;
+
+    VXC_ReadImage(src1, input, coord.wy, VXC_5BITOFFSET_XY(0, 1), VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src2, input, coord.wy, VXC_5BITOFFSET_XY(0, 2), VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src3, input, coord.wy, VXC_5BITOFFSET_XY(0, 3), VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(src4, input, coord.wy, VXC_5BITOFFSET_XY(0, 4), VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+
+    coord.zw = coord.xx + (int2)(2, 3);
+
+    VXC_DP4x4(data0, src0, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8TimesU8_0_4x4);
+    VXC_DP4x4(data0, src0, src2, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniU8TimesU8_0_4x4);
+    VXC_DP4x4(data1, src0, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8TimesU8_0_4x4);
+    VXC_DP4x4(data1, src0, src4, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniU8TimesU8_0_4x4);
+
+    VXC_DP2x8(src1, data0, data0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),
+        uniU16TimesMultiplier_PostShift_2x8);
+    VXC_DP2x8(src1, data1, data1, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1),
+        uniU16TimesMultiplier_PostShift_2x8);
+
+    uchar zp;
+    _viv_asm(COPY, zp, output_zp, 2);
+
+    VXC_DP2x8(src0, src1, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1),
+        uniU8PlusU8_trans_0_2x8);
+    VXC_DP2x8(src0, src1, zp, VXC_MODIFIER(8, 15, 0, VXC_RM_ToNearestEven, 1),
+        uniU8PlusU8_trans_1_2x8);
+
+    VXC_WriteImage(output, coord.yx, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0));
+    coord.x ++;
+    VXC_WriteImage(output, coord.yx, src0, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.yz, src0, VXC_MODIFIER(8, 11, 0, VXC_RM_TowardZero, 0));
+    VXC_WriteImage(output, coord.yw, src0, VXC_MODIFIER(12, 15, 0, VXC_RM_TowardZero, 0));
+}

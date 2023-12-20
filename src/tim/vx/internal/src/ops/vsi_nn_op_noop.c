@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
@@ -42,6 +43,9 @@ static vsi_status op_compute
     )
 {
     int i;
+
+    VSI_UNREFERENCED(self);
+
     for( i = 0; i < 10; i ++ )
     {
         if( NULL == outputs[i] )
@@ -64,6 +68,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 
@@ -95,13 +102,13 @@ static vsi_bool op_setup
             {
                 if( NULL == inputs[0]->t )
                 {
-                    memcpy( inputs[0], outputs[i], sizeof( vsi_nn_tensor_t ) );
+                    memcpy( inputs[0], outputs[i], sizeof( vsi_nn_tensor_prv_t ) );
                 }
                 else
                 {
                     VSILOGE( "Invalid NOOP tensors." );
                     vxReleaseTensor( &outputs[i]->t );
-                    memcpy( outputs[i], inputs[0], sizeof( vsi_nn_tensor_t ) );
+                    memcpy( outputs[i], inputs[0], sizeof( vsi_nn_tensor_prv_t ) );
                 }
             }
         }

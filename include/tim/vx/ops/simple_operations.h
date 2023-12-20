@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,14 +23,14 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SIMPLE_OPERATIONS_H_
 #define TIM_VX_OPS_SIMPLE_OPERATIONS_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
 
 #define DECLARE_SIMPLE_OP(NAME)                        \
-  class NAME : public DirectMapOp {                      \
+  class NAME : public BuiltinOp {                      \
    public:                                             \
     NAME(Graph* graph);                                \
     std::shared_ptr<Operation> Clone(                  \
@@ -82,10 +82,17 @@ namespace ops {
  *
  * returns the largest integer less than or equal to a given number.
  *
+ * ## Ceil
+ * 
+ * returns the largest integer more than or equal to a given number.
+ * 
  * ## Cast
  *
  * Change the format from input tensor to output tensor. This operation ignores
  * the scale and zeroPoint of quanized tensors.
+ * 
+ * ## Rcp
+ * Computes the reciprocal of input element-wise.
  */
 
 DECLARE_SIMPLE_OP(DataConvert)
@@ -101,7 +108,10 @@ DECLARE_SIMPLE_OP(Rsqrt)
 DECLARE_SIMPLE_OP(Square)
 DECLARE_SIMPLE_OP(LogicalNot)
 DECLARE_SIMPLE_OP(Floor)
+DECLARE_SIMPLE_OP(Ceil)
+DECLARE_SIMPLE_OP(Round)
 DECLARE_SIMPLE_OP(Cast)
+DECLARE_SIMPLE_OP(Rcp)
 
 #undef DECLARE_SIMPLE_OP
 

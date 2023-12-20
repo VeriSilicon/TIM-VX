@@ -34,7 +34,6 @@
 #include "utils/vsi_nn_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel_eltwise.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -51,7 +50,7 @@ static vsi_bool vsi_nn_poolwithargmax_optimize_shape
     )
 {
     vsi_bool   enable_image_2d = FALSE;
-    int32_t    hwLitimLen      = 65536;
+    int32_t    hwLitimLen      = GPU_TENSOR_MAX_WIDTH;
 
     if ((2 == self->nn_param.pool.ksize[1])
        && (2 == self->nn_param.pool.stride[1])
@@ -136,21 +135,28 @@ static vsi_status op_compute
     vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
     vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = {{ 1 }};
     uint32_t new_rank = 0;
-    vsi_bool ret;
+    vsi_bool ret = FALSE;
     vsi_nn_kernel_param_t * param = NULL;
-    int32_t ksize_x  = (int32_t)self->nn_param.pool.ksize[0];
-    int32_t ksize_y  = (int32_t)self->nn_param.pool.ksize[1];
-    int32_t stride_x = (int32_t)self->nn_param.pool.stride[0];
-    int32_t stride_y = (int32_t)self->nn_param.pool.stride[1];
-    int32_t pad_x    = (int32_t)self->nn_param.pool.pad[0];
-    int32_t pad_y    = (int32_t)self->nn_param.pool.pad[2];
+    int32_t ksize_x  = 0;
+    int32_t ksize_y  = 0;
+    int32_t stride_x = 0;
+    int32_t stride_y = 0;
+    int32_t pad_x    = 0;
+    int32_t pad_y    = 0;
 
-    if( NULL == self )
+    if ( NULL == self )
     {
         return VSI_FAILURE;
     }
 
-    param =vsi_nn_kernel_param_create();
+    ksize_x  = (int32_t)self->nn_param.pool.ksize[0];
+    ksize_y  = (int32_t)self->nn_param.pool.ksize[1];
+    stride_x = (int32_t)self->nn_param.pool.stride[0];
+    stride_y = (int32_t)self->nn_param.pool.stride[1];
+    pad_x    = (int32_t)self->nn_param.pool.pad[0];
+    pad_y    = (int32_t)self->nn_param.pool.pad[2];
+
+    param = vsi_nn_kernel_param_create();
 
     ret = vsi_nn_poolwithargmax_optimize_shape(self,
             (vsi_ssize_t*)inputs[0]->attr.size,  (vsi_ssize_t*)outputs[0]->attr.size,
@@ -164,9 +170,8 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "pad_x",    pad_x );
     vsi_nn_kernel_param_add_int32( param, "pad_y",    pad_y );
 
-    if( ret )
+    if ( ret )
     {
-
         reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
                 inputs[0], shapes[0], new_rank );
         reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
@@ -181,7 +186,7 @@ static vsi_status op_compute
         vsi_nn_ReleaseTensor( &reshape_tensors[2] );
     }
 
-    if( self->n )
+    if ( self->n )
     {
         status = VSI_SUCCESS;
     }
@@ -189,7 +194,6 @@ static vsi_status op_compute
     vsi_nn_kernel_param_release( &param );
 
     return status;
-
 } /* op_compute() */
 
 static vsi_bool op_check
@@ -233,7 +237,6 @@ static vsi_bool op_check
     }
 
     return TRUE;
-
 } /* op_check() */
 
 static vsi_bool op_setup
@@ -273,9 +276,15 @@ static vsi_bool op_setup
         self->nn_param.pool.pad[i] = (uint32_t)pad[i];
     }
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         ret = vsi_nn_OpSetup( VSI_NN_OP_POOL, self, inputs, outputs );
+    }
+    if ( VSI_NN_DIM_AUTO == outputs[1]->attr.dim_num )
+    {
+        outputs[1]->attr.dim_num = outputs[0]->attr.dim_num;
+        memcpy( outputs[1]->attr.size, outputs[0]->attr.size,
+            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
     }
 
     return ret;
@@ -310,4 +319,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

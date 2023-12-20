@@ -51,6 +51,8 @@ static vsi_bool _is_same_memory_shape
     uint32_t dim_num0 = inputs[0]->attr.dim_num;
     uint32_t dim_num1 = self->nn_param.permute.dim_num;
 
+    VSI_UNREFERENCED(outputs);
+
     if (dim_num0 != dim_num1)
         return FALSE;
 
@@ -102,10 +104,12 @@ static vsi_bool _is_same_quant
 {
     vsi_nn_dtype_t *dtype,*_dtype;
 
+    VSI_UNREFERENCED(self);
+
     dtype = &inputs[0]->attr.dtype;
     _dtype = &outputs[0]->attr.dtype;
 
-    if(vsi_nn_DtypeCompare(dtype, _dtype) == FALSE)
+    if (vsi_nn_DtypeCompare(dtype, _dtype) == FALSE)
     {
         return FALSE;
     }
@@ -136,7 +140,7 @@ static vsi_status op_compute
             self->nn_param.permute.dim_num
             );
 
-        if( NULL != self->n )
+        if ( NULL != self->n )
         {
             status = VSI_SUCCESS;
         }
@@ -153,23 +157,27 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(PERMUTE, 1, 1)
-        IO_TYPE(D_F16,  D_F16)
-        IO_TYPE(D_F16,  D_F32)
-        IO_TYPE(D_I16,  D_I16)
-        IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,   D_I8|Q_DFP)
-        IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM,  D_F16)
-        IO_TYPE(D_U8|Q_ASYM,  D_F32)
-        IO_TYPE(D_I8|Q_SYM_PC,   D_I8|Q_SYM_PC)
-        IO_TYPE(D_BOOL8,  D_BOOL8)
-        IO_TYPE(D_BOOL8,  D_I8|Q_DFP)
-        IO_TYPE(D_F32,  D_F32)
-        IO_TYPE(D_F32,  D_BF16)
-        IO_TYPE(D_F32,  D_F16)
-        IO_TYPE(D_BF16, D_F32)
-        IO_TYPE(D_BF16, D_BF16)
-        IO_TYPE(D_I32,  D_I32)
+        IO_TYPE(D_F16,          D_F16)
+        IO_TYPE(D_F16,          D_F32)
+        IO_TYPE(D_I16,          D_I16)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16)
+        IO_TYPE(D_U8|Q_ASYM,    D_F32)
+        IO_TYPE(D_I8|Q_SYM_PC,  D_I8|Q_SYM_PC)
+        IO_TYPE(D_BOOL8,        D_BOOL8)
+        IO_TYPE(D_BOOL8,        D_I8|Q_DFP)
+        IO_TYPE(D_F32,          D_F32)
+        IO_TYPE(D_F32,          D_BF16)
+        IO_TYPE(D_F32,          D_F16)
+        IO_TYPE(D_BF16,         D_F32)
+        IO_TYPE(D_BF16,         D_BF16)
+        IO_TYPE(D_I32,          D_I32)
     END_IO_TYPE_DECL(PERMUTE)
     if (!VALIDATE_OP_IO_TYPES(PERMUTE, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -202,13 +210,13 @@ static vsi_bool op_setup
     }
 
     ret = TRUE;
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
-        for( i = 0; i < self->nn_param.permute.dim_num; i ++ )
+        for ( i = 0; i < self->nn_param.permute.dim_num; i ++ )
         {
             axis = self->nn_param.permute.perm[i];
-            if( axis >= inputs[0]->attr.dim_num )
+            if ( axis >= inputs[0]->attr.dim_num )
             {
                 VSILOGE( "Error permute axis '%u', the dim is '%u' ",
                     axis, inputs[0]->attr.dim_num );
@@ -231,8 +239,6 @@ static vsi_status op_optimize
     )
 {
     vsi_status     status;
-    vsi_size_t shape[VSI_NN_MAX_DIM_NUM];
-    uint32_t i = 0;
 
     status = VSI_SUCCESS;
 
@@ -245,18 +251,13 @@ static vsi_status op_optimize
 
     VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
 
-    for (i = 0; i < self->nn_param.permute.dim_num; i++)
+    if ( direction == VSI_NN_OPTIMIZE_BACKWARD )
     {
-        shape[i] = inputs[0]->attr.size[self->nn_param.permute.perm[i]];
-    }
-
-    if( direction == VSI_NN_OPTIMIZE_BACKWARD )
-    {
-        if(NULL == inputs[0]->t && NULL != outputs[0]->t)
+        if (NULL == inputs[0]->t && NULL != outputs[0]->t)
         {
             inputs[0]->t = vsi_nn_safe_reshape_tensor( outputs[0]->t,
                 (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num, sizeof(inputs[0]->attr.size[0]) );
-            if( inputs[0]->t == NULL )
+            if ( inputs[0]->t == NULL )
             {
                 status = VSI_FAILURE;
             }
@@ -265,20 +266,23 @@ static vsi_status op_optimize
     }
     else
     {
-        if(NULL == outputs[0]->t)
+        if (NULL == outputs[0]->t)
         {
-            vsi_bool ret;
-            ret = vsi_nn_ReshapeTensor( self->graph, inputs[0], outputs[0],
-                shape, (vsi_size_t)self->nn_param.permute.dim_num );
-            if( ret == FALSE )
+            if ( NULL == inputs[0]->t )
+            {
+                vsi_nn_TensorReinit( self->graph, inputs[0] );
+            }
+
+            outputs[0]->t = vsi_nn_safe_reshape_tensor( inputs[0]->t,
+                (void*)outputs[0]->attr.size, (vsi_size_t)outputs[0]->attr.dim_num,
+                sizeof(outputs[0]->attr.size[0]) );
+            if ( outputs[0]->t == NULL )
             {
                 status = VSI_FAILURE;
             }
             self->nn_param.permute.local.initialized = TRUE;
         }
     }
-
-    //vsi_nn_ReshapeTensor(self->graph, inputs[0], outputs[0], shape, self->nn_param.permute.dim_num);
 
     return status;
 } /* op_optimize() */
@@ -302,4 +306,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

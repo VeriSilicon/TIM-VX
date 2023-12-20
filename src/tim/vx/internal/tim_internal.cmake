@@ -17,7 +17,7 @@ if(USE_VXC_BINARY)
     if(NOT GPU_CONFIG_FILE)
         message(FATAL_ERROR "Need set GPU_CONFIG_FILE for vxc binary")
     endif()
-    
+
     execute_process(COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/vx/internal/ovxlib_bin_build.sh
         ${VIV_SDK_PATH} ${VCCOMPILER_PATH}
         ${CMAKE_CURRENT_SOURCE_DIR}/vx/internal/ ${GPU_CONFIG_FILE})
@@ -28,7 +28,6 @@ endif()
 aux_source_directory(./vx/internal/src INTERNAL_SRC)
 aux_source_directory(./vx/internal/src/kernel INTERNAL_KERNEL)
 aux_source_directory(./vx/internal/src/kernel/cl INTERNAL_KERNEL_CL)
-aux_source_directory(./vx/internal/src/kernel/cpu INTERNAL_KERNEL_CPU)
 aux_source_directory(./vx/internal/src/kernel/evis INTERNAL_KERNEL_EVIS)
 aux_source_directory(./vx/internal/src/kernel/vx INTERNAL_KERNEL_VX)
 aux_source_directory(./vx/internal/src/ops INTERNAL_OPS)

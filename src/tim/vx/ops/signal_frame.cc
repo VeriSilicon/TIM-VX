@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/signal_frame.h"
 #include "vsi_nn_pub.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 #include <array>
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 SignalFrame::SignalFrame(Graph* graph, uint32_t window_length, uint32_t step, uint32_t pad_end,
     uint32_t axis)
-    : DirectMapOp(graph, VSI_NN_OP_SIGNAL_FRAME),
+    : BuiltinOp(graph, VSI_NN_OP_SIGNAL_FRAME),
       window_length_(window_length),
       step_(step),
       pad_end_(pad_end),

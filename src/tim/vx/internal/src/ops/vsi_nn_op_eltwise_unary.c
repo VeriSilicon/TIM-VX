@@ -69,10 +69,14 @@ static vsi_status _eltwise_unary_op_compute
         alpha = self->nn_param.selu.alpha;
         beta = self->nn_param.selu.gamma;
     }
-    else
+    else if (strcmp(kernel_name, "hard_sigmoid") == 0)
     {
         alpha = self->nn_param.hard_sigmoid.alpha;
         beta = self->nn_param.hard_sigmoid.beta;
+    }
+    else if (strcmp(kernel_name, "inverse_sigmoid") == 0)
+    {
+        alpha = self->nn_param.inverse_sigmoid.eps;
     }
     vsi_nn_kernel_param_add_float32( param, "alpha", alpha );
     vsi_nn_kernel_param_add_float32( param, "beta", beta );
@@ -115,6 +119,8 @@ static vsi_bool op_setup
     uint32_t i, out_rank;
     vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool ret = TRUE;
+
+    VSI_UNREFERENCED(self);
 
     out_rank = inputs[0]->attr.dim_num;
 
@@ -178,6 +184,12 @@ static vsi_bool op_check
         IO_TYPE(D_I8|Q_DFP,     D_F16)
         IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
         IO_TYPE(D_I16|Q_DFP,    D_F16)
+
+        /* HW 9.1.1 */
+        IO_TYPE(D_U4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_U4|Q_SYM,     D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,     D_I4|Q_SYM)
     END_IO_TYPE_DECL(ELTWISE_UNARY)
     if (!VALIDATE_OP_IO_TYPES(ELTWISE_UNARY, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -211,6 +223,10 @@ static vsi_status _eltwise_unary_op_init
     {
         self->nn_param.selu.alpha = 1.67326319217681884765625f;
         self->nn_param.selu.gamma = 1.05070102214813232421875f;
+    }
+    else if (strcmp(kernel_name, "inverse_sigmoid") == 0)
+    {
+        self->nn_param.inverse_sigmoid.eps = (float)1e-5;
     }
 
     return VSI_SUCCESS;
@@ -252,6 +268,13 @@ DEF_ELEMENT_WISE_UNARY_OP( ROUND, round );
 DEF_ELEMENT_WISE_UNARY_OP( GELU, gelu );
 DEF_ELEMENT_WISE_UNARY_OP( SELU, selu );
 DEF_ELEMENT_WISE_UNARY_OP( CELU, celu );
+DEF_ELEMENT_WISE_UNARY_OP( RCP,  rcp );
+DEF_ELEMENT_WISE_UNARY_OP( SIGN, sign );
+DEF_ELEMENT_WISE_UNARY_OP( SOFTSIGN, softsign );
+DEF_ELEMENT_WISE_UNARY_OP( ATAN, atan );
+DEF_ELEMENT_WISE_UNARY_OP( ATANH, atanh );
+DEF_ELEMENT_WISE_UNARY_OP( ACOSH, acosh );
+DEF_ELEMENT_WISE_UNARY_OP( INVERSE_SIGMOID, inverse_sigmoid );
 
 #undef DEF_ELEMENT_UNARY_WISE_OP
 

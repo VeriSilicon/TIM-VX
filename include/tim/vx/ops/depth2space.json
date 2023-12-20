@@ -1,0 +1,25 @@
+{
+    "DepthToSpace":{
+        "parameters":
+            [
+                {"name": "block_size",
+                 "dtype": "int"
+                },
+                {"name": "mode",
+                 "Optional": "true",
+                  "dtype": "tim::vx::ops::DepthToSpace::depth2space_mode",
+                 "default": "tim::vx::ops::DepthToSpace::depth2space_mode::DCR_mode",
+                 "range":["tim::vx::ops::DepthToSpace::depth2space_mode::DCR_mode",
+                          "tim::vx::ops::DepthToSpace::depth2space_mode::CRD_mode"]
+                },
+                {"name": "layout",
+                "dtype": "tim::vx::DataLayout",
+                "Optional": "true",
+                "default": "tim::vx::DataLayout::WHCN",
+                "range":["tim::vx::DataLayout::ANY",
+                         "tim::vx::DataLayout::WHCN",
+                         "tim::vx::DataLayout::CWHN"]
+                }
+            ]
+    }
+}

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/transpose.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Transpose::Transpose(Graph* graph, const std::vector<uint32_t>& perm)
-    : DirectMapOp(graph, VSI_NN_OP_PERMUTE), perm_(std::move(perm)) {
+    : BuiltinOp(graph, VSI_NN_OP_PERMUTE), perm_(std::move(perm)) {
   this->impl()->node()->nn_param.permute.perm = perm_.data();
   this->impl()->node()->nn_param.permute.dim_num = perm_.size();
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -36,7 +36,9 @@ class ContextImpl : public Context {
   vsi_nn_context_t context();
   std::shared_ptr<Graph> CreateGraph() override;
   std::shared_ptr<Graph> CreateGraph(const CompileOption&) override;
-  
+  bool isClOnly() override;
+  bool hasSP() override;
+
  protected:
   vsi_nn_context_t context_;
 };

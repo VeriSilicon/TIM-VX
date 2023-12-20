@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@ namespace vx {
 namespace ops {
 
 #define DEFINE_SIMPLE_OP(NAME, VSI_OP_CODE)                             \
-  NAME::NAME(Graph* graph) : DirectMapOp(graph, VSI_OP_CODE) {}           \
+  NAME::NAME(Graph* graph) : BuiltinOp(graph, VSI_OP_CODE) {}           \
   std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \
       const {                                                           \
     return graph->CreateOperation<NAME>();                              \
@@ -49,7 +49,10 @@ DEFINE_SIMPLE_OP(Rsqrt, VSI_NN_OP_RSQRT)
 DEFINE_SIMPLE_OP(Square, VSI_NN_OP_SQUARE)
 DEFINE_SIMPLE_OP(LogicalNot, VSI_NN_OP_LOGICAL_NOT)
 DEFINE_SIMPLE_OP(Floor, VSI_NN_OP_FLOOR)
+DEFINE_SIMPLE_OP(Ceil, VSI_NN_OP_CEIL)
+DEFINE_SIMPLE_OP(Round, VSI_NN_OP_ROUND)
 DEFINE_SIMPLE_OP(Cast, VSI_NN_OP_CAST)
+DEFINE_SIMPLE_OP(Rcp, VSI_NN_OP_RCP)
 
 #undef DEFINE_SIMPLE_OP
 

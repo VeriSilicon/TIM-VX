@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/relational_operations.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 #define DEFINE_RELATIONAL_OP(NAME, VSI_OP_CODE)                         \
   NAME::NAME(Graph* graph)                                              \
-      : DirectMapOp(graph, VSI_NN_OP_RELATIONAL_OPS, 2, 1) {              \
+      : BuiltinOp(graph, VSI_NN_OP_RELATIONAL_OPS, 2, 1) {              \
     this->impl()->node()->nn_param.relational_ops.op = VSI_OP_CODE;     \
   }                                                                     \
   std::shared_ptr<Operation> NAME::Clone(std::shared_ptr<Graph>& graph) \

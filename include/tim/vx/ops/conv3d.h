@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 #define TIM_VX_OPS_CONV3D_H_
 
 #include <array>
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -54,7 +54,7 @@ namespace ops {
  * - kernel_layout : WHDIcOc
  */
 
-class Conv3d : public DirectMapOp {
+class Conv3d : public BuiltinOp {
  public:
   Conv3d(Graph* graph, PadType padding,
          const std::array<int32_t, 3>& stride,

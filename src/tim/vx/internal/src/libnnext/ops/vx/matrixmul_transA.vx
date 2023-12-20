@@ -65,6 +65,7 @@ __kernel void gemm_transa_##src0_type_name##src1_type_name##to##dst_type_name( \
     } \
     vxc_int4 tmpOut0, tmpOut1; \
     coord_b.y = gidy; \
+    coord_b.z = get_global_id(2); \
     _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0; \
     _viv_asm(MOV, coord_b.w, baseAddr); \
@@ -92,6 +93,7 @@ __kernel void gemm_transa_##src0_type_name##src1_type_name##to##dst_type_name( \
 GEMM_TRANSA_QINT(U8, U8, U8, vxc_uchar16, vxc_uchar16, vxc_uchar16)
 GEMM_TRANSA_QINT(I8, I8, I8, vxc_char16, vxc_char16, vxc_char16)
 GEMM_TRANSA_QINT(I16, I16, I16, vxc_short8, vxc_short8, vxc_short8)
+GEMM_TRANSA_QINT(U8, I16, I16, vxc_uchar16, vxc_short8, vxc_short8)
 
 #define GEMM_TRANSA_INPUTB_F16(src0_type_name, read0_type) \
 __kernel void gemm_transa_##src0_type_name##F16to##src0_type_name( \
@@ -150,6 +152,7 @@ __kernel void gemm_transa_##src0_type_name##F16to##src0_type_name( \
     } \
     vxc_int4 tmpOut0, tmpOut1; \
     coord_b.y = gidy; \
+    coord_b.z = get_global_id(2); \
     _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0; \
     _viv_asm(MOV, coord_b.w, baseAddr); \
@@ -232,6 +235,7 @@ __kernel void gemm_transa_F16F16toF16(
         sum3 = (sum3 + tempA0.w * tempB0);
     }
     coord_b.y = gidy;
+    coord_b.z = get_global_id(2);
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord_b.w, baseAddr);

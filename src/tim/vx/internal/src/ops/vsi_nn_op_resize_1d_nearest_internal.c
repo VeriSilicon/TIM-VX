@@ -134,6 +134,7 @@ static vsi_status op_init
     vsi_nn_node_t* self
     )
 {
+    VSI_UNREFERENCED(self);
 
     return VSI_SUCCESS;
 } /* op_init() */

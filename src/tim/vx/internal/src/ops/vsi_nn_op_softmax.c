@@ -36,6 +36,8 @@
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_math.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_tensor_util_prv.h"
+#include "vsi_nn_error.h"
 
 static vsi_status op_compute
     (
@@ -44,6 +46,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -54,45 +58,60 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
-    /* check inputs outputs data type */
-    BEGIN_IO_TYPE_DECL(SOFTMAX, 1, 1)
-        /* IO_TYPE(INPUT, OUTPUT) */
-        IO_TYPE(D_F32, D_F32)
-        IO_TYPE(D_F32, D_F16)
+    vsi_bool ret = vsi_nn_is_stream_process_supported_types(self->graph, inputs, self->input.num);
 
-        IO_TYPE(D_F16, D_F16)
-        IO_TYPE(D_F16, D_F32)
-        IO_TYPE(D_F16, D_I16|Q_DFP)
-        IO_TYPE(D_F16, D_I8|Q_DFP)
-        IO_TYPE(D_F16, D_I8|Q_ASYM)
-        IO_TYPE(D_F16, D_U8|Q_ASYM)
+    if (!ret)
+    {
+        /* check inputs outputs data type */
+        BEGIN_IO_TYPE_DECL(SOFTMAX, 1, 1)
+            /* IO_TYPE(INPUT, OUTPUT) */
+            IO_TYPE(D_F32,          D_F32)
+            IO_TYPE(D_F32,          D_F16)
+            IO_TYPE(D_F16,          D_F16)
+            IO_TYPE(D_F16,          D_F32)
+            IO_TYPE(D_F16,          D_I16|Q_DFP)
+            IO_TYPE(D_F16,          D_I16|Q_ASYM)
+            IO_TYPE(D_F16,          D_I16|Q_SYM)
+            IO_TYPE(D_F16,          D_I8|Q_DFP)
+            IO_TYPE(D_F16,          D_I8|Q_SYM)
+            IO_TYPE(D_F16,          D_I8|Q_ASYM)
+            IO_TYPE(D_F16,          D_U8|Q_ASYM)
+            IO_TYPE(D_BF16,         D_BF16)
+            IO_TYPE(D_BF16,         D_F32)
+            IO_TYPE(D_BF16,         D_F16)
 
-        IO_TYPE(D_BF16, D_BF16)
-        IO_TYPE(D_BF16, D_F32)
-        IO_TYPE(D_BF16, D_F16)
+            IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
+            IO_TYPE(D_U8|Q_ASYM,    D_F16)
+            IO_TYPE(D_U8|Q_ASYM,    D_F32)
 
-        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F32)
+            IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+            IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
+            IO_TYPE(D_I8|Q_ASYM,    D_F16)
+            IO_TYPE(D_I8|Q_SYM,     D_F16)
+            IO_TYPE(D_I8|Q_ASYM,    D_F32)
+            IO_TYPE(D_I8|Q_SYM,     D_F32)
+            IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+            IO_TYPE(D_I8|Q_DFP,     D_F16)
+            IO_TYPE(D_I8|Q_DFP,     D_F32)
 
-        IO_TYPE(D_I8|Q_ASYM, D_I8|Q_ASYM)
-        IO_TYPE(D_I8|Q_ASYM, D_F16)
-        IO_TYPE(D_I8|Q_ASYM, D_F32)
 
-        IO_TYPE(D_I8|Q_DFP, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP, D_F16)
-        IO_TYPE(D_I8|Q_DFP, D_F32)
-
-        IO_TYPE(D_I16|Q_DFP, D_F32)
-        IO_TYPE(D_I16|Q_DFP, D_F16)
-        IO_TYPE(D_I16|Q_DFP, D_I16|Q_DFP)
-    END_IO_TYPE_DECL(SOFTMAX)
-    if(!VALIDATE_OP_IO_TYPES(SOFTMAX, self, inputs, self->input.num, outputs, self->output.num)) {
-        char* desc = generate_op_io_types_desc(inputs,
-                self->input.num, outputs, self->output.num);
-        VSILOGE("Inputs/Outputs data type not support: %s", desc);
-        destroy_op_io_types_desc(desc);
-        return FALSE;
+            IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+            IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
+            IO_TYPE(D_I16|Q_ASYM,   D_F16)
+            IO_TYPE(D_I16|Q_SYM,    D_F16)
+            IO_TYPE(D_I16|Q_ASYM,   D_F32)
+            IO_TYPE(D_I16|Q_SYM,    D_F32)
+            IO_TYPE(D_I16|Q_DFP,    D_F32)
+            IO_TYPE(D_I16|Q_DFP,    D_F16)
+            IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        END_IO_TYPE_DECL(SOFTMAX)
+        if (!VALIDATE_OP_IO_TYPES(SOFTMAX, self, inputs, self->input.num, outputs, self->output.num)) {
+            char* desc = generate_op_io_types_desc(inputs,
+                    self->input.num, outputs, self->output.num);
+            VSILOGE("Inputs/Outputs data type not support: %s", desc);
+            destroy_op_io_types_desc(desc);
+            return FALSE;
+        }
     }
 
     return TRUE;
@@ -107,6 +126,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     if (VSI_NN_OPTIMIZE_BACKWARD == direction)
     {
         return VSI_SUCCESS;
@@ -158,7 +179,9 @@ static vsi_bool op_setup
     )
 {
     vsi_nn_internal_node_t* curr = NULL;
-    if( NULL == self )
+    vsi_bool ret = FALSE;
+
+    if ( NULL == self )
     {
         return FALSE;
     }
@@ -186,13 +209,15 @@ static vsi_bool op_setup
 
     vsi_nn_internal_init_node_wksp(self);
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_SOFTMAX_INTERNAL, 0, 0);
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->inputs[0] = inputs[0];
     curr->outputs[0] = outputs[0];
     curr->node->nn_param.softmax_internal.beta = self->nn_param.softmax.beta;
     curr->node->nn_param.softmax_internal.axis = self->nn_param.softmax.axis;
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
 
-    return TRUE;
+final:
+    return ret;
 }
 
 #ifdef __cplusplus

@@ -39,6 +39,7 @@
 #include "kernel/vsi_nn_kernel.h"
 #include "kernel/vsi_nn_kernel_eltwise.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 static vsi_status op_compute
     (
@@ -78,6 +79,7 @@ static vsi_bool op_check
     attr.vtl = TRUE;
     attr.dtype.vx_type = VSI_NN_TYPE_FLOAT16;
     a_times_b[0] = vsi_nn_CreateTensor(self->graph, &attr);
+    CHECK_PTR_FAIL_GOTO(a_times_b[0], "Create tensor failed", final);
     ret = vsi_nn_OpCheck(VSI_NN_OP_MULTIPLY, self, inputs, a_times_b);
     if (!ret)
     {

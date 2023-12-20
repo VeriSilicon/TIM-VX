@@ -272,6 +272,8 @@ DEF_KERNEL_INITIALIZER(_tile_initializer)
     int32_t   output_ZP       = 0;
     int32_t   input_ZP        = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -408,7 +410,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype;
     vsi_status status = VSI_FAILURE;
     uint32_t key;
-    int32_t i = 0;
+    size_t i = 0;
     int32_t dim0_size1 = inputs[0]->attr.size[0] == 1 ? 1 : 0;
 
     input_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
@@ -497,6 +499,11 @@ static vsi_nn_kernel_node_t _setup
     uint32_t dim = inputs[0]->attr.dim_num;
     vsi_size_t multiples[VSI_NN_MAX_DIM_NUM] = { 0 };
 
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(params);
+
+
     for ( i = 0;  i < dim;  i++)
     {
         multiples[i] = outputs[0]->attr.size[i] / inputs[0]->attr.size[i];
@@ -515,10 +522,34 @@ static vsi_nn_kernel_node_t _setup
             return NULL;
         }
 
-        reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
-            inputs[0], shapes[0], new_rank );
-        reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
-            outputs[0], shapes[2], new_rank );
+        if ( new_rank == 4)
+        {
+            vsi_size_t newshapes[3][VSI_NN_MAX_DIM_NUM] = {{0}};
+            newshapes[0][0] = shapes[0][0];
+            newshapes[2][0] = shapes[2][0];
+            newshapes[0][1] = shapes[0][1];
+            newshapes[2][1] = shapes[2][1];
+            newshapes[0][2] = shapes[0][2] * shapes[0][3];
+            newshapes[2][2] = shapes[2][2] * shapes[2][3];
+
+            if (newshapes[0][2] >= GPU_TENSOR_MAX_WIDTH ||
+                newshapes[2][2] >= GPU_TENSOR_MAX_WIDTH)
+            {
+                return NULL;
+            }
+
+            reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
+                inputs[0], newshapes[0], 3 );
+            reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
+                outputs[0], newshapes[2], 3 );
+        }
+        else
+        {
+            reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
+                inputs[0], shapes[0], new_rank );
+            reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
+                outputs[0], shapes[2], new_rank );
+        }
     }
     else
     {
@@ -532,7 +563,7 @@ static vsi_nn_kernel_node_t _setup
     }
 
     remainder = reshape_tensors[0]->attr.size[0] % 8;
-    image_2d = (reshape_tensors[0]->attr.dim_num == 2 || reshape_tensors[0]->attr.size[2] == 1);
+    image_2d = reshape_tensors[0]->attr.dim_num == 2;
     status = _query_kernel( &reshape_tensors[0], &reshape_tensors[1], image_2d, remainder, kernel );
     if( VSI_SUCCESS == status)
     {
@@ -540,10 +571,12 @@ static vsi_nn_kernel_node_t _setup
         if( node )
         {
             /* Pass parameters to node. */
-            vsi_size_t depthIn = new_rank > 2 ? reshape_tensors[0]->attr.size[2] : 1;
-            vsi_size_t depthOut = new_rank > 2 ? reshape_tensors[1]->attr.size[2] : 1;
-            vsi_size_t batchIn = new_rank > 3 ? reshape_tensors[0]->attr.size[3] : 1;
+            vsi_size_t depthIn = new_rank > 2 ? shapes[0][2] : 1;
+            vsi_size_t depthOut = new_rank > 2 ? shapes[2][2] : 1;
+            vsi_size_t batchIn = new_rank > 3 ? shapes[0][3] : 1;
 
+            shapes[1][2] = shapes[1][2] == 0 ? 1 : shapes[1][2];
+            shapes[1][3] = shapes[1][3] == 0 ? 1 : shapes[1][3];
 
             vsi_nn_kernel_node_pack_io( node_params, _EVIS_PARAM_NUM,
                     &reshape_tensors[0], 1, &reshape_tensors[1], 1 );

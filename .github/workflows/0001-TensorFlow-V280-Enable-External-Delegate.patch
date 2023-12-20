@@ -1,0 +1,103 @@
+From b1df3172a116cf9e4bea878d7f568b1ceb4633b1 Mon Sep 17 00:00:00 2001
+From: "xiang.zhang" <xiang.zhang@verisilicon.com>
+Date: Wed, 23 Feb 2022 17:10:51 +0800
+Subject: [PATCH 1/1] TensorFlow V280 Enable External Delegate
+
+Signed-off-by: xiang.zhang <xiang.zhang@verisilicon.com>
+---
+ tensorflow/lite/CMakeLists.txt                  | 17 +++++++++++++++++
+ .../lite/examples/label_image/CMakeLists.txt    |  5 +++++
+ tensorflow/lite/tools/benchmark/CMakeLists.txt  |  5 +++++
+ 3 files changed, 27 insertions(+)
+
+diff --git a/tensorflow/lite/CMakeLists.txt b/tensorflow/lite/CMakeLists.txt
+index 200d1a7c46d..ec2dcf37d8e 100644
+--- a/tensorflow/lite/CMakeLists.txt
++++ b/tensorflow/lite/CMakeLists.txt
+@@ -68,6 +68,7 @@ option(TFLITE_ENABLE_MMAP "Enable MMAP (unsupported on Windows)" ON)
+ option(TFLITE_ENABLE_GPU "Enable GPU" OFF)
+ option(TFLITE_ENABLE_METAL "Enable Metal delegate (iOS only)" OFF)
+ option(TFLITE_ENABLE_XNNPACK "Enable XNNPACK backend" ON)
++option(TFLITE_ENABLE_EXTERNAL_DELEGATE "Enable external delegate" ON)
+ 
+ option(TFLITE_KERNEL_TEST "Enable tflite kernel unit test" OFF)
+ if(TFLITE_KERNEL_TEST AND ${CMAKE_CROSSCOMPILING})
+@@ -386,6 +387,16 @@ else()
+     "${TFLITE_SOURCE_DIR}/nnapi/nnapi_implementation_disabled.cc"
+   )
+ endif()
++if(TFLITE_ENABLE_EXTERNAL_DELEGATE)
++   populate_tflite_source_vars("delegates/external"
++    TFLITE_DELEGATES_EXTERNAL_SRCS
++    FILTER "(_test_list|_disabled)\\.(cc|h)$"
++   )
++   list(APPEND TFLITE_DELEGATES_EXTERNAL_SRCS
++     ${TFLITE_SOURCE_DIR}/tools/command_line_flags.cc
++   )
++   set(TFLITE_DELEGATES_EXTERNAL_INCL "delegates/external")
++endif()
+ if(TFLITE_ENABLE_XNNPACK)
+   find_package(fp16_headers REQUIRED)
+   find_package(xnnpack REQUIRED)
+@@ -451,6 +462,7 @@ endif()
+ set(TFLITE_INCLUDE_DIRS
+   "${TENSORFLOW_SOURCE_DIR}"
+   "${TFLITE_FLATBUFFERS_SCHEMA_DIR}"
++  "${TFLITE_DELEGATES_EXTERNAL_INCL}"
+ )
+ include_directories(
+   BEFORE
+@@ -462,6 +474,7 @@ add_library(tensorflow-lite
+   ${TFLITE_CORE_API_SRCS}
+   ${TFLITE_CORE_SRCS}
+   ${TFLITE_C_SRCS}
++  ${TFLITE_DELEGATES_EXTERNAL_SRCS}
+   ${TFLITE_DELEGATES_FLEX_SRCS}
+   ${TFLITE_DELEGATES_GPU_SRCS}
+   ${TFLITE_DELEGATES_NNAPI_SRCS}
+@@ -507,6 +520,10 @@ target_link_libraries(tensorflow-lite
+     ${TFLITE_TARGET_DEPENDENCIES}
+ )
+ 
++if (ANDROID_TOOLCHAIN)
++    list(APPEND tensorflow-lite log)
++endif()
++
+ if (NOT BUILD_SHARED_LIBS)
+   list(APPEND TFLITE_TARGET_PUBLIC_OPTIONS "-DTFL_STATIC_LIBRARY_BUILD")
+ endif()
+diff --git a/tensorflow/lite/examples/label_image/CMakeLists.txt b/tensorflow/lite/examples/label_image/CMakeLists.txt
+index 1bf259aad10..ed64afd39b2 100644
+--- a/tensorflow/lite/examples/label_image/CMakeLists.txt
++++ b/tensorflow/lite/examples/label_image/CMakeLists.txt
+@@ -55,6 +55,11 @@ if(TFLITE_ENABLE_GPU)
+   )
+ endif()  # TFLITE_ENABLE_GPU
+ 
++if(TFLITE_ENABLE_EXTERNAL_DELEGATE)
++  list(APPEND TFLITE_LABEL_IMAGE_SRCS
++          ${TFLITE_SOURCE_DIR}/tools/delegates/external_delegate_provider.cc)
++endif()
++
+ add_executable(label_image
+   EXCLUDE_FROM_ALL
+   ${TFLITE_LABEL_IMAGE_SRCS}
+diff --git a/tensorflow/lite/tools/benchmark/CMakeLists.txt b/tensorflow/lite/tools/benchmark/CMakeLists.txt
+index d66af0dcd4a..2b9a57a168b 100644
+--- a/tensorflow/lite/tools/benchmark/CMakeLists.txt
++++ b/tensorflow/lite/tools/benchmark/CMakeLists.txt
+@@ -72,6 +72,11 @@ if(TFLITE_ENABLE_GPU)
+   )
+ endif()  # TFLITE_ENABLE_GPU
+ 
++if(TFLITE_ENABLE_EXTERNAL_DELEGATE)
++  list(APPEND TFLITE_BENCHMARK_SRCS
++	  ${TFLITE_SOURCE_DIR}/tools/delegates/external_delegate_provider.cc)
++endif()
++
+ add_executable(benchmark_model
+   EXCLUDE_FROM_ALL
+   ${TFLITE_BENCHMARK_SRCS}
+-- 
+2.26.2
+

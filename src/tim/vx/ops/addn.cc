@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/addn.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 #include "vsi_nn_pub.h"
 
@@ -32,7 +32,7 @@ namespace vx {
 namespace ops {
 
 AddN::AddN(Graph* graph, uint32_t num_inputs)
-    : DirectMapOp(graph, VSI_NN_OP_ADDN, num_inputs, 1) {}
+    : BuiltinOp(graph, VSI_NN_OP_ADDN, num_inputs, 1) {}
 
 std::shared_ptr<Operation> AddN::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<AddN>(this->impl_->input_cnt_);

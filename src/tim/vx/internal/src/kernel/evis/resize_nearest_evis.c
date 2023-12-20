@@ -145,6 +145,8 @@ DEF_KERNEL_INITIALIZER(_resize_nearest_initializer)
     float       half_pixel_value = 0.0f;
     float       round_value      = 0.0f;
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -371,7 +373,7 @@ DEF_KERNEL_INITIALIZER(_resize_nearest_initializer)
             0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
 
-        gpu_quantize_multiplier_16bit(input_scale * output_scale, &M0, &postShift);
+        gpu_quantize_multiplier_16bit((double)input_scale * (double)output_scale, &M0, &postShift);
 
         multAndoutZP[0] = (uint32_t)(M0);
         multAndoutZP[1] = (uint32_t)((outputZP << postShift) - inputZP * M0);

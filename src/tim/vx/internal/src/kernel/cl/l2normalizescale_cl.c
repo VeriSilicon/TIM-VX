@@ -115,6 +115,8 @@ DEF_KERNEL_INITIALIZER(_l2normalizescale_initializer)
     vsi_nn_kernel_tensor_attr_t *output_attr   = NULL;
     vsi_size_array_t * output_shape             = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( output_attr, "Create tensor attr buffer fail.", final );
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[3], &axis);

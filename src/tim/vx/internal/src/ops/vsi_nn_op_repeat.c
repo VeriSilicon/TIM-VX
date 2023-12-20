@@ -34,7 +34,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
 
@@ -53,6 +53,7 @@ static vsi_status _create_local_tensor
     vsi_nn_repeat_lcl_data *local = self->nn_param.repeat.local;
     vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {1, 1, 1, 1};
     uint32_t i = 0;
+    vsi_status status = VSI_FAILURE;
 
     if (axis == -1)
     {
@@ -63,6 +64,7 @@ static vsi_status _create_local_tensor
         }
 
         local->reshaped_input = vsi_nn_reshape_tensor(self->graph, inputs[0], shape, 1);
+        CHECK_PTR_FAIL_GOTO( local->reshaped_input, "create tensor fail.", final );
 
         shape[0] = 1;
         for(i = 0; i < outputs[0]->attr.dim_num; i++)
@@ -70,6 +72,7 @@ static vsi_status _create_local_tensor
             shape[0] *= outputs[0]->attr.size[i];
         }
         local->reshaped_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shape, 1);
+        CHECK_PTR_FAIL_GOTO( local->reshaped_output, "create tensor fail.", final );
     }
 
     if (repeat_host)
@@ -103,9 +106,12 @@ static vsi_status _create_local_tensor
         attr.dim_num = 2;
 
         local->repeat_tensor = vsi_nn_CreateTensorFromData(self->graph, (uint8_t*)repeat_host, &attr);
+        CHECK_PTR_FAIL_GOTO( local->repeat_tensor, "create tensor fail.", final );
     }
 
-    return VSI_SUCCESS;
+    status = VSI_SUCCESS;
+final:
+    return status;
 }
 
 static vsi_status op_compute
@@ -152,8 +158,32 @@ static vsi_status op_compute
 
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_int32( param, "axis", axis );
-    n = vsi_nn_kernel_selector( self->graph, "repeat",
-                    tmp_inputs, _INPUT_NUM, tmp_output, _OUTPUT_NUM, param );
+
+    if (vsi_nn_is_same_type(inputs[0], outputs[0]) == FALSE)
+    {
+        vsi_nn_tensor_t* temp_tensors = NULL;
+        vsi_nn_tensor_attr_t attr;
+        VSILOGW("repeat is no_range_change operation! \
+            Insert DataConvert Operation when the quantization parameters of input and output are inconsistent!");
+
+        memcpy( &attr, &tmp_output[0]->attr, sizeof(attr));
+        memcpy( &attr.dtype, &tmp_inputs[0]->attr.dtype, sizeof(attr.dtype));
+        attr.is_const = FALSE;
+        attr.vtl = TRUE;
+        temp_tensors = vsi_nn_CreateTensor( self->graph, &attr );
+
+        vsi_nn_kernel_selector( self->graph, "repeat",
+                        tmp_inputs, _INPUT_NUM, &temp_tensors, _OUTPUT_NUM, param );
+
+        n = vxTensorCopyNode( self->graph->g, temp_tensors->t, tmp_output[0]->t);
+        vsi_safe_release_tensor(temp_tensors);
+    }
+    else
+    {
+        n = vsi_nn_kernel_selector( self->graph, "repeat",
+                        tmp_inputs, _INPUT_NUM, tmp_output, _OUTPUT_NUM, param );
+    }
+
     if ( n != NULL )
     {
         self->n = (vx_node)n;
@@ -178,15 +208,19 @@ static vsi_bool op_check
     vsi_nn_repeat_param * p = NULL;
 
     BEGIN_IO_TYPE_DECL(REPEAT, 2, 1)
-        IO_TYPE(D_F16,  D_I32,  D_F16)
-        IO_TYPE(D_F32,  D_I32,  D_F32)
-        IO_TYPE(D_I32,  D_I32,  D_I32)
-        IO_TYPE(D_I8,   D_I32,  D_I8)
-        IO_TYPE(D_U8,   D_I32,  D_U8)
-        IO_TYPE(D_I16,  D_I32,  D_I16)
-        IO_TYPE(D_I8|Q_DFP,  D_I32,  D_I8|Q_DFP)
-        IO_TYPE(D_U8|Q_ASYM, D_I32,  D_U8|Q_ASYM)
-        IO_TYPE(D_I16|Q_DFP, D_I32,  D_I16|Q_DFP)
+        IO_TYPE(D_F16,        D_I32,  D_F16)
+        IO_TYPE(D_F32,        D_I32,  D_F32)
+        IO_TYPE(D_I32,        D_I32,  D_I32)
+        IO_TYPE(D_I8,         D_I32,  D_I8)
+        IO_TYPE(D_U8,         D_I32,  D_U8)
+        IO_TYPE(D_I16,        D_I32,  D_I16)
+        IO_TYPE(D_I8|Q_DFP,   D_I32,  D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,  D_I32,  D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_I32,  D_I8|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_I32,  D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP,  D_I32,  D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM, D_I32,  D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,  D_I32,  D_I16|Q_SYM)
     END_IO_TYPE_DECL(REPEAT)
     if (!VALIDATE_OP_IO_TYPES(REPEAT, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -337,4 +371,3 @@ DEF_OP_REG
 #ifdef __cplusplus
 }
 #endif
-

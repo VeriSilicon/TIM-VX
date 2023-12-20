@@ -60,6 +60,10 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_SUCCESS;
 
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+
     return status;
 } /* op_compute() */
 
@@ -124,6 +128,12 @@ vsi_status vsi_nn_op_imageprocess_single_node
     vsi_nn_tensor_t *tensor_out
     )
 {
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(attr);
+    VSI_UNREFERENCED(p);
+    VSI_UNREFERENCED(data);
+    VSI_UNREFERENCED(tensor_out);
+
     return VSI_SUCCESS;
 }
 

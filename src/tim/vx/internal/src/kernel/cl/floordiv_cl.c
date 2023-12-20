@@ -122,10 +122,13 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
         {0, 0, 0},
         {0, 0, 0}
         };
-    vx_status     status             = VX_FAILURE;
-    vx_tensor     output              = (vx_tensor)param[2];
+    vsi_status    status             = VSI_FAILURE;
+    vx_tensor     output             = (vx_tensor)param[2];
     vsi_nn_kernel_tensor_attr_t *output_attr  = NULL;
     vsi_size_array_t             *output_shape = NULL;
+
+    VSI_UNREFERENCED(param_size);
+    VSI_UNREFERENCED(node);
 
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output );
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -257,6 +260,8 @@ static vsi_nn_kernel_node_t _setup
     float input0Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
     float input1Scale  = vsi_nn_get_tensor_scale(inputs[1]);
     float input1Tail   = (float)vsi_nn_get_tensor_zero_point(inputs[1]);
+
+    VSI_UNREFERENCED(params);
 
     outputScale = 1.0f / outputScale;
     input0Tail   = -(input0Tail * input0Scale);

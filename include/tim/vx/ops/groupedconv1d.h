@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -53,7 +53,7 @@ namespace ops {
  * - layout : WCN or CWN.
  */
 
-class GroupedConv1d : public DirectMapOp {
+class GroupedConv1d : public BuiltinOp {
  public:
   GroupedConv1d(Graph* graph, PadType padding, std::array<uint32_t, 2> pad,
                 uint32_t stride, uint32_t dilation, uint32_t group,

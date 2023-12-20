@@ -27,12 +27,13 @@
 #include "vsi_nn_types.h"
 #include "vsi_nn_math.h"
 #include "vsi_nn_tensor.h"
+#include "vsi_nn_log.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-static inline vsi_bool type_is_integer
+static VSI_INLINE_API vsi_bool type_is_integer
     (
     const vsi_nn_type_e type
     )
@@ -60,7 +61,7 @@ static inline vsi_bool type_is_integer
     return ret;
 } /* type_is_integer() */
 
-static inline vsi_bool type_is_signed
+static VSI_INLINE_API vsi_bool type_is_signed
     (
     const vsi_nn_type_e type
     )
@@ -78,6 +79,8 @@ static inline vsi_bool type_is_signed
     case VSI_NN_TYPE_FLOAT32:
     case VSI_NN_TYPE_FLOAT64:
     case VSI_NN_TYPE_BFLOAT16:
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+    case VSI_NN_TYPE_FLOAT8_E5M2:
         ret = TRUE;
         break;
     default:
@@ -86,16 +89,21 @@ static inline vsi_bool type_is_signed
     return ret;
 } /* type_is_signed() */
 
-static inline uint32_t type_get_bytes
+static VSI_INLINE_API uint32_t type_get_bytes
     (
     const vsi_nn_type_e type
     )
 {
     switch( type )
     {
+    case VSI_NN_TYPE_INT4:
+    case VSI_NN_TYPE_UINT4:
+        return 0;
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_BOOL8:
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+    case VSI_NN_TYPE_FLOAT8_E5M2:
         return 1;
     case VSI_NN_TYPE_INT16:
     case VSI_NN_TYPE_UINT16:
@@ -111,11 +119,12 @@ static inline uint32_t type_get_bytes
     case VSI_NN_TYPE_FLOAT64:
         return 8;
     default:
-        return 0;
+        VSILOGE("unsupported type: %d", type);
+        return 1;
     }
 } /* type_get_bytes() */
 
-static inline uint32_t type_get_bits
+static VSI_INLINE_API uint32_t type_get_bits
     (
     const vsi_nn_type_e type
     )
@@ -128,6 +137,8 @@ static inline uint32_t type_get_bits
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_BOOL8:
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+    case VSI_NN_TYPE_FLOAT8_E5M2:
         return 8;
     case VSI_NN_TYPE_INT16:
     case VSI_NN_TYPE_UINT16:
@@ -143,11 +154,12 @@ static inline uint32_t type_get_bits
     case VSI_NN_TYPE_FLOAT64:
         return 64;
     default:
-        return 0;
+        VSILOGE("unsupported type: %d", type);
+        return 1;
     }
 } /* type_get_bits() */
 
-static inline void type_get_range
+static VSI_INLINE_API void type_get_range
     (
     vsi_nn_type_e type,
     double  * max_range,
@@ -186,7 +198,24 @@ static inline void type_get_range
     }
 } /* type_get_range() */
 
-static inline int32_t fp32_to_affine
+static VSI_INLINE_API vsi_bool fp32_is_inf
+    (
+        float val
+    )
+{
+    uint32_t u_value = *(uint32_t*)&val;
+
+    if ((u_value & (uint32_t)VSI_NN_INT32_MAX) == (uint32_t)VSI_NN_FLOAT32_INF)
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+static VSI_INLINE_API int32_t fp32_to_affine
     (
     const float  in,
     const float  scale,
@@ -200,10 +229,17 @@ static inline int32_t fp32_to_affine
     type_get_range( type, &max_range, &min_range );
     data = (int32_t)(vsi_rint( in / scale ) + zero_point );
     data = vsi_nn_max( (int32_t)min_range, vsi_nn_min( (int32_t)max_range , data ) );
+
+    if (fp32_is_inf(in) != 0)
+    {
+        uint32_t sign = (*(uint32_t*)&in) >> 31;
+        data = sign == 1 ? (int32_t)min_range : (int32_t)max_range;
+    }
+
     return data;
 } /* fp32_to_affine() */
 
-static inline float affine_to_fp32
+static VSI_INLINE_API float affine_to_fp32
     (
     const int32_t    val,
     const float  scale,
@@ -212,11 +248,12 @@ static inline float affine_to_fp32
     )
 {
     float data;
+    VSI_UNREFERENCED(type);
     data = ( (float)val - zero_point ) * scale;
     return data;
 } /* affine_to_fp32() */
 
-static inline int32_t fp32_to_dfp
+static VSI_INLINE_API int32_t fp32_to_dfp
     (
     const float in,
     const int8_t    fl,
@@ -229,18 +266,25 @@ static inline int32_t fp32_to_dfp
     type_get_range( type, &max_range, &min_range );
     if( fl > 0 )
     {
-        data = (int32_t)vsi_rint( in * (float)( (int64_t)1 << fl ) );
+        data = (int32_t)vsi_rint( in * (double)( (int64_t)1 << fl ) );
     }
     else
     {
-        data = (int32_t)vsi_rint( in * ( 1.0f / (float)( (int64_t)1 << -fl ) ) );
+        data = (int32_t)vsi_rint( in * ( 1.0f / (double)( (int64_t)1 << -fl ) ) );
     }
     data = vsi_nn_min( data, (int32_t)max_range );
     data = vsi_nn_max( data, (int32_t)min_range );
+
+    if (fp32_is_inf(in) != 0)
+    {
+        uint32_t sign = (*(uint32_t*)&in) >> 31;
+        data = sign == 1 ? (int32_t)min_range : (int32_t) max_range;
+    }
+
     return data;
 } /* fp32_to_dfp() */
 
-static inline float dfp_to_fp32
+static VSI_INLINE_API float dfp_to_fp32
     (
     const int32_t val,
     const int8_t  fl,
@@ -248,6 +292,7 @@ static inline float dfp_to_fp32
     )
 {
     float result;
+    VSI_UNREFERENCED(type);
     if( fl > 0 )
     {
         result = (float)val * ( 1.0f / ( (float) ( (int64_t)1 << fl ) ) );
@@ -259,7 +304,7 @@ static inline float dfp_to_fp32
     return result;
 } /* dfp_to_fp32() */
 
-static inline vsi_status integer_convert
+static VSI_INLINE_API vsi_status integer_convert
     (
     const void *    src,
     vsi_nn_type_e   src_type,
@@ -303,7 +348,7 @@ typedef union
     float f;
 } _fp32_t;
 
-static inline float fp16_to_fp32
+static VSI_INLINE_API float fp16_to_fp32
     (
     int16_t in
     )
@@ -323,7 +368,7 @@ static inline float fp16_to_fp32
     return o.f;
 } /* fp16_to_fp32() */
 
-static inline float bfp16_to_fp32
+static VSI_INLINE_API float bfp16_to_fp32
     (
     int16_t in
     )
@@ -344,7 +389,7 @@ static inline float bfp16_to_fp32
     return t3 == 0 ? 0 : out;
 } /* bfp16_to_fp32() */
 
-static inline uint16_t fp32_to_fp16
+static VSI_INLINE_API uint16_t fp32_to_fp16
     (
     float in
     )
@@ -370,7 +415,7 @@ static inline uint16_t fp32_to_fp16
     return (uint16_t) fp16;
 } /* fp32_to_fp16() */
 
-static inline uint16_t fp32_to_bfp16
+static VSI_INLINE_API uint16_t fp32_to_bfp16
     (
     float in
     )
@@ -381,7 +426,7 @@ static inline uint16_t fp32_to_bfp16
     return (uint16_t) t1;
 } /* fp32_to_bfp16() */
 
-static inline uint16_t fp32_to_bfp16_rtne
+static VSI_INLINE_API uint16_t fp32_to_bfp16_rtne
     (
     float in
     )
@@ -409,7 +454,227 @@ static inline uint16_t fp32_to_bfp16_rtne
     return out;
 } /* fp32_to_bfp16_rtne */
 
-static inline vsi_status dtype_to_float32
+#define FLOAT_BIAS_EXPONENT 127
+#define FLOAT_EXPONENT_SIZE 8
+#define FLOAT_MANTISSA_SIZE  23
+#define FLOAT8_E4M3_BIAS_EXPONENT 7
+#define FLOAT8_E4M3_EXPONENT_SIZE 4
+#define FLOAT8_E4M3_MANTISSA_SIZE 3
+#define FLOAT8_E5M2_BIAS_EXPONENT 15
+#define FLOAT8_E5M2_EXPONENT_SIZE 5
+#define FLOAT8_E5M2_MANTISSA_SIZE 2
+
+static VSI_INLINE_API uint8_t fp32_to_fp8_e4m3(float in, const float scale) {
+    float fp8_f32 = in / scale;
+    int32_t in_val = *((int32_t*)&fp8_f32);
+
+    uint32_t in_sign = (in_val >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1; /* bit 31 is sign */
+    uint32_t in_exp = (in_val >> FLOAT_MANTISSA_SIZE) & 0xFF; /* bit[30: 24] is exp */
+    uint32_t in_man = (in_val & 0x7FFFFF);   /* low 23 bits is man */
+
+    uint32_t out_sign = in_sign;
+    int32_t out_exp = (in_exp + FLOAT8_E4M3_BIAS_EXPONENT - FLOAT_BIAS_EXPONENT); /* in_exp - fp32bias + SE4M3 bias */
+    uint32_t man_rounding = 0, out_man = 0, out_val = 0;
+
+    man_rounding = (in_man + 0x80000) >> 20; /* manrounding is 3 bits */
+    if (((man_rounding >> 3) && 0x1) == 1) {
+        /* when in_man like 0b11_1, exp += 1, mantissa is 0*/
+        out_exp += 1;
+    }
+
+    /* Clamp Denorm to zero */
+    if (out_exp <= 0) {
+        out_exp = 0;
+        man_rounding = 0;
+        out_sign = 0;
+    }
+
+    out_man = man_rounding & 0x7; /* keep low 3 bits of man */
+    /* overflow policy */
+    if (out_exp >= 16 || (out_exp == 15 && out_man == 7)) {
+        out_exp = 15;
+        out_man = 6;
+#if 0
+        if (mode == VX_CONVERT_POLICY_SATURATE) {
+            out_exp = 15;
+            out_man = 6;
+        } else if (mode == VX_CONVERT_POLICY_INF) {
+            out_exp = 15;
+            out_man = 7;
+        } else {
+            vxmASSERT(0 && "Error overflow mode!\n");
+        }
+#endif
+    }
+    out_val = (out_sign << 7) | (out_exp << 3) | out_man;
+    return (uint8_t)(out_val & 0xFF);
+} /* fp32_to_fp8_e4m3() */
+
+static VSI_INLINE_API uint8_t fp32_to_fp8_e5m2(float in, const float scale) {
+    float fp8_f32 = in / scale;
+    int32_t in_val = *((int32_t*)&fp8_f32);
+    uint32_t in_sign = (in_val >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1; /* bit 31 is sign */
+    uint32_t in_exp = (in_val >> FLOAT_MANTISSA_SIZE) & 0xFF; /* bit[30: 24] is exp */
+    uint32_t in_man = (in_val & 0x7FFFFF);   /* low 23 bits is man */
+
+    uint32_t out_sign = in_sign;
+    int32_t out_exp = (in_exp + FLOAT8_E5M2_BIAS_EXPONENT - FLOAT_BIAS_EXPONENT); /* in_exp - fp32bias + SE5M2 bias */
+    uint32_t man_rounding = 0, out_man = 0, out_val = 0;
+
+    man_rounding = (in_man + 0x100000) >> 21; /* manrounding is 2 bits */
+    if (((man_rounding >> 2) && 0x1) == 1) {
+        /* when in_man like 0b11, exp += 1, mantissa is 0*/
+        out_exp += 1;
+    }
+
+    /* Clamp Denorm to zero */
+    if (out_exp <= 0) {
+        out_exp = 0;
+        man_rounding = 0;
+        out_sign = 0;
+    }
+
+    out_man = man_rounding & 0x3; /* keep low 9 bits of man */
+    /* overflow policy */
+    if (out_exp >= 31) {
+        out_exp = 30;
+        out_man = 3;
+#if 0
+        if (mode == VX_CONVERT_POLICY_SATURATE) {
+            out_exp = 30;
+            out_man = 3;
+        } else if (mode == VX_CONVERT_POLICY_INF) {
+            out_exp = 31;
+            out_man = 0;
+        } else {
+            vxmASSERT(0 && "Error overflow mode!\n");
+        }
+#endif
+    }
+    out_val = (out_sign << 7) | (out_exp << 2) | out_man;
+    return (uint8_t)(out_val & 0xFF);
+} /* fp32_to_fp8_e5m2() */
+
+static VSI_INLINE_API float fp8_e4m3_to_fp32(uint8_t in, const float scale) {
+    float val_fp32;
+    uint32_t signOut = 0;
+    uint32_t exponentOut = 0;
+    uint32_t mantissaOut = 0;
+    uint32_t out_u = 0;
+
+    {
+        uint32_t signIn;
+        uint32_t exponentIn;
+        uint32_t mantissaIn;
+        uint32_t expShiftValue = FLOAT_BIAS_EXPONENT - FLOAT8_E4M3_BIAS_EXPONENT;
+        //uint32_t i = 0;
+        //uint32_t intMsk = 0x4;
+
+        signIn = (in >> (FLOAT8_E4M3_EXPONENT_SIZE + FLOAT8_E4M3_MANTISSA_SIZE)) & 0x1;
+        exponentIn = (in >> FLOAT8_E4M3_MANTISSA_SIZE) & 0xF;
+        mantissaIn = in & 0x7;
+
+        signOut = signIn;
+
+        /* clamp subnorm*/
+        if (exponentIn == 0) {
+            goto final;
+        }
+        /*
+        if (exponentIn == 0 && mantissaIn == 0)
+        {
+            break;
+        }
+        else if (exponentIn == 0)
+        {
+            while (!(mantissaIn & intMsk))
+            {
+                intMsk >>= 1;
+                ++i;
+            }
+            exponentOut = (exponentIn + expShiftValue - i) & 0xff;
+            mantissaIn  = ((mantissaIn ^ intMsk) << (i + 1));
+            mantissaOut = (mantissaIn << (FLOAT_MATISSA_SIZE - FLOAT8_E4M3_MANTISSA_SIZE)) & 0x7fffff;
+            break;
+        }
+        */
+
+        if (exponentIn == 0xf && mantissaIn == 0x7) {
+            exponentOut = 0xff;
+            mantissaOut = 0x400000;
+            goto final;
+        }
+
+        exponentOut = (exponentIn + expShiftValue) & 0xff;
+        mantissaOut = (mantissaIn << (FLOAT_MANTISSA_SIZE - FLOAT8_E4M3_MANTISSA_SIZE)) & 0x7fffff;
+    }
+final:
+    out_u = signOut << 31 | exponentOut << 23 | mantissaOut;
+    val_fp32 = *((float*)&out_u);
+
+    return val_fp32 * scale;
+} /* fp8_e4m3_to_fp32() */
+
+static VSI_INLINE_API float fp8_e5m2_to_fp32(int8_t in, const float scale) {
+    float val_fp32;
+    uint32_t signOut = 0;
+    uint32_t exponentOut = 0;
+    uint32_t mantissaOut = 0;
+    uint32_t out_u = 0;
+
+    {
+        uint32_t signIn;
+        uint32_t exponentIn;
+        uint32_t mantissaIn;
+        uint32_t expShiftValue = FLOAT_BIAS_EXPONENT - FLOAT8_E5M2_BIAS_EXPONENT;
+        //uint32_t i = 0;
+        //uint32_t intMsk = 0x2;
+
+        signIn = (in >> (FLOAT8_E5M2_EXPONENT_SIZE + FLOAT8_E5M2_MANTISSA_SIZE)) & 0x1;
+        exponentIn = (in >> FLOAT8_E5M2_MANTISSA_SIZE) & 0x1F;
+        mantissaIn = in & 0x3;
+
+        signOut = signIn;
+
+        /* clamp subnorm*/
+        if (exponentIn == 0) {
+            goto final;
+        }
+        /*
+        if (exponentIn == 0 && mantissaIn == 0)
+        {
+            break;
+        }
+        else if (exponentIn == 0)
+        {
+            while (!(mantissaIn & intMsk))
+            {
+                intMsk >>= 1;
+                ++i;
+            }
+            exponentOut = (exponentIn + expShiftValue - i) & 0xff;
+            mantissaIn = ((mantissaIn ^ intMsk) << (i + 1));
+            mantissaOut = (mantissaIn << (FLOAT_MATISSA_SIZE - FLOAT8_E5M2_MANTISSA_SIZE)) & 0x7fffff;
+            break;
+        }
+        */
+
+        if (exponentIn == 0x1f && mantissaIn == 0x3) {
+            exponentOut = 0xff;
+            mantissaOut = 0x400000;
+            goto final;
+        }
+
+        exponentOut = (exponentIn + expShiftValue) & 0xff;
+        mantissaOut = (mantissaIn << (FLOAT_MANTISSA_SIZE - FLOAT8_E5M2_MANTISSA_SIZE)) & 0x7fffff;
+    }
+final:
+    out_u = signOut << 31 | exponentOut << 23 | mantissaOut;
+    val_fp32 = *((float*)&out_u);
+    return val_fp32 * scale;
+} /* fp8_e5m2_to_fp32() */
+
+static VSI_INLINE_API vsi_status dtype_to_float32
     (
     uint8_t *src,
     float   *dst,
@@ -427,12 +692,19 @@ static inline vsi_status dtype_to_float32
     case VSI_NN_TYPE_BFLOAT16:
         *dst = bfp16_to_fp32( *(int16_t *)src );
         break;
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+        *dst = fp8_e4m3_to_fp32(*(int8_t*)src, src_dtype->scale);
+        break;
+    case VSI_NN_TYPE_FLOAT8_E5M2:
+        *dst = fp8_e5m2_to_fp32(*(int8_t *)src, src_dtype->scale);
+        break;
     case VSI_NN_TYPE_INT4:
     case VSI_NN_TYPE_UINT4:
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_BOOL8:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_INT16:
+    case VSI_NN_TYPE_UINT16:
     case VSI_NN_TYPE_INT32:
         {
             int32_t src_value = 0;
@@ -461,7 +733,7 @@ static inline vsi_status dtype_to_float32
     return VSI_SUCCESS;
 }
 
-static inline vsi_status float32_to_dtype
+static VSI_INLINE_API vsi_status float32_to_dtype
     (
     float   src,
     uint8_t *dst,
@@ -479,12 +751,19 @@ static inline vsi_status float32_to_dtype
     case VSI_NN_TYPE_BFLOAT16:
         *(int16_t *)dst = fp32_to_bfp16_rtne( src );
         break;
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+        *(int8_t *)dst = fp32_to_fp8_e4m3(src, dst_dtype->scale);
+        break;
+    case VSI_NN_TYPE_FLOAT8_E5M2:
+        *(int8_t *)dst = fp32_to_fp8_e5m2(src, dst_dtype->scale);
+        break;
     case VSI_NN_TYPE_INT4:
     case VSI_NN_TYPE_UINT4:
     case VSI_NN_TYPE_INT8:
     case VSI_NN_TYPE_BOOL8:
     case VSI_NN_TYPE_UINT8:
     case VSI_NN_TYPE_INT16:
+    case VSI_NN_TYPE_UINT16:
     case VSI_NN_TYPE_INT32:
     case VSI_NN_TYPE_UINT32:
         {

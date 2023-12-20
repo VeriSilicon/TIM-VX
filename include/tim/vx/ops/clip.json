@@ -1,0 +1,13 @@
+{
+    "Clip":{
+        "parameters":
+            [
+                {"name": "min",
+                 "dtype": "float"
+                },
+                {"name": "max",
+                 "dtype": "float"
+                }
+            ]
+    }
+}

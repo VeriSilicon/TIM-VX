@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/conv1d.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -54,7 +54,7 @@ Conv1d::Conv1d(Graph* graph, int32_t weights, PadType padding,
                uint32_t ksize, uint32_t stride, uint32_t dilation,
                const std::array<uint32_t, 2>& pad, int32_t multiplier,
                DataLayout input_layout, DataLayout kernel_layout)
-    : DirectMapOp(graph, VSI_NN_OP_CONV1D, 0, 0, input_layout),
+    : BuiltinOp(graph, VSI_NN_OP_CONV1D, 0, 0, input_layout),
       weights_(weights),
       padding_(padding),
       ksize_(ksize),

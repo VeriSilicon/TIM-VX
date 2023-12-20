@@ -1,0 +1,13 @@
+{
+    "ShuffleChannel":{
+        "parameters":
+            [
+                {"name":"num_groups",
+                    "dtype": "int32_t"
+                },
+                {"name":"index_axis",
+                    "dtype": "int32_t"
+                }
+            ]
+    }
+}

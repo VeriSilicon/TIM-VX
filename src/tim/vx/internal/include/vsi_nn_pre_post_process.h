@@ -48,6 +48,7 @@ typedef enum
     VSI_NN_PREPROCESS_IMAGE_RESIZE_BILINEAR,
     VSI_NN_PREPROCESS_IMAGE_RESIZE_NEAREST,
     VSI_NN_PREPROCESS_DTYPE_CONVERT,
+    VSI_NN_PREPROCESS_MEANS_AND_SCALES,
 } vsi_nn_preprocess_type_e;
 
 /**
@@ -85,6 +86,9 @@ typedef enum
     VSI_NN_SOURCE_FORMAT_IMAGE_YUV444,
     VSI_NN_SOURCE_FORMAT_IMAGE_NV12,
     VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP,
+    VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422,
+    VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422,
+    VSI_NN_SOURCE_FORMAT_IMAGE_NV21,
 } vsi_nn_preprocess_source_format_e;
 
 /**
@@ -96,7 +100,7 @@ typedef struct
     vsi_nn_preprocess_type_e type;
     /** Preprocess paramters */
     void* param;
-} vsi_nn_preprocess_base_t;
+} VSI_PUBLIC_TYPE vsi_nn_preprocess_base_t;
 
 /**
  * Postprocess base structure
@@ -107,7 +111,7 @@ typedef struct
     vsi_nn_postprocess_type_e type;
     /** Postrocess paramters */
     void* param;
-} vsi_nn_postprocess_base_t;
+} VSI_PUBLIC_TYPE vsi_nn_postprocess_base_t;
 
 /**
  * Process dtype convert parameter structure
@@ -147,8 +151,25 @@ typedef struct
     float scale;
 }vsi_nn_process_mean_and_scale_t;
 
+/**
+ * Process mean and scale parameter structure
+ */
+typedef struct
+{
+    /** Mean value for each channel */
+    float* channel_mean;
+    /*Channel length */
+    int32_t channel_len;
+    /** Scale value */
+    float* scale;
+    /** Scale length */
+    int32_t scale_len;
+}vsi_nn_process_means_and_scales_t;
+
 typedef vsi_nn_process_mean_and_scale_t vsi_nn_preprocess_mean_and_scale_t;
+typedef vsi_nn_process_means_and_scales_t vsi_nn_preprocess_means_and_scales_t;
 typedef vsi_nn_process_mean_and_scale_t vsi_nn_postprocess_mean_and_scale_t;
+typedef vsi_nn_process_means_and_scales_t vsi_nn_postprocess_means_and_scales_t;
 
 /**
  * Process permute parameter structure
@@ -241,6 +262,26 @@ OVXLIB_API vsi_status vsi_nn_AddBinaryGraphInputsWithCropParam
         vsi_nn_graph_t* graph,
         vsi_nn_node_id_t* enable_nodes,
         uint32_t enable_nodes_count
+    );
+
+OVXLIB_API vsi_status vsi_nn_AddBinaryGraphInputsWithCropParamForCropOnly
+    (
+        vsi_nn_graph_t* graph,
+        vsi_nn_node_id_t* enable_nodes,
+        vsi_bool* crop_set_start_only,
+        uint32_t enable_nodes_count
+    );
+
+OVXLIB_API vsi_status vsi_nn_UpdateCropParamsForBinaryGraph
+    (
+        vsi_nn_graph_t* graph,
+        uint32_t enabled_crop_input_idx,
+        uint32_t start_x,
+        uint32_t start_y,
+        uint32_t crop_w,
+        uint32_t crop_h,
+        uint32_t dst_w,
+        uint32_t dst_h
     );
 
 #ifdef __cplusplus

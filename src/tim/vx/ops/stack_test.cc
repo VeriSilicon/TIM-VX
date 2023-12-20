@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -165,6 +165,99 @@ TEST(Stack, shape_3_4_axis_0) {
   EXPECT_TRUE(graph->Run());
 
   std::vector<float> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
+
+TEST(Stack, shape_3_4_axis_0_int32) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({4, 3});
+  tim::vx::ShapeType output_shape({2, 4, 3});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::INT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::INT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor1 = graph->CreateTensor(input_spec);
+  auto input_tensor2 = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<int32_t> in_data = {
+      2, 1, 0, 1,
+      2, 4, 4, 4,
+      3, 2, 1, 4,
+  };
+  std::vector<int32_t> golden = {
+        2, 2,
+        1, 1,
+        0, 0,
+        1, 1,
+
+        2, 2,
+        4, 4,
+        4, 4,
+        4, 4,
+
+        3, 3,
+        2, 2,
+        1, 1,
+        4, 4,
+  };
+
+  EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data.data(),
+                                              in_data.size() * sizeof(int32_t)));
+  EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data.data(),
+                                              in_data.size() * sizeof(int32_t)));
+  auto op = graph->CreateOperation<tim::vx::ops::Stack>(0, 2);
+  (*op).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<int32_t> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
+
+TEST(Stack, Stack_shape_2_4_axis_1_u8) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({4});
+  tim::vx::ShapeType output_shape({4, 2});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::UINT8, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor1 = graph->CreateTensor(input_spec);
+  auto input_tensor2 = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<uint8_t> in_data1 = {
+      2, 1, 0, 1,
+  };
+  std::vector<uint8_t> in_data2 = {
+     1, 0, 1, 2
+  };
+  std::vector<uint8_t> golden = {
+        2, 1, 0, 1,
+        1,0, 1, 2
+  };
+
+  EXPECT_TRUE(input_tensor1->CopyDataToTensor(in_data1.data(),
+                                              in_data1.size() * sizeof(uint8_t)));
+  EXPECT_TRUE(input_tensor2->CopyDataToTensor(in_data2.data(),
+                                              in_data2.size() * sizeof(uint8_t)));
+  auto op = graph->CreateOperation<tim::vx::ops::Stack>(1, 2);
+  (*op).BindInputs({input_tensor1, input_tensor2}).BindOutputs({output_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<uint8_t> output(golden.size());
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   EXPECT_EQ(golden, output);
 }

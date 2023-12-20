@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -65,6 +65,7 @@ TEST(Equal, shape_1_uint8) {
 
 TEST(NotEqual, shape_5_fp32) {
     auto ctx = tim::vx::Context::Create();
+    if (ctx->hasSP()) GTEST_SKIP();
     auto graph = ctx->CreateGraph();
 
     tim::vx::ShapeType io_shape({5});
@@ -101,6 +102,7 @@ TEST(NotEqual, shape_5_fp32) {
 TEST(Less, shape_5_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    if (ctx->hasSP()) GTEST_SKIP();
 
     tim::vx::ShapeType io_shape({1,5});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -136,6 +138,7 @@ TEST(Less, shape_5_1_fp32) {
 TEST(GreaterOrEqual, shape_5_2_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    if (ctx->hasSP()) GTEST_SKIP();
 
     tim::vx::ShapeType io_shape({5,2,1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -175,6 +178,7 @@ TEST(GreaterOrEqual, shape_5_2_1_fp32) {
 TEST(Greater, shape_5_2_1_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    if (ctx->hasSP()) GTEST_SKIP();
 
     tim::vx::ShapeType io_shape({5,2,1,1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -214,6 +218,7 @@ TEST(Greater, shape_5_2_1_1_fp32) {
 TEST(LessOrEqual, shape_1_5_2_1_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    if (ctx->hasSP()) GTEST_SKIP();
 
     tim::vx::ShapeType io_shape({1,5,2,1,1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,

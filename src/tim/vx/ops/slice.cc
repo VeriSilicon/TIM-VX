@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/slice.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 Slice::Slice(Graph* graph, uint32_t dims, const std::vector<int32_t>& start,
              const std::vector<int32_t>& length)
-    : DirectMapOp(graph, VSI_NN_OP_SLICE),
+    : BuiltinOp(graph, VSI_NN_OP_SLICE),
       dims_(dims),
       start_(start),
       length_(length) {
@@ -46,7 +46,7 @@ Slice::Slice(Graph* graph, uint32_t dims, const std::vector<int32_t>& start,
 Slice::Slice(Graph* graph, uint32_t dims, const std::vector<int32_t>& start,
              const std::vector<int32_t>& length,
              const std::vector<int32_t>& step)
-    : DirectMapOp(graph, VSI_NN_OP_STRIDED_SLICE),
+    : BuiltinOp(graph, VSI_NN_OP_STRIDED_SLICE),
       dims_(dims),
       start_(std::move(start)),
       length_(std::move(length)),

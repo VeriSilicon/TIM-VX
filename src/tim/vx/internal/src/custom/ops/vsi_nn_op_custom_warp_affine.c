@@ -42,7 +42,7 @@ typedef struct _custom_warp_affine_local_data_t {
 /*
  Declare number of input and output.
  */
-#define _INPUT_NUM          (1)
+#define _INPUT_NUM          (2)
 #define _OUTPUT_NUM         (1)
 
 static vsi_status op_compute
@@ -59,10 +59,11 @@ static vsi_status op_compute
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_const_buffer( param, "matrix", p->matrix, 6 );
     vsi_nn_kernel_param_add_int32( param, "type", p->type);
+    vsi_nn_kernel_param_add_int32( param, "rgb_type", p->rgb_type);
 
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
             "custom_warp_affine",
-            inputs, 1,
+            inputs, 2,
             outputs, 1, param );
 
     vsi_nn_kernel_param_release( &param );
@@ -78,6 +79,9 @@ static vsi_bool op_check
     )
 {
     /*TODO: Check tensor shapes. */
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 

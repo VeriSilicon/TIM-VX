@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/concat.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Concat::Concat(Graph* graph, uint32_t axis, int input_cnt)
-    : DirectMapOp(graph, VSI_NN_OP_CONCAT, input_cnt, 1), axis_(axis) {
+    : BuiltinOp(graph, VSI_NN_OP_CONCAT, input_cnt, 1), axis_(axis) {
   this->impl()->node()->nn_param.concat.axis = axis_;
 }
 

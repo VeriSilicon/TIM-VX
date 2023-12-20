@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +44,7 @@ __BEGIN_DECLS
 typedef enum _grucell_nn_activation_type_e
 {
     SIGMOID = VSI_NN_ACT_SIGMOID,
-    HARD_SIGMOID = VSI_NN_ACT_HARD_SIGMOID,
+    HSIGMOID = VSI_NN_ACT_HARD_SIGMOID,
 }grucell_nn_activation_type_e;
 
 #define _GRUCELL_H_TIMES_ACTIVATION_R_KERNEL_SOURCE      "grucell_h_times_activation_r"
@@ -68,12 +67,17 @@ typedef struct
 static const _kernel_map_type _grucell_h_times_activation_r_kernel_map[] =
 {
     // Register kernel here
-    PACK_KERNEL_MAP( U8,  F16, F16, SIGMOID ),
-    PACK_KERNEL_MAP( I8,  F16, F16, SIGMOID ),
-    PACK_KERNEL_MAP( I16, F16, F16, SIGMOID ),
-    PACK_KERNEL_MAP( F16, F16, F16, SIGMOID ),
+    PACK_KERNEL_MAP( U8,   F16,  F16,  SIGMOID ),
+    PACK_KERNEL_MAP( I8,   F16,  F16,  SIGMOID ),
+    PACK_KERNEL_MAP( I16,  F16,  F16,  SIGMOID ),
+    PACK_KERNEL_MAP( F16,  F16,  F16,  SIGMOID ),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, SIGMOID ),
+    PACK_KERNEL_MAP( U8,   F16,  F16,  HSIGMOID ),
+    PACK_KERNEL_MAP( I8,   F16,  F16,  HSIGMOID ),
+    PACK_KERNEL_MAP( I16,  F16,  F16,  HSIGMOID ),
+    PACK_KERNEL_MAP( F16,  F16,  F16,  HSIGMOID ),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, HSIGMOID ),
 };
-
 
 /*
  * Kernel params
@@ -114,6 +118,8 @@ DEF_KERNEL_INITIALIZER(_grucell_h_times_activation_r_initializer)
     vsi_nn_kernel_tensor_attr_t* output_attr[1]         = {NULL};
 #define _PACK_SELECT_KEY( hstate_type, fc_type, output_type )    \
         (hstate_type | (fc_type << 8) | (output_type << 16))
+
+    VSI_UNREFERENCED(param_size);
 
     output = (vsi_nn_kernel_tensor_t)param[3];
 
@@ -190,6 +196,34 @@ DEF_KERNEL_INITIALIZER(_grucell_h_times_activation_r_initializer)
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
+    case _PACK_SELECT_KEY(BF16, BF16, BF16):
+        {
+            gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+                0x11111111, // TCfg
+                0x01010101, // ASelt
+                0x01050004, 0x03070206, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000600, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+            }, GPU_DP_TYPE_16};
+            gpu_dp_inst_t uniExtractOddData_2x8 = {{
+                0x11111111, // TCfg
+                0x11110000, // ASelt
+                0x07050301, 0x07050301, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000600, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+            }, GPU_DP_TYPE_16};
+
+            status  = vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
+            CHECK_STATUS_FAIL_GOTO(status, final );
+        }
+        break;
     case _PACK_SELECT_KEY(U8,  F16, F16):
     case _PACK_SELECT_KEY(I8,  F16, F16):
     case _PACK_SELECT_KEY(I16, F16, F16):
@@ -256,8 +290,6 @@ final:
     return status;
 } /* _grucell_h_times_activation_r_initializer() */
 
-
-
 /*
  * Query kernel
  */
@@ -312,7 +344,6 @@ static vsi_status _query_kernel
 
     return status;
 } /* _query_kernel() */
-
 
 static vsi_nn_kernel_node_t _setup
     (

@@ -1,0 +1,25 @@
+{
+    "Pad":{
+        "parameters":
+            [
+                {"name":"front_size",
+                    "dtype": "std::vector<uint32_t>"
+                },
+                {"name": "back_size",
+                    "dtype": "std::vector<uint32_t>"
+                },
+                {"name": "const_val",
+                    "dtype": "int32_t"
+                },
+                {"name": "pad_mode",
+                    "dtype": "tim::vx::ops::Pad::pad_mode_type",
+                    "Optional": "true",
+                    "default": "tim::vx::ops::Pad::pad_mode_type::PAD_MODE_CONSTANT",
+                    "range": ["tim::vx::ops::Pad::pad_mode_type::PAD_MODE_CONSTANT",
+                              "tim::vx::ops::Pad::pad_mode_type::PAD_MODE_EDGE",
+                              "tim::vx::ops::Pad::pad_mode_type::PAD_MODE_SYMMETRIC",
+                              "tim::vx::ops::Pad::pad_mode_type::PAD_MODE_REFLECT"]
+                }
+            ]
+    }
+}

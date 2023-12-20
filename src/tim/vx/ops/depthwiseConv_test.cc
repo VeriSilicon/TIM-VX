@@ -9,11 +9,10 @@ TEST(DepthwiseConv, shape_2_3_2_1_float32_SimpleTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({2, 3, 2, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({2, 3, 2, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {1, 2, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({1, 2, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -75,11 +74,10 @@ TEST(DepthwiseConv, shape_2_3_2_1_float32_StrideValidTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({2, 3, 2, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({2, 3, 2, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {1, 1, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({1, 1, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -141,11 +139,10 @@ TEST(DepthwiseConv, shape_2_3_2_1_float32_StrideSameTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({2, 3, 2, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({2, 3, 2, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {1, 2, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({1, 2, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -207,11 +204,10 @@ TEST(DepthwiseConv, shape_2_3_2_1_float32_StrideSameDilationTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({2, 3, 2, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({2, 3, 2, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {1, 2, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({1, 2, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -273,11 +269,10 @@ TEST(DepthwiseConv, shape_2_3_2_1_float32_PaddingTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({2, 3, 2, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({2, 3, 2, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {1, 1, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({1, 1, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -339,11 +334,10 @@ TEST(DepthwiseConv, shape_9_9_1_1_float32_DilationValidTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({9, 9, 1, 1});   //whcn
-  tim::vx::ShapeType weight_shape({3, 3, 1, 1});  //whoi
+  tim::vx::ShapeType input_shape({9, 9, 1, 1});
+  tim::vx::ShapeType weight_shape({3, 3, 1, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {3, 3, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({3, 3, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -408,11 +402,10 @@ TEST(DepthwiseConv, shape_3_3_1_1_float32_DilationSameTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({3, 3, 1, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 1, 1});  //whoi
+  tim::vx::ShapeType input_shape({3, 3, 1, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 1, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {3, 3, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({3, 3, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -473,11 +466,10 @@ TEST(DepthwiseConv, shape_3_3_4_2_float32_BatchValidTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({3, 3, 4, 2});   //whcn
-  tim::vx::ShapeType weight_shape({3, 3, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({3, 3, 4, 2});
+  tim::vx::ShapeType weight_shape({3, 3, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {1, 1, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({1, 1, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -543,11 +535,10 @@ TEST(DepthwiseConv, shape_2_2_1_4_float32_BatchSameTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({2, 2, 1, 4});   //whcn
-  tim::vx::ShapeType weight_shape({3, 3, 1, 1});  //whoi
+  tim::vx::ShapeType input_shape({2, 2, 1, 4});
+  tim::vx::ShapeType weight_shape({3, 3, 1, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {2, 2, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({2, 2, weight_shape[2], input_shape[3]});
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
                                  tim::vx::TensorAttribute::INPUT);
@@ -609,11 +600,10 @@ TEST(DepthwiseConv, shape_2_3_2_1_uint8_QuantizedTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({2, 3, 2, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({2, 3, 2, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {1, 2, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({1, 2, weight_shape[2], input_shape[3]});
 
   float input_min = -63.5, input_max = 64, weight_min = -63.5, weight_max = 64,
         output_min = -127, output_max = 128;
@@ -635,13 +625,13 @@ TEST(DepthwiseConv, shape_2_3_2_1_uint8_QuantizedTest) {
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -664,8 +654,8 @@ TEST(DepthwiseConv, shape_2_3_2_1_uint8_QuantizedTest) {
   // min:-63.5  max:64  scale:0.5  Zp:-1
   std::vector<float> weight_data_float = {1, -9,  5, 13, 2, 10, 6, -14,
                                           3, -11, 7, 15, 4, 12, 8, -16};
-  std::vector<uint8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
+  std::vector<uint8_t> weight_data = Quantize<uint8_t>(
+      weight_data_float, scales_weight[0], zero_point_input[0]);
 
   // bias data
   // scale:0.25  Zp:0
@@ -717,11 +707,10 @@ TEST(DepthwiseConv, shape_9_9_1_1_uint8_QuantizedDilationdValidTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({9, 9, 1, 1});   //whcn
-  tim::vx::ShapeType weight_shape({3, 3, 1, 1});  //whoi
+  tim::vx::ShapeType input_shape({9, 9, 1, 1});
+  tim::vx::ShapeType weight_shape({3, 3, 1, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {3, 3, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({3, 3, weight_shape[2], input_shape[3]});
 
   float input_min = 0, input_max = 255, weight_min = 0, weight_max = 255,
         output_min = 0, output_max = 255;
@@ -743,13 +732,13 @@ TEST(DepthwiseConv, shape_9_9_1_1_uint8_QuantizedDilationdValidTest) {
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -775,8 +764,8 @@ TEST(DepthwiseConv, shape_9_9_1_1_uint8_QuantizedDilationdValidTest) {
   // weight data   iohw
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> weight_data_float = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-  std::vector<uint8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
+  std::vector<uint8_t> weight_data = Quantize<uint8_t>(
+      weight_data_float, scales_weight[0], zero_point_input[0]);
 
   // bias data
   // scale:1  Zp:0
@@ -828,8 +817,8 @@ TEST(DepthwiseConv, shape_3_3_1_1_uint8_QuantizedDilationdSameTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({3, 3, 1, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 1, 1});  //whoi
+  tim::vx::ShapeType input_shape({3, 3, 1, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 1, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
   tim::vx::ShapeType output_shape(
       {3, 3, weight_shape[2], input_shape[3]});  //whcn
@@ -854,13 +843,13 @@ TEST(DepthwiseConv, shape_3_3_1_1_uint8_QuantizedDilationdSameTest) {
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -882,8 +871,8 @@ TEST(DepthwiseConv, shape_3_3_1_1_uint8_QuantizedDilationdSameTest) {
   // weight data   iohw
   // min:0  max:255  scale:1  Zp:-128
   std::vector<float> weight_data_float = {1, 2, 3, 4};
-  std::vector<uint8_t> weight_data =
-      Quantize<uint8_t>(weight_data_float, scales_weight[0], zero_point_input[0]);
+  std::vector<uint8_t> weight_data = Quantize<uint8_t>(
+      weight_data_float, scales_weight[0], zero_point_input[0]);
 
   // bias data
   // scale:1  Zp:0
@@ -935,11 +924,10 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerTensorTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({3, 2, 2, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({3, 2, 2, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {2, 1, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({2, 1, weight_shape[2], input_shape[3]});
 
   float input_min = -63.5, input_max = 64, output_min = -63.5, output_max = 64;
 
@@ -964,13 +952,13 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerTensorTest) {
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_weight, zero_point_weight);
-  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2, scales_bias,
-                                  zero_point_bias);
+                                     scales_weight, zero_point_weight);
+  tim::vx::Quantization quant_bias(tim::vx::QuantType::ASYMMETRIC, 2,
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -993,8 +981,8 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerTensorTest) {
   // weight data   iohw
   std::vector<float> weight_data_float = {1, 3, 7, 3, 2, 4, 8, 4,
                                           3, 5, 5, 1, 4, 6, 6, 2};
-  std::vector<int8_t> weight_data =
-      Quantize<int8_t>(weight_data_float, scales_weight[0], zero_point_weight[0]);
+  std::vector<int8_t> weight_data = Quantize<int8_t>(
+      weight_data_float, scales_weight[0], zero_point_weight[0]);
 
   // bias data
   std::vector<int32_t> bias_data = {6, -4, 8, 12};
@@ -1043,11 +1031,10 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerAxisTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({3, 2, 2, 1});   //whcn
-  tim::vx::ShapeType weight_shape({2, 2, 4, 1});  //whoi
+  tim::vx::ShapeType input_shape({3, 2, 2, 1});
+  tim::vx::ShapeType weight_shape({2, 2, 4, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {2, 1, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({2, 1, weight_shape[2], input_shape[3]});
 
   float input_min = -63.5, input_max = 64, output_min = -63.5, output_max = 64;
 
@@ -1072,13 +1059,13 @@ TEST(DepthwiseConv, shape_3_2_2_1_int8_PerAxisTest) {
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    2, scales_weight, zero_point_weight);
+                                     2, scales_weight, zero_point_weight);
   tim::vx::Quantization quant_bias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
-                                  scales_bias, zero_point_bias);
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -1150,11 +1137,10 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelValidTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({3, 3, 8, 1});   //whcn
-  tim::vx::ShapeType weight_shape({3, 3, 8, 1});  //whoi
+  tim::vx::ShapeType input_shape({3, 3, 8, 1});
+  tim::vx::ShapeType weight_shape({3, 3, 8, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {1, 1, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({1, 1, weight_shape[2], input_shape[3]});
 
   float input_min = -63.5, input_max = 64, output_min = -63.5, output_max = 64;
 
@@ -1179,13 +1165,13 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelValidTest) {
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    2, scales_weight, zero_point_weight);
+                                     2, scales_weight, zero_point_weight);
   tim::vx::Quantization quant_bias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
-                                  scales_bias, zero_point_bias);
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);
@@ -1262,11 +1248,10 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelSameTest) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
 
-  tim::vx::ShapeType input_shape({3, 3, 8, 1});   //whcn
-  tim::vx::ShapeType weight_shape({3, 3, 8, 1});  //whoi
+  tim::vx::ShapeType input_shape({3, 3, 8, 1});
+  tim::vx::ShapeType weight_shape({3, 3, 8, 1});
   tim::vx::ShapeType bias_shape({weight_shape[2]});
-  tim::vx::ShapeType output_shape(
-      {3, 3, weight_shape[2], input_shape[3]});  //whcn
+  tim::vx::ShapeType output_shape({3, 3, weight_shape[2], input_shape[3]});
 
   float input_min = -63.5, input_max = 64, output_min = -63.5, output_max = 64;
 
@@ -1291,13 +1276,13 @@ TEST(DepthwiseConv, shape_3_3_8_1_int8_PerChannelSameTest) {
   std::vector<float> scales_output = {scales_zp.first};
   std::vector<int32_t> zero_point_output = {scales_zp.second};
   tim::vx::Quantization quant_input(tim::vx::QuantType::ASYMMETRIC, 2,
-                                   scales_input, zero_point_input);
+                                    scales_input, zero_point_input);
   tim::vx::Quantization quant_weight(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL,
-                                    2, scales_weight, zero_point_weight);
+                                     2, scales_weight, zero_point_weight);
   tim::vx::Quantization quant_bias(tim::vx::QuantType::SYMMETRIC_PER_CHANNEL, 0,
-                                  scales_bias, zero_point_bias);
+                                   scales_bias, zero_point_bias);
   tim::vx::Quantization quant_output(tim::vx::QuantType::ASYMMETRIC, 2,
-                                    scales_output, zero_point_output);
+                                     scales_output, zero_point_output);
 
   tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
                                  tim::vx::TensorAttribute::INPUT, quant_input);

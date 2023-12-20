@@ -181,6 +181,14 @@ static vsi_nn_kernel_node_t _setup
 {
     vsi_nn_kernel_node_t node = NULL;
 
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(outputs);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(kernel);
+
     return node;
 } /* _setup() */
 

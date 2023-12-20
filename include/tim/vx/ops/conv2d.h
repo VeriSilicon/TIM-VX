@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,10 +37,11 @@ namespace ops {
  *
  * Performs a 2-D convolution operation, include classic Conv2D /
  * Depthwise Conv2D / Group Conv2D / Dilation Conv2D.
- * 
+ *
  * Input:
  * - input [WHCN or CWHN].
- * - kernel [ WHIcOc ] (Ic: Input Channels. Oc: Output Channels).
+ * - kernel [ WHIcOc ] (Ic: Input Channels. Oc: Output Channels) normally,
+ *   [WHIc(Oc)1] for Depthwise Conv.
  * - bias [ O ]. Optional.
  *
  * Attribute:
@@ -55,10 +56,9 @@ namespace ops {
  * - layout : WHCN or CWHN.
  */
 
-class Conv2d : public DirectMapOp {
+class Conv2d : public BuiltinOp {
  public:
-  Conv2d(Graph* graph, PadType padding,
-         const std::array<uint32_t, 2>& stride,
+  Conv2d(Graph* graph, PadType padding, const std::array<uint32_t, 2>& stride,
          const std::array<uint32_t, 2>& dilation, int32_t multiplier = 0,
          DataLayout input_layout = DataLayout::WHCN,
          DataLayout kernel_layout = DataLayout::WHIcOc);
@@ -83,9 +83,12 @@ class Conv2d : public DirectMapOp {
 
   DataLayout KernelDataLayout() { return kernel_layout_; }
 
-  std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+  std::shared_ptr<Operation> Clone(
+      std::shared_ptr<Graph>& graph) const override;
 
-  const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor() const override;
+  const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor()
+      const override;
+
  protected:
   const uint32_t weights_;
   const PadType padding_;
@@ -95,6 +98,10 @@ class Conv2d : public DirectMapOp {
   const std::array<uint32_t, 4> pad_;
   const int32_t multiplier_;
   const DataLayout kernel_layout_;
+
+ private:
+  void OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor,
+                           int32_t input_idx) override;
 };
 
 }  // namespace ops

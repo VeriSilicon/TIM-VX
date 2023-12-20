@@ -28,6 +28,7 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_math.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
+#include "kernel/vsi_nn_kernel_eltwise.h"
 
 static vsi_bool compute_gpu_divisor
     (
@@ -75,7 +76,7 @@ static vsi_size_t element_fill_dim
     if (size_x == 1)
         return 0;
 
-    if ( size_x < GPU_TENSOR_MAX_WIDTH)
+    if ( size_x < max_rank)
     {
         shape_x[rank_x] = size_x;
     }
@@ -83,9 +84,15 @@ static vsi_size_t element_fill_dim
     {
         vsi_size_t divisor = 0;
         vsi_size_t remainder = 0;
-        compute_gpu_divisor( size_x, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
+        compute_gpu_divisor( size_x, max_rank, 1, &divisor );
+        if (divisor == 0)
+        {
+            VSILOGE( "divisor might be used in a division by zero." );
+            cost_size =  (vsi_size_t)-1;
+            goto final;
+        }
         remainder = size_x / divisor;
-        if ( remainder > GPU_TENSOR_MAX_WIDTH || rank_x >= max_rank)
+        if ( remainder > max_rank || rank_x >= max_rank)
         {
             // Cannot optimize.
             shape_x[rank_x] = size_x;
@@ -109,6 +116,7 @@ static vsi_size_t element_fill_dim
             }
         }
     }
+final:
     return cost_size;
 } /* element_fill_dim() */
 
@@ -131,6 +139,9 @@ vsi_bool vsi_nn_kernel_optimize_reduce_shape
     vsi_size_t  innerSize                  = 1;
     vsi_size_t  outerSize                  = 1;
     vsi_size_t  axisSize                   = 1;
+
+    VSI_UNREFERENCED(shape_output);
+    VSI_UNREFERENCED(rank_output);
 
     for (i = 0; i < axis_size; i++)
     {
@@ -391,6 +402,12 @@ static vsi_size_t tile_fill_dim
         vsi_size_t divisor = 0;
         vsi_size_t remainder = 0;
         compute_gpu_divisor( size_output, GPU_TENSOR_MAX_WIDTH, 1, &divisor );
+        if (divisor == 0)
+        {
+            VSILOGE( "divisor might be used in a division by zero." );
+            cost_size =  (vsi_size_t)-1;
+            goto final;
+        }
         remainder = size_output / divisor;
         if ( remainder > GPU_TENSOR_MAX_WIDTH || rank >= max_rank )
         {
@@ -430,6 +447,7 @@ static vsi_size_t tile_fill_dim
             shape_output[rank + 1] = remainder;
         }
     }
+final:
     return cost_size;
 } /* eltwise_fill_dim() */
 
@@ -442,35 +460,148 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
     vsi_size_t* out_shape_output, vsi_size_t* out_rank_output
     )
 {
-    vsi_bool ret                        = TRUE;
-    vsi_bool append_dim                 = FALSE;
-    vsi_size_t   i                          = 0;
-    vsi_size_t   dims                       = 0;
+    vsi_bool    ret                        = TRUE;
+    vsi_bool    append_dim                 = FALSE;
+    vsi_size_t  i                          = 0;
+    vsi_size_t  j                          = 0;
+    vsi_size_t  dims                       = 0;
     vsi_size_t  effective_size_x           = 1;
     vsi_size_t  effective_size_y           = 1;
     vsi_size_t  effective_size_z           = 1;
     vsi_size_t  sx                         = 0;
     vsi_size_t  sy                         = 0;
     vsi_size_t  sz                         = 0;
+    int32_t     idx_start                  = -1;
+    int32_t     idx_end                    = 0;
     tile_axis_state_e state             = TILE_STATE_EMPTY;
     tile_axis_state_e next_state        = TILE_STATE_EMPTY;
+    vsi_size_t* temp_shape_x            = NULL;
+    vsi_size_t* temp_shape_y            = NULL;
+    vsi_size_t* temp_shape_output       = NULL;
+    vsi_size_t  temp_rank               = 0;
+    vsi_bool    exceed_maxsize          = FALSE;
 
 #define _swap_size(a, b, tmp)  \
-    do { \
+    { \
         tmp = a; \
         a = b; \
         b = tmp; \
-    } while(0)
-    for( i = 0; i < rank_output; i++ )
+    }
+
+    VSI_UNREFERENCED(rank_x);
+    VSI_UNREFERENCED(rank);
+
+    for (i = 0; i < rank_output; i++)
     {
-        sx = shape_x[i];
-        sy = multiples[i];
-        sz = shape_output[i];
+        if (shape_output[i] > GPU_TENSOR_MAX_WIDTH)
+        {
+            exceed_maxsize = TRUE;
+        }
+    }
+
+    if (exceed_maxsize)
+    {
+        for (i = 0; i < rank_output; i++)
+        {
+            out_shape_x[i] = shape_x[i];
+            out_shape_y[i] = multiples[i];
+            out_shape_output[i] = shape_output[i];
+        }
+        *out_rank_output = rank_output;
+        ret = TRUE;
+        goto final;
+    }
+
+    temp_shape_x = (vsi_size_t*)malloc(rank * sizeof(vsi_size_t));
+    if (temp_shape_x == NULL)
+    {
+        VSILOGE( "malloc temp_shape_x error." );
+        ret = FALSE;
+        goto final;
+    }
+
+    temp_shape_y = (vsi_size_t*)malloc(rank * sizeof(vsi_size_t));
+    if (temp_shape_y == NULL)
+    {
+        VSILOGE( "malloc temp_shape_y error." );
+        ret = FALSE;
+        goto final;
+    }
+
+    temp_shape_output = (vsi_size_t*)malloc(rank * sizeof(vsi_size_t));
+    if (temp_shape_output == NULL)
+    {
+        VSILOGE( "malloc temp_shape_output error." );
+        ret = FALSE;
+        goto final;
+    }
+    memcpy(temp_shape_x, shape_x, rank * sizeof(vsi_size_t));
+    memcpy(temp_shape_y, multiples, rank * sizeof(vsi_size_t));
+    memcpy(temp_shape_output, shape_output, rank * sizeof(vsi_size_t));
+
+    for (i = 0, temp_rank = 0; i < rank_output; i++)
+    {
+        if (i == rank_output - 1 && temp_shape_x[i] == 1)
+        {
+            if (idx_start >= 0)
+            {
+               sx = 1;
+               sy = temp_shape_y[idx_start];
+               sz = temp_shape_output[idx_start];
+               idx_end = (int32_t)i ;
+               for (j = (vsi_size_t)idx_start + 1; j <= (vsi_size_t)idx_end; j++)
+               {
+                   sy *= temp_shape_y[j];
+                   sz *= temp_shape_output[j];
+               }
+               temp_rank += tile_fill_dim( temp_shape_x, temp_shape_y, temp_shape_output,
+                       temp_rank, VSI_NN_MAX_DIM_NUM, sx, sy, sz );
+               idx_start = -1;
+            }
+            else
+            {
+                temp_shape_x[temp_rank] = temp_shape_x[i];
+                temp_shape_y[temp_rank] = temp_shape_y[i];
+                temp_shape_output[temp_rank++] = temp_shape_output[i];
+            }
+        }
+        else if (temp_shape_x[i] != 1)
+        {
+            idx_end = (int32_t)i - 1;
+            if (idx_start >= 0)
+            {
+               sx = 1;
+               sy = temp_shape_y[idx_start];
+               sz = temp_shape_output[idx_start];
+               for (j = (vsi_size_t)idx_start + 1; j <= (vsi_size_t)idx_end; j++)
+               {
+                   sy *= temp_shape_y[j];
+                   sz *= temp_shape_output[j];
+               }
+               temp_rank += tile_fill_dim( temp_shape_x, temp_shape_y, temp_shape_output,
+                       temp_rank, VSI_NN_MAX_DIM_NUM, sx, sy, sz );
+               idx_start = -1;
+            }
+            temp_shape_x[temp_rank] = temp_shape_x[i];
+            temp_shape_y[temp_rank] = temp_shape_y[i];
+            temp_shape_output[temp_rank++] = temp_shape_output[i];
+        }
+        else if (idx_start == -1)
+        {
+            idx_start = (int32_t)i;
+        }
+    }
+
+    for( i = 0; i < temp_rank; i++ )
+    {
+        sx = temp_shape_x[i];
+        sy = temp_shape_y[i];
+        sz = temp_shape_output[i];
         /*
          * Skip dim if the size is equal to 1
          * Also skip if ( sx == 1 && sy == 1 )
          */
-        if ( shape_output[i] == 1 )
+        if ( temp_shape_output[i] == 1 )
         {
             continue;
         }
@@ -490,8 +621,8 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
             VSI_ASSERT( FALSE );
         }
 
-        next_state = (i + 1) < rank_output ?
-            (multiples[i + 1] == 1 ? TILE_STATE_NO_AXIS : TILE_STATE_AXIS_X) : TILE_STATE_EMPTY;
+        next_state = (i + 1) < temp_rank ?
+            (temp_shape_y[i + 1] == 1 ? TILE_STATE_NO_AXIS : TILE_STATE_AXIS_X) : TILE_STATE_EMPTY;
 
         append_dim = FALSE;
 #define _pack_state( cur_state, next_state )    (next_state << 16 | cur_state)
@@ -507,9 +638,13 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
              * ...,x1,x2,...
              * ...,y1,y2,...
              */
+            case _pack_state( TILE_STATE_AXIS_X, TILE_STATE_EMPTY ):
+                effective_size_x = sx;
+                effective_size_y = sy;
+                effective_size_z = sz;
+                break;
             case _pack_state( TILE_STATE_AXIS_X, TILE_STATE_AXIS_X ):
             case _pack_state( TILE_STATE_AXIS_X, TILE_STATE_NO_AXIS ):
-            case _pack_state( TILE_STATE_AXIS_X, TILE_STATE_EMPTY ):
                 append_dim = TRUE;
                 break;
             /*
@@ -548,7 +683,7 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
     if ( ret )
     {
         /* Append the last dim */
-        if ( i == rank_output )
+        if ( i == temp_rank )
         {
             sx = effective_size_x;
             sy = effective_size_y;
@@ -573,6 +708,23 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
         *out_rank_output = (uint32_t)dims;
     }
 #undef _swap_size
+final:
+    if (temp_shape_x)
+    {
+        free( temp_shape_x);
+        temp_shape_x = NULL;
+    }
+    if (temp_shape_y)
+    {
+        free( temp_shape_y);
+        temp_shape_y = NULL;
+    }
+    if (temp_shape_output)
+    {
+        free( temp_shape_output);
+        temp_shape_output = NULL;
+    }
+
     return ret;
 } /* vsi_nn_kernel_optimize_eltwise_shape() */
 
@@ -612,6 +764,41 @@ vsi_bool vsi_nn_kernel_optimize_nchw2xhw_shape
     return TRUE;
 }
 
+vsi_bool vsi_nn_kernel_optimize_element_shape_with_max_rank
+    (
+    const vsi_size_t* shape_x, const vsi_size_t rank_x,
+    vsi_size_t* out_shape_x, vsi_size_t* out_rank_x, vsi_size_t max_rank
+    )
+{
+    vsi_bool ret                        = TRUE;
+    uint32_t  i                         = 0;
+    vsi_size_t   rank_in                    = 0;
+    vsi_size_t  element_num                = 1;
+
+    for (i = 0; i < rank_x; i++)
+    {
+        element_num *= shape_x[i];
+    }
+
+    rank_in += element_fill_dim(out_shape_x, rank_in, max_rank, element_num);
+
+    if ( 0 == rank_in )
+    {
+        out_shape_x[0] = 1;
+        out_shape_x[1] = 1;
+        rank_in = 2;
+    }
+    else if ( 1 == rank_in )
+    {
+        out_shape_x[1] = 1;
+        rank_in = 2;
+    }
+
+    *out_rank_x = (size_t)rank_in;
+
+    return ret;
+} /* vsi_nn_kernel_optimize_element_shape() */
+
 vsi_bool vsi_nn_kernel_optimize_group_norm_shape
     (
     const vsi_size_t* shape, const uint32_t rank, int32_t groups,
@@ -622,11 +809,20 @@ vsi_bool vsi_nn_kernel_optimize_group_norm_shape
     uint32_t i = 0;
     vsi_size_t out_rank = 0;
     vsi_size_t group_shape[VSI_NN_MAX_DIM_NUM] = {0};
+    vsi_size_t max_rank = GPU_TENSOR_MAX_WIDTH;
     group_shape[0] = shape[0];
     group_shape[1] = shape[1];
     group_shape[2] = shape[2] / groups;
 
-    vsi_nn_kernel_optimize_element_shape( group_shape, 3, out_shape, &out_rank );
+#define NN_INPUT_SIZE_MAX      ((1 << 13) - 1)
+    if (is_sp_kernel)
+    {
+        max_rank = NN_INPUT_SIZE_MAX;
+    }
+#undef NN_INPUT_SIZE_MAX
+
+    vsi_nn_kernel_optimize_element_shape_with_max_rank( group_shape, 3,
+        out_shape, &out_rank, max_rank);
 
     if (!is_sp_kernel && out_shape[1] == 1 && out_rank < 3)
     {
@@ -653,4 +849,473 @@ vsi_bool vsi_nn_kernel_optimize_group_norm_shape
     }
 
     return status;
+}
+
+vsi_bool vsi_nn_kernel_optimize_scatter_elements_shape
+    (
+    const vsi_size_t* shape_x, const vsi_size_t rank_x, const int32_t axis,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x, int32_t* out_axis, vsi_size_t max_size
+    )
+{
+    vsi_bool ret                        = TRUE;
+    vsi_size_t   i                          = 0;
+    vsi_size_t   rank_in                    = 0;
+    vsi_size_t   dims                       = 0;
+    vsi_size_t  innerSize                  = 1;
+    vsi_size_t  outerSize                  = 1;
+    vsi_size_t  axisSize                   = shape_x[axis];
+
+    for (i = 0; i < (size_t)axis; i++)
+    {
+        innerSize *= shape_x[i];
+    }
+
+    for (i = axis + 1; i < rank_x; i++)
+    {
+        outerSize *= shape_x[i];
+    }
+
+    rank_in += element_fill_dim(out_shape_x, rank_in, max_size, innerSize);
+    dims = element_fill_dim(out_shape_x, rank_in, max_size, axisSize);
+    if (dims == 0)
+    {
+        *out_axis = (int32_t)rank_in;
+        out_shape_x[rank_in ++] = 1;
+    }
+    else
+    {
+        *out_axis = (int32_t)rank_in;
+    }
+
+    rank_in += dims;
+
+    rank_in += element_fill_dim(out_shape_x, rank_in, max_size, outerSize);
+
+    if ( 0 == rank_in )
+    {
+        out_shape_x[0] = 1;
+        out_shape_x[1] = 1;
+        rank_in = 2;
+    }
+    else if ( 1 == rank_in )
+    {
+        out_shape_x[1] = 1;
+        rank_in = 2;
+    }
+
+    *out_rank_x = (uint32_t)rank_in;
+
+    return ret;
+} /* vsi_nn_kernel_optimize_scatter_elements_shape() */
+
+
+vsi_bool vsi_nn_kernel_optimize_matrixmul_broadcast_shape
+    (
+    const vsi_size_t * shape_x,
+    const vsi_size_t * shape_y,
+    const vsi_size_t * shape_output,
+    vsi_size_t dim_x,
+    vsi_size_t dim_y,
+    vsi_size_t dim_out,
+    vsi_size_t* out_shape_x,
+    vsi_size_t* out_shape_y,
+    vsi_size_t* out_shape_output,
+    uint32_t* new_rank_out,
+    uint32_t* cross_flg,
+    uint32_t* size_axis_inner_outer,
+    uint32_t* strides_axis_inner_outer
+    )
+{
+    vsi_bool     ret = FALSE;
+    vsi_size_t   rank_in[2] = {0, 0};
+    vsi_size_t   rank_out = 0;
+    vsi_size_t   shapes_in_broadcast_part[2][VSI_NN_MAX_DIM_NUM] = {{1}};
+    vsi_size_t*  shapes_in_broadcast_part_ptr[2]                 = {NULL, NULL};
+    vsi_size_t   shapes_out_broadcast_part[VSI_NN_MAX_DIM_NUM]   = {1};
+    vsi_size_t   out_shape_in[2][VSI_NN_MAX_DIM_NUM]             = {{1}};
+    vsi_size_t*  out_shape_in_ptr[2]                             = {NULL, NULL};
+    vsi_size_t   out_shape_boradcast_output[VSI_NN_MAX_DIM_NUM]  = {1};
+    uint32_t     new_rank   = 0;
+    uint32_t     i          = 0;
+    vsi_size_t   outer0 = 1;
+    vsi_size_t   outer1 = 1;
+    vsi_size_t   outer2 = 1;
+    vsi_size_t   axis_size = 0;
+    vsi_size_t   inner_size = 1;
+    vsi_size_t   outer_size = 1;
+    vsi_size_t   axis_size0 = 1;
+    vsi_size_t   axis_size1 = 1;
+    vsi_size_t   axis_size2 = 1;
+    vsi_size_t   inner_size0 = 0;
+    vsi_size_t   inner_size1 = 0;
+    vsi_size_t   inner_size2 = 0;
+    vsi_size_t   outer_size0 = 0;
+    vsi_size_t   outer_size1 = 0;
+    vsi_size_t   outer_size2 = 0;
+    uint32_t ne_flg = 0;
+    uint32_t axis = 0;
+    uint32_t outer_flg = 0;
+    uint32_t outer_axis = 0;
+    uint32_t first_flg = 0;
+    cross_flg[0] = 0;
+
+    if (dim_x > 2 && dim_y > 2)
+    {
+        for (i = 2; i < dim_x; i++)
+        {
+            outer0 *= shape_x[i];
+        }
+        for (i = 2; i < dim_y; i++)
+        {
+            outer1 *= shape_y[i];
+        }
+        for (i = 2; i < dim_out; i++)
+        {
+            outer2 *= shape_output[i];
+        }
+
+        for (i = 2; i < vsi_nn_min(dim_x, dim_y); i++)
+        {
+            if (shape_x[i] != shape_y[i] && first_flg == 0)
+            {
+                if (shape_x[i] == 1)
+                {
+                    ne_flg = 1;
+                    inner_size = shape_y[i];
+                }
+                else
+                {
+                    ne_flg = 2;
+                    inner_size = shape_x[i];
+                }
+                first_flg = 1;
+                continue;
+            }
+            else if (ne_flg == 1 && shape_x[i] != shape_y[i] && shape_x[i] == 1 && first_flg == 1)
+            {
+                inner_size *= shape_y[i];
+            }
+            else if (ne_flg == 2 && shape_x[i] != shape_y[i] && shape_y[i] == 1 && first_flg == 1)
+            {
+                inner_size *= shape_x[i];
+            }
+            else if (ne_flg == 1 && shape_x[i] != shape_y[i] && shape_x[i] != 1 && first_flg == 1)
+            {
+                outer_flg = 1;
+                outer_axis = i;
+                break;
+            }
+            else if (ne_flg == 2 && shape_x[i] != shape_y[i] && shape_y[i] != 1 && first_flg == 1)
+            {
+                outer_flg = 2;
+                outer_axis = i;
+                break;
+            }
+            else if (i > 2 && shape_x[i] == shape_y[i] && shape_y[i] != 1 && first_flg == 1)
+            {
+                first_flg = 2;
+            }
+            else if (shape_x[i] != shape_y[i] && shape_x[i] != 1 && first_flg == 2)
+            {
+                outer_flg = 1;
+                outer_axis = i;
+                break;
+            }
+            else if (shape_x[i] != shape_y[i] && shape_y[i] != 1 && first_flg == 2)
+            {
+                outer_flg = 2;
+                outer_axis = i;
+                break;
+            }
+            else if (i == 2 && shape_x[i] == shape_y[i] && shape_y[i] != 1)
+            {
+                /*axis = 2;
+                axis_size = shape_x[i];*/
+            }
+        }
+
+        if (ne_flg > 0 && outer0 > 1 && outer1 > 1)
+        {
+            for (i = 2; i < vsi_nn_min(dim_x, dim_y); i++)
+            {
+                if (shape_x[i] == shape_y[i] && shape_x[i] != 1)
+                {
+                    cross_flg[0] = 1;
+                    axis = i;
+                    axis_size = shape_x[i];
+                    break;
+                }
+            }
+        }
+
+        if (cross_flg[0] == 1) // cross
+        {
+            if (outer_flg == 1)
+            {
+                for (i = outer_axis; i < dim_x; i++)
+                {
+                    outer_size *= shape_x[i];
+                }
+            }
+            else if (outer_flg == 2)
+            {
+                for (i = outer_axis; i < dim_y; i++)
+                {
+                    outer_size *= shape_y[i];
+                }
+            }
+            else
+            {
+                outer_size = 1;
+            }
+
+            axis_size0 = 1;
+            axis_size1 = 1;
+            axis_size2 = 1;
+            if (axis > 2 && ne_flg == 1)
+            {
+                axis_size1 = inner_size;
+                axis_size2 = inner_size;
+            }
+            else if (axis > 2 && ne_flg == 2)
+            {
+                axis_size0 = inner_size;
+                axis_size2 = inner_size;
+            }
+
+            inner_size0 = 0;
+            inner_size1 = 0;
+            inner_size2 = 1;
+            if (axis == 2 && ne_flg == 1)
+            {
+                inner_size1 = axis_size;
+                inner_size2 = axis_size;
+            }
+            else if (axis > 2 && ne_flg == 1)
+            {
+                inner_size1 = 1;
+            }
+            else if (axis == 2 && ne_flg == 2)
+            {
+                inner_size0 = axis_size;
+                inner_size2 = axis_size;
+            }
+            else if (axis > 2 && ne_flg == 2)
+            {
+                inner_size0 = 1;
+            }
+
+            outer_size0 = 0;
+            outer_size1 = 0;
+            outer_size2 = axis_size * inner_size;
+            if (outer_flg == 1)
+            {
+                outer_size0 = axis_size0 * axis_size;
+            }
+            else if (outer_flg == 2)
+            {
+                outer_size1 = axis_size1 * axis_size;
+            }
+
+            for (i = 0; i < 2; i++)
+            {
+                out_shape_x[i] = shape_x[i];
+                out_shape_y[i] = shape_y[i];
+                out_shape_output[i] = shape_output[i];
+            }
+            out_shape_x[2] = outer0;
+            out_shape_x[3] = 1;
+            out_shape_y[2] = outer1;
+            out_shape_output[2] = outer2;
+            new_rank_out[0] = 4;
+            new_rank_out[1] = 3;
+            new_rank_out[2] = 3;
+
+            size_axis_inner_outer[0] = (uint32_t)axis_size;
+            size_axis_inner_outer[1] = (uint32_t)inner_size;
+            size_axis_inner_outer[2] = (uint32_t)outer_size;
+
+            strides_axis_inner_outer[0] = (uint32_t)axis_size0;
+            strides_axis_inner_outer[1] = (uint32_t)inner_size0;
+            strides_axis_inner_outer[2] = (uint32_t)outer_size0;
+
+            strides_axis_inner_outer[3] = (uint32_t)axis_size1;
+            strides_axis_inner_outer[4] = (uint32_t)inner_size1;
+            strides_axis_inner_outer[5] = (uint32_t)outer_size1;
+
+            strides_axis_inner_outer[6] = (uint32_t)axis_size2;
+            strides_axis_inner_outer[7] = (uint32_t)inner_size2;
+            strides_axis_inner_outer[8] = (uint32_t)outer_size2;
+
+            return TRUE;
+        }
+        else if (outer0 > 1 && outer1 > 1 && ne_flg > 0 && cross_flg[0] == 0)
+        {
+            cross_flg[0] = 2;
+        }
+    }
+
+    if (cross_flg[0] == 2) // merge
+    {
+        for (i = 0; i < 2; i++)
+        {
+            out_shape_x[i] = shape_x[i];
+            out_shape_y[i] = shape_y[i];
+            out_shape_output[i] = shape_output[i];
+        }
+        out_shape_output[2] = outer2;
+        new_rank_out[2] = 3;
+        if (ne_flg == 1)
+        {
+            out_shape_x[2] = outer0;
+            out_shape_x[3] = 1;
+            out_shape_y[2] = outer1;
+
+            new_rank_out[0] = 4;
+            new_rank_out[1] = 3;
+        }
+        else if (ne_flg == 2)
+        {
+            out_shape_x[2] = outer0;
+            out_shape_y[2] = outer1;
+            out_shape_y[3] = 1;
+
+            new_rank_out[0] = 3;
+            new_rank_out[1] = 4;
+        }
+
+        return TRUE;
+    }
+    else if (dim_x == 1 && dim_y > 1)
+    {
+        out_shape_x[0]    = shape_x[0];
+        out_shape_x[1]    = 1;
+
+        out_shape_y[0]    = shape_y[0];
+        out_shape_y[1]    = shape_y[1];
+
+        out_shape_output[0]   = shape_output[0];
+        out_shape_output[1]   = 1;
+
+        if (dim_y > 2)
+        {
+            shapes_in_broadcast_part[0][0] = 1;
+            rank_in[0] = 1;
+
+            for (i = 2; i <= dim_y; i++)
+            {
+                shapes_in_broadcast_part[1][i - 2] = shape_y[i];
+            }
+            rank_in[1] = dim_y - 2;
+
+            for(i = 1; i <= dim_out; i++)
+            {
+                shapes_out_broadcast_part[i - 1] = shape_output[i];
+            }
+            rank_out = dim_out - 1;
+        }
+    }
+    else if (dim_y == 1 && dim_x > 1)
+    {
+        out_shape_y[0]    = 1;
+        out_shape_y[1]    = shape_y[0];
+
+        out_shape_x[0]    = shape_x[0];
+        out_shape_x[1]    = shape_x[1];
+
+        out_shape_output[0]   = 1;
+        out_shape_output[1]   = shape_output[0];
+
+        if (dim_x > 2)
+        {
+            shapes_in_broadcast_part[1][0] = 1;
+            rank_in[1] = 1;
+
+            for (i = 2; i <= dim_x; i++)
+            {
+                shapes_in_broadcast_part[0][i - 2] = shape_x[i];
+            }
+            rank_in[0] = dim_x - 2;
+
+            for(i = 1; i <= dim_out; i++)
+            {
+                shapes_out_broadcast_part[i - 1] = shape_output[i];
+            }
+            rank_out = dim_out - 1;
+        }
+    }
+    else
+    {
+        out_shape_x[0]    = shape_x[0];
+        out_shape_x[1]    = shape_x[1];
+
+        out_shape_y[0]    = shape_y[0];
+        out_shape_y[1]    = shape_y[1];
+
+        out_shape_output[0]    = shape_output[0];
+        out_shape_output[1]    = shape_output[1];
+
+        for (i = 2; i < dim_x; i++)
+        {
+            shapes_in_broadcast_part[0][i - 2] = shape_x[i];
+        }
+        for (i = 2; i < dim_y; i++)
+        {
+            shapes_in_broadcast_part[1][i - 2] = shape_y[i];
+        }
+        for (i = 2; i < dim_out; i++)
+        {
+            shapes_out_broadcast_part[i - 2] = shape_output[i];
+        }
+        rank_in[0] = dim_x - 2;
+        rank_in[1] = dim_y - 2;
+        rank_out = dim_out - 2;
+
+    }
+
+    shapes_in_broadcast_part_ptr[0] = shapes_in_broadcast_part[0];
+    shapes_in_broadcast_part_ptr[1] = shapes_in_broadcast_part[1];
+    out_shape_in_ptr[0] = out_shape_in[0];
+    out_shape_in_ptr[1] = out_shape_in[1];
+
+    ret = vsi_nn_kernel_optimize_broadcast_shape(
+            (const vsi_size_t **)shapes_in_broadcast_part_ptr, rank_in, 2,
+            shapes_out_broadcast_part, rank_out,
+            (vsi_size_t **)out_shape_in_ptr, out_shape_boradcast_output, &new_rank);
+
+    if (ret)
+    {
+        int32_t j = 0;
+
+        new_rank_out[0] = new_rank + 2;
+        new_rank_out[1] = new_rank + 2;
+        new_rank_out[2] = new_rank + 2;
+
+        j = new_rank - 1;
+        while (out_shape_in[0][j] == 1 && j >= 0) {
+            new_rank_out[0]--;
+            j--;
+        }
+
+        j = new_rank - 1;
+        while (out_shape_in[1][j] == 1 && j >= 0) {
+            new_rank_out[1]--;
+            j--;
+        }
+
+        j = new_rank - 1;
+        while (out_shape_boradcast_output[j] == 1 && j >= 0) {
+            new_rank_out[2]--;
+            j--;
+        }
+
+        for (i = 0; i < new_rank; i++)
+        {
+            out_shape_x[i + 2] = out_shape_in[0][i];
+            out_shape_y[i + 2] = out_shape_in[1][i];
+            out_shape_output[i + 2] = out_shape_boradcast_output[i];
+        }
+    }
+
+    return ret;
 }

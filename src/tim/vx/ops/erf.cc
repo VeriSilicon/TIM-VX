@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/erf.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -31,7 +31,7 @@ namespace tim {
 namespace vx {
 namespace ops {
 
-Erf::Erf(Graph* graph) : DirectMapOp(graph, VSI_NN_OP_ERF) {}
+Erf::Erf(Graph* graph) : BuiltinOp(graph, VSI_NN_OP_ERF) {}
 
 std::shared_ptr<Operation> Erf::Clone(std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<Erf>();

@@ -1,0 +1,22 @@
+{
+    "CumSum":{
+        "parameters":
+            [
+                {"name": "axis",
+                 "dtype": "int32_t",
+                 "Optional":"true",
+                 "default":"0"
+                },
+                {"name": "exclusive",
+                 "dtype": "int32_t",
+                 "Optional":"true",
+                 "default":"0"
+                },
+                {"name": "reverse",
+                 "dtype": "int32_t",
+                 "Optional":"true",
+                 "default":"0"
+                }
+            ]
+    }
+}

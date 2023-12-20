@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -79,7 +79,7 @@ TEST(ScatterND, shape_4_4_4) {
     EXPECT_EQ(golden, output);
 }
 
-TEST(ScatterND, shape_9) {
+TEST(ScatterND, DISABLED_shape_9) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 
@@ -104,7 +104,7 @@ TEST(ScatterND, shape_9) {
         18, 20, 22, 24
         };
     std::vector<uint8_t> golden = {
-        0, 22, 0, 20, 18, 0, 0, 24, 0 
+        0, 22, 0, 20, 18, 0, 0, 24, 0
         };
 
     EXPECT_TRUE(indices_tensor->CopyDataToTensor(

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -52,7 +52,9 @@ class BatchNormLayoutInfer : public OpLayoutInfer {
         std::shared_ptr<IPermuteVector> input_pv;
         auto src_in = input_tensors[idx];
         if (src_in->IsConstTensor()) {
-            perm_out = context_->infer_graph_->CreateTensor(src_in->GetSpec(), src_in->GetDataRef());
+            std::vector<uint8_t> dataRef(src_in->GetSpec().GetByteSize());
+            src_in->CopyDataFromTensor(dataRef.data());
+            perm_out = context_->infer_graph_->CreateTensor(src_in->GetSpec(), (const void*)dataRef.data());
             input_pv = MakeShared(src_in->GetShape().size());
         } else {
           perm_out = context_->GetMapedTensor(src_in);

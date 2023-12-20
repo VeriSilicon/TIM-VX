@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/stridedslice.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -34,18 +34,21 @@ StridedSlice::StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
                            const std::vector<int32_t> end_dims,
                            const std::vector<int32_t> stride_dims,
                            int32_t begin_mask, int32_t end_mask,
-                           int32_t shrink_axis_mask)
-    : DirectMapOp(graph, VSI_NN_OP_STRIDED_SLICE),
+                           int32_t shrink_axis_mask, int32_t new_axis_mask)
+    : BuiltinOp(graph, VSI_NN_OP_STRIDED_SLICE),
       begin_dims_(std::move(begin_dims)),
       end_dims_(std::move(end_dims)),
       stride_dims_(std::move(stride_dims)),
       begin_mask_(begin_mask),
       end_mask_(end_mask),
-      shrink_axis_mask_(shrink_axis_mask) {
+      shrink_axis_mask_(shrink_axis_mask),
+      new_axis_mask_(new_axis_mask) {
   this->impl()->node()->nn_param.strided_slice.begin_mask = begin_mask_;
   this->impl()->node()->nn_param.strided_slice.end_mask = end_mask_;
   this->impl()->node()->nn_param.strided_slice.shrink_axis_mask =
       shrink_axis_mask_;
+  this->impl()->node()->nn_param.strided_slice.new_axis_mask =
+      new_axis_mask_;
   this->impl()->node()->nn_param.strided_slice.begin_dims = begin_dims_.data();
   this->impl()->node()->nn_param.strided_slice.begin_dims_num =
       begin_dims_.size();
@@ -57,11 +60,19 @@ StridedSlice::StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
       stride_dims_.size();
 }
 
+StridedSlice::StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
+                           const std::vector<int32_t> end_dims,
+                           const std::vector<int32_t> stride_dims,
+                           int32_t begin_mask, int32_t end_mask,
+                           int32_t shrink_axis_mask)
+    : StridedSlice(graph, begin_dims, end_dims, stride_dims,
+                   begin_mask, end_mask, shrink_axis_mask, 0) {}
+
 std::shared_ptr<Operation> StridedSlice::Clone(
     std::shared_ptr<Graph>& graph) const {
   return graph->CreateOperation<StridedSlice>(
       this->begin_dims_, this->end_dims_, this->stride_dims_, this->begin_mask_,
-      this->end_mask_, this->shrink_axis_mask_);
+      this->end_mask_, this->shrink_axis_mask_, this->new_axis_mask_);
 }
 
 }  // namespace ops

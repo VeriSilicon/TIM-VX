@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -144,7 +144,7 @@ TEST(LSTM_CELL, shape_in_2_cell_4_out_4_float32) {
 
     auto lstm_cell_op = g->CreateOperation<tim::vx::ops::UnidirectionalSequenceLstm>(
         0.0, 0.0, tim::vx::ops::UnidirectionalSequenceLstm::ActivationType::kTANH, 0.0, false,
-        tim::vx::ops::UnidirectionalSequenceLstm::kNONE, true);
+        tim::vx::ops::UnidirectionalSequenceLstm::kSIGMOID, true);
 
     (*lstm_cell_op)
         .BindInputs({

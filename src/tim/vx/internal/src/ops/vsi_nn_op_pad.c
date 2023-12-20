@@ -48,13 +48,14 @@ vsi_status vsi_nn_InitPadParameter
     uint8_t i;
     vsi_status status = VSI_FAILURE;
 
-    if(NULL == node || NULL == param)
+    memset(param, 0, sizeof(vx_nn_pad_params_t));
+
+    if (NULL == node)
     {
         VSILOGE("Set param fail\n");
         return VSI_FAILURE;
     }
 
-    memset(param, 0, sizeof(vx_nn_pad_params_t));
     pad_const_val = node->nn_param.pad.const_val;
     param->pad_mode = node->nn_param.pad.mode;
     param->pad_const = vxCreateScalar( node->graph->ctx->c, VX_TYPE_INT32, &pad_const_val );
@@ -137,12 +138,13 @@ static vsi_status op_compute
     vsi_status status;
     vx_nn_pad_params_t p;
     vsi_nn_tensor_t *convert_tensor = NULL;
+    vsi_bool release_intermediate_tensor = TRUE;
 
     status = VSI_FAILURE;
-    if(VSI_SUCCESS != vsi_nn_InitPadParameter(self, &p))
+    if (VSI_SUCCESS != vsi_nn_InitPadParameter(self, &p))
     {
         VSILOGE("Set Pad Layer Parameter fail\n");
-        return VSI_FAILURE;
+        goto final;
     }
 
     if ( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
@@ -154,6 +156,7 @@ static vsi_status op_compute
         attr.is_const = FALSE;
 
         convert_tensor = vsi_nn_CreateTensor(self->graph, &attr);
+        CHECK_PTR_FAIL_GOTO( convert_tensor, "Create tensor fail.", final );
 
         self->n = vxTensorCopyNode(
             self->graph->g,
@@ -163,8 +166,8 @@ static vsi_status op_compute
     }
     else
     {
-        convert_tensor = vsi_nn_reshape_tensor( self->graph,
-            inputs[0], inputs[0]->attr.size, inputs[0]->attr.dim_num );
+        convert_tensor = inputs[0];
+        release_intermediate_tensor = FALSE;
     }
     self->n = vxTensorPadNode(
         self->graph->g,
@@ -174,12 +177,16 @@ static vsi_status op_compute
         sizeof(p)
         );
 
-    vsi_nn_DeinitPadParameter(&p);
-    vsi_safe_release_tensor(convert_tensor);
-
-    if( NULL != self->n )
+    if ( NULL != self->n )
     {
         status = VSI_SUCCESS;
+    }
+
+final:
+    vsi_nn_DeinitPadParameter(&p);
+    if (release_intermediate_tensor)
+    {
+        vsi_safe_release_tensor(convert_tensor);
     }
 
     return status;
@@ -193,14 +200,26 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(PAD, 1, 1)
-        IO_TYPE(D_F32,  D_F32)
-        IO_TYPE(D_F32,  D_BF16)
-        IO_TYPE(D_BF16, D_F32)
-        IO_TYPE(D_BF16, D_BF16)
-        IO_TYPE(D_F16,  D_F16)
-        IO_TYPE(D_U8|Q_ASYM,  D_U8|Q_ASYM)
-        IO_TYPE(D_I16|Q_DFP,  D_I16|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,   D_I8|Q_DFP)
+        IO_TYPE(D_F32,          D_F32)
+        IO_TYPE(D_F32,          D_BF16)
+        IO_TYPE(D_BF16,         D_F32)
+        IO_TYPE(D_BF16,         D_BF16)
+        IO_TYPE(D_F16,          D_F16)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
+        IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
+        IO_TYPE(D_I32,          D_I32)
+
+        /* HW 9.1.1 */
+        IO_TYPE(D_U4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_U4|Q_SYM,     D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,     D_I4|Q_SYM)
+
     END_IO_TYPE_DECL(PAD)
     if (!VALIDATE_OP_IO_TYPES(PAD, self, inputs, self->input.num, outputs, self->output.num))
     {
@@ -252,7 +271,7 @@ static vsi_bool op_setup
             if (front + back + inputs[0]->attr.size[i] != outputs[0]->attr.size[i])
             {
                 VSILOGE("Error:output shape[%u] not equal front padding[%u] + input shape[%u] + back padding[%u]",
-                    outputs[0]->attr.size[i], front, back);
+                    outputs[0]->attr.size[i], front, inputs[0]->attr.size[i], back);
                 return FALSE;
             }
         }

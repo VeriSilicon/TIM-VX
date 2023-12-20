@@ -124,12 +124,12 @@ DEF_KERNEL_INITIALIZER(_pre_process_gray_copy_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     vsi_size_array_t * out_shape = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
 
     out_shape  = attr[0]->shape;
-    dstZP      = (float)attr[0]->asymm.zero_point;
-    outputScale   = attr[0]->asymm.scale;
     width      = (uint32_t)(out_shape->data[0]);
     height     = (uint32_t)(out_shape->data[1]);
 
@@ -147,7 +147,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_gray_copy_initializer)
     }
     else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
     {
-        outputScale = 1.0f/outputScale;
+        outputScale = 1.0f / attr[0]->asymm.scale;
+        dstZP = (float)attr[0]->asymm.zero_point;
     }
     else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
     {
@@ -224,6 +225,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_gray_initializer)
 
     vsi_nn_kernel_tensor_attr_t * attr[1] = { NULL };
     vsi_size_array_t * out_shape = NULL;
+
+    VSI_UNREFERENCED(param_size);
 
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
@@ -389,6 +392,8 @@ DEF_KERNEL_INITIALIZER(_resize_gray_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
     vsi_size_array_t * out_shape = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -517,7 +522,7 @@ static vsi_status _query_kernel
     vsi_nn_gray_convert_type_e convert_type = SCALE;
     vsi_status status = VSI_FAILURE;
     uint32_t key = 0;
-    int32_t i = 0;
+    size_t i = 0;
     vsi_bool is_4_over_3 = FALSE;
     vsi_bool is_half_scale = FALSE;
     vsi_bool enable_copy = vsi_nn_kernel_param_get_int32( params, "enable_copy" );
@@ -605,6 +610,9 @@ static vsi_nn_kernel_node_t _setup
     float mean       = vsi_nn_kernel_param_get_float32( params, "mean" );
     float scale      = vsi_nn_kernel_param_get_float32( params, "scale" );
     vsi_bool is_no_range_change = FALSE;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     if( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
                 outputs[0]->attr.dim_num ) )

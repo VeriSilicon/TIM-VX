@@ -35,14 +35,20 @@ extern "C" {
 
 typedef struct _vsi_nn_layernorm_lcl_data
 {
-    vx_tensor   local_tensor[_VSI_NN_LAYERNORM_LOCAL_TENSOR_NUM];
+    vsi_bool use_internal_node;
 } vsi_nn_layernorm_lcl_data;
 
 typedef struct _vsi_nn_layernormalize_param
 {
     /* local data must be the first. */
-    vsi_nn_layernorm_lcl_data local;
+    union
+    {
+        vx_tensor local_tensor[_VSI_NN_LAYERNORM_LOCAL_TENSOR_NUM];
+        vsi_nn_layernorm_lcl_data *local;
+    };
+
     float eps;
+    int32_t axis;
 } vsi_nn_layernormalize_param;
 
 #ifdef __cplusplus

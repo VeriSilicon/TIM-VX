@@ -77,6 +77,7 @@ static vsi_status op_compute
     MAP_PARAM("overflow_policy",self->vx_param.overflow_policy);
     MAP_PARAM("rounding_policy",self->vx_param.rounding_policy);
     MAP_PARAM("down_scale_size_rounding",self->vx_param.down_scale_size_rounding);
+    MAP_PARAM("pad_mode", vsi_nn_get_vx_pad_mode( self->nn_param.conv3d.pad_mode ) );
 
     if ( self->nn_param.conv3d.dilation[0] *
          self->nn_param.conv3d.dilation[1] *
@@ -257,12 +258,6 @@ static vsi_bool op_check
             destroy_op_io_types_desc(desc);
             return FALSE;
         }
-
-        /* check parameters */
-        if(inputs[1]->attr.size[0] * inputs[1]->attr.size[1] > 6400) {
-            VSILOGE("Kernel size should <= 6400.");
-            return FALSE;
-        }
     }
     return TRUE;
 } /* op_check() */
@@ -358,7 +353,7 @@ static vsi_status op_init
     //self->nn_param.conv3d.local = \
     //    (conv3d_local_data_t*)malloc(sizeof(conv3d_local_data_t));
     */
-
+    VSI_UNREFERENCED(self);
     return VSI_SUCCESS;
 } /* op_init() */
 

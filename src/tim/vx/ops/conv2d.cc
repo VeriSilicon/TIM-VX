@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/conv2d.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -42,8 +42,8 @@ Conv2d::Conv2d(Graph* graph, const std::array<uint32_t, 4> pad,
                const std::array<uint32_t, 2>& stride,
                const std::array<uint32_t, 2>& dilation, int32_t multiplier,
                DataLayout input_layout, DataLayout kernel_layout)
-    : Conv2d(graph, 0, PadType::AUTO, {0, 0}, stride, dilation, pad,
-             multiplier, input_layout, kernel_layout) {}
+    : Conv2d(graph, 0, PadType::AUTO, {0, 0}, stride, dilation, pad, multiplier,
+             input_layout, kernel_layout) {}
 
 Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
                const std::array<uint32_t, 2>& ksize,
@@ -59,7 +59,7 @@ Conv2d::Conv2d(Graph* graph, int32_t weights, PadType padding,
                const std::array<uint32_t, 2>& dilation,
                const std::array<uint32_t, 4>& pad, int32_t multiplier,
                DataLayout input_layout, DataLayout kernel_layout)
-    : DirectMapOp(graph, VSI_NN_OP_CONV2D, 0, 0, input_layout),
+    : BuiltinOp(graph, VSI_NN_OP_CONV2D, 0, 0, input_layout),
       weights_(weights),
       padding_(padding),
       ksize_(ksize),
@@ -88,11 +88,31 @@ std::shared_ptr<Operation> Conv2d::Clone(std::shared_ptr<Graph>& graph) const {
       this->kernel_layout_);
 }
 
-const std::vector<std::shared_ptr<Tensor>> Conv2d::ConstantInputsTensor() const {
-   if (this->IsAllInputsConst()) {
+const std::vector<std::shared_ptr<Tensor>> Conv2d::ConstantInputsTensor()
+    const {
+  if (this->IsAllInputsConst()) {
     return {this->impl_->inputs_tensor_[0]};
   } else {
     return {};
+  }
+}
+
+// Handle float16 bias
+void Conv2d::OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor,
+                                 int32_t input_idx) {
+  if (tensor->GetDataType() == vx::DataType::FLOAT16 &&
+      tensor->IsConstTensor() && impl_->inputs_tensor_.size() == 3) {
+    float* float32_bias = tensor->ConvertTensorToFloat32Data();
+
+    TensorSpec fp32bias_spec(tim::vx::DataType::FLOAT32, tensor->GetShape(),
+                             tim::vx::TensorAttribute::CONSTANT);
+
+    auto out_tensor = impl_->graph_->CreateTensor(fp32bias_spec, float32_bias);
+    vsi_nn_Free(float32_bias);
+
+    impl_->inputs_tensor_[2] = out_tensor;
+    impl_->node()->input.tensors[input_idx] = out_tensor->GetId();
+    impl_->graph_->RenewTensorConsumersMap(tensor, out_tensor, this);
   }
 }
 

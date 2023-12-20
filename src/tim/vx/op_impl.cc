@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 namespace tim {
 namespace vx {
 
-OpImpl::OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
+OpImpl::OpImpl(Graph* graph, int32_t kind, int input_cnt, int output_cnt,
                DataLayout layout)
     : graph_(reinterpret_cast<GraphImpl*>(graph)),
       kind_(kind),
@@ -38,5 +38,14 @@ OpImpl::OpImpl(Graph* graph, DataLayout layout)
       : graph_(reinterpret_cast<GraphImpl*>(graph)),
       layout_(layout) {}
 
+void OpImpl::SetRoundingPolicy(OverflowPolicy overflow_policy,
+                               RoundingPolicy rounding_policy,
+                               RoundType down_scale_size_roundin,
+                               uint32_t accumulator_bits) {
+  (void)overflow_policy;
+  (void)rounding_policy;
+  (void)down_scale_size_roundin;
+  (void)accumulator_bits;
+}
 }  // namespace vx
 }  // namespace tim

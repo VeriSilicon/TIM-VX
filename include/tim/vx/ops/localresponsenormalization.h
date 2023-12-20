@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_LOCALRESPONSENORMALIZATION_H_
 #define TIM_VX_OPS_LOCALRESPONSENORMALIZATION_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 /**
  * ## LocalResponseNormalization
@@ -34,13 +34,18 @@
  * sqr_sum[a, b, c, d] = sum(
  *     pow(input[a, b, c, d - depth_radius : d + depth_radius + 1], 2))
  * output = input / pow((bias + alpha * sqr_sum), beta)
+ * output = input / pow((bias + alpha * sqr_sum), beta)
+ * size : width of the 1-D normalization window.
+ * bias : An offset (usually positive to avoid dividing by 0).
+ * alpha : A scale factor.
+ * beta : An exponent.
  * ```
  */
 
 namespace tim {
 namespace vx {
 namespace ops {
-class LocalResponseNormalization : public DirectMapOp {
+class LocalResponseNormalization : public BuiltinOp {
  public:
   LocalResponseNormalization(Graph* graph, uint32_t size, float alpha,
                              float beta, float bias, int32_t axis);

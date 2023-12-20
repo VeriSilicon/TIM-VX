@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/reverse.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,7 +31,7 @@ namespace vx {
 namespace ops {
 
 Reverse::Reverse(Graph* graph, const std::vector<int32_t>& axis)
-    : DirectMapOp(graph, VSI_NN_OP_REVERSE), axis_(axis) {
+    : BuiltinOp(graph, VSI_NN_OP_REVERSE), axis_(axis) {
   this->impl()->node()->nn_param.reverse.axis = axis_.data();
   this->impl()->node()->nn_param.reverse.axis_num = axis_.size();
 }

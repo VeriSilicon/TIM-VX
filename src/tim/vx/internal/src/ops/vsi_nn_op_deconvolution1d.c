@@ -35,6 +35,7 @@
 #include "vsi_nn_log.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "kernel/vsi_nn_kernel.h"
+#include "vsi_nn_error.h"
 
 #define COMPUTE_DECONV_SZ( in, ksize, pad_1, pad_2, stride, output_padding )\
     (( in - 1 ) * stride + ksize - pad_1 - pad_2 + output_padding)
@@ -63,23 +64,23 @@ static vsi_status op_compute
     weight_attr.size[2] = weight_attr.size[1];
     weight_attr.size[1] = 1;
     weight_attr.dim_num = 4;
-    if (inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC)
+    if (inputs[1]->attr.dtype.qnt_type !=
+            VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC &&
+        inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
     {
         weight_tensor = vsi_nn_reshape_tensor( self->graph, inputs[1], weight_attr.size, 4 );
+        CHECK_PTR_FAIL_GOTO( weight_tensor, "create tensor fail.", final );
     }
     else
     {
         uint8_t * data = NULL;
         data = vsi_nn_ConvertTensorToData( self->graph, inputs[1] );
-        if (NULL == data)
-        {
-            VSILOGE("Convert data fail.\n");
-            status = VSI_FAILURE;
-            return status;
-        }
+        CHECK_PTR_FAIL_GOTO( data, "Convert data fail.", final );
+
         weight_attr.dtype.channel_dim = inputs[1]->attr.dtype.channel_dim + 1;
         weight_tensor = vsi_nn_CreateTensorFromData(self->graph, data, &weight_attr);
         vsi_nn_safe_free( data );
+        CHECK_PTR_FAIL_GOTO( weight_tensor, "create tensor fail.", final );
     }
 
 #ifdef VX_DECONVOLUTION_WEIGHT_LAYOUT_COMPATIBLE_KHRONOS
@@ -119,6 +120,7 @@ static vsi_status op_compute
             attr.size[2] = weight_tensor->attr.size[3];
             attr.size[3] = weight_tensor->attr.size[2];
             permute_tensor = vsi_nn_CreateTensor(self->graph, &attr);
+            CHECK_PTR_FAIL_GOTO( permute_tensor, "Create tensor fail.", final );
             self->n = vxTensorPermuteNode( self->graph->g, weight_tensor->t,
                         permute_tensor->t, perm_array, 4);
             if ( NULL == self->n )
@@ -136,6 +138,7 @@ static vsi_status op_compute
         memset(&attr_reverse, 0, sizeof(vsi_nn_tensor_attr_t));
         memcpy(&attr_reverse, &tmp_in_tensor->attr, sizeof(vsi_nn_tensor_attr_t) );
         reverse_tensor = vsi_nn_CreateTensor(self->graph, &attr_reverse);
+        CHECK_PTR_FAIL_GOTO( reverse_tensor, "Create tensor fail.", final );
         para.axis = axis_reverse;
         para.numberOfAxis = 2;
 
@@ -220,7 +223,7 @@ static vsi_bool op_check
 {
     vsi_bool ret = FALSE;
 
-    ret = vsi_nn_OpCheck(VSI_NN_OP_DECONVOLUTION, self, inputs, outputs);
+    ret = vsi_nn_OpCheck(VSI_NN_OP_CONV1D, self, inputs, outputs);
 
     return ret;
 } /* op_check() */
@@ -261,9 +264,8 @@ static vsi_bool op_setup
         }
         else
         {
-            outputs[0]->attr.size[1] = inputs[1]->attr.size[3];
+            outputs[0]->attr.size[1] = inputs[1]->attr.size[2];
         }
-        outputs[0]->attr.size[1] = nn_param->weights;
         outputs[0]->attr.size[2] = inputs[0]->attr.size[2];
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
     }

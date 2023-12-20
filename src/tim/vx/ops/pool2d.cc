@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/pool2d.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -36,7 +36,7 @@ Pool2d::Pool2d(Graph* graph, PoolType type, PadType padding,
                const std::array<uint32_t, 2>& ksize,
                const std::array<uint32_t, 2>& stride, RoundType round_type,
                DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_POOL, 1, 1, layout),
+    : BuiltinOp(graph, VSI_NN_OP_POOL, 1, 1, layout),
       type_(type),
       padding_(padding),
       ksize_(ksize),
@@ -59,7 +59,7 @@ Pool2d::Pool2d(Graph* graph, PoolType type,
                const std::array<uint32_t, 2>& ksize,
                const std::array<uint32_t, 2>& stride, RoundType round_type,
                DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_POOL, 1, 1, layout),
+    : BuiltinOp(graph, VSI_NN_OP_POOL, 1, 1, layout),
       type_(type), padding_(PadType::AUTO), ksize_(ksize), stride_(stride),
       round_type_(round_type), pad_(pad) {
   Init();
@@ -70,7 +70,7 @@ Pool2d::Pool2d(Graph* graph, PoolType type,
                const std::array<uint32_t, 2>& input_size,
                RoundType round_type,
                DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_POOL, 1, 1, layout),
+    : BuiltinOp(graph, VSI_NN_OP_POOL, 1, 1, layout),
       type_(type), padding_(PadType::AUTO), ksize_(input_size), stride_(input_size),
       round_type_(round_type), pad_({0, 0, 0, 0}) {
   Init();
@@ -82,7 +82,7 @@ Pool2d::Pool2d(Graph* graph, PoolType type,
                const std::array<uint32_t, 2>& output_size,
                RoundType round_type,
                DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_POOL, 1, 1, layout),
+    : BuiltinOp(graph, VSI_NN_OP_POOL, 1, 1, layout),
       type_(type), padding_(PadType::AUTO),
       round_type_(round_type), pad_({0, 0, 0, 0}) {
   stride_[0] = floor(input_size[0] / (float)(output_size[0]));

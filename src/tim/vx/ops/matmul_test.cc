@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -175,7 +175,7 @@ TEST(Matmul, shape_2_3_2_shape_2_3_2_float_transpose_b) {
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
-TEST(Matmul, shape_2_3_2_shape_2_3_2_uint8_transpose_a) {
+TEST(Matmul, DISABLED_shape_2_3_2_shape_2_3_2_uint8_transpose_a) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
 

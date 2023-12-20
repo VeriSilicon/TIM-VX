@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 #define TIM_LAYOUT_INFER_L2_NORMALIZATION_LAYOUT_INFERENCE_H_
 
 #include "ops/op_layout_inference.h"
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "tim/vx/ops/l2normalization.h"
 
 namespace tim {
@@ -42,7 +42,7 @@ class L2NormalizationLayoutInfer : public OpLayoutInfer {
     auto input_pv = context_->GetPermuteVector(src_input);
 
     int32_t axis =
-        MapAxis(input_pv->AsStdVec(), op_->impl()->node()->nn_param.lrn.axis);
+        MapAxis(input_pv->AsStdVec(), op_->impl()->node()->nn_param.l2_normalize.axis);
 
     auto l2norm =
         context_->infer_graph_->CreateOperation<vx::ops::L2Normalization>(axis);

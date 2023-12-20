@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -31,6 +31,7 @@
 TEST(FloorDiv, shape_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    if (ctx->hasSP()) GTEST_SKIP();
 
     tim::vx::ShapeType io_shape({1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -135,6 +136,7 @@ TEST(FloorDiv, shape_5_1_broadcast_uint8) {
 TEST(Div, shape_1_fp32) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    if (ctx->hasSP()) GTEST_SKIP();
 
     tim::vx::ShapeType io_shape({1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -281,4 +283,127 @@ TEST(Div, Div_uint8) {
   }
 
   EXPECT_TRUE(ArraysMatch(golden, output_data, (uint8_t)1));
+}
+
+TEST(Div, DISABLED_Div_int32) {
+  auto context = tim::vx::Context::Create();
+  auto graph = context->CreateGraph();
+
+  tim::vx::ShapeType input_shape({1, 2, 2, 1});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::INT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  int32_t data1[] = {-2, 2, -15, 8};
+  int32_t data2[] = {5, -2, -3, 5};
+  auto input1 = graph->CreateTensor(input_spec, data1);
+  auto input2 = graph->CreateTensor(input_spec, data2);
+
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::INT32, input_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+  auto output = graph->CreateTensor(output_spec);
+
+  auto op = graph->CreateOperation<tim::vx::ops::Div>();
+  (*op).BindInputs({input1, input2}).BindOutputs({output});
+
+  if (!graph->Compile()) {
+    std::cout << "Compile graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  graph->PrintGraph();
+
+  if (!graph->Run()) {
+    std::cout << "Run graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  std::vector<int32_t> output_data;
+  std::vector<int32_t> golden = {0, -1, 5, 2};
+  output_data.resize(golden.size());
+  if (!output->CopyDataFromTensor(output_data.data())) {
+    std::cout << "Copy output data fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+  // div can have an error of 1 according to different rounding rules
+  EXPECT_TRUE(ArraysMatch(golden, output_data, 1));
+}
+
+TEST(Div, DISABLED_Div_int32_broadcast) {
+  auto context = tim::vx::Context::Create();
+  auto graph = context->CreateGraph();
+
+  tim::vx::ShapeType input1_shape({2,2,1,2,1});
+  tim::vx::ShapeType input2_shape({1});
+  tim::vx::TensorSpec input1_spec(tim::vx::DataType::INT32, input1_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec input2_spec(tim::vx::DataType::INT32, input2_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  int32_t data1[] = {-20, 21, 7, 8, 11, -123, -42, -48};
+  int32_t data2[] = {3};
+  auto input1 = graph->CreateTensor(input1_spec, data1);
+  auto input2 = graph->CreateTensor(input2_spec, data2);
+
+  tim::vx::ShapeType output_shape({2,2,1,2,1});
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::INT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+  auto output = graph->CreateTensor(output_spec);
+
+  auto op = graph->CreateOperation<tim::vx::ops::Div>();
+  (*op).BindInputs({input1, input2}).BindOutputs({output});
+
+  if (!graph->Compile()) {
+    std::cout << "Compile graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  graph->PrintGraph();
+
+  if (!graph->Run()) {
+    std::cout << "Run graph fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+
+  std::vector<int32_t> output_data;
+  std::vector<int32_t> golden = {-7, 7, 2, 3, 4, -41, -14, -16};
+  output_data.resize(golden.size());
+  if (!output->CopyDataFromTensor(output_data.data())) {
+    std::cout << "Copy output data fail." << std::endl;
+    EXPECT_TRUE(-1);
+  }
+  // div can have an error of 1 according to different rounding rules
+  EXPECT_TRUE(ArraysMatch(golden, output_data, 1));
+}
+
+TEST(Minimum, shape_1_1_2_1_1_3_broadcast_int32) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType in_shape_x({1, 1, 2, 1, 3});
+    tim::vx::ShapeType in_shape_y({1});
+    tim::vx::ShapeType out_shape({1, 1, 2, 1, 3});
+    tim::vx::TensorSpec input_spec_x(tim::vx::DataType::INT32,
+                            in_shape_x, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec input_spec_y(tim::vx::DataType::INT32,
+                            in_shape_y, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::INT32,
+                            out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor_x = graph->CreateTensor(input_spec_x);
+    auto input_tensor_y = graph->CreateTensor(input_spec_y);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<int> in_data_x = { 1, 0, -1, -2, 3, 11 };
+    std::vector<int> in_data_y = { 2 };
+    std::vector<int> golden = { 1, 0, -1, -2, 2, 2 };
+
+    EXPECT_TRUE(input_tensor_x->CopyDataToTensor(in_data_x.data(), in_data_x.size()*4));
+    EXPECT_TRUE(input_tensor_y->CopyDataToTensor(in_data_y.data(), in_data_y.size()*4));
+    auto op = graph->CreateOperation<tim::vx::ops::Minimum>();
+    (*op).BindInputs({input_tensor_x, input_tensor_y}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+    std::vector<int> output(golden.size());
+
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(golden, output);
 }

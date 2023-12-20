@@ -34,6 +34,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
+#include "vsi_nn_error.h"
 
 static vsi_status op_compute
     (
@@ -42,15 +43,17 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status = VSI_SUCCESS;
+    vsi_status status = VSI_FAILURE;
     vsi_nn_tensor_t * type_tensor = NULL;
     vx_nn_lshproj_params_t p;
     vx_bool valued = TRUE;
     vsi_nn_tensor_t * weight_tensor = NULL;
+    float* const_data = NULL;
 
     type_tensor = vsi_nn_VariableToTensor(self,
         (uint8_t *)&self->nn_param.lsh_projection.type,
         VSI_NN_TYPE_INT32);
+    CHECK_PTR_FAIL_GOTO( type_tensor, "Create tensor fail.", final );
 
     memset(&p, 0, sizeof(p));
     p.hash_func = REQUIRED_IO(inputs[0]);
@@ -65,7 +68,9 @@ static vsi_status op_compute
         float const_one = 1.0;
         vsi_size_t i;
         vsi_size_t count = inputs[1]->attr.size[1];
-        float* const_data = (float*)malloc(count * sizeof(float));
+
+        const_data = (float*)malloc(count * sizeof(float));
+        CHECK_PTR_FAIL_GOTO( const_data, "Create buffer fail.", final );
 
         for (i = 0; i < count; i++)
         {
@@ -78,9 +83,8 @@ static vsi_status op_compute
         attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
         weight_tensor = vsi_nn_CreateTensorFromData(self->graph,
             (uint8_t *)const_data, &attr);
+        CHECK_PTR_FAIL_GOTO( weight_tensor, "Create tensor fail.", final );
         p.weights = weight_tensor->t;
-        free(const_data);
-        //valued = FALSE;
     }
     vxSetTensorAttribute(p.weights, VX_TENSOR_VALUE, &valued, sizeof(vx_bool));
 
@@ -90,8 +94,12 @@ static vsi_status op_compute
     {
         status = VSI_FAILURE;
     }
-    vsi_nn_ReleaseTensor( &type_tensor );
-    if (weight_tensor != NULL) vsi_nn_ReleaseTensor(&weight_tensor);
+
+final:
+    vsi_nn_safe_free(const_data);
+    vsi_safe_release_tensor( type_tensor );
+    vsi_safe_release_tensor( weight_tensor );
+
     return status;
 } /* op_compute() */
 
@@ -102,6 +110,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */

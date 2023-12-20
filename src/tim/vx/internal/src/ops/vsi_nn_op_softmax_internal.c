@@ -32,9 +32,9 @@
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_log.h"
+#include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_link_list.h"
-#include "kernel/vsi_nn_kernel.h"
 
 #define MAX_SOFTMAX_BATCH 65520
 
@@ -45,6 +45,8 @@ static vsi_bool _need_split_softmax
     )
 {
     vsi_bool ret = FALSE;
+    VSI_UNREFERENCED(self);
+
     if(inputs[0]->attr.dim_num == 2 && inputs[0]->attr.size[1] > MAX_SOFTMAX_BATCH)
     {
         ret = TRUE;
@@ -150,7 +152,7 @@ vsi_status op_compute
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
                 "softmax",
                 inputs, 1,
-                outputs, 1, kernel_param );;
+                outputs, 1, kernel_param );
 
         if( NULL != self->n )
         {
@@ -250,6 +252,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     //TODO: Check tensor shapes.
     return TRUE;
 } /* op_check() */

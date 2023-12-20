@@ -34,6 +34,7 @@
 #include "vsi_nn_tensor.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
+#include "vsi_nn_error.h"
 
 /*
  Declare number of input and output.
@@ -71,6 +72,9 @@ static vsi_status op_compute
 {
     vsi_status status = VSI_FAILURE;
 
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+
     status = vsi_nn_internal_compute_node( self );
 
     return status;
@@ -102,6 +106,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return TRUE;
 } /* op_check() */
 
@@ -114,6 +121,7 @@ static vsi_bool op_setup
 {
     float factor = self->nn_param.resize_1d.factor;
     vsi_nn_internal_node_t* curr = NULL;
+    vsi_bool ret = FALSE;
 
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
@@ -135,36 +143,40 @@ static vsi_bool op_setup
     {
         vsi_nn_internal_init_node_wksp( self );
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0]  = inputs[0];
         curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node(self, curr);
+        ret = vsi_nn_internal_setup_node(self, curr);
     }
     else if (VSI_NN_INTERPOLATION_BILINEAR == self->nn_param.resize_1d.type)
     {
         vsi_nn_internal_init_node_wksp( self );
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESIZE_1D_BILINEAR_INTERNAL, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.resize_1d_bilinear_internal.align_corners = self->nn_param.resize_1d.align_corners;
         curr->node->nn_param.resize_1d_bilinear_internal.factor = self->nn_param.resize_1d.factor;
         curr->node->nn_param.resize_1d_bilinear_internal.half_pixel_centers = \
                                               self->nn_param.resize_1d.half_pixel_centers;
         curr->inputs[0]  = inputs[0];
         curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node(self, curr);
+        ret = vsi_nn_internal_setup_node(self, curr);
     }
     else if (VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR == self->nn_param.resize_1d.type)
     {
         vsi_nn_internal_init_node_wksp( self );
         curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESIZE_1D_NEAREST_INTERNAL, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->node->nn_param.resize_1d_nearest_internal.align_corners = self->nn_param.resize_1d.align_corners;
         curr->node->nn_param.resize_1d_nearest_internal.factor = self->nn_param.resize_1d.factor;
         curr->node->nn_param.resize_1d_nearest_internal.half_pixel_centers = \
                                               self->nn_param.resize_1d.half_pixel_centers;
         curr->inputs[0]  = inputs[0];
         curr->outputs[0] = outputs[0];
-        vsi_nn_internal_setup_node(self, curr);
+        ret = vsi_nn_internal_setup_node(self, curr);
     }
 
-    return TRUE;
+final:
+    return ret;
 } /* op_setup() */
 
 static vsi_status op_init
@@ -172,6 +184,8 @@ static vsi_status op_init
     vsi_nn_node_t* self
     )
 {
+    VSI_UNREFERENCED(self);
+
     return VSI_SUCCESS;
 } /* op_init() */
 

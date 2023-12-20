@@ -167,6 +167,8 @@ DEF_KERNEL_INITIALIZER(_reduceprod_internal_initializer)
     float    outputScale                       = 1.0f;
     float    output_offset_asymmetric          = 0.0f;
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
     output_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );

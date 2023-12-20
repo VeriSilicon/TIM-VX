@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 #include "tim/vx/ops/stridedslice.h"
 #include "tim/transform/layout_inference.h"
 
+#include <array>
 #include <algorithm>
 
 #include "gtest/gtest.h"
@@ -107,4 +108,82 @@ TEST(StridedSlice, shape_) {
   ret = tensorOutput->CopyDataFromTensor(bufferOutput.data());
 
   EXPECT_TRUE(ret) << "Failed at execute";
+}
+
+TEST(StridedSlice, shrinkmask_1) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({3, 2, 1});
+  tim::vx::ShapeType output_shape({3, 2});
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<float> in_data = {1, 1, 2, 2, 3, 3};
+  std::vector<float> golden = {1, 1, 2, 2, 3, 3};
+
+  std::vector<int> begin = {0, 0, 0};
+  std::vector<int> end = {0, 0, 0};
+  std::vector<int> strides = {1, 1, 1};
+  // The ith bits in MASK_SHRINK will mask input_shape[i].
+  uint32_t MASK_BEGIN = 0, MASK_END = 0, MASK_SHRINK = 0b100;
+
+  auto op = graph->CreateOperation<tim::vx::ops::StridedSlice>(
+      begin, end, strides, MASK_BEGIN, MASK_END, MASK_SHRINK);
+  (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  input_tensor->CopyDataToTensor(in_data.data(),
+                                 in_data.size() * sizeof(float));
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
+
+TEST(StridedSlice, endmask_1) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({3, 2, 1});
+  tim::vx::ShapeType output_shape({3, 2, 1});
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<float> in_data = {1, 1, 2, 2, 3, 3};
+  std::vector<float> golden = {1, 1, 2, 2, 3, 3};
+
+  std::vector<int> begin = {2, 0, 0};
+  std::vector<int> end = {3, 2, 1};
+  std::vector<int> strides = {1, 1, 1};
+  // The ith bits in MASK_BEGIN will mask begin[i]. MASK_END is similar.
+  uint32_t MASK_BEGIN = 0b001, MASK_END = 0, MASK_SHRINK = 0;
+
+  auto op = graph->CreateOperation<tim::vx::ops::StridedSlice>(
+      begin, end, strides, MASK_BEGIN, MASK_END, MASK_SHRINK);
+  (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  input_tensor->CopyDataToTensor(in_data.data(),
+                                 in_data.size() * sizeof(float));
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<float> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
 }

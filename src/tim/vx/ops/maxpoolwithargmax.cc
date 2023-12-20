@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/maxpoolwithargmax.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -36,7 +36,7 @@ MaxpoolWithArgmax::MaxpoolWithArgmax(Graph* graph, PadType padding,
                                    const std::array<uint32_t, 2>& stride,
                                    RoundType round_type,
                                    DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_POOLWITHARGMAX, 1, 2, layout),
+    : BuiltinOp(graph, VSI_NN_OP_POOLWITHARGMAX, 1, 2, layout),
       padding_(padding),
       ksize_(ksize),
       stride_(stride),

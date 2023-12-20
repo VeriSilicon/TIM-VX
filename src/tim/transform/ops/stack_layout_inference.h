@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,7 @@
 #include "tim/vx/ops/stack.h"
 #include "tim/vx/ops/transpose.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "permute_vector.h"
 #include "ops/op_layout_inference.h"
 
@@ -41,9 +41,12 @@ class StackLayoutInfer : public OpLayoutInfer {
       : OpLayoutInfer(op, context) {}
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
-    auto src_input = op_->impl()->InputsTensor()[0];
-    auto input_pv = context_->GetPermuteVector(src_input);
-
+    auto src_inputs = op_->impl()->InputsTensor();
+    std::shared_ptr<tim::vx::Tensor> normal_input;
+    int input_cnt=0;
+    for(; src_inputs[input_cnt]->IsConstTensor(); ++input_cnt);
+    normal_input = src_inputs[input_cnt];
+    auto input_pv = context_->GetPermuteVector(src_inputs[input_cnt]);
     int32_t axis = op_->impl()->node()->nn_param.stack.axis;
     auto stack = context_->infer_graph_->CreateOperation<vx::ops::Stack>(
         axis, op_->impl()->input_cnt_);
@@ -53,30 +56,28 @@ class StackLayoutInfer : public OpLayoutInfer {
       (*stack).BindInput(context_->GetMapedTensor(i_src));
     }
 
-    std::vector<uint32_t> v;
-    uint32_t dim_num = src_input->GetShape().size();
     if (axis < 0) {
-      axis += dim_num;
-    }
-    for (uint32_t i = 0; i < src_input->GetShape().size(); ++i) {
-      if (input_pv->At(i) > (uint32_t)axis) {
-        v.push_back(input_pv->At(i) + 1);
-      } else if (input_pv->At(i) == (uint32_t)axis) {
-        v.push_back(input_pv->At(i));
-        v.push_back(input_pv->At(i) + 1);
-      } else {
-        v.push_back(input_pv->At(i));
-      }
-    }
-    auto out_pv =
-        MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
-    for (uint32_t i = 0; i < out_pv->Rank(); ++i) {
-      out_pv->At(i) = v[i];
+      axis += normal_input->GetShape().size();
     }
 
-    auto out_infer = CreateOutputsTensor(out_pv);
+    auto output_pv = MakeShared(input_pv->Rank() + 1);
+    if (!input_pv->IsAligned()) {
+      output_pv->At(axis) = (uint32_t)axis;
+      for (uint32_t i = 0, j = 0; i < input_pv->Rank(); ++i, ++j) {
+        if ((uint32_t)axis == i) {
+          ++j;
+        }
+        if (input_pv->At(i) < (uint32_t)axis) {
+          output_pv->At(j) = input_pv->At(i);
+        } else {
+          output_pv->At(j) = input_pv->At(i) + 1;
+        }
+      }
+    }
+
+    auto out_infer = CreateOutputsTensor(output_pv);
     (*stack).BindOutput(out_infer[0]);
-    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], out_pv);
+    context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], output_pv);
     // Add out tensor of src_graph into next_tensor
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);
   }

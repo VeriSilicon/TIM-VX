@@ -68,6 +68,12 @@ typedef struct _vsi_nn_pre_process_nv12_param
     vsi_bool reverse_channel;
 
     vsi_nn_pre_process_nv12_lcl_data* local;
+
+    vsi_nn_nv_type nv_type;
+
+    float r_scale;
+    float g_scale;
+    float b_scale;
 } vsi_nn_pre_process_nv12_param;
 
 #ifdef __cplusplus

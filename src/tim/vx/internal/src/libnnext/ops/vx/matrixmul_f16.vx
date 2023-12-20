@@ -82,6 +82,7 @@ __kernel void gemm_F16F16toF16(image2d_array_t inputA,
         sum3 += (tempA3);
     }
     coord_b.y = gidy;
+    coord_b.z = get_global_id(2);
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord_b.w, baseAddr);
@@ -170,6 +171,7 @@ __kernel void gemm_F16F16toF16(image2d_array_t inputA,
         sum3 += (tempA3 + tempB3);
     }
     coord_b.y = gidy;
+    coord_b.z = get_global_id(2);
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0;
     _viv_asm(MOV, coord_b.w, baseAddr);
@@ -244,7 +246,7 @@ __kernel void gemm_F32F32toF32(
         sum2 += (tempA2.x * tempB0 + tempA2.y * tempB1 + tempA2.z * tempB2 + tempA2.w * tempB3);
         sum3 += (tempA3.x * tempB0 + tempA3.y * tempB1 + tempA3.z * tempB2 + tempA3.w * tempB3);
     }
-    coord_b = (int4)(gidx, gidy, get_global_id(2), 0);
+    coord_b = (int4)(gidx, gidy, get_global_id(2), get_global_id(2));
     write_imagef(output, coord_b, sum0);
     coord_b.y++;
     write_imagef(output, coord_b, sum1);

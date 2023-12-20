@@ -189,6 +189,67 @@ static float celu_eval(float x, vsi_nn_kernel_lut_params *lut_param)
     return positive + negative;
 }
 
+static float rcp_eval(float x)
+{
+    return 1.0f / x;
+}
+
+static float softsign_eval(float x)
+{
+    return x / (1 + vsi_abs(x));
+}
+
+static float linear_exp_eval(float x, vsi_nn_kernel_lut_params *lut_param)
+{
+    float a = lut_param->params[0];
+    float b = lut_param->params[1];
+
+    return expf(x * a + b);
+}
+
+static float linear_rsqrt_eval(float x, vsi_nn_kernel_lut_params *lut_param)
+{
+    float a = lut_param->params[0];
+    float b = lut_param->params[1];
+    float scale = lut_param->params[2];
+
+    return scale / sqrtf(a * x + b);
+}
+
+static float linear_sigmoid_eval(float x, vsi_nn_kernel_lut_params *lut_param)
+{
+    float a = lut_param->params[0];
+    float b = lut_param->params[1];
+
+    return 1.0f / (1 + expf(a * x + b));
+}
+
+static float atan_eval(float x)
+{
+    return atanf(x);
+}
+
+static float atanh_eval(float x)
+{
+    return (log_eval(1 + x) - log_eval(1 - x)) / 2;
+}
+
+static float acosh_eval(float x)
+{
+    return (log_eval(x + (float)sqrt(x * x - 1)));
+}
+
+static float inverse_sigmoid_eval(float x, vsi_nn_kernel_lut_params *lut_param)
+{
+    float eps = lut_param->params[0];
+    float x1, x2;
+    x = vsi_nn_clamp(x, 0, 1);
+    x1 = vsi_nn_clamp(x, eps, 1);
+    x2 = vsi_nn_clamp((1 - x), eps, 1);
+
+    return log_eval(x1 / x2);
+}
+
 static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *lut_param)
 {
     float result = 0;
@@ -201,34 +262,26 @@ static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *
     case VSI_NN_KERNEL_LUT_LOG:
         result =  log_eval(data);
         break;
-        break;
     case VSI_NN_KERNEL_LUT_EXP:
         result =  exp_eval(data);
-        break;
         break;
     case VSI_NN_KERNEL_LUT_SELU:
         result =  selu_eval(data, lut_param);
         break;
-        break;
     case VSI_NN_KERNEL_LUT_NEG:
         result =  neg_eval(data);
-        break;
         break;
     case VSI_NN_KERNEL_LUT_HSIGMOID:
         result =  hsigmoid_eval(data, lut_param);
         break;
-        break;
     case VSI_NN_KERNEL_LUT_SOFT_PLUS:
         result =  soft_plus_eval(data);
-        break;
         break;
     case VSI_NN_KERNEL_LUT_ERF:
         result =  erf_eval(data);
         break;
-        break;
     case VSI_NN_KERNEL_LUT_GELU:
         result =  gelu_eval(data);
-        break;
         break;
     case VSI_NN_KERNEL_LUT_HGELU:
         result =  hgelu_eval(data);
@@ -245,6 +298,33 @@ static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *
     case VSI_NN_KERNEL_LUT_CELU:
         result =  celu_eval(data, lut_param);
         break;
+    case VSI_NN_KERNEL_LUT_RCP:
+        result =  rcp_eval(data);
+        break;
+    case VSI_NN_KERNEL_LUT_SOFTSIGN:
+        result = softsign_eval(data);
+        break;
+    case VSI_NN_KERNEL_LUT_LINEAR_EXP:
+        result = linear_exp_eval(data, lut_param);
+        break;
+    case VSI_NN_KERNEL_LUT_LINEAR_RSQRT:
+        result = linear_rsqrt_eval(data, lut_param);
+        break;
+    case VSI_NN_KERNEL_LUT_LINEAR_SIGMOID:
+        result = linear_sigmoid_eval(data, lut_param);
+        break;
+    case VSI_NN_KERNEL_LUT_ATAN:
+        result = atan_eval(data);
+        break;
+    case VSI_NN_KERNEL_LUT_ATANH:
+        result = atanh_eval(data);
+        break;
+    case VSI_NN_KERNEL_LUT_ACOSH:
+        result = acosh_eval(data);
+        break;
+    case VSI_NN_KERNEL_LUT_INVERSE_SIGMOID:
+        result = inverse_sigmoid_eval(data, lut_param);
+        break;
     default:
         VSILOGE( "unsupported activation function:%d", lut_param->act_type );
         break;
@@ -253,7 +333,7 @@ static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *
     return result;
 }
 
-vsi_status vsi_nn_kernel_lut
+vsi_status vsi_nn_kernel_lut_positive
     (
     vx_lut index_lut,
     vx_lut output_lut,
@@ -263,6 +343,7 @@ vsi_status vsi_nn_kernel_lut
     vsi_status status = VSI_SUCCESS;
     vsi_nn_kernel_lut_t *lut = NULL;
     uint32_t i = 0;
+    float clamp_min = 0;
     float index[VSI_NN_KERNEL_LUT_MAX_SIZE] = {0};
     float value[VSI_NN_KERNEL_LUT_MAX_SIZE] = {0};
 
@@ -273,29 +354,32 @@ vsi_status vsi_nn_kernel_lut
 
     lut = (vsi_nn_kernel_lut_t *)calloc(VSI_NN_KERNEL_LUT_MAX_SIZE, sizeof(vsi_nn_kernel_lut_t));
     CHECK_PTR_FAIL_GOTO( lut, "Create LUT buffer fail.", final );
+    memset(lut, 0, sizeof(vsi_nn_kernel_lut_t) * VSI_NN_KERNEL_LUT_MAX_SIZE);
+
+    clamp_min = param->clamp_min;
 
     for ( i = 0; i < VSI_NN_KERNEL_LUT_MAX_SIZE; i++)
     {
-        int16_t val = (int16_t)(i << 6);
-        lut[i].index = fp16_to_fp32(val);
+        int16_t val = (int16_t)(i << 5);
+        float fidx = fp16_to_fp32(val);
+
+        if (val < 0)
+        {
+            continue;
+        }
+
+        if (param->pwl_sign_remove_support && fidx < clamp_min)
+        {
+            fidx = clamp_min;
+        }
+
+        lut[i].index = fidx;
         lut[i].val = vsi_nn_kernel_lut_activation(lut[i].index, param);
     }
 
-    for (i = 0x0; i < 0x10; i++)
-    {
-        lut[i].index = 0;
-        lut[i].val = vsi_nn_kernel_lut_activation(lut[i].index, param);
-    }
-
-    for (i = 0x1F0; i < 0x200; i++)
+    for (i = 992; i < VSI_NN_KERNEL_LUT_MAX_SIZE; i++)
     {
         lut[i].index = VSI_NN_KERNEL_LUT_FP16_MAX;
-        lut[i].val = vsi_nn_kernel_lut_activation(lut[i].index, param);
-    }
-
-    for (i = 0x3F0; i < 0x400; i++)
-    {
-        lut[i].index = VSI_NN_KERNEL_LUT_FP16_MIN;
         lut[i].val = vsi_nn_kernel_lut_activation(lut[i].index, param);
     }
 
@@ -311,6 +395,121 @@ vsi_status vsi_nn_kernel_lut
     status |= vxCopyLUT(output_lut, (void*)&value, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
 final:
     vsi_nn_safe_free(lut);
+
+    return status;
+}
+
+vsi_status vsi_nn_kernel_lut_all
+    (
+    vx_lut index_lut,
+    vx_lut output_lut,
+    vsi_nn_kernel_lut_params *param
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    vsi_nn_kernel_lut_t *lut = NULL;
+    uint32_t i = 0;
+    float clamp_min = 0;
+    float index[VSI_NN_KERNEL_LUT_MAX_SIZE] = {0};
+    float value[VSI_NN_KERNEL_LUT_MAX_SIZE] = {0};
+
+    if (index_lut == NULL || output_lut == NULL || param == NULL)
+    {
+        return VSI_FAILURE;
+    }
+
+    lut = (vsi_nn_kernel_lut_t *)calloc(VSI_NN_KERNEL_LUT_MAX_SIZE, sizeof(vsi_nn_kernel_lut_t));
+    CHECK_PTR_FAIL_GOTO( lut, "Create LUT buffer fail.", final );
+    memset(lut, 0, sizeof(vsi_nn_kernel_lut_t) * VSI_NN_KERNEL_LUT_MAX_SIZE);
+
+    clamp_min = param->clamp_min;
+
+    for ( i = 0; i < VSI_NN_KERNEL_LUT_MAX_SIZE; i++)
+    {
+        int16_t val = (int16_t)(i << 6);
+        float fidx = fp16_to_fp32(val);
+        if (param->pwl_sign_remove_support && fidx < clamp_min)
+        {
+            fidx = clamp_min;
+        }
+
+        lut[i].index = fidx;
+        lut[i].val = vsi_nn_kernel_lut_activation(lut[i].index, param);
+    }
+
+    for (i = 0x0; i < 0x10; i++)
+    {
+        float fidx = 0;
+        if (param->pwl_sign_remove_support && fidx < clamp_min)
+        {
+            fidx = clamp_min;
+        }
+
+        lut[i].index = fidx;
+        lut[i].val = vsi_nn_kernel_lut_activation(lut[i].index, param);
+    }
+
+    for (i = 0x1F0; i < 0x200; i++)
+    {
+        lut[i].index = VSI_NN_KERNEL_LUT_FP16_MAX;
+        lut[i].val = vsi_nn_kernel_lut_activation(lut[i].index, param);
+    }
+
+    for (i = 0x3F0; i < 0x400; i++)
+    {
+        if (param->pwl_sign_remove_support)
+        {
+            lut[i].index = clamp_min;
+        }
+        else
+        {
+            lut[i].index = VSI_NN_KERNEL_LUT_FP16_MIN;
+        }
+
+        lut[i].val = vsi_nn_kernel_lut_activation(lut[i].index, param);
+    }
+
+    qsort(lut, VSI_NN_KERNEL_LUT_MAX_SIZE, sizeof(vsi_nn_kernel_lut_t), _comparator);
+
+    for ( i = 0; i < VSI_NN_KERNEL_LUT_MAX_SIZE; i++)
+    {
+        index[i] = lut[i].index;
+        value[i] = lut[i].val;
+    }
+
+    status  = vxCopyLUT(index_lut, (void*)&index, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
+    status |= vxCopyLUT(output_lut, (void*)&value, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
+final:
+    vsi_nn_safe_free(lut);
+
+    return status;
+}
+
+vsi_status vsi_nn_kernel_lut
+    (
+    vx_lut index_lut,
+    vx_lut output_lut,
+    vsi_nn_kernel_lut_params *param
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    float clamp_min = 0;
+
+    if (param == NULL)
+    {
+        return VSI_FAILURE;
+    }
+
+    clamp_min = param->clamp_min;
+
+    if (param->pwl_sign_remove_support && clamp_min >= 0)
+    {
+        status = vsi_nn_kernel_lut_positive(index_lut, output_lut, param);
+    }
+    else
+    {
+        status = vsi_nn_kernel_lut_all(index_lut, output_lut, param);
+    }
 
     return status;
 }

@@ -35,7 +35,6 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
@@ -153,6 +152,8 @@ DEF_KERNEL_INITIALIZER(_multinomial_initializer)
     vsi_nn_kernel_tensor_attr_t * attr  = NULL;
     vsi_size_array_t * in_shape          = NULL;
 
+    VSI_UNREFERENCED(param_size);
+
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr buffer fail.", final );
 
@@ -196,6 +197,8 @@ DEF_KERNEL_INITIALIZER(_cdf_initializer)
     vsi_size_array_t * in_shape          = NULL;
     vsi_size_t      batch                 = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr buffer fail.", final );
 
@@ -234,6 +237,9 @@ DEF_KERNEL_INITIALIZER(_seed_initializer)
         {0, 0, 0},
         {0, 0, 0}
         };
+
+    VSI_UNREFERENCED(param);
+    VSI_UNREFERENCED(param_size);
 
     gpu_param.global_scale[0] = 1;
     gpu_param.global_scale[1] = 1;
@@ -351,6 +357,10 @@ static vsi_nn_kernel_node_t _setup
     float    rand_max       = (float)(pow(2.0,32));
     float    re_rand_max    = 1 / rand_max;
 
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(params);
+
     // Check if gpu can support the size
     if( !vsi_nn_kernel_gpu_check_shape(
         outputs[0]->attr.size, outputs[0]->attr.dim_num ) )
@@ -370,17 +380,20 @@ static vsi_nn_kernel_node_t _setup
     attr.is_const = FALSE;
     attr.vtl = TRUE;
     tensors[SEED_INDEX] = vsi_nn_CreateTensor( graph, &attr );
+    CHECK_PTR_FAIL_GOTO(tensors[SEED_INDEX], "Create tensor failed", final);
 
     attr.size[0] = inputs[0]->attr.size[0];
     attr.size[1] = inputs[0]->attr.size[1];
     attr.dim_num = 2;
     tensors[CDF_INDEX] = vsi_nn_CreateTensor( graph, &attr );
+    CHECK_PTR_FAIL_GOTO(tensors[CDF_INDEX], "Create tensor failed", final);
 
     memcpy( &attr, &(inputs[1]->attr), sizeof(vsi_nn_tensor_attr_t) );
     attr.size[1] = 1;
     attr.dim_num = 2;
     tensors[SEEDS_INDEX] = vsi_nn_reshape_tensor( graph,
                 inputs[1], attr.size, attr.dim_num );
+    CHECK_PTR_FAIL_GOTO(tensors[SEEDS_INDEX], "Create tensor failed", final);
 
     in0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     in1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );

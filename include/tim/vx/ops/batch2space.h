@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -43,7 +43,7 @@ namespace ops {
  * - crop : corp the output tensor for ROI usage.
  */
 
-class Batch2Space : public DirectMapOp {
+class Batch2Space : public BuiltinOp {
  public:
   Batch2Space(Graph* graph, const std::vector<int>& block_size,
                const std::vector<int>& crop,

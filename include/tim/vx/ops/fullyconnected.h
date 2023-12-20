@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_FULLYCONNECTED_H_
 #define TIM_VX_OPS_FULLYCONNECTED_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -33,13 +33,13 @@ namespace ops {
  * ## FullyConnected
  *
  * Denotes a fully (densely) connected layer, which connects all elements in the
- * input tensor with each element in the output tensor. 
- * 
+ * input tensor with each element in the output tensor.
+ *
  * - axis: Describes the axis of the inputs when coerced to 2D.
  * - weights: the output channel number for weight tensor.
  */
 
-class FullyConnected : public DirectMapOp {
+class FullyConnected : public BuiltinOp {
  public:
   FullyConnected(Graph* graph, uint32_t axis);
   FullyConnected(Graph* graph, uint32_t axis, uint32_t weights);
@@ -49,6 +49,9 @@ class FullyConnected : public DirectMapOp {
  protected:
   uint32_t axis_;
   uint32_t weights_;
+ private:
+  void OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor,
+                           int32_t input_idx) override;
 };
 
 }  // namespace ops

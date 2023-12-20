@@ -28,7 +28,7 @@
 #include <math.h>
 #include <fcntl.h>
 
-#ifdef _WIN32
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
 #include <io.h>
 #include <direct.h>
 #else
@@ -112,7 +112,7 @@ char* vsi_nn_strncpy
     )
 {
     char* ret = NULL;
-    #ifdef _MSC_VER
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         strncpy_s(dest, count, source, _TRUNCATE);
     #else
         strncpy(dest, source, count);
@@ -128,7 +128,7 @@ char* vsi_nn_strncat
     )
 {
     char* ret = NULL;
-    #ifdef _MSC_VER
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         strncat_s(dest, count, source, _TRUNCATE);
         ret = dest;
     #else
@@ -143,7 +143,7 @@ char* vsi_nn_getenv
     )
 {
     char* var = NULL;
-    #ifdef _MSC_VER
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         size_t var_size = 0;
         _dupenv_s(&var, &var_size, var_name);
     #else
@@ -159,7 +159,7 @@ FILE* vsi_nn_fopen
     )
 {
     FILE * file = NULL;
-    #ifdef _MSC_VER
+    #if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
         fopen_s(&file, file_name, mode);
     #else
         file = fopen(file_name, mode);
@@ -200,6 +200,33 @@ static vsi_size_t _compute_padding
     padding = (out_size - 1) * stride + effective_ksize - in_size;
     return vsi_nn_max(padding, 0);
 } /* _compute_padding() */
+
+int32_t vsi_nn_get_vx_pad_mode
+    (
+    vsi_nn_pad_mode_e mode
+    )
+{
+    int32_t pad_mode = 0;
+    switch (mode) {
+        case VSI_NN_PAD_MODE_CONSTANT:
+            pad_mode = VX_PAD_CONSTANT;
+            break;
+        case VSI_NN_PAD_MODE_REPLICATE:
+            pad_mode = VX_PAD_REPLICATE;
+            break;
+        case VSI_NN_PAD_MODE_SYMMETRIC:
+            pad_mode = VX_PAD_MIRROR_SYMMETRIC;
+            break;
+        case VSI_NN_PAD_MODE_REFLECT:
+            pad_mode = VX_PAD_MIRROR_REFLECT;
+            break;
+        default:
+            VSILOGE("Wrong pad_mode value");
+            break;
+    }
+
+    return pad_mode;
+}
 
 uint8_t * vsi_nn_LoadBinaryData
     (
@@ -279,7 +306,7 @@ vsi_size_t vsi_nn_GetStrideSizeBySize
     type_bits = vsi_nn_TypeGetBits( type);
     stride[0] = type_bits / BITS_PER_BYTE;
     total_bytes = stride[0];
-    if( type_bits < BITS_PER_BYTE )
+    if( type_bits < BITS_PER_BYTE && type_bits != 0 )
     {
         total_bytes = 1;
         if( size[0] % (BITS_PER_BYTE / type_bits) == 0 )
@@ -348,6 +375,8 @@ float vsi_nn_DataAsFloat32
         val = (float)((int8_t*)data)[0];
         break;
     case VSI_NN_TYPE_UINT8:
+    case VSI_NN_TYPE_FLOAT8_E4M3:
+    case VSI_NN_TYPE_FLOAT8_E5M2:
         val = (float)data[0];
         break;
     case VSI_NN_TYPE_INT16:
@@ -573,6 +602,8 @@ void vsi_nn_ComputePadWithPadType
     vsi_size_t   * out_pad
     )
 {
+    VSI_UNREFERENCED(in_dim_num);
+    VSI_UNREFERENCED(rounding);
     vsi_nn_compute_padding(in_shape, ksize, stride, NULL, pad_type, out_pad);
 } /* vsi_nn_ComputePadWithPadType() */
 
@@ -624,6 +655,8 @@ void vsi_nn_ComputePadWithPadTypeForConv1D
     vsi_size_t   * out_pad
     )
 {
+    VSI_UNREFERENCED(in_dim_num);
+    VSI_UNREFERENCED(rounding);
     vsi_nn_compute_padding_conv1d(in_shape, ksize, stride, NULL, pad_type, out_pad);
 } /* vsi_nn_ComputePadWithPadTypeForConv1D() */
 
@@ -681,9 +714,10 @@ vsi_bool vsi_nn_CreateTensorGroup
     vsi_size_t end[VSI_NN_MAX_DIM_NUM];
     vsi_nn_tensor_attr_t attr;
 
-    if( NULL == graph || NULL == in_tensor
+    if ( NULL == graph || NULL == in_tensor
         || NULL == out_tensors || 0 == group_number
-        || 0 == in_tensor->attr.size[axis] )
+        || axis >= VSI_NN_MAX_DIM_NUM ||
+        0 == in_tensor->attr.size[axis] )
     {
         VSILOGW( "Create tensor group fail." );
         return FALSE;
@@ -706,13 +740,14 @@ vsi_bool vsi_nn_CreateTensorGroup
     end[2] = in_tensor->attr.size[2];
     end[3] = in_tensor->attr.size[3];
     end[axis] = 0;
-
     for( i = 0; i <  group_number; i ++ )
     {
         start[axis] = end[axis];
         end[axis] += sz;
 #ifdef VSI_PERCHANNEL_QUANTIZATION_SUPPORT
-        if ( attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC )
+        if (attr.dtype.qnt_type ==
+                VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC ||
+            attr.dtype.qnt_type == VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
         {
             attr.dtype.scales = in_tensor->attr.dtype.scales + sz * i;
             attr.dtype.scale_dim = (int32_t)sz;
@@ -755,7 +790,7 @@ uint32_t vsi_nn_ShapeToString
 #define _NOT_PRINT_FMT (1)
     vsi_size_t s;
     uint32_t count;
-    const char * all_fmt[] = {" %d,", "%d_" };
+    const char * all_fmt[] = {" %"VSI_SIZE_T_SPECIFIER",", "%"VSI_SIZE_T_SPECIFIER"_" };
     const char * fmt;
     if( NULL == shape || NULL == buf
         || dim_num == 0 || buf_sz == 0 )
@@ -795,7 +830,7 @@ int32_t vsi_nn_Access
         return -1;
     }
 
-#ifdef _WIN32
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
     return _access(path, mode);
 #else
     return access(path, mode);
@@ -808,12 +843,13 @@ int32_t vsi_nn_Mkdir
     int32_t mode
     )
 {
+    VSI_UNREFERENCED(mode);
     if(NULL == path)
     {
         return -1;
     }
 
-#ifdef _WIN32
+#if (defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32))
     return _mkdir(path);
 #else
     return mkdir(path, mode);
@@ -879,6 +915,10 @@ uint8_t * vsi_nn_MallocAlignedBuffer
     sz = sizeof(aligned_header) + mem_size +
         align_start_size + align_block_size + END_GUARD_SIZE;
     raw_addr = (uint8_t *)malloc( sz * sizeof( uint8_t ) );
+    if (raw_addr == NULL)
+    {
+        return NULL;
+    }
     memset(raw_addr, 0, sizeof( uint8_t ) * sz);
     p = raw_addr + sizeof(aligned_header);
 
@@ -1128,59 +1168,69 @@ vsi_bool vsi_nn_is_same_quant_type(
     vsi_nn_tensor_t * dst
     )
 {
-    vx_bool result = FALSE;
+    vsi_nn_dtype_t *src_dtype = NULL, *dst_dtype = NULL;
 
-    if (src->attr.dtype.vx_type == dst->attr.dtype.vx_type)
+    src_dtype = &src->attr.dtype;
+    dst_dtype = &dst->attr.dtype;
+
+    if (src_dtype->qnt_type != dst_dtype->qnt_type)
     {
-        switch (src->attr.dtype.qnt_type)
-        {
-        case VSI_NN_QNT_TYPE_NONE:
-            result = TRUE;
-            break;
+        return FALSE;
+    }
 
+    switch (src_dtype->qnt_type)
+    {
         case VSI_NN_QNT_TYPE_DFP:
-            if (src->attr.dtype.fl == dst->attr.dtype.fl)
+            if (src_dtype->fl != dst_dtype->fl)
             {
-                result = TRUE;
+                return FALSE;
             }
             break;
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
-            if (src->attr.dtype.scale == dst->attr.dtype.scale &&
-                src->attr.dtype.zero_point == dst->attr.dtype.zero_point)
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
+        {
+            const float diff = (float)1e-5;
+            if (src_dtype->zero_point != dst_dtype->zero_point)
             {
-                result = TRUE;
+                return FALSE;
+            }
+            if (vsi_nn_float_compare(src_dtype->scale, dst_dtype->scale, diff)
+                == FALSE)
+            {
+                return FALSE;
             }
             break;
-
+        }
         case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC:
+        case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8:
+        {
+            const float diff = (float)1e-5;
+            int32_t i = 0;
+            int32_t scale_cnt0 = src_dtype->scale_dim;
+            int32_t scale_cnt1 = dst_dtype->scale_dim;
+
+            if (scale_cnt0 == scale_cnt1)
             {
-                int32_t i = 0;
-                int32_t scale_cnt0 = src->attr.dtype.scale_dim;
-                int32_t scale_cnt1 = dst->attr.dtype.scale_dim;
-
-                if (scale_cnt0 == scale_cnt1)
+                const float* src_scale_ptr = src_dtype->scales;
+                const float* dst_scale_ptr = dst_dtype->scales;
+                for (i = 0; i < scale_cnt0; i++)
                 {
-                    const float *src_scale_ptr = src->attr.dtype.scales;
-                    const float *dst_scale_ptr = dst->attr.dtype.scales;
-                    for (i = 0; i < scale_cnt0; i++)
+                    if (vsi_nn_float_compare(
+                            src_scale_ptr[i], dst_scale_ptr[i], diff) == FALSE)
                     {
-                        if (src_scale_ptr[i] != dst_scale_ptr[i])
-                            break;
+                        return FALSE;
                     }
-
-                    if (i == scale_cnt0)
-                        result = TRUE;
                 }
             }
             break;
-
+        }
         default:
             break;
-        }
     }
 
-    return result;
+    return TRUE;
 }
 
 vsi_bool vsi_nn_is_same_type
@@ -1220,6 +1270,67 @@ vsi_bool vsi_nn_is_broadcast_operaton
     return FALSE;
 }
 
+vsi_bool vsi_nn_is_broadcast_axes_operaton
+    (
+    vsi_nn_tensor_t            ** inputs,
+    size_t                        input_num,
+    vsi_nn_tensor_t            *  output,
+    int32_t                    *  axis,
+    int32_t                       axis_num
+    )
+{
+    vsi_size_t out_rank = output->attr.dim_num;
+    vsi_size_t i = 0;
+
+    if (vsi_nn_is_broadcast_operaton(inputs, input_num, output) == FALSE)
+    {
+        return FALSE;
+    }
+
+    for (i = 0; i < out_rank; i++)
+    {
+        size_t j = 0;
+        int32_t k = 0;
+        vsi_size_t src0_size = i < inputs[0]->attr.dim_num  ?
+                        inputs[0]->attr.size[i] : 1;
+
+        for (k = 0; k < axis_num; k++)
+        {
+            if (axis[k] == (int32_t)i)
+            {
+                for (j = 1; j < input_num; j++)
+                {
+                    vsi_size_t src_size = i < inputs[j]->attr.dim_num  ?
+                        inputs[j]->attr.size[i] : 1;
+
+                    if (src0_size == src_size)
+                    {
+                        return FALSE;
+                    }
+                }
+
+                break;
+            }
+        }
+
+        if (axis[k] == (int32_t)i)
+        {
+            continue;
+        }
+
+        for (j = 1; j < input_num; j++)
+        {
+            vsi_size_t src_size = i < inputs[j]->attr.dim_num  ? inputs[j]->attr.size[i] : 1;
+
+            if (src0_size != src_size)
+            {
+                return FALSE;
+            }
+        }
+    }
+    return TRUE;
+}
+
 float vsi_nn_get_tensor_scale
     (
     vsi_nn_tensor_t * tensor
@@ -1244,6 +1355,7 @@ float vsi_nn_get_tensor_scale
             break;
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
             scale = tensor->attr.dtype.scale;
             break;
     default:
@@ -1263,6 +1375,7 @@ int32_t vsi_nn_get_tensor_zero_point
     switch (tensor->attr.dtype.qnt_type)
     {
         case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC:
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8:
             zero_point = 0;
             break;
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC:
@@ -1311,6 +1424,14 @@ void vsi_nn_get_tensor_clamp_min_max
     {
         *clampMin = - zero_point;
         *clampMax = 65535 - zero_point;
+    }
+    else if (vx_type == VSI_NN_TYPE_FLOAT8_E4M3) {
+        *clampMin = -448;
+        *clampMax = 448;
+    }
+    else if (vx_type == VSI_NN_TYPE_FLOAT8_E5M2) {
+        *clampMin = -57344;
+        *clampMax = 57344;
     }
     else
     {
@@ -1417,3 +1538,170 @@ vsi_status vsi_nn_Unpack4bitData
     }
     return status;
 } /* vsi_nn_Unpack4bitData() */
+
+vsi_bool vsi_nn_is_3d_tensor
+    (
+    vsi_nn_tensor_t * tensor
+    )
+{
+    if (3 == tensor->attr.dim_num)
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+vsi_bool vsi_nn_is_stream_process_supported_types
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t** inputs,
+    size_t input_num
+    )
+{
+    size_t i = 0;
+
+    if ( graph->ctx->config.support_stream_processor == 0 )
+    {
+        return FALSE;
+    }
+
+    if ( graph->ctx->config.sp_exec_count == 0 )
+    {
+        return FALSE;
+    }
+
+    for (i = 0; i < input_num; i++)
+    {
+        if (inputs && input_num > 0 && inputs[i] &&
+            ( inputs[i]->attr.dtype.vx_type == VSI_NN_TYPE_INT32 ||
+              inputs[i]->attr.dtype.vx_type == VSI_NN_TYPE_UINT32))
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+vsi_bool vsi_nn_is_sp_supported_broadcast
+    (
+        vsi_nn_graph_t*   graph,
+        vsi_nn_tensor_t** inputs,
+        uint32_t          input_num,
+        vsi_nn_tensor_t*  output
+    )
+{
+typedef enum
+{
+    VSI_BROADCAST_BITS_NONE          = 0x0,
+    VSI_BROADCAST_BITS_ON_AXIS_0     = 0x1,
+    VSI_BROADCAST_BITS_ON_AXIS_1     = 0x2,
+    VSI_BROADCAST_BITS_ON_AXIS_2     = 0x4,
+    VSI_BROADCAST_BITS_ON_AXIS_3     = 0x8,
+    VSI_BROADCAST_BITS_ON_AXIS_4     = 0x10,
+    VSI_BROADCAST_BITS_ON_AXIS_5     = 0x20,
+    VSI_BROADCAST_BITS_ON_AXIS_10    = 0x3,
+    VSI_BROADCAST_BITS_ON_AXIS_210   = 0x7,
+    VSI_BROADCAST_BITS_ON_AXIS_21    = 0x6,
+} vsi_broadcast_bits_status_e;
+#define _PACK_ELTWISE_SP_KEY(A_BROADCAST, B_BROADCAST) \
+    ( (A_BROADCAST) | (B_BROADCAST << 8))
+    int32_t broadcast_bits_0 = VSI_BROADCAST_BITS_NONE;
+    int32_t broadcast_bits_1 = VSI_BROADCAST_BITS_NONE;
+    uint32_t i = 0;
+    uint32_t k = 0;
+    uint32_t rank = output->attr.dim_num;
+    vsi_bool is_broadcast = FALSE;
+    vsi_bool support = TRUE;
+    uint32_t key = 0;
+    vsi_broadcast_bits_status_e broadcast_bits_status[VSI_NN_MAX_DIM_NUM] = {VSI_BROADCAST_BITS_NONE};
+
+    if (vsi_nn_is_stream_process_supported_types(graph, inputs, input_num) == FALSE)
+    {
+        return FALSE;
+    }
+
+    for ( k = 1; k < input_num; k++ )
+    {
+        vsi_nn_tensor_t *input0 = inputs[k - 1];
+        vsi_nn_tensor_t *input1 = inputs[k];
+        uint32_t rank0 = input0->attr.dim_num;
+        uint32_t rank1 = input1->attr.dim_num;
+
+        broadcast_bits_status[0] = VSI_BROADCAST_BITS_NONE;
+        broadcast_bits_status[1] = VSI_BROADCAST_BITS_NONE;
+
+        for ( i = 0; i < rank; i++ )
+        {
+            vsi_size_t sz0 = i < rank0 ? input0->attr.size[i] : 1;
+            vsi_size_t sz1 = i < rank1 ? input1->attr.size[i] : 1;
+
+            if (sz0 != sz1)
+            {
+                broadcast_bits_0 |= sz0 == 1 ? (1 << i) : 0;
+                broadcast_bits_1 |= sz1 == 1 ? (1 << i) : 0;
+
+                is_broadcast = vx_true_e;
+            }
+        }
+
+        broadcast_bits_status[0] = broadcast_bits_0;
+        broadcast_bits_status[1] = broadcast_bits_1;
+
+        if (broadcast_bits_status[0] == VSI_BROADCAST_BITS_ON_AXIS_1 &&
+            broadcast_bits_status[1] == VSI_BROADCAST_BITS_NONE)
+        {
+            vsi_size_t channel = rank0 > 2 ? input0->attr.size[2] : 1;
+
+            if (channel == 1)
+            {
+                broadcast_bits_status[0] = VSI_BROADCAST_BITS_ON_AXIS_21;
+            }
+        }
+        else if (broadcast_bits_status[1] == VSI_BROADCAST_BITS_ON_AXIS_1 &&
+                 broadcast_bits_status[0] == VSI_BROADCAST_BITS_NONE)
+        {
+            vx_size channel = rank0 > 2 ? input0->attr.size[2] : 1;
+
+            if (channel == 1)
+            {
+                broadcast_bits_status[1] = VSI_BROADCAST_BITS_ON_AXIS_21;
+            }
+        }
+
+        key = _PACK_ELTWISE_SP_KEY(broadcast_bits_status[0], broadcast_bits_status[1]);
+
+        switch ( key )
+        {
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_2,   VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_2):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_21,  VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_21):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_210, VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_210):
+            break;
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_0,   VSI_BROADCAST_BITS_NONE):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_ON_AXIS_10,  VSI_BROADCAST_BITS_NONE):
+            support = support && (vsi_nn_TypeGetBits(input0->attr.dtype.vx_type) != 4);
+            break;
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_0):
+        case _PACK_ELTWISE_SP_KEY(VSI_BROADCAST_BITS_NONE,        VSI_BROADCAST_BITS_ON_AXIS_10):
+            support = support && (vsi_nn_TypeGetBits(input1->attr.dtype.vx_type) != 4);
+            break;
+        default:
+            support = !is_broadcast;
+            break;
+        }
+
+        if (support == FALSE)
+        {
+            break;
+        }
+    }
+
+    return support;
+}

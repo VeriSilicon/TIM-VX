@@ -45,6 +45,8 @@ static const char* _get_dtype_name(vsi_nn_type_e type)
     switch(type)
     {
         case D_NONE: return "Optional";
+        case D_I4: return "INT4";
+        case D_U4: return "UINT4";
         case D_I8: return "INT8";
         case D_I16: return "INT16";
         case D_I32: return "INT32";
@@ -73,7 +75,10 @@ static const char* _get_qtype_name(vsi_nn_qnt_type_e type)
         case VSI_NN_QNT_TYPE_NONE: return "";
         case VSI_NN_QNT_TYPE_DFP: return "DFP";
         case VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC: return "ASYM";
+        case VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC: return "SYM";
         case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC: return "SYMM PC";
+        case VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8: return "FP8";
+        case VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8: return "FP8 PC";
         default:
             VSILOGE("Unknown quant type: %d\n", type);
             break;
@@ -159,7 +164,9 @@ vsi_bool validate_op_io_types
 {
     vsi_bool matched = FALSE;
 
-    if(self && self->attr.enable_op_constraint_check) {
+    VSI_UNREFERENCED(name);
+
+    if(self && self->attr.enable_op_constraint_check && op_constraint_reg) {
         uint32_t i = 0;
         int32_t j = 0;
         int32_t reg_tensor_num = op_constraint_reg->reg_input_num + op_constraint_reg->reg_output_num;
@@ -215,14 +222,20 @@ char* generate_op_io_types_desc
     char* desc = NULL;
 
     for(i = 0; i < inputs_num; i++) {
-        if(inputs[i]) {
+        if (inputs[i] &&
+            _get_qtype_name(inputs[i]->attr.dtype.qnt_type) &&
+            _get_dtype_name(inputs[i]->attr.dtype.vx_type))
+        {
             total_sz += snprintf(NULL, 0, "%s %s, ",
                     _get_qtype_name(inputs[i]->attr.dtype.qnt_type),
                     _get_dtype_name(inputs[i]->attr.dtype.vx_type));
         }
     }
     for(i = 0; i < outputs_num; i++) {
-        if(outputs[i]) {
+        if (outputs[i] &&
+            _get_qtype_name(outputs[i]->attr.dtype.qnt_type) &&
+            _get_dtype_name(outputs[i]->attr.dtype.vx_type))
+        {
             total_sz += snprintf(NULL, 0, "%s %s, ",
                     _get_qtype_name(outputs[i]->attr.dtype.qnt_type),
                     _get_dtype_name(outputs[i]->attr.dtype.vx_type));
@@ -231,17 +244,24 @@ char* generate_op_io_types_desc
 
     total_sz += 1; /* terminator */
     desc = (char*)malloc(sizeof(char) * total_sz);
+    CHECK_PTR_FAIL_GOTO( desc, "Create buffer fail.", final );
     memset(desc, 0x00, sizeof(char) * total_sz);
 
     for(i = 0; i < inputs_num; i++) {
-        if(inputs[i]) {
+        if (inputs[i] && total_sz >= used_sz &&
+            _get_qtype_name(inputs[i]->attr.dtype.qnt_type) &&
+            _get_dtype_name(inputs[i]->attr.dtype.vx_type))
+        {
             used_sz += snprintf(desc + used_sz, total_sz - used_sz, "%s %s, ",
                     _get_qtype_name(inputs[i]->attr.dtype.qnt_type),
                     _get_dtype_name(inputs[i]->attr.dtype.vx_type));
         }
     }
     for(i = 0; i < outputs_num; i++) {
-        if(outputs[i]) {
+        if (outputs[i] && total_sz >= used_sz &&
+            _get_qtype_name(outputs[i]->attr.dtype.qnt_type) &&
+            _get_dtype_name(outputs[i]->attr.dtype.vx_type))
+        {
             used_sz += snprintf(desc + used_sz, total_sz - used_sz, "%s %s, ",
                     _get_qtype_name(outputs[i]->attr.dtype.qnt_type),
                     _get_dtype_name(outputs[i]->attr.dtype.vx_type));
@@ -252,6 +272,7 @@ char* generate_op_io_types_desc
         desc[used_sz - 2] = '\0';
     }
 
+final:
     return desc;
 }
 

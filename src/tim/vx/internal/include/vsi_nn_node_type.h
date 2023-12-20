@@ -190,8 +190,28 @@
 #include "ops/vsi_nn_op_gather_elements.h"
 #include "ops/vsi_nn_op_selu.h"
 #include "ops/vsi_nn_op_celu.h"
+#include "ops/vsi_nn_op_max_pool3d.h"
+#include "ops/vsi_nn_op_rcp.h"
+#include "ops/vsi_nn_op_sign.h"
+#include "ops/vsi_nn_op_softsign.h"
+#include "ops/vsi_nn_op_cumsum.h"
+#include "ops/vsi_nn_op_mod.h"
+#include "ops/vsi_nn_op_lppool.h"
+#include "ops/vsi_nn_op_scatter_elements.h"
+#include "ops/vsi_nn_op_pre_process_yuv422.h"
+#include "ops/vsi_nn_op_bucketize.h"
+#include "ops/vsi_nn_op_globallppool.h"
+#include "ops/vsi_nn_op_gather_nd.h"
+#include "ops/vsi_nn_op_avg_pool3d.h"
+#include "ops/vsi_nn_op_maxunpool.h"
+#include "ops/vsi_nn_op_reversesequence.h"
+#include "ops/vsi_nn_op_grid_sample.h"
+#include "ops/vsi_nn_op_lpnorm.h"
+#include "ops/vsi_nn_op_resize_3d.h"
+#include "ops/vsi_nn_op_reducel2.h"
 /* custom node head define define */
 #include "custom/vsi_nn_custom_node_type.h"
+#include "ops/vsi_nn_op_inverse_sigmoid.h"
 
 #if defined(__cplusplus)
 extern "C"{
@@ -200,9 +220,10 @@ extern "C"{
 /** Operation attributes */
 typedef union _vsi_nn_nn_param
 {
+    vsi_nn_conv2d_param        conv2d;
     struct
     {
-        vsi_nn_conv2d_param         conv2d;
+        vsi_nn_conv2d_param_deprecate         conv2d_deprecate;
         vsi_nn_pool_param           pool;
     };
     vsi_nn_fcl_param                fcl;
@@ -365,6 +386,26 @@ typedef union _vsi_nn_nn_param
     vsi_nn_gather_elements_param    gather_elements;
     vsi_nn_selu_param               selu;
     vsi_nn_celu_param               celu;
+    vsi_nn_max_pool3d_param         max_pool3d;
+    vsi_nn_rcp_param                rcp;
+    vsi_nn_sign_param               sign;
+    vsi_nn_softsign_param           softsign;
+    vsi_nn_cumsum_param             cumsum;
+    vsi_nn_mod_param                mod;
+    vsi_nn_lppool_param             lppool;
+    vsi_nn_scatter_elements_param   scatter_elements;
+    vsi_nn_pre_process_yuv422_param pre_process_yuv422;
+    vsi_nn_bucketize_param          bucketize;
+    vsi_nn_globallppool_param       globallppool;
+    vsi_nn_gather_nd_param          gather_nd;
+    vsi_nn_avg_pool3d_param         avg_pool3d;
+    vsi_nn_maxunpool_param          maxunpool;
+    vsi_nn_reversesequence_param    reversesequence;
+    vsi_nn_inverse_sigmoid_param       inverse_sigmoid;
+    vsi_nn_grid_sample_param        gridsample;
+    vsi_nn_lpnorm_param             lpnorm;
+    vsi_nn_resize_3d_param          resize_3d;
+    vsi_nn_reducel2_param           reducel2;
     void*                         client_param;
 
     /* custom node data struct define */

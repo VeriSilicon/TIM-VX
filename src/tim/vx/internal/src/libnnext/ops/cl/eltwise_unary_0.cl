@@ -136,6 +136,47 @@ float eltwise_unary_celu(float val, float alpha, float rcp_alpha)
     return val < 0 ? x : val;
 }
 
+float eltwise_unary_rcp(float val, float alpha, float rcp_alpha)
+{
+    return 1.0f / val;
+}
+
+float eltwise_unary_sign(float val, float alpha, float rcp_alpha)
+{
+    return sign(val);
+}
+
+float eltwise_unary_softsign(float val, float alpha, float rcp_alpha)
+{
+    return val / (1.0f + fabs(val));
+}
+
+float eltwise_unary_atan(float x, float alpha, float beta)
+{
+    return atan(x);
+}
+
+float eltwise_unary_atanh(float x, float alpha, float beta)
+{
+    return atanh(x);
+}
+
+float eltwise_unary_acosh(float x, float alpha, float beta)
+{
+    return acosh(x);
+}
+
+float eltwise_unary_inverse_sigmoid(float x, float alpha, float beta)
+{
+    float x1, x2;
+    x = clamp(x, 0, 1);
+    x1 = x > alpha ? x : alpha;
+    x2 = 1 - x;
+    x2 = x2 > alpha ? x2 : alpha;
+    return log(x1 / x2);
+}
+
+
 #define ELTWISE_UNARY_F32_2D(func_name) \
 __kernel void func_name##_F32toF32_2D \
     ( \
@@ -170,6 +211,13 @@ ELTWISE_UNARY_F32_2D(gelu)
 ELTWISE_UNARY_F32_2D(hard_gelu)
 ELTWISE_UNARY_F32_2D(selu)
 ELTWISE_UNARY_F32_2D(celu)
+ELTWISE_UNARY_F32_2D(rcp)
+ELTWISE_UNARY_F32_2D(sign)
+ELTWISE_UNARY_F32_2D(softsign)
+ELTWISE_UNARY_F32_2D(atan)
+ELTWISE_UNARY_F32_2D(atanh)
+ELTWISE_UNARY_F32_2D(acosh)
+ELTWISE_UNARY_F32_2D(inverse_sigmoid)
 
 #define ELTWISE_UNARY_U8_2D(func_name) \
 __kernel void func_name##_U8toU8_2D \
@@ -206,6 +254,55 @@ ELTWISE_UNARY_U8_2D(gelu)
 ELTWISE_UNARY_U8_2D(hard_gelu)
 ELTWISE_UNARY_U8_2D(selu)
 ELTWISE_UNARY_U8_2D(celu)
+ELTWISE_UNARY_U8_2D(rcp)
+ELTWISE_UNARY_U8_2D(sign)
+ELTWISE_UNARY_U8_2D(softsign)
+ELTWISE_UNARY_U8_2D(atan)
+ELTWISE_UNARY_U8_2D(atanh)
+ELTWISE_UNARY_U8_2D(acosh)
+ELTWISE_UNARY_U8_2D(inverse_sigmoid)
+
+#define ELTWISE_UNARY_U8toF32_2D(func_name) \
+__kernel void func_name##_U8toF32_2D \
+    ( \
+    __read_only  image2d_t input, \
+    __write_only image2d_t output, \
+                 float     inputScale, \
+                 float     inputTail, \
+                 float     outputScale, \
+                 float     outputZP, \
+                 float     alpha, \
+                 float     beta \
+    ) \
+{ \
+    int2 coord =  (int2)(get_global_id(0), get_global_id(1)); \
+ \
+    uint4 src = read_imageui(input, coord); \
+    float4 dst = convert_float4(src) * inputScale - inputTail; \
+ \
+    dst.x = eltwise_unary_##func_name(dst.x, alpha, beta); \
+ \
+    write_imagef(output, coord, dst); \
+}
+ELTWISE_UNARY_U8toF32_2D(sin)
+ELTWISE_UNARY_U8toF32_2D(cos)
+ELTWISE_UNARY_U8toF32_2D(exp)
+ELTWISE_UNARY_U8toF32_2D(log)
+ELTWISE_UNARY_U8toF32_2D(neg)
+ELTWISE_UNARY_U8toF32_2D(mish)
+ELTWISE_UNARY_U8toF32_2D(hard_sigmoid)
+ELTWISE_UNARY_U8toF32_2D(round)
+ELTWISE_UNARY_U8toF32_2D(gelu)
+ELTWISE_UNARY_U8toF32_2D(hard_gelu)
+ELTWISE_UNARY_U8toF32_2D(selu)
+ELTWISE_UNARY_U8toF32_2D(celu)
+ELTWISE_UNARY_U8toF32_2D(rcp)
+ELTWISE_UNARY_U8toF32_2D(sign)
+ELTWISE_UNARY_U8toF32_2D(softsign)
+ELTWISE_UNARY_U8toF32_2D(atan)
+ELTWISE_UNARY_U8toF32_2D(atanh)
+ELTWISE_UNARY_U8toF32_2D(acosh)
+ELTWISE_UNARY_U8toF32_2D(inverse_sigmoid)
 
 __kernel void neg_I32toI32_2D
     (

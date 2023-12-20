@@ -36,6 +36,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_util.h"
+#include "vsi_nn_error.h"
 
 static vsi_status op_compute
     (
@@ -44,8 +45,27 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
-    vsi_status status = vsi_nn_internal_compute_node( self );
-    self->n = vsi_nn_internal_get_node_by_uid(self, 1)->node->n;
+    vsi_status status = VSI_SUCCESS;
+    vsi_nn_internal_node_t* interal_node = NULL;
+
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+
+    status = vsi_nn_internal_compute_node( self );
+    CHECK_STATUS_FAIL_GOTO(status, final );
+
+    interal_node = vsi_nn_internal_get_node_by_uid(self, 1);
+
+    if (interal_node)
+    {
+        self->n = interal_node->node->n;
+    }
+    else
+    {
+        status = VSI_FAILURE;
+    }
+
+final:
     return status;
 } /* op_compute() */
 
@@ -56,6 +76,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -68,6 +91,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
 
@@ -81,21 +106,33 @@ static vsi_bool op_setup
     /* TODO: Add code to comput outputs' shape. */
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_pre_process_param * p = NULL;
-    vsi_bool ret = TRUE;
+    vsi_bool ret = FALSE;
     vsi_nn_internal_tensor_t* preprocess_tensor = NULL;
     vsi_nn_preprocess_dest_layout_e layout = VSI_NN_DEST_LAYOUT_NCHW;
+    vsi_bool enable_rgb88_planar_nhwc = FALSE;
 
     p = (vsi_nn_pre_process_param *)&(self->nn_param.pre_process);
 
     vsi_nn_internal_init_node_wksp( self );
 
+    if (vsi_nn_compareVersion(self->graph, 1, 1, 83) == -1)
+    {
+        p->norm2.scale[0] = p->norm.scale;
+        p->norm2.scale[1] = p->norm.scale;
+        p->norm2.scale[2] = p->norm.scale;
+    }
+
     if ( p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420        ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444        ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12          ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB           ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_BGRA          ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_GRAY          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ||
-         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422       ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422
         )
     {
         uint32_t i = 0;
@@ -105,6 +142,11 @@ static vsi_bool op_setup
 
         for (i = 0; i < p->dim_num; i++)
         {
+            if (p->perm == NULL)
+            {
+                i = p->dim_num;
+                break;
+            }
             _axis = p->perm[i];
             if (_axis != i)
                 break;
@@ -113,11 +155,18 @@ static vsi_bool op_setup
         if (i != self->nn_param.pre_process_rgb.dim_num)
         {
             layout = VSI_NN_DEST_LAYOUT_NHWC;
+
+            if (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ||
+                p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP)
+            {
+                enable_rgb88_planar_nhwc = self->graph->ctx->options.enable_rgb88_planar_nhwc;
+            }
         }
 
-        if (layout == VSI_NN_DEST_LAYOUT_NHWC)
+        if (layout == VSI_NN_DEST_LAYOUT_NHWC && !enable_rgb88_planar_nhwc)
         {
             memcpy( &attr, &outputs[PRE_PROCESS_OUTPUT]->attr, sizeof( attr ) );
+
             attr.size[0] = p->output_attr.size[1];
             attr.size[1] = p->output_attr.size[2];
             attr.size[2] = p->output_attr.size[0];
@@ -127,7 +176,8 @@ static vsi_bool op_setup
             attr.vtl = use_virtual_tensor;
             attr.is_const = FALSE;
 
-            preprocess_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+            preprocess_tensor = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+            CHECK_PTR_FAIL_GOTO(preprocess_tensor, "Create internal tensor failed", final);
         }
     }
 
@@ -136,6 +186,7 @@ static vsi_bool op_setup
     case VSI_NN_SOURCE_FORMAT_TENSOR:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_TENSOR, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
 
             curr->node->nn_param.pre_process_tensor.perm = p->perm;
             curr->node->nn_param.pre_process_tensor.dim_num = p->dim_num;
@@ -143,15 +194,16 @@ static vsi_bool op_setup
             curr->inputs[0] = inputs[PRE_PROCESS_INPUT0];
             curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
 
-            vsi_nn_internal_setup_node(self, curr);
+            ret = vsi_nn_internal_setup_node(self, curr);
         }
         break;
     case VSI_NN_SOURCE_FORMAT_IMAGE_GRAY:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_GRAY, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
 
             curr->node->nn_param.pre_process_gray.mean = p->norm.mean[0];
-            curr->node->nn_param.pre_process_gray.scale = p->norm.scale;
+            curr->node->nn_param.pre_process_gray.scale = p->norm2.scale[0];
             curr->node->nn_param.pre_process_gray.rect.left = p->rect.left;
             curr->node->nn_param.pre_process_gray.rect.top = p->rect.top;
             curr->node->nn_param.pre_process_gray.rect.width = p->rect.width;
@@ -160,29 +212,42 @@ static vsi_bool op_setup
             curr->node->nn_param.pre_process_gray.output_attr.dim_num = p->output_attr.dim_num;
 
             curr->inputs[0] = inputs[PRE_PROCESS_INPUT0];
-            curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
+            if (layout == VSI_NN_DEST_LAYOUT_NHWC)
+            {
+                curr->outputs[0] = preprocess_tensor->t;
+            }
+            else
+            {
+                curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
+            }
 
-            vsi_nn_internal_setup_node(self, curr);
+            ret = vsi_nn_internal_setup_node(self, curr);
         }
         break;
     case VSI_NN_SOURCE_FORMAT_IMAGE_RGB:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_RGB, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
 
             if (p->reverse_channel)
             {
                 curr->node->nn_param.pre_process_rgb.r_mean = p->norm.mean[2];
                 curr->node->nn_param.pre_process_rgb.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_rgb.b_mean = p->norm.mean[0];
+                curr->node->nn_param.pre_process_rgb.r_scale = p->norm2.scale[2];
+                curr->node->nn_param.pre_process_rgb.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_rgb.b_scale = p->norm2.scale[0];
             }
             else
             {
                 curr->node->nn_param.pre_process_rgb.r_mean = p->norm.mean[0];
                 curr->node->nn_param.pre_process_rgb.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_rgb.b_mean = p->norm.mean[2];
+                curr->node->nn_param.pre_process_rgb.r_scale = p->norm2.scale[0];
+                curr->node->nn_param.pre_process_rgb.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_rgb.b_scale = p->norm2.scale[2];
             }
 
-            curr->node->nn_param.pre_process_rgb.rgb_scale = p->norm.scale;
             curr->node->nn_param.pre_process_rgb.reverse_channel = p->reverse_channel;
             curr->node->nn_param.pre_process_rgb.rect.left = p->rect.left;
             curr->node->nn_param.pre_process_rgb.rect.top = p->rect.top;
@@ -203,27 +268,33 @@ static vsi_bool op_setup
                 curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
             }
 
-            vsi_nn_internal_setup_node(self, curr);
+            ret = vsi_nn_internal_setup_node(self, curr);
         }
         break;
     case VSI_NN_SOURCE_FORMAT_IMAGE_YUV420:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_YUV420, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
 
             if (p->reverse_channel)
             {
                 curr->node->nn_param.pre_process_yuv420.r_mean = p->norm.mean[2];
                 curr->node->nn_param.pre_process_yuv420.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_yuv420.b_mean = p->norm.mean[0];
+                curr->node->nn_param.pre_process_yuv420.r_scale = p->norm2.scale[2];
+                curr->node->nn_param.pre_process_yuv420.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_yuv420.b_scale = p->norm2.scale[0];
             }
             else
             {
                 curr->node->nn_param.pre_process_yuv420.r_mean = p->norm.mean[0];
                 curr->node->nn_param.pre_process_yuv420.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_yuv420.b_mean = p->norm.mean[2];
+                curr->node->nn_param.pre_process_yuv420.r_scale = p->norm2.scale[0];
+                curr->node->nn_param.pre_process_yuv420.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_yuv420.b_scale = p->norm2.scale[2];
             }
 
-            curr->node->nn_param.pre_process_yuv420.rgb_scale = p->norm.scale;
             curr->node->nn_param.pre_process_yuv420.reverse_channel = p->reverse_channel;
             curr->node->nn_param.pre_process_yuv420.rect.left = p->rect.left;
             curr->node->nn_param.pre_process_yuv420.rect.top = p->rect.top;
@@ -246,27 +317,33 @@ static vsi_bool op_setup
                 curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
             }
 
-            vsi_nn_internal_setup_node(self, curr);
+            ret = vsi_nn_internal_setup_node(self, curr);
         }
         break;
     case VSI_NN_SOURCE_FORMAT_IMAGE_BGRA:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_BGRA, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
 
             if (p->reverse_channel)
             {
                 curr->node->nn_param.pre_process_bgra.r_mean = p->norm.mean[2];
                 curr->node->nn_param.pre_process_bgra.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_bgra.b_mean = p->norm.mean[0];
+                curr->node->nn_param.pre_process_bgra.r_scale = p->norm2.scale[2];
+                curr->node->nn_param.pre_process_bgra.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_bgra.b_scale = p->norm2.scale[0];
             }
             else
             {
                 curr->node->nn_param.pre_process_bgra.r_mean = p->norm.mean[0];
                 curr->node->nn_param.pre_process_bgra.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_bgra.b_mean = p->norm.mean[2];
+                curr->node->nn_param.pre_process_bgra.r_scale = p->norm2.scale[0];
+                curr->node->nn_param.pre_process_bgra.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_bgra.b_scale = p->norm2.scale[2];
             }
 
-            curr->node->nn_param.pre_process_bgra.rgb_scale = p->norm.scale;
             curr->node->nn_param.pre_process_bgra.reverse_channel = p->reverse_channel;
             curr->node->nn_param.pre_process_bgra.rect.left = p->rect.left;
             curr->node->nn_param.pre_process_bgra.rect.top = p->rect.top;
@@ -287,72 +364,30 @@ static vsi_bool op_setup
                 curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
             }
 
-            vsi_nn_internal_setup_node(self, curr);
+            ret = vsi_nn_internal_setup_node(self, curr);
         }
         break;
     case VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR:
     case VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP:
         {
-            uint32_t i = 0;
-            uint32_t axis = 2;
-            uint32_t group = 3;
             vsi_bool is_input_sep = p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ? FALSE : TRUE;
-            vsi_nn_tensor_t ** input_tensor_group = &p->local->local_tensor[0];
-            vsi_nn_internal_tensor_t * output_tensor_group[3] = {NULL};
-            vsi_nn_internal_tensor_t* tmp_outputs[3] = { NULL };
-            vsi_nn_tensor_attr_t attr;
             float mean[3] = {0};
-            vsi_size_t size_32bit[VSI_NN_MAX_DIM_NUM] = {0};
-
-            memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
-
-            if (!is_input_sep)
-            {
-                ret = vsi_nn_CreateTensorGroup(self->graph, inputs[0], axis,
-                input_tensor_group, group);
-                if (ret == FALSE)
-                {
-                    goto final;
-                }
-            }
-
-            memcpy(&attr, &outputs[0]->attr, sizeof(vsi_nn_tensor_attr_t));
-            for(i = 0; i < p->output_attr.dim_num; i++)
-            {
-                attr.size[i] = -1 == p->output_attr.size[i] ? -1 : (vsi_size_t)p->output_attr.size[i];
-            }
-            attr.size[axis] = 1;
-            attr.vtl = TRUE;
-            attr.is_const = FALSE;
-            output_tensor_group[0] = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
-            output_tensor_group[1] = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
-            output_tensor_group[2] = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
-            for(i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
-            {
-                size_32bit[i] = attr.size[i];
-            }
 
             if (p->reverse_channel)
             {
-                int32_t order[3] = {2, 1, 0};
-
                 mean[0] = p->norm.mean[2];
                 mean[1] = p->norm.mean[1];
                 mean[2] = p->norm.mean[0];
-
-                vsi_nn_reorder_tensor( (vsi_nn_tensor_t **)output_tensor_group, order,
-                        3, (vsi_nn_tensor_t **)tmp_outputs );
             }
             else
             {
                 mean[0] = p->norm.mean[0];
                 mean[1] = p->norm.mean[1];
                 mean[2] = p->norm.mean[2];
-
-                memmove( tmp_outputs, output_tensor_group, sizeof(vsi_nn_tensor_t*) * 3 );
             }
 
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_RGB888_PLANAR, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
             if (is_input_sep)
             {
                 curr->inputs[0] = inputs[0];
@@ -361,32 +396,11 @@ static vsi_bool op_setup
             }
             else
             {
-                curr->inputs[0] = input_tensor_group[0];
-                curr->inputs[1] = input_tensor_group[1];
-                curr->inputs[2] = input_tensor_group[2];
+                curr->inputs[0] = inputs[0];
+                curr->inputs[1] = NULL;
+                curr->inputs[2] = NULL;
             }
-            curr->outputs[0] = output_tensor_group[0]->t;
-            curr->outputs[1] = output_tensor_group[1]->t;
-            curr->outputs[2] = output_tensor_group[2]->t;
-            curr->node->nn_param.pre_process_rgb888_planar.r_mean = mean[0];
-            curr->node->nn_param.pre_process_rgb888_planar.g_mean = mean[1];
-            curr->node->nn_param.pre_process_rgb888_planar.b_mean = mean[2];
-            curr->node->nn_param.pre_process_rgb888_planar.scale = p->norm.scale;
-            curr->node->nn_param.pre_process_rgb888_planar.rect.left = p->rect.left;
-            curr->node->nn_param.pre_process_rgb888_planar.rect.top = p->rect.top;
-            curr->node->nn_param.pre_process_rgb888_planar.rect.width = p->rect.width;
-            curr->node->nn_param.pre_process_rgb888_planar.rect.height = p->rect.height;
-            curr->node->nn_param.pre_process_rgb888_planar.output_attr.size = size_32bit;
-            curr->node->nn_param.pre_process_rgb888_planar.output_attr.dim_num = p->output_attr.dim_num;
-            vsi_nn_internal_setup_node(self, curr);
-
-            curr = vsi_nn_internal_new_node( self, VSI_NN_OP_CONCAT, 3, 1 );
-
-            curr->node->nn_param.concat.axis = axis;
-            curr->inputs[0] = tmp_outputs[0]->t;
-            curr->inputs[1] = tmp_outputs[1]->t;
-            curr->inputs[2] = tmp_outputs[2]->t;
-            if (layout == VSI_NN_DEST_LAYOUT_NHWC)
+            if (layout == VSI_NN_DEST_LAYOUT_NHWC && !enable_rgb88_planar_nhwc)
             {
                 curr->outputs[0] = preprocess_tensor->t;
             }
@@ -395,27 +409,57 @@ static vsi_bool op_setup
                 curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
             }
 
-            vsi_nn_internal_setup_node(self, curr);
+            if (p->reverse_channel)
+            {
+                curr->node->nn_param.pre_process_rgb888_planar.r_scale = p->norm2.scale[2];
+                curr->node->nn_param.pre_process_rgb888_planar.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_rgb888_planar.b_scale = p->norm2.scale[0];
+            }
+            else
+            {
+                curr->node->nn_param.pre_process_rgb888_planar.r_scale = p->norm2.scale[0];
+                curr->node->nn_param.pre_process_rgb888_planar.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_rgb888_planar.b_scale = p->norm2.scale[2];
+            }
+
+            curr->node->nn_param.pre_process_rgb888_planar.r_mean = mean[0];
+            curr->node->nn_param.pre_process_rgb888_planar.g_mean = mean[1];
+            curr->node->nn_param.pre_process_rgb888_planar.b_mean = mean[2];
+            curr->node->nn_param.pre_process_rgb888_planar.rect.left = p->rect.left;
+            curr->node->nn_param.pre_process_rgb888_planar.rect.top = p->rect.top;
+            curr->node->nn_param.pre_process_rgb888_planar.rect.width = p->rect.width;
+            curr->node->nn_param.pre_process_rgb888_planar.rect.height = p->rect.height;
+            curr->node->nn_param.pre_process_rgb888_planar.output_attr.size = p->output_attr.size;
+            curr->node->nn_param.pre_process_rgb888_planar.output_attr.dim_num = p->output_attr.dim_num;
+            curr->node->nn_param.pre_process_rgb888_planar.reverse_channel = p->reverse_channel;
+            curr->node->nn_param.pre_process_rgb888_planar.enable_rgb88_planar_nhwc = enable_rgb88_planar_nhwc;
+            ret = vsi_nn_internal_setup_node(self, curr);
         }
         break;
     case VSI_NN_SOURCE_FORMAT_IMAGE_YUV444:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_YUV444, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
 
             if (p->reverse_channel)
             {
                 curr->node->nn_param.pre_process_yuv444.r_mean = p->norm.mean[2];
                 curr->node->nn_param.pre_process_yuv444.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_yuv444.b_mean = p->norm.mean[0];
+                curr->node->nn_param.pre_process_yuv444.r_scale = p->norm2.scale[2];
+                curr->node->nn_param.pre_process_yuv444.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_yuv444.b_scale = p->norm2.scale[0];
             }
             else
             {
                 curr->node->nn_param.pre_process_yuv444.r_mean = p->norm.mean[0];
                 curr->node->nn_param.pre_process_yuv444.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_yuv444.b_mean = p->norm.mean[2];
+                curr->node->nn_param.pre_process_yuv444.r_scale = p->norm2.scale[0];
+                curr->node->nn_param.pre_process_yuv444.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_yuv444.b_scale = p->norm2.scale[2];
             }
 
-            curr->node->nn_param.pre_process_yuv444.rgb_scale = p->norm.scale;
             curr->node->nn_param.pre_process_yuv444.reverse_channel = p->reverse_channel;
             curr->node->nn_param.pre_process_yuv444.rect.left = p->rect.left;
             curr->node->nn_param.pre_process_yuv444.rect.top = p->rect.top;
@@ -438,27 +482,43 @@ static vsi_bool op_setup
                 curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
             }
 
-            vsi_nn_internal_setup_node(self, curr);
+            ret = vsi_nn_internal_setup_node(self, curr);
         }
         break;
+    case VSI_NN_SOURCE_FORMAT_IMAGE_NV21:
     case VSI_NN_SOURCE_FORMAT_IMAGE_NV12:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_NV12, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
 
             if (p->reverse_channel)
             {
                 curr->node->nn_param.pre_process_nv12.r_mean = p->norm.mean[2];
                 curr->node->nn_param.pre_process_nv12.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_nv12.b_mean = p->norm.mean[0];
+                curr->node->nn_param.pre_process_nv12.r_scale = p->norm2.scale[2];
+                curr->node->nn_param.pre_process_nv12.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_nv12.b_scale = p->norm2.scale[0];
             }
             else
             {
                 curr->node->nn_param.pre_process_nv12.r_mean = p->norm.mean[0];
                 curr->node->nn_param.pre_process_nv12.g_mean = p->norm.mean[1];
                 curr->node->nn_param.pre_process_nv12.b_mean = p->norm.mean[2];
+                curr->node->nn_param.pre_process_nv12.r_scale = p->norm2.scale[0];
+                curr->node->nn_param.pre_process_nv12.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_nv12.b_scale = p->norm2.scale[2];
             }
 
-            curr->node->nn_param.pre_process_nv12.rgb_scale = p->norm.scale;
+            if (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12)
+            {
+                curr->node->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV12;
+            }
+            else
+            {
+                curr->node->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV21;
+            }
+
             curr->node->nn_param.pre_process_nv12.reverse_channel = p->reverse_channel;
             curr->node->nn_param.pre_process_nv12.rect.left = p->rect.left;
             curr->node->nn_param.pre_process_nv12.rect.top = p->rect.top;
@@ -480,40 +540,101 @@ static vsi_bool op_setup
                 curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
             }
 
-            vsi_nn_internal_setup_node(self, curr);
+            ret = vsi_nn_internal_setup_node(self, curr);
+        }
+        break;
+    case VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422:
+    case VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422:
+        {
+            curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_YUV422, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
+
+            if (p->reverse_channel)
+            {
+                curr->node->nn_param.pre_process_yuv422.r_mean = p->norm.mean[2];
+                curr->node->nn_param.pre_process_yuv422.g_mean = p->norm.mean[1];
+                curr->node->nn_param.pre_process_yuv422.b_mean = p->norm.mean[0];
+                curr->node->nn_param.pre_process_yuv422.r_scale = p->norm2.scale[2];
+                curr->node->nn_param.pre_process_yuv422.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_yuv422.b_scale = p->norm2.scale[0];
+            }
+            else
+            {
+                curr->node->nn_param.pre_process_yuv422.r_mean = p->norm.mean[0];
+                curr->node->nn_param.pre_process_yuv422.g_mean = p->norm.mean[1];
+                curr->node->nn_param.pre_process_yuv422.b_mean = p->norm.mean[2];
+                curr->node->nn_param.pre_process_yuv422.r_scale = p->norm2.scale[0];
+                curr->node->nn_param.pre_process_yuv422.g_scale = p->norm2.scale[1];
+                curr->node->nn_param.pre_process_yuv422.b_scale = p->norm2.scale[2];
+            }
+
+            if (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422)
+            {
+                curr->node->nn_param.pre_process_yuv422.yuv422_type = 0;
+            }
+            else
+            {
+                curr->node->nn_param.pre_process_yuv422.yuv422_type = 1;
+            }
+
+            curr->node->nn_param.pre_process_yuv422.reverse_channel = p->reverse_channel;
+            curr->node->nn_param.pre_process_yuv422.rect.left = p->rect.left;
+            curr->node->nn_param.pre_process_yuv422.rect.top = p->rect.top;
+            curr->node->nn_param.pre_process_yuv422.rect.width = p->rect.width;
+            curr->node->nn_param.pre_process_yuv422.rect.height = p->rect.height;
+            curr->node->nn_param.pre_process_yuv422.output_attr.size = p->output_attr.size;
+            curr->node->nn_param.pre_process_yuv422.output_attr.dim_num = p->output_attr.dim_num;
+            curr->node->nn_param.pre_process_yuv422.perm = p->perm;
+            curr->node->nn_param.pre_process_yuv422.dim_num = p->dim_num;
+
+            curr->inputs[0] = inputs[PRE_PROCESS_INPUT0];
+            if (layout == VSI_NN_DEST_LAYOUT_NHWC)
+            {
+                curr->outputs[0] = preprocess_tensor->t;
+            }
+            else
+            {
+                curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
+            }
+
+            ret = vsi_nn_internal_setup_node(self, curr);
         }
         break;
     default:
         {
             VSILOGE( "Not support this type!(PRE_PROCESS)\n");
-            ret = FALSE;
+            goto final;
         }
         break;
     }
 
     if ( p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420        ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422       ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422       ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444        ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12          ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB           ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_BGRA          ||
-         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ||
-         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_GRAY          ||
+         (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR && !enable_rgb88_planar_nhwc) ||
+         (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP && !enable_rgb88_planar_nhwc)
         )
     {
         if (layout == VSI_NN_DEST_LAYOUT_NHWC)
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PERMUTE, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
             curr->node->nn_param.permute.perm = p->perm;
             curr->node->nn_param.permute.dim_num = p->dim_num;
             curr->inputs[0] = preprocess_tensor->t;
             curr->outputs[0] = outputs[PRE_PROCESS_OUTPUT];
 
-            vsi_nn_internal_setup_node( self, curr );
+            ret = vsi_nn_internal_setup_node( self, curr );
         }
     }
 
 final:
-
     return ret;
 } /* op_setup() */
 
@@ -559,6 +680,7 @@ static vsi_status op_init
     {
         return  VX_ERROR_NO_MEMORY;
     }
+
     memset(self->nn_param.pre_process.local, 0, sizeof(vsi_nn_pre_process_lcl_data));
 
     return status;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *    Copyright (c) 2020 Vivante Corporation
+ *    Copyright (c) 2020-2023 Vivante Corporation
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a
  *    copy of this software and associated documentation files (the "Software"),
@@ -53,8 +53,10 @@ class Conv3dLayoutInfer : public OpLayoutInfer {
           !(in->GetSpec().attr_ & vx::TensorAttribute::INPUT)) {
             // For bias
             if (in->GetShape().size() == 1) {
+              std::vector<uint8_t> dataRef(in->GetSpec().GetByteSize());
+              in->CopyDataFromTensor(dataRef.data());
               infer_tensor = context_->infer_graph_->CreateTensor(
-                  in->GetSpec(), in->GetDataRef());
+                  in->GetSpec(), (const void*)dataRef.data());
               trans_pv = MakeShared(1);
             } else {
               // For input/weight
@@ -69,8 +71,10 @@ class Conv3dLayoutInfer : public OpLayoutInfer {
                   trans_pv = required_pv;
                 }
               } else {
+                std::vector<uint8_t> dataRef(in->GetSpec().GetByteSize());
+                in->CopyDataFromTensor(dataRef.data());
                 infer_tensor = context_->infer_graph_->CreateTensor(
-                    in->GetSpec(), in->GetDataRef());
+                    in->GetSpec(), (const void*)dataRef.data());
                 trans_pv = MakeShared(required_pv->Rank());
               }
             }

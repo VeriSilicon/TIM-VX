@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/spatial_transformer.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -35,7 +35,7 @@ SpatialTransformer::SpatialTransformer(Graph* graph, uint32_t output_h, uint32_t
     bool has_theta_2_1, bool has_theta_2_2, bool has_theta_2_3,
     float theta_1_1, float theta_1_2, float theta_1_3,
     float theta_2_1, float theta_2_2, float theta_2_3, bool align_corners)
-    : DirectMapOp(graph, VSI_NN_OP_SPATIAL_TRANSFORMER, 2, 1), output_h_(output_h), output_w_(output_w),
+    : BuiltinOp(graph, VSI_NN_OP_SPATIAL_TRANSFORMER, 2, 1), output_h_(output_h), output_w_(output_w),
     has_theta_1_1_(has_theta_1_1), has_theta_1_2_(has_theta_1_2), has_theta_1_3_(has_theta_1_3),
     has_theta_2_1_(has_theta_2_1), has_theta_2_2_(has_theta_2_2), has_theta_2_3_(has_theta_2_3),
     theta_1_1_(theta_1_1), theta_1_2_(theta_1_2), theta_1_3_(theta_1_3),

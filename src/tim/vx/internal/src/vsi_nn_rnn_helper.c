@@ -33,6 +33,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_util.h"
 #include "vsi_nn_rnn_helper.h"
+#include "vsi_nn_error.h"
 
 vsi_bool vsi_nn_rnn_find_best_kernel_size
     (
@@ -60,7 +61,7 @@ vsi_bool vsi_nn_rnn_find_best_kernel_size
         /* try NxN */
         if( !multi_batch )
         {
-            #if( !defined( _WIN32 ) )
+            #if( !(defined(_MSC_VER) || defined(_WIN32) || defined(__MINGW32)) )
             /* try NxN conv */
             kernel_h = 8;
             while( input_size % (kernel_h * kernel_h) != 0 )
@@ -116,13 +117,17 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_input_for_nn_fc
     vsi_size_t* reshape_in_size = NULL;
     uint32_t* permute_in_perm = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, &input->attr.dtype, use_virtual_tensor);
     tensor1 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+    CHECK_PTR_FAIL_GOTO(tensor1, "Create internal tensor failed", final);
 
     tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_RESHAPE2, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
     reshape_in_size = (vsi_size_t*)vsi_nn_internal_new_node_param(tmp_inode, 4 * sizeof(vsi_size_t));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_in_size, tmp_inode, "Create internal buffer failed", final);
 
     reshape_in_size[3] = input->attr.size[1];
     reshape_in_size[2] = input->attr.size[0] / (kernel_h * kernel_w);
@@ -133,7 +138,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_input_for_nn_fc
     tmp_inode->node->nn_param.reshape2.dim_num = 4;
     tmp_inode->inputs[0] = input;
     tmp_inode->outputs[0] = tensor1->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
 
     if( multi_batch )
     {
@@ -144,13 +149,17 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_input_for_nn_fc
         c = tensor1->t->attr.size[1];
 
         reshape_size[2] = tensor1->t->attr.size[3];
-        reshape_size[1] = -1;
+        reshape_size[1] = (vsi_size_t)-1;
         reshape_size[0] = tensor1->t->attr.size[0];
         tensor0 = vsi_nn_rnn_create_reshape(self, tensor1->t, NULL, reshape_size, 3, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(tensor0, "Create internal tensor failed", final);
 
         tensor2 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+        CHECK_PTR_FAIL_GOTO(tensor2, "Create internal tensor failed", final);
         tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_PERMUTE, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
         permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(tmp_inode, 3 * sizeof(uint32_t));
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(permute_in_perm, tmp_inode, "Create internal buffer failed", final);
         permute_in_perm[0] = 2;
         permute_in_perm[1] = 1;
         permute_in_perm[2] = 0;
@@ -168,7 +177,12 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_input_for_nn_fc
 
         tensor1 = tensor0;
     }
+    if (!ret)
+    {
+        tensor1 = NULL;
+    }
 
+final:
     return tensor1;
 }
 
@@ -189,6 +203,10 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_output_for_nn_fc
     uint32_t* permute_in_perm = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
     vsi_nn_tensor_t* tensor = input;
+    vsi_bool ret = FALSE;
+
+    VSI_UNREFERENCED(kernel_h);
+    VSI_UNREFERENCED(kernel_w);
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, &input->attr.dtype, use_virtual_tensor);
@@ -202,13 +220,18 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_output_for_nn_fc
         c = tensor->attr.size[1];
 
         reshape_size[2] = tensor->attr.size[3];
-        reshape_size[1] = -1;
+        reshape_size[1] = (vsi_size_t)-1;
         reshape_size[0] = tensor->attr.size[0];
         tensor0 = vsi_nn_rnn_create_reshape(self, tensor, NULL, reshape_size, 3, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(tensor0, "Create internal tensor failed", final);
 
         tensor1 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+        CHECK_PTR_FAIL_GOTO(tensor1, "Create internal tensor failed", final);
+
         tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_PERMUTE, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
         permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(tmp_inode, 3 * sizeof(uint32_t));
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(permute_in_perm, tmp_inode, "Create internal buffer failed", final);
 
         permute_in_perm[0] = 2;
         permute_in_perm[1] = 1;
@@ -225,13 +248,17 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_output_for_nn_fc
         reshape_size[1] = c;
         reshape_size[0] = tensor1->t->attr.size[0];
         tensor0 = vsi_nn_rnn_create_reshape(self, tensor1->t, NULL, reshape_size, 4, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(tensor0, "Create internal tensor failed", final);
 
         tensor = tensor0->t;
     }
 
     tensor2 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+    CHECK_PTR_FAIL_GOTO(tensor2, "Create internal tensor failed", final);
     tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_RESHAPE2, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
     reshape_in_size = (vsi_size_t *)vsi_nn_internal_new_node_param(tmp_inode, 4 * sizeof(vsi_size_t));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_in_size, tmp_inode, "Create internal buffer failed", final);
 
     reshape_in_size[1] = tensor->attr.size[3];
     reshape_in_size[0] = tensor->attr.size[2];
@@ -240,8 +267,13 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_process_output_for_nn_fc
     tmp_inode->node->nn_param.reshape2.dim_num = 2;
     tmp_inode->inputs[0] = tensor;
     tmp_inode->outputs[0] = tensor2->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor2 = NULL;
+    }
 
+final:
     return tensor2;
 }
 
@@ -262,6 +294,10 @@ vsi_bool vsi_nn_rnn_process_output_for_nn_fc2
     uint32_t* permute_in_perm = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
     vsi_nn_tensor_t* tensor = input;
+    vsi_bool ret = FALSE;
+
+    VSI_UNREFERENCED(kernel_h);
+    VSI_UNREFERENCED(kernel_w);
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, &input->attr.dtype, use_virtual_tensor);
@@ -275,13 +311,17 @@ vsi_bool vsi_nn_rnn_process_output_for_nn_fc2
         c = tensor->attr.size[1];
 
         reshape_size[2] = tensor->attr.size[3];
-        reshape_size[1] = -1;
+        reshape_size[1] = (vsi_size_t)-1;
         reshape_size[0] = tensor->attr.size[0];
         tensor0 = vsi_nn_rnn_create_reshape(self, tensor, NULL, reshape_size, 3, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(tensor0, "Create internal tensor failed", final);
 
         tensor1 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+        CHECK_PTR_FAIL_GOTO(tensor1, "Create internal tensor failed", final);
         tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_PERMUTE, 0, 0 );
+        CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
         permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(tmp_inode, 3 * sizeof(uint32_t));
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(permute_in_perm, tmp_inode, "Create internal buffer failed", final);
 
         permute_in_perm[0] = 2;
         permute_in_perm[1] = 1;
@@ -298,12 +338,15 @@ vsi_bool vsi_nn_rnn_process_output_for_nn_fc2
         reshape_size[1] = c;
         reshape_size[0] = tensor1->t->attr.size[0];
         tensor0 = vsi_nn_rnn_create_reshape(self, tensor1->t, NULL, reshape_size, 4, use_virtual_tensor);
+        CHECK_PTR_FAIL_GOTO(tensor0, "Create internal tensor failed", final);
 
         tensor = tensor0->t;
     }
 
     tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_RESHAPE2, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
     reshape_in_size = (vsi_size_t*)vsi_nn_internal_new_node_param(tmp_inode, 4 * sizeof(vsi_size_t));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_in_size, tmp_inode, "Create internal buffer failed", final);
 
     reshape_in_size[1] = tensor->attr.size[3];
     reshape_in_size[0] = tensor->attr.size[2];
@@ -312,9 +355,10 @@ vsi_bool vsi_nn_rnn_process_output_for_nn_fc2
     tmp_inode->node->nn_param.reshape2.dim_num = 2;
     tmp_inode->inputs[0] = tensor;
     tmp_inode->outputs[0] = output;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
 
-    return TRUE;
+final:
+    return ret;
 }
 
 vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tp_fc
@@ -332,6 +376,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tp_fc
     vsi_nn_internal_tensor_t* tensor1 = NULL;
     vsi_nn_internal_tensor_t* tensor2 = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     tensor = bias;
@@ -340,12 +385,16 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tp_fc
         /* create zero bias for NN/TP */
         tensor1 = vsi_nn_internal_create_zero_bias_tensor(
             self, &input->attr, &weight->attr, VSI_NN_OP_FCL, FALSE);
+        CHECK_PTR_FAIL_GOTO( tensor1, "Create tensor fail.", final );
+
         tensor = tensor1->t;
     }
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
     tensor2 = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(tensor2, "Create internal tensor failed", final);
 
     tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_FCL, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
     tmp_inode->node->nn_param.fcl.axis = 0;
     tmp_inode->node->nn_param.fcl.weights = (uint32_t)weight->attr.size[1];
 
@@ -353,8 +402,13 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tp_fc
     tmp_inode->inputs[1] = weight;
     tmp_inode->inputs[2] = tensor;
     tmp_inode->outputs[0] = tensor2->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor2 = NULL;
+    }
 
+final:
     return tensor2;
 }
 
@@ -376,6 +430,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc
     vsi_nn_internal_tensor_t* tensor2 = NULL;
     vsi_nn_internal_tensor_t* reshaped_weight_tensor = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     tensor = bias;
@@ -384,15 +439,19 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc
         /* create zero bias for NN/TP */
         tensor1 = vsi_nn_internal_create_zero_bias_tensor(
             self, &input->attr, &weight->attr, VSI_NN_OP_FCL, FALSE);
+        CHECK_PTR_FAIL_GOTO( tensor1, "Create tensor fail.", final );
         tensor = tensor1->t;
     }
 
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
     tensor2 = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(tensor2, "Create internal tensor failed", final);
 
     reshaped_weight_tensor = vsi_nn_rnn_prepare_weight_for_nn_fc(self, weight, kernel_h, kernel_w);
+    CHECK_PTR_FAIL_GOTO(reshaped_weight_tensor, "Create internal tensor failed", final);
 
     tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_CONV2D, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
     tmp_inode->node->nn_param.conv2d.ksize[0] = kernel_w;
     tmp_inode->node->nn_param.conv2d.ksize[1] = kernel_h;
     tmp_inode->node->nn_param.conv2d.stride[0] = 1;
@@ -410,8 +469,13 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc
     tmp_inode->inputs[1] = reshaped_weight_tensor->t;
     tmp_inode->inputs[2] = tensor;
     tmp_inode->outputs[0] = tensor2->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor2 = NULL;
+    }
 
+final:
     return tensor2;
 }
 
@@ -439,6 +503,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_prepare_weight_for_nn_fc
     memcpy( &attr.dtype, &weight->attr.dtype, sizeof(attr.dtype));
     memcpy( &attr.size, &reshaped_weight_shape, sizeof(attr.size));
     reshaped_weight_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(reshaped_weight_tensor, "Create internal tensor failed", final);
 
     vsi_nn_ReshapeTensor( self->graph, weight, reshaped_weight_tensor->t, reshaped_weight_shape, 4 );
 
@@ -448,6 +513,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_prepare_weight_for_nn_fc
         vsi_nn_SetTensorAttr(reshaped_weight_tensor->t, VSI_NN_TENSOR_ATTR_CONST);
     }
 
+final:
     return reshaped_weight_tensor;
 }
 
@@ -470,6 +536,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc_relu
     vsi_nn_internal_tensor_t* tensor2 = NULL;
     vsi_nn_internal_tensor_t* reshaped_weight_tensor = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     tensor = bias;
@@ -478,15 +545,20 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc_relu
         /* create zero bias for NN/TP */
         tensor1 = vsi_nn_internal_create_zero_bias_tensor(
             self, &input->attr, &weight->attr, VSI_NN_OP_FCL, FALSE);
+
+        CHECK_PTR_FAIL_GOTO( tensor1, "Create tensor fail.", final );
         tensor = tensor1->t;
     }
 
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
     tensor2 = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(tensor2, "Create internal tensor failed", final);
 
     reshaped_weight_tensor = vsi_nn_rnn_prepare_weight_for_nn_fc(self, weight, kernel_h, kernel_w);
+    CHECK_PTR_FAIL_GOTO(reshaped_weight_tensor, "Create internal tensor failed", final);
 
     tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_CONV_RELU, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
     tmp_inode->node->nn_param.conv2d.ksize[0] = kernel_w;
     tmp_inode->node->nn_param.conv2d.ksize[1] = kernel_h;
     tmp_inode->node->nn_param.conv2d.stride[0] = 1;
@@ -509,8 +581,13 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_nn_fc_relu
     tmp_inode->inputs[1] = reshaped_weight_tensor->t;
     tmp_inode->inputs[2] = tensor;
     tmp_inode->outputs[0] = tensor2->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor2 = NULL;
+    }
 
+final:
     return tensor2;
 }
 
@@ -526,18 +603,26 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tensor_add
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* tensor1 = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
     tensor1 = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(tensor1, "Create internal tensor failed", final);
 
     tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_ADD, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
 
     tmp_inode->inputs[0] = input1;
     tmp_inode->inputs[1] = input2;
     tmp_inode->outputs[0] = tensor1->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor1 = NULL;
+    }
 
+final:
     return tensor1;
 }
 
@@ -578,19 +663,27 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_activation
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* tensor1 = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
     tensor1 = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(tensor1, "Create internal tensor failed", final);
 
     tmp_inode = vsi_nn_internal_new_node(self, vsi_nn_rnn_get_act_op_type(act_type), 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
 
     tmp_inode->inputs[0] = input;
     tmp_inode->node->nn_param.tanh.scale_a = 1.0f;
     tmp_inode->node->nn_param.tanh.scale_b = 1.0f;
     tmp_inode->outputs[0] = tensor1->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        tensor1 = NULL;
+    }
 
+final:
     return tensor1;
 }
 
@@ -606,6 +699,7 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_transpose_time_major
     uint32_t* permute_in_perm = NULL;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
     vsi_nn_internal_node_t* curr = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
 
@@ -614,11 +708,14 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_transpose_time_major
         vsi_nn_internal_init_tensor_attr(&attr,
             &input->attr.dtype, use_virtual_tensor);
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
     }
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PERMUTE, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(curr,
         VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(permute_in_perm, curr, "Create internal buffer failed", final);
     permute_in_perm[0] = 0;
     permute_in_perm[1] = 2;
     permute_in_perm[2] = 1;
@@ -635,12 +732,17 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_transpose_time_major
     {
         curr->outputs[0] = output;
     }
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
+    if (!ret)
+    {
+        output_tensor = NULL;
+    }
 
+final:
     return output_tensor;
 }
 
-void vsi_nn_rnn_split_input_tensor
+vsi_status vsi_nn_rnn_split_input_tensor
     (
     vsi_nn_node_t * self,
     vsi_nn_tensor_t * input,
@@ -649,6 +751,7 @@ void vsi_nn_rnn_split_input_tensor
     vsi_bool use_virtual_tensor
     )
 {
+    vsi_status status = VSI_FAILURE;
     uint32_t* slices = NULL;
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_tensor_attr_t attr;
@@ -657,7 +760,9 @@ void vsi_nn_rnn_split_input_tensor
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_SPLIT, 1, time_step );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     slices = (uint32_t *)vsi_nn_internal_new_node_param(curr, time_step * sizeof(uint32_t));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(slices, curr, "Create internal buffer failed", final);
     curr->node->nn_param.split.axis = 2; /* timestep axis */
     curr->node->nn_param.split.slices_num = time_step;
     curr->inputs[0] = input;
@@ -668,13 +773,18 @@ void vsi_nn_rnn_split_input_tensor
         slices[i] = 1;
         vsi_nn_internal_init_tensor_attr(&attr, &input->attr.dtype, use_virtual_tensor);
         output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(output_tensor, curr, "Create internal tensor failed", final);
         curr->outputs[i] = output_tensor->t;
         output[i] = output_tensor->t;
     }
     vsi_nn_internal_setup_node( self, curr );
+
+    status = VSI_SUCCESS;
+final:
+    return status;
 }
 
-void vsi_nn_rnn_data_check_aligned
+vsi_status vsi_nn_rnn_data_check_aligned
     (
     vsi_nn_node_t * self,
     vsi_nn_tensor_t ** input,
@@ -682,6 +792,7 @@ void vsi_nn_rnn_data_check_aligned
     vsi_bool use_virtual_tensor
     )
 {
+    vsi_status status = VSI_FAILURE;
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
@@ -697,8 +808,10 @@ void vsi_nn_rnn_data_check_aligned
         {
             vsi_nn_internal_init_tensor_attr(&attr, &input[i]->attr.dtype, use_virtual_tensor);
             output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+            CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
 
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_DATACONVERT, 0, 0 );
+            CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
             curr->inputs[0] = input[i];
             curr->outputs[0] = output_tensor->t;
             vsi_nn_internal_setup_node( self, curr );
@@ -708,6 +821,10 @@ void vsi_nn_rnn_data_check_aligned
 
         ofst += tensor_size;
     }
+
+    status = VSI_SUCCESS;
+final:
+    return status;
 }
 
 vsi_nn_internal_tensor_t* vsi_nn_rnn_reshape_split_output
@@ -722,24 +839,33 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_reshape_split_output
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
     vsi_size_t *reshape_split_size = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     /* reshape for split output */
     vsi_nn_internal_init_tensor_attr(&attr, &input->attr.dtype, use_virtual_tensor);
     output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     reshape_split_size = (vsi_size_t *)vsi_nn_internal_new_node_param(curr,
         VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
-    reshape_split_size[0] = -1;
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_split_size, curr, "Create internal buffer failed", final);
+    reshape_split_size[0] = (vsi_size_t)-1;
     reshape_split_size[1] = batch_size;
 
     curr->node->nn_param.reshape2.size = reshape_split_size;
     curr->node->nn_param.reshape2.dim_num = 2;
     curr->inputs[0] = input;
     curr->outputs[0] = output_tensor->t;
-    vsi_nn_internal_setup_node( self, curr );
+    ret = vsi_nn_internal_setup_node( self, curr );
+    if (!ret)
+    {
+        output_tensor = NULL;
+    }
 
+final:
     return output_tensor;
 }
 
@@ -755,17 +881,21 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_reshape_cell_output
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
     vsi_size_t* reshape_grucell_output_size = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
 
     /* reshape output to 3-dims */
     vsi_nn_internal_init_tensor_attr(&attr, &input->attr.dtype, use_virtual_tensor);
     output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_RESHAPE2, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     reshape_grucell_output_size = (vsi_size_t*)vsi_nn_internal_new_node_param(curr,
         VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t));
-    reshape_grucell_output_size[0] = -1;
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_grucell_output_size, curr, "Create internal buffer failed", final);
+    reshape_grucell_output_size[0] = (vsi_size_t)-1;
     reshape_grucell_output_size[1] = batch_size;
     reshape_grucell_output_size[2] = 1;
 
@@ -773,8 +903,13 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_reshape_cell_output
     curr->node->nn_param.reshape2.dim_num = 3;
     curr->inputs[0] = input;
     curr->outputs[0] = output_tensor->t;
-    vsi_nn_internal_setup_node( self, curr );
+    ret = vsi_nn_internal_setup_node( self, curr );
+    if (!ret)
+    {
+        output_tensor = NULL;
+    }
 
+final:
     return output_tensor;
 }
 
@@ -791,20 +926,28 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_binary_operator
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* output_tensor = NULL;
     vsi_nn_internal_node_t* tmp_inode = NULL;
+    vsi_bool ret = FALSE;
 
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     vsi_nn_internal_init_tensor_attr(&attr, output_dtype, use_virtual_tensor);
     output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+    CHECK_PTR_FAIL_GOTO(output_tensor, "Create internal tensor failed", final);
 
     tmp_inode = vsi_nn_internal_new_node(self, op, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
     tmp_inode->node->nn_param.multiply.scale = 1.0f;
     tmp_inode->node->vx_param.overflow_policy = VX_CONVERT_POLICY_SATURATE;
     tmp_inode->node->vx_param.rounding_policy = VX_ROUND_POLICY_TO_NEAREST_EVEN;
     tmp_inode->inputs[0] = operand1;
     tmp_inode->inputs[1] = operand2;
     tmp_inode->outputs[0] = output_tensor->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
+    ret = vsi_nn_internal_setup_node(self, tmp_inode);
+    if (!ret)
+    {
+        output_tensor = NULL;
+    }
 
+final:
     return output_tensor;
 }
 
@@ -822,7 +965,10 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_concat_impl
     vsi_nn_tensor_attr_t attr;
     vsi_nn_internal_tensor_t* tmp_tensor = NULL;
     vsi_nn_internal_node_t* inode = NULL;
-    int tensor_count = 1;
+    int32_t tensor_count = 1;
+    vsi_bool ret = FALSE;
+
+    VSI_UNREFERENCED(axis);
 
     va_start(args, tensor);
 
@@ -838,8 +984,10 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_concat_impl
     attr.vtl = use_virtual_tensor;
     attr.is_const = FALSE;
     tmp_tensor = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+    CHECK_PTR_FAIL_GOTO(tmp_tensor, "Create internal tensor failed", final);
 
     inode = vsi_nn_internal_new_node(self, VSI_NN_OP_CONCAT, tensor_count, 1);
+    CHECK_PTR_FAIL_GOTO(inode, "Create internal node failed", final);
     inode->inputs[0] = tensor;
     tensor_count = 0;
     va_start(args, tensor);
@@ -851,8 +999,13 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_concat_impl
     va_end(args);
     inode->outputs[0] = tmp_tensor->t;
 
-    vsi_nn_internal_setup_node(self, inode);
+    ret = vsi_nn_internal_setup_node(self, inode);
+    if (!ret)
+    {
+        tmp_tensor = NULL;
+    }
 
+final:
     return tmp_tensor;
 }
 
@@ -879,9 +1032,11 @@ vsi_nn_internal_tensor_t** vsi_nn_create_split
     }
 
     curr = vsi_nn_internal_new_node( self, VSI_NN_OP_SPLIT, 1, slices_num );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     if(!slices)
     {
         slices = (uint32_t *)vsi_nn_internal_new_node_param(curr, slices_num * sizeof(uint32_t));
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(slices, curr, "Create internal buffer failed", final);
         num_per_output = (uint32_t)(tensor->attr.size[axis] / slices_num);
         for( i = 0; i < slices_num; i++ )
         {
@@ -890,6 +1045,7 @@ vsi_nn_internal_tensor_t** vsi_nn_create_split
     }
     output_tensors = (vsi_nn_internal_tensor_t**)vsi_nn_internal_new_node_param(curr,
         slices_num * sizeof(vsi_nn_internal_tensor_t*));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(output_tensors, curr, "Create internal buffer failed", final);
     curr->node->nn_param.split.axis = axis;
     curr->node->nn_param.split.slices_num = slices_num;
     curr->node->nn_param.split.slices = slices;
@@ -900,10 +1056,12 @@ vsi_nn_internal_tensor_t** vsi_nn_create_split
     for( i = 0; i < slices_num; i++ )
     {
         output_tensors[i] = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(output_tensors[i], curr, "Create internal tensor failed", final);
         curr->outputs[i] = output_tensors[i]->t;
     }
     vsi_nn_internal_setup_node( self, curr );
 
+final:
     return output_tensors;
 }
 
@@ -920,9 +1078,12 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_reshape
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_internal_tensor_t* tensor0 = NULL;
     vsi_size_t* reshape_in_size = NULL;
+    vsi_bool ret = FALSE;
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RESHAPE2, 0, 0 );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     reshape_in_size = (vsi_size_t*)vsi_nn_internal_new_node_param(curr, dim_num * sizeof(vsi_size_t));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(reshape_in_size, curr, "Create internal buffer failed", final);
     memcpy(reshape_in_size, size, dim_num * sizeof(vsi_size_t));
     curr->node->nn_param.reshape2.size = reshape_in_size;
     curr->node->nn_param.reshape2.dim_num = (uint32_t)dim_num;
@@ -939,10 +1100,16 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_reshape
         memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
         vsi_nn_internal_init_tensor_attr(&attr, &input_tensor->attr.dtype, use_virtual_tensor);
         tensor0 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(tensor0, curr, "Create internal tensor failed", final);
         curr->outputs[0] = tensor0->t;
     }
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
+    if (!ret)
+    {
+        tensor0 = NULL;
+    }
 
+final:
     return tensor0;
 }
 
@@ -958,12 +1125,19 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_permute
 {
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_internal_tensor_t* tensor0 = NULL;
-    uint32_t* permute_in_perm = NULL;
+    uint32_t i = 0, * permute_in_perm = NULL;
+    vsi_bool ret = FALSE;
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_PERMUTE, 0, 0);
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(curr,
         dim_num * sizeof(uint32_t));
-    memcpy(permute_in_perm, perm, dim_num * sizeof(uint32_t));
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(permute_in_perm, curr, "Create internal buffer failed", final);
+
+    for (i = 0; i < dim_num; i++)
+    {
+        permute_in_perm[i] = (uint32_t)perm[i];
+    }
     curr->node->nn_param.permute.perm = permute_in_perm;
     curr->node->nn_param.permute.dim_num = (uint32_t)dim_num;
     curr->inputs[0] = input_tensor;
@@ -977,10 +1151,16 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_permute
         vsi_nn_tensor_attr_t attr;
         vsi_nn_internal_init_tensor_attr(&attr, &input_tensor->attr.dtype, use_virtual_tensor);
         tensor0 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(tensor0, curr, "Create internal tensor failed", final);
         curr->outputs[0] = tensor0->t;
     }
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
+    if (!ret)
+    {
+        tensor0 = NULL;
+    }
 
+final:
     return tensor0;
 }
 
@@ -995,8 +1175,10 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tensor_copy
 {
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_internal_tensor_t* tensor0 = NULL;
+    vsi_bool ret = FALSE;
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 0, 0);
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     curr->inputs[0] = input_tensor;
     if(!dtype)
     {
@@ -1012,9 +1194,15 @@ vsi_nn_internal_tensor_t* vsi_nn_rnn_create_tensor_copy
         vsi_nn_tensor_attr_t attr;
         vsi_nn_internal_init_tensor_attr(&attr, dtype, use_virtual_tensor);
         tensor0 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(tensor0, curr, "Create internal tensor failed", final);
         curr->outputs[0] = tensor0->t;
     }
-    vsi_nn_internal_setup_node(self, curr);
+    ret = vsi_nn_internal_setup_node(self, curr);
+    if (!ret)
+    {
+        tensor0 = NULL;
+    }
 
+final:
     return tensor0;
 }

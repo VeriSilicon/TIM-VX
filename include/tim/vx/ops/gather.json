@@ -1,0 +1,15 @@
+{
+    "Gather":{
+        "parameters":
+            [
+                {"name": "axis",
+                 "dtype": "int"
+                },
+                {"name": "batch_dims",
+                 "dtype": "int",
+                 "Optional": "true",
+                 "default": "0"
+                }
+            ]
+    }
+}

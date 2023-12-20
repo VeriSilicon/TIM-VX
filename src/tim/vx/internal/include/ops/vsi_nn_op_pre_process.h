@@ -82,6 +82,12 @@ typedef struct _vsi_nn_pre_process_param
 
     vsi_nn_pre_process_type_e type;
 
+    struct
+    {
+        float   mean[3];
+        float   scale[3];
+    } norm2;
+
     vsi_nn_pre_process_lcl_data *local;
 } vsi_nn_pre_process_param;
 

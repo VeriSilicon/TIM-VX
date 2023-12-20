@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@ namespace vx {
 
 class OpImpl {
  public:
-  OpImpl(Graph* graph, uint32_t kind, int input_cnt, int output_cnt,
+  OpImpl(Graph* graph, int32_t kind, int input_cnt, int output_cnt,
          DataLayout layout);
   OpImpl(Graph* graph, DataLayout layout);
 
@@ -43,9 +43,14 @@ class OpImpl {
   virtual std::vector<std::shared_ptr<Tensor>> InputsTensor() = 0;
   virtual std::vector<std::shared_ptr<Tensor>> OutputsTensor() = 0;
   virtual vsi_nn_node_t* node() = 0;
+  virtual void SetRoundingPolicy(
+      OverflowPolicy overflow_policy = OverflowPolicy::SATURATE,
+      RoundingPolicy rounding_policy = RoundingPolicy::RTNE,
+      RoundType down_scale_size_rounding = RoundType::FLOOR,
+      uint32_t accumulator_bits = 0);
 
   GraphImpl* graph_{nullptr};
-  uint32_t kind_{0};
+  int32_t kind_{0};
   int32_t input_cnt_{0};
   int32_t output_cnt_{0};
   DataLayout layout_{DataLayout::ANY};

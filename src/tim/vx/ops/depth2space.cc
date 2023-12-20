@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/depth2space.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -31,11 +31,11 @@ namespace vx {
 namespace ops {
 
 DepthToSpace::DepthToSpace(Graph* Graph, int block_size, DataLayout layout)
-    : DepthToSpace(Graph, block_size, CRD_mode, layout) {}
+    : DepthToSpace(Graph, block_size, DCR_mode, layout) {}
 
 DepthToSpace::DepthToSpace(Graph* Graph, int block_size, depth2space_mode mode,
                            DataLayout layout)
-    : DirectMapOp(Graph, VSI_NN_OP_DEPTH2SPACE, 0, 0, layout),
+    : BuiltinOp(Graph, VSI_NN_OP_DEPTH2SPACE, 0, 0, layout),
       block_size_(block_size),
       mode_(mode) {
   this->impl()->node()->nn_param.depth2space.block_size = block_size_;

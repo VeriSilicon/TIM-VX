@@ -35,7 +35,7 @@ typedef struct _vsi_nn_deconv_param
     uint32_t   ksize[2];
     uint32_t   stride[2];
     /* Pad left, right, top, bottom */
-    uint32_t   pad[4];
+    int32_t   pad[4];
     /* Pad type default value shall be AUTO */
     uint32_t   pad_type;
     uint32_t   weights;

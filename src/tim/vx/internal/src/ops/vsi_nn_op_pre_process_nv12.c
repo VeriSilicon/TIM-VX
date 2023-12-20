@@ -56,10 +56,13 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_float32( param, "r_mean", self->nn_param.pre_process_nv12.r_mean );
     vsi_nn_kernel_param_add_float32( param, "g_mean", self->nn_param.pre_process_nv12.g_mean );
     vsi_nn_kernel_param_add_float32( param, "b_mean", self->nn_param.pre_process_nv12.b_mean );
-    vsi_nn_kernel_param_add_float32( param, "rgb_scale", self->nn_param.pre_process_nv12.rgb_scale );
+    vsi_nn_kernel_param_add_float32( param, "r_scale", self->nn_param.pre_process_nv12.r_scale );
+    vsi_nn_kernel_param_add_float32( param, "g_scale", self->nn_param.pre_process_nv12.g_scale );
+    vsi_nn_kernel_param_add_float32( param, "b_scale", self->nn_param.pre_process_nv12.b_scale );
     vsi_nn_kernel_param_add_int32( param, "reverse", self->nn_param.pre_process_nv12.reverse_channel );
     vsi_nn_kernel_param_add_int32( param, "enable_perm", self->nn_param.pre_process_nv12.local->enable_perm );
     vsi_nn_kernel_param_add_int32( param, "enable_copy", self->nn_param.pre_process_nv12.local->enable_copy );
+    vsi_nn_kernel_param_add_int32( param, "nv_type", self->nn_param.pre_process_nv12.nv_type );
     n = vsi_nn_kernel_selector( self->graph, "pre_process_nv12", inputs, 2, outputs, 1, param );
     if( n != NULL )
     {
@@ -87,12 +90,12 @@ static vsi_bool op_check
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_I8|Q_DFP)
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_I16|Q_DFP)
         IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_F16)
-        IO_TYPE(D_U8, D_U8, D_U8|Q_ASYM)
-        IO_TYPE(D_U8, D_U8, D_I8|Q_DFP)
-        IO_TYPE(D_U8, D_U8, D_I16|Q_DFP)
-        IO_TYPE(D_U8, D_U8, D_F16)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_I8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_I8|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_I16|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_I16|Q_SYM)
     END_IO_TYPE_DECL(PRE_PROCESS_NV12)
-    if(!VALIDATE_OP_IO_TYPES(PRE_PROCESS_NV12, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(PRE_PROCESS_NV12, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);
@@ -112,6 +115,9 @@ static vsi_bool op_setup
     /* TODO: Add code to comput outputs' shape. */
     vsi_nn_pre_process_nv12_param * p = NULL;
     uint32_t i = 0;
+
+    VSI_UNREFERENCED(inputs);
+
     p = (vsi_nn_pre_process_nv12_param *)&(self->nn_param.pre_process_nv12);
 
     if (p->rect.width == 0 || p->rect.height == 0)
@@ -197,6 +203,8 @@ static vsi_status op_init
 
     self->nn_param.pre_process_nv12.local   =
     (vsi_nn_pre_process_nv12_lcl_data *)malloc(sizeof(vsi_nn_pre_process_nv12_lcl_data));
+
+    self->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV12;
 
     if (NULL == self->nn_param.pre_process_nv12.local)
     {

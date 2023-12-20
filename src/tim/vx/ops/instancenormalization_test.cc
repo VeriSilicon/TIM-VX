@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,48 @@
 #include "tim/vx/ops/instancenormalization.h"
 #include "test_utils.h"
 #include "gtest/gtest.h"
+
+TEST(InstanceNorm, shape_2_2_2_2_float) {
+    auto ctx = tim::vx::Context::Create();
+    auto graph = ctx->CreateGraph();
+
+    tim::vx::ShapeType io_shape({2, 2, 2, 2}); //nchw
+    tim::vx::ShapeType param_shape({2});
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
+                            param_shape, tim::vx::TensorAttribute::INPUT);
+    tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32,
+                            io_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    auto input_tensor = graph->CreateTensor(input_spec);
+    auto gamma_tensor = graph->CreateTensor(param_spec);
+    auto beta_tensor = graph->CreateTensor(param_spec);
+    auto output_tensor = graph->CreateTensor(output_spec);
+
+    std::vector<float> in_data = {
+        0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 2.0f, 4.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 2.0f, -2.0f, 4.0f
+    };
+    std::vector<float> gamma = {1.0f, 1.0f};
+    std::vector<float> beta = {.0f, .0f};
+    std::vector<float> golden = {
+        0.0f, 0.0f, 0.0f, 0.0f, -1.1470304f, -0.22940612f, -0.22940612f, 1.6058424f, 0.99995005f,
+        -0.99995005f, -0.99995005f, 0.99995005f, -0.7337929f, 0.52413774f, -1.1531031f, 1.3627582f
+    };
+    EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(), in_data.size() * sizeof(float)));
+    EXPECT_TRUE(gamma_tensor->CopyDataToTensor(gamma.data(), gamma.size() * sizeof(float)));
+    EXPECT_TRUE(beta_tensor->CopyDataToTensor(beta.data(), beta.size() * sizeof(float)));
+
+    auto op = graph->CreateOperation<tim::vx::ops::InstanceNormalization>(1e-4f);
+    (*op).BindInputs({input_tensor, beta_tensor, gamma_tensor}).BindOutputs({output_tensor});
+
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(16);
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+}
 
 TEST(InstanceNorm, shape_3_6_1_float) {
     auto ctx = tim::vx::Context::Create();

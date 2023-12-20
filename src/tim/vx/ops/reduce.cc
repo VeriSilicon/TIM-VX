@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/reduce.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -33,7 +33,7 @@ namespace ops {
 #define DEFINE_REDUCE_OP(NAME, VSI_OP_CODE)                                  \
   Reduce##NAME::Reduce##NAME(Graph* graph, const std::vector<int32_t>& axis, \
                              bool keep_dims)                                 \
-      : DirectMapOp(graph, VSI_NN_OP_REDUCE),                                  \
+      : BuiltinOp(graph, VSI_NN_OP_REDUCE),                                  \
         axis_(std::move(axis)),                                              \
         keep_dims_(keep_dims) {                                              \
     this->impl()->node()->nn_param.reduce.type = VSI_OP_CODE;                \

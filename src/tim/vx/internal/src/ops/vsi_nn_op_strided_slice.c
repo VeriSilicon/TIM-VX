@@ -243,7 +243,9 @@ static vsi_status copy_tensor_to_view
     (
     vsi_nn_node_t   * self,
     vx_tensor         src_tensor,
-    vsi_nn_tensor_t * dst_in
+    vsi_nn_tensor_t * dst_in,
+    vsi_size_t      * shape,
+    vsi_bool          is_same_shape
     )
 {
     vsi_status ret;
@@ -253,10 +255,15 @@ static vsi_status copy_tensor_to_view
     /* Malloc ptr */
     data = self->nn_param.strided_slice.lcl2_data;
     data->src_tensor = src_tensor;
-    if (dst_in->t)
+    data->is_same_shape = is_same_shape;
+    if (dst_in->t && !is_same_shape)
     {
-        data->dst_tensor = vsi_nn_safe_reshape_tensor(dst_in->t, (void*)dst_in->attr.size,
-            (vsi_size_t)dst_in->attr.dim_num, sizeof(dst_in->attr.size[0]));
+        data->dst_tensor = vsi_nn_safe_reshape_tensor(dst_in->t, (void*)shape,
+            (vsi_size_t)dst_in->attr.dim_num, sizeof(shape[0]));
+    }
+    else if (dst_in->t)
+    {
+        data->dst_tensor = dst_in->t;
     }
 
     data->is_dataconvert_op = TRUE;
@@ -297,7 +304,7 @@ static vsi_status op_compute
             dst_tensor = p->dst_tensor ? p->dst_tensor : outputs[0]->t;
             p->cp_node = vxTensorCopyNode(self->graph->g,
                     p->src_tensor, dst_tensor );
-            if( NULL == p->cp_node )
+            if ( NULL == p->cp_node )
             {
                 VSILOGE( "Create vxTensorCopyNode fail." );
                 status = VSI_FAILURE;
@@ -308,7 +315,9 @@ static vsi_status op_compute
     {
         vsi_size_t sizes[VSI_NN_MAX_DIM_NUM] = {1};
         uint32_t dims = inputs[0]->attr.dim_num;
-        int32_t  shrink_axis_mask = params->shrink_axis_mask;
+        int32_t shrink_axis_mask = params->shrink_axis_mask;
+        int32_t new_axis_mask = params->new_axis_mask;
+        int32_t num_add_axis = params->num_add_axis;
 
         memset(&param, 0, sizeof(vx_nn_stride_slice_params_t));
 
@@ -322,7 +331,7 @@ static vsi_status op_compute
             self->graph,
             (uint8_t *)start_dims,
             &attr);
-        if( NULL == begin_dims_tensor )
+        if ( NULL == begin_dims_tensor )
         {
             VSILOGE("Create begin_dims_tensor fail.(strided_slice)");
             return VSI_FAILURE;
@@ -341,7 +350,7 @@ static vsi_status op_compute
             self->graph,
             (uint8_t *)stop_dims,
             &attr);
-        if( NULL == end_dims_tensor )
+        if ( NULL == end_dims_tensor )
         {
             VSILOGE("Create end_dims_tensor fail.(strided_slice)");
             return VSI_FAILURE;
@@ -360,7 +369,7 @@ static vsi_status op_compute
             self->graph,
             (uint8_t *)stride_dims,
             &attr);
-        if( NULL == stride_dims_tensor )
+        if ( NULL == stride_dims_tensor )
         {
             VSILOGE("Create stride_dims_tensor fail.(strided_slice)");
             return VSI_FAILURE;
@@ -377,26 +386,32 @@ static vsi_status op_compute
         memset(&sizes, 0, sizeof(int32_t) * VSI_NN_MAX_DIM_NUM);
         memcpy(&sizes, &outputs[0]->attr.size, sizeof(int32_t) * outputs[0]->attr.dim_num);
 
-        if (shrink_axis_mask && p->shrink_axis_mask == 0)
+        if ((shrink_axis_mask && p->shrink_axis_mask == 0) ||
+            new_axis_mask)
         {
             uint32_t i = 0;
-            uint32_t j = 0;
+            uint32_t j = 0, idx = 0;
 
-            for (i = 0; i < inputs[0]->attr.dim_num; i++)
+            for (i = 0; i < inputs[0]->attr.dim_num + num_add_axis; i++)
             {
-                if (shrink_axis_mask & (1 << i))
+                if ( new_axis_mask & (1 << i) )
                 {
-                    sizes[i] = 1;
+                    j ++;
+                    continue;
+                }
+                else if (shrink_axis_mask & (1 << i))
+                {
+                    sizes[idx ++] = 1;
                 }
                 else
                 {
-                    sizes[i] = outputs[0]->attr.size[j ++];
+                    sizes[idx ++] = outputs[0]->attr.size[j ++];
                 }
             }
         }
 
         output_tensor = vsi_nn_reshape_tensor(self->graph, outputs[0], sizes, dims);
-        if( NULL == output_tensor )
+        if ( NULL == output_tensor )
         {
             VSILOGE("Create output_tensor fail.(strided_slice)");
             return VSI_FAILURE;
@@ -415,7 +430,7 @@ static vsi_status op_compute
             vsi_nn_ReleaseTensor(&output_tensor);
         }
 
-        if( NULL != self->n )
+        if ( NULL != self->n )
         {
             status = VSI_SUCCESS;
         }
@@ -436,10 +451,18 @@ static vsi_bool op_check
         IO_TYPE(D_F16,          D_I16|Q_DFP)
         IO_TYPE(D_F16,          D_U8|Q_ASYM)
         IO_TYPE(D_I8|Q_DFP,     D_F16)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16)
+        IO_TYPE(D_I8|Q_SYM,     D_F16)
         IO_TYPE(D_I16|Q_DFP,    D_F16)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16)
+        IO_TYPE(D_I16|Q_SYM,    D_F16)
         IO_TYPE(D_U8|Q_ASYM,    D_F16)
         IO_TYPE(D_I8|Q_DFP,     D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_ASYM,    D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,     D_I8|Q_SYM)
         IO_TYPE(D_I16|Q_DFP,    D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_ASYM,   D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,    D_I16|Q_SYM)
         IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM)
         IO_TYPE(D_F32,          D_F32)
         IO_TYPE(D_BF16,         D_BF16)
@@ -469,8 +492,14 @@ static vsi_bool op_check
         IO_TYPE(D_F16,          D_F32)
         IO_TYPE(D_U8|Q_ASYM,    D_I32|Q_ASYM)
 
+        /* HW 9.1.1 */
+        IO_TYPE(D_U4|Q_ASYM,    D_U4|Q_ASYM)
+        IO_TYPE(D_U4|Q_SYM,     D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,    D_I4|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,     D_I4|Q_SYM)
+
     END_IO_TYPE_DECL(STRIDED_SLICE)
-    if (!VALIDATE_OP_IO_TYPES(STRIDED_SLICE, self, inputs, self->input.num, outputs, self->output.num))
+    if (!VALIDATE_OP_IO_TYPES(STRIDED_SLICE, self, inputs, 1, outputs, self->output.num))
     {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
@@ -482,6 +511,46 @@ static vsi_bool op_check
     return TRUE;
 } /* op_check() */
 
+int32_t _reverse_mask_bits(int32_t mask, int32_t dims)
+{
+    int32_t i = 0;
+    int32_t new_mask = 0;
+    int32_t bits = mask;
+    int32_t leading_one = 0;
+
+    for (leading_one = 0; leading_one < VSI_NN_MAX_DIM_NUM; leading_one ++)
+    {
+        if ( bits == 0 )
+        {
+            break;
+        }
+
+        bits >>= 1;
+    }
+
+    dims = vsi_nn_max(dims, leading_one);
+    for (i = 0; i < dims; i++)
+    {
+        int32_t offset = dims - i - 1;
+        if (mask & (1 << i))
+        {
+            new_mask |= (1 << offset);
+        }
+    }
+
+    return new_mask;
+}
+
+void _reverse_indices(int32_t *dst, const int32_t *src, int32_t dims)
+{
+    int32_t i = 0;
+
+    for (i = 0; i < dims; i++)
+    {
+        dst[dims - i - 1] = src[i];
+    }
+}
+
 static vsi_bool _build_strided_slice_params(vsi_nn_strided_slice_param * op_params, int32_t input_dims)
 {
     uint32_t i = 0;
@@ -490,37 +559,61 @@ static vsi_bool _build_strided_slice_params(vsi_nn_strided_slice_param * op_para
     int32_t begin_mask = op_params->begin_mask;
     int32_t end_mask = op_params->end_mask;
     int32_t shrink_axis_mask = op_params->shrink_axis_mask;
+    int32_t new_axis_mask = op_params->new_axis_mask;
+    int32_t start_indices[2][VSI_NN_MAX_DIM_NUM] = {{0}};
+    int32_t stop_indices[2][VSI_NN_MAX_DIM_NUM] = {{0}};
+    int32_t strides[2][VSI_NN_MAX_DIM_NUM] = {{0}};
+    int32_t start_mask = 0;
+    int32_t stop_mask = 0;
+    int32_t shrink_mask = 0;
+    int32_t output_dims = input_dims;
     const int32_t *begin_dims = op_params->begin_dims;
     const int32_t *end_dims = op_params->end_dims;
     const int32_t *stride_dims = op_params->stride_dims;
     strided_slice_param *params = &op_params->lcl2_data->params;
+
+    begin_mask = _reverse_mask_bits(begin_mask, input_dims);
+    end_mask   = _reverse_mask_bits(end_mask, input_dims);
+    shrink_axis_mask = _reverse_mask_bits(shrink_axis_mask, input_dims);
+    _reverse_indices(start_indices[0], begin_dims, op_params->begin_dims_num);
+    _reverse_indices(stop_indices[0], end_dims, op_params->end_dims_num);
+    _reverse_indices(strides[0], stride_dims, op_params->stride_dims_num);
 
     for (i = 0; i < op_params->begin_dims_num; i++)
     {
         if ( op_params->new_axis_mask & (1 << i))
         {
             num_add_axis ++;
+            output_dims ++;
         }
     }
+
+    for (i = 0; i < (uint32_t)(input_dims + num_add_axis); i++)
+    {
+        if ( op_params->shrink_axis_mask & (1 << i))
+        {
+            output_dims --;
+        }
+    }
+
+    params->new_axis_mask = new_axis_mask;
+    new_axis_mask = _reverse_mask_bits(new_axis_mask, output_dims);
 
     params->num_add_axis = num_add_axis;
 
     for (i = 0; i < (uint32_t)(input_dims + num_add_axis); i++)
     {
-        if ( op_params->new_axis_mask & (1 << i) )
+        if ( new_axis_mask & (1 << i) )
         {
             continue;
         }
         else if (i >= op_params->begin_dims_num + added_ellipsis)
         {
-            params->begin_mask |= (1 << params->begin_dims_num);
-            params->end_mask |= (1 << params->end_dims_num);
-            params->begin_dims[params->begin_dims_num ++ ] =
-                0;
-            params->end_dims[params->end_dims_num ++] =
-                0;
-            params->stride_dims[params->stride_dims_num ++] =
-                1;
+            start_mask |= (1 << params->begin_dims_num);
+            stop_mask |= (1 << params->end_dims_num);
+            start_indices[1][params->begin_dims_num ++ ] = 0;
+            stop_indices[1][params->end_dims_num ++] = 0;
+            strides[1][params->stride_dims_num ++] = 1;
         }
         else
         {
@@ -528,27 +621,31 @@ static vsi_bool _build_strided_slice_params(vsi_nn_strided_slice_param * op_para
 
             if (begin_mask & (1 << orig_idx))
             {
-                params->begin_mask |= (1 << params->begin_dims_num);
+                start_mask |= (1 << params->begin_dims_num);
             }
 
             if (end_mask & (1 << orig_idx))
             {
-                params->end_mask |= (1 << params->end_dims_num);
+                stop_mask |= (1 << params->end_dims_num);
             }
 
             if (shrink_axis_mask & (1 << orig_idx))
             {
-                params->shrink_axis_mask |= (1 << params->begin_dims_num);
+                shrink_mask |= (1 << params->begin_dims_num);
             }
 
-            params->begin_dims[params->begin_dims_num ++] =
-                begin_dims[orig_idx];
-            params->end_dims[params->end_dims_num ++] =
-                end_dims[orig_idx];
-            params->stride_dims[params->stride_dims_num ++] =
-                stride_dims[orig_idx];
+            start_indices[1][params->begin_dims_num ++] = start_indices[0][orig_idx];
+            stop_indices[1][params->end_dims_num ++] = stop_indices[0][orig_idx];
+            strides[1][params->stride_dims_num ++] = strides[0][orig_idx];
         }
     }
+
+    params->begin_mask = _reverse_mask_bits(start_mask, input_dims);
+    params->end_mask   = _reverse_mask_bits(stop_mask, input_dims);
+    params->shrink_axis_mask = _reverse_mask_bits(shrink_mask, input_dims);
+    _reverse_indices(params->begin_dims, start_indices[1], params->begin_dims_num);
+    _reverse_indices(params->end_dims, stop_indices[1], params->end_dims_num);
+    _reverse_indices(params->stride_dims, strides[1], params->stride_dims_num);
 
     return TRUE;
 }
@@ -653,24 +750,35 @@ static vsi_status op_optimize
     int32_t        i = 0;
     vx_tensor      in_view_tensor = NULL;
     vsi_nn_strided_slice_param *p = &(self->nn_param.strided_slice);
-    vsi_size_t       start[VSI_NN_MAX_DIM_NUM] = { 0 };
-    vsi_size_t       end[VSI_NN_MAX_DIM_NUM] = { 0 };
-    vsi_ssize_t        start_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
-    vsi_ssize_t        stop_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
-    vsi_ssize_t        stride_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t     start[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t     end[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_ssize_t    start_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_ssize_t    stop_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_ssize_t    stride_dims[VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t     shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_bool       is_same_quant_type = FALSE;
+    vsi_bool       is_same_shape = TRUE;
+    vsi_size_t     input_elements = 0;
+    vsi_size_t     output_elements = 0;
 
     /* Only forward run stride_slice's optimize */
-    if( direction == VSI_NN_OPTIMIZE_BACKWARD )
+    if ( direction == VSI_NN_OPTIMIZE_BACKWARD )
     {
         return status;
     }
 
-    for(i = 0; i< VSI_NN_MAX_DIM_NUM; i++)
+    for (i = 0; i< VSI_NN_MAX_DIM_NUM; i++)
     {
         start_dims[i] = p->lcl2_data->begin_dims[i];
         stop_dims[i] = p->lcl2_data->end_dims[i];
         stride_dims[i] = p->lcl2_data->stride_dims[i];
+
+        shape[i] = (vsi_size_t)stop_dims[i] - (vsi_size_t)start_dims[i];
+        if (shape[i] != outputs[0]->attr.size[i] &&
+            i < (int32_t)outputs[0]->attr.dim_num)
+        {
+            is_same_shape = FALSE;
+        }
     }
 
     if (_check_is_same_shape(inputs, start_dims, stop_dims, stride_dims) == FALSE)
@@ -678,38 +786,53 @@ static vsi_status op_optimize
 
     VSILOGD("Optimize %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
 
-    if( NULL == inputs[0]->t )
-    {
-        vsi_nn_TensorReinit( self->graph, inputs[0] );
-    }
-
-    /* Create tensor from view */
-    memcpy( start, (vsi_size_t*)start_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
-    memcpy( end, (vsi_size_t*)stop_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
-    in_view_tensor = vsi_nn_CreateViewTensor(self->graph, start, end, inputs[0]);
-    if( NULL == in_view_tensor )
-    {
-        VSILOGE( "Create tensor %d from view fail.", i );
-        status = VSI_FAILURE;
-        goto OnError;
-    }
-
     self->nn_param.strided_slice.lcl2_data->is_optimized = TRUE;
 
     is_same_quant_type = _is_same_quant(inputs, outputs);
-    if( NULL != outputs[0]->t || is_same_quant_type == FALSE)
+    input_elements = vsi_nn_GetElementNum( inputs[0] );
+    output_elements = vsi_nn_GetElementNum( outputs[0] );
+    if (NULL != outputs[0]->t && NULL == inputs[0]->t &&
+        is_same_quant_type && input_elements == output_elements)
     {
-        VSILOGI( "stride slice copy tensor.");
-        // Copy old tensor values to the new address.
-        status = copy_tensor_to_view( self, in_view_tensor, outputs[0]);
-        if( VSI_FAILURE == status )
+        inputs[0]->t = vsi_nn_safe_reshape_tensor( outputs[0]->t,
+            (void*)inputs[0]->attr.size, (vsi_size_t)inputs[0]->attr.dim_num,
+            sizeof(inputs[0]->attr.size[0]) );
+    }
+    else if (inputs[0]->attr.dim_num == outputs[0]->attr.dim_num)
+    {
+        if ( NULL == inputs[0]->t )
         {
+            vsi_nn_TensorReinit( self->graph, inputs[0] );
+        }
+        /* Create tensor from view */
+        memcpy( start, (vsi_size_t*)start_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
+        memcpy( end, (vsi_size_t*)stop_dims, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM );
+        in_view_tensor = vsi_nn_CreateViewTensor(self->graph, start, end, inputs[0]);
+        if ( NULL == in_view_tensor )
+        {
+            VSILOGE( "Create tensor %d from view fail.", i );
+            status = VSI_FAILURE;
             goto OnError;
+        }
+
+        if ( NULL != outputs[0]->t || is_same_quant_type == FALSE)
+        {
+            VSILOGI( "stride slice copy tensor.");
+            // Copy old tensor values to the new address.
+            status = copy_tensor_to_view( self, in_view_tensor, outputs[0], shape, is_same_shape);
+            if ( VSI_FAILURE == status )
+            {
+                goto OnError;
+            }
+        }
+        else
+        {
+            outputs[0]->t = in_view_tensor;
         }
     }
     else
     {
-        outputs[0]->t = in_view_tensor;
+        self->nn_param.strided_slice.lcl2_data->is_optimized = FALSE;
     }
 
 OnError:
@@ -744,32 +867,32 @@ static vsi_status op_deinit
     vsi_nn_safe_free( params->end_dims );
     vsi_nn_safe_free( params->stride_dims );
 
-    if (lcl2_data->cp_node)
+    if (lcl2_data && lcl2_data->cp_node)
     {
         vxReleaseNode( &lcl2_data->cp_node );
     }
 
-    if (lcl2_data->src_tensor)
+    if (lcl2_data && lcl2_data->src_tensor)
     {
         vxReleaseTensor( &lcl2_data->src_tensor );
     }
 
-    if (lcl2_data->dst_tensor)
+    if (lcl2_data && lcl2_data->dst_tensor && !lcl2_data->is_same_shape)
     {
         vxReleaseTensor( &lcl2_data->dst_tensor );
     }
 
-    if (lcl2_data->begin_dims)
+    if (lcl2_data && lcl2_data->begin_dims)
     {
         free(lcl2_data->begin_dims);
     }
 
-    if (lcl2_data->end_dims)
+    if (lcl2_data && lcl2_data->end_dims)
     {
         free(lcl2_data->end_dims);
     }
 
-    if (lcl2_data->stride_dims)
+    if (lcl2_data && lcl2_data->stride_dims)
     {
         free(lcl2_data->stride_dims);
     }

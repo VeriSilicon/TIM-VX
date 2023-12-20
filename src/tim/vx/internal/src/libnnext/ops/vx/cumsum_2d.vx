@@ -1,0 +1,204 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniAccSumVertF16toF16_2x8;
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32A_4x4;
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32B_4x4;
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32C_4x4;
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32D_4x4;
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;
+
+_viv_uniform VXC_512Bits uniSumHorzF16toF16A_4x4;
+_viv_uniform VXC_512Bits uniSumHorzF16toF16B_4x4;
+_viv_uniform VXC_512Bits uniSumHorzF16toF16C_2x8;
+_viv_uniform VXC_512Bits uniAccSumHorzF16toF16_2x8;
+_viv_uniform VXC_512Bits uniSumHorzU8toI16A_4x4;
+_viv_uniform VXC_512Bits uniSumHorzU8toI16B_8x4;
+_viv_uniform VXC_512Bits uniSubZpI16toI16_2x8;
+_viv_uniform VXC_512Bits uniAccSumHorzI16toI32A_4x4;
+_viv_uniform VXC_512Bits uniAccSumHorzI16toI32B_4x4;
+
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;
+
+_viv_uniform int width;
+_viv_uniform int height;
+_viv_uniform int input_zp;
+_viv_uniform float in_out_scale;
+_viv_uniform float in_out_zp_scale;
+_viv_uniform float output_zp;
+
+__kernel void cumsum_F16toF16_axis1_2D(
+    __read_only image2d_t   input,
+    __write_only image2d_t  output,
+    int axis, int exclusive, int rev
+    )
+{
+    int2 coord = (int2)(get_global_id(0), 0);
+
+    vxc_short8 src, dst;
+    vxc_half8 data, sum;
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);
+
+    for(; coord.y < height; coord.y++)
+    {
+        VXC_ReadImage(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        _viv_asm(COPY, data, src, 16);
+
+        VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumVertF16toF16_2x8);
+        _viv_asm(COPY, dst, sum, 16);
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    }
+}
+
+#define CUMSUM_8BITS_AXIS1_2D(in_name, out_name, src_type, dst_type) \
+__kernel void cumsum_##in_name##to##out_name##_axis1_2D( \
+    __read_only image2d_t   input, \
+    __write_only image2d_t  output, \
+    int axis, int exclusive, int rev \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+ \
+    src_type src; \
+    dst_type dst; \
+    int4 sum0 = (int4)(0); \
+    int4 sum1 = (int4)(0); \
+    int4 sum2 = (int4)(0); \
+    int4 sum3 = (int4)(0); \
+ \
+    for(coord.y = 0; coord.y < height; coord.y++) \
+    { \
+        VXC_ReadImage(src, input, coord, 0, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+        VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumVertU8toI32A_4x4); \
+        VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumVertU8toI32B_4x4); \
+        VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumVertU8toI32C_4x4); \
+        VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumVertU8toI32D_4x4); \
+ \
+        float tmpAlpha = convert_float(coord.y + 1) * in_out_zp_scale + output_zp; \
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \
+        float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \
+        float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \
+        int4 tmpDst0 = convert_int4_rte(tmpSum0); \
+        int4 tmpDst1 = convert_int4_rte(tmpSum1); \
+        int4 tmpDst2 = convert_int4_rte(tmpSum2); \
+        int4 tmpDst3 = convert_int4_rte(tmpSum3); \
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \
+                 uniConvertInt32toUint8_2x8); \
+        VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1), \
+                 uniConvertInt32toUint8_2x8); \
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0)); \
+    } \
+}
+
+CUMSUM_8BITS_AXIS1_2D(U8, U8, vxc_uchar16, vxc_uchar16)
+CUMSUM_8BITS_AXIS1_2D(I8, I8, vxc_char16, vxc_char16)
+
+__kernel void cumsum_I16toI16_axis1_2D(
+    __read_only image2d_t   input,
+    __write_only image2d_t  output,
+    int axis, int exclusive, int rev
+    )
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+
+    vxc_short8 src, dst;
+    int4 sum0 = (int4)(0), sum1 = (int4)(0);
+
+    for(coord.y = 0; coord.y < height; coord.y++)
+    {
+        VXC_ReadImage(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumVertU8toI32A_4x4);
+        VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumVertU8toI32B_4x4);
+        float tmpAlpha = convert_float(coord.y + 1) * in_out_zp_scale + output_zp;
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;
+        int4 tmpDst0 = convert_int4_rte(tmpSum0);
+        int4 tmpDst1 = convert_int4_rte(tmpSum1);
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),
+                 uniConvertInt32toUint8_2x8);
+
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    }
+}
+
+__kernel void cumsum_F16toF16_axis0_2D(
+    __read_only image2d_t   input,
+    __write_only image2d_t  output,
+    int axis, int exclusive, int rev
+    )
+{
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));
+
+    vxc_short8 src, dst;
+    vxc_half8 data, tmpsum, sum;
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);
+    for(; coord.x < width; coord.x += 8)
+    {
+        VXC_ReadImage(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        _viv_asm(COPY, data, src, 16);
+
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniSumHorzF16toF16A_4x4);
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0),\
+                uniSumHorzF16toF16B_4x4);
+        VXC_DP2x8(tmpsum, tmpsum, tmpsum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+                uniSumHorzF16toF16C_2x8);
+        VXC_DP2x8(sum, tmpsum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumHorzF16toF16_2x8);
+        _viv_asm(COPY, dst, sum, 16);
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    }
+}
+
+#define CUMSUM_QINT_AXIS0_2D(in_name, out_name, src_type, dst_type) \
+__kernel void cumsum_##in_name##to##out_name##_axis0_2D( \
+    __read_only image2d_t   input, \
+    __write_only image2d_t  output, \
+    int axis, int exclusive, int rev \
+    ) \
+{ \
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \
+ \
+    src_type src; \
+    dst_type dst; \
+    vxc_short8 rowSum; \
+    int4 sum0, sum1; \
+    sum0 ^= sum0; \
+    sum1 ^= sum1; \
+    short zp = (short)input_zp; \
+ \
+    for(; coord.x < width; coord.x += 8) \
+    { \
+        VXC_ReadImage(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        VXC_DP4x4(rowSum, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniSumHorzU8toI16A_4x4); \
+        VXC_DP8x4(rowSum, src, src, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0),\
+                uniSumHorzU8toI16B_8x4); \
+        VXC_DP2x8(rowSum, rowSum, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\
+                uniSubZpI16toI16_2x8); \
+        VXC_DP4x4(sum0, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumHorzI16toI32A_4x4); \
+        VXC_DP4x4(sum1, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\
+                uniAccSumHorzI16toI32B_4x4); \
+ \
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + output_zp; \
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + output_zp; \
+        int4 tmpDst0 = convert_int4_rte(tmpSum0); \
+        int4 tmpDst1 = convert_int4_rte(tmpSum1); \
+ \
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \
+                 uniConvertInt32toUint8_2x8); \
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    } \
+}
+
+CUMSUM_QINT_AXIS0_2D(U8,  U8,  vxc_uchar16, vxc_uchar16)
+CUMSUM_QINT_AXIS0_2D(I8,  I8,  vxc_char16,  vxc_char16)
+CUMSUM_QINT_AXIS0_2D(I16, I16, vxc_short8,  vxc_short8)

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -24,7 +24,7 @@
 #include "tim/vx/ops/broadcast.h"
 
 #include <cassert>
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,19 +32,24 @@ namespace vx {
 namespace ops {
 Broadcast::Broadcast(Graph* graph, const std::vector<int32_t>& shape,
                      const std::vector<int32_t>& dimensions)
-    : DirectMapOp(graph, VSI_NN_OP_EXPAND_BROADCAST),
+    : BuiltinOp(graph, VSI_NN_OP_EXPAND_BROADCAST),
       shape_(shape),
       dimensions_(dimensions) {
   this->impl()->node()->nn_param.expand_broadcast.dim_num = shape_.size();
   this->impl()->node()->nn_param.expand_broadcast.shape = (uint32_t*)shape_.data();
+#ifdef VSI_EXPAND_BROADCAST_ENABLE_DIMENSIONS
   this->impl()->node()->nn_param.expand_broadcast.dimensions_num = dimensions_.size();
   if (dimensions.size() > 0)
   {
+    int dim_num = shape.size();
+    for (uint32_t i = 0; i < dimensions.size(); ++i) {
+      dimensions_[i] += (dimensions[i] < 0 ? dim_num : 0U);
+    }
     this->impl()->node()->nn_param.expand_broadcast.dimensions = (uint32_t*)dimensions_.data();
   } else {
     this->impl()->node()->nn_param.expand_broadcast.dimensions = nullptr;
   }
-
+#endif
 }
 
 std::shared_ptr<Operation> Broadcast::Clone(

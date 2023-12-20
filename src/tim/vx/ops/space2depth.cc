@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/space2depth.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 SpaceToDepth::SpaceToDepth(Graph* graph, std::vector<int> block_size,
                            DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_SPACE2DEPTH, 0, 0, layout),
+    : BuiltinOp(graph, VSI_NN_OP_SPACE2DEPTH, 0, 0, layout),
       block_size_(block_size) {
   this->impl()->node()->nn_param.space2depth.block_size[0] = block_size_[0];
   this->impl()->node()->nn_param.space2depth.block_size[1] = block_size_[1];

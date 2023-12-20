@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/svdf.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -32,7 +32,7 @@ namespace vx {
 namespace ops {
 
 Svdf::Svdf(Graph* graph, int32_t rank, int32_t num_units, int32_t spectrogram_length)
-    : DirectMapOp(graph, VSI_NN_OP_SVDF) {
+    : BuiltinOp(graph, VSI_NN_OP_SVDF) {
   this->impl()->node()->nn_param.svdf.rank = rank;
   this->impl()->node()->nn_param.svdf.num_units = num_units;
   this->impl()->node()->nn_param.svdf.spectrogram_length = spectrogram_length;

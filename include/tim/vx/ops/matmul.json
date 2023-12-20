@@ -1,0 +1,27 @@
+{
+    "Matmul":{
+        "parameters":
+            [
+                {"name": "transpose_a",
+                 "dtype": "bool",
+                 "Optional": "true",
+                 "default": "false"
+                },
+                {"name": "transpose_b",
+                 "dtype": "bool",
+                 "Optional": "true",
+                 "default": "false"
+                },
+                {"name": "adjoint_a",
+                 "dtype": "bool",
+                 "Optional": "true",
+                 "default": "false"
+                },
+                {"name": "adjoint_b",
+                 "dtype": "bool",
+                 "Optional": "true",
+                 "default": "false"
+                }
+            ]
+    }
+}

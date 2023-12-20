@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/space2batch.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
 
 namespace tim {
@@ -32,7 +32,7 @@ namespace ops {
 
 Space2Batch::Space2Batch(Graph* graph, const std::vector<int>& block_size,
                          const std::vector<int>& pad, DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_SPACE2BATCH, 0, 0, layout),
+    : BuiltinOp(graph, VSI_NN_OP_SPACE2BATCH, 0, 0, layout),
       block_size_(block_size),
       pad_(pad) {
   this->impl()->node()->nn_param.space2batch.block_size = block_size_.data();

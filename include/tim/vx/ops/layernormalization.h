@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -25,20 +25,20 @@
 #define TIM_VX_OPS_LAYERNOMALIZATION_H_
 
 #include <cstdint>
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
-class LayerNormalization : public DirectMapOp {
+class LayerNormalization : public BuiltinOp {
  public:
-  LayerNormalization(Graph* graph, int32_t axis = 0, float eps = 1e-5f);
+  LayerNormalization(Graph* graph, int32_t axis, float eps = 1e-5f);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
  protected:
   int32_t axis_;
-  int32_t eps_;
+  float eps_;
 };
 
 }  // namespace ops

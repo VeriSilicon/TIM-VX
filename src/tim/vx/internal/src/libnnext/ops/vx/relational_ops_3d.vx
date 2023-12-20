@@ -21,8 +21,8 @@ __kernel void func_name##_##src0_type_name##src1_type_name##toBOOL8( \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
     src0_type      src0; \
     src0_copy_type srcA; \
-    src0_type      src1; \
-    src0_copy_type srcB; \
+    src1_type      src1; \
+    src1_copy_type srcB; \
     VXC_ReadImage2DArray(src0, input0, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
     _viv_asm(COPY, srcA, src0, 16); \
     VXC_ReadImage2DArray(src1, input1, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \

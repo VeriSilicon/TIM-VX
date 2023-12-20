@@ -1,0 +1,22 @@
+{
+    "UnidirectionalSequenceRnn":{
+        "parameters":
+            [
+                {"name": "act_type",
+                    "dtype": "tim::vx::ops::UnidirectionalSequenceRnn::ActivationType",
+                    "range": ["tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kNONE",
+                              "tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kRELU",
+                              "tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kRELU1",
+                              "tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kRELU6",
+                              "tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kTANH",
+                              "tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kSIGMOID",
+                              "tim::vx::ops::UnidirectionalSequenceRnn::ActivationType::kHARDSIGMOID"]
+                },
+                {"name":"time_major",
+                    "dtype": "bool",
+                    "Optional":"true",
+                    "default":"false"
+                }
+            ]
+    }
+}

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_TRANSPOSE_H_
 #define TIM_VX_OPS_TRANSPOSE_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -41,7 +41,7 @@ namespace ops {
  * 2-D input Tensors.
  */
 
-class Transpose : public DirectMapOp {
+class Transpose : public BuiltinOp {
  public:
   Transpose(Graph* graph, const std::vector<uint32_t>& perm);
 

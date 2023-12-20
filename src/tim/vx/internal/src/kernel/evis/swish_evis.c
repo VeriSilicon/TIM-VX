@@ -154,7 +154,7 @@ DEF_KERNEL_INITIALIZER(_swish_initializer)
     size_t param_size
     )
 {
-    vsi_status status = VX_FAILURE;
+    vsi_status status = VSI_FAILURE;
     // Alignment with a power of two value.
     gpu_param_t gpu_param = {
         3,
@@ -176,6 +176,8 @@ DEF_KERNEL_INITIALIZER(_swish_initializer)
     vsi_nn_kernel_tensor_attr_t *input_attr = NULL, *output_attr = NULL;
     vsi_size_array_t             *out_shape  = NULL;
     uint32_t                     pack_key   = 0;
+
+    VSI_UNREFERENCED(param_size);
 
     input_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)input);
     CHECK_PTR_FAIL_GOTO( input_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -365,7 +367,7 @@ DEF_KERNEL_INITIALIZER(_hswish_initializer)
     size_t param_size
     )
 {
-    vsi_status status = VX_FAILURE;
+    vsi_status status = VSI_FAILURE;
     // Alignment with a power of two value.
     gpu_param_t gpu_param = {
         3,
@@ -386,6 +388,8 @@ DEF_KERNEL_INITIALIZER(_hswish_initializer)
     vsi_nn_kernel_tensor_attr_t *input_attr = NULL, *output_attr = NULL;
     vsi_size_array_t             *out_shape  = NULL;
     uint32_t                     pack_key   = 0;
+
+    VSI_UNREFERENCED(param_size);
 
     input_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)input);
     CHECK_PTR_FAIL_GOTO( input_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
@@ -649,6 +653,9 @@ static vsi_nn_kernel_node_t _setup
     int32_t swish_type  = vsi_nn_kernel_param_get_int32( params, "type" );
     float   beta        = 1.0f;
     vsi_bool ret = FALSE;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 #if (VX_ACTIVATION_EXT_SUPPORT)
     if (VSI_NN_HW_EVIS_2 == graph->ctx->config.evis.ver)
     {

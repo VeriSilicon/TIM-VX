@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef OVXLIBXX_OPERATIONS_CLIP_H_
 #define OVXLIBXX_OPERATIONS_CLIP_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 
 namespace tim {
@@ -36,7 +36,7 @@ namespace ops {
  * Clip(x) : min if x <= min; x if min < x < max; max if x >= max
  */
 
-class Clip : public DirectMapOp {
+class Clip : public BuiltinOp {
   public:
     Clip(Graph* graph, float min, float max);
 

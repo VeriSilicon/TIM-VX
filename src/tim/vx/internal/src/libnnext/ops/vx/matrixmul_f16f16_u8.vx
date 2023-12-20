@@ -82,6 +82,7 @@ __kernel void gemm_F16F16to##dst_type_name( \
     vxc_int4 tmpOut0, tmpOut1; \
     write_type outC; \
     coord_b.y = gidy; \
+    coord_b.z = get_global_id(2); \
     _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0; \
     _viv_asm(MOV, coord_b.w, baseAddr); \
@@ -171,6 +172,7 @@ __kernel void gemm_F16F16to##dst_type_name( \
     vxc_int4 tmpOut0, tmpOut1; \
     write_type outC; \
     coord_b.y = gidy; \
+    coord_b.z = get_global_id(2); \
     _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
     int baseAddr = (int)get_global_id(2) * output_desc.s4 + output_desc.s0; \
     _viv_asm(MOV, coord_b.w, baseAddr); \

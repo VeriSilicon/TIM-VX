@@ -1,0 +1,10 @@
+{
+    "Dropout":{
+        "parameters":
+            [
+                {"name": "ratio",
+                 "dtype": "float"
+                }
+            ]
+    }
+}

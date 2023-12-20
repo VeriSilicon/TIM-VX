@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_STRIDEDSLICE_H_
 #define TIM_VX_OPS_STRIDEDSLICE_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -52,12 +52,16 @@ namespace ops {
  * e.g. begin[i] = x, end[i] = x + 1.
  */
 
-class StridedSlice : public DirectMapOp {
+class StridedSlice : public BuiltinOp {
  public:
   StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
                const std::vector<int32_t> end_dims,
                const std::vector<int32_t> stride_dims, int32_t begin_mask,
                int32_t end_mask, int32_t shrink_axis_mask);
+  StridedSlice(Graph* graph, const std::vector<int32_t> begin_dims,
+               const std::vector<int32_t> end_dims,
+               const std::vector<int32_t> stride_dims, int32_t begin_mask,
+               int32_t end_mask, int32_t shrink_axis_mask, int32_t new_axis_mask);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
@@ -68,6 +72,7 @@ class StridedSlice : public DirectMapOp {
   int32_t begin_mask_;
   int32_t end_mask_;
   int32_t shrink_axis_mask_;
+  int32_t new_axis_mask_;
 };
 
 }  // namespace ops

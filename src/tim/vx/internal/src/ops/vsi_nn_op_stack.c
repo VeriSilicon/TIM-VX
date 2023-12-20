@@ -37,7 +37,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_link_list.h"
 #include "utils/vsi_nn_dtype_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
+#include "vsi_nn_error.h"
 
 #define _ARG_NUM            (1)
 #define _INPUT_NUM          VSI_NN_STACK_MAX_INPUTS
@@ -53,6 +53,8 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_compute_node( self );
 } /* op_compute() */
 
@@ -63,6 +65,9 @@ static vsi_bool op_check
     vsi_nn_tensor_t ** outputs
     )
 {
+    VSI_UNREFERENCED(self);
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     /*TODO: Check tensor shapes. */
     return TRUE;
 } /* op_check() */
@@ -83,8 +88,9 @@ static vsi_bool op_setup
     vsi_size_t output_shape[2] = {1, 1};
     vsi_nn_internal_node_t* curr = NULL;
     vsi_nn_tensor_t *output_rs = NULL;
-    vsi_nn_stack_lcl_data * data;
-    vsi_bool ret = TRUE;
+    vsi_nn_stack_lcl_data * data = NULL;
+    vsi_bool ret = FALSE;
+    vx_int8 is_scalar = vsi_nn_GetTensorIsScalar(inputs[0]);
 
     vsi_nn_internal_init_node_wksp( node );
 
@@ -101,11 +107,11 @@ static vsi_bool op_setup
         block_num *= inputs[0]->attr.size[i];
     }
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        outputs[0]->attr.dim_num = inputs[0]->attr.dim_num + 1;
+        outputs[0]->attr.dim_num = is_scalar ? 1 : inputs[0]->attr.dim_num + 1;
 
-        for(i = 0, j = 0; j < outputs[0]->attr.dim_num; j++)
+        for (i = 0, j = 0; j < outputs[0]->attr.dim_num; j++)
         {
             if (j == p->axis)
             {
@@ -121,10 +127,12 @@ static vsi_bool op_setup
     if (1 == node->input.num)
     {
         curr = vsi_nn_internal_new_node( node, VSI_NN_OP_RESHAPE2, 1, 1);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
         curr->node->nn_param.reshape2.dim_num = outputs[0]->attr.dim_num;
         curr->node->nn_param.reshape2.size = outputs[0]->attr.size;
+        ret = vsi_nn_internal_setup_node(node, curr);
         goto final;
     }
 
@@ -132,17 +140,13 @@ static vsi_bool op_setup
     input_shape[1] = block_num;
 
     curr = vsi_nn_internal_new_node( node, VSI_NN_OP_CONCAT, node->input.num, node->output.num );
+    CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
     for (i = 0; i < node->input.num; i++)
     {
         vsi_nn_tensor_t *input_rs = NULL;
         /* Malloc ptr */
         data = (vsi_nn_stack_lcl_data *)malloc( sizeof(vsi_nn_stack_lcl_data) );
-        if( NULL == data )
-        {
-            VSILOGE( "Create stack local data fail." );
-            ret = FALSE;
-            goto final;
-        }
+        CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(data, curr, "Create buffer failed", final);
         memset( data, 0, sizeof(vsi_nn_stack_lcl_data) );
 
         input_rs = vsi_nn_reshape_tensor(node->graph, inputs[i], input_shape, 2);
@@ -170,16 +174,18 @@ static vsi_bool op_setup
 
     /* Malloc ptr */
     data = (vsi_nn_stack_lcl_data *)malloc( sizeof(vsi_nn_stack_lcl_data) );
-    if( NULL == data )
-    {
-        VSILOGE( "Create stack local data fail." );
-        ret = FALSE;
-        goto final;
-    }
+    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(data, curr, "Create buffer failed", final);
     memset( data, 0, sizeof(vsi_nn_stack_lcl_data) );
 
     output_rs = vsi_nn_reshape_tensor(node->graph, outputs[0], output_shape, 2);
-    data->src_in     = output_rs;
+    if (output_rs == NULL)
+    {
+        vsi_nn_internal_release_node(&curr);
+        VSILOGD("Create reshape tensor failed\n");
+        vsi_nn_safe_free(data);
+        goto final;
+    }
+    data->src_in = output_rs;
     /* Store node, ptr */
     vsi_nn_LinkListPushStart(
         (vsi_nn_link_list_t **)&node->nn_param.stack.lcl_data,
@@ -187,10 +193,9 @@ static vsi_bool op_setup
 
     curr->outputs[0] = output_rs;
     curr->node->nn_param.concat.axis = axis;
+    ret = vsi_nn_internal_setup_node(node, curr);
 
 final:
-    vsi_nn_internal_setup_node(node, curr);
-
     return ret;
 } /* op_setup() */
 
@@ -202,6 +207,8 @@ static vsi_status op_optimize
     vsi_nn_opt_direction_e direction
     )
 {
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
     return vsi_nn_internal_optimize_node( self, direction );
 } /* op_optimize() */
 

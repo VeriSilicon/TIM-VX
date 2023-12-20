@@ -1,0 +1,23 @@
+{
+    "SignalFrame":{
+        "parameters":
+            [
+                {"name":"window_length",
+                    "dtype": "uint32_t"
+                },
+                {"name":"step",
+                    "dtype": "uint32_t"
+                },
+                {"name":"pad_end",
+                    "dtype": "uint32_t",
+                    "Optional":"true",
+                    "default":"0"
+                },
+                {"name":"axis",
+                    "dtype": "uint32_t",
+                    "Optional":"true",
+                    "default":"0"
+                }
+            ]
+    }
+}

@@ -22,7 +22,6 @@
 *
 *****************************************************************************/
 
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +37,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
+#include "vsi_nn_error.h"
 
 static vsi_status op_compute
     (
@@ -53,15 +53,54 @@ static vsi_status op_compute
     if (inputs[0]->t != NULL && outputs[0]->t != NULL &&
         self->nn_param.reshape2.local->initialized == FALSE)
     {
+#ifdef VX_REMOVE_RESHAPE_SUPPORT
+        vsi_nn_tensor_attr_t attr;
+        vsi_nn_tensor_t *dims_tensor = NULL;
+        vx_nn_reshape_params_t reshape_param;
+        int32_t dims_data[VSI_NN_MAX_DIM_NUM] = {1};
+        uint32_t i = 0;
+
+        for (i = 0; i < self->nn_param.reshape2.dim_num; i++)
+        {
+            dims_data[i] = (int32_t)self->nn_param.reshape2.size[i];
+        }
+
+        memset(&attr, 0, sizeof(attr));
+        attr.size[0] = self->nn_param.reshape2.dim_num;
+        attr.dim_num = 1;
+        attr.is_const = TRUE;
+        attr.dtype.vx_type = VSI_NN_TYPE_INT32;
+        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+        dims_tensor = vsi_nn_CreateTensorFromData(
+            self->graph,
+            (uint8_t *)dims_data,
+            &attr);
+
+        reshape_param.dims = REQUIRED_IO(dims_tensor);
+
+        self->n = vxTensorReshapeNode(self->graph->g,
+            inputs[0]->t, &reshape_param, sizeof(reshape_param), outputs[0]->t);
+        vsi_safe_release_tensor(dims_tensor);
+#else
+        vsi_nn_tensor_t *tmp_tensor = NULL;
+        tmp_tensor = vsi_nn_reshape_tensor( self->graph,
+            outputs[0], inputs[0]->attr.size, inputs[0]->attr.dim_num );
+        CHECK_PTR_FAIL_GOTO( tmp_tensor, "create tensor fail.", final );
+
         self->n = vxTensorCopyNode(self->graph->g,
-            inputs[0]->t, outputs[0]->t);
-        if(NULL == self->n)
+            inputs[0]->t, tmp_tensor->t);
+
+final:
+        vsi_safe_release_tensor(tmp_tensor);
+#endif
+        if (NULL == self->n)
         {
             VSILOGE( "Create vxTensorCopyNode fail." );
             return VSI_FAILURE;
         }
         VSILOGD("Create a copy node for reshape");
     }
+
     return VSI_SUCCESS;
 } /* op_compute() */
 
@@ -140,6 +179,9 @@ static vsi_status op_optimize
     vsi_status status;
 
     status = VSI_SUCCESS;
+#ifdef VX_REMOVE_RESHAPE_SUPPORT
+    self->nn_param.reshape2.local->initialized = FALSE;
+#else
     if ( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
     {
         return status;
@@ -178,7 +220,7 @@ static vsi_status op_optimize
             self->nn_param.reshape2.local->initialized = TRUE;
         }
     }
-
+#endif
     return status;
 } /* op_optimize() */
 

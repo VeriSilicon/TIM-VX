@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 
 #include <array>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 #include "tim/vx/types.h"
 
 namespace tim {
@@ -42,7 +42,7 @@ namespace ops {
  * - ksize : filter size.
  */
 
-class MaxUnpool2d : public DirectMapOp {
+class MaxUnpool2d : public BuiltinOp {
  public:
   MaxUnpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
          const std::array<uint32_t, 2>& stride, DataLayout layout = DataLayout::WHCN);

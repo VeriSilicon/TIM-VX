@@ -53,6 +53,15 @@ typedef struct _vsi_nn_pre_process_rgb888_planar_param
     float g_mean;
     float b_mean;
     float scale;
+
+
+    vsi_bool reverse_channel;
+    vsi_bool enable_rgb88_planar_nhwc;
+
+    float r_scale;
+    float g_scale;
+    float b_scale;
+
 } vsi_nn_pre_process_rgb888_planar_param;
 _compiler_assert(offsetof(vsi_nn_pre_process_rgb888_planar_param, local) == 0, \
     vsi_nn_pre_process_rgb888_planar_h );

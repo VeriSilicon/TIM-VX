@@ -113,20 +113,20 @@ static vsi_status get_scatter_nd_tensor_reshape_size
     uint32_t i = 0;
     vsi_size_t elementCnt = 1;
 
-    if(coordDim != 0 && (width == NULL || area == NULL))
+    if (coordDim != 0 && (width == NULL || area == NULL))
     {
         return status;
     }
 
-#define VSI_NN_MAX_IMAGE_WIDTH  (65536)
+#define VSI_NN_MAX_IMAGE_WIDTH  GPU_TENSOR_MAX_WIDTH
 
     newDim[0] = 0;
-    for(i = 0; i < dims_num; ++i)
+    for (i = 0; i < dims_num; ++i)
     {
         elementCnt *= input_size[i];
     }
 
-    for(i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
+    for (i = 0; i < VSI_NN_MAX_DIM_NUM; ++i)
     {
         sizes[i] = 1;
     }
@@ -135,22 +135,22 @@ static vsi_status get_scatter_nd_tensor_reshape_size
     sizes[1] = elementCnt / block_size;
     newDim[0] = 2;
 
-    if((elementCnt / block_size) >= VSI_NN_MAX_IMAGE_WIDTH)
+    if ((elementCnt / block_size) >= VSI_NN_MAX_IMAGE_WIDTH)
     {
         isBig[0] |= 1;
     }
 
-    if(coordDim == 1) // index shape
+    if (coordDim == 1) // index shape
     {
         *width = 0;
         *area = 0;
     }
-    else if(coordDim == 2)
+    else if (coordDim == 2)
     {
         *width = input_size[dims_num - 2];
         *area = 0;
     }
-    else if(coordDim == 3)
+    else if (coordDim == 3)
     {
         *width = input_size[dims_num - 3];
         *area = input_size[dims_num - 3] * input_size[dims_num - 2];
@@ -188,6 +188,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_initializer)
     int32_t     coord_dim  = 0;
     int32_t     offsetX = 0, offsetY = 0, offsetZ = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -211,19 +213,19 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_initializer)
         output_zp = attr[2]->asymm.zero_point;
     }
 
-    if(coord_dim == 3)
+    if (coord_dim == 3)
     {
         offsetX = area;
         offsetY = width;
         offsetZ = 1;
     }
-    else if(coord_dim == 2)
+    else if (coord_dim == 2)
     {
         offsetX = width;
         offsetY = 1;
         offsetZ = 0;
     }
-    else if(coord_dim == 1)
+    else if (coord_dim == 1)
     {
         offsetX = 1;
         offsetY = 0;
@@ -345,6 +347,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_big_initializer)
     int32_t     coord_dim  = 0;
     int32_t     offsetX = 0, offsetY = 0, offsetZ = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -368,19 +372,19 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_big_initializer)
         output_zp = attr[2]->asymm.zero_point;
     }
 
-    if(coord_dim == 3)
+    if (coord_dim == 3)
     {
         offsetX = area;
         offsetY = width;
         offsetZ = 1;
     }
-    else if(coord_dim == 2)
+    else if (coord_dim == 2)
     {
         offsetX = width;
         offsetY = 1;
         offsetZ = 0;
     }
-    else if(coord_dim == 1)
+    else if (coord_dim == 1)
     {
         offsetX = 1;
         offsetY = 0;
@@ -457,26 +461,28 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e input1_dtype = U8;
     vsi_nn_kernel_dtype_e output_dtype = U8;
     uint32_t key = 0;
-    int i = 0;
+    size_t i = 0;
+
+    VSI_UNREFERENCED(coord_dim);
 
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
     key = HASH_SCATTER_ND_KEY( input1_dtype, output_dtype, 0, isBig );
 
-    for( i = 0; i < _cnt_of_array(scatter_nd_map); i ++ )
+    for ( i = 0; i < _cnt_of_array(scatter_nd_map); i ++ )
     {
-        if( scatter_nd_map[i].key == key )
+        if ( scatter_nd_map[i].key == key )
         {
             break;
         }
     }
-    if( i < _cnt_of_array(scatter_nd_map) )
+    if ( i < _cnt_of_array(scatter_nd_map) )
     {
         snprintf( kernel->info.name, VX_MAX_KERNEL_NAME, "%s",  scatter_nd_map[i].function_name );
         kernel->info.parameters = _scatter_nd_kernel_param_def;
         kernel->info.numParams = _cnt_of_array( _scatter_nd_kernel_param_def );
-        if(isBig)
+        if (isBig)
         {
             kernel->info.initialize = _scatter_nd_big_initializer;
         }
@@ -517,22 +523,30 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t width = 0, area = 0;
     int32_t big_flg = 0;
 
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+
+    if (coord_dim > 3)
+    {
+        return NULL;
+    }
+
     status = get_scatter_nd_tensor_reshape_size(&inputs[0], shapes[0], coord_dim, 0,
                                                     NULL, NULL, &rs_idx_dim, &big_flg);
     status |= get_scatter_nd_tensor_reshape_size(&inputs[1], shapes[1], block_size, 0,
                                                     NULL, NULL, &rs_in_dim, &big_flg);
     status |= get_scatter_nd_tensor_reshape_size(&outputs[0], shapes[2], block_size, coord_dim,
                                                     &width, &area, &rs_out_dim, &big_flg);
-    if(status != VSI_SUCCESS)
+    if (status != VSI_SUCCESS)
     {
         return NULL;
     }
 
     status = _query_kernel( inputs, outputs, kernel, coord_dim, big_flg);
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
-        if( node )
+        if ( node )
         {
             uint32_t index = 0;
             /* Pass parameters to node. */

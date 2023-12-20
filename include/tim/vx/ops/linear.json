@@ -1,0 +1,15 @@
+{
+    "Linear":{
+        "parameters":
+            [
+                {"name":"a",
+                    "dtype": "float"
+                },
+                {"name":"b",
+                    "dtype": "float",
+                    "Optional":"true",
+                    "default":"0.0"
+                }
+            ]
+    }
+}

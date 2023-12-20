@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_ELEMENTWISE_H_
 #define TIM_VX_OPS_ELEMENTWISE_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -67,7 +67,7 @@ namespace ops {
  */
 
 #define DECLARE_ELEMENTWISE_OP(NAME)                   \
-  class NAME : public DirectMapOp {                      \
+  class NAME : public BuiltinOp {                      \
    public:                                             \
     NAME(Graph* graph);                                \
     std::shared_ptr<Operation> Clone(                  \
@@ -81,14 +81,14 @@ DECLARE_ELEMENTWISE_OP(Sub)
 DECLARE_ELEMENTWISE_OP(Pow)
 DECLARE_ELEMENTWISE_OP(FloorDiv)
 
-class Multiply : public DirectMapOp {
+class Multiply : public BuiltinOp {
  public:
   Multiply(Graph* graph, float scale = 1.0f);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 };
 
-class Div : public DirectMapOp {
+class Div : public BuiltinOp {
  public:
   Div(Graph* graph, float scale = 1.0f);
 

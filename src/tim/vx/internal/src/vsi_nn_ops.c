@@ -298,6 +298,9 @@ void vsi_nn_OpGetIoNum
     )
 {
     const vsi_nn_op_proc_t * proc;
+
+    VSI_UNREFERENCED(node);
+
     proc = vsi_nn_OpGetProc( op );
     if( NULL != proc )
     {

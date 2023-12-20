@@ -33,6 +33,7 @@
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_tensor_util_prv.h"
 
 static vsi_status op_compute
     (
@@ -69,6 +70,8 @@ static vsi_bool _is_same_quant
 {
     vsi_nn_dtype_t *dtype,*_dtype;
 
+    VSI_UNREFERENCED(self);
+
     dtype = &inputs[0]->attr.dtype;
     _dtype = &outputs[0]->attr.dtype;
 
@@ -79,7 +82,6 @@ static vsi_bool _is_same_quant
 
     return TRUE;
 } /* _is_same_quant */
-
 
 static vsi_status op_optimize
     (
@@ -92,6 +94,11 @@ static vsi_status op_optimize
     vsi_status     status;
 
     status = VSI_SUCCESS;
+
+    if( !self->graph->ctx->options.enable_dataconvert_optimize )
+    {
+        return status;
+    }
 
     if ( _is_same_quant(self, inputs, outputs) == FALSE ||
         (inputs[0]->t != NULL && outputs[0]->t != NULL))
@@ -237,34 +244,54 @@ static vsi_bool op_check
         IO_TYPE(D_BOOL8,      D_U8|Q_ASYM)
         IO_TYPE(D_BOOL8,      D_I8|Q_ASYM)
         IO_TYPE(D_BOOL8,      D_I8|Q_DFP)
+        IO_TYPE(D_BOOL8,      D_I8|Q_SYM)
         IO_TYPE(D_BOOL8,      D_I16|Q_DFP)
-        IO_TYPE(D_BOOL8,      D_U8)
-        IO_TYPE(D_BOOL8,      D_I8)
-        IO_TYPE(D_BOOL8,      D_I8)
-        IO_TYPE(D_BOOL8,      D_I16)
+        IO_TYPE(D_BOOL8,      D_I16|Q_ASYM)
+        IO_TYPE(D_BOOL8,      D_I16|Q_SYM)
+        IO_TYPE(D_BOOL8,      D_F16)
+        IO_TYPE(D_BOOL8,      D_I32)
+        IO_TYPE(D_BOOL8,      D_U16)
+        IO_TYPE(D_BOOL8,      D_U32)
+        IO_TYPE(D_U8|Q_ASYM,  D_BOOL8)
+        IO_TYPE(D_I8|Q_ASYM,  D_BOOL8)
+        IO_TYPE(D_I8|Q_DFP,   D_BOOL8)
+        IO_TYPE(D_I8|Q_SYM,   D_BOOL8)
+        IO_TYPE(D_I16|Q_DFP,  D_BOOL8)
+        IO_TYPE(D_I16|Q_ASYM, D_BOOL8)
+        IO_TYPE(D_I16|Q_SYM,  D_BOOL8)
+        IO_TYPE(D_F16,        D_BOOL8)
+        IO_TYPE(D_I32,        D_BOOL8)
+        IO_TYPE(D_U16,        D_BOOL8)
+        IO_TYPE(D_U32,        D_BOOL8)
         IO_TYPE(D_BF16,       D_BF16)
         IO_TYPE(D_BF16,       D_F16)
         IO_TYPE(D_BF16,       D_F32)
         IO_TYPE(D_I32,        D_I32)
+        IO_TYPE(D_I32,        D_F32)
+        IO_TYPE(D_I32,        D_F16)
         IO_TYPE(D_I32,        D_I16|Q_DFP)
-        IO_TYPE(D_I32,        D_I16)
         IO_TYPE(D_I32,        D_I8|Q_DFP)
-        IO_TYPE(D_I32,        D_I8)
         IO_TYPE(D_I32,        D_U32)
         IO_TYPE(D_I32,        D_U16)
         IO_TYPE(D_I32,        D_U8|Q_ASYM)
-        IO_TYPE(D_I32,        D_U8)
         IO_TYPE(D_U32,        D_U32)
         IO_TYPE(D_U32,        D_I16|Q_DFP)
-        IO_TYPE(D_U32,        D_I16)
         IO_TYPE(D_U32,        D_I8|Q_DFP)
-        IO_TYPE(D_U32,        D_I8)
         IO_TYPE(D_U32,        D_I32)
-        IO_TYPE(D_U32,        D_U16)
         IO_TYPE(D_U32,        D_U8|Q_ASYM)
         IO_TYPE(D_U32,        D_U8)
         IO_TYPE(D_BF16,       D_I32)
         IO_TYPE(D_I32,        D_BF16)
+        IO_TYPE(D_U4|Q_ASYM,  D_U8|Q_ASYM)
+        IO_TYPE(D_U4|Q_SYM,   D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_U4|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,  D_U8|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,   D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_I4|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_I4|Q_SYM)
+        IO_TYPE(D_U8|Q_ASYM,  D_U16|Q_ASYM)
+        IO_TYPE(D_U16|Q_ASYM, D_U8|Q_ASYM)
 
         /* HW 9.0.1 */
         IO_TYPE(D_I8|Q_DFP,   D_BF16)
@@ -275,7 +302,25 @@ static vsi_bool op_check
         IO_TYPE(D_I16|Q_DFP,  D_U8|Q_ASYM)
         IO_TYPE(D_I16|Q_DFP,  D_BF16)
         IO_TYPE(D_I16|Q_DFP,  D_F32)
-        IO_TYPE(D_F16,        D_F32)
+
+        /* HW 9.1.1 */
+        IO_TYPE(D_U4|Q_ASYM,  D_I8|Q_ASYM)
+        IO_TYPE(D_U4|Q_ASYM,  D_I8|Q_SYM)
+        IO_TYPE(D_U4|Q_SYM,   D_I8|Q_ASYM)
+        IO_TYPE(D_U4|Q_SYM,   D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_U4|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_U4|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_U4|Q_SYM)
+        IO_TYPE(D_I8|Q_SYM,   D_U4|Q_SYM)
+        IO_TYPE(D_I4|Q_ASYM,  D_I8|Q_ASYM)
+        IO_TYPE(D_I4|Q_ASYM,  D_I8|Q_SYM)
+        IO_TYPE(D_I4|Q_SYM,   D_I8|Q_ASYM)
+        IO_TYPE(D_I4|Q_SYM,   D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_I4|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,   D_I4|Q_ASYM)
+        IO_TYPE(D_I8|Q_ASYM,  D_I4|Q_SYM)
+        IO_TYPE(D_I8|Q_SYM,   D_I4|Q_SYM)
+
     END_IO_TYPE_DECL(DATACONVERT)
     if (!VALIDATE_OP_IO_TYPES(DATACONVERT, self, inputs, self->input.num, outputs, self->output.num))
     {

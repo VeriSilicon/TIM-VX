@@ -53,6 +53,13 @@ typedef enum
     UNARY_HGELU,
     UNARY_SELU,
     UNARY_CELU,
+    UNARY_RCP,
+    UNARY_SIGN,
+    UNARY_SOFTSIGN,
+    UNARY_ATAN,
+    UNARY_ATANH,
+    UNARY_ACOSH,
+    UNARY_INVERSE_SIGMOID,
 } unary_type_e;
 
 /*
@@ -94,6 +101,21 @@ typedef enum
 #define HGELU_OPERATION         hard_gelu
 #define SELU_OPERATION          selu
 #define CELU_OPERATION          celu
+#define RCP_OPERATION           rcp
+#define SIGN_OPERATION          sign
+#define SOFTSIGN_OPERATION      softsign
+#define ATAN_OPERATION          atan
+#define ATANH_OPERATION         atanh
+#define ACOSH_OPERATION         acosh
+#define INVERSE_SIGMOID_OPERATION inverse_sigmoid
+
+#define ADD_UNARY_SH_KERNELS(name) \
+    TENSOR_UNARY_KERNELS_3D(name##_OPERATION, UNARY_##name, F32, F32) \
+    TENSOR_UNARY_KERNELS_2D(name##_OPERATION, UNARY_##name, F32, F32) \
+    TENSOR_UNARY_KERNELS_3D(name##_OPERATION, UNARY_##name, U8,  U8) \
+    TENSOR_UNARY_KERNELS_2D(name##_OPERATION, UNARY_##name, U8,  U8) \
+    TENSOR_UNARY_KERNELS_3D(name##_OPERATION, UNARY_##name, U8,  F32) \
+    TENSOR_UNARY_KERNELS_2D(name##_OPERATION, UNARY_##name, U8,  F32)
 
 static const struct {
         uint32_t key;
@@ -101,61 +123,28 @@ static const struct {
         const char* source_name;
     } kernel_map[] =
 {
-    TENSOR_UNARY_KERNELS_3D(SIN_OPERATION,      UNARY_SIN,      F32, F32)
-    TENSOR_UNARY_KERNELS_3D(COS_OPERATION,      UNARY_COS,      F32, F32)
-    TENSOR_UNARY_KERNELS_3D(EXP_OPERATION,      UNARY_EXP,      F32, F32)
-    TENSOR_UNARY_KERNELS_3D(LOG_OPERATION,      UNARY_LOG,      F32, F32)
-    TENSOR_UNARY_KERNELS_3D(NEG_OPERATION,      UNARY_NEG,      F32, F32)
-    TENSOR_UNARY_KERNELS_3D(HSIGMOID_OPERATION, UNARY_HSIGMOID, F32, F32)
-    TENSOR_UNARY_KERNELS_3D(MISH_OPERATION,     UNARY_MISH,     F32, F32)
-    TENSOR_UNARY_KERNELS_3D(ROUND_OPERATION,    UNARY_ROUND,    F32, F32)
-    TENSOR_UNARY_KERNELS_3D(GELU_OPERATION,     UNARY_GELU,     F32, F32)
-    TENSOR_UNARY_KERNELS_3D(HGELU_OPERATION,    UNARY_HGELU,    F32, F32)
-    TENSOR_UNARY_KERNELS_3D(SELU_OPERATION,     UNARY_SELU,     F32, F32)
-    TENSOR_UNARY_KERNELS_3D(CELU_OPERATION,     UNARY_CELU,     F32, F32)
+    ADD_UNARY_SH_KERNELS(SIN)
+    ADD_UNARY_SH_KERNELS(COS)
+    ADD_UNARY_SH_KERNELS(EXP)
+    ADD_UNARY_SH_KERNELS(LOG)
+    ADD_UNARY_SH_KERNELS(NEG)
+    ADD_UNARY_SH_KERNELS(HSIGMOID)
+    ADD_UNARY_SH_KERNELS(MISH)
+    ADD_UNARY_SH_KERNELS(ROUND)
+    ADD_UNARY_SH_KERNELS(GELU)
+    ADD_UNARY_SH_KERNELS(HGELU)
+    ADD_UNARY_SH_KERNELS(SELU)
+    ADD_UNARY_SH_KERNELS(CELU)
+    ADD_UNARY_SH_KERNELS(RCP)
+    ADD_UNARY_SH_KERNELS(SIGN)
+    ADD_UNARY_SH_KERNELS(SOFTSIGN)
+    ADD_UNARY_SH_KERNELS(ATAN)
+    ADD_UNARY_SH_KERNELS(ATANH)
+    ADD_UNARY_SH_KERNELS(ACOSH)
+    ADD_UNARY_SH_KERNELS(INVERSE_SIGMOID)
 
-    TENSOR_UNARY_KERNELS_2D(SIN_OPERATION,      UNARY_SIN,      F32, F32)
-    TENSOR_UNARY_KERNELS_2D(COS_OPERATION,      UNARY_COS,      F32, F32)
-    TENSOR_UNARY_KERNELS_2D(EXP_OPERATION,      UNARY_EXP,      F32, F32)
-    TENSOR_UNARY_KERNELS_2D(LOG_OPERATION,      UNARY_LOG,      F32, F32)
-    TENSOR_UNARY_KERNELS_2D(NEG_OPERATION,      UNARY_NEG,      F32, F32)
-    TENSOR_UNARY_KERNELS_2D(HSIGMOID_OPERATION, UNARY_HSIGMOID, F32, F32)
-    TENSOR_UNARY_KERNELS_2D(MISH_OPERATION,     UNARY_MISH,     F32, F32)
-    TENSOR_UNARY_KERNELS_2D(ROUND_OPERATION,    UNARY_ROUND,    F32, F32)
-    TENSOR_UNARY_KERNELS_2D(GELU_OPERATION,     UNARY_GELU,     F32, F32)
-    TENSOR_UNARY_KERNELS_2D(HGELU_OPERATION,    UNARY_HGELU,    F32, F32)
-    TENSOR_UNARY_KERNELS_2D(SELU_OPERATION,     UNARY_SELU,     F32, F32)
-    TENSOR_UNARY_KERNELS_2D(CELU_OPERATION,     UNARY_CELU,     F32, F32)
-
-    TENSOR_UNARY_KERNELS_3D(SIN_OPERATION,      UNARY_SIN,      U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(COS_OPERATION,      UNARY_COS,      U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(EXP_OPERATION,      UNARY_EXP,      U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(LOG_OPERATION,      UNARY_LOG,      U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(NEG_OPERATION,      UNARY_NEG,      U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(HSIGMOID_OPERATION, UNARY_HSIGMOID, U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(MISH_OPERATION,     UNARY_MISH,     U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(ROUND_OPERATION,    UNARY_ROUND,    U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(GELU_OPERATION,     UNARY_GELU,     U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(HGELU_OPERATION,    UNARY_HGELU,    U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(SELU_OPERATION,     UNARY_SELU,     U8,  U8)
-    TENSOR_UNARY_KERNELS_3D(CELU_OPERATION,     UNARY_CELU,     U8,  U8)
-
-    TENSOR_UNARY_KERNELS_2D(SIN_OPERATION,      UNARY_SIN,      U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(COS_OPERATION,      UNARY_COS,      U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(EXP_OPERATION,      UNARY_EXP,      U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(LOG_OPERATION,      UNARY_LOG,      U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(NEG_OPERATION,      UNARY_NEG,      U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(HSIGMOID_OPERATION, UNARY_HSIGMOID, U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(MISH_OPERATION,     UNARY_MISH,     U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(ROUND_OPERATION,    UNARY_ROUND,    U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(GELU_OPERATION,     UNARY_GELU,     U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(HGELU_OPERATION,    UNARY_HGELU,    U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(SELU_OPERATION,     UNARY_SELU,     U8,  U8)
-    TENSOR_UNARY_KERNELS_2D(CELU_OPERATION,     UNARY_CELU,     U8,  U8)
-
-    TENSOR_UNARY_KERNELS_3D(NEG_OPERATION, UNARY_NEG, I32,  I32)
-
-    TENSOR_UNARY_KERNELS_2D(NEG_OPERATION, UNARY_NEG, I32,  I32)
+    TENSOR_UNARY_KERNELS_3D(NEG_OPERATION, UNARY_NEG, I32, I32)
+    TENSOR_UNARY_KERNELS_2D(NEG_OPERATION, UNARY_NEG, I32, I32)
 };
 
 #undef SIN_OPERATION
@@ -170,6 +159,13 @@ static const struct {
 #undef HGELU_OPERATION
 #undef SELU_OPERATION
 #undef CELU_OPERATION
+#undef RCP_OPERATION
+#undef SIGN_OPERATION
+#undef SOFTSIGN_OPERATION
+#undef ATAN_OPERATION
+#undef ATANH_OPERATION
+#undef ACOSH_OPERATION
+#undef INVERSE_SIGMOID_OPERATION
 /*
  * Kernel params
  */
@@ -215,6 +211,9 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[2] = { NULL };
     vsi_size_array_t * out_shape = NULL;
 
+    VSI_UNREFERENCED(node);
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[1] );
@@ -257,7 +256,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype;
     vsi_status status = VSI_FAILURE;
     uint32_t key;
-    int i;
+    size_t i;
 
     input_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
@@ -270,6 +269,10 @@ static vsi_status _query_kernel
     case _PACK_SELECT_KEY(F32, F32):
     case _PACK_SELECT_KEY(F16, F16):
         key = HASH_UNARY_KEY( type, F32, F32, image_2d );
+        break;
+    case _PACK_SELECT_KEY(U8, F32):
+    case _PACK_SELECT_KEY(U8, F16):
+        key = HASH_UNARY_KEY( type, U8, F32, image_2d );
         break;
     default:
         key = HASH_UNARY_KEY( type, input_dtype, output_dtype, image_2d );
@@ -327,6 +330,9 @@ static vsi_nn_kernel_node_t _setup
     float alpha = vsi_nn_kernel_param_get_float32( params, "alpha" );
     float beta = vsi_nn_kernel_param_get_float32( params, "beta" );
 
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
+
     if (unary_type == UNARY_SELU)
     {
         alpha = alpha * beta;
@@ -339,7 +345,7 @@ static vsi_nn_kernel_node_t _setup
     ret = vsi_nn_kernel_optimize_element_shape(
             inputs[0]->attr.size, inputs[0]->attr.dim_num,
             shape, &new_rank );
-    if( ret )
+    if ( ret )
     {
         rs_tensors[0] = vsi_nn_reshape_tensor( graph,
                 inputs[0], shape, new_rank );
@@ -347,7 +353,7 @@ static vsi_nn_kernel_node_t _setup
                 outputs[0], shape, new_rank );
     }
 
-    if( !vsi_nn_kernel_gpu_check_shape( rs_tensors[0]->attr.size,
+    if ( !vsi_nn_kernel_gpu_check_shape( rs_tensors[0]->attr.size,
                 rs_tensors[0]->attr.dim_num ) )
     {
         return NULL;
@@ -357,11 +363,11 @@ static vsi_nn_kernel_node_t _setup
 
     image_2d = (rs_tensors[0]->attr.dim_num == 2 || rs_tensors[0]->attr.size[2] == 1);
     status = _query_kernel( rs_tensors, &rs_tensors[1], unary_type, image_2d, kernel );
-    if( VSI_SUCCESS == status)
+    if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
 
-        if( node )
+        if ( node )
         {
             vsi_nn_kernel_node_pack_io( node_params, _CL_PARAM_NUM,
                     rs_tensors, 1, &rs_tensors[1], 1 );
@@ -458,4 +464,12 @@ REGISTER_ELTWISE_UNARY_BACKEND_CL( gelu,         UNARY_GELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CL( hard_gelu,    UNARY_HGELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CL( selu,         UNARY_SELU )
 REGISTER_ELTWISE_UNARY_BACKEND_CL( celu,         UNARY_CELU )
+REGISTER_ELTWISE_UNARY_BACKEND_CL( rcp,          UNARY_RCP )
+REGISTER_ELTWISE_UNARY_BACKEND_CL( sign,         UNARY_SIGN )
+REGISTER_ELTWISE_UNARY_BACKEND_CL( softsign,     UNARY_SOFTSIGN )
+REGISTER_ELTWISE_UNARY_BACKEND_CL( atan,         UNARY_ATAN )
+REGISTER_ELTWISE_UNARY_BACKEND_CL( atanh,        UNARY_ATANH )
+REGISTER_ELTWISE_UNARY_BACKEND_CL( acosh,        UNARY_ACOSH )
+REGISTER_ELTWISE_UNARY_BACKEND_CL( inverse_sigmoid, UNARY_INVERSE_SIGMOID )
+
 __END_DECLS

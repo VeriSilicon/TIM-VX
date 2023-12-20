@@ -66,6 +66,11 @@ typedef struct _vsi_nn_pre_process_yuv420_param
     float rgb_scale;
 
     vsi_bool reverse_channel;
+
+    float r_scale;
+    float g_scale;
+    float b_scale;
+
     /* local data must be the first. */
     vsi_nn_pre_process_yuv420_lcl_data local;
 } vsi_nn_pre_process_yuv420_param;

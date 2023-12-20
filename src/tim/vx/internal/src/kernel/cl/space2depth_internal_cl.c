@@ -114,6 +114,8 @@ DEF_KERNEL_INITIALIZER(_space2depth_internal_initializer)
     vsi_ssize_t height = 0;
     vsi_ssize_t chn = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     attr[0] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", final );
 
@@ -155,7 +157,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_dtype_e output_dtype = U8;
     vsi_status status = VSI_FAILURE;
     uint32_t key = 0;
-    int i = 0;
+    size_t i = 0;
 
     input0_dtype = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
@@ -214,6 +216,9 @@ static vsi_nn_kernel_node_t _setup
     int32_t outputZp = vsi_nn_get_tensor_zero_point(outputs[0]);
     float scaleInOut = 1.0f;
     float zpInOut = 0.0f;
+
+    VSI_UNREFERENCED(input_num);
+    VSI_UNREFERENCED(output_num);
 
     scaleInOut = inputScale / outputScale;
     zpInOut = outputZp - inputZp * scaleInOut;

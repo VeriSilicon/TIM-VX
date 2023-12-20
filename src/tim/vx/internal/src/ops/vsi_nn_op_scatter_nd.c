@@ -30,10 +30,11 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
-#include "vsi_nn_error.h"
+#include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_tensor_util_prv.h"
 
 #define _INPUT_NUM          (2)
 #define _OUTPUT_NUM         (1)
@@ -58,11 +59,6 @@ static vsi_status op_compute
     {
         coord_dim = (uint32_t)inputs[0]->attr.size[0];
     }
-    if ( coord_dim > 3 )
-    {
-        CHECK_STATUS(status);
-        return status;
-    }
     for (i = 0; i < inputs[0]->attr.dim_num; i++)
     {
         idx_num *= (uint32_t)inputs[0]->attr.size[i];
@@ -80,7 +76,32 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "block_size", block_size );
     vsi_nn_kernel_param_add_int32( param, "coord_dim", coord_dim );
     vsi_nn_kernel_param_add_int32( param, "idx_num", idx_num );
-    n = vsi_nn_kernel_selector( self->graph, "scatter_nd", inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
+
+    if (vsi_nn_is_same_data_type(inputs[1], outputs[0]) == FALSE ||
+        vsi_nn_is_same_quant_type(inputs[1], outputs[0]))
+    {
+        n = vsi_nn_kernel_selector( self->graph, "scatter_nd", inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
+    }
+    else
+    {
+        vsi_nn_tensor_attr_t attr;
+        vsi_nn_tensor_t* temp_tensors = NULL;
+
+        VSILOGW("scatter_nd is no_range_change operation! \
+            Insert DataConvert Operation when the quantization parameters of input and output are inconsistent!");
+
+        memcpy( &attr, &outputs[0]->attr, sizeof(attr));
+        memcpy( &attr.dtype, &inputs[1]->attr.dtype, sizeof(attr.dtype));
+        attr.is_const = FALSE;
+        attr.vtl = TRUE;
+        temp_tensors = vsi_nn_CreateTensor( self->graph, &attr );
+
+        vsi_nn_kernel_selector( self->graph, "scatter_nd", inputs, _INPUT_NUM, &temp_tensors, _OUTPUT_NUM, param );
+        n = vxTensorCopyNode( self->graph->g, temp_tensors->t, outputs[0]->t);
+
+        vsi_safe_release_tensor(temp_tensors);
+    }
+
     if ( n != NULL )
     {
         self->n = (vx_node)n;
@@ -138,6 +159,8 @@ static vsi_bool op_setup
     /* TODO: Add code to comput outputs' shape. */
     uint32_t i = 0;
     vsi_nn_scatter_nd_param * p = &(self->nn_param.scatter_nd);
+
+    VSI_UNREFERENCED(inputs);
 
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {

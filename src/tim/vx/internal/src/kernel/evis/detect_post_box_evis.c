@@ -122,6 +122,8 @@ DEF_KERNEL_INITIALIZER(_detect_post_box_initializer)
     int32_t   input1_ZP       = 0;
     int32_t   input0_ZP       = 0;
 
+    VSI_UNREFERENCED(param_size);
+
     input_attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( input_attr, "Create tensor attr buffer fail.", final );
 

@@ -80,9 +80,11 @@ typedef struct
 
 static const _kernel_map_type _grucell_activation_sma_kernel_map[] =
 {
-    PACK_KERNEL_MAP(F16, F16,  F16,  F16),
+    PACK_KERNEL_MAP(F16,  F16,  F16,  F16),
+    PACK_KERNEL_MAP(BF16, BF16, BF16, BF16),
 
-    PACK_KERNEL_MAP_2D(F16, F16, F16, F16),
+    PACK_KERNEL_MAP_2D(F16,  F16,  F16,  F16),
+    PACK_KERNEL_MAP_2D(BF16, BF16, BF16, BF16),
 };
 
 /*
@@ -110,7 +112,7 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_sma_initializer)
 {
 #define _PACK_A_GRUCELL_ACTIVATION_SMA_KEY( IN0_TYPE, IN1_TYPE, IN2_TYPE, OUT_TYPE )    \
         (( IN1_TYPE << 24) | ( IN1_TYPE << 16) | ( IN0_TYPE << 8) | ( OUT_TYPE))
-    vsi_status status = VX_SUCCESS;
+    vsi_status status = VSI_FAILURE;
     // Alignment with a power of two value.
     gpu_param_t gpu_param = {
         3,
@@ -128,6 +130,8 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_sma_initializer)
     vsi_nn_kernel_tensor_attr_t * attr[4]       = { NULL, NULL, NULL, NULL };
     vsi_size_array_t             *output_shape   = NULL;
     uint32_t pack_key                           = 0;
+
+    VSI_UNREFERENCED(param_size);
 
 
     attr[0]  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)input0);
@@ -196,6 +200,45 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_sma_initializer)
             status |= vsi_nn_kernel_gpu_add_param( node,
                     "uniA_Minus_B_2x8", &uniA_Minus_B_2x8 );
             CHECK_STATUS_FAIL_GOTO(status, final );
+        }
+        break;
+        case _PACK_A_GRUCELL_ACTIVATION_SMA_KEY(BF16, BF16, BF16, BF16):
+        {
+                gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+                    0x11111111, // TCfg
+                    0x01010101, // ASelt
+                    0x01050004, 0x03070206, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+                gpu_dp_inst_t uniConvBF16toF32_Part1_2x8 = {{
+                    0x11111111, // TCfg
+                    0x01010101, // ASelt
+                    0x05050404, 0x07070606, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16 };
+                gpu_dp_inst_t uniExtractOddData_2x8 = {{
+                    0x11111111, // TCfg
+                    0x11110000, // ASelt
+                    0x07050301, 0x07050301, // ABin
+                    0x22222222, // BSelt
+                    0x00000000, 0x00000000, // BBin
+                    0x00000600, // AccumType, ConstantType, and PostShift
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                    0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+                }, GPU_DP_TYPE_16};
+
+                status  = vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part1_2x8", &uniConvBF16toF32_Part1_2x8);
+                status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
+                CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
     default:
@@ -301,6 +344,8 @@ static vsi_nn_kernel_node_t _setup
     int32_t  i        = 0;
     vsi_bool ret      = FALSE;
     vsi_nn_tensor_t* reshape_tensors[_IO_NUM] = { NULL };
+
+    VSI_UNREFERENCED(params);
 
     for (i = 0; i < _IO_NUM; i++)
     {

@@ -1,0 +1,10 @@
+{
+    "Celu":{
+        "parameters":
+            [
+                {"name":"alpha",
+                    "dtype": "float"
+                }
+            ]
+    }
+}

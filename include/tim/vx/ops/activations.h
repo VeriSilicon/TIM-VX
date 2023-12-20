@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_ACTIVATIONS_H_
 #define TIM_VX_OPS_ACTIVATIONS_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -73,7 +73,7 @@ namespace ops {
  */
 
 #define DECLARE_NO_PARAMETER_ACTIVATION(NAME)          \
-  class NAME : public DirectMapOp {                    \
+  class NAME : public BuiltinOp {                    \
    public:                                             \
     NAME(Graph* graph);                                \
     std::shared_ptr<Operation> Clone(                  \
@@ -89,10 +89,12 @@ DECLARE_NO_PARAMETER_ACTIVATION(Swish)
 DECLARE_NO_PARAMETER_ACTIVATION(HardSwish)
 DECLARE_NO_PARAMETER_ACTIVATION(Mish)
 DECLARE_NO_PARAMETER_ACTIVATION(SoftRelu)
+DECLARE_NO_PARAMETER_ACTIVATION(Sign)
+DECLARE_NO_PARAMETER_ACTIVATION(SoftSign)
 
 #undef DEFINE_NO_PARAMETER_ACTIVATION
 
-class Elu : public DirectMapOp {
+class Elu : public BuiltinOp {
  public:
   Elu(Graph* graph);
   Elu(Graph* graph, float alpha);
@@ -103,7 +105,7 @@ class Elu : public DirectMapOp {
   float alpha_;
 };
 
-class Prelu : public DirectMapOp {
+class Prelu : public BuiltinOp {
  public:
   Prelu(Graph* graph, int axis);
   std::shared_ptr<Operation> Clone(
@@ -113,7 +115,7 @@ class Prelu : public DirectMapOp {
   int axis_;
 };
 
-class HardSigmoid : public DirectMapOp {
+class HardSigmoid : public BuiltinOp {
  public:
   HardSigmoid(Graph* graph, float alpha, float beta);
   std::shared_ptr<Operation> Clone(
@@ -124,7 +126,7 @@ class HardSigmoid : public DirectMapOp {
   float beta_;
 };
 
-class LeakyRelu : public DirectMapOp {
+class LeakyRelu : public BuiltinOp {
  public:
   LeakyRelu(Graph* graph, float alpha);
   std::shared_ptr<Operation> Clone(
@@ -134,7 +136,7 @@ class LeakyRelu : public DirectMapOp {
   float alpha_;
 };
 
-class Linear : public DirectMapOp {
+class Linear : public BuiltinOp {
  public:
   Linear(Graph* graph, float a, float b = 0.0);
   std::shared_ptr<Operation> Clone(
@@ -145,7 +147,7 @@ class Linear : public DirectMapOp {
   float b_;
 };
 
-class Gelu : public DirectMapOp {
+class Gelu : public BuiltinOp {
  public:
   /****************************************************************************
   *Non-approximate calculations will also have errors when the data type is
@@ -156,7 +158,7 @@ class Gelu : public DirectMapOp {
       std::shared_ptr<Graph>& graph) const override;
 };
 
-class Selu : public DirectMapOp {
+class Selu : public BuiltinOp {
  public:
   Selu(Graph* graph, float alpha = 1.67326, float gamma = 1.0507);
 
@@ -168,7 +170,7 @@ class Selu : public DirectMapOp {
   float gamma_;
 };
 
-class Celu : public DirectMapOp {
+class Celu : public BuiltinOp {
  public:
   Celu(Graph* graph, float alpha);
 

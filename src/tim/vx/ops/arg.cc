@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 
 #include "vsi_nn_pub.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 
 namespace tim {
 namespace vx {
@@ -33,7 +33,7 @@ namespace ops {
 
 #define DEFINE_ARG_OP(NAME, VSI_OP_TYPE, OP_PARAM)                           \
   Arg##NAME::Arg##NAME(Graph* graph, int32_t axis)                           \
-      : DirectMapOp(graph, VSI_NN_OP_ARG##VSI_OP_TYPE), axis_(axis) {          \
+      : BuiltinOp(graph, VSI_NN_OP_ARG##VSI_OP_TYPE), axis_(axis) {          \
     this->impl()->node()->nn_param.arg##OP_PARAM.axis = axis_;               \
   }                                                                          \
   std::shared_ptr<Operation> Arg##NAME::Clone(std::shared_ptr<Graph>& graph) \

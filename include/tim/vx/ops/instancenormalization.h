@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,14 +23,14 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_INSTANCENOMALIZATION_H_
 #define TIM_VX_OPS_INSTANCENOMALIZATION_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
 namespace ops {
-class InstanceNormalization : public DirectMapOp {
+class InstanceNormalization : public BuiltinOp {
  public:
-  InstanceNormalization(Graph* graph, float eps = 1e-5f);
+  InstanceNormalization(Graph* graph, float eps = 1e-5f, DataLayout input_layout = DataLayout::WHCN);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 

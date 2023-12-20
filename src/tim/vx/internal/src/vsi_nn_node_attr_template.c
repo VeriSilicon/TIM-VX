@@ -195,13 +195,25 @@ static _node_template s_template[] =
     /* GRU */                   NULL,
     /* GRUCELL */               NULL,
     /* GRUCELL_ACTIVATION */    NULL,
+    /* CUMSUM */                NULL,
+    /* MAXPOOLWITHARGMAX */     NULL,
+    /* MOD */                   NULL,
+    /* LPPOOL */                NULL,
+    /* PRE_PROCESS_YUV422 */    NULL,
+    /* GLOBALLPPOOL */          NULL,
+    /* AVG_POOL3D */            NULL,
+    /* MAXUNPOOL */             NULL,
+    /* REVERSESEQUENCE */       NULL,
+    /* LPNORM */                NULL,
+    /* RESIZE_3D */                NULL,
+    /* REDUCEL2 */              NULL,
 };
 //_compiler_assert( _cnt_of_array(s_template) == VSI_NN_OP_NUM, vsi_nn_node_attr_template_c );
 
 void vsi_nn_apply_node_attr_template
     ( vsi_nn_node_t * node )
 {
-    if( node->op >= _cnt_of_array( s_template ) )
+    if( node->op >= (vsi_nn_op_t)_cnt_of_array( s_template ) )
     {
         VSILOGW( "Unsupport operation id %d.", node->op );
         return;

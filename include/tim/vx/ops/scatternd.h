@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #ifndef TIM_VX_OPS_SCATTERND_H_
 #define TIM_VX_OPS_SCATTERND_H_
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -37,7 +37,7 @@ namespace ops {
  * - shape : The shape of the resulting tensor. 
  */
 
-class ScatterND : public DirectMapOp {
+class ScatterND : public BuiltinOp {
  public:
   ScatterND(Graph* graph, const std::vector<uint32_t>& shape);
 

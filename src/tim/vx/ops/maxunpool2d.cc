@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2021 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 *****************************************************************************/
 #include "tim/vx/ops/maxunpool2d.h"
 
-#include "direct_map_op_impl.h"
+#include "builtin_op_impl.h"
 #include "type_utils.h"
 #include "vsi_nn_pub.h"
 
@@ -33,7 +33,7 @@ namespace ops {
 
 MaxUnpool2d::MaxUnpool2d(Graph* graph, const std::array<uint32_t, 2>& ksize,
     const std::array<uint32_t, 2>& stride, DataLayout layout)
-    : DirectMapOp(graph, VSI_NN_OP_UPSAMPLE, 2, 1, layout),
+    : BuiltinOp(graph, VSI_NN_OP_UPSAMPLE, 2, 1, layout),
       ksize_(ksize), stride_(stride) {
   this->impl()->node()->nn_param.upsample.scale[0] = stride_[0];
   this->impl()->node()->nn_param.upsample.scale[1] = stride_[1];

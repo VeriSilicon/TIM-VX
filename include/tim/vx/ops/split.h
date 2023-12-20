@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 #define TIM_VX_OPS_SPLIT_H_
 #include <vector>
 
-#include "tim/vx/direct_map_op.h"
+#include "tim/vx/builtin_op.h"
 
 namespace tim {
 namespace vx {
@@ -40,7 +40,7 @@ namespace ops {
  * - slices : indicating the number of splits along given axis.
  */
 
-class Split : public DirectMapOp {
+class Split : public BuiltinOp {
  public:
   Split(Graph* graph, uint32_t axis, std::vector<uint32_t> slices);
 

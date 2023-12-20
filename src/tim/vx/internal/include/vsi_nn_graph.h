@@ -74,7 +74,7 @@ extern "C" {
 /**
  * Graph structure
  */
-struct _vsi_nn_graph
+struct VSI_PUBLIC_TYPE _vsi_nn_graph
 {
     /** Context */
     vsi_nn_context_t   ctx;
@@ -167,6 +167,8 @@ struct _vsi_nn_graph
     } complete_signal;
 
     vsi_bool isAllowFastMode;
+
+    //DO NOT modify this sturct.
 };
 
 /**
@@ -239,7 +241,7 @@ OVXLIB_API vsi_status vsi_nn_VerifyGraph
  */
 OVXLIB_API vsi_status vsi_nn_RunGraph
     (
-    const vsi_nn_graph_t * graph
+    vsi_nn_graph_t * graph
     );
 
 /**
@@ -271,7 +273,7 @@ OVXLIB_API vsi_status vsi_nn_AsyncRunGraph
 
 OVXLIB_API vsi_status vsi_nn_AsyncRunWait
     (
-        vsi_nn_graph_t * graph
+    vsi_nn_graph_t * graph
     );
 
 /**
@@ -357,6 +359,27 @@ OVXLIB_API vsi_nn_tensor_id_t vsi_nn_AddTensorFromHandle
     vsi_nn_tensor_id_t     id,
     vsi_nn_tensor_attr_t * attr,
     uint8_t             * data
+    );
+
+/**
+ * Add a new tensor from view
+ * Create a new tensor from a view and add it to graph.
+ *
+ * @param[in] graph Graph handle.
+ * @param[in] id Required, the id of the parent tensor on which to create view.
+ * @param[in] start The start cooridinates for each dim, 0-based none-negative interger.
+ *             NULL means copy from the idx 0 of each dim.
+ * @param[in] end The end cooridinates for each dim, 0-based none-negative interger.
+ *             NULL means copy to the end of each dim. For the given idx, the end[idx]
+ *             should be greater than start[idx].
+ * @return The new tensor id on success, or VSI_NN_TENSOR_ID_NA otheriwse.
+ */
+OVXLIB_API vsi_nn_tensor_id_t vsi_nn_AddTensorFromView
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_id_t id,
+    vsi_size_t* start,
+    vsi_size_t* end
     );
 
 /**
@@ -533,7 +556,7 @@ OVXLIB_API vsi_bool vsi_nn_SetGraphOutputs
  * @param[in] graph Graph handle
  * @param[in] id Node id to be removed.
  */
-void vsi_nn_RemoveNode
+OVXLIB_API void vsi_nn_RemoveNode
     (
     vsi_nn_graph_t      * graph,
     vsi_nn_node_id_t      id
@@ -751,6 +774,28 @@ OVXLIB_API vsi_bool vsi_nn_IsGraphFastMode
     (
     const vsi_nn_graph_t* graph
     );
+
+OVXLIB_API vsi_status vsi_nn_CopyTensorViaGraphs
+    (
+    vsi_nn_graph_t *src_graph,
+    vsi_nn_tensor_id_t src_tensor_id,
+    vsi_nn_graph_t *dst_graph,
+    vsi_nn_tensor_id_t dst_tensor_id
+    );
+
+OVXLIB_API vsi_status vsi_nn_ExecuteGraphLoop
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t *max_iteration_tensor
+    );
+
+OVXLIB_API vsi_status vsi_nn_SetGraphTransformOption
+    (
+    vsi_nn_graph_t* graph,
+    const char* ctrl_str,
+    size_t size
+    );
+
 #ifdef __cplusplus
 }
 #endif

@@ -360,8 +360,11 @@ struct r123array4x32 _philox4x32round(struct r123array4x32 ctr, struct r123array
     uint32_t hi1;
     uint32_t lo0 = mulhilo32(PHILOX_M4x32_0, ctr.v[0], &hi0);
     uint32_t lo1 = mulhilo32(PHILOX_M4x32_1, ctr.v[2], &hi1);
-    struct r123array4x32 out = {{hi1^ctr.v[1]^key.v[0], lo1,
-                              hi0^ctr.v[3]^key.v[1], lo0}};
+    struct r123array4x32 out = { { 0, 0, 0, 0 } };
+    out.v[0] = hi1^ctr.v[1]^key.v[0];
+    out.v[1] = lo1;
+    out.v[2] = hi0^ctr.v[3]^key.v[1];
+    out.v[3] = lo0;
     return out;
 }
 

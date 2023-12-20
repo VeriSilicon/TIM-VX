@@ -46,17 +46,19 @@ typedef enum _grucell_nn_activation_type_e
 {
     SIGMOID = VSI_NN_ACT_SIGMOID,
     HARD_SIGMOID = VSI_NN_ACT_HARD_SIGMOID,
+    TANH = VSI_NN_ACT_TANH,
 }grucell_nn_activation_type_e;
 
 #define _GRUCELL_RESET_AFTER_ACTIVATION_KERNEL_SOURCE      "grucell_reset_after_activation"
 
 // Add kernel hashtable here
-#define GRUCELL_RESET_AFTER_ACTIVATION_HASH_KEY( HSTATE_DTYPE, IN_FC_DTYPE, OUT_TYPE, REC_ACT ) \
-        (( HSTATE_DTYPE ) | ( IN_FC_DTYPE << 6 ) | ( OUT_TYPE << 12 ) | ( REC_ACT << 18 ))
-#define PACK_KERNEL_MAP( HSTATE_DTYPE, IN_FC_DTYPE, OUT_TYPE, REC_ACT ) \
-        { GRUCELL_RESET_AFTER_ACTIVATION_HASH_KEY( HSTATE_DTYPE, IN_FC_DTYPE, OUT_TYPE, REC_ACT ), \
-CVIVANTE_NAMESPACE("evis.grucell_reset_after_activation_"#HSTATE_DTYPE"_"#IN_FC_DTYPE"to"#OUT_TYPE"_"#REC_ACT), \
-_GRUCELL_RESET_AFTER_ACTIVATION_KERNEL_SOURCE }
+#define GRUCELL_RESET_AFTER_ACTIVATION_HASH_KEY( HSTATE_DTYPE, IN_FC_DTYPE, OUT_TYPE, REC_ACT, ACT ) \
+        (( HSTATE_DTYPE ) | ( IN_FC_DTYPE << 6 ) | ( OUT_TYPE << 12 ) | ( REC_ACT << 18 ) | ( ACT << 24 ))
+#define PACK_KERNEL_MAP( HSTATE_DTYPE, IN_FC_DTYPE, OUT_TYPE, REC_ACT, ACT ) \
+        { GRUCELL_RESET_AFTER_ACTIVATION_HASH_KEY( HSTATE_DTYPE, IN_FC_DTYPE, OUT_TYPE, REC_ACT, ACT ), \
+          CVIVANTE_NAMESPACE("evis.grucell_reset_after_activation_"\
+         #HSTATE_DTYPE"_"#IN_FC_DTYPE"to"#OUT_TYPE"_"#ACT"_"#REC_ACT), \
+         _GRUCELL_RESET_AFTER_ACTIVATION_KERNEL_SOURCE }
 
 typedef struct
 {
@@ -68,10 +70,16 @@ typedef struct
 static const _kernel_map_type _grucell_reset_after_activation_kernel_map[] =
 {
     // Register kernel here
-    PACK_KERNEL_MAP( U8,  F16, U8,  SIGMOID ),
-    PACK_KERNEL_MAP( I8,  F16, I8,  SIGMOID ),
-    PACK_KERNEL_MAP( I16, F16, I16, SIGMOID ),
-    PACK_KERNEL_MAP( F16, F16, F16, SIGMOID ),
+    PACK_KERNEL_MAP( U8,   F16,  U8,   SIGMOID, TANH ),
+    PACK_KERNEL_MAP( I8,   F16,  I8,   SIGMOID, TANH ),
+    PACK_KERNEL_MAP( I16,  F16,  I16,  SIGMOID, TANH ),
+    PACK_KERNEL_MAP( F16,  F16,  F16,  SIGMOID, TANH ),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, SIGMOID, TANH ),
+    PACK_KERNEL_MAP( U8,   F16,  U8,   SIGMOID, SIGMOID ),
+    PACK_KERNEL_MAP( I8,   F16,  I8,   SIGMOID, SIGMOID ),
+    PACK_KERNEL_MAP( I16,  F16,  I16,  SIGMOID, SIGMOID ),
+    PACK_KERNEL_MAP( F16,  F16,  F16,  SIGMOID, SIGMOID ),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, SIGMOID, SIGMOID ),
 };
 
 
@@ -122,6 +130,8 @@ DEF_KERNEL_INITIALIZER(_grucell_reset_after_activation_initializer)
     vsi_nn_kernel_tensor_attr_t* output_attr[2]                 = {NULL};
 #define _PACK_SELECT_KEY( hstate_type, fc_type, output_type )    \
         (hstate_type | (fc_type << 8) | (output_type << 16))
+
+    VSI_UNREFERENCED(param_size);
 
 
     output = (vsi_nn_kernel_tensor_t)param[GRUCELL_ACT_IN_CNT + GRUCELL_ACT_OUT_OUTPUT];
@@ -216,6 +226,34 @@ DEF_KERNEL_INITIALIZER(_grucell_reset_after_activation_initializer)
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;
+    case _PACK_SELECT_KEY(BF16, BF16, BF16):
+        {
+            gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
+                0x11111111, // TCfg
+                0x01010101, // ASelt
+                0x01050004, 0x03070206, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000600, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+            }, GPU_DP_TYPE_16};
+            gpu_dp_inst_t uniExtractOddData_2x8 = {{
+                0x11111111, // TCfg
+                0x11110000, // ASelt
+                0x07050301, 0x07050301, // ABin
+                0x22222222, // BSelt
+                0x00000000, 0x00000000, // BBin
+                0x00000600, // AccumType, ConstantType, and PostShift
+                0x00000001, 0x00000001, 0x00000001, 0x00000001,
+                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+            }, GPU_DP_TYPE_16};
+
+            status  = vsi_nn_kernel_gpu_add_param(node, "uniConvBF16toF32_Part0_2x8", &uniConvBF16toF32_Part0_2x8);
+            status |= vsi_nn_kernel_gpu_add_param(node, "uniExtractOddData_2x8", &uniExtractOddData_2x8);
+            CHECK_STATUS_FAIL_GOTO(status, final );
+        }
+        break;
     case _PACK_SELECT_KEY(U8,  F16, U8):
     case _PACK_SELECT_KEY(I8,  F16, I8):
     case _PACK_SELECT_KEY(I16, F16, I16):
@@ -297,7 +335,8 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t * kernel,
     vsi_nn_tensor_t * const * const inputs,
     vsi_nn_tensor_t * const * const outputs,
-    int32_t  recurrent_activation
+    int32_t  recurrent_activation,
+    int32_t  activation
     )
 {
     vsi_status status = VSI_FAILURE;
@@ -309,14 +348,15 @@ static vsi_status _query_kernel
     vx_param_description_t * param_def  = _grucell_reset_after_activation_kernel_param_def;
     vx_kernel_initialize_f  initializer = _grucell_reset_after_activation_initializer;
 
-    uint32_t key;
-    uint32_t i;
+    uint32_t key = 0;
+    uint32_t i = 0;
 
     hstate_dtype  = vsi_nn_kernel_map_dtype( inputs[GRUCELL_ACT_H_STATE]->attr.dtype.vx_type );
     fc_dtype  = vsi_nn_kernel_map_dtype( inputs[GRUCELL_ACT_I_FC_Z]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[GRUCELL_ACT_OUT_OUTPUT]->attr.dtype.vx_type );
 
-    key = GRUCELL_RESET_AFTER_ACTIVATION_HASH_KEY( hstate_dtype, fc_dtype, out_dtype, recurrent_activation );
+    key = GRUCELL_RESET_AFTER_ACTIVATION_HASH_KEY( hstate_dtype, fc_dtype, out_dtype,
+        recurrent_activation, activation );
 
     for ( i = 0; i < (uint32_t)kernel_map_size; i ++ )
     {
@@ -362,12 +402,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t activation = vsi_nn_kernel_param_get_int32( params, "activation" );
     int32_t recurrent_activation = vsi_nn_kernel_param_get_int32( params, "recurrent_activation" );
 
-    if( activation != VSI_NN_ACT_TANH )
-    {
-        return NULL;
-    }
-
-    status = _query_kernel( kernel, inputs, outputs, recurrent_activation );
+    status = _query_kernel( kernel, inputs, outputs, recurrent_activation, activation );
     if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );

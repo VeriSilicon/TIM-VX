@@ -85,4 +85,27 @@ vsi_bool vsi_nn_kernel_optimize_group_norm_shape
     int32_t is_sp_kernel, vsi_size_t* out_shape
     );
 
+vsi_bool vsi_nn_kernel_optimize_scatter_elements_shape
+    (
+    const vsi_size_t* shape_x, const vsi_size_t rank_x, const int32_t axis,
+    vsi_size_t* out_shape_x, uint32_t* out_rank_x, int32_t* out_axis, vsi_size_t max_size
+    );
+
+vsi_bool vsi_nn_kernel_optimize_matrixmul_broadcast_shape
+    (
+    const vsi_size_t * shape_x,
+    const vsi_size_t * shape_y,
+    const vsi_size_t * shape_output,
+    vsi_size_t rank_x,
+    vsi_size_t rank_y,
+    vsi_size_t rank_out,
+    vsi_size_t* out_shape_x,
+    vsi_size_t* out_shape_y,
+    vsi_size_t* out_shape_output,
+    uint32_t* new_rank,
+    uint32_t* cross_flg,
+    uint32_t* size_axis_inner_outer,
+    uint32_t* strides_axis_inner_outer
+    );
+
 #endif

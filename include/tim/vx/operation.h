@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (c) 2020 Vivante Corporation
+*    Copyright (c) 2020-2023 Vivante Corporation
 *
 *    Permission is hereby granted, free of charge, to any person obtaining a
 *    copy of this software and associated documentation files (the "Software"),
@@ -48,10 +48,19 @@ class Operation {
       uint32_t accumulator_bits = 0);
   std::unique_ptr<OpImpl>& impl();
   const std::unique_ptr<OpImpl>& impl() const;
+  const uint32_t& uid() const;
+
   virtual const std::vector<std::shared_ptr<Tensor>> ConstantInputsTensor() const;
+
  protected:
   bool IsAllInputsConst() const;
   std::unique_ptr<OpImpl> impl_;
+
+ private:
+// Post processing at the final step on BindInput func
+// - tensor : input tensor
+// - input_idx: the index of input tensor
+   virtual void OnBindInputPostProc(const std::shared_ptr<Tensor>& tensor, int32_t input_idx);
 };
 
 }  // namespace vx
