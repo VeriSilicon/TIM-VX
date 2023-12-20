@@ -38,16 +38,13 @@ void OpLayoutInfer::OnOutputs(
   auto graph_outputs = context_->src_graph_->OutputsTensor();
   auto op_outputs = op_->impl()->OutputsTensor();
   for (const auto& out : op_outputs) {
-    if (graph_outputs.end() !=
-        std::find(graph_outputs.begin(), graph_outputs.end(), out)) {
-      context_->UpdateGraphOutputMap(out, context_->GetMapedTensor(out));
+    if (graph_outputs.cend() !=
+        std::find(graph_outputs.cbegin(), graph_outputs.cend(), out)) {
       auto pv = context_->GetPermuteVector(out);
       if (!pv->IsAligned()) {
         auto perm_out = InsertPermute(context_->GetMapedTensor(out),
                                       pv->Reverse(), true, out);
-        // Update graph out tensor
         context_->UpdateTensorMap(out, perm_out);
-        context_->UpdateGraphOutputMap(out, perm_out);
       }
       if (!context_->src_graph_->GetConsumersOp(out).empty()) {
         // The tensor is output of graph, but it also is the input of other operations
@@ -65,19 +62,18 @@ void OpLayoutInfer::OnOutputs(
 std::shared_ptr<vx::Tensor> OpLayoutInfer::InsertPermute(
     std::shared_ptr<vx::Tensor> input, std::shared_ptr<IPermuteVector> perm,
     bool is_graph_output, std::shared_ptr<vx::Tensor> src_out) {
-  auto out_spec = input->GetSpec();
+  std::shared_ptr<vx::Tensor> out_tensor;
   if (is_graph_output) {
-    auto out_shape = src_out->GetShape();
-    out_spec.SetShape(out_shape);
-    out_spec.SetAttribute(vx::TensorAttribute::OUTPUT);
+    out_tensor = context_->GetMappedGraphOutputTensor(src_out);
   } else {
-    out_spec.SetAttribute(vx::TensorAttribute::TRANSIENT);
+    auto out_spec = input->GetSpec().AsTransientSpec();
+    if (out_spec.quantization_.Type() == vx::QuantType::SYMMETRIC_PER_CHANNEL) {
+      out_spec.quantization_.SetChannelDim(
+          MapAxis(perm->AsStdVec(), out_spec.quantization_.ChannelDim()));
+    }
+    out_tensor = context_->infer_graph_->CreateTensor(out_spec);
   }
-  if (out_spec.quantization_.Type() == vx::QuantType::SYMMETRIC_PER_CHANNEL) {
-    out_spec.quantization_.SetChannelDim(
-        MapAxis(perm->AsStdVec(), out_spec.quantization_.ChannelDim()));
-  }
-  auto out_tensor = context_->infer_graph_->CreateTensor(out_spec);
+
   auto perm_op = context_->infer_graph_->CreateOperation<vx::ops::Transpose>(
       perm->AsStdVec());
   (*perm_op).BindInput(input).BindOutput(out_tensor);
@@ -88,20 +84,28 @@ std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
     std::shared_ptr<IPermuteVector> required_pv) {
   std::vector<std::shared_ptr<vx::Tensor>> outputs_tensor;
 
-  if (op_->impl()->OutputsTensor().size() > 1) {
+  auto op_outputs = op_->impl()->OutputsTensor();
+  if (op_outputs.size() > 1) {
     // todo(sven): potential bug here if node have multi-output and require layout inference
     std::cout << "warning at " << __FUNCTION__ << ", #" << __LINE__
               << std::endl;
   }
 
-  for (const auto& o : op_->impl()->OutputsTensor()) {
+  for (const auto& o : op_outputs) {
     auto in_shape = o->GetShape();
     auto out_spec = o->GetSpec();
-    if (!(required_pv->IsAligned())) {
+    if (!required_pv->IsAligned()) {
       out_spec = out_spec.AsTransientSpec();
     }
-    auto t_infer = context_->infer_graph_->CreateTensor(out_spec);
-    context_->UpdateTensorMap(o, t_infer);
+
+    std::shared_ptr<vx::Tensor> t_infer;
+    if (out_spec.GetTensorAttribute() == vx::OUTPUT) {
+      t_infer = context_->GetMapedTensor(o);
+    } else {
+      t_infer = context_->infer_graph_->CreateTensor(out_spec);
+      context_->UpdateTensorMap(o, t_infer);
+    }
+
     outputs_tensor.push_back(t_infer);
   }
   return outputs_tensor;
@@ -111,19 +115,26 @@ std::vector<std::shared_ptr<vx::Tensor>> OpLayoutInfer::CreateOutputsTensor(
     const std::vector<std::shared_ptr<IPermuteVector>>& required_pv) {
   std::vector<std::shared_ptr<vx::Tensor>> outputs_tensor;
 
-  assert(required_pv.size() == (op_->impl()->OutputsTensor().size()));
+  auto op_outputs = op_->impl()->OutputsTensor();
+  assert(required_pv.size() == (op_outputs.size()));
 
-  uint32_t i = 0;
-  for (const auto& o : op_->impl()->OutputsTensor()) {
+  for (size_t i = 0; i < op_outputs.size(); i++) {
+    const auto& o = op_outputs[i];
     auto in_shape = o->GetShape();
     auto out_spec = o->GetSpec();
-    if (!(required_pv[i]->IsAligned())) {
+    if (!required_pv[i]->IsAligned()) {
       out_spec = out_spec.AsTransientSpec();
     }
-    auto t_infer = context_->infer_graph_->CreateTensor(out_spec);
-    context_->UpdateTensorMap(o, t_infer);
+
+    std::shared_ptr<vx::Tensor> t_infer;
+    if (out_spec.GetTensorAttribute() == vx::OUTPUT) {
+      t_infer = context_->GetMapedTensor(o);
+    } else {
+      t_infer = context_->infer_graph_->CreateTensor(out_spec);
+      context_->UpdateTensorMap(o, t_infer);
+    }
+
     outputs_tensor.push_back(t_infer);
-    i++;
   }
   return outputs_tensor;
 }
@@ -198,8 +209,8 @@ OpLayoutInfer::AlignPermuteVectorForMutilInputs() {
       std::vector<uint8_t> dataRef(i_src->GetSpec().GetByteSize());
       i_src->CopyDataFromTensor(dataRef.data());
       context_->UpdateTensorMap(
-          i_src, context_->infer_graph_->CreateTensor(i_src->GetSpec(),
-                                                      (const void*)dataRef.data()));
+          i_src, context_->infer_graph_->CreateTensor(
+                     i_src->GetSpec(), (const void*)dataRef.data()));
       context_->SetPermuteVector(i_src, MakeShared(i_src->GetShape().size()));
     }
   } else {
@@ -247,8 +258,8 @@ OpLayoutInfer::AlignPermuteVectorForElementWise() {
       if (required_pv->IsAligned()) {
         std::vector<uint8_t> dataRef(i_src->GetSpec().GetByteSize());
         i_src->CopyDataFromTensor(dataRef.data());
-        perm_out = context_->infer_graph_->CreateTensor(i_src->GetSpec(),
-                                                        (const void*)dataRef.data());
+        perm_out = context_->infer_graph_->CreateTensor(
+            i_src->GetSpec(), (const void*)dataRef.data());
       } else if (i_src->GetShape().size() == required_pv->Rank()) {
         perm_out = PermuteConstTensor(i_src, required_pv);
         // need shape expansion
@@ -280,8 +291,8 @@ void OpLayoutInfer::ReverseInputsPermuteVector() {
       if (i_src->IsConstTensor()) {
         std::vector<uint8_t> dataRef(i_src->GetSpec().GetByteSize());
         i_src->CopyDataFromTensor(dataRef.data());
-        perm_out = context_->infer_graph_->CreateTensor(i_src->GetSpec(),
-                                                        (const void*)dataRef.data());
+        perm_out = context_->infer_graph_->CreateTensor(
+            i_src->GetSpec(), (const void*)dataRef.data());
         input_pv = MakeShared(i_src->GetShape().size());
       } else {
         perm_out = context_->GetMapedTensor(i_src);
