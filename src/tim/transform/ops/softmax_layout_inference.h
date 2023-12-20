@@ -49,7 +49,7 @@ class SoftmaxLayoutInfer : public OpLayoutInfer {
     auto softmax =
         context_->infer_graph_->CreateOperation<vx::ops::Softmax>(beta, axis);
     auto otensor_infer = CreateOutputsTensor(required_pv);
-    (*softmax).BindInput(context_->GetMapedTensor(input_tensors[0]));
+    (*softmax).BindInput(context_->GetMappedTensor(input_tensors[0]));
     (*softmax).BindOutput(otensor_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     // Add out tensor of src_graph into next_tensor

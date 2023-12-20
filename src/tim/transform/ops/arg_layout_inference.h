@@ -45,7 +45,7 @@ class ArgLayoutInfer : public OpLayoutInfer {
 
     auto arg = op_->Clone(context_->infer_graph_);
     auto infer_out = CreateOutputsTensor(input_pv);
-    (*arg).BindInput(context_->GetMapedTensor(src_input));
+    (*arg).BindInput(context_->GetMappedTensor(src_input));
     (*arg).BindOutput(infer_out[0]);
 
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);

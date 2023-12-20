@@ -45,7 +45,7 @@ class GatherLayoutInfer : public OpLayoutInfer {
         op_->impl()->node()->nn_param.gather.batch_dims);
     int32_t output_rank = -1;
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*gather).BindInput(context_->GetMapedTensor(i_src));
+      (*gather).BindInput(context_->GetMappedTensor(i_src));
       output_rank += i_src->GetShape().size();
     }
     auto infer_out = CreateOutputsTensor(

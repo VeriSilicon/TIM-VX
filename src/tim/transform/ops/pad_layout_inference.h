@@ -63,7 +63,7 @@ class PadLayoutInfer : public OpLayoutInfer {
         front_size, back_size, pad_value, pad_mode);
 
     auto out_infer = CreateOutputsTensor(input_pv);
-    (*pad).BindInput(context_->GetMapedTensor(i_src));
+    (*pad).BindInput(context_->GetMappedTensor(i_src));
     (*pad).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);

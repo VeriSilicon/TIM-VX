@@ -54,7 +54,7 @@ class SliceLayoutInfer : public OpLayoutInfer {
     auto slice = context_->infer_graph_->CreateOperation<vx::ops::Slice>(
         dims, start, length);
     auto infer_out = CreateOutputsTensor(input_pv);
-    (*slice).BindInput(context_->GetMapedTensor(src_input));
+    (*slice).BindInput(context_->GetMappedTensor(src_input));
     (*slice).BindOutput(infer_out[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);

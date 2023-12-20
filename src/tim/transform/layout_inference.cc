@@ -73,7 +73,7 @@
 #include "ops/roi_pool_layout_inference.h"
 
 #include <algorithm>
-#include <deque>
+#include <queue>
 
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
@@ -87,7 +87,16 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     std::shared_ptr<layout_inference_impl::LayoutInferContext>& ctx,
     const std::shared_ptr<vx::Operation>& op);
 
-// Implemention for LayoutInferContext
+// Implementation for LayoutInferContext
+LayoutInferContext::LayoutInferContext(
+    const std::shared_ptr<vx::Graph>& src_graph,
+    std::shared_ptr<vx::Graph>& infer_graph)
+    : src_graph_(src_graph), infer_graph_(infer_graph) {
+  for (const auto& op : src_graph->OpVector()) {
+    op_visited_[op] = false;
+  }
+}
+
 void LayoutInferContext::SetPermuteVector(std::shared_ptr<vx::Tensor> tensor,
                                           std::shared_ptr<IPermuteVector> pv) {
   if (tensor_pv_.end() != tensor_pv_.find(tensor)) {
@@ -110,27 +119,19 @@ const std::shared_ptr<IPermuteVector> LayoutInferContext::GetPermuteVector(
 }
 
 void LayoutInferContext::MarkVisited(const std::shared_ptr<vx::Operation>& op) {
-  if (visited_op_.end() !=
-      std::find(visited_op_.begin(), visited_op_.end(), op)) {
-    VSILOGW("The operation has been mark as visited.");
-  } else {
-    visited_op_.push_back(op);
-  }
+  op_visited_[op] = true;
 }
 
-bool LayoutInferContext::IsVisited(const std::shared_ptr<vx::Operation>& op) const {
-  if (visited_op_.end() !=
-      std::find(visited_op_.begin(), visited_op_.end(), op)) {
-    return true;
-  } else {
-    return false;
-  }
+bool LayoutInferContext::IsVisited(
+    const std::shared_ptr<vx::Operation>& op) const {
+  return op_visited_.at(op);
 }
 
 bool LayoutInferContext::IsReadyForInfer(
     const std::shared_ptr<vx::Operation>& op) const {
   for (const auto& tensor : op->impl()->InputsTensor()) {
-    if (!tensor->IsConstTensor() && tensor->GetId() != (uint32_t)-1 &&
+    if (!tensor->IsConstTensor() &&
+        tensor->GetId() != static_cast<uint32_t>(-1) &&
         (tensor_pv_.end() == tensor_pv_.find(tensor))) {
       return false;
     }
@@ -144,68 +145,91 @@ void LayoutInferContext::UpdateTensorMap(
   tensor_map_[t_src] = t_layout;
 }
 
-std::shared_ptr<vx::Tensor> LayoutInferContext::GetMapedTensor(
+std::shared_ptr<vx::Tensor> LayoutInferContext::GetMappedTensor(
     const std::shared_ptr<vx::Tensor>& t_src) const {
   auto it = tensor_map_.find(t_src);
   if (it != tensor_map_.end()) {
     return it->second;
-  } else {
-    VSILOGE("Tensor has not beed inserted in tensor map.");
-    assert(false);
   }
 
+  VSILOGE("Tensor has not beed inserted in tensor map.");
   return nullptr;
 }
 
-void LayoutInferContext::UpdateGraphInputMap(const std::shared_ptr<vx::Tensor>& i_src,
-                           const std::shared_ptr<vx::Tensor>& i_layout) {
+std::shared_ptr<vx::Tensor> LayoutInferContext::GetMappedGraphInputTensor(
+    const std::shared_ptr<vx::Tensor>& t_src) const {
+  auto it = graph_input_map_.find(t_src);
+  if (it != tensor_map_.end()) {
+    return it->second;
+  }
+
+  VSILOGE("Tensor has not beed inserted in graph input tensor map.");
+  return nullptr;
+}
+
+std::shared_ptr<vx::Tensor> LayoutInferContext::GetMappedGraphOutputTensor(
+    const std::shared_ptr<vx::Tensor>& t_src) const {
+  auto it = graph_output_map_.find(t_src);
+  if (it != tensor_map_.end()) {
+    return it->second;
+  }
+
+  VSILOGE("Tensor has not beed inserted in graph output tensor map.");
+  return nullptr;
+}
+
+void LayoutInferContext::UpdateGraphInputMap(
+    const std::shared_ptr<vx::Tensor>& i_src,
+    const std::shared_ptr<vx::Tensor>& i_layout) {
   graph_input_map_[i_src] = i_layout;
 }
 
-void LayoutInferContext::UpdateGraphOutputMap(const std::shared_ptr<vx::Tensor>& o_src,
-                           const std::shared_ptr<vx::Tensor>& o_layout) {
+void LayoutInferContext::UpdateGraphOutputMap(
+    const std::shared_ptr<vx::Tensor>& o_src,
+    const std::shared_ptr<vx::Tensor>& o_layout) {
   graph_output_map_[o_src] = o_layout;
 }
 
-#define REGIST_LAYOUT_INFERENCE(op_idx, name)                     \
+#define REGISTER_LAYOUT_INFERENCE(op_idx, name)                   \
   case op_idx: {                                                  \
     auto op_infer = std::make_shared<name##LayoutInfer>(op, ctx); \
     op_infer->OnInputs(next_tensors);                             \
     op_infer->OnOutputs(next_tensors);                            \
     break;                                                        \
-  }                                                               \
+  }
 
-#define REGIST_REDUCE_LAYOUT_INFERENCE(op_idx)                                 \
-  case op_idx: {                                                               \
-    auto reduce_type = op->impl()->node()->nn_param.reduce.type;               \
-    switch (reduce_type) {                                                     \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MEAN, ReduceMean);                 \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MAX, ReduceMax);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_MIN, ReduceMin);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_PROD, ReduceProd);                 \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_ANY, ReduceAny);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_SUM, ReduceSum);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_REDUCE_ALL, ReduceAll);                   \
-    default:                                                                   \
-      VSILOGW("Op %d: Default layout inference pass for reduce.", reduce_type);\
-      assert(false);                                                           \
-    }                                                                          \
-    break;                                                                     \
-  }                                                                            \
+#define REGISTER_REDUCE_LAYOUT_INFERENCE(op_idx)                    \
+  case op_idx: {                                                    \
+    auto reduce_type = op->impl()->node()->nn_param.reduce.type;    \
+    switch (reduce_type) {                                          \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_REDUCE_MEAN, ReduceMean);    \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_REDUCE_MAX, ReduceMax);      \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_REDUCE_MIN, ReduceMin);      \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_REDUCE_PROD, ReduceProd);    \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_REDUCE_ANY, ReduceAny);      \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_REDUCE_SUM, ReduceSum);      \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_REDUCE_ALL, ReduceAll);      \
+      default:                                                      \
+        VSILOGW("Op %d: Default layout inference pass for reduce.", \
+                reduce_type);                                       \
+        assert(false);                                              \
+    }                                                               \
+    break;                                                          \
+  }
 
-#define REGIST_LOGICAL_LAYOUT_INFERENCE(op_idx)                                  \
-  case op_idx: {                                                                 \
-    auto logical_type = op->impl()->node()->nn_param.relational_ops.op;          \
-    switch (logical_type)                                                        \
-    {                                                                            \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_LOGICAL_AND, LogicalAnd);                   \
-      REGIST_LAYOUT_INFERENCE(VSI_NN_LOGICAL_OR, LogicalOr);                     \
-    default:                                                                     \
-      VSILOGW("Op %d: Default layout inference pass for logical.", logical_type);\
-      assert(false);                                                             \
-    }                                                                            \
-    break;                                                                       \
-  }                                                                              \
+#define REGISTER_LOGICAL_LAYOUT_INFERENCE(op_idx)                       \
+  case op_idx: {                                                        \
+    auto logical_type = op->impl()->node()->nn_param.relational_ops.op; \
+    switch (logical_type) {                                             \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_LOGICAL_AND, LogicalAnd);        \
+      REGISTER_LAYOUT_INFERENCE(VSI_NN_LOGICAL_OR, LogicalOr);          \
+      default:                                                          \
+        VSILOGW("Op %d: Default layout inference pass for logical.",    \
+                logical_type);                                          \
+        assert(false);                                                  \
+    }                                                                   \
+    break;                                                              \
+  }
 
 std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
     std::shared_ptr<layout_inference_impl::LayoutInferContext>& ctx,
@@ -214,78 +238,80 @@ std::vector<std::shared_ptr<vx::Tensor>> HandleLayoutInfer(
   auto op_id = op->impl()->kind_;
   std::vector<std::shared_ptr<vx::Tensor>> next_tensors;
   switch (op_id) {
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONV2D, Conv2d);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GROUPED_CONV2D, GroupedConv2d);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU, Relu);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU1, Relu1);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RELU6, Relu6);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ELU, Elu);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SIGMOID, Sigmoid);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_MISH, Mish);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_HARD_SIGMOID, HardSigmoid);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SOFTRELU, SoftRelu);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SWISH, HardSwish);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_TANH, Tanh);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LEAKY_RELU, LeakyRelu);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONCAT, Concat);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ADD, Add);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SUBTRACT, Sub);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_MULTIPLY, Multiply);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DIVIDE, Div);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_POW, Pow);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_MINIMUM, Minimum);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_MAXIMUM, Maximum);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DATACONVERT, DataConvert);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_NEG, Neg);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ABS, Abs);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SIN, Sin);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_EXP, Exp);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LOG, Log);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SQRT, Sqrt);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RSQRT, Rsqrt);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SQUARE, Square);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_NOT, LogicalNot);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_POOL, Pool2d);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SOFTMAX, Softmax);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SQUEEZE, Squeeze);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_STACK, Stack);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2DEPTH, SpaceToDepth);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DEPTH2SPACE, DepthToSpace);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2BATCH, Space2Batch);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH2SPACE, Batch2Space);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PAD, Pad);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PAD2, PadV2);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_FCL2, FullyConnected);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_RESIZE, Resize);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SPLIT, Split);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_STRIDED_SLICE, StridedSlice);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LRN2, LRN);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_L2_NORMALIZE, L2Normalization);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_INSTANCE_NORM, InstanceNorm);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ROI_ALIGN, RoiAlign);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ROI_POOL, RoiPool);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ADDN, AddN);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PRELU, PRelu);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GATHER, Gather);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_GATHER_ND, GatherNd);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_REVERSE, Reverse);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SLICE, Slice);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_SELECT, Select);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMAX, Arg);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_ARGMIN, Arg);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_DECONVOLUTION, DeConv2d);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BATCH_NORM, BatchNorm);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_PERMUTE, Transpose);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CONV3D, Conv3d);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_LSTM_OVXLIB, UnidirectionalLstm);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_EXPAND_BROADCAST, Broadcast);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_UNIDIRECTIONAL_SEQUENCE_RNN, UnidirectionalRnn);
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN, BidirectionalRnn);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_CONV2D, Conv2d);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_GROUPED_CONV2D, GroupedConv2d);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_RELU, Relu);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_RELU1, Relu1);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_RELU6, Relu6);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_ELU, Elu);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SIGMOID, Sigmoid);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_MISH, Mish);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_HARD_SIGMOID, HardSigmoid);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SOFTRELU, SoftRelu);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SWISH, HardSwish);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_TANH, Tanh);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_LEAKY_RELU, LeakyRelu);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_CONCAT, Concat);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_ADD, Add);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SUBTRACT, Sub);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_MULTIPLY, Multiply);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_DIVIDE, Div);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_POW, Pow);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_MINIMUM, Minimum);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_MAXIMUM, Maximum);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_DATACONVERT, DataConvert);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_NEG, Neg);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_ABS, Abs);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SIN, Sin);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_EXP, Exp);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_LOG, Log);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SQRT, Sqrt);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_RSQRT, Rsqrt);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SQUARE, Square);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_NOT, LogicalNot);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_POOL, Pool2d);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SOFTMAX, Softmax);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SQUEEZE, Squeeze);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_STACK, Stack);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2DEPTH, SpaceToDepth);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_DEPTH2SPACE, DepthToSpace);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SPACE2BATCH, Space2Batch);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_BATCH2SPACE, Batch2Space);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_PAD, Pad);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_PAD2, PadV2);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_FCL2, FullyConnected);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_RESIZE, Resize);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SPLIT, Split);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_STRIDED_SLICE, StridedSlice);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_LRN2, LRN);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_L2_NORMALIZE, L2Normalization);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_INSTANCE_NORM, InstanceNorm);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_ROI_ALIGN, RoiAlign);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_ROI_POOL, RoiPool);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_ADDN, AddN);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_PRELU, PRelu);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_GATHER, Gather);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_GATHER_ND, GatherNd);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_REVERSE, Reverse);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SLICE, Slice);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_SELECT, Select);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_ARGMAX, Arg);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_ARGMIN, Arg);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_DECONVOLUTION, DeConv2d);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_BATCH_NORM, BatchNorm);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_PERMUTE, Transpose);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_CONV3D, Conv3d);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_LSTM_OVXLIB, UnidirectionalLstm);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_EXPAND_BROADCAST, Broadcast);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_UNIDIRECTIONAL_SEQUENCE_RNN,
+                              UnidirectionalRnn);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_BIDIRECTIONAL_SEQUENCE_RNN,
+                              BidirectionalRnn);
 #ifdef VSI_FEAT_OP_CUSTOM_TINY_YOLOV4_POSTPROCESS
-    REGIST_LAYOUT_INFERENCE(VSI_NN_OP_CUSTOM_TINY_YOLOV4_POSTPROCESS, Yolov4);
+    REGISTER_LAYOUT_INFERENCE(VSI_NN_OP_CUSTOM_TINY_YOLOV4_POSTPROCESS, Yolov4);
 #endif
-    REGIST_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
-    REGIST_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
+    REGISTER_LOGICAL_LAYOUT_INFERENCE(VSI_NN_OP_LOGICAL_OPS);
+    REGISTER_REDUCE_LAYOUT_INFERENCE(VSI_NN_OP_REDUCE);
     // use default layout inference
     default: {
       VSILOGW("Op %d: default layout inference pass.", op_id);
@@ -312,13 +338,13 @@ LayoutInference(
       std::make_shared<layout_inference_impl::LayoutInferContext>(src_graph,
                                                                   infer_graph);
 
-  std::deque<std::shared_ptr<vx::Tensor>> tensor_queue;
+  std::queue<std::shared_ptr<vx::Tensor>> tensor_queue;
   auto graph_inputs = src_graph->InputsTensor();
   for (const auto& t_src : graph_inputs) {
     auto input = infer_graph->CreateTensor(t_src->GetSpec());
     layout_infer_ctx->UpdateTensorMap(t_src, input);
     layout_infer_ctx->UpdateGraphInputMap(t_src, input);
-    tensor_queue.push_back(t_src);
+    tensor_queue.push(t_src);
     layout_infer_ctx->SetPermuteVector(
         t_src, tensor_pv_map.find(t_src) != tensor_pv_map.end()
                    ? tensor_pv_map[t_src]
@@ -329,27 +355,39 @@ LayoutInference(
   for (auto const_in : const_inputs) {
     std::vector<uint8_t> dataRef(const_in->GetSpec().GetByteSize());
     const_in->CopyDataFromTensor(dataRef.data());
-    auto input =
-        infer_graph->CreateTensor(const_in->GetSpec(), (const void*)dataRef.data());
+    auto input = infer_graph->CreateTensor(const_in->GetSpec(),
+                                           (const void*)dataRef.data());
     layout_infer_ctx->UpdateTensorMap(const_in, input);
-    tensor_queue.push_back(const_in);
+    tensor_queue.push(const_in);
     layout_infer_ctx->SetPermuteVector(
         const_in, tensor_pv_map.find(const_in) != tensor_pv_map.end()
-                   ? tensor_pv_map[const_in]
-                   : MakeShared(const_in->GetShape().size()));
+                      ? tensor_pv_map[const_in]
+                      : MakeShared(const_in->GetShape().size()));
+  }
+
+  auto graph_outputs = src_graph->OutputsTensor();
+  for (const auto& t_src : graph_outputs) {
+    auto output = infer_graph->CreateTensor(t_src->GetSpec());
+    layout_infer_ctx->UpdateTensorMap(t_src, output);
+    layout_infer_ctx->UpdateGraphOutputMap(t_src, output);
+    tensor_queue.push(t_src);
+    layout_infer_ctx->SetPermuteVector(
+        t_src, tensor_pv_map.find(t_src) != tensor_pv_map.end()
+                   ? tensor_pv_map[t_src]
+                   : MakeShared(t_src->GetShape().size()));
   }
 
   while (!tensor_queue.empty()) {
     auto tensor = tensor_queue.front();
-    tensor_queue.pop_front();
+    tensor_queue.pop();
     const auto& consumers = src_graph->GetConsumersOp(tensor);
     for (const auto& op : consumers) {
-      if (!layout_infer_ctx->IsVisited(op) && op->impl()->kind_ !=-1 &&
+      if (!layout_infer_ctx->IsVisited(op) && op->impl()->kind_ != -1 &&
           layout_infer_ctx->IsReadyForInfer(op)) {
         auto next_tensors =
             layout_inference_impl::HandleLayoutInfer(layout_infer_ctx, op);
         for (const auto& t : next_tensors) {
-          tensor_queue.push_back(t);
+          tensor_queue.push(t);
         }
       }
     }

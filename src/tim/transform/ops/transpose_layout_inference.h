@@ -42,7 +42,7 @@ class TransposeLayoutInfer : public OpLayoutInfer {
   void OnInputs(
       std::vector<std::shared_ptr<vx::Tensor>>& next_tensors) override {
     auto src_input = op_->impl()->InputsTensor()[0];
-    auto infer_input = context_->GetMapedTensor(src_input);
+    auto infer_input = context_->GetMappedTensor(src_input);
     auto input_pv = context_->GetPermuteVector(src_input);
 
     std::vector<uint32_t> perm(op_->impl()->node()->nn_param.permute.dim_num);

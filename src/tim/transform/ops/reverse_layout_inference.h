@@ -49,7 +49,7 @@ class ReverseLayoutInfer : public OpLayoutInfer {
 
     auto reverse = context_->infer_graph_->CreateOperation<vx::ops::Reverse>(
         axis);
-    (*reverse).BindInput(context_->GetMapedTensor(src_input));
+    (*reverse).BindInput(context_->GetMappedTensor(src_input));
     auto infer_out = CreateOutputsTensor(input_pv);
     (*reverse).BindOutput(infer_out[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);

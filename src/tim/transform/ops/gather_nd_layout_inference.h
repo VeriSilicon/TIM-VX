@@ -46,7 +46,7 @@ class GatherNdLayoutInfer : public OpLayoutInfer {
 
     auto gather = context_->infer_graph_->CreateOperation<vx::ops::GatherNd>();
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*gather).BindInput(context_->GetMapedTensor(i_src));
+      (*gather).BindInput(context_->GetMappedTensor(i_src));
     }
     auto infer_out = CreateOutputsTensor(
         context_->GetPermuteVector(op_->impl()->InputsTensor()[0]));

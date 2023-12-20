@@ -52,7 +52,7 @@ class DepthToSpaceLayoutInfer : public OpLayoutInfer {
     auto final_pv = pv->Reverse()->Add(required_pv);
     if (!final_pv->IsAligned()) {
       auto perm_out =
-          InsertPermute(context_->GetMapedTensor(input_tensors[0]), final_pv);
+          InsertPermute(context_->GetMappedTensor(input_tensors[0]), final_pv);
       context_->UpdateTensorMap(input_tensors[0], perm_out);
       context_->SetPermuteVector(input_tensors[0], required_pv);
     }
@@ -63,7 +63,7 @@ class DepthToSpaceLayoutInfer : public OpLayoutInfer {
         context_->infer_graph_->CreateOperation<vx::ops::DepthToSpace>(
             block_size, vx::DataLayout::WHCN);
     auto out_tensor_infer = CreateOutputsTensor(required_pv);
-    (*space2depth).BindInput(context_->GetMapedTensor(input_tensors[0]));
+    (*space2depth).BindInput(context_->GetMappedTensor(input_tensors[0]));
     (*space2depth).BindOutput(out_tensor_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);
     // Add out tensor of src_graph into next_tensor

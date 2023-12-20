@@ -105,7 +105,7 @@ class StridedSliceLayoutInfer : public OpLayoutInfer {
       }
 
       auto infer_out = CreateOutputsTensor(out_pv);
-      (*strided_slice).BindInput(context_->GetMapedTensor(src_input));
+      (*strided_slice).BindInput(context_->GetMappedTensor(src_input));
       (*strided_slice).BindOutput(infer_out[0]);
       context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], out_pv);
       next_tensors.push_back(op_->impl()->OutputsTensor()[0]);

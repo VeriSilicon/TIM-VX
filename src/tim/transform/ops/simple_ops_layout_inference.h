@@ -49,7 +49,7 @@ class SimpleOpsLayoutInfer : public OpLayoutInfer {
     auto out_infer = CreateOutputsTensor(input_pv);
     auto simple_op = context_->infer_graph_->CreateOperation<OpType>();
     (*simple_op)
-        .BindInput(context_->GetMapedTensor(i_src))
+        .BindInput(context_->GetMappedTensor(i_src))
         .BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);
     next_tensors.push_back(op_->impl()->OutputsTensor()[0]);

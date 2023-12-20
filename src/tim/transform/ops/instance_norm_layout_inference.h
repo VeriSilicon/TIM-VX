@@ -63,10 +63,10 @@ class InstanceNormLayoutInfer : public OpLayoutInfer {
     auto final_pv = input_pv->Reverse()->Add(required_pv);
     std::shared_ptr<vx::Tensor> infer_input;
     if (!final_pv->IsAligned()) {
-      infer_input = InsertPermute(context_->GetMapedTensor(input_tensors[0]), final_pv);
+      infer_input = InsertPermute(context_->GetMappedTensor(input_tensors[0]), final_pv);
       context_->SetPermuteVector(input_tensors[0], required_pv);
     } else {
-      infer_input = context_->GetMapedTensor(input_tensors[0]);
+      infer_input = context_->GetMappedTensor(input_tensors[0]);
       context_->SetPermuteVector(input_tensors[0], input_pv);
     }
     context_->UpdateTensorMap(input_tensors[0], infer_input);
@@ -85,7 +85,7 @@ class InstanceNormLayoutInfer : public OpLayoutInfer {
     auto instance_norm = op_->Clone(context_->infer_graph_);
     auto outs_infer = CreateOutputsTensor(required_pv);
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*instance_norm).BindInput(context_->GetMapedTensor(i_src));
+      (*instance_norm).BindInput(context_->GetMappedTensor(i_src));
     }
     (*instance_norm).BindOutput(outs_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);

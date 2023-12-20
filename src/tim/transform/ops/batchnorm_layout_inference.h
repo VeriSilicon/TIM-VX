@@ -57,7 +57,7 @@ class BatchNormLayoutInfer : public OpLayoutInfer {
             perm_out = context_->infer_graph_->CreateTensor(src_in->GetSpec(), (const void*)dataRef.data());
             input_pv = MakeShared(src_in->GetShape().size());
         } else {
-          perm_out = context_->GetMapedTensor(src_in);
+          perm_out = context_->GetMappedTensor(src_in);
           input_pv = context_->GetPermuteVector(src_in);
           context_->SetPermuteVector(src_in, input_pv);
           if (idx == 0) {
@@ -73,11 +73,11 @@ class BatchNormLayoutInfer : public OpLayoutInfer {
 
     auto batchnorm = op_->Clone(context_->infer_graph_);
     auto out_tensor_infer = CreateOutputsTensor(required_pv);
-    (*batchnorm).BindInput(context_->GetMapedTensor(input_tensors[0]));
-    (*batchnorm).BindInput(context_->GetMapedTensor(input_tensors[1]));
-    (*batchnorm).BindInput(context_->GetMapedTensor(input_tensors[2]));
-    (*batchnorm).BindInput(context_->GetMapedTensor(input_tensors[3]));
-    (*batchnorm).BindInput(context_->GetMapedTensor(input_tensors[4]));
+    (*batchnorm).BindInput(context_->GetMappedTensor(input_tensors[0]));
+    (*batchnorm).BindInput(context_->GetMappedTensor(input_tensors[1]));
+    (*batchnorm).BindInput(context_->GetMappedTensor(input_tensors[2]));
+    (*batchnorm).BindInput(context_->GetMappedTensor(input_tensors[3]));
+    (*batchnorm).BindInput(context_->GetMappedTensor(input_tensors[4]));
 
     (*batchnorm).BindOutput(out_tensor_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);

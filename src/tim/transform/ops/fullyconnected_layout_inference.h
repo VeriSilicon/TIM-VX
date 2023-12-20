@@ -65,7 +65,7 @@ class FullyConnectedLayoutInfer : public OpLayoutInfer {
         MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());
     auto out_infer = CreateOutputsTensor(required_pv);
     for (auto in : op_->impl()->InputsTensor()) {
-      (*fcl).BindInput(context_->GetMapedTensor(in));
+      (*fcl).BindInput(context_->GetMappedTensor(in));
     }
     (*fcl).BindOutput(out_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);

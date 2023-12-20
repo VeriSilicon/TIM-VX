@@ -50,7 +50,7 @@ class SqueezeLayoutInfer : public OpLayoutInfer {
     auto squeeze =
         context_->infer_graph_->CreateOperation<vx::ops::Squeeze>(axis);
     (*squeeze).BindInput(
-        context_->GetMapedTensor(op_->impl()->InputsTensor()[0]));
+        context_->GetMappedTensor(op_->impl()->InputsTensor()[0]));
 
     auto required_pv =
         MakeShared(op_->impl()->OutputsTensor()[0]->GetShape().size());

@@ -71,7 +71,7 @@ class LogicalOpsLayoutInfer : public OpLayoutInfer {
     auto infer_out = CreateOutputsTensor(required_pv);
     auto logical_op = context_->infer_graph_->CreateOperation<OpTpye>();
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*logical_op).BindInput(context_->GetMapedTensor(i_src));
+      (*logical_op).BindInput(context_->GetMappedTensor(i_src));
     }
     (*logical_op).BindOutput(infer_out[0]);
 

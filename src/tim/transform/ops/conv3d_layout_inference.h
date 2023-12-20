@@ -81,7 +81,7 @@ class Conv3dLayoutInfer : public OpLayoutInfer {
       } else {
         // For bias
         if (in->GetShape().size() == 1) {
-          infer_tensor = context_->GetMapedTensor(in);
+          infer_tensor = context_->GetMappedTensor(in);
           trans_pv = MakeShared(1);
         } else {
           // For input/weight
@@ -89,10 +89,10 @@ class Conv3dLayoutInfer : public OpLayoutInfer {
           auto final_pv = pv->Reverse()->Add(required_pv);
           if (!final_pv->IsAligned()) {
             infer_tensor =
-                InsertPermute(context_->GetMapedTensor(in), final_pv);
+                InsertPermute(context_->GetMappedTensor(in), final_pv);
             trans_pv = required_pv;
           } else {
-            infer_tensor = context_->GetMapedTensor(in);
+            infer_tensor = context_->GetMappedTensor(in);
             trans_pv = pv;
           }
         }
@@ -131,7 +131,7 @@ class Conv3dLayoutInfer : public OpLayoutInfer {
         vx::DataLayout::WHDCN, vx::DataLayout::WHDIcOc);
     auto otensor_infer = CreateOutputsTensor(required_pv);
     for (const auto& i_src : input_tensors) {
-      (*conv3d).BindInput(context_->GetMapedTensor(i_src));
+      (*conv3d).BindInput(context_->GetMappedTensor(i_src));
     }
     (*conv3d).BindOutput(otensor_infer[0]);
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], required_pv);

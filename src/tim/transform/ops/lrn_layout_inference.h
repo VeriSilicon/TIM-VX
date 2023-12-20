@@ -53,7 +53,7 @@ class LRNLayoutInfer : public OpLayoutInfer {
                    ->CreateOperation<vx::ops::LocalResponseNormalization>(
                        size, alpha, beta, bias, axis);
     auto infer_out = CreateOutputsTensor(input_pv);
-    (*lrn).BindInput(context_->GetMapedTensor(src_input));
+    (*lrn).BindInput(context_->GetMappedTensor(src_input));
     (*lrn).BindOutput(infer_out[0]);
 
     context_->SetPermuteVector(op_->impl()->OutputsTensor()[0], input_pv);

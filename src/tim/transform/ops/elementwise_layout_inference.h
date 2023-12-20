@@ -71,7 +71,7 @@ class ElementWiseLayoutInfer : public OpLayoutInfer {
     auto required_pv = AlignPermuteVectorForElementWise();
     auto elementwise = context_->infer_graph_->CreateOperation<OpType>();
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*elementwise).BindInput(context_->GetMapedTensor(i_src));
+      (*elementwise).BindInput(context_->GetMappedTensor(i_src));
     }
     auto out_infer = CreateOutputsTensor(required_pv);
     (*elementwise).BindOutput(out_infer[0]);
@@ -120,7 +120,7 @@ class MultiplyLayoutInfer : public OpLayoutInfer {
         context_->infer_graph_->CreateOperation<tim::vx::ops::Multiply>(
             op_->impl()->node()->nn_param.multiply.scale);
     for (const auto& i_src : op_->impl()->InputsTensor()) {
-      (*multiply).BindInput(context_->GetMapedTensor(i_src));
+      (*multiply).BindInput(context_->GetMappedTensor(i_src));
     }
     auto out_infer = CreateOutputsTensor(required_pv);
     (*multiply).BindOutput(out_infer[0]);
