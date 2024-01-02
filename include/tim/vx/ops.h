@@ -47,6 +47,7 @@
 #include "tim/vx/ops/gather_elements.h"
 #include "tim/vx/ops/gathernd.h"
 #include "tim/vx/ops/groupedconv2d.h"
+#include "tim/vx/ops/groupedconv1d.h"
 #include "tim/vx/ops/instancenormalization.h"
 #include "tim/vx/ops/l2normalization.h"
 #include "tim/vx/ops/layernormalization.h"
