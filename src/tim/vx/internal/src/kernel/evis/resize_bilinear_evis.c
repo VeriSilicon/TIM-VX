@@ -122,12 +122,16 @@ static const _kernel_map_type _resize_bilinear_kernel_map[] =
     PACK_KERNEL_MAP_DOWN(I16, I16),
     PACK_KERNEL_MAP_DOWN(U8, F16),
     PACK_KERNEL_MAP_DOWN(U8, U8),
+    PACK_KERNEL_MAP_DOWN(U16, F16),
+    PACK_KERNEL_MAP_DOWN(U16, U16),
     PACK_KERNEL_MAP_DOWN(F16, F16),
     PACK_KERNEL_MAP_DOWN(F16, U8),
+    PACK_KERNEL_MAP_DOWN(F16, U16),
     PACK_KERNEL_MAP_DOWN(BF16, BF16),
     PACK_KERNEL_MAP_UP(I8, I8),
     PACK_KERNEL_MAP_UP(I16, I16),
     PACK_KERNEL_MAP_UP(U8, U8),
+    PACK_KERNEL_MAP_UP(U16, U16),
     PACK_KERNEL_MAP_UP(F16, F16),
     PACK_KERNEL_MAP_UP(BF16, BF16),
     PACK_KERNEL_MAP_UP_OPT(U8, U8),
@@ -223,8 +227,6 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
     int32_t half_pixel_centers;
 
     uint32_t    depth              = 0;
-    int32_t     srcFixPointPos     = 0;
-    int32_t     dstFixPointPos     = 0;
     float       input_scale        = 1.0;
     int32_t     inputZP            = 0;
     float       output_scale       = 1.0;
@@ -285,201 +287,16 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         half_pixel_value = 0.0f;
     }
 
-    if (U8 == input_dtype && VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant )
-    {
-        input_scale    = input_attr->asymm.scale;
-        inputZP        = input_attr->asymm.zero_point;
-    }
-    else if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
-    {
-        srcFixPointPos   = input_attr->dfp.fl;
-        if (srcFixPointPos >= 0)
-        {
-            input_scale = 1.0f / (float) ((int64_t)1 << srcFixPointPos);
-        }
-        else if (srcFixPointPos < 0)
-        {
-            input_scale = (float)((int64_t)1 << -srcFixPointPos);
-        }
-        inputZP = 0;
-    }
-    else
-    {
-        input_scale = 1.0f;
-        inputZP     = 0;
-    }
-
-    if (U8 == output_dtype && VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant )
-    {
-        output_scale   = output_attr->asymm.scale;
-        outputZP       = output_attr->asymm.zero_point;
-    }
-    else if (VSI_NN_KERNEL_QUANT_DFP == output_attr->quant)
-    {
-        dstFixPointPos = output_attr->dfp.fl;
-        if (dstFixPointPos >= 0)
-        {
-            output_scale = (float) ((int64_t)1 << dstFixPointPos);
-        }
-        else if (dstFixPointPos < 0)
-        {
-            output_scale = 1.0f / (float) ((int64_t)1 << -dstFixPointPos);
-        }
-        outputZP = 0;
-    }
-    else
-    {
-        output_scale = 1.0;
-        outputZP     = 0;
-    }
+    input_scale    = input_attr->scale;
+    inputZP        = input_attr->zero_point;
+    output_scale   = output_attr->scale;
+    outputZP       = output_attr->zero_point;
 
     gpu_param.global_scale[0] = 4;
     gpu_param.global_scale[1] = 1;
     gpu_param.global_scale[2] = 1;
 
-    if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
-    {
-        float dfpScale = input_scale * output_scale;
-        gpu_dp_inst_t uniConvertDFP2FP32_4x4 = {{
-            0x01010101, // TCfg
-            0x00000000, // ASelt
-            0x00010000, 0x00030002, // ABin
-            0x02020202, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000300, // AccumType, ConstantType, and PostShift
-            0x00000001, 0x00000000, 0x00000001, 0x00000000,
-            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniExtact8Bit_2x8 = {{
-            0x33333333, // TCfg
-            0x11110000, // ASelt
-            0x03020100, 0x03020100, // ABin
-            0x00000000, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00002400, // AccumType, ConstantType, and PostShift
-            0x00000000, 0x00000000, 0x00000000, 0x00000000,
-            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniRightSubLeft_4x4 = {{
-            0x09090909, // TCfg
-            0x00000000, // ASelt
-            0x00230001, 0x00670045, // ABin
-            0x0a0a0a0a, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000400, // AccumType, ConstantType, and PostShift
-            0x00010001, 0x00000000, 0x00010001, 0x00000000,
-            0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-        gpu_dp_inst_t uniDFPtoFp32_left_4x4 = {{
-            0x01010101, // TCfg
-            0x00000000, // ASelt
-            0x00020000, 0x00060004, // ABin
-            0x02020202, // BSelt
-            0x00000000, 0x00000000, // BBin
-            0x00000400, // AccumType, ConstantType, and PostShift
-            0x00000001, 0x00000000, 0x00000001, 0x00000000,
-            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
-        }, GPU_DP_TYPE_16};
-
-        if (I8 == input_dtype && I8 == output_dtype && out_width > in_width)
-        {
-            gpu_dp_inst_t uniConvertI32toI16_2x8 = {{
-                0x33333333, // TCfg
-                0x11110000, // ASelt
-                0x03020100, 0x03020100, // ABin
-                0x00000000, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00002400, // AccumType, ConstantType, and PostShift
-                0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16};
-            gpu_dp_inst_t uniGetMaskShift_2x8 = {{
-                0x99999999, // TCfg
-                0x00000000, // ASelt
-                0x03020100, 0x07060504, // ABin
-                0x55555555, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00000400, // AccumType, ConstantType, and PostShift
-                0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16};
-            gpu_dp_inst_t uniConvertDFP2FP32_part1_4x4 = {{
-                0x09090909, // TCfg
-                0x00000000, // ASelt
-                0x00150004, 0x00370026, // ABin
-                0x0a0a0a0a, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00000300, // AccumType, ConstantType, and PostShift
-                0x00010001, 0x00000000, 0x00010001, 0x00000000,
-                0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16};
-
-            status  = vsi_nn_kernel_gpu_add_param( node, "uniConvertI32toI16_2x8", &uniConvertI32toI16_2x8);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniGetMaskShift_2x8", &uniGetMaskShift_2x8);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniDFPtoFp32_left_4x4", &uniConvertDFP2FP32_4x4);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4",
-                                                 &uniConvertDFP2FP32_part1_4x4);
-            status |= vsi_nn_kernel_gpu_add_param( node, "depth", &depth);
-            CHECK_STATUS_FAIL_GOTO(status, final );
-
-            gpu_param.global_scale[2] = depth;
-        }
-        else if (I16 == input_dtype && I16 == output_dtype && out_width > in_width)
-        {
-            gpu_dp_inst_t uniConvertI32toI16_2x8 = {{
-                0x33333333, // TCfg
-                0x11110000, // ASelt
-                0x03020100, 0x03020100, // ABin
-                0x00000000, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00002400, // AccumType, ConstantType, and PostShift
-                0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16};
-            gpu_dp_inst_t uniGetMaskShift_2x8 = {{
-                0x99999999, // TCfg
-                0x00000000, // ASelt
-                0x03020100, 0x07060504, // ABin
-                0x55555555, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00000400, // AccumType, ConstantType, and PostShift
-                0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16};
-            gpu_dp_inst_t uniConvertDFP2FP32_part1_4x4 = {{
-                0x09090909, // TCfg
-                0x00000000, // ASelt
-                0x00150004, 0x00370026, // ABin
-                0x0a0a0a0a, // BSelt
-                0x00000000, 0x00000000, // BBin
-                0x00000300, // AccumType, ConstantType, and PostShift
-                0x00010001, 0x00000000, 0x00010001, 0x00000000,
-                0x00010001, 0x00000000, 0x00010001, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16};
-
-            status  = vsi_nn_kernel_gpu_add_param( node, "uniConvertI32toI16_2x8", &uniConvertI32toI16_2x8);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniGetMaskShift_2x8", &uniGetMaskShift_2x8);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniDFPtoFp32_left_4x4", &uniConvertDFP2FP32_4x4);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4",
-                                                 &uniConvertDFP2FP32_part1_4x4);
-            status |= vsi_nn_kernel_gpu_add_param( node, "depth", &depth);
-            CHECK_STATUS_FAIL_GOTO(status, final );
-
-            gpu_param.global_scale[2] = depth;
-        }
-        else
-        {
-            status  = vsi_nn_kernel_gpu_add_param( node, "uniRightSubLeft_4x4", &uniRightSubLeft_4x4);
-            status |= vsi_nn_kernel_gpu_add_param( node, "uniDFPtoFp32_left_4x4", &uniDFPtoFp32_left_4x4);
-            CHECK_STATUS_FAIL_GOTO(status, final );
-        }
-
-        status  = vsi_nn_kernel_gpu_add_param( node, "uniExtact8Bit_2x8", &uniExtact8Bit_2x8);
-        status |= vsi_nn_kernel_gpu_add_param( node, "scale_xy", scale_factor);
-        status |= vsi_nn_kernel_gpu_add_param( node, "dfpScale", &dfpScale);
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else if (U8 == input_dtype && (U8 == output_dtype || F16 == output_dtype))
+    if ((U8 == input_dtype || U16 == input_dtype || I8 == input_dtype || I16 == input_dtype))
     {
         float   uint8Scale             = input_scale / output_scale;
         float   uint8ZP_out            = (float)outputZP;
@@ -615,7 +432,7 @@ DEF_KERNEL_INITIALIZER(_resize_bilinear_initializer)
         }
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
-    else if (F16 == input_dtype && (U8 == output_dtype || F16 == output_dtype))
+    else if (F16 == input_dtype && (U8 == output_dtype || F16 == output_dtype || U16 == output_dtype))
     {
         float   uint8Scale             = 1.0f / output_scale;
         float   uint8ZP_out            = (float)outputZP;

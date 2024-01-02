@@ -1,0 +1,259 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int update_width;
+_viv_uniform int output_width;
+
+_viv_uniform int4 coord_stride;
+_viv_uniform int4 coord_stride1;
+
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+
+_viv_uniform int input_zp;
+_viv_uniform float input_scale;
+_viv_uniform int update_zp;
+_viv_uniform float update_scale;
+_viv_uniform VXC_512Bits uniConvert1stUint8SubZpToFp32_4x4;
+_viv_uniform VXC_512Bits uniConvert2ndU8SubZpToFp32_4x4;
+
+inline void AtomicAdd_float(volatile __global float *source, const float operand)
+{
+    union
+    {
+        unsigned int intVal;
+        float floatVal;
+    } newVal;
+    union
+    {
+        unsigned int intVal;
+        float floatVal;
+    } prevVal;
+    do
+    {
+        prevVal.floatVal = *source;
+        newVal.floatVal = prevVal.floatVal + operand;
+    } while(atomic_cmpxchg((volatile __global unsigned int *)source,
+                             prevVal.intVal, newVal.intVal) != prevVal.intVal);
+}
+
+inline void AtomicMul_float(volatile __global float *source, const float operand)
+{
+    union
+    {
+        unsigned int intVal;
+        float floatVal;
+    } newVal;
+    union
+    {
+        unsigned int intVal;
+        float floatVal;
+    } prevVal;
+    do
+    {
+        prevVal.floatVal = *source;
+        newVal.floatVal = prevVal.floatVal * operand;
+    } while(atomic_cmpxchg((volatile __global unsigned int *)source,
+                             prevVal.intVal, newVal.intVal) != prevVal.intVal);
+}
+
+inline void AtomicMax_float(volatile __global float *source, const float operand)
+{
+    union
+    {
+        unsigned int intVal;
+        float floatVal;
+    } newVal;
+    union
+    {
+        unsigned int intVal;
+        float floatVal;
+    } prevVal;
+    do
+    {
+        prevVal.floatVal = *source;
+        newVal.floatVal = fmax(prevVal.floatVal, operand);
+    } while(atomic_cmpxchg((volatile __global unsigned int *)source,
+                             prevVal.intVal, newVal.intVal) != prevVal.intVal);
+}
+
+inline void AtomicMin_float(volatile __global float *source, const float operand)
+{
+    union
+    {
+        unsigned int intVal;
+        float floatVal;
+    } newVal;
+    union
+    {
+        unsigned int intVal;
+        float floatVal;
+    } prevVal;
+    do
+    {
+        prevVal.floatVal = *source;
+        newVal.floatVal = fmin(prevVal.floatVal, operand);
+    } while(atomic_cmpxchg((volatile __global unsigned int *)source,
+                             prevVal.intVal, newVal.intVal) != prevVal.intVal);
+}
+
+#define SCATTER_REDUCTION_PREPROCESS(name0, ptr0, type0, len0, size0, ptr2) \
+__kernel void scatter_nd_update_reduction_preprocess_##name0( \
+    __read_only image2d_t   input_ref, \
+    image2d_t  temp_buf_float, \
+    int length, int res) \
+{ \
+    int gidx = get_global_id(0); \
+    Image img1 = create_image_from_image2d(input_ref, size0); \
+    Image img2 = create_image_from_image2d(temp_buf_float, 4); \
+    __global float* tmp_ref_ptr = (__global float*)img2.ptr; \
+    type0 src; \
+    float4 tmpDst0, tmpDst1; \
+    short zp = input_zp; \
+    if(length > 0) \
+    { \
+        __global ptr0* input_ptr = (__global ptr0*)img1.ptr; \
+        ptr0 tmpData = input_ptr[gidx]; \
+        int loc2 = gidx * 8; \
+        _viv_asm(COPY, src, tmpData, len0); \
+        VXC_DP4x4(tmpDst0, src, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \
+                    uniConvert1stUint8SubZpToFp32_4x4); \
+        VXC_DP4x4(tmpDst1, src, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \
+                    uniConvert2ndU8SubZpToFp32_4x4); \
+        tmpDst0 *= input_scale; \
+        tmpDst1 *= input_scale; \
+        vstore4(tmpDst0, 0, tmp_ref_ptr + loc2); \
+        vstore4(tmpDst1, 1, tmp_ref_ptr + loc2); \
+    } \
+    __global ptr2* input_ptr1 = (__global ptr2*)img1.ptr; \
+    for(int i = gidx; i < res; i += get_global_size(0)) \
+    { \
+        ptr2 tmpData1 = input_ptr1[length + i]; \
+        _viv_asm(COPY, src, tmpData1, 4); \
+        VXC_DP4x4(tmpDst0, src, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \
+                    uniConvert1stUint8SubZpToFp32_4x4); \
+        tmp_ref_ptr[length + i] = tmpDst0.x; \
+    } \
+}
+SCATTER_REDUCTION_PREPROCESS(U8,  vxc_uchar8, vxc_uchar8, 8,  1, uchar)
+SCATTER_REDUCTION_PREPROCESS(I8,  vxc_char8,  vxc_char8,  8,  1, char)
+SCATTER_REDUCTION_PREPROCESS(I16, vxc_short8, vxc_short8, 16, 2, short)
+SCATTER_REDUCTION_PREPROCESS(F16, vxc_short8, vxc_half8,  16, 2, short)
+
+#define SCATTER_ND_REDUCTION_PROCESS_F16(name0, func) \
+__kernel void scatter_nd_update_reduction_##name0##_F16( \
+    __read_only image2d_t   index, \
+    __read_only image2d_t   update, \
+    image2d_t  temp_buf_float, \
+    image2d_t  link_buffer0, \
+    int width, int area, int vol, int val4, \
+    int val5, int val6, int val7, int coord_dim) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    Image img1 = create_image_from_image2d(index, 4); \
+    Image img2 = create_image_from_image2d(update, 2); \
+    Image img3 = create_image_from_image2d(temp_buf_float, 4); \
+    __global int* index_ptr = (__global int*)img1.ptr; \
+    __global short* update_ptr = (__global short*)img2.ptr; \
+    __global float* output_ptr = (__global float*)img3.ptr; \
+    half src; \
+ \
+    int4 indice = vload4(0, index_ptr + gidy * coord_dim); \
+    int4 indice1 = coord_dim < 5 ? (int4)(0) : vload4(1, index_ptr + gidy * coord_dim); \
+    short tmpData = update_ptr[gidy * update_width + gidx]; \
+    int4 tmpOffset = indice * coord_stride + indice1 * coord_stride1; \
+    int idx = tmpOffset.x + tmpOffset.y + tmpOffset.z + tmpOffset.w; \
+    int loc = idx * output_width + gidx; \
+    _viv_asm(COPY, src, tmpData, 4); \
+    float data; \
+    _viv_asm(CONV, data, src); \
+    func(output_ptr + loc, data); \
+}
+SCATTER_ND_REDUCTION_PROCESS_F16(Add,  AtomicAdd_float)
+SCATTER_ND_REDUCTION_PROCESS_F16(Mul,  AtomicMul_float)
+SCATTER_ND_REDUCTION_PROCESS_F16(Max,  AtomicMax_float)
+SCATTER_ND_REDUCTION_PROCESS_F16(Min,  AtomicMin_float)
+
+#define SCATTER_ND_REDUCTION_PROCESS_BF16(name0, func) \
+__kernel void scatter_nd_update_reduction_##name0##_BF16( \
+    __read_only image2d_t   index, \
+    __read_only image2d_t   update, \
+    image2d_t  temp_buf_float, \
+    image2d_t  link_buffer0, \
+    int width, int area, int vol, int val4, \
+    int val5, int val6, int val7, int coord_dim) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    Image img1 = create_image_from_image2d(index, 4); \
+    Image img2 = create_image_from_image2d(update, 2); \
+    Image img3 = create_image_from_image2d(temp_buf_float, 4); \
+    __global int* index_ptr = (__global int*)img1.ptr; \
+    __global short* update_ptr = (__global short*)img2.ptr; \
+    __global float* output_ptr = (__global float*)img3.ptr; \
+    half src; \
+ \
+    int4 indice = vload4(0, index_ptr + gidy * coord_dim); \
+    int4 indice1 = coord_dim < 5 ? (int4)(0) : vload4(1, index_ptr + gidy * coord_dim); \
+    short tmpData = update_ptr[gidy * update_width + gidx]; \
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0); \
+    vxc_short8 src0, src1; \
+    float data; \
+    int4 tmpOffset = indice * coord_stride + indice1 * coord_stride1; \
+    int idx = tmpOffset.x + tmpOffset.y + tmpOffset.z + tmpOffset.w; \
+    int loc = idx * output_width + gidx; \
+    _viv_asm(COPY, src0, tmpData, 4); \
+    VXC_DP2x8(src1, src0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), \
+                        uniConvBF16toF32_Part0_2x8); \
+    _viv_asm(COPY, data, src1, 4); \
+    func(output_ptr + loc, data); \
+}
+SCATTER_ND_REDUCTION_PROCESS_BF16(Add,  AtomicAdd_float)
+SCATTER_ND_REDUCTION_PROCESS_BF16(Mul,  AtomicMul_float)
+SCATTER_ND_REDUCTION_PROCESS_BF16(Max,  AtomicMax_float)
+SCATTER_ND_REDUCTION_PROCESS_BF16(Min,  AtomicMin_float)
+
+#define SCATTER_ND_UPDATE_PROCESS_QINT(name0, src0_type, data_type, ptr_type, element_size, func) \
+__kernel void scatter_nd_update_reduction_##name0##_##src0_type( \
+    __read_only image2d_t   index, \
+    __read_only image2d_t   update, \
+    image2d_t  temp_buf_float, \
+    image2d_t  link_buffer0, \
+    int width, int area, int vol, int val4, \
+    int val5, int val6, int val7, int coord_dim) \
+{ \
+    int gidx = get_global_id(0); \
+    int gidy = get_global_id(1); \
+    Image img1 = create_image_from_image2d(index, 4); \
+    Image img2 = create_image_from_image2d(update, element_size); \
+    Image img3 = create_image_from_image2d(temp_buf_float, 4); \
+    __global int* index_ptr = (__global int*)img1.ptr; \
+    __global ptr_type* update_ptr = (__global ptr_type*)img2.ptr; \
+    __global float* output_ptr = (__global float*)img3.ptr; \
+    data_type src; \
+ \
+    int4 indice = vload4(0, index_ptr + gidy * coord_dim); \
+    int4 indice1 = coord_dim < 5 ? (int4)(0) : vload4(1, index_ptr + gidy * coord_dim); \
+    ptr_type tmpData = update_ptr[gidy * update_width + gidx]; \
+    short zp = update_zp; \
+    int4 tmpOffset = indice * coord_stride + indice1 * coord_stride1; \
+    int idx = tmpOffset.x + tmpOffset.y + tmpOffset.z + tmpOffset.w; \
+    int loc = idx * output_width + gidx; \
+    _viv_asm(COPY, src, tmpData, 4); \
+    vxc_float4 data; \
+    VXC_DP4x4(data, src, zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), \
+                    uniConvert1stUint8SubZpToFp32_4x4); \
+    data.x *= update_scale; \
+    func(output_ptr + loc, data.x); \
+}
+SCATTER_ND_UPDATE_PROCESS_QINT(Add, U8,  vxc_uchar8, uchar, 1, AtomicAdd_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Mul, U8,  vxc_uchar8, uchar, 1, AtomicMul_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Max, U8,  vxc_uchar8, uchar, 1, AtomicMax_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Min, U8,  vxc_uchar8, uchar, 1, AtomicMin_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Add, I8,  vxc_char8,  char,  1, AtomicAdd_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Mul, I8,  vxc_char8,  char,  1, AtomicMul_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Max, I8,  vxc_char8,  char,  1, AtomicMax_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Min, I8,  vxc_char8,  char,  1, AtomicMin_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Add, I16, vxc_short8, short, 2, AtomicAdd_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Mul, I16, vxc_short8, short, 2, AtomicMul_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Max, I16, vxc_short8, short, 2, AtomicMax_float)
+SCATTER_ND_UPDATE_PROCESS_QINT(Min, I16, vxc_short8, short, 2, AtomicMin_float)

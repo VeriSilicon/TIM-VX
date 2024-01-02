@@ -79,6 +79,8 @@ typedef struct _vsi_nn_runtime_option_t
     int32_t enable_dataconvert_optimize;
     int32_t enable_stream_processor;
     int32_t enable_rgb88_planar_nhwc;
+    int32_t enable_slice_optimize;
+    int32_t enable_batch_opt;
 } vsi_nn_runtime_option_t;
 
 /**

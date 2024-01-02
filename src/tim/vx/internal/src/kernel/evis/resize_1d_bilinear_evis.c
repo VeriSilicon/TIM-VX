@@ -197,8 +197,6 @@ DEF_KERNEL_INITIALIZER(_resize_1d_bilinear_initializer)
     int32_t half_pixel_centers = 0;
 
     uint32_t    depth              = 0;
-    int32_t     srcFixPointPos     = 0;
-    int32_t     dstFixPointPos     = 0;
     float       input_scale        = 1.0;
     int32_t     inputZP            = 0;
     float       output_scale       = 1.0;
@@ -259,53 +257,10 @@ DEF_KERNEL_INITIALIZER(_resize_1d_bilinear_initializer)
         half_pixel_value = 0.0f;
     }
 
-    if (VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant )
-    {
-        input_scale    = input_attr->asymm.scale;
-        inputZP        = input_attr->asymm.zero_point;
-    }
-    else if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
-    {
-        srcFixPointPos   = input_attr->dfp.fl;
-        if (srcFixPointPos >= 0)
-        {
-            input_scale = 1.0f / (vx_float32) ((int64_t)1 << srcFixPointPos);
-        }
-        else if (srcFixPointPos < 0)
-        {
-            input_scale = (vx_float32)((int64_t)1 << -srcFixPointPos);
-        }
-        inputZP = 0;
-    }
-    else
-    {
-        input_scale = 1.0f;
-        inputZP     = 0;
-    }
-
-    if (VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant )
-    {
-        output_scale   = output_attr->asymm.scale;
-        outputZP       = output_attr->asymm.zero_point;
-    }
-    else if (VSI_NN_KERNEL_QUANT_DFP == output_attr->quant)
-    {
-        dstFixPointPos = output_attr->dfp.fl;
-        if (dstFixPointPos >= 0)
-        {
-            output_scale = (vx_float32) ((int64_t)1 << dstFixPointPos);
-        }
-        else if (dstFixPointPos < 0)
-        {
-            output_scale = 1.0f / (vx_float32) ((int64_t)1 << -dstFixPointPos);
-        }
-        outputZP = 0;
-    }
-    else
-    {
-        output_scale = 1.0;
-        outputZP     = 0;
-    }
+    input_scale    = input_attr->scale;
+    inputZP        = input_attr->zero_point;
+    output_scale   = output_attr->scale;
+    outputZP       = output_attr->zero_point;
 
     if (is_run_nx_kernel)
     {
@@ -473,7 +428,7 @@ DEF_KERNEL_INITIALIZER(_resize_1d_bilinear_initializer)
     }
     else if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
     {
-        float dfpScale = input_scale * output_scale;
+        float dfpScale = input_scale / output_scale;
         gpu_dp_inst_t uniConvertDFP2FP32_4x4 = {{
             0x01010101, // TCfg
             0x00000000, // ASelt

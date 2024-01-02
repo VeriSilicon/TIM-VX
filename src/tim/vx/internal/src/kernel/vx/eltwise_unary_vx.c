@@ -154,13 +154,14 @@ final:
     REGISTER_BACKEND_OPENVX( KERNEL_NAME, _##KERNEL_NAME##_setup )
 
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( mish,         VSI_NN_KERNEL_LUT_MISH )
-//REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( exp,          VSI_NN_KERNEL_LUT_EXP )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( log,          VSI_NN_KERNEL_LUT_LOG )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( selu,         VSI_NN_KERNEL_LUT_SELU )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( neg,          VSI_NN_KERNEL_LUT_NEG )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( hard_sigmoid, VSI_NN_KERNEL_LUT_HSIGMOID )
+#if !(VX_ACTIVATION_GELU_VX_SUPPORT_EXT)
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( gelu,         VSI_NN_KERNEL_LUT_GELU )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( hard_gelu,    VSI_NN_KERNEL_LUT_HGELU )
+#endif
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( erf,          VSI_NN_KERNEL_LUT_ERF )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( relu_keras,   VSI_NN_KERNEL_LUT_RELU_KERAS )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( clip,         VSI_NN_KERNEL_LUT_CLIP )
@@ -168,6 +169,7 @@ REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( celu,         VSI_NN_KERNEL_LUT_CELU )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( rcp,          VSI_NN_KERNEL_LUT_RCP )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( softsign,     VSI_NN_KERNEL_LUT_SOFTSIGN )
 REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( atan,         VSI_NN_KERNEL_LUT_ATAN )
+REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL( tan,          VSI_NN_KERNEL_LUT_TAN )
 
 #undef REGISTER_ELTWISE_UNARY_LUT_OPENVX_KERNEL
 
@@ -411,5 +413,116 @@ REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( softrelu )
 
     return (vsi_nn_kernel_node_t)node;
 } /* softrelu() */
+
+#if (VX_ACTIVATION_EXP_VX_SUPPORT_EXT)
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( exp )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_EXP,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* exp() */
+#endif
+
+#if (VX_ACTIVATION_SIN_COS_VX_SUPPORT_EXT)
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( sin )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_SIN,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* sin() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( cos )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_COS,
+        0,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* cos() */
+#endif
+
+#if (VX_ACTIVATION_GELU_VX_SUPPORT_EXT)
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( gelu )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_GELU,
+        1,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* gelu() */
+
+REGISTER_ELTWISE_UNARY_OPENVX_KERNEL( hard_gelu )
+{
+    vx_node node = NULL;
+
+    VSI_UNREFERENCED(kernel);
+    VSI_UNREFERENCED(params);
+    VSI_UNREFERENCED(output_num);
+    VSI_UNREFERENCED(input_num);
+
+    node = vxActivationLayer(
+        graph->g,
+        inputs[0]->t,
+        VX_CONVOLUTIONAL_NETWORK_ACTIVATION_HGELU,
+        1,
+        0,
+        outputs[0]->t
+        );
+
+    return (vsi_nn_kernel_node_t)node;
+} /* hard_gelu() */
+#endif
 
 #undef REGISTER_ELTWISE_UNARY_OPENVX_KERNEL

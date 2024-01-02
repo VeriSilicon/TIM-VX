@@ -21,6 +21,12 @@ float tanh_func(float x)
     return 2 * x - 1;
 }
 
+float relu_func(float x)
+{
+    x = x > 0 ? x : 0;
+    return x;
+}
+
 
 #define GRUCELL_ACTIVATION_U8_F32_U8(act_name, act_func) \
 __kernel void grucell_reset_after_activation_U8_F32toU8_##act_name( \
@@ -62,6 +68,7 @@ __kernel void grucell_reset_after_activation_U8_F32toU8_##act_name( \
 }
 GRUCELL_ACTIVATION_U8_F32_U8(SIGMOID, sigmoid)
 //GRUCELL_ACTIVATION_U8_F32_U8(HARD_SIGMOID, hard_sigmoid)
+GRUCELL_ACTIVATION_U8_F32_U8(RELU, relu_func)
 
 #define GRUCELL_ACTIVATION_F32_F32_F32(act_name, act_func) \
 __kernel void grucell_reset_after_activation_F32_F32toF32_##act_name( \
@@ -101,6 +108,7 @@ __kernel void grucell_reset_after_activation_F32_F32toF32_##act_name( \
 
 GRUCELL_ACTIVATION_F32_F32_F32(SIGMOID, sigmoid)
 //GRUCELL_ACTIVATION_U8_F32_U8(HARD_SIGMOID, hard_sigmoid)
+GRUCELL_ACTIVATION_F32_F32_F32(RELU, relu_func)
 
 #define GRUCELL_ACTIVATION_I32_F32_I32(act_name, act_func) \
 __kernel void grucell_reset_after_activation_I32_F32toI32_##act_name( \
@@ -142,3 +150,4 @@ __kernel void grucell_reset_after_activation_I32_F32toI32_##act_name( \
 }
 GRUCELL_ACTIVATION_I32_F32_I32(SIGMOID, sigmoid)
 //GRUCELL_ACTIVATION_U8_F32_U8(HARD_SIGMOID, hard_sigmoid)
+GRUCELL_ACTIVATION_I32_F32_I32(RELU, relu_func)

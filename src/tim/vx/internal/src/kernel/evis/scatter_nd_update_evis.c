@@ -382,6 +382,12 @@ static vsi_status check_scatter_nd_update_index_repeat
     int32_t* mask_buffer = NULL;
     int32_t  mask_len = 0;
 
+    if (indices_num == 1)
+    {
+        isRepeat[0] = 0;
+        return VSI_SUCCESS;
+    }
+
     if (inputs[1]->attr.is_const == FALSE)
     {
         isRepeat[0] = 1;
@@ -451,7 +457,7 @@ static vsi_status check_scatter_nd_update_index_repeat
             else if (mask_buffer[mask_idx] > 0)
             {
                 isRepeat[0] = 1;
-                status = VSI_FAILURE;
+                status = VSI_SUCCESS;
                 CHECK_STATUS_FAIL_GOTO( status, final );
             }
         }

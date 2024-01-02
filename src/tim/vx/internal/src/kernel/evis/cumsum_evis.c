@@ -204,39 +204,11 @@ DEF_KERNEL_INITIALIZER(_cumsum_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[4], &reverse);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            input_scale = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            input_scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        input_scale = attr[0]->asymm.scale;
-        input_zp = attr[0]->asymm.zero_point;
-    }
+    input_scale = attr[0]->scale;
+    input_zp = attr[0]->zero_point;
 
-    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[1]->dfp.fl > 0)
-        {
-            output_scale = (float)((int64_t)1 << attr[1]->dfp.fl);
-        }
-        else
-        {
-            output_scale = (1.0f / (float)((int64_t)1 << -attr[1]->dfp.fl));
-        }
-    }
-    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        output_scale = 1.0f / attr[1]->asymm.scale;
-        output_zp = (float)attr[1]->asymm.zero_point;
-    }
+    output_scale = 1.0f / attr[1]->scale;
+    output_zp = (float)attr[1]->zero_point;
 
     in_out_scale = input_scale * output_scale;
     in_out_zp_scale = (float)in_out_scale * input_zp * (-1);

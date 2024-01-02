@@ -53,7 +53,7 @@ static vsi_status op_compute
     if (inputs[0]->t != NULL && outputs[0]->t != NULL &&
         self->nn_param.reshape2.local->initialized == FALSE)
     {
-#ifdef VX_REMOVE_RESHAPE_SUPPORT
+#if VX_REMOVE_RESHAPE_SUPPORT
         vsi_nn_tensor_attr_t attr;
         vsi_nn_tensor_t *dims_tensor = NULL;
         vx_nn_reshape_params_t reshape_param;
@@ -179,8 +179,11 @@ static vsi_status op_optimize
     vsi_status status;
 
     status = VSI_SUCCESS;
-#ifdef VX_REMOVE_RESHAPE_SUPPORT
+#if VX_REMOVE_RESHAPE_SUPPORT
     self->nn_param.reshape2.local->initialized = FALSE;
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+    VSI_UNREFERENCED(direction);
 #else
     if ( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
     {

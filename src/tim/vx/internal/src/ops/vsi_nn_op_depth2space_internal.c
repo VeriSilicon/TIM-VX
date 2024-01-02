@@ -40,6 +40,7 @@
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (1)
 
+#if !(VX_DEPTH2SPACE_CRD_MODE_SUPPORT)
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -150,11 +151,25 @@ static vsi_status op_deinit
 
     return VSI_SUCCESS;
 } /* op_deinit() */
-
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+#if (VX_DEPTH2SPACE_CRD_MODE_SUPPORT)
+DEF_OP_REG
+    (
+    /* op_name    */ DEPTH2SPACE_INTERNAL,
+    /* init       */ NULL,
+    /* compute    */ NULL,
+    /* deinit     */ NULL,
+    /* check      */ NULL,
+    /* setup      */ NULL,
+    /* optimize   */ NULL,
+    /* input_num  */ 1,
+    /* output_num */ 1
+    );
+#else
 DEF_OP_REG
     (
     /* op_name    */ DEPTH2SPACE_INTERNAL,
@@ -167,6 +182,7 @@ DEF_OP_REG
     /* input_num  */ 1,
     /* output_num */ 1
     );
+#endif
 #ifdef __cplusplus
 }
 #endif

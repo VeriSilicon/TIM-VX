@@ -38,7 +38,8 @@ typedef uint32_t vsi_nn_interpolation_type_t; enum
 {
     VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR = 0,
     VSI_NN_INTERPOLATION_BILINEAR,
-    VSI_NN_INTERPOLATION_AREA
+    VSI_NN_INTERPOLATION_AREA,
+    VSI_NN_INTERPOLATION_CUBIC
 };
 
 typedef uint32_t vsi_nn_resize_layout_type_t; enum

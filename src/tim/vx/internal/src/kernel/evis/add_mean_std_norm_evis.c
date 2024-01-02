@@ -106,14 +106,12 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
     vsi_nn_kernel_dtype_e  output_dtype  = F16;
     vsi_nn_kernel_tensor_attr_t *input0_attr = NULL, *input1_attr = NULL, *output_attr = NULL;
     vsi_size_array_t             *input_shape  = NULL;
-    float   scaleIn     = 1.0f;
-    int32_t input_ZP    = 0;
-    float   scaleIn1    = 1.0f;
-    int32_t input_ZP1   = 0;
-    float   scaleOut    = 1.0f;
-    int32_t output_ZP   = 0;
-    int32_t fixpoint = 0, fixpoint1 = 0, fixpoint_out = 0;
-    float   inScale_dfp, inScale_dfp1;
+    float   scaleIn    = 1.0f;
+    int32_t input_ZP   = 0;
+    float   scaleIn1   = 1.0f;
+    int32_t input_ZP1  = 0;
+    float   scaleOut   = 1.0f;
+    int32_t output_ZP  = 0;
     float   eps        = 0.0f;
     float   rsEps      = 0.0f;
     float   dimRatio   = 0.0f;
@@ -135,80 +133,12 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
     rsEps    = (float)(1.0f / sqrtf(eps));
     dimRatio = (float)(1.0 / (input_shape->data[0]));
 
-
-    if ( VSI_NN_KERNEL_QUANT_DFP == input0_attr->quant )
-    {
-        fixpoint   = input0_attr->dfp.fl;
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == input0_attr->quant )
-    {
-        input_ZP   = input0_attr->asymm.zero_point;
-        scaleIn    = input0_attr->asymm.scale;
-    }
-    else
-    {
-        input_ZP   = 0;
-        scaleIn    = 1.0f;
-    }
-
-    //input1
-    if ( VSI_NN_KERNEL_QUANT_DFP == input1_attr->quant )
-    {
-        fixpoint1  = input1_attr->dfp.fl;
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == input1_attr->quant )
-    {
-        input_ZP1  = input1_attr->asymm.zero_point;
-        scaleIn1   = input1_attr->asymm.scale;
-    }
-    else
-    {
-        input_ZP1   = 0;
-        scaleIn1    = 1.0f;
-    }
-
-    //output
-    if ( VSI_NN_KERNEL_QUANT_DFP == output_attr->quant )
-    {
-        fixpoint_out = output_attr->dfp.fl;
-        if (fixpoint_out >= 0)
-        {
-            scaleOut = 1.0f / (vx_float32) ((int64_t)1 << fixpoint_out);
-        }
-        else
-        {
-            scaleOut = (vx_float32) ((int64_t)1 << -fixpoint_out);
-        }
-        output_ZP = 0;
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant )
-    {
-        output_ZP  = output_attr->asymm.zero_point;
-        scaleOut   = output_attr->asymm.scale;
-    }
-    else
-    {
-        output_ZP   = 0;
-        scaleOut    = 1.0f;
-    }
-
-    if (fixpoint >= 0)
-    {
-        inScale_dfp = 1.0f / (vx_float32) ((int64_t)1 << fixpoint);
-    }
-    else
-    {
-        inScale_dfp = (vx_float32) ((int64_t)1 << -fixpoint);
-    }
-
-    if (fixpoint1 >= 0)
-    {
-        inScale_dfp1 = 1.0f / (vx_float32) ((int64_t)1 << fixpoint1);
-    }
-    else
-    {
-        inScale_dfp1 = (vx_float32) ((int64_t)1 << -fixpoint1);
-    }
+    scaleIn   = input0_attr->scale;
+    input_ZP  = input0_attr->zero_point;
+    scaleIn1  = input1_attr->scale;
+    input_ZP1 = input1_attr->zero_point;
+    scaleOut  = output_attr->scale;
+    output_ZP = output_attr->zero_point;
 
     gpu_param.global_offset[0] = 0;
     gpu_param.global_offset[1] = 0;
@@ -349,8 +279,8 @@ DEF_KERNEL_INITIALIZER(_add_mean_std_norm_initializer)
                        &uniConvertInt16ScaleToFp32Fst_4x4);
         status |= vsi_nn_kernel_gpu_add_param(node, "uniConvertInt16ScaleToFp32Sec_4x4",
                        &uniConvertInt16ScaleToFp32Sec_4x4);
-        status |= vsi_nn_kernel_gpu_add_param(node, "inScale_i16", &inScale_dfp);
-        status |= vsi_nn_kernel_gpu_add_param(node, "inScale1_i16", &inScale_dfp1);
+        status |= vsi_nn_kernel_gpu_add_param(node, "inScale_i16", &scaleIn);
+        status |= vsi_nn_kernel_gpu_add_param(node, "inScale1_i16", &scaleIn1);
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
     width   = (int32_t)input_shape->data[0];

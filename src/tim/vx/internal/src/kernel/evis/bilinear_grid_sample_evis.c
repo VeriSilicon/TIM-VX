@@ -121,23 +121,20 @@ DEF_KERNEL_INITIALIZER(_bilinear_grid_sample_initializer)
     vsi_nn_kernel_dtype_e output_dtype = F16;
 
     uint32_t depth = 0;
-    float half_input0_wh[2];
-    float add_float_value[2];
-    uint32_t in0_width;
-    uint32_t in0_height;
-    uint32_t out_width;
-    uint32_t out_height;
-    int32_t align_corners;
+    float half_input0_wh[2]  = {0};
+    float add_float_value[2] = {0};
+    uint32_t in0_width    = 0;
+    uint32_t in0_height   = 0;
+    uint32_t out_width    = 0;
+    uint32_t out_height   = 0;
+    int32_t align_corners = 0;
 
-    int32_t src0FixPointPos = 0;
-    int32_t src1FixPointPos = 0;
-    int32_t dstFixPointPos  = 0;
-    float   input0_scale    = 1.0;
-    int32_t input0ZP        = 0;
-    float   input1_scale    = 1.0;
-    int32_t input1ZP        = 0;
-    float   output_scale    = 1.0;
-    int32_t outputZP        = 0;
+    float   input0_scale  = 1.0;
+    int32_t input0ZP      = 0;
+    float   input1_scale  = 1.0;
+    int32_t input1ZP      = 0;
+    float   output_scale  = 1.0;
+    int32_t outputZP      = 0;
 
     VSI_UNREFERENCED(param_size);
 
@@ -165,54 +162,14 @@ DEF_KERNEL_INITIALIZER(_bilinear_grid_sample_initializer)
     input1_dtype = input_attr[1]->dtype;
     output_dtype = output_attr->dtype;
 
-    if (U8 == input0_dtype && VSI_NN_KERNEL_QUANT_ASYMM == input_attr[0]->quant) {
-        input0_scale = input_attr[0]->asymm.scale;
-        input0ZP     = input_attr[0]->asymm.zero_point;
-    } else if (VSI_NN_KERNEL_QUANT_DFP == input_attr[0]->quant) {
-        src0FixPointPos = input_attr[0]->dfp.fl;
-        if (src0FixPointPos >= 0) {
-            input0_scale = 1.0f / (float)((int64_t)1 << src0FixPointPos);
-        } else if (src0FixPointPos < 0) {
-            input0_scale = (float)((int64_t)1 << -src0FixPointPos);
-        }
-        input0ZP = 0;
-    } else {
-        input0_scale = 1.0f;
-        input0ZP     = 0;
-    }
+    input0_scale = input_attr[0]->scale;
+    input0ZP     = input_attr[0]->zero_point;
 
-    if (U8 == input1_dtype && VSI_NN_KERNEL_QUANT_ASYMM == input_attr[1]->quant) {
-        input1_scale = input_attr[1]->asymm.scale;
-        input1ZP     = input_attr[1]->asymm.zero_point;
-    } else if (VSI_NN_KERNEL_QUANT_DFP == input_attr[1]->quant) {
-        src1FixPointPos = input_attr[1]->dfp.fl;
-        if (src1FixPointPos >= 0) {
-            input1_scale = 1.0f / (float)((int64_t)1 << src1FixPointPos);
-        } else if (src1FixPointPos < 0) {
-            input1_scale = (float)((int64_t)1 << -src1FixPointPos);
-        }
-        input1ZP = 0;
-    } else {
-        input1_scale = 1.0f;
-        input1ZP     = 0;
-    }
+    input1_scale = input_attr[1]->scale;
+    input1ZP     = input_attr[1]->zero_point;
 
-    if (U8 == output_dtype && VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant) {
-        output_scale = output_attr->asymm.scale;
-        outputZP = output_attr->asymm.zero_point;
-    } else if (VSI_NN_KERNEL_QUANT_DFP == output_attr->quant) {
-        dstFixPointPos = output_attr->dfp.fl;
-        if (dstFixPointPos >= 0) {
-            output_scale = (float)((int64_t)1 << dstFixPointPos);
-        } else if (dstFixPointPos < 0) {
-            output_scale = 1.0f / (float)((int64_t)1 << -dstFixPointPos);
-        }
-        outputZP = 0;
-    } else {
-        output_scale = 1.0;
-        outputZP = 0;
-    }
-
+    output_scale = output_attr->scale;
+    outputZP     = output_attr->zero_point;
 
     in0_width  = (uint32_t)(in0_shape->data[0]);
     in0_height = (uint32_t)(in0_shape->data[1]);
@@ -496,7 +453,7 @@ DEF_KERNEL_INITIALIZER(_bilinear_grid_sample_initializer)
                     I16 == output_dtype)) ||
                    ((I8 == input0_dtype && I8 == input1_dtype &&
                      I8 == output_dtype))) {
-            float dfpScale = input0_scale * output_scale;
+            float dfpScale = input0_scale / output_scale;
             gpu_dp_inst_t uniDFPtoFp32_part0_4x4 = {{
                 0x01010101, // TCfg
                 0x00000000, // ASelt

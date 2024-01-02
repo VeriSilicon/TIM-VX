@@ -22,6 +22,7 @@
 *
 *****************************************************************************/
 
+#if !(VX_TENSOR_POW_API_SUPPORT)
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -158,64 +159,13 @@ DEF_KERNEL_INITIALIZER(_pow_initializer)
     attr[2] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( attr[2], "Create tensor attr buffer fail.", OnError );
 
-    out_shape   = attr[2]->shape;
-
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[0]->dfp.fl;
-        if (fl > 0)
-        {
-            input0_scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input0_scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-        || attr[0]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-    {
-        input0_scale  = attr[0]->asymm.scale;
-        input0_tail = 0 - (float)attr[0]->asymm.zero_point * input0_scale;
-    }
-
-    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[1]->dfp.fl;
-        if (fl > 0)
-        {
-            input1_scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input1_scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-        || attr[1]->quant == VSI_NN_KERNEL_QUANT_SYMM)
-    {
-        input1_scale  = attr[1]->asymm.scale;
-        input1_tail = 0 - (float)attr[1]->asymm.zero_point * input1_scale;
-    }
-
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[2]->dfp.fl;
-        if (fl > 0)
-        {
-            output_scale = (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            output_scale = 1.0f / (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-        || attr[2]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-    {
-        output_zp     = (float)attr[2]->asymm.zero_point;
-        output_scale  = 1.0f / attr[2]->asymm.scale;
-    }
+    out_shape    = attr[2]->shape;
+    input0_scale = attr[0]->scale;
+    input0_tail  = 0 - (float)attr[0]->zero_point * input0_scale;
+    input1_scale = attr[1]->scale;
+    input1_tail  = 0 - (float)attr[1]->zero_point * input1_scale;
+    output_zp    = (float)attr[2]->zero_point;
+    output_scale = 1.0f / attr[2]->scale;
 
 #define _PACK_SELECT_KEY( IN0_TYPE, IN1_TYPE, OUT_TYPE )    \
         (IN0_TYPE | (IN1_TYPE << 8) | ( OUT_TYPE << 16))
@@ -454,3 +404,4 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( pow, _setup )
+#endif

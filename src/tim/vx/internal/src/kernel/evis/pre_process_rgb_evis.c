@@ -179,28 +179,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb_initializer)
     }
     enable_copy = (int32_t)(xRatio == (1 << 15) && yRatio == (1 << 15));
 
-    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            outputScale = (float)((int64_t)1 << attr[0]->dfp.fl);
-        }
-        else
-        {
-            outputScale = (1.0f / (float)((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        outputZP = 0;
-    }
-    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        outputScale = 1.0f / attr[0]->asymm.scale;
-        outputZP = (float)attr[0]->asymm.zero_point;
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        outputScale = 1;
-        outputZP = 0;
-    }
+    outputScale = 1.0f / attr[0]->scale;
+    outputZP = (float)attr[0]->zero_point;
 
 #define _PACK_SELECT_KEY( COPY_FLAG, REVERSE_FLAG, TRANS_FLAG)    \
         (COPY_FLAG | (REVERSE_FLAG << 24) | (TRANS_FLAG << 16) )

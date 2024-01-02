@@ -36,6 +36,7 @@
 #include "vsi_nn_log.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)
@@ -85,6 +86,54 @@ static vsi_bool _is_3d_group_norm
     return FALSE;
 } /* _is_3d_group_norm() */
 
+static vsi_nn_tensor_t* _pad_tensor_per_pixel
+    (
+    vsi_nn_graph_t  *graph,
+    vsi_nn_tensor_t *input_tensor,
+    vsi_size_t       scale_size_in,
+    vsi_size_t       pad_size_per_pixel
+    )
+{
+    float* f32_in_buffer   = NULL;
+    float* f32_out_buffer  = NULL;
+    vsi_size_t  i = 0, j = 0;
+    vsi_nn_tensor_attr_t attr;
+    vsi_nn_tensor_t*  output_tensor  = NULL;
+
+    f32_out_buffer= (float *)malloc(pad_size_per_pixel * scale_size_in * sizeof(float));
+    CHECK_PTR_FAIL_GOTO( f32_out_buffer, "Create buffer fail.", final );
+    memset(f32_out_buffer, 0, pad_size_per_pixel * scale_size_in * sizeof(float));
+    f32_in_buffer = vsi_nn_ConvertTensorToFloat32Data(graph, input_tensor);
+    if (NULL == f32_in_buffer)
+    {
+        output_tensor = NULL;
+        goto final;
+    }
+
+    for ( i = 0; i < scale_size_in; i++ )
+    {
+        for (j = 0; j < pad_size_per_pixel; j ++)
+        {
+            f32_out_buffer[i * pad_size_per_pixel + j] = f32_in_buffer[i];
+        }
+    }
+
+    memcpy(&attr, &input_tensor->attr, sizeof(vsi_nn_tensor_attr_t));
+    attr.size[0] = pad_size_per_pixel;
+    attr.size[1] = scale_size_in;
+    attr.dim_num = 2;
+    output_tensor = vsi_nn_CreateTensorFromData(
+        graph,
+        (uint8_t *)f32_out_buffer,
+        &attr);
+    CHECK_PTR_FAIL_GOTO( output_tensor, "Create tensor fail.", final );
+final:
+    vsi_nn_safe_free(f32_in_buffer)
+    vsi_nn_safe_free(f32_out_buffer)
+
+    return output_tensor;
+}
+
 static vsi_status _op_compute
     (
     vsi_nn_node_t * self,
@@ -100,6 +149,7 @@ static vsi_status _op_compute
     vsi_nn_tensor_t * tmp_inputs[3]  = {NULL, NULL, NULL};
     vsi_nn_tensor_t * tmp_outputs[1] = {NULL};
     vsi_nn_groupnorm_lcl_data *local = self->nn_param.groupnorm.lcl_data;
+    vsi_bool pad_scale_bias = FALSE;
 
     status = _try_set_high_presision_tensor(inputs);
     if (status != VSI_SUCCESS)
@@ -123,6 +173,19 @@ static vsi_status _op_compute
         tmp_inputs[2] = inputs[2];
     }
 
+    pad_scale_bias = vsi_nn_GetElementNum(inputs[1]) == (vsi_size_t)group_num &&
+        (vsi_size_t)group_num < tmp_inputs[0]->attr.size[2];
+
+    if (pad_scale_bias)
+    {
+        tmp_inputs[1] = _pad_tensor_per_pixel(self->graph, tmp_inputs[1],
+            group_num, tmp_inputs[0]->attr.size[2] / group_num);
+        tmp_inputs[2] = _pad_tensor_per_pixel(self->graph, tmp_inputs[2],
+            group_num, tmp_inputs[0]->attr.size[2] / group_num);
+        CHECK_PTR_FAIL_GOTO( tmp_inputs[1], "Create tensor fail.", final );
+        CHECK_PTR_FAIL_GOTO( tmp_inputs[2], "Create tensor fail.", final );
+    }
+
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_float32( param, "eps", eps );
     vsi_nn_kernel_param_add_int32( param, "group_num", group_num );
@@ -137,6 +200,13 @@ static vsi_status _op_compute
     if (param != NULL)
     {
         vsi_nn_kernel_param_release( &param );
+    }
+
+final:
+    if (pad_scale_bias)
+    {
+        vsi_safe_release_tensor(tmp_inputs[1]);
+        vsi_safe_release_tensor(tmp_inputs[2]);
     }
 
     return status;

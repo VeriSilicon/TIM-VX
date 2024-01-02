@@ -239,76 +239,12 @@ DEF_KERNEL_INITIALIZER(_moments_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
     input_shape  = attr[0]->shape;
-
-    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        input_zp = attr[0]->asymm.zero_point;
-        scaleIn  = attr[0]->asymm.scale;
-    }
-    else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            scaleIn = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            scaleIn = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-
-        input_zp = 0;
-    }
-    else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE)
-    {
-        input_zp = 0;
-        scaleIn = 1;
-    }
-
-    if (attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        output_ZP0     = (float)attr[1]->asymm.zero_point;
-        outputScale0   = 1.0f / attr[1]->asymm.scale;
-    }
-    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[1]->dfp.fl > 0)
-        {
-            outputScale0 = (float)((int64_t)1 << attr[1]->dfp.fl);
-        }
-        else
-        {
-            outputScale0 = (1.0f / (float)((int64_t)1 << -attr[1]->dfp.fl));
-        }
-        output_ZP0 = 0.0f;
-    }
-    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        outputScale0 = 1.0f;
-        output_ZP0 = 0.0f;
-    }
-
-    if (attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        output_ZP1     = (float)attr[2]->asymm.zero_point;
-        outputScale1   = 1.0f / attr[2]->asymm.scale;
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[2]->dfp.fl > 0)
-        {
-            outputScale1 = (float)((int64_t)1 << attr[2]->dfp.fl);
-        }
-        else
-        {
-            outputScale1 = (1.0f / (float)((int64_t)1 << -attr[2]->dfp.fl));
-        }
-        output_ZP1 = 0.0f;
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        outputScale1 = 1.0f;
-        output_ZP1 = 0.0f;
-    }
+    input_zp     = attr[0]->zero_point;
+    scaleIn      = attr[0]->scale;
+    output_ZP0   = (float)attr[1]->zero_point;
+    outputScale0 = 1.0f / attr[1]->scale;
+    output_ZP1   = (float)attr[2]->zero_point;
+    outputScale1 = 1.0f / attr[2]->scale;
 
     output_ZP[0] = output_ZP0;
     output_ZP[1] = output_ZP1;

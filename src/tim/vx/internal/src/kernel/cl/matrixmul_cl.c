@@ -75,6 +75,9 @@ __BEGIN_DECLS
 #define HASH_MATRIXMUL_4X_TRANSA_SH_KERNEL_NAME(SRC0_TYPE, SRC1_TYPE, DST_TYPE, IMAGE_DIM) \
     CVIVANTE_NAMESPACE("cl.gemm_4x_transa_"#SRC0_TYPE#SRC1_TYPE"to"#DST_TYPE#IMAGE_DIM)
 
+#define HASH_MATRIXMUL_4X_TRANSA_LOCAL_SH_KERNEL_NAME(SRC0_TYPE, SRC1_TYPE, DST_TYPE, IMAGE_DIM) \
+    CVIVANTE_NAMESPACE("cl.gemm_4x_transa_local_"#SRC0_TYPE#SRC1_TYPE"to"#DST_TYPE#IMAGE_DIM)
+
 #define TENSOR_MATRIXMUL_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
     { HASH_MATRIXMUL_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, 0, 0, 0), \
         HASH_MATRIXMUL_SH_KERNEL_NAME(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM), \
@@ -88,6 +91,11 @@ __BEGIN_DECLS
 #define TENSOR_MATRIXMUL_4X_TRANSA_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
     {HASH_MATRIXMUL_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, 1, 1, 0), \
         HASH_MATRIXMUL_4X_TRANSA_SH_KERNEL_NAME(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM), \
+        SOURCE },
+
+#define TENSOR_MATRIXMUL_4X_TRANSA_LOCAL_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
+    {HASH_MATRIXMUL_KEY(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, 2, 1, 0), \
+        HASH_MATRIXMUL_4X_TRANSA_LOCAL_SH_KERNEL_NAME(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM), \
         SOURCE },
 
 #define TENSOR_MATRIXMUL_TRANSA_KERNELS(IN0_TYPE, IN1_TYPE, OUT_TYPE, IMAGE_DIM, SOURCE) \
@@ -142,6 +150,7 @@ static const struct {
     TENSOR_MATRIXMUL_MERGE_KERNELS(F32, F32, F32, _3D,      KERNEL_SOURCE_3)
     TENSOR_MATRIXMUL_4X_KERNELS(F32, F32, F32, _2D,         KERNEL_SOURCE_4)
     TENSOR_MATRIXMUL_4X_TRANSA_KERNELS(F32, F32, F32, _2D,  KERNEL_SOURCE_4)
+    TENSOR_MATRIXMUL_4X_TRANSA_LOCAL_KERNELS(F32, F32, F32, _2D,  KERNEL_SOURCE_4)
 };
 
 /*
@@ -313,6 +322,49 @@ final:
     return status;
 } /* _matrixmul_4x_initializer() */
 
+DEF_KERNEL_INITIALIZER(_matrixmul_4x_local_initializer)
+(vsi_nn_kernel_node_t node,
+ const vsi_nn_kernel_node_param_t* param,
+ size_t param_size) {
+    vsi_status status = VSI_FAILURE;
+    gpu_param_t gpu_param = {3, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+
+    vsi_nn_kernel_tensor_attr_t* attr = NULL;
+    vsi_size_t width = 0;
+
+
+    VSI_UNREFERENCED(param_size);
+
+    attr = vsi_nn_kernel_tensor_attr_create((vsi_nn_kernel_tensor_t)param[2]);
+    CHECK_PTR_FAIL_GOTO(attr, "Create tensor attr buffer fail.", final);
+
+    width = attr->shape->data[0];
+
+    gpu_param.dim = 2;
+    gpu_param.local_size[0] = 1;
+    gpu_param.local_size[1] = 64;
+    gpu_param.local_size[2] = 1;
+
+    gpu_param.global_scale[0] = 16;
+    gpu_param.global_scale[1] = 1;
+    gpu_param.global_scale[2] = 1;
+
+    gpu_param.global_size[0] =
+        (width + gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0];
+    gpu_param.global_size[1] = 64;
+    gpu_param.global_size[2] = 1;
+
+    status = vsi_nn_kernel_gpu_config(node, &gpu_param);
+    CHECK_STATUS_FAIL_GOTO(status, final);
+
+final:
+    if (attr) {
+        vsi_nn_kernel_tensor_attr_release(&attr);
+        attr = NULL;
+    }
+    return status;
+} /* _matrixmul_4x_local_initializer() */
+
 static vsi_status _query_kernel
     (
     vsi_nn_kernel_t * kernel,
@@ -403,7 +455,10 @@ static vsi_status _query_kernel
             kernel->info.numParams = _cnt_of_array( _matrixmul_merge_kernel_param_def );
         }
 
-        if (flag_4x) {
+        if ((flag_4x == 2) && (transa == 1)) {
+            kernel->info.initialize = _matrixmul_4x_local_initializer;
+        }
+        else if (flag_4x == 1) {
             kernel->info.initialize = _matrixmul_4x_initializer;
         } else {
             kernel->info.initialize = _matrixmul_initializer;
@@ -471,6 +526,7 @@ static vsi_nn_kernel_node_t _setup
     uint32_t stride_axis_in_out[9] = {0};
     vsi_nn_tensor_t* tmp_inputs[2]  = {NULL};
     vsi_nn_tensor_t* tmp_outputs[1] = {NULL};
+    vsi_bool shader_cnt_support = FALSE;
 
     VSI_UNREFERENCED(input_num);
     VSI_UNREFERENCED(output_num);
@@ -585,7 +641,20 @@ static vsi_nn_kernel_node_t _setup
             rs_out_tensors = vsi_nn_reshape_tensor(graph, tmp_outputs[0], final_shape, final_rank);
             final_out_tensors[0] = rs_out_tensors;
 
-            flag_4x = 1;
+
+#if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
+            shader_cnt_support =
+                (graph->ctx->config.subGroupSize >= 64 && graph->ctx->config.use_40bits_va) ? TRUE : FALSE;
+#endif
+            if ((in1_h % 64 == 0) && (transFlg == 1) && (out_h % 8 == 0) && shader_cnt_support)
+            {
+                flag_4x = 2;
+            }
+            else
+            {
+                flag_4x = 1;
+            }
+
         }
     }
 

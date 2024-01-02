@@ -110,10 +110,10 @@ do\
 #define VXC_VertMax3_Integer(dst, src0, src1, src2, info)\
 do\
 {\
-    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
-    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
-    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
-    int mod1 = VXC_MODIFIER_CLAMP(startBin, endBin, sourceBin, 0);\
+    constant int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    constant int endBin       = (info & VXC_END_BIN_BITMASK) >> 8;\
+    constant int sourceBin    = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    constant int mod1 = VXC_MODIFIER_CLAMP(startBin, endBin, sourceBin, 0);\
     typeof (dst) tmp;\
     tmp = max(src0, src1);\
     tmp = max(src2, tmp);\
@@ -138,10 +138,10 @@ do\
 #define VXC_HorzMax3_Integer(dst, src0, info)\
 do\
 {\
-    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
-    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
-    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
-    int clamp         = (info & VXC_CLAMP_BITMASK) >> 22;\
+    constant int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    constant int endBin       = (info & VXC_END_BIN_BITMASK) >> 8;\
+    constant int sourceBin    = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    constant int clamp        = (info & VXC_CLAMP_BITMASK) >> 22;\
     int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Max, clamp);\
     VXC_OP4(filter, dst, src0, src0, src0, mod1);\
 } while (0)
@@ -149,12 +149,12 @@ do\
 #define VXC_HorzMax3_Half(dst, src0, info)\
 do\
 {\
-    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
-    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
-    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
-    int clamp         = (info & VXC_CLAMP_BITMASK) >> 22;\
-    int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Max, clamp);\
-    int mod2 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
+    constant int startBin    = (info & VXC_START_BIN_BITMASK) >> 12;\
+    constant int endBin      = (info & VXC_END_BIN_BITMASK) >> 8;\
+    constant int sourceBin   = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    constant int clamp       = (info & VXC_CLAMP_BITMASK) >> 22;\
+    constant int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Max, clamp);\
+    constant int mod2 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
     vxc_short8 val0, minVal, maxVal;\
     _viv_asm(COPY, val0, src0, 16);\
     VXC_OP4(filter, maxVal, val0, val0, val0, mod1);\
@@ -166,24 +166,24 @@ do\
 #define VXC_HorzMin3_Integer(dst, src0, info)\
 do\
 {\
-    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
-    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
-    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
-    int clamp         = (info & VXC_CLAMP_BITMASK) >> 22;\
-    int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
+    constant int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    constant int endBin       = (info & VXC_END_BIN_BITMASK) >> 8;\
+    constant int sourceBin    = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    constant int clamp        = (info & VXC_CLAMP_BITMASK) >> 22;\
+    constant int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
     VXC_OP4(filter, dst, src0, src0, src0, mod1);\
 } while (0)
 
 #define VXC_HorzMin3_Half(dst, src0, info)\
 do\
 {\
-    int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
-    int endBin         = (info & VXC_END_BIN_BITMASK) >> 8;\
-    int sourceBin     = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
-    int clamp         = (info & VXC_CLAMP_BITMASK) >> 22;\
-    int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Max, clamp);\
-    int mod2 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
-    int mod3 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Median, clamp);\
+    constant int startBin     = (info & VXC_START_BIN_BITMASK) >> 12;\
+    constant int endBin       = (info & VXC_END_BIN_BITMASK) >> 8;\
+    constant int sourceBin    = (info & VXC_SOURCE_BIN_BITMASK) >> 4;\
+    constant int clamp        = (info & VXC_CLAMP_BITMASK) >> 22;\
+    constant int mod1 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Max, clamp);\
+    constant int mod2 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Min, clamp);\
+    constant int mod3 = VXC_MODIFIER_FILTER(startBin, endBin, sourceBin, VXC_FM_Median, clamp);\
     vxc_short8 val0, minVal, maxVal, midVal;\
     _viv_asm(COPY, val0, src0, 16);\
     VXC_OP4(filter, maxVal, val0, val0, val0, mod1);\

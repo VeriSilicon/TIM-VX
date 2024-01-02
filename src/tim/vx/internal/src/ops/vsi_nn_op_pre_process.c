@@ -132,7 +132,9 @@ static vsi_bool op_setup
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_YUYV422       ||
-         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_UYVY422       ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12_RGGB       ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21_BGGR
         )
     {
         uint32_t i = 0;
@@ -487,6 +489,8 @@ static vsi_bool op_setup
         break;
     case VSI_NN_SOURCE_FORMAT_IMAGE_NV21:
     case VSI_NN_SOURCE_FORMAT_IMAGE_NV12:
+    case VSI_NN_SOURCE_FORMAT_IMAGE_NV21_BGGR:
+    case VSI_NN_SOURCE_FORMAT_IMAGE_NV12_RGGB:
         {
             curr = vsi_nn_internal_new_node( self, VSI_NN_OP_PRE_PROCESS_NV12, 0, 0 );
             CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
@@ -514,9 +518,17 @@ static vsi_bool op_setup
             {
                 curr->node->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV12;
             }
-            else
+            else if (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21)
             {
                 curr->node->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV21;
+            }
+            else if (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12_RGGB)
+            {
+                curr->node->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV12_RGGB;
+            }
+            else
+            {
+                curr->node->nn_param.pre_process_nv12.nv_type = VSI_NN_YUV_TYPE_NV21_BGGR;
             }
 
             curr->node->nn_param.pre_process_nv12.reverse_channel = p->reverse_channel;
@@ -618,7 +630,9 @@ static vsi_bool op_setup
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_BGRA          ||
          p->type == VSI_NN_SOURCE_FORMAT_IMAGE_GRAY          ||
          (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR && !enable_rgb88_planar_nhwc) ||
-         (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP && !enable_rgb88_planar_nhwc)
+         (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP && !enable_rgb88_planar_nhwc) ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12_RGGB     ||
+         p->type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21_BGGR
         )
     {
         if (layout == VSI_NN_DEST_LAYOUT_NHWC)

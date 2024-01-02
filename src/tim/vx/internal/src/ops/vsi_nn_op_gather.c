@@ -164,13 +164,14 @@ static vsi_bool op_setup
     /* TODO: Add code to comput outputs' shape. */
     uint32_t i = 0;
     vsi_nn_gather_param * p = NULL;
+    uint32_t batch_dims = (uint32_t)self->nn_param.gather.batch_dims;
 
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         uint32_t j = 0;
-        uint32_t r_rank = vsi_nn_GetTensorIsScalar(inputs[0]) ? 0 : inputs[0]->attr.dim_num;
-        uint32_t q_rank = vsi_nn_GetTensorIsScalar(inputs[1]) ? 0 : inputs[1]->attr.dim_num;
-        uint32_t o_rank = r_rank + q_rank - 1;
+        uint32_t r_rank = vsi_nn_GetTensorIsScalar(inputs[0]) ? 0 : ((uint32_t)inputs[0]->attr.dim_num - batch_dims);
+        uint32_t q_rank = vsi_nn_GetTensorIsScalar(inputs[1]) ? 0 : ((uint32_t)inputs[1]->attr.dim_num - batch_dims);
+        uint32_t o_rank = r_rank + q_rank - 1 + batch_dims;
 
         p = &(self->nn_param.gather);
 

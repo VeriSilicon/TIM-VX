@@ -179,7 +179,6 @@ DEF_KERNEL_INITIALIZER(_clip_initializer)
             / gpu_param.global_scale[1]);
     gpu_param.global_size[2] = out_shape->size > 2 ? out_shape->data[2] : 1;
 
-
     if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
     {
         srcFixPointPos   = input_attr->dfp.fl;

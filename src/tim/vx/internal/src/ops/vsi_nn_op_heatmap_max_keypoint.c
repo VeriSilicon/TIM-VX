@@ -39,69 +39,6 @@
 #define _INPUT_NUM          (2)
 #define _OUTPUT_NUM         (2)
 
-static vsi_status op_compute
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    vsi_status status = VSI_FAILURE;
-
-    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
-        "heatmap_max_keypoint",
-        inputs, _INPUT_NUM,
-        outputs, _OUTPUT_NUM, NULL );
-
-    if( self->n )
-    {
-        status = VSI_SUCCESS;
-    }
-
-    return status;
-}
-
-static vsi_bool op_check
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    VSI_UNREFERENCED(self);
-    VSI_UNREFERENCED(inputs);
-    VSI_UNREFERENCED(outputs);
-    /*TODO: Check tensor shapes. */
-    return TRUE;
-} /* op_check() */
-
-static vsi_bool op_setup
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    VSI_UNREFERENCED(self);
-
-    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
-    {
-        outputs[0]->attr.dim_num = 2;
-        outputs[0]->attr.size[0] = inputs[0]->attr.size[0];
-        outputs[0]->attr.size[1] = inputs[0]->attr.size[3];
-    }
-
-    if ( VSI_NN_DIM_AUTO == outputs[1]->attr.dim_num )
-    {
-        outputs[1]->attr.dim_num = 3;
-        outputs[1]->attr.size[0] = 2;
-        outputs[1]->attr.size[1] = inputs[0]->attr.size[0];
-        outputs[1]->attr.size[2] = inputs[0]->attr.size[3];
-    }
-
-    return TRUE;
-} /* op_setup() */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -110,10 +47,10 @@ DEF_OP_REG
     (
     /* op_name    */ HEATMAP_MAX_KEYPOINT,
     /* init       */ NULL,
-    /* compute    */ op_compute,
-    /* deinit     */ vsi_nn_op_common_deinit,
-    /* check      */ op_check,
-    /* setup      */ op_setup,
+    /* compute    */ NULL,
+    /* deinit     */ NULL,
+    /* check      */ NULL,
+    /* setup      */ NULL,
     /* optimize   */ NULL,
     /* input_num  */ _INPUT_NUM,
     /* output_num */ _OUTPUT_NUM

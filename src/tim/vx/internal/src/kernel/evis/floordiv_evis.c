@@ -129,9 +129,6 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
     vsi_nn_kernel_tensor_attr_t *output_attr  = NULL;
     vsi_size_array_t             *output_shape = NULL;
     vsi_nn_kernel_dtype_e        input0_dtype = F16;
-    int32_t                      input0_fl    = 0;
-    int32_t                      input1_fl    = 0;
-    int32_t                      output_fl    = 0;
     float                        inScale0     = 1.0f;
     float                        inScale1     = 1.0f;
     float                        outScale     = 1.0f;
@@ -169,59 +166,12 @@ DEF_KERNEL_INITIALIZER(_floordiv_initializer)
                                  (output_shape->data[2] + gpu_param.global_scale[2] - 1)
                                              / gpu_param.global_scale[2] : 1;
 
-    if( input0_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        input0_fl = input0_attr->dfp.fl;
-        if (input0_fl > 0)
-        {
-            inScale0 = 1.0f / (float) ((int64_t)1 << input0_fl);
-        }
-        else
-        {
-            inScale0 = (float)((int64_t)1 << -input0_fl);
-        }
-    }
-    else if( input0_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        inScale0   = input0_attr->asymm.scale;
-        in0Tail    = -inScale0 * ((float)input0_attr->asymm.zero_point);
-    }
-
-    if( input1_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        input1_fl = input1_attr->dfp.fl;
-        if (input1_fl > 0)
-        {
-            inScale1 = 1.0f / (float) ((int64_t)1 << input1_fl);
-        }
-        else
-        {
-            inScale1 = (float)((int64_t)1 << -input1_fl);
-        }
-    }
-    else if( input1_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        inScale1   = input1_attr->asymm.scale;
-        in1Tail    = -inScale1 * ((float)input1_attr->asymm.zero_point);
-    }
-
-    if( output_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        output_fl = output_attr->dfp.fl;
-        if (output_fl > 0)
-        {
-            outScale = (float) ((int64_t)1 << output_fl);
-        }
-        else
-        {
-            outScale = 1.0f / (float)((int64_t)1 << -output_fl);
-        }
-    }
-    else if( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        outScale    = 1.0f / output_attr->asymm.scale;
-        outZp       = (float)(output_attr->asymm.zero_point);
-    }
+    inScale0 = input0_attr->scale;
+    in0Tail  = 0 - inScale0 * ((float)input0_attr->zero_point);
+    inScale1 = input1_attr->scale;
+    in1Tail  = 0 - inScale1 * ((float)input1_attr->zero_point);
+    outScale = 1.0f / output_attr->scale;
+    outZp    = (float)(output_attr->zero_point);
 
     if (BF16 == input0_dtype)
     {

@@ -131,15 +131,15 @@ static vsi_status op_compute
 
     vsi_nn_optimize_instance_norm_shape(inputs[0]->attr.size, inputs[0]->attr.dim_num, shape, &new_rank);
 
-    tmp_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-        inputs[0], shape, new_rank );
+    tmp_tensors[0] = vsi_nn_kernel_insert_reshape_node( self->graph,
+        inputs[0], shape, (uint32_t)new_rank, VSI_NN_OPTIMIZE_BACKWARD );
     tmp_tensors[1] = inputs[1];
     tmp_tensors[2] = inputs[2];
-    tmp_tensors[3] = vsi_nn_reshape_tensor( self->graph,
-            outputs[0], shape, new_rank );
+    tmp_tensors[3] = vsi_nn_kernel_insert_reshape_node( self->graph,
+            outputs[0], shape, (uint32_t)new_rank, VSI_NN_OPTIMIZE_FORWARD );
 
     status = _try_set_high_presision_tensor(tmp_tensors);
-    if(status != VSI_SUCCESS)
+    if (status != VSI_SUCCESS)
     {
         VSILOGE("Set tensor attr of high presision fail");
         return status;
@@ -150,7 +150,7 @@ static vsi_status op_compute
 
     n = vsi_nn_kernel_selector( self->graph, "instance_norm",
                     tmp_tensors, _INPUT_NUM, &tmp_tensors[3], _OUTPUT_NUM, param );
-    if( n != NULL )
+    if ( n != NULL )
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;

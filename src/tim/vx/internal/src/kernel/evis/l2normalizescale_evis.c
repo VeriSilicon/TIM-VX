@@ -127,10 +127,8 @@ DEF_KERNEL_INITIALIZER(_l2normalizescale_initializer)
     vsi_size_array_t * output_shape             = NULL;
     vsi_nn_kernel_dtype_e input_dtype          = F16;
     vsi_nn_kernel_dtype_e output_dtype         = F16;
-    int32_t   input_fl      = 0;
     int32_t   inputZP       = 0;
     float     inputScale    = 1.0f;
-    int32_t   output_fl     = 0;
     int32_t   outputZP      = 0;
     float     outputScale   = 1.0f;
     float     r_inputScale  = 1.0f;
@@ -153,41 +151,11 @@ DEF_KERNEL_INITIALIZER(_l2normalizescale_initializer)
     input_dtype   = input_attr->dtype;
     output_dtype  = output_attr->dtype;
 
-    if ( VSI_NN_KERNEL_QUANT_DFP == input_attr->quant )
-    {
-        input_fl   = input_attr->dfp.fl;
-        if (input_fl >= 0)
-        {
-            inputScale = 1.0f / (float) ((int64_t)1 << input_fl);
-        }
-        else
-        {
-            inputScale = (float) ((int64_t)1 << -input_fl);
-        }
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant )
-    {
-        inputZP     = input_attr->asymm.zero_point;
-        inputScale  = input_attr->asymm.scale;
-    }
+    inputZP      = input_attr->zero_point;
+    inputScale   = input_attr->scale;
 
-    if ( VSI_NN_KERNEL_QUANT_DFP == output_attr->quant )
-    {
-        output_fl   = output_attr->dfp.fl;
-        if (output_fl >= 0)
-        {
-            outputScale = (float) ((int64_t)1 << output_fl);
-        }
-        else
-        {
-            outputScale = 1.0f / (float) ((int64_t)1 << -output_fl);
-        }
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant )
-    {
-        outputZP     = output_attr->asymm.zero_point;
-        outputScale  = 1.0f / output_attr->asymm.scale;
-    }
+    outputZP     = output_attr->zero_point;
+    outputScale  = 1.0f / output_attr->scale;
 
     e2InScale    = inputScale * inputScale;
     r_inputScale = 1.0f / inputScale;

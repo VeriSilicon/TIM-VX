@@ -140,28 +140,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_bgra_initializer)
     }
     enable_copy = (int32_t)(xRatio == (1 << 15) && yRatio == (1 << 15));
 
-    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            outputScale = (float)((int64_t)1 << attr[0]->dfp.fl);
-        }
-        else
-        {
-            outputScale = (1.0f / (float)((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        dstZP = 0;
-    }
-    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        outputScale = 1.0f / attr[0]->asymm.scale;
-        dstZP = attr[0]->asymm.zero_point;
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        outputScale = 1;
-        dstZP = 0;
-    }
+    outputScale = 1.0f / attr[0]->scale;
+    dstZP = attr[0]->zero_point;
 
     shaderParam.global_scale[0]  = 4;
     shaderParam.global_scale[1]  = 1;

@@ -215,41 +215,11 @@ DEF_KERNEL_INITIALIZER(_batch_norm_initializer)
     output_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output);
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
 
-    if( input_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = input_attr->dfp.fl;
-        if (fl > 0)
-        {
-            input_scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input_scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if( input_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        input_scale = input_attr->asymm.scale;
-        input_tail  = 0 - input_scale * (float)input_attr->asymm.zero_point;
-    }
+    input_scale = input_attr->scale;
+    input_tail  = 0 - input_scale * (float)input_attr->zero_point;
 
-    if( output_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = output_attr->dfp.fl;
-        if (fl > 0)
-        {
-            output_scale = (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            output_scale = 1.0f / (float)((int64_t)1 << -fl);
-        }
-    }
-    else if( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        output_scale = 1.0f / output_attr->asymm.scale;
-        output_zp    = (float)output_attr->asymm.zero_point;
-    }
+    output_scale = 1.0f / output_attr->scale;
+    output_zp    = (float)output_attr->zero_point;
 
     pack_key = _PACK_BATCH_NORM_KEY( input_attr->dtype, output_attr->dtype );
 

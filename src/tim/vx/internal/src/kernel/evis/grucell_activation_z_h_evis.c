@@ -119,6 +119,8 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_z_h_initializer)
     float                        hstate_in_tail         = 0;
     float                        output_scale           = 1.0f;
     float                        output_zp              = 0;
+    float                        output_scale1          = 1.0f;
+    float                        output_zp1             = 0;
     uint32_t                     i                      = 0;
     uint32_t                     pack_key               = 0;
     vsi_nn_kernel_tensor_attr_t* input_attr[GRUCELL_ACT_Z_H_IN_CNT] = {NULL};
@@ -142,33 +144,14 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_z_h_initializer)
     output_attr[1] = vsi_nn_kernel_tensor_attr_create( hstate_out );
     CHECK_PTR_FAIL_GOTO( output_attr[1], "Create tensor attr buffer fail.", final );
 
-    if ( VSI_NN_KERNEL_QUANT_DFP == input_attr[0]->quant )
-    {
-        int8_t srcFixPointPos = (int8_t)input_attr[0]->dfp.fl;
-        if (srcFixPointPos >= 0)
-            hstate_in_scale *= 1.0f / (vx_float32) ((int64_t)1 << srcFixPointPos);
-        else if (srcFixPointPos < 0)
-            hstate_in_scale *= (vx_float32)((int64_t)1 << -srcFixPointPos);
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == input_attr[0]->quant )
-    {
-        hstate_in_scale = input_attr[0]->asymm.scale;
-        hstate_in_tail = -(float)input_attr[0]->asymm.zero_point * hstate_in_scale;
-    }
+    hstate_in_scale = input_attr[0]->scale;
+    hstate_in_tail = -(float)input_attr[0]->zero_point * hstate_in_scale;
 
-    if ( VSI_NN_KERNEL_QUANT_DFP == output_attr[0]->quant )
-    {
-        int8_t dstFixPointPos = (int8_t)output_attr[0]->dfp.fl;
-        if (dstFixPointPos >= 0)
-            output_scale *= (vx_float32)((int64_t)1 << dstFixPointPos);
-        else if (dstFixPointPos < 0)
-            output_scale *= 1.0f / (vx_float32) ((int64_t)1 << - dstFixPointPos);
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == output_attr[0]->quant )
-    {
-        output_scale = 1.0f / output_attr[0]->asymm.scale;
-        output_zp = (float)output_attr[0]->asymm.zero_point;
-    }
+    output_scale = 1.0f / output_attr[0]->scale;
+    output_zp = (float)output_attr[0]->zero_point;
+
+    output_scale1 = 1.0f / output_attr[1]->scale;
+    output_zp1 = (float)output_attr[1]->zero_point;
 
     pack_key = _PACK_SELECT_KEY( input_attr[0]->dtype, input_attr[1]->dtype, output_attr[0]->dtype);
 
@@ -290,6 +273,8 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_z_h_initializer)
             status |= vsi_nn_kernel_gpu_add_param(node, "hstate_in_tail", &hstate_in_tail);
             status |= vsi_nn_kernel_gpu_add_param(node, "output_scale", &output_scale);
             status |= vsi_nn_kernel_gpu_add_param(node, "output_zp", &output_zp);
+            status |= vsi_nn_kernel_gpu_add_param(node, "output_scale1", &output_scale1);
+            status |= vsi_nn_kernel_gpu_add_param(node, "output_zp1", &output_zp1);
             CHECK_STATUS_FAIL_GOTO(status, final );
         }
         break;

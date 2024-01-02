@@ -22,6 +22,7 @@
 *
 *****************************************************************************/
 
+#if !(VX_RELATIONAL_OPS_VX_SUPPORT_EXT)
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -319,41 +320,10 @@ DEF_KERNEL_INITIALIZER(_comparisons_initializer)
 
     out_shape  = attr[2]->shape;
 
-    if( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[0]->dfp.fl;
-        if (fl > 0)
-        {
-            input0Scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input0Scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        input0Scale  = attr[0]->asymm.scale;
-        input0Tail = 0 - attr[0]->asymm.zero_point * input0Scale;
-    }
-
-    if( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[1]->dfp.fl;
-        if (fl > 0)
-        {
-            input1Scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input1Scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        input1Scale  = attr[1]->asymm.scale;
-        input1Tail = 0 - attr[1]->asymm.zero_point * input1Scale;
-    }
+    input0Scale = attr[0]->scale;
+    input0Tail  = 0 - attr[0]->zero_point * input0Scale;
+    input1Scale = attr[1]->scale;
+    input1Tail  = 0 - attr[1]->zero_point * input1Scale;
 
     gpu_param.global_scale[0]  = 8;
     gpu_param.global_scale[1]  = 1;
@@ -616,3 +586,4 @@ final:
 REGISTER_BACKEND_EVIS( relational_ops, _setup )
 
 __END_DECLS
+#endif

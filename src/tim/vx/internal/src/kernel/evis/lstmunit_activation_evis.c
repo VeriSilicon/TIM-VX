@@ -996,18 +996,14 @@ DEF_KERNEL_INITIALIZER(_lstmunit_activation_initializer)
     float                        forget_bias            = 0.0f;
     float                        outputScale            = 1.0f;
     float                        outputZP               = 0;
-    int32_t                      dstZP                  = 0;
-    float                        dstScale               = 1.0f;
     vsi_nn_kernel_dtype_e        cellFormat             = F16;
     vsi_nn_kernel_dtype_e        dstFormat              = F16;
-    vsi_nn_kernel_quant_type_e   dstQuantType           = VSI_NN_KERNEL_QUANT_NONE;
-    int32_t                      dstFixPointPos         = 0;
-    float                        logE                   = (vx_float32)(log10(exp(1.0f)) / log10(2.0f));
+    float                        logE                   = (float)(log10(exp(1.0f)) / log10(2.0f));
     float                        twoLogE                = 2 * logE;
     uint32_t                     uint_min               = 0xFBFFFFFF;
     uint32_t                     uint_max               = 0x7BFFFFFF;
-    float                        float_min              = *(vx_float32 *)&uint_min;
-    float                        float_max              = *(vx_float32 *)&uint_max;
+    float                        float_min              = *(float *)&uint_min;
+    float                        float_max              = *(float *)&uint_max;
     float                        clip_Min_F[4]          = {0};
     float                        clip_Max_F[4]          = {0};
     uint32_t                     i                      = 0;
@@ -1063,22 +1059,11 @@ DEF_KERNEL_INITIALIZER(_lstmunit_activation_initializer)
     status = vsi_nn_kernel_scalar_read_float32( (vsi_nn_kernel_scalar_t)param[param_size - 1], &forget_bias );
     CHECK_STATUS_FAIL_GOTO(status, final );
 
-    cellFormat = attr[0]->dtype;
-    dstFormat   = attr[1]->dtype;
+    cellFormat   = attr[0]->dtype;
+    dstFormat    = attr[1]->dtype;
 
-    dstQuantType = attr[1]->quant;
-
-    if ( VSI_NN_KERNEL_QUANT_DFP == dstQuantType )
-    {
-        dstFixPointPos = (int8_t)attr[1]->dfp.fl;
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == dstQuantType )
-    {
-        dstZP = attr[1]->asymm.zero_point;
-        dstScale = attr[1]->asymm.scale;
-    }
-
-    outputZP  = (vx_float32)dstZP;
+    outputScale  = 1.0f / attr[1]->scale;
+    outputZP     = (float)attr[1]->zero_point;
 
     gpu_param.global_scale[0]  = 4;
     gpu_param.global_scale[1]  = 1;
@@ -1181,20 +1166,6 @@ DEF_KERNEL_INITIALIZER(_lstmunit_activation_initializer)
             0x00000001, 0x00000001, 0x00000001, 0x00000001,
             0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
         }, GPU_DP_TYPE_16};
-
-        if (dstQuantType == VSI_NN_KERNEL_QUANT_DFP)
-        {
-            if (dstFixPointPos >= 0)
-                outputScale *= (vx_float32)((int64_t)1 << dstFixPointPos);
-            else if (dstFixPointPos < 0)
-                outputScale *= 1.0f / (vx_float32) ((int64_t)1 << -dstFixPointPos);
-
-            outputZP = 0;
-        }
-        else if (dstQuantType == VSI_NN_KERNEL_QUANT_ASYMM)
-        {
-            outputScale = 1.0f / dstScale;
-        }
 
         if ( cellFormat == F16 )
         {

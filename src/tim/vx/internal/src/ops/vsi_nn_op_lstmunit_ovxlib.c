@@ -303,7 +303,7 @@ static vsi_bool op_setup
     vsi_nn_internal_tensor_t* input_add_aux_input_fc_outputs[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
     vsi_nn_internal_tensor_t* recurrent_fc_outputs[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
     vsi_nn_internal_tensor_t* layernorm_outputs[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
-    vsi_nn_tensor_t* bias_tensors[LSTMUNIT_IFCO_GATE_COUNT] = { NULL };
+    vsi_nn_tensor_t* bias_tensors[LSTMUNIT_IFCO_GATE_COUNT * 2] = { NULL };
     vsi_nn_tensor_t* zero_bias_tensor = NULL;
     vsi_nn_internal_node_t* curr = NULL;
     int32_t ifco_start_index = 0;
@@ -362,7 +362,7 @@ static vsi_bool op_setup
 
     setup_op_shapes(self, inputs, outputs);
 
-    for( i = 0; i < LSTMUNIT_IFCO_GATE_COUNT; i++)
+    for( i = 0; i < LSTMUNIT_IFCO_GATE_COUNT * 2; i++)
     {
         if( p->local->use_layer_norm || p->local->use_hybrid )
         {
@@ -370,7 +370,18 @@ static vsi_bool op_setup
         }
         else
         {
-            bias_tensors[i] = inputs[LSTMUNIT_INPUT_BIAS_I + i];
+            if(i < LSTMUNIT_IFCO_GATE_COUNT)
+            {
+                 bias_tensors[i] = inputs[LSTMUNIT_INPUT_BIAS_I + i];
+            }
+            else if(self->input.num > LSTM_INPUT_BIAS_R2I)
+            {
+                 bias_tensors[i] = inputs[LSTMUNIT_INPUT_BIAS_R2I + i - LSTMUNIT_IFCO_GATE_COUNT];
+            }
+            else
+            {
+                 bias_tensors[i] = NULL;
+            }
         }
     }
 
@@ -486,7 +497,7 @@ static vsi_bool op_setup
             recurrent_fc_outputs[i] = create_tp_fc(self,
                                                 inputs[LSTMUNIT_INPUT_H_STATE],
                                                 inputs[LSTMUNIT_INPUT_WEIGHT_R2I + i],
-                                                NULL,
+                                                bias_tensors[LSTMUNIT_IFCO_GATE_COUNT + i],
                                                 &p->internal_dtype[LSTMUNIT_QUANTIZE_PARAM_R2I + i],
                                                 use_virtual_tensor);
             CHECK_PTR_FAIL_GOTO( recurrent_fc_outputs[i], "Create tensor fail.", final );
@@ -506,7 +517,7 @@ static vsi_bool op_setup
             vsi_nn_internal_tensor_t* tmp = create_nn_fc(self,
                                                 recurrent_input_tensor->t,
                                                 inputs[LSTMUNIT_INPUT_WEIGHT_R2I + i],
-                                                NULL,
+                                                bias_tensors[LSTMUNIT_IFCO_GATE_COUNT + i],
                                                 kernel_h, kernel_w,
                                                 &p->internal_dtype[LSTMUNIT_QUANTIZE_PARAM_R2I + i],
                                                 use_virtual_tensor);

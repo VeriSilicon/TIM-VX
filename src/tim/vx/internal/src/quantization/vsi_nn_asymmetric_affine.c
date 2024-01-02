@@ -75,10 +75,13 @@ vsi_bool vsi_nn_QuantAffineCheck
 
     switch (dtype)
     {
+        case VSI_NN_TYPE_UINT4:
         case VSI_NN_TYPE_UINT8:
         case VSI_NN_TYPE_UINT16:
         case VSI_NN_TYPE_UINT32:
+        case VSI_NN_TYPE_INT4:
         case VSI_NN_TYPE_INT8:
+        case VSI_NN_TYPE_INT16:
         {
             double product_scale = (double)input->attr.dtype.scale * (double)weight->attr.dtype.scale;
             const double acuity_round_decimals = 1e-8;

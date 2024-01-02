@@ -60,6 +60,7 @@ typedef enum
     UNARY_ATANH,
     UNARY_ACOSH,
     UNARY_INVERSE_SIGMOID,
+    UNARY_TAN,
 } unary_type_e;
 
 /*
@@ -108,6 +109,7 @@ typedef enum
 #define ATANH_OPERATION         atanh
 #define ACOSH_OPERATION         acosh
 #define INVERSE_SIGMOID_OPERATION inverse_sigmoid
+#define TAN_OPERATION           tan
 
 #define ADD_UNARY_SH_KERNELS(name, source) \
     TENSOR_UNARY_KERNELS_3D(name##_OPERATION, UNARY_##name, BF16, BF16, source##_3D) \
@@ -153,6 +155,7 @@ static const struct {
     ADD_UNARY_SH_KERNELS(ATAN,      KERNEL_SOURCE1)
     ADD_UNARY_SH_KERNELS(ATANH,     KERNEL_SOURCE1)
     ADD_UNARY_SH_KERNELS(ACOSH,     KERNEL_SOURCE1)
+    ADD_UNARY_SH_KERNELS(TAN,       KERNEL_SOURCE1)
 
     ADD_UNARY_SH_KERNELS(HSIGMOID,  KERNEL_SOURCE0)
     ADD_UNARY_SH_KERNELS(MISH,      KERNEL_SOURCE0)
@@ -177,6 +180,7 @@ static const struct {
 #undef RCP_OPERATION
 #undef SIGN_OPERATION
 #undef SOFTSIGN_OPERATION
+#undef TAN_OPERATION
 /*
  * Kernel params
  */
@@ -243,41 +247,10 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
     }
     out_shape  = attr[1]->shape;
 
-    if( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[0]->dfp.fl;
-        if (fl > 0)
-        {
-            inputScale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            inputScale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        inputScale  = attr[0]->asymm.scale;
-        inputTail = 0 - attr[0]->asymm.zero_point * inputScale;
-    }
-
-    if( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[1]->dfp.fl;
-        if (fl > 0)
-        {
-            outputScale = (float)((int64_t)1 << fl);
-        }
-        else
-        {
-            outputScale = (float)1.0f / (float) ((int64_t)1 << -fl);
-        }
-    }
-    else if( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        outputScale = (float)1.0f / attr[1]->asymm.scale;
-        outputZP     = (float)attr[1]->asymm.zero_point;
-    }
+    inputScale  = attr[0]->scale;
+    inputTail   = 0 - attr[0]->zero_point * inputScale;
+    outputScale = (float)1.0f / attr[1]->scale;
+    outputZP    = (float)attr[1]->zero_point;
 
 #define _PACK_SELECT_KEY( TYPE, IN_TYPE, OUT_TYPE )    \
         (( TYPE << 24) | ( IN_TYPE << 16) | ( OUT_TYPE << 8))
@@ -298,17 +271,23 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
 
     switch( pack_key )
     {
+#if !(VX_ACTIVATION_SIN_COS_VX_SUPPORT_EXT)
         case _PACK_SELECT_KEY( UNARY_SIN, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_COS, BF16, BF16 ):
+#endif
+#if !(VX_ACTIVATION_EXP_VX_SUPPORT_EXT)
         case _PACK_SELECT_KEY( UNARY_EXP, BF16, BF16 ):
+#endif
         case _PACK_SELECT_KEY( UNARY_LOG, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_SELU, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_NEG, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_HSIGMOID, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_MISH, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_ROUND, BF16, BF16 ):
+#if !(VX_ACTIVATION_GELU_VX_SUPPORT_EXT)
         case _PACK_SELECT_KEY( UNARY_GELU, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_HGELU, BF16, BF16 ):
+#endif
         case _PACK_SELECT_KEY( UNARY_CELU, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_RCP, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_SIGN, BF16, BF16 ):
@@ -317,6 +296,7 @@ DEF_KERNEL_INITIALIZER(_eltwise_unary_initializer)
         case _PACK_SELECT_KEY( UNARY_ATANH, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_ACOSH, BF16, BF16 ):
         case _PACK_SELECT_KEY( UNARY_INVERSE_SIGMOID, BF16, BF16 ):
+        case _PACK_SELECT_KEY( UNARY_TAN, BF16, BF16 ):
         {
             gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
                 0x11111111, // TCfg
@@ -614,16 +594,22 @@ OnError:
     } \
     REGISTER_BACKEND_EVIS( KERNEL_NAME, _##KERNEL_NAME##_setup )
 
+#if !(VX_ACTIVATION_SIN_COS_VX_SUPPORT_EXT)
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( sin, UNARY_SIN )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( cos, UNARY_COS )
+#endif
+#if !(VX_ACTIVATION_EXP_VX_SUPPORT_EXT)
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( exp, UNARY_EXP )
+#endif
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( log, UNARY_LOG )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( neg, UNARY_NEG )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( hard_sigmoid, UNARY_HSIGMOID )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( mish, UNARY_MISH )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( round, UNARY_ROUND )
+#if !(VX_ACTIVATION_GELU_VX_SUPPORT_EXT)
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( gelu, UNARY_GELU )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( hard_gelu, UNARY_HGELU )
+#endif
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( selu, UNARY_SELU )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( celu, UNARY_CELU )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( rcp, UNARY_RCP )
@@ -633,5 +619,6 @@ REGISTER_ELTWISE_UNARY_BACKEND_EVIS( atan, UNARY_ATAN )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( atanh, UNARY_ATANH )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( acosh, UNARY_ACOSH )
 REGISTER_ELTWISE_UNARY_BACKEND_EVIS( inverse_sigmoid, UNARY_INVERSE_SIGMOID )
+REGISTER_ELTWISE_UNARY_BACKEND_EVIS( tan, UNARY_TAN )
 
 __END_DECLS

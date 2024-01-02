@@ -288,67 +288,13 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[8], &K);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    src0ZP     = attr[0]->asymm.zero_point;
-    src0Scale  = attr[0]->asymm.scale;
-    src1ZP     = attr[1]->asymm.zero_point;
-    src1Scale  = attr[1]->asymm.scale;
-    dstZP      = (float)attr[2]->asymm.zero_point;
-    dstScale   = attr[2]->asymm.scale;
+    src0ZP     = attr[0]->zero_point;
+    src0Scale  = attr[0]->scale;
+    src1ZP     = attr[1]->zero_point;
+    src1Scale  = attr[1]->scale;
+    dstZP      = (float)attr[2]->zero_point;
+    dstScale   = attr[2]->scale;
 
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            src0Scale = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            src0Scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        src0ZP = 0;
-    }
-    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE)
-    {
-        src0Scale = 1;
-        src0ZP = 0;
-    }
-
-    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[1]->dfp.fl > 0)
-        {
-            src1Scale = (1.0f / ((float) ((int64_t)1 << attr[1]->dfp.fl)));
-        }
-        else
-        {
-            src1Scale = ((float) ((int64_t)1 << -attr[1]->dfp.fl));
-        }
-        src1ZP = 0;
-    }
-    else if (attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE)
-    {
-        src1Scale = 1;
-        src1ZP = 0;
-    }
-
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[2]->dfp.fl > 0)
-        {
-            dstScale = (float)((int64_t)1 << attr[2]->dfp.fl);
-        }
-        else
-        {
-            dstScale = (1.0f / (float)((int64_t)1 << -attr[2]->dfp.fl));
-        }
-        dstScale = 1.0f / dstScale;
-        dstZP = 0.0f;
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        dstScale = 1;
-        dstZP = 0.0f;
-    }
     gpu_quantize_multiplier_16bit(src0Scale / 1.0f, &M0, &postShift0);
     gpu_quantize_multiplier_16bit(src1Scale / 1.0f, &M1, &postShift1);
 
@@ -1266,67 +1212,12 @@ DEF_KERNEL_INITIALIZER(_matrix_mul_cross_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[10], &axis_size);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    src0ZP     = attr[0]->asymm.zero_point;
-    src0Scale  = attr[0]->asymm.scale;
-    src1ZP     = attr[1]->asymm.zero_point;
-    src1Scale  = attr[1]->asymm.scale;
-    dstZP      = (float)attr[2]->asymm.zero_point;
-    dstScale   = attr[2]->asymm.scale;
-
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            src0Scale = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            src0Scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        src0ZP = 0;
-    }
-    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE)
-    {
-        src0Scale = 1;
-        src0ZP = 0;
-    }
-
-    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[1]->dfp.fl > 0)
-        {
-            src1Scale = (1.0f / ((float) ((int64_t)1 << attr[1]->dfp.fl)));
-        }
-        else
-        {
-            src1Scale = ((float) ((int64_t)1 << -attr[1]->dfp.fl));
-        }
-        src1ZP = 0;
-    }
-    else if (attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE)
-    {
-        src1Scale = 1;
-        src1ZP = 0;
-    }
-
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[2]->dfp.fl > 0)
-        {
-            dstScale = (float)((int64_t)1 << attr[2]->dfp.fl);
-        }
-        else
-        {
-            dstScale = (1.0f / (float)((int64_t)1 << -attr[2]->dfp.fl));
-        }
-        dstScale = 1.0f / dstScale;
-        dstZP = 0.0f;
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        dstScale = 1;
-        dstZP = 0.0f;
-    }
+    src0ZP     = attr[0]->zero_point;
+    src0Scale  = attr[0]->scale;
+    src1ZP     = attr[1]->zero_point;
+    src1Scale  = attr[1]->scale;
+    dstZP      = (float)attr[2]->zero_point;
+    dstScale   = attr[2]->scale;
 
     mulKIn0In1Zp = (float)((int)(K + 3) / 4 * 4 * src1ZP * src0ZP);
     inOutScale =  src0Scale * src1Scale / dstScale;

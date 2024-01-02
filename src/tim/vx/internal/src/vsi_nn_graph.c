@@ -560,6 +560,692 @@ final:
     return status;
 } /* setup_node() */
 
+#if VX_GRAPH_BATCH_OPT_SUPPORT
+static vsi_bool canBatchSplit
+(
+    vsi_nn_node_t* node,
+    uint32_t inputBtachNum
+)
+{
+    vsi_bool ret;
+    uint32_t i;
+    ret = TRUE;
+
+    switch(node->op)
+    {
+        case VSI_NN_OP_SOFTMAX:
+            if (node->nn_param.softmax.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_LOG_SOFTMAX:
+            if (node->nn_param.log_softmax.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_LAYER_NORM:
+            if (node->nn_param.layernorm.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_REDUCE:
+            for (i = 0; i < node->nn_param.reduce.axis_num; i++)
+            {
+                int index = node->nn_param.reduce.axis[i];
+                if (index == (int32_t)inputBtachNum - 1)
+                {
+                    ret = FALSE;
+                    break;
+                }
+            }
+            break;
+        case VSI_NN_OP_CONCAT:
+            if (node->nn_param.concat.axis == inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_TENSORSTACKCONCAT:
+            if (node->nn_param.tensorstackconcat.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_STACK:
+            if (node->nn_param.stack.axis == inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_UNSTACK:
+            if (node->nn_param.unstack.axis == inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_CONCATSHIFT:
+            if (node->nn_param.concatshift.axis == inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_SPLIT:
+            if (node->nn_param.split.axis == inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_BATCH2SPACE:
+        case VSI_NN_OP_SPACE2BATCH:
+        case VSI_NN_OP_BATCH_NORM:
+            ret = FALSE;
+            break;
+        case VSI_NN_OP_CROP:
+            if (node->nn_param.crop.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_CUMSUM:
+            if (node->nn_param.cumsum.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_INSTANCE_NORM:
+            for (i = 0; i < (uint32_t)node->nn_param.instancenorm.axis_num; i++)
+            {
+                int index = node->nn_param.instancenorm.axis[i];
+                if (index == (int32_t)inputBtachNum - 1)
+                {
+                    ret = FALSE;
+                    break;
+                }
+            }
+            break;
+        case VSI_NN_OP_L2NORMALIZESCALE:
+            if (node->nn_param.l2normalizescale.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_L2_NORMALIZE:
+            if (node->nn_param.l2_normalize.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_LPNORM:
+            if (node->nn_param.lpnorm.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_LRN:
+            if (node->nn_param.lrn.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_MOMENTS:
+            for (i = 0; i < (uint32_t)node->nn_param.moments.axis_num; i++)
+            {
+                int index = node->nn_param.moments.axis[i];
+                if (index == (int32_t)inputBtachNum - 1)
+                {
+                    ret = FALSE;
+                    break;
+                }
+            }
+            break;
+        case VSI_NN_OP_REPEAT:
+            if (node->nn_param.repeat.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_GATHER:
+            if (node->nn_param.gather.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_GATHER_ELEMENTS:
+            if (node->nn_param.gather_elements.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_SCATTER_ELEMENTS:
+            if (node->nn_param.scatter_elements.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_SHUFFLECHANNEL:
+            if (node->nn_param.shufflechannel.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        case VSI_NN_OP_TOPK:
+            if (node->nn_param.topk.axis == (int32_t)inputBtachNum - 1)
+            {
+                ret = FALSE;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+static vsi_status batchInference_graph
+(
+    vsi_nn_graph_t* graph,
+    vsi_nn_node_id_t* nodes_list
+)
+{
+    vsi_size_t i, j, k;
+    vsi_status status;
+    vsi_bool ret;
+    vsi_nn_tensor_t* tensor = NULL;
+    vsi_nn_tensor_t** inputs = NULL;
+    vsi_nn_tensor_t** outputs = NULL;
+    vsi_nn_tensor_attr_t* original_inputs_attr = NULL;
+    vsi_nn_tensor_attr_t* original_outputs_attr = NULL;
+    vsi_nn_tensor_id_t* approximateConstTensor = NULL;
+    vsi_size_t approximateConstTensor_count = 0;
+    vsi_bool has_inputTensor = FALSE;
+    vsi_nn_node_id_t node_id;
+    vsi_nn_node_t* node;
+    vsi_size_t num_of_node_inputs = 0;
+    vsi_size_t batchCount = 0;
+    vsi_size_t batchNum = 1;
+
+    vx_hardware_caps_params_t   hw_param;
+    vx_context  ctx = vxGetContext((vx_reference)graph->g);
+
+    for (i = 0; i < graph->node_num; i++)
+    {
+        node_id = nodes_list[i];
+        node = vsi_nn_GetNode(graph, node_id);
+        /* For NBG node, donot infer shape*/
+        if (node && node->op == VSI_NN_OP_NBG)
+        {
+            status = VSI_SUCCESS;
+            goto final;
+        }
+    }
+
+    memset(&hw_param, 0, sizeof(vx_hardware_caps_params_t));
+    status = vxQueryHardwareCaps(ctx, &hw_param, sizeof(vx_hardware_caps_params_t));
+
+    /*initial tensor shape*/
+    status = setup_node(graph, nodes_list);
+    if (VSI_SUCCESS != status)
+    {
+        goto final;
+    }
+
+    status = VSI_SUCCESS;
+    ret = TRUE;
+    inputs = allocate_io_buffer(graph);
+    outputs = allocate_io_buffer(graph);
+    original_inputs_attr = (vsi_nn_tensor_attr_t*)malloc(sizeof(vsi_nn_tensor_attr_t) * graph->max_node_io);
+    original_outputs_attr = (vsi_nn_tensor_attr_t*)malloc(sizeof(vsi_nn_tensor_attr_t) * graph->max_node_io);
+    approximateConstTensor = (vsi_nn_tensor_id_t*)malloc(sizeof(vsi_nn_tensor_id_t) * graph->tensor_num);
+    memset(approximateConstTensor, -1, sizeof(vsi_nn_tensor_id_t) * graph->tensor_num);
+
+    if (NULL == inputs || NULL == outputs || NULL == original_inputs_attr || NULL == original_outputs_attr)
+    {
+        VSILOGE("allocate buffer fail");
+        status = VSI_FAILURE;
+        goto final;
+    }
+
+    for (i = 0; i < graph->node_num; i++)
+    {
+        node_id = nodes_list[i];
+        memset(inputs, 0, graph->max_node_io * sizeof(vsi_nn_tensor_t*));
+        memset(outputs, 0, graph->max_node_io * sizeof(vsi_nn_tensor_t*));
+        memset(original_inputs_attr, 0, graph->max_node_io * sizeof(vsi_nn_tensor_attr_t));
+        memset(original_outputs_attr, 0, graph->max_node_io * sizeof(vsi_nn_tensor_attr_t));
+
+        /* Get inputs, outputs. */
+        node = vsi_nn_GetNode(graph, node_id);
+        CHECK_PTR_FAIL_GOTO(node, "Get node fail.", final);
+
+        vsi_nn_GetTensors(graph, node->input.tensors,
+            node->input.num, inputs);
+        vsi_nn_GetTensors(graph, node->output.tensors,
+            node->output.num, outputs);
+        batchNum = 1;
+        /*get input batch number*/
+        has_inputTensor = FALSE;
+        for (j = 0; j < node->input.num; j++)
+        {
+            vx_bool is_const = FALSE;
+            if (inputs[j] == NULL)
+            {
+                continue;
+            }
+            memcpy(&original_inputs_attr[j], &inputs[j]->attr, sizeof(vsi_nn_tensor_attr_t));
+            for (k = 0; k < approximateConstTensor_count; k++)
+            {
+                if (node->input.tensors[j] == approximateConstTensor[k])
+                {
+                    is_const = TRUE;
+                }
+            }
+            if (inputs[j]->attr.is_const != TRUE && is_const != TRUE)
+            {
+                has_inputTensor = TRUE;
+                if (batchNum < inputs[j]->attr.size[inputs[j]->attr.dim_num - 1])
+                {
+                    batchNum = inputs[j]->attr.size[inputs[j]->attr.dim_num - 1];
+                }
+            }
+        }
+
+        for (j = 0; j < node->output.num; j++)
+        {
+            if (outputs[j] == NULL)
+            {
+                continue;
+            }
+            memcpy(&original_outputs_attr[j], &outputs[j]->attr, sizeof(vsi_nn_tensor_attr_t));
+            if (!has_inputTensor)
+            {
+                approximateConstTensor[approximateConstTensor_count++] = node->output.tensors[j];
+            }
+            if (original_outputs_attr[j].dim_num < 1)
+            {
+                break;
+            }
+        }
+        if (j != node->output.num)
+        {
+            continue;
+        }
+
+        if (batchNum > 1 && canBatchSplit(node, original_inputs_attr[0].dim_num))
+        {
+            vsi_size_t iterator_list_index = 0;
+            vsi_size_t list_index = 0;
+            vsi_size_t* iterator_list = (vsi_size_t*)malloc(sizeof(vsi_size_t) * (batchNum + 1));
+            memset(iterator_list, 0, sizeof(uint32_t) * (batchNum + 1));
+
+            if (((vsi_nn_node_prv_t*)node)->split_num > 0)
+            {/*user defined batch count*/
+                iterator_list[iterator_list_index++] = ((vsi_nn_node_prv_t*)node)->split_num;
+                if (((vsi_nn_node_prv_t*)node)->split_num == 1)
+                {/*if user set split_num = 1, there is no need to batch split.*/
+                    continue;
+                }
+            }
+            /*iterate through each vaild batch count*/
+            for (batchCount = batchNum; batchCount > 1; batchCount--)
+            {
+
+                /*for some node with big batch num, should limit to max core count.*/
+                if (batchCount > (hw_param.coreCount == 0?24 : hw_param.coreCount))
+                {
+                    continue;
+                }
+                if (batchNum % batchCount != 0)
+                {
+                    continue;
+                }
+                iterator_list[iterator_list_index++] = batchCount;
+            }
+
+            /*iterate through each vaild batch count*/
+            for (list_index = 0; list_index < iterator_list_index; list_index++)
+            {
+                batchCount = iterator_list[list_index];
+
+                /*set node input batch*/
+                num_of_node_inputs = node->input.num;
+                for (k = 0; k < num_of_node_inputs; k++)
+                {
+                    tensor = inputs[k];
+                    if (tensor)
+                    {
+                        vx_bool is_const = FALSE;
+                        uint32_t index = 0;
+                        for (index = 0; index < approximateConstTensor_count; index++)
+                        {
+                            if (node->input.tensors[k] == approximateConstTensor[index])
+                            {
+                                is_const = TRUE;
+                            }
+                        }
+                        if (is_const != TRUE && tensor->attr.is_const != TRUE)
+                        {
+                            if (original_inputs_attr[k].size[tensor->attr.dim_num - 1] / batchCount < 1
+                                || original_inputs_attr[k].size[tensor->attr.dim_num - 1] % batchCount != 0)
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                tensor->attr.size[tensor->attr.dim_num - 1] =
+                                    original_inputs_attr[k].size[tensor->attr.dim_num - 1] / batchCount;
+                            }
+                        }
+                    }
+                }
+                if (k != num_of_node_inputs)
+                {
+                    continue;
+                }
+
+                /*reset output tensor size, dim_num and other parameter,
+                    if not, it will affect vsi_nn_OpGenerateTensor*/
+                for (j = 0; j < node->output.num; j++)
+                {
+                    if (outputs[j] == NULL)
+                    {
+                        continue;
+                    }
+                    outputs[j]->attr.dim_num = VSI_NN_DIM_AUTO;
+                    for (k = 0; k < VSI_NN_MAX_DIM_NUM; k++)
+                    {
+                        outputs[j]->attr.size[k] = 0;
+                    }
+                }
+                if (node->internal_node_wksp != NULL)
+                {
+                    vsi_nn_internal_init_node_wksp(node);
+                }
+
+                /*node shape inference: */
+                if (vsi_nn_OpCheck(node->op, node, inputs, outputs))
+                {
+                    vsi_nn_print_node_io(graph, node, 0x01);
+                    ret = vsi_nn_OpGenerateTensor(node, inputs, outputs);
+                    if (ret != TRUE)
+                    {
+                        VSILOGD("Cannot split node[%u] %s on input_batch_count=%u",
+                            node_id, vsi_nn_OpGetName(node->op), batchCount);
+                        continue;
+                    }
+                    vsi_nn_print_node_io(graph, node, 0x02);
+
+                    /*check if the node can be splited on batch*/
+                    for (j = 0; j < node->output.num; j++)
+                    {
+                        if (outputs[j] == NULL)
+                        {
+                            continue;
+                        }
+
+                        tensor = outputs[j];
+                        /*can be splited if the batch dim size of the output shape is changed.*/
+                        if (tensor->attr.size[tensor->attr.dim_num - 1] ==
+                            original_outputs_attr[j].size[original_outputs_attr[j].dim_num - 1])
+                        {
+                            VSILOGD("Cannot split node[%u] %s on input_batch_count=%u",
+                                    node_id,
+                                    vsi_nn_OpGetName(node->op),
+                                    batchCount);
+                            break;
+                        }
+                    }
+
+                    if (j == node->output.num )
+                    {
+                        /*save the verified batch count*/
+                        ((vsi_nn_node_prv_t*)node)->split_num = batchCount;
+                        break;
+                    }
+                }
+                else
+                {
+                    VSILOGD("Cannot split node[%u] %s on input_batch_count=%u",
+                    node_id,
+                    vsi_nn_OpGetName(node->op),
+                    batchCount);
+                    continue;
+                }
+            }
+
+            /*restore node input batch number*/
+            num_of_node_inputs = node->input.num;
+            for (k = 0; k < num_of_node_inputs; k++)
+            {
+                tensor = inputs[k];
+                if (tensor)
+                {
+                    tensor->attr.size[tensor->attr.dim_num - 1] =
+                        original_inputs_attr[k].size[tensor->attr.dim_num - 1] ;
+                }
+            }
+
+            /*reset the output tensors*/
+            for (j = 0; j < node->output.num; j++)
+            {
+                if (outputs[j] == NULL)
+                {
+                    continue;
+                }
+                outputs[j]->attr.dim_num = VSI_NN_DIM_AUTO;
+                for (k = 0; k < VSI_NN_MAX_DIM_NUM; k++)
+                {
+                    outputs[j]->attr.size[k] = 0;
+                }
+            }
+            if (node->internal_node_wksp != NULL)
+            {
+                vsi_nn_internal_init_node_wksp(node);
+            }
+
+            /*restore node output shape*/
+            if (vsi_nn_OpCheck(node->op, node, inputs, outputs))
+            {
+                ret = vsi_nn_OpGenerateTensor(node, inputs, outputs);
+            }
+        }
+    }
+
+    final:
+    for (i = 0; i < graph->node_num; i++)
+    {
+        node_id = nodes_list[i];
+        node = vsi_nn_GetNode(graph, node_id);
+        if (node == NULL || node->op == VSI_NN_OP_NBG)
+        {
+            break;
+        }
+
+        vsi_nn_GetTensors(graph, node->input.tensors,
+            node->input.num, inputs);
+        vsi_nn_GetTensors(graph, node->output.tensors,
+            node->output.num, outputs);
+        for (j = 0; j < node->output.num; j++)
+        {
+            if (outputs[j] == NULL)
+            {
+                continue;
+            }
+            /*reset attr->size*/
+            outputs[j]->attr.dim_num = VSI_NN_DIM_AUTO;
+            for (k = 0; k < VSI_NN_MAX_DIM_NUM; k++)
+            {
+                outputs[j]->attr.size[k] = 0;
+            }
+        }
+        if (node->internal_node_wksp != NULL)
+        {
+            vsi_nn_internal_init_node_wksp(node);
+        }
+    }
+
+    free_io_buffer(inputs);
+    free_io_buffer(outputs);
+
+    if (original_inputs_attr != NULL)
+    {
+        free(original_inputs_attr);
+    }
+    if (original_outputs_attr != NULL)
+    {
+        free(original_outputs_attr);
+    }
+    if (approximateConstTensor != NULL)
+    {
+        free(approximateConstTensor);
+    }
+
+    return status;
+} /* batchInference_graph() */
+
+static vsi_status update_vxnode_batchNum
+(
+    vsi_nn_graph_t* graph,
+    vsi_nn_node_id_t* node_list
+)
+{
+    uint32_t i, j;
+    vsi_status status;
+    vsi_nn_node_id_t node_id;
+    vsi_nn_node_t* node;
+    vsi_nn_internal_node_t* inode;
+
+    status = VSI_SUCCESS;
+    for (i = 0; i < graph->node_num; i++)
+    {
+        node_id = node_list[i];
+        node = vsi_nn_GetNode(graph, node_id);
+        CHECK_PTR_FAIL_GOTO(node, "Get node fail.", final);
+        if (node->n != NULL)
+        {
+            vxSetNodeBatch(node->n, (uint32_t)((vsi_nn_node_prv_t*)node)->split_num);
+            if (((vsi_nn_node_prv_t*)node)->split_num > 1)
+            {
+                VSILOGD("split node[%u] %s to %ds on batch dim",
+                    node_id,
+                    vsi_nn_OpGetName(node->op),
+                    ((vsi_nn_node_prv_t*)node)->split_num);
+            }
+        }
+
+        for (j = 1; j < 100; j++)
+        {
+            inode = vsi_nn_internal_get_node_by_uid(node, j);
+            if (inode == NULL)
+            {
+                break;
+            }
+            else
+            {
+                if (inode->node->n != NULL)
+                {
+                    vxSetNodeBatch(inode->node->n, (uint32_t)((vsi_nn_node_prv_t*)node)->split_num);
+                }
+            }
+        }
+
+    }
+
+    final:
+    return status;
+} /* update_vxnode_batchNum() */
+#endif
+
+vsi_status vsi_nn_InferShape
+(
+    vsi_nn_graph_t* graph
+)
+{
+    uint32_t i, j, k;
+    vsi_status status;
+    vsi_nn_tensor_t** outputs = NULL;
+    vsi_nn_node_t* node;
+    vsi_nn_node_id_t* nodes_list = NULL;
+    status = VSI_SUCCESS;
+
+    for (i = 0; i < graph->node_num; i++)
+    {
+        node = vsi_nn_GetNode(graph, i);
+        /* For NBG node, donot infer shape*/
+        if (node && node->op == VSI_NN_OP_NBG)
+        {
+            status = VSI_FAILURE;
+            goto final;
+        }
+    }
+
+    outputs = allocate_io_buffer(graph);
+    if (NULL == outputs)
+    {
+        VSILOGE("allocate buffer fail");
+        status = VSI_FAILURE;
+        goto final;
+    }
+
+    /*reset all nodes' output shape*/
+    for (i = 0; i < graph->node_num; i++)
+    {
+        memset(outputs, 0, graph->max_node_io * sizeof(vsi_nn_tensor_t*));
+        node = vsi_nn_GetNode(graph, i);
+        CHECK_PTR_FAIL_GOTO(node, "Get node fail.", final);
+
+        vsi_nn_GetTensors(graph, node->output.tensors,
+            node->output.num, outputs);
+        CHECK_PTR_FAIL_GOTO(outputs, "Get node's output fail.", final);
+        for (j = 0; j < node->output.num; j++)
+        {
+            if (outputs[j] == NULL)
+            {
+                continue;
+            }
+            /*reset attr->size*/
+            outputs[j]->attr.dim_num = VSI_NN_DIM_AUTO;
+            for (k = 0; k < VSI_NN_MAX_DIM_NUM; k++)
+            {
+                outputs[j]->attr.size[k] = 0;
+            }
+        }
+        if (node->internal_node_wksp != NULL)
+        {
+            vsi_nn_internal_init_node_wksp(node);
+        }
+    }
+
+    /*setup nodes.*/
+    nodes_list = (vsi_nn_node_id_t*)malloc(
+        graph->node_num * sizeof(vsi_nn_node_id_t));
+    if (!nodes_list)
+    {
+        goto final;
+    }
+    for (i = 0; i < graph->node_num; i++)
+    {
+        nodes_list[i] = i;
+    }
+
+    status = setup_node(graph, nodes_list);
+    if (VSI_SUCCESS != status)
+    {
+        goto final;
+    }
+
+    final:
+    free_io_buffer(outputs);
+    if (NULL != nodes_list)
+    {
+        free(nodes_list);
+    }
+
+    return status;
+}
+
 static vsi_status set_graph_precision
     (
     vsi_nn_graph_t * graph,
@@ -809,6 +1495,18 @@ vsi_status vsi_nn_SetupGraph
         goto final;
     }
 
+#if VX_GRAPH_BATCH_OPT_SUPPORT
+    if (graph->ctx->options.enable_batch_opt)
+    {
+        /*processing batch splitting*/
+        status = batchInference_graph(graph, nodes_list);
+        if (VSI_SUCCESS != status)
+        {
+            goto final;
+        }
+    }
+#endif
+
     /* Preprocess node and tensor */
     status = setup_node( graph, nodes_list );
     if(VSI_SUCCESS != status)
@@ -838,6 +1536,14 @@ vsi_status vsi_nn_SetupGraph
         goto final;
     }
 
+#if VX_GRAPH_BATCH_OPT_SUPPORT
+    /* update vxnode's batch_count */
+    status = update_vxnode_batchNum(graph, nodes_list);
+    if (VSI_SUCCESS != status)
+    {
+        goto final;
+    }
+#endif
     /* set precision again to make sure any tensor created by compute_node have correct precesion infor*/
     status = set_graph_precision(graph, nodes_list);
     if(VSI_SUCCESS != status)
@@ -1011,7 +1717,8 @@ static vsi_nn_tensor_id_t _add_tensor
     vsi_nn_graph_t       * graph,
     vsi_nn_tensor_id_t     id,
     vsi_nn_tensor_attr_t * attr,
-    uint8_t             * data
+    uint8_t             *  data,
+    int8_t                 is_from_axisram
     )
 {
     vsi_nn_tensor_t * tensor;
@@ -1043,11 +1750,26 @@ static vsi_nn_tensor_id_t _add_tensor
     }
     else if( NULL != data )
     {
-        tensor = vsi_nn_CreateTensorFromData( graph, data, attr );
+        if (TRUE == is_from_axisram)
+        {
+            VSILOGE("Can't create a tensor from AXI-SRAM with data.");
+        }
+        else
+        {
+            tensor = vsi_nn_CreateTensorFromData( graph, data, attr );
+        }
     }
     else
     {
-        tensor = vsi_nn_CreateTensor( graph, attr );
+        if (TRUE == is_from_axisram)
+        {
+            tensor = vsi_nn_CreateTensorFromAXISRAM(graph, attr);
+        }
+        else
+        {
+            tensor = vsi_nn_CreateTensor(graph, attr);
+        }
+
     }
 
     if( NULL != tensor )
@@ -1071,7 +1793,7 @@ vsi_nn_tensor_id_t vsi_nn_AddTensor
     )
 {
     attr->is_created_from_handle = FALSE;
-    return _add_tensor(graph, id, attr, data);
+    return _add_tensor(graph, id, attr, data, FALSE);
 } /* vsi_nn_AddTensor() */
 
 vsi_nn_tensor_id_t vsi_nn_AddTensorFromHandle
@@ -1083,7 +1805,7 @@ vsi_nn_tensor_id_t vsi_nn_AddTensorFromHandle
     )
 {
     attr->is_created_from_handle = TRUE;
-    return _add_tensor(graph, id, attr, data);
+    return _add_tensor(graph, id, attr, data, FALSE);
 }
 
 vsi_nn_tensor_id_t vsi_nn_AddTensorFromView
@@ -1116,7 +1838,7 @@ vsi_nn_tensor_id_t vsi_nn_AddTensorFromView
     {
         attr.size[i] = end[i] - start[i];
     }
-    id = _add_tensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
+    id = _add_tensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL, FALSE);
     if (VSI_NN_TENSOR_ID_NA == id)
     {
         VSILOGE("Create view tensor failed, new tensor could not be created.");
@@ -1149,6 +1871,16 @@ vsi_nn_tensor_id_t vsi_nn_AddTensorFromView
 final:
     return id;
 }
+
+vsi_nn_tensor_id_t vsi_nn_AddTensorFromAXISRAM
+    (
+    vsi_nn_graph_t       * graph,
+    vsi_nn_tensor_id_t     id,
+    vsi_nn_tensor_attr_t * attr
+    )
+{
+    return _add_tensor(graph, id, attr, NULL, TRUE);
+} /* vsi_nn_AddTensorFromAXISRAM() */
 
 vsi_nn_tensor_id_t vsi_nn_AttachTensorToGraph
     (

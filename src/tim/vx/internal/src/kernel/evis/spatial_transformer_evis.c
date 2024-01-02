@@ -170,23 +170,8 @@ DEF_KERNEL_INITIALIZER(_get_matrix_initializer)
     attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
     CHECK_PTR_FAIL_GOTO( attr, "Create tensor attr buffer fail.", final );
 
-    if ( attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr->dfp.fl;
-        if (fl > 0)
-        {
-            input_scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input_scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        input_scale  = attr->asymm.scale;
-        input_tail = 0 - attr->asymm.zero_point * input_scale;
-    }
+    input_scale  = attr->scale;
+    input_tail = 0 - attr->zero_point * input_scale;
 
     in_shape  = attr->shape;
 
@@ -265,42 +250,10 @@ DEF_KERNEL_INITIALIZER(_warp_affine_initializer)
     attr[1] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
 
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[0]->dfp.fl;
-        if (fl > 0)
-        {
-            input_scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input_scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        input_scale  = attr[0]->asymm.scale;
-        input_tail = 0 - attr[0]->asymm.zero_point * input_scale;
-    }
-
-    if (attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        int32_t fl = attr[1]->dfp.fl;
-
-        if (fl >= 0)
-        {
-            output_scale = (vx_float32) ((vx_int64)1 << fl);
-        }
-        else if (fl < 0)
-        {
-            output_scale = 1.0f / (vx_float32) ((vx_int64)1 << -fl);
-        }
-    }
-    else if (attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        output_scale   = 1.0f / attr[1]->asymm.scale;
-        output_zp = (float)attr[1]->asymm.zero_point;
-    }
+    input_scale  = attr[0]->scale;
+    input_tail   = 0 - attr[0]->zero_point * input_scale;
+    output_scale = 1.0f / attr[1]->scale;
+    output_zp    = (float)attr[1]->zero_point;
 
     out_shape  = attr[1]->shape;
 

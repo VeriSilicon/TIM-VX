@@ -29,37 +29,11 @@
 #include "vsi_nn_log.h"
 #include "vsi_nn_types.h"
 
-#ifdef __ANDROID__
-#if ANDROID_SDK_VERSION >= 30
+#if (defined(__ANDROID__)) && (ANDROID_SDK_VERSION >= 30)
 static const char* ENV_LOG_LEVEL = "vendor.VSI_NN_LOG_LEVEL";
 #else
 static const char* ENV_LOG_LEVEL = "VSI_NN_LOG_LEVEL";
 #endif
-#else
-static const char* ENV_LOG_LEVEL = "VSI_NN_LOG_LEVEL";
-#endif
-
-int get_env_as_int(const char* env, int default_value) {
-    int value = default_value;
-    #ifdef __ANDROID__
-    {
-        char value_str[100];
-        int status = __system_property_get(env, value_str);
-        if (status) {
-            value = atoi(value_str);
-        }
-    }
-    #else
-    {
-        char* env_s = vsi_nn_getenv(env);
-        if (env_s) {
-            value = atoi(env_s);
-        }
-    }
-    #endif
-
-    return value;
-}
 
 static vsi_bool _check_log_level
     (
@@ -70,7 +44,7 @@ static vsi_bool _check_log_level
 
     if(env_level == VSI_NN_LOG_UNINIT)
     {
-        env_level = (vsi_nn_log_level_e)get_env_as_int(ENV_LOG_LEVEL, VSI_NN_LOG_WARN);
+        env_level = (vsi_nn_log_level_e)vsi_nn_getenv_asint(ENV_LOG_LEVEL, VSI_NN_LOG_WARN);
     }
 
     if(env_level >= level)

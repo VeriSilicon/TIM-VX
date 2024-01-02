@@ -176,6 +176,11 @@ float eltwise_unary_inverse_sigmoid(float x, float alpha, float beta)
     return log(x1 / x2);
 }
 
+float eltwise_unary_tan(float x, float alpha, float beta)
+{
+    return native_tan(x);
+}
+
 
 #define ELTWISE_UNARY_F32_2D(func_name) \
 __kernel void func_name##_F32toF32_2D \
@@ -218,6 +223,7 @@ ELTWISE_UNARY_F32_2D(atan)
 ELTWISE_UNARY_F32_2D(atanh)
 ELTWISE_UNARY_F32_2D(acosh)
 ELTWISE_UNARY_F32_2D(inverse_sigmoid)
+ELTWISE_UNARY_F32_2D(tan)
 
 #define ELTWISE_UNARY_U8_2D(func_name) \
 __kernel void func_name##_U8toU8_2D \
@@ -261,6 +267,7 @@ ELTWISE_UNARY_U8_2D(atan)
 ELTWISE_UNARY_U8_2D(atanh)
 ELTWISE_UNARY_U8_2D(acosh)
 ELTWISE_UNARY_U8_2D(inverse_sigmoid)
+ELTWISE_UNARY_U8_2D(tan)
 
 #define ELTWISE_UNARY_U8toF32_2D(func_name) \
 __kernel void func_name##_U8toF32_2D \
@@ -303,6 +310,7 @@ ELTWISE_UNARY_U8toF32_2D(atan)
 ELTWISE_UNARY_U8toF32_2D(atanh)
 ELTWISE_UNARY_U8toF32_2D(acosh)
 ELTWISE_UNARY_U8toF32_2D(inverse_sigmoid)
+ELTWISE_UNARY_U8toF32_2D(tan)
 
 __kernel void neg_I32toI32_2D
     (

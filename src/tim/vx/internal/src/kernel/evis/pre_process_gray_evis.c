@@ -133,28 +133,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_gray_copy_initializer)
     width      = (uint32_t)(out_shape->data[0]);
     height     = (uint32_t)(out_shape->data[1]);
 
-    if( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            outputScale = (float)((int64_t)1 << attr[0]->dfp.fl);
-        }
-        else
-        {
-            outputScale = (1.0f / (float)((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        dstZP = 0.0f;
-    }
-    else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        outputScale = 1.0f / attr[0]->asymm.scale;
-        dstZP = (float)attr[0]->asymm.zero_point;
-    }
-    else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        outputScale = 1;
-        dstZP = 0.0f;
-    }
+    outputScale = 1.0f / attr[0]->scale;
+    dstZP = (float)attr[0]->zero_point;
 
     shaderParam.global_scale[0]  = 16;
     shaderParam.global_scale[1]  = 1;
@@ -232,32 +212,10 @@ DEF_KERNEL_INITIALIZER(_pre_process_gray_initializer)
     CHECK_PTR_FAIL_GOTO( attr[0], "Create tensor attr buffer fail.", OnError );
 
     out_shape  = attr[0]->shape;
-    dstZP      = (float)attr[0]->asymm.zero_point;
-    outputScale   = attr[0]->asymm.scale;
+    dstZP      = (float)attr[0]->zero_point;
+    outputScale = 1.0f / attr[0]->scale;
     width      = (uint32_t)(out_shape->data[0]);
     height     = (uint32_t)(out_shape->data[1]);
-
-    if( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            outputScale = (float)((int64_t)1 << attr[0]->dfp.fl);
-        }
-        else
-        {
-            outputScale = (1.0f / (float)((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        dstZP = 0.0f;
-    }
-    else if(attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        outputScale = 1.0f/outputScale;
-    }
-    else if( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        outputScale = 1;
-        dstZP = 0.0f;
-    }
 
     shaderParam.global_scale[0]  = 4;
     shaderParam.global_scale[1]  = 1;
@@ -499,8 +457,8 @@ OnError:
     }
     if (attr[1])
     {
-        vsi_nn_kernel_tensor_attr_release( &attr[0] );
-        attr[0] = NULL;
+        vsi_nn_kernel_tensor_attr_release( &attr[1] );
+        attr[1] = NULL;
     }
 
     return status;

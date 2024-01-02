@@ -1,0 +1,172 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float       rlogE;
+_viv_uniform int         depth;
+_viv_uniform int         axisSize;
+_viv_uniform float       betaValue;
+_viv_uniform float       scaleLogE;
+_viv_uniform float       outputScale;
+_viv_uniform float       output_offset_asymmetric;
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;
+
+_viv_uniform VXC_512Bits uniGetSubLoData_4x4;
+_viv_uniform VXC_512Bits uniGetSubHiData_4x4;
+
+#define LOGSOFTMAX_PROCESS_EXCEED_AXIS1(read_fun, vert_max_fun) \
+    read_fun(in0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, max, in0, 16); \
+    for (coord.z = 0; coord.z < depth; coord.z ++) \
+    { \
+        for (coord.y = 0; coord.y < axisSize;) \
+        { \
+            read_fun(in0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, vec0, in0, 16); \
+            vert_max_fun(max, max, max, vec0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            coord.y++; \
+        } \
+    } \
+    coord.y = 0; \
+    sum0 = 0; \
+    sum1 = 0; \
+    for (coord.z = 0; coord.z < depth; coord.z ++) \
+    { \
+        for (coord.y = 0; coord.y < axisSize;coord.y++) \
+        { \
+            read_fun(in0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, vec0, in0, 16); \
+            VXC_DP4x4(data0, vec0, max, VXC_MODIFIER(0, 3, 0, \
+                                         VXC_RM_TowardZero, 0), uniGetSubLoData_4x4); \
+            data0 *= scaleLogE; \
+            data0 = exp2(data0); \
+            sum0 += data0; \
+            VXC_DP4x4(data0, vec0, max, VXC_MODIFIER(0, 3, 0, \
+                                         VXC_RM_TowardZero, 0), uniGetSubHiData_4x4); \
+            data0 *= scaleLogE; \
+            data0 = exp2(data0); \
+            sum1 += data0; \
+        } \
+    } \
+    sum0 = log2(sum0) * rlogE; \
+    sum1 = log2(sum1) * rlogE;
+
+#define LOGSOFTMAX_PROCESS_EXCEED_AXIS1_SAVE(dst_type, save_type, conv_mode,\
+                 OUT_SCALE, OUT_OFFSET, read_fun, write_fun) \
+    coord.y = 0; \
+    dst_type dst0, dst1; \
+    save_type vect; \
+    for (coord.z = 0; coord.z < depth; coord.z ++) \
+    { \
+        for (coord.y = 0; coord.y < axisSize;) \
+        { \
+            read_fun(in0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, vec0, in0, 16); \
+            VXC_DP4x4(data0, vec0, max, VXC_MODIFIER(0, 3, 0, \
+                                              VXC_RM_TowardZero, 0), uniGetSubLoData_4x4); \
+            data0 = data0 * betaValue - sum0; \
+            data0 = data0 * OUT_SCALE + OUT_OFFSET; \
+            _viv_asm(conv_mode, dst0, data0); \
+            VXC_DP4x4(data0, vec0, max, VXC_MODIFIER(0, 3, 0, \
+                                               VXC_RM_TowardZero, 0), uniGetSubHiData_4x4); \
+            data0 = data0 * betaValue - sum1; \
+            data0 = data0 * OUT_SCALE + OUT_OFFSET; \
+            _viv_asm(conv_mode, dst1, data0); \
+            VXC_DP2x8(vect, dst0, dst1, VXC_MODIFIER(0, 7, 0, \
+                                          VXC_RM_TowardZero, 0), uniConvertInt32toUint8_2x8); \
+            write_fun(output, coord, vect, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            coord.y++; \
+        } \
+    } \
+
+#define LOGSOFTMAX_EXCEED_AXIS1(src_name, dst_name, src_type, copy_type, dst_type,\
+save_type, conv_mode, OUT_SCALE, OUT_OFFSET, vert_max_fun) \
+__kernel void log_softmax_exceed_axis1_##src_name##to##dst_name \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    float input_Scale, \
+    int   axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), 0, 0, 0); \
+    src_type vec0, max; \
+    copy_type in0; \
+    vxc_float4 data0; \
+    vxc_float4 sum0, sum1; \
+    LOGSOFTMAX_PROCESS_EXCEED_AXIS1(VXC_ReadImage2DArray, vert_max_fun) \
+    LOGSOFTMAX_PROCESS_EXCEED_AXIS1_SAVE(dst_type, save_type, conv_mode,\
+    OUT_SCALE, OUT_OFFSET, VXC_ReadImage2DArray, VXC_WriteImage2DArray); \
+}
+
+
+
+LOGSOFTMAX_EXCEED_AXIS1(F16, F16, vxc_half8, vxc_short8, half4,  vxc_short8,\
+CONV, 1, 0, VXC_VertMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS1(F16, I16, vxc_half8, vxc_short8, short4, vxc_short8,\
+CONV_SAT_RTE, outputScale, 0, VXC_VertMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS1(F16, I8,  vxc_half8, vxc_short8, char4,  vxc_char8,\
+CONV_SAT_RTE, outputScale, 0, VXC_VertMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS1(F16, U8,  vxc_half8, vxc_short8, uchar4,\
+vxc_uchar8, CONV_SAT_RTE, outputScale, output_offset_asymmetric, VXC_VertMax3_Half)
+
+LOGSOFTMAX_EXCEED_AXIS1(I16, I16, vxc_short8, vxc_short8, short4, vxc_short8,\
+CONV_SAT_RTE, outputScale, 0, VXC_VertMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS1(I16, F16, vxc_short8, vxc_short8, half4,  vxc_short8,\
+CONV, 1, 0, VXC_VertMax3_Integer)
+
+LOGSOFTMAX_EXCEED_AXIS1(I8, I8,  vxc_char16, vxc_char16, char4,  vxc_char8,\
+CONV_SAT_RTE, outputScale, 0, VXC_VertMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS1(I8, F16, vxc_char16, vxc_char16, half4,  vxc_short8,\
+CONV, 1, 0, VXC_VertMax3_Integer)
+
+LOGSOFTMAX_EXCEED_AXIS1(U8, U8,  vxc_uchar16, vxc_uchar16, uchar4,\
+vxc_uchar8, CONV_SAT_RTE, outputScale, output_offset_asymmetric, VXC_VertMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS1(U8, F16, vxc_uchar16, vxc_uchar16, half4, \
+vxc_short8, CONV, 1, 0, VXC_VertMax3_Integer)
+
+
+
+#define LOGSOFTMAX_EXCEED_AXIS1_TOF32(src_name, src_type, copy_type, vert_max_fun) \
+__kernel void log_softmax_exceed_axis1_##src_name##toF32 \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    float input_Scale, \
+    int   axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), 0, 0, 0); \
+    src_type vec0, max; \
+    copy_type in0; \
+    vxc_float4 data0; \
+    vxc_float4 sum0, sum1; \
+    LOGSOFTMAX_PROCESS_EXCEED_AXIS1(VXC_ReadImage2DArray, vert_max_fun) \
+    coord.y = 0; \
+    for (coord.z = 0; coord.z < depth; coord.z ++) \
+    { \
+        for (coord.y = 0; coord.y < axisSize;) \
+        { \
+            VXC_ReadImage2DArray(in0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, vec0, in0, 16); \
+            VXC_DP4x4(data0, vec0, max, VXC_MODIFIER(0, 3, 0, \
+                                  VXC_RM_TowardZero, 0), uniGetSubLoData_4x4); \
+            data0 = data0 * betaValue - sum0; \
+            write_imagef(output, coord, data0); \
+            coord.x += 4; \
+            VXC_DP4x4(data0, vec0, max, VXC_MODIFIER(0, 3, 0, \
+                                   VXC_RM_TowardZero, 0), uniGetSubHiData_4x4); \
+            data0 = data0 * betaValue - sum1; \
+            write_imagef(output, coord, data0); \
+            coord.x -= 4; \
+            coord.y++; \
+        } \
+    } \
+}
+
+LOGSOFTMAX_EXCEED_AXIS1_TOF32(F16, vxc_half8, \
+vxc_short8, VXC_VertMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS1_TOF32(I16, vxc_short8, \
+vxc_short8, VXC_VertMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS1_TOF32(I8,  vxc_char16, \
+vxc_char16, VXC_VertMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS1_TOF32(U8,  vxc_uchar16, \
+vxc_uchar16, VXC_VertMax3_Integer)

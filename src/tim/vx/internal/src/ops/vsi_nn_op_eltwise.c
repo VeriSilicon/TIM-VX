@@ -79,8 +79,11 @@ static vsi_status _eltwise_op_compute
     if ( strcmp(kernel_name, "sub") == 0
       || strcmp(kernel_name, "add") == 0
       || strcmp(kernel_name, "mul") == 0
-      || (strcmp(kernel_name, "maximum") == 0 && !is_executed_on_sh)
-      || (strcmp(kernel_name, "minimum") == 0 && !is_executed_on_sh)
+#if VX_TENSOR_POW_API_SUPPORT
+      || strcmp(kernel_name, "pow") == 0
+#endif
+      || (strcmp(kernel_name, "maximum") == 0)
+      || (strcmp(kernel_name, "minimum") == 0)
       || (strcmp(kernel_name, "div") == 0 && !is_executed_on_sh))
     {
         doShapeOptimized = FALSE;

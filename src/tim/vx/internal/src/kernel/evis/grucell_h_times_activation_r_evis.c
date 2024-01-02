@@ -132,19 +132,8 @@ DEF_KERNEL_INITIALIZER(_grucell_h_times_activation_r_initializer)
     output_attr[0] = vsi_nn_kernel_tensor_attr_create( output );
     CHECK_PTR_FAIL_GOTO( output_attr[0], "Create tensor attr buffer fail.", final );
 
-    if ( VSI_NN_KERNEL_QUANT_DFP == input_attr[0]->quant )
-    {
-        int8_t srcFixPointPos = (int8_t)input_attr[0]->dfp.fl;
-        if (srcFixPointPos >= 0)
-            hstate_in_scale *= 1.0f / (vx_float32) ((int64_t)1 << srcFixPointPos);
-        else if (srcFixPointPos < 0)
-            hstate_in_scale *= (vx_float32)((int64_t)1 << -srcFixPointPos);
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == input_attr[0]->quant )
-    {
-        hstate_in_scale = input_attr[0]->asymm.scale;
-        hstate_in_tail = -(float)input_attr[0]->asymm.zero_point * hstate_in_scale;
-    }
+    hstate_in_scale = input_attr[0]->scale;
+    hstate_in_tail = 0 - (float)input_attr[0]->zero_point * hstate_in_scale;
 
     pack_key = _PACK_SELECT_KEY( input_attr[0]->dtype, input_attr[1]->dtype, output_attr[0]->dtype);
 

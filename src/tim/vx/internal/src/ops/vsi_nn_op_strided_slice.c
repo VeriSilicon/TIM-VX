@@ -572,6 +572,10 @@ static vsi_bool _build_strided_slice_params(vsi_nn_strided_slice_param * op_para
     const int32_t *stride_dims = op_params->stride_dims;
     strided_slice_param *params = &op_params->lcl2_data->params;
 
+    params->begin_dims_num = 0;
+    params->end_dims_num = 0;
+    params->stride_dims_num = 0;
+
     begin_mask = _reverse_mask_bits(begin_mask, input_dims);
     end_mask   = _reverse_mask_bits(end_mask, input_dims);
     shrink_axis_mask = _reverse_mask_bits(shrink_axis_mask, input_dims);
@@ -762,7 +766,8 @@ static vsi_status op_optimize
     vsi_size_t     output_elements = 0;
 
     /* Only forward run stride_slice's optimize */
-    if ( direction == VSI_NN_OPTIMIZE_BACKWARD )
+    if ( direction == VSI_NN_OPTIMIZE_BACKWARD ||
+         !self->graph->ctx->options.enable_slice_optimize )
     {
         return status;
     }

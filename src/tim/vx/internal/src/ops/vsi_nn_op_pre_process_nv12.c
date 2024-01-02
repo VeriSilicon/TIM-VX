@@ -63,7 +63,15 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "enable_perm", self->nn_param.pre_process_nv12.local->enable_perm );
     vsi_nn_kernel_param_add_int32( param, "enable_copy", self->nn_param.pre_process_nv12.local->enable_copy );
     vsi_nn_kernel_param_add_int32( param, "nv_type", self->nn_param.pre_process_nv12.nv_type );
-    n = vsi_nn_kernel_selector( self->graph, "pre_process_nv12", inputs, 2, outputs, 1, param );
+    if (self->nn_param.pre_process_nv12.nv_type == VSI_NN_YUV_TYPE_NV12 ||
+        self->nn_param.pre_process_nv12.nv_type == VSI_NN_YUV_TYPE_NV21)
+    {
+        n = vsi_nn_kernel_selector( self->graph, "pre_process_nv12", inputs, 2, outputs, 1, param );
+    }
+    else
+    {
+        n = vsi_nn_kernel_selector( self->graph, "pre_process_nv12_rggb", inputs, 2, outputs, 1, param );
+    }
     if( n != NULL )
     {
         self->n = (vx_node)n;

@@ -145,41 +145,10 @@ DEF_KERNEL_INITIALIZER(_erf_initializer)
 
     out_shape  = attr[1]->shape;
 
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[0]->dfp.fl;
-        if (fl > 0)
-        {
-            inputScale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            inputScale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        inputScale  = attr[0]->asymm.scale;
-        inputTail = 0 - attr[0]->asymm.zero_point * inputScale;
-    }
-
-    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[1]->dfp.fl;
-        if (fl > 0)
-        {
-            outputScale = (float)((int64_t)1 << fl);
-        }
-        else
-        {
-            outputScale = (float)1.0f / (float) ((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        outputScale = (float)1.0f / attr[1]->asymm.scale;
-        outputZP     = (float)attr[1]->asymm.zero_point;
-    }
+    inputScale  = attr[0]->scale;
+    inputTail   = 0 - (float)attr[0]->zero_point * inputScale;
+    outputScale = (float)1.0f / attr[1]->scale;
+    outputZP    = (float)attr[1]->zero_point;
 
 #define _PACK_SELECT_KEY( IN_TYPE, OUT_TYPE )    \
         ( ( IN_TYPE << 16) | ( OUT_TYPE << 8))

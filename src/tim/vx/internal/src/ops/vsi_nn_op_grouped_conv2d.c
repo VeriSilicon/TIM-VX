@@ -61,8 +61,10 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+#define _TENSOR_LEN 64
     vsi_bool res;
     uint32_t i;
+    char tensor_name[_TENSOR_LEN];
     vsi_nn_grouped_conv2d_param *nn_param = &self->nn_param.grouped_conv2d;
     nn_param->local = (vsi_nn_grouped_conv2d_param_local_data*)malloc(
         sizeof(vsi_nn_grouped_conv2d_param_local_data));
@@ -197,6 +199,14 @@ static vsi_status op_compute
             sizeof(vx_nn_convolution_params_ext2_t),
             LOCAL()->output_tensor_group[i]->t
             );
+
+        memset(tensor_name, 0, sizeof(tensor_name));
+        snprintf(tensor_name, sizeof(tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, i);
+        if(vxSetReferenceName((vx_reference)LOCAL()->output_tensor_group[i]->t, tensor_name) == VSI_FAILURE)
+        {
+            VSILOGW("Set uid %u copy node output name fail", self->uid);
+            return VSI_FAILURE;
+        }
         if( NULL == self->n )
         {
             VSILOGE("Add vxConvolutionLayer fail, (GROUPED_CONV2D) at [%s : %d]\n", __FILE__, __LINE__);

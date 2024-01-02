@@ -564,6 +564,11 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
                 temp_shape_y[temp_rank] = temp_shape_y[i];
                 temp_shape_output[temp_rank++] = temp_shape_output[i];
             }
+            //Delete 1to1 dim
+            if (temp_rank != 1 && temp_shape_output[temp_rank - 1] == 1)
+            {
+                temp_rank --;
+            }
         }
         else if (temp_shape_x[i] != 1)
         {
@@ -578,8 +583,12 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
                    sy *= temp_shape_y[j];
                    sz *= temp_shape_output[j];
                }
-               temp_rank += tile_fill_dim( temp_shape_x, temp_shape_y, temp_shape_output,
-                       temp_rank, VSI_NN_MAX_DIM_NUM, sx, sy, sz );
+              //Delete 1to1 dim
+               if (sz != 1)
+               {
+                   temp_rank += tile_fill_dim( temp_shape_x, temp_shape_y, temp_shape_output,
+                           temp_rank, VSI_NN_MAX_DIM_NUM, sx, sy, sz );
+               }
                idx_start = -1;
             }
             temp_shape_x[temp_rank] = temp_shape_x[i];
@@ -601,10 +610,6 @@ vsi_bool vsi_nn_kernel_optimize_tile_shape
          * Skip dim if the size is equal to 1
          * Also skip if ( sx == 1 && sy == 1 )
          */
-        if ( temp_shape_output[i] == 1 )
-        {
-            continue;
-        }
 
         // Update state
         state = TILE_STATE_EMPTY;

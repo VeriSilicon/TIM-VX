@@ -22,6 +22,7 @@
 *
 *****************************************************************************/
 
+#if !(VX_TENSOR_SELECT_VX_SUPPORT)
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -159,7 +160,6 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
     vsi_nn_kernel_tensor_attr_t *input1_attr   = NULL;
     vsi_nn_kernel_tensor_attr_t *output_attr   = NULL;
     vsi_size_array_t             *output_shape  = NULL;
-    int32_t  input0_fl = 0, input1_fl = 0, output_fl = 0;
     float    input0Scale                    = 1.0f;
     int32_t  input0Zp                       = 0;
     float    input1Scale                    = 1.0f;
@@ -180,59 +180,12 @@ DEF_KERNEL_INITIALIZER(_select_initializer)
     output_attr  = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)output);
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
 
-    if ( input0_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        input0_fl = input0_attr->dfp.fl;
-        if (input0_fl > 0)
-        {
-            input0Scale = 1.0f / (float) ((int64_t)1 << input0_fl);
-        }
-        else
-        {
-            input0Scale = (float)((int64_t)1 << -input0_fl);
-        }
-    }
-    else if ( input0_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        input0Scale = input0_attr->asymm.scale;
-        input0Zp    = input0_attr->asymm.zero_point;
-    }
-
-    if ( input1_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        input1_fl = input1_attr->dfp.fl;
-        if (input1_fl > 0)
-        {
-            input1Scale = 1.0f / (float) ((int64_t)1 << input1_fl);
-        }
-        else
-        {
-            input1Scale = (float)((int64_t)1 << -input1_fl);
-        }
-    }
-    else if ( input1_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        input1Scale = input1_attr->asymm.scale;
-        input1Zp    = input1_attr->asymm.zero_point;
-    }
-
-    if ( output_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        output_fl = output_attr->dfp.fl;
-        if (output_fl > 0)
-        {
-            outputScale = 1.0f / (float) ((int64_t)1 << output_fl);
-        }
-        else
-        {
-            outputScale = (float)((int64_t)1 << -output_fl);
-        }
-    }
-    else if ( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        outputScale = output_attr->asymm.scale;
-        outputZP    = output_attr->asymm.zero_point;
-    }
+    input0Scale = input0_attr->scale;
+    input0Zp    = input0_attr->zero_point;
+    input1Scale = input1_attr->scale;
+    input1Zp    = input1_attr->zero_point;
+    outputScale = output_attr->scale;
+    outputZP    = output_attr->zero_point;
 
     gpu_quantize_multiplier_16bit(input0Scale / outputScale, &in0_M0, &in0_postShift);
     gpu_quantize_multiplier_16bit(input1Scale / outputScale, &in1_M0, &in1_postShift);
@@ -541,3 +494,4 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( select, _setup )
+#endif

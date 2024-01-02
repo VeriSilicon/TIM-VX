@@ -22,7 +22,7 @@
 *
 *****************************************************************************/
 
-
+#if !(VX_DEPTH2SPACE_CRD_MODE_SUPPORT)
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -161,51 +161,10 @@ DEF_KERNEL_INITIALIZER(_depth2space_crd_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[2], &block_size);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        src0ZP     = attr[0]->asymm.zero_point;
-        src0Scale  = attr[0]->asymm.scale;
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            src0Scale = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            src0Scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        src0ZP = 0;
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        src0Scale = 1;
-        src0ZP = 0;
-    }
-
-    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        dstZP      = attr[1]->asymm.zero_point;
-        dstScale   = attr[1]->asymm.scale;
-    }
-    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[1]->dfp.fl > 0)
-        {
-            dstScale = (1.0f / (float)((int64_t)1 << attr[1]->dfp.fl));
-        }
-        else
-        {
-            dstScale = (float)((int64_t)1 << -attr[1]->dfp.fl);
-        }
-        dstZP = 0;
-    }
-    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_NONE )
-    {
-        dstScale = 1;
-        dstZP = 0;
-    }
+    src0ZP     = attr[0]->zero_point;
+    src0Scale  = attr[0]->scale;
+    dstZP      = attr[1]->zero_point;
+    dstScale   = attr[1]->scale;
 
     output_dims = (uint32_t)attr[1]->shape->size;
     output_width = (int32_t)(attr[1]->shape->data[0]);
@@ -454,4 +413,4 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( depth2space_internal, _setup )
-
+#endif

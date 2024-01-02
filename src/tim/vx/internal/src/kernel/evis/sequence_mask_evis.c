@@ -131,42 +131,10 @@ DEF_KERNEL_INITIALIZER(_sequence_mask_initializer)
     CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
 
     out_shape  = attr[1]->shape;
-
-    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        input_zp     = attr[0]->asymm.zero_point;
-        scaleIn      = attr[0]->asymm.scale;
-    }
-    else if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            scaleIn = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            scaleIn = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        input_zp = 0;
-    }
-
-    if (attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM)
-    {
-        output_zp    = attr[1]->asymm.zero_point;
-        scaleOut     = 1.0f / attr[1]->asymm.scale;
-    }
-    else if (attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        if (attr[1]->dfp.fl > 0)
-        {
-            scaleOut = (float)((int64_t)1 << attr[1]->dfp.fl);
-        }
-        else
-        {
-            scaleOut = (1.0f / (float)((int64_t)1 << -attr[1]->dfp.fl));
-        }
-        output_zp = 0;
-    }
+    input_zp   = attr[0]->zero_point;
+    scaleIn    = attr[0]->scale;
+    output_zp  = attr[1]->zero_point;
+    scaleOut   = 1.0f / attr[1]->scale;
 
     outputVal1 = scaleOut + (float)output_zp;
 
