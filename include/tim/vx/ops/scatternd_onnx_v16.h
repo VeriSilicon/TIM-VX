@@ -34,14 +34,23 @@ namespace ops {
  *
  * Scatter updates into a new tensor according to indices.
  *
- * - shape : The shape of the resulting tensor. 
+ * - reduction: Type of reduction to apply: none (default), add, mul, max, min.
  */
 
 class ScatterND_ONNX_V16 : public BuiltinOp {
  public:
-  ScatterND_ONNX_V16(Graph* graph);
+  enum ReductionType {
+    REDUCTION_NONE,
+    REDUCTION_ADD,
+    REDUCTION_MUL,
+    REDUCTION_MAX,
+    REDUCTION_MIN
+  };
+  ScatterND_ONNX_V16(Graph* graph, ReductionType reduction = ReductionType::REDUCTION_NONE);
 
   std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
+ protected:
+  ReductionType reduction_;
 };
 
 }  // namespace ops

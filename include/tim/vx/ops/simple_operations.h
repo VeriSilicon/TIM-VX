@@ -83,14 +83,14 @@ namespace ops {
  * returns the largest integer less than or equal to a given number.
  *
  * ## Ceil
- * 
+ *
  * returns the largest integer more than or equal to a given number.
- * 
+ *
  * ## Cast
  *
  * Change the format from input tensor to output tensor. This operation ignores
  * the scale and zeroPoint of quanized tensors.
- * 
+ *
  * ## Rcp
  * Computes the reciprocal of input element-wise.
  */
@@ -99,8 +99,8 @@ DECLARE_SIMPLE_OP(DataConvert)
 DECLARE_SIMPLE_OP(Neg)
 DECLARE_SIMPLE_OP(Abs)
 DECLARE_SIMPLE_OP(Sin)
-// TODO(jiangbo): enable it when internal ops supports `Cos`
-//DECLARE_SIMPLE_OP(Cos)
+DECLARE_SIMPLE_OP(Cos)
+DECLARE_SIMPLE_OP(Tan)
 DECLARE_SIMPLE_OP(Exp)
 DECLARE_SIMPLE_OP(Log)
 DECLARE_SIMPLE_OP(Sqrt)

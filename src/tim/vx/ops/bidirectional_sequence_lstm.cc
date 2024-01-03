@@ -109,6 +109,16 @@ class BidirectionalSequenceLstmImpl : public OpImpl {
     BI_LSTM_BW_INPUT_LAYERNORM_C = 54,
     BI_LSTM_BW_INPUT_LAYERNORM_O = 55,
 
+    BI_LSTM_FW_INPUT_BIAS_R2I = 56,
+    BI_LSTM_FW_INPUT_BIAS_R2F = 57,
+    BI_LSTM_FW_INPUT_BIAS_R2C = 58,
+    BI_LSTM_FW_INPUT_BIAS_R2O = 59,
+
+    BI_LSTM_BW_INPUT_BIAS_R2I = 60,
+    BI_LSTM_BW_INPUT_BIAS_R2F = 61,
+    BI_LSTM_BW_INPUT_BIAS_R2C = 62,
+    BI_LSTM_BW_INPUT_BIAS_R2O = 63,
+
     INPUT_CNT,
 
     BI_LSTM_FW_OUTPUT_OUTPUT = 0,
@@ -147,7 +157,7 @@ class BidirectionalSequenceLstmImpl : public OpImpl {
       const std::shared_ptr<Tensor>& tensor) override {
     in_tensors_[input_tensor_index] = tensor;
 
-    if (this->input_tensor_index == INPUT_CNT - 1) {
+    if (this->input_tensor_index >= INPUT_CNT - 9) {
       // Get all input tensor
       lstm_forward_->BindInput(in_tensors_[BI_LSTM_INPUT_INPUT]);
       reverse_input_->BindInput(in_tensors_[BI_LSTM_INPUT_INPUT]);
@@ -183,6 +193,12 @@ class BidirectionalSequenceLstmImpl : public OpImpl {
       lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_LAYERNORM_F]);
       lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_LAYERNORM_C]);
       lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_LAYERNORM_O]);
+      if(this->input_tensor_index == input_cnt_ - 1) {
+        lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_BIAS_R2I]);
+        lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_BIAS_R2F]);
+        lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_BIAS_R2C]);
+        lstm_forward_->BindInput(in_tensors_[BI_LSTM_FW_INPUT_BIAS_R2O]);
+      }
 
       lstm_backward_->BindInput(bw_input_tensor_);
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_H_STATE]);
@@ -214,6 +230,12 @@ class BidirectionalSequenceLstmImpl : public OpImpl {
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_LAYERNORM_F]);
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_LAYERNORM_C]);
       lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_LAYERNORM_O]);
+      if(this->input_tensor_index == input_cnt_ - 1) {
+        lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_BIAS_R2I]);
+        lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_BIAS_R2F]);
+        lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_BIAS_R2C]);
+        lstm_backward_->BindInput(in_tensors_[BI_LSTM_BW_INPUT_BIAS_R2O]);
+      }
     }
     this->input_tensor_index++;
     return *this;
