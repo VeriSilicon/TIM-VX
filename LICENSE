@@ -21,3 +21,12 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
+
+This product bundles various third-party components under other open source licenses.
+This section summarizes those components and their licenses.
+
+3rdparty/half/half.h
+MIT License
+
+jsoncpp(https://github.com/open-source-parsers/jsoncpp)
+MIT License
