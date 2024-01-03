@@ -29,9 +29,29 @@
 namespace tim {
 namespace vx {
 namespace ops {
+vsi_nn_reduction_type_e downcast_reduction_type (ScatterND_ONNX_V16::ReductionType type) {
+  switch (type)
+  {
+    case ScatterND_ONNX_V16::ReductionType::REDUCTION_NONE:
+      return VSI_NN_REDUCTION_TYPE_NONE;
+    case ScatterND_ONNX_V16::ReductionType::REDUCTION_ADD:
+      return VSI_NN_REDUCTION_TYPE_ADD;
+    case ScatterND_ONNX_V16::ReductionType::REDUCTION_MUL:
+      return VSI_NN_REDUCTION_TYPE_MUL;
+    case ScatterND_ONNX_V16::ReductionType::REDUCTION_MAX:
+      return VSI_NN_REDUCTION_TYPE_MAX;
+    case ScatterND_ONNX_V16::ReductionType::REDUCTION_MIN:
+      return VSI_NN_REDUCTION_TYPE_MIN;
+    default:
+      return VSI_NN_REDUCTION_TYPE_NONE;
+  }
+}
 
-ScatterND_ONNX_V16::ScatterND_ONNX_V16(Graph* graph)
-    : BuiltinOp(graph, VSI_NN_OP_SCATTER_ND_UPDATE) {
+ScatterND_ONNX_V16::ScatterND_ONNX_V16(Graph* graph, ReductionType reduction)
+    : BuiltinOp(graph, VSI_NN_OP_SCATTER_ND_UPDATE),
+      reduction_(reduction) {
+  this->impl()->node()->nn_param.scatter_nd_update.reduction = downcast_reduction_type(reduction_);
+
 }
 
 std::shared_ptr<Operation> ScatterND_ONNX_V16::Clone(std::shared_ptr<Graph>& graph) const {
