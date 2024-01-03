@@ -6,6 +6,9 @@
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
 _viv_uniform VXC_512Bits uniExtractOddData_2x8;
 
+_viv_uniform float output_scale1;
+_viv_uniform float output_zp1;
+
 float4 sigmoid_func(float4 x)
 {
     x *= -logE;
@@ -117,13 +120,15 @@ __kernel void grucell_activation_z_h_##name0##_F16to##name1##_##act_name( \
     VXC_DP4x4(h_tm, src3, src3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniConvertF16_0_4x4); \
     h_tm = h_tm * hstate_in_scale + hstate_in_tail; \
     float4 result = (1 - z) * h + z * h_tm; \
-    result = result * output_scale + output_zp; \
-    int4 dst0; \
-    _viv_asm(CONV_RTE, dst0, result); \
+    float4 out0 = result * output_scale + output_zp; \
+    float4 out1 = result * output_scale1 + output_zp1; \
+    int4 dst0, dst1; \
+    _viv_asm(CONV_RTE, dst0, out0); \
+    _viv_asm(CONV_RTE, dst1, out1); \
     dst_type dst; \
-    VXC_DP2x8(dst, dst0, dst0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
     VXC_WriteImage(output, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
-    VXC_WriteImage(hstate_out, coord_in, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    VXC_WriteImage(hstate_out, coord_in, dst.s4567, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
 }
 GRUCELL_QNT_F16TO_QNT(U8,  U8,  SIGMOID,  sigmoid_func, vxc_uchar8, vxc_uchar8)
 GRUCELL_QNT_F16TO_QNT(I8,  I8,  SIGMOID,  sigmoid_func, vxc_char8,  vxc_char8)

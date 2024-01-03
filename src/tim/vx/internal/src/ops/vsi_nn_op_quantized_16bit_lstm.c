@@ -35,64 +35,7 @@
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
-#include "libnnext/vsi_nn_vxkernel.h"
 #include "vsi_nn_internal_node.h"
-
-static vsi_status op_compute
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    vsi_status status;
-    status = VSI_FAILURE;
-
-    /* TODO */
-    /* example code : add op */
-    /*
-    self->n = vxTensorAddNode( self->graph->g, inputs[0]->t, inputs[1]->t,
-        VX_CONVERT_POLICY_SATURATE, outputs[0]->t );
-    */
-
-    VSI_UNREFERENCED(inputs);
-    VSI_UNREFERENCED(outputs);
-
-    if( NULL != self->n )
-    {
-        status = VSI_SUCCESS;
-    }
-    return status;
-} /* op_compute() */
-
-static vsi_bool op_check
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    VSI_UNREFERENCED(self);
-    VSI_UNREFERENCED(inputs);
-    VSI_UNREFERENCED(outputs);
-    /*TODO: Check tensor shapes. */
-    return TRUE;
-} /* op_check() */
-
-static vsi_bool op_setup
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    VSI_UNREFERENCED(self);
-    VSI_UNREFERENCED(inputs);
-    VSI_UNREFERENCED(outputs);
-
-    /* TODO: Add code to comput outputs' shape. */
-    return TRUE;
-} /* op_setup() */
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,10 +45,10 @@ DEF_OP_REG
     (
     /* op_name    */ QUANTIZED_16BIT_LSTM,
     /* init       */ NULL,
-    /* compute    */ op_compute,
-    /* deinit     */ vsi_nn_op_common_deinit,
-    /* check      */ op_check,
-    /* setup      */ op_setup,
+    /* compute    */ NULL,
+    /* deinit     */ NULL,
+    /* check      */ NULL,
+    /* setup      */ NULL,
     /* optimize   */ NULL,
     /* input_num  */ Q16_LSTM_INPUT_CNT,
     /* output_num */ Q16_LSTM_OUTPUT_CNT

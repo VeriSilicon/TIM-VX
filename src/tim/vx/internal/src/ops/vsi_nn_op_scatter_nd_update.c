@@ -53,6 +53,7 @@ static vsi_status op_compute
     uint32_t idx_num = 1;
     vsi_size_t *input_size = inputs[2]->attr.size;
     uint32_t dims_num = inputs[2]->attr.dim_num;
+    vsi_nn_reduction_type_e reduction = self->nn_param.scatter_nd_update.reduction;
 
     if (inputs[1]->attr.dim_num > 1)
     {
@@ -75,7 +76,17 @@ static vsi_status op_compute
     vsi_nn_kernel_param_add_int32( param, "block_size", block_size );
     vsi_nn_kernel_param_add_int32( param, "coord_dim", coord_dim );
     vsi_nn_kernel_param_add_int32( param, "idx_num", idx_num );
-    n = vsi_nn_kernel_selector( self->graph, "scatter_nd_update", inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
+    vsi_nn_kernel_param_add_int32( param, "reduction", reduction );
+    if (reduction > VSI_NN_REDUCTION_TYPE_NONE)
+    {
+        n = vsi_nn_kernel_selector( self->graph, "scatter_nd_update_reduction",
+                    inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
+    }
+    else
+    {
+        n = vsi_nn_kernel_selector( self->graph, "scatter_nd_update",
+                    inputs, _INPUT_NUM, outputs, _OUTPUT_NUM, param );
+    }
     if ( n != NULL )
     {
         self->n = (vx_node)n;
@@ -155,6 +166,18 @@ static vsi_bool op_setup
     return TRUE;
 } /* op_setup() */
 
+static vsi_status op_init
+    (
+    vsi_nn_node_t * self
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+
+    self->nn_param.scatter_nd_update.reduction = VSI_NN_REDUCTION_TYPE_NONE;
+
+    return status;
+} /* op_init() */
+
 static vsi_status op_deinit
     (
     vsi_nn_node_t * self
@@ -172,7 +195,7 @@ extern "C" {
 DEF_OP_REG
     (
     /* op_name    */ SCATTER_ND_UPDATE,
-    /* init       */ NULL,
+    /* init       */ op_init,
     /* compute    */ op_compute,
     /* deinit     */ op_deinit,
     /* check      */ op_check,

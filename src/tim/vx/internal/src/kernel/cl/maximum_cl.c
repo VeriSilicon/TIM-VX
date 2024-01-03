@@ -246,28 +246,49 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t node_params[_CL_PARAM_NUM] = {NULL};
     vsi_bool image_2d = FALSE;
     vsi_nn_kernel_node_t node = NULL;
-
-    float input0Scale = vsi_nn_get_tensor_scale(inputs[0]);
-    float input0Tail = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * input0Scale;
-    float input1Scale = vsi_nn_get_tensor_scale(inputs[1]);
-    float input1Tail = (float)vsi_nn_get_tensor_zero_point(inputs[1]) * input1Scale;
-    float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
-    float outputZP = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    float input0_scale = vsi_nn_get_tensor_scale(inputs[0]);
+    float input0_tail = (float)vsi_nn_get_tensor_zero_point(inputs[0]) * input0_scale;
+    float input1_scale = vsi_nn_get_tensor_scale(inputs[1]);
+    float input1_tail = (float)vsi_nn_get_tensor_zero_point(inputs[1]) * input1_scale;
+    float output_scale = vsi_nn_get_tensor_scale(outputs[0]);
+    float output_zp = (float)vsi_nn_get_tensor_zero_point(outputs[0]);
+    vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
+    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = { { 0 } };
+    vsi_size_t new_rank = 0;
+    vsi_bool ret = TRUE;
 
     VSI_UNREFERENCED(input_num);
     VSI_UNREFERENCED(output_num);
     VSI_UNREFERENCED(params);
 
-    outputScale = vsi_abs(outputScale) < 1e-5 ? 0.0f : 1.0f / outputScale;
+    output_scale = vsi_abs(output_scale) < 1e-5 ? 0.0f : 1.0f / output_scale;
 
-    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
-                outputs[0]->attr.dim_num ) )
+    ret = vsi_nn_kernel_optimize_eltwise_shape(
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[1]->attr.size, inputs[1]->attr.dim_num,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            shapes[0], shapes[1], shapes[2], &new_rank );
+
+    if (ret == FALSE)
     {
-        return NULL;
+        goto final;
     }
 
-    image_2d = (outputs[0]->attr.dim_num == 2);
-    status = _query_kernel( inputs, outputs, image_2d, kernel );
+    reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
+            inputs[0], shapes[0], new_rank );
+    reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
+            inputs[1], shapes[1], new_rank );
+    reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
+            outputs[0], shapes[2], new_rank );
+
+    if ( !vsi_nn_kernel_gpu_check_shape( reshape_tensors[2]->attr.size,
+                reshape_tensors[2]->attr.dim_num ) )
+    {
+        goto final;
+    }
+
+    image_2d = (reshape_tensors[2]->attr.dim_num == 2);
+    status = _query_kernel( reshape_tensors, &reshape_tensors[2], image_2d, kernel );
     if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
@@ -275,19 +296,19 @@ static vsi_nn_kernel_node_t _setup
         if ( node )
         {
             vsi_nn_kernel_node_pack_io( node_params, _CL_PARAM_NUM,
-                    inputs, 2, outputs, 1 );
+                    reshape_tensors, 2, &reshape_tensors[2], 1 );
             node_params[SCALAR_INPUT0_SCALE] = vsi_nn_kernel_scalar_create(
-                    graph, F32, &input0Scale );
+                    graph, F32, &input0_scale );
             node_params[SCALAR_INPUT0_TAIL] = vsi_nn_kernel_scalar_create(
-                    graph, F32, &input0Tail );
+                    graph, F32, &input0_tail );
             node_params[SCALAR_INPUT1_SCALE] = vsi_nn_kernel_scalar_create(
-                    graph, F32, &input1Scale );
+                    graph, F32, &input1_scale );
             node_params[SCALAR_INPUT1_TAIL] = vsi_nn_kernel_scalar_create(
-                    graph, F32, &input1Tail );
+                    graph, F32, &input1_tail );
             node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create(
-                    graph, F32, &outputScale );
+                    graph, F32, &output_scale );
             node_params[SCALAR_OUTPUT_ZP] = vsi_nn_kernel_scalar_create(
-                    graph, F32, &outputZP );
+                    graph, F32, &output_zp );
 
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _CL_PARAM_NUM );
@@ -300,6 +321,12 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_ZP] );
         }
     }
+
+final:
+    vsi_safe_release_tensor(reshape_tensors[0]);
+    vsi_safe_release_tensor(reshape_tensors[1]);
+    vsi_safe_release_tensor(reshape_tensors[2]);
+
     return node;
 } /* _setup() */
 

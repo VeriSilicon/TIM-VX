@@ -33,6 +33,7 @@ extern "C" {
 typedef struct _vsi_nn_scatter_nd_update_param
 {
     vsi_bool use_locking;
+    vsi_nn_reduction_type_e reduction;
 } vsi_nn_scatter_nd_update_param;
 
 #ifdef __cplusplus

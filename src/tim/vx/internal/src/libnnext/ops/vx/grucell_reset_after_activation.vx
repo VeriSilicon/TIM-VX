@@ -25,6 +25,11 @@ float4 tanh_func(float4 x)
     x = 1.0f / x;
     return 2 * x - 1;
 }
+float4 relu_func(float4 x)
+{
+    x = x > 0 ? x : 0;
+    return x;
+}
 
 _viv_uniform VXC_512Bits uniF16PlusF16_0_4x4;
 _viv_uniform VXC_512Bits uniF16PlusF16_1_4x4;
@@ -88,6 +93,8 @@ __kernel void grucell_reset_after_activation_F16_F16toF16_##act_name##_##rec_act
 }
 GRUCELL_F16_F16TOF16(TANH,    tanh_func,    SIGMOID, sigmoid_func)
 GRUCELL_F16_F16TOF16(SIGMOID, sigmoid_func, SIGMOID, sigmoid_func)
+GRUCELL_F16_F16TOF16(RELU,    relu_func,    SIGMOID, sigmoid_func)
+
 
 _viv_uniform float hstate_in_scale;
 _viv_uniform float hstate_in_tail;
@@ -153,6 +160,10 @@ GRUCELL_QNT_F16TO_QNT(I16_F16toI16_TANH_SIGMOID,    tanh_func,    sigmoid_func, 
 GRUCELL_QNT_F16TO_QNT(U8_F16toU8_SIGMOID_SIGMOID,   sigmoid_func, sigmoid_func, vxc_uchar8, vxc_uchar8)
 GRUCELL_QNT_F16TO_QNT(I8_F16toI8_SIGMOID_SIGMOID,   sigmoid_func, sigmoid_func, vxc_char8,  vxc_char8)
 GRUCELL_QNT_F16TO_QNT(I16_F16toI16_SIGMOID_SIGMOID, sigmoid_func, sigmoid_func, vxc_short8, vxc_short8)
+GRUCELL_QNT_F16TO_QNT(U8_F16toU8_RELU_SIGMOID,      relu_func,    sigmoid_func, vxc_uchar8, vxc_uchar8)
+GRUCELL_QNT_F16TO_QNT(I8_F16toI8_RELU_SIGMOID,      relu_func,    sigmoid_func, vxc_char8,  vxc_char8)
+GRUCELL_QNT_F16TO_QNT(I16_F16toI16_RELU_SIGMOID,    relu_func,    sigmoid_func, vxc_short8, vxc_short8)
+
 
 #define GRUCELL_BF16(act_name, act_func, rec_act_name, rec_act_func) \
 __kernel void grucell_reset_after_activation_BF16_BF16toBF16_##act_name##_##rec_act_name( \
@@ -215,3 +226,4 @@ __kernel void grucell_reset_after_activation_BF16_BF16toBF16_##act_name##_##rec_
 }
 GRUCELL_BF16(TANH,    tanh_func,    SIGMOID, sigmoid_func)
 GRUCELL_BF16(SIGMOID, sigmoid_func, SIGMOID, sigmoid_func)
+GRUCELL_BF16(RELU,    relu_func,    SIGMOID, sigmoid_func)

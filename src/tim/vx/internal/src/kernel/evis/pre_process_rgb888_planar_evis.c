@@ -403,23 +403,8 @@ DEF_KERNEL_INITIALIZER(_pre_process_rgb888_planar_copy_initializer)
 
     out_shape  = attr[0]->shape;
     width      = (uint32_t)(out_shape->data[0]);
-
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if ( attr[0]->dfp.fl > 0 )
-        {
-            output_scale *= (float)((int64_t)1 << attr[0]->dfp.fl);
-        }
-        else
-        {
-            output_scale *= (1.0f / (float)((int64_t)1 << -attr[0]->dfp.fl));
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        output_zp = (float)attr[0]->asymm.zero_point;
-        output_scale /= attr[0]->asymm.scale;
-    }
+    output_zp  = (float)attr[0]->zero_point;
+    output_scale = 1.0f / attr[0]->scale;
 
     shaderParam.global_scale[0]  = 16;
     shaderParam.global_scale[1]  = 1;
@@ -620,8 +605,8 @@ OnError:
     }
     if (attr[1])
     {
-        vsi_nn_kernel_tensor_attr_release( &attr[0] );
-        attr[0] = NULL;
+        vsi_nn_kernel_tensor_attr_release( &attr[1] );
+        attr[1] = NULL;
     }
 
     return status;

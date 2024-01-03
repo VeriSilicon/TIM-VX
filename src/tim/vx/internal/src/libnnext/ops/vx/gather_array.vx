@@ -11,7 +11,8 @@ __kernel void gather_I8toI8_array(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -25,13 +26,29 @@ __kernel void gather_I8toI8_array(
 
     Image img1 = create_image_from_image2d(input0, 1);
     Image img2 = create_image_from_image2d(output, 1);
-    uchar* input_ptr = get_image_ptr_from_coord(img1, coord_in.zw);
-    __global vxc_char16* data_ptr = (__global vxc_char16*)input_ptr;
-    vxc_char16 src = data_ptr[0];
+
     int2 coord = (int2)(gidx, gidz * indices_num + gidy);
+
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord_in.zw);
     uchar* output_ptr = get_image_ptr_from_coord(img2, coord);
-    __global vxc_char16* dst_ptr = (__global vxc_char16*)output_ptr;
-    dst_ptr[0] = src;
+
+    if (gidx == ((block_size >> 4) * 16))
+    {
+        __global char* data_ptr = (__global char*)input_ptr;
+        __global char* dst_ptr = (__global char*)output_ptr;
+        int i = 0;
+        for (i = 0; i < block_size - gidx; i ++)
+        {
+           dst_ptr[i] = data_ptr[i];
+        }
+    }
+    else
+    {
+        __global vxc_char16* data_ptr = (__global vxc_char16*)input_ptr;
+        vxc_char16 src = data_ptr[0];
+        __global vxc_char16* dst_ptr = (__global vxc_char16*)output_ptr;
+        dst_ptr[0] = src;
+    }
 }
 
 __kernel void gather_U8toU8_array(
@@ -40,7 +57,8 @@ __kernel void gather_U8toU8_array(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -54,13 +72,29 @@ __kernel void gather_U8toU8_array(
 
     Image img1 = create_image_from_image2d(input0, 1);
     Image img2 = create_image_from_image2d(output, 1);
-    uchar* input_ptr = get_image_ptr_from_coord(img1, coord_in.zw);
-    __global vxc_uchar16* data_ptr = (__global vxc_uchar16*)input_ptr;
-    vxc_uchar16 src = data_ptr[0];
+
     int2 coord = (int2)(gidx, gidz * indices_num + gidy);
+
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord_in.zw);
     uchar* output_ptr = get_image_ptr_from_coord(img2, coord);
-    __global vxc_uchar16* dst_ptr = (__global vxc_uchar16*)output_ptr;
-    dst_ptr[0] = src;
+
+    if (gidx == ((block_size >> 4) * 16))
+    {
+        __global uchar* data_ptr = (__global uchar*)input_ptr;
+        __global uchar* dst_ptr = (__global uchar*)output_ptr;
+        int i = 0;
+        for (i = 0; i < block_size - gidx; i ++)
+        {
+           dst_ptr[i] = data_ptr[i];
+        }
+    }
+    else
+    {
+        __global vxc_uchar16* data_ptr = (__global vxc_uchar16*)input_ptr;
+        vxc_uchar16 src = data_ptr[0];
+        __global vxc_uchar16* dst_ptr = (__global vxc_uchar16*)output_ptr;
+        dst_ptr[0] = src;
+    }
 }
 
 __kernel void gather_I16toI16_array(
@@ -69,7 +103,8 @@ __kernel void gather_I16toI16_array(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -84,13 +119,29 @@ __kernel void gather_I16toI16_array(
 
     Image img1 = create_image_from_image2d(input0, 2);
     Image img2 = create_image_from_image2d(output, 2);
-    uchar* input_ptr = get_image_ptr_from_coord(img1, coord_in.zw);
-    __global vxc_short8* data_ptr = (__global vxc_short8*)input_ptr;
-    vxc_short8 src = data_ptr[0];
+
     int2 coord = (int2)(gidx, gidz * indices_num + gidy);
+
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord_in.zw);
     uchar* output_ptr = get_image_ptr_from_coord(img2, coord);
-    __global vxc_short8* dst_ptr = (__global vxc_short8*)output_ptr;
-    dst_ptr[0] = src;
+
+    if (gidx == ((block_size >> 3) * 8))
+    {
+        __global short* data_ptr = (__global short*)input_ptr;
+        __global short* dst_ptr = (__global short*)output_ptr;
+        int i = 0;
+        for (i = 0; i < block_size - gidx; i ++)
+        {
+           dst_ptr[i] = data_ptr[i];
+        }
+    }
+    else
+    {
+        __global vxc_short8* data_ptr = (__global vxc_short8*)input_ptr;
+        vxc_short8 src = data_ptr[0];
+        __global vxc_short8* dst_ptr = (__global vxc_short8*)output_ptr;
+        dst_ptr[0] = src;
+    }
 }
 
 __kernel void gather_F16toF16_array(
@@ -99,7 +150,8 @@ __kernel void gather_F16toF16_array(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -114,13 +166,29 @@ __kernel void gather_F16toF16_array(
 
     Image img1 = create_image_from_image2d(input0, 2);
     Image img2 = create_image_from_image2d(output, 2);
-    uchar* input_ptr = get_image_ptr_from_coord(img1, coord_in.zw);
-    __global vxc_short8* data_ptr = (__global vxc_short8*)input_ptr;
-    vxc_short8 src = data_ptr[0];
+
     int2 coord = (int2)(gidx, gidz * indices_num + gidy);
+
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord_in.zw);
     uchar* output_ptr = get_image_ptr_from_coord(img2, coord);
-    __global vxc_short8* dst_ptr = (__global vxc_short8*)output_ptr;
-    dst_ptr[0] = src;
+
+    if (gidx == ((block_size >> 3) * 8))
+    {
+        __global short* data_ptr = (__global short*)input_ptr;
+        __global short* dst_ptr = (__global short*)output_ptr;
+        int i = 0;
+        for (i = 0; i < block_size - gidx; i ++)
+        {
+           dst_ptr[i] = data_ptr[i];
+        }
+    }
+    else
+    {
+        __global vxc_short8* data_ptr = (__global vxc_short8*)input_ptr;
+        vxc_short8 src = data_ptr[0];
+        __global vxc_short8* dst_ptr = (__global vxc_short8*)output_ptr;
+        dst_ptr[0] = src;
+    }
 }
 
 #define GATHER_AXIS0_ARRAY(src0_type_name, read_type, data_type, write_type) \
@@ -130,7 +198,8 @@ __kernel void gather_##src0_type_name##to##src0_type_name##_axis0_array( \
     __write_only image2d_t  output, \
     int block_size, \
     int block_num, \
-    int axis_num \
+    int axis_num, \
+    int is_array \
     ) \
 { \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \

@@ -135,17 +135,10 @@ DEF_KERNEL_INITIALIZER(_detect_post_box_initializer)
     status  = vsi_nn_kernel_gpu_add_param( node, "logE", &logE);
     CHECK_STATUS_FAIL_GOTO(status, final );
 
-    if ( VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant )
-    {
-        input0_ZP         = input_attr->asymm.zero_point;
-        scaleIn0          = input_attr->asymm.scale;
-    }
-
-    if ( VSI_NN_KERNEL_QUANT_ASYMM == input1_attr->quant )
-    {
-        input1_ZP         = input1_attr->asymm.zero_point;
-        scaleIn1          = input1_attr->asymm.scale;
-    }
+    input0_ZP = input_attr->zero_point;
+    scaleIn0  = input_attr->scale;
+    input1_ZP = input1_attr->zero_point;
+    scaleIn1  = input1_attr->scale;
 
     if ((F32 == input_attr->dtype) || (F32 == input1_attr->dtype))
     {

@@ -138,8 +138,6 @@ DEF_KERNEL_INITIALIZER(_relu_keras_initializer)
     float                         inputTail      = 0.0f;
     float                         output_ZP      = 0;
     float                         input_ZP       = 0;
-    int32_t                       srcFixPointPos = 0;
-    int32_t                       dstFixPointPos = 0;
 
     VSI_UNREFERENCED(param_size);
 
@@ -154,25 +152,10 @@ DEF_KERNEL_INITIALIZER(_relu_keras_initializer)
     output_dtype = output_attr->dtype;
     offset       = alpha * threshold;
 
-    if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
-    {
-        srcFixPointPos   = input_attr->dfp.fl;
-    }
-    else if (VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant)
-    {
-        input_ZP         = (float)(input_attr->asymm.zero_point);
-        scaleIn          = input_attr->asymm.scale;
-    }
-
-    if (VSI_NN_KERNEL_QUANT_DFP == output_attr->quant)
-    {
-        dstFixPointPos   = output_attr->dfp.fl;
-    }
-    else if (VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant)
-    {
-        output_ZP        = (float)(output_attr->asymm.zero_point);
-        scaleOut         = 1.0f / output_attr->asymm.scale;
-    }
+    input_ZP     = (float)(input_attr->zero_point);
+    scaleIn      = input_attr->scale;
+    output_ZP    = (float)(output_attr->zero_point);
+    scaleOut     = 1.0f / output_attr->scale;
 
     gpu_param.global_scale[0]  = 8;
     gpu_param.global_scale[1]  = 1;
@@ -195,11 +178,6 @@ DEF_KERNEL_INITIALIZER(_relu_keras_initializer)
     }
     else if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
     {
-        if (srcFixPointPos >=0 )
-            scaleIn = 1.0f / (float) ((int64_t)1 << srcFixPointPos);
-        else
-            scaleIn = (float) ((int64_t)1 << -srcFixPointPos);
-
         status = vsi_nn_kernel_gpu_add_param(node, "input_scale", &scaleIn);
         CHECK_STATUS_FAIL_GOTO(status, final );
     }
@@ -212,11 +190,6 @@ DEF_KERNEL_INITIALIZER(_relu_keras_initializer)
     }
     else if (VSI_NN_KERNEL_QUANT_DFP == output_attr->quant)
     {
-        if (dstFixPointPos >=0 )
-            scaleOut = (float) ((int64_t)1 << dstFixPointPos);
-        else
-            scaleOut = 1.0f / (float) ((int64_t)1 << -dstFixPointPos);
-
         status  = vsi_nn_kernel_gpu_add_param(node, "output_scale", &scaleOut);
         CHECK_STATUS_FAIL_GOTO(status, final );
     }

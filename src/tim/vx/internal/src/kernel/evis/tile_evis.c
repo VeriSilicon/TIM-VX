@@ -22,6 +22,7 @@
 *
 *****************************************************************************/
 
+#if !(VX_TENSOR_TILE_API_SUPPORT)
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -280,42 +281,10 @@ DEF_KERNEL_INITIALIZER(_tile_initializer)
     CHECK_PTR_FAIL_GOTO( attr[1], "Create tensor attr buffer fail.", final );
 
     in_shape  = attr[0]->shape;
-
-    if (VSI_NN_KERNEL_QUANT_DFP == attr[0]->quant)
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            scaleIn = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            scaleIn = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-        input_ZP = 0;
-    }
-    else if (VSI_NN_KERNEL_QUANT_ASYMM == attr[0]->quant)
-    {
-        input_ZP         = attr[0]->asymm.zero_point;
-        scaleIn          = attr[0]->asymm.scale;
-    }
-
-    if (VSI_NN_KERNEL_QUANT_DFP == attr[1]->quant)
-    {
-        if (attr[1]->dfp.fl > 0)
-        {
-            scaleOut = (float)((int64_t)1 << attr[1]->dfp.fl);
-        }
-        else
-        {
-            scaleOut = (1.0f / (float)((int64_t)1 << -attr[1]->dfp.fl));
-        }
-        output_ZP = 0;
-    }
-    else if (VSI_NN_KERNEL_QUANT_ASYMM == attr[1]->quant)
-    {
-        output_ZP        = attr[1]->asymm.zero_point;
-        scaleOut         = attr[1]->asymm.scale;
-    }
+    input_ZP  = attr[0]->zero_point;
+    scaleIn   = attr[0]->scale;
+    output_ZP = attr[1]->zero_point;
+    scaleOut  = attr[1]->scale;
 
 #define _PACK_SELECT_KEY( IN_TYPE, OUT_TYPE )    \
         (( IN_TYPE << 16) | ( OUT_TYPE))
@@ -626,3 +595,4 @@ final:
 REGISTER_BACKEND_EVIS( tile, _setup )
 
 __END_DECLS
+#endif

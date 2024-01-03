@@ -133,6 +133,9 @@ __kernel void resize_bilinear_U8toU8_UP
     VXC_OP4(img_load_3d, src1, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
 
+    short inputZP;
+    _viv_asm(COPY, inputZP, input_ZP, 4);
+
     vxc_ushort8 bitextract_p0;
     vxc_uchar16 maskShift = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
     VXC_DP2x8(bitextract_p0, left_x_idx, right_x_idx, \
@@ -163,8 +166,6 @@ __kernel void resize_bilinear_U8toU8_UP
         VXC_OP4(img_load_3d, src1, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
                 VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
 
-        unsigned char inputZP;
-        _viv_asm(COPY, inputZP, input_ZP, 4);
         VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
         VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
         top4        = right4 * x_lerp + left4;
@@ -185,8 +186,7 @@ __kernel void resize_bilinear_U8toU8_UP
 
     VXC_BitExtract(top, src0, src0, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
     VXC_BitExtract(bottom, src1, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
-    unsigned char inputZP;
-    _viv_asm(COPY, inputZP, input_ZP, 4);
+
     VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
     VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
     top4        = right4 * x_lerp + left4;

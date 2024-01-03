@@ -46,14 +46,9 @@ static vsi_status _log_softmax_op_compute
     )
 {
     vsi_status status;
-    vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
-    vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = { { 0 } };
-    uint32_t rank_in = 0;
     int32_t axis = 0;
-    int32_t new_axis = 0;
     float betaValue = 0;
 
-    vsi_bool ret;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_log_softmax_param * p = NULL;
 
@@ -69,33 +64,19 @@ static vsi_status _log_softmax_op_compute
 
     // TODO: This optimzie is a hack for gpu path,
     // it should be moved to gpu kernel setup.
-    ret = vsi_nn_kernel_optimize_softmax_shape(
-            inputs[0]->attr.size, inputs[0]->attr.dim_num, axis,
-            shapes[0], &rank_in, &new_axis);
 
-    if( ret )
-    {
-        // Add params
-         param =vsi_nn_kernel_param_create();
+    param =vsi_nn_kernel_param_create();
 
-         vsi_nn_kernel_param_add_int32( param, "axis", new_axis );
-         vsi_nn_kernel_param_add_float32( param, "beta", betaValue );
+    vsi_nn_kernel_param_add_int32( param, "axis", axis );
+    vsi_nn_kernel_param_add_float32( param, "beta", betaValue );
 
-        reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph,
-                inputs[0], shapes[0], rank_in );
-        reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
-                outputs[0], shapes[0], rank_in );
+    self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
+            kernel_name,
+            inputs, 1,
+            outputs, 1, param );
 
-        self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
-                kernel_name,
-                &reshape_tensors[0], 1,
-                &reshape_tensors[1], 1, param );
+    vsi_nn_kernel_param_release( &param );
 
-        vsi_nn_ReleaseTensor( &reshape_tensors[0] );
-        vsi_nn_ReleaseTensor( &reshape_tensors[1] );
-
-        vsi_nn_kernel_param_release( &param );
-    }
     if( self->n )
     {
         status = VSI_SUCCESS;

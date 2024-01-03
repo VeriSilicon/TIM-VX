@@ -35,6 +35,9 @@
 #if defined(VX_KHR_COMPATIBILITY) && (0x1==VX_KHR_COMPATIBILITY)
 #include <VX/vx_khr_compatible.h>
 #endif
+#ifdef VSI_CREATE_TENSOR_FROM_AXISRAM_SUPPORT
+#include <VX/vx_viv_sys.h>
+#endif
 
 /*
     This is a compatibility head file for backward compatibility OpenVX 1.1 spec

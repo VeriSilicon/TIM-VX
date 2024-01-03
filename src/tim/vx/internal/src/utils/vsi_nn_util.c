@@ -152,6 +152,33 @@ char* vsi_nn_getenv
     return var;
 };
 
+int32_t vsi_nn_getenv_asint
+    (
+        const char* env,
+        int32_t default_value
+    )
+{
+    int32_t value = default_value;
+    #ifdef __ANDROID__
+    {
+        char value_str[100];
+        int32_t status = __system_property_get(env, value_str);
+        if (status) {
+            value = atoi(value_str);
+        }
+    }
+    #else
+    {
+        char* env_s = vsi_nn_getenv(env);
+        if (env_s) {
+            value = atoi(env_s);
+        }
+    }
+    #endif
+
+    return value;
+}
+
 FILE* vsi_nn_fopen
     (
     const char * file_name,

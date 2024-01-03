@@ -1,13 +1,15 @@
 #include "cl_viv_vx_ext.h"
 
+_viv_uniform VXC_512Bits uniU8SubZPtoFp32_left_4x4;
+_viv_uniform VXC_512Bits uniU8RightSubLeft_4x4;
 _viv_uniform VXC_512Bits uniExtact8Bit_2x8;
 _viv_uniform float2 scale_xy;
 _viv_uniform int depth;
+_viv_uniform int input_ZP;
+_viv_uniform float uint8Scale;
+_viv_uniform float output_ZP;
 _viv_uniform VXC_512Bits uniConvertI32toI16_2x8;
 _viv_uniform VXC_512Bits uniGetMaskShift_2x8;
-_viv_uniform VXC_512Bits uniDFPtoFp32_left_4x4;
-_viv_uniform VXC_512Bits uniRightSubLeft_4x4;
-_viv_uniform float dfpScale;
 _viv_uniform float half_pixel_value;
 
 __kernel void resize_bilinear_I8toI8_UP
@@ -52,13 +54,16 @@ __kernel void resize_bilinear_I8toI8_UP
     VXC_OP4(img_load_3d, src1, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
 
+    short inputZP;
+    _viv_asm(COPY, inputZP, input_ZP, 4);
+
     vxc_ushort8 bitextract_p0;
     vxc_uchar16 maskShift = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
     VXC_DP2x8(bitextract_p0, left_x_idx, right_x_idx, \
-    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvertI32toI16_2x8);
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvertI32toI16_2x8);
     vxc_ushort8 constData = 8;
     VXC_DP2x8(maskShift, bitextract_p0, constData, \
-    VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniGetMaskShift_2x8);
+                VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniGetMaskShift_2x8);
 
     int8 output_desc;
     _viv_asm(COPY, output_desc, output, sizeof(output_desc));
@@ -84,22 +89,22 @@ __kernel void resize_bilinear_I8toI8_UP
         VXC_OP4(img_load_3d, src1, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
                 VXC_MODIFIER(0, 15, 0, VXC_RM_TowardZero, 0));
 
-        VXC_DP4x4(left4, top, top, \
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);
+        VXC_DP4x4(left4, top, inputZP, \
+                    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
         VXC_DP4x4(right4, top, top, \
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);
+                    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
 
         top4        = right4 * x_lerp + left4;
 
-        VXC_DP4x4(left4, bottom, bottom, \
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);
+        VXC_DP4x4(left4, bottom, inputZP, \
+                    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
         VXC_DP4x4(right4, bottom, bottom, \
-        VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);
+                    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
 
         bottom4      = right4 * x_lerp + left4;
         bottom4     -= top4;
         float4 dst4  = bottom4 * y_lerp + top4;
-        dst4         = dst4 * dfpScale;
+        dst4         = dst4 * uint8Scale + output_ZP;
         int4 dst     = convert_int4_rte(dst4);
         VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);
 
@@ -111,19 +116,19 @@ __kernel void resize_bilinear_I8toI8_UP
     VXC_BitExtract(dst1, src1, src1, maskShift, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
     _viv_asm(COPY, top, dst0, 16);
     _viv_asm(COPY, bottom, dst1, 16);
-    VXC_DP4x4(left4, top, top, \
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);
+    VXC_DP4x4(left4, top, inputZP, \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
     VXC_DP4x4(right4, top, top, \
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
     top4        = right4 * x_lerp + left4;
-    VXC_DP4x4(left4, bottom, bottom, \
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);
+    VXC_DP4x4(left4, bottom, inputZP, \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
     VXC_DP4x4(right4, bottom, bottom, \
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
     bottom4      = right4 * x_lerp + left4;
     bottom4     -= top4;
     float4 dst4  = bottom4 * y_lerp + top4;
-    dst4         = dst4 * dfpScale;
+    dst4         = dst4 * uint8Scale + output_ZP;
     int4 dst     = convert_int4_rte(dst4);
     VXC_DP2x8(top, dst, dst, VXC_MODIFIER(0, 3, 0, VXC_RM_ToNearestEven, 1), uniExtact8Bit_2x8);
     VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, top, VXC_MODIFIER(0, 3, 0,VXC_RM_TowardZero, 0));
@@ -174,25 +179,28 @@ __kernel void resize_bilinear_I8toI8_DOWN
     VXC_OP4(img_load_3d, bottom, input, coord_in.xywz, VXC_5BITOFFSET_XY(0, 1),
             VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
 
+    short inputZP;
+    _viv_asm(COPY, inputZP, input_ZP, 4);
+
     float4 left4;
     float4 right4;
     float4 top4;
     float4 bottom4;
 
-    VXC_DP4x4(left4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);
-    VXC_DP4x4(right4, top, top, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);
+    VXC_DP4x4(left4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
+    VXC_DP4x4(right4, top, inputZP, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
     top4        = right4 * x_lerp + left4;
 
-    VXC_DP4x4(left4, bottom, bottom, \
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDFPtoFp32_left_4x4);
-    VXC_DP4x4(right4, bottom, bottom, \
-    VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightSubLeft_4x4);
+    VXC_DP4x4(left4, bottom, inputZP, \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8SubZPtoFp32_left_4x4);
+    VXC_DP4x4(right4, bottom, inputZP, \
+                VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
     bottom4      = right4 * x_lerp + left4;
 
     bottom4     -= top4;
     float4 dst4  = bottom4 * y_lerp + top4;
 
-    dst4         = dst4 * dfpScale;
+    dst4         = dst4 * uint8Scale + output_ZP;
 
     int4 dst     = convert_int4_rte(dst4);
 

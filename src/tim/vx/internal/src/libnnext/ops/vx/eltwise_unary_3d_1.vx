@@ -81,6 +81,11 @@ float4 eltwise_unary_acosh(float4 val)
     return acosh(val);
 }
 
+float4 eltwise_unary_tan(float4 val)
+{
+    return native_tan(val);
+}
+
 _viv_uniform float inputScale;
 _viv_uniform float inputTail;
 _viv_uniform float outputScale;
@@ -197,3 +202,5 @@ ADD_ELTSISE_UNARY_3D(atan)
 ADD_ELTSISE_UNARY_3D(atanh)
 //ACOSH
 ADD_ELTSISE_UNARY_3D(acosh)
+//TAN
+ADD_ELTSISE_UNARY_3D(tan)

@@ -267,8 +267,11 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+#define _TENSOR_LEN 64
     vsi_status status;
     vsi_nn_concat_lcl_data * iter;
+    char tensor_name[_TENSOR_LEN];
+    uint32_t sub_id = 0;
 
     status = VSI_SUCCESS;
     self->n = NULL;
@@ -282,6 +285,15 @@ static vsi_status op_compute
         {
             iter->cp_node = vxTensorCopyNode(self->graph->g,
                 iter->src_tensor, iter->dst_tensor );
+            /* Set copy output tensor name */
+            memset(tensor_name, 0, sizeof(tensor_name));
+            snprintf(tensor_name, sizeof(tensor_name), "uid_%u_sub_id_%u_out_0", self->uid, sub_id);
+            if(vxSetReferenceName((vx_reference)iter->dst_tensor, tensor_name) == VSI_FAILURE)
+            {
+                VSILOGW("Set uid %u copy node output name fail", self->uid);
+                return VSI_FAILURE;
+            }
+            sub_id++;
             if( NULL == iter->cp_node )
             {
                 VSILOGE( "Create vxTensorCopyNode fail." );

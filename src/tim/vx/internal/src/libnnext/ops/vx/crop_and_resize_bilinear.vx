@@ -1,0 +1,255 @@
+#pragma OPENCL EXTENSION cl_viv_vx_extension : enable
+
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float inOutScale;
+_viv_uniform float inOutTile;
+_viv_uniform float width_scale;
+_viv_uniform float height_scale;
+_viv_uniform int   image_width;
+_viv_uniform int   image_height;
+_viv_uniform VXC_512Bits uniRightToFp32_4x4;
+_viv_uniform VXC_512Bits uniLeftToFp32_4x4;
+_viv_uniform VXC_512Bits uniExtract8Bit_2x8;
+_viv_uniform VXC_512Bits uniExtractHalf8_2x8;
+
+#define CROP_AND_RESIZE_PART0 \
+    int i = 0; \
+    int bb = get_global_id(2); \
+    int y =  get_global_id(1); \
+    int4 x = (int4)(get_global_id(0),get_global_id(0) + 1, get_global_id(0) + 2, get_global_id(0) + 3); \
+    int4 coord_out = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \
+    int2 coord_box_ind = (int2)(bb, 0); \
+    int b = read_imagei(box_ind, coord_box_ind).x; \
+    float4 xy, in_x; \
+    float in_y; \
+    float4 x_lerp, y_lerp; \
+    int d = 0; \
+    Image img_boxes = create_image_from_image2d(boxes, 2); \
+    __global half* boxes_ptr = (__global half*)img_boxes.ptr; \
+    xy = vload_half4(bb, boxes_ptr); \
+    float _width_scale = convert_float(xy.w - xy.y) * width_scale; \
+    float _height_scale = convert_float(xy.z - xy.x) * height_scale; \
+ \
+    if (_width_scale == 0) xy.y = 0.5 * (xy.y + xy.w); \
+    if (_height_scale == 0) xy.x = 0.5 * (xy.x + xy.z); \
+    in_y = xy.x * convert_float(image_height - 1) + convert_float(y) * _height_scale; \
+    y_lerp.x = in_y - floor(in_y); \
+    y_lerp.yzw = y_lerp.xxx;
+
+#define CROP_AND_RESIZE_PART1 \
+        int4 coord = (int4)(0, in_y, d + b * ori_depth, 0); \
+        int8 input_desc, output_desc; \
+ \
+        coord_out.z = d + coord_out.z * ori_depth; \
+ \
+        _viv_asm(COPY, input_desc, input, sizeof(input_desc)); \
+        int baseAddr = (int)coord.z * input_desc.s4 + input_desc.s0; \
+        _viv_asm(MOV, coord.w, baseAddr); \
+ \
+        _viv_asm(COPY, output_desc, output, sizeof(output_desc)); \
+        baseAddr = (int)coord_out.z * output_desc.s4 + output_desc.s0; \
+        _viv_asm(MOV, coord_out.w, baseAddr); \
+        in_x.x = xy.y * convert_float(image_width - 1); \
+        in_x.yzw = in_x.xxx; \
+        in_x = in_x + convert_float4(x) * _width_scale; \
+        x_lerp = in_x - floor(in_x); \
+        coord.x = floor(in_x.x); \
+        VXC_OP4(img_load_3d, src0, input, coord.xywz, VXC_5BITOFFSET_XY(0, 0), \
+                                         VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0)); \
+        VXC_OP4(img_load_3d, src1, input, coord.xywz, VXC_5BITOFFSET_XY(0, 1), \
+                                     VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0)); \
+        coord.x = floor(in_x.y); \
+        VXC_OP4(img_load_3d, src0, input, coord.xywz, VXC_5BITOFFSET_XY(0, 0), \
+                                         VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0)); \
+        VXC_OP4(img_load_3d, src1, input, coord.xywz, VXC_5BITOFFSET_XY(0, 1), \
+                                     VXC_MODIFIER(2, 3, 0, VXC_RM_TowardZero, 0)); \
+        coord.x = floor(in_x.z); \
+        VXC_OP4(img_load_3d, src0, input, coord.xywz, VXC_5BITOFFSET_XY(0, 0), \
+                                         VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0)); \
+        VXC_OP4(img_load_3d, src1, input, coord.xywz, VXC_5BITOFFSET_XY(0, 1), \
+                                     VXC_MODIFIER(4, 5, 0, VXC_RM_TowardZero, 0)); \
+        coord.x = floor(in_x.w); \
+        VXC_OP4(img_load_3d, src0, input, coord.xywz, VXC_5BITOFFSET_XY(0, 0), \
+                                         VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0)); \
+        VXC_OP4(img_load_3d, src1, input, coord.xywz, VXC_5BITOFFSET_XY(0, 1), \
+                                     VXC_MODIFIER(6, 7, 0, VXC_RM_TowardZero, 0));
+
+#define CROP_AND_RESIZE_BILINEAR_Quant8toQuant8(name,src_type,dst_type) \
+__kernel void crop_and_resize_bilinear_##name \
+( \
+    __read_only image2d_array_t   input, \
+    __read_only image2d_t         boxes, \
+    __read_only image2d_t         box_ind, \
+    __write_only image2d_array_t  output, \
+                 uint             ori_depth, \
+                 uint             ori_batchout \
+) \
+{ \
+    CROP_AND_RESIZE_PART0; \
+    for (d = 0; d < ori_depth; d++) \
+    { \
+        src_type src0, src1; \
+        CROP_AND_RESIZE_PART1; \
+ \
+        float4 top, bottom, value; \
+        float4 top_left4,top_right4,bottom_left4,bottom_right4; \
+        dst_type data; \
+        int4 tmpout; \
+ \
+        VXC_DP4x4(top_left4, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniLeftToFp32_4x4); \
+        VXC_DP4x4(top_right4, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightToFp32_4x4); \
+        VXC_DP4x4(bottom_left4, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniLeftToFp32_4x4); \
+        VXC_DP4x4(bottom_right4, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightToFp32_4x4); \
+ \
+        top = top_left4 + (top_right4 - top_left4) * x_lerp; \
+        bottom = bottom_left4 + (bottom_right4 - bottom_left4) * x_lerp; \
+        value = top + (bottom - top) * y_lerp; \
+        value = value * inOutScale + inOutTile; \
+        _viv_asm(CONV, tmpout, value); \
+        VXC_DP2x8(data, tmpout, tmpout, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtract8Bit_2x8); \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    } \
+}
+CROP_AND_RESIZE_BILINEAR_Quant8toQuant8(U8toU8,vxc_uchar8, vxc_uchar4)
+CROP_AND_RESIZE_BILINEAR_Quant8toQuant8(I8toI8,vxc_char8, vxc_char4)
+
+#define CROP_AND_RESIZE_BILINEAR_16Bitsto16Bits(name,src_type,dst_type,tmp_type) \
+__kernel void crop_and_resize_bilinear_##name \
+( \
+    __read_only image2d_array_t   input, \
+    __read_only image2d_t         boxes, \
+    __read_only image2d_t         box_ind, \
+    __write_only image2d_array_t  output, \
+                 uint             ori_depth, \
+                 uint             ori_batchout \
+) \
+{ \
+    CROP_AND_RESIZE_PART0; \
+    for (d = 0; d < ori_depth; d++) \
+    { \
+        vxc_short8 src0, src1; \
+        src_type src0_temp, src1_temp; \
+        CROP_AND_RESIZE_PART1; \
+ \
+        _viv_asm(COPY, src0_temp, src0, 16); \
+        _viv_asm(COPY, src1_temp, src1, 16); \
+        float4 top, bottom, value; \
+        float4 top_left4,top_right4,bottom_left4,bottom_right4; \
+        dst_type data; \
+        vxc_short4 out; \
+        tmp_type tmpout; \
+ \
+        VXC_DP4x4(top_left4, src0_temp, src0_temp, \
+                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniLeftToFp32_4x4); \
+        VXC_DP4x4(top_right4, src0_temp, src0_temp, \
+                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightToFp32_4x4); \
+        VXC_DP4x4(bottom_left4, src1_temp, src1_temp, \
+                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniLeftToFp32_4x4); \
+        VXC_DP4x4(bottom_right4, src1_temp, src1_temp, \
+                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightToFp32_4x4); \
+ \
+        top = top_left4 + (top_right4 - top_left4) * x_lerp; \
+        bottom = bottom_left4 + (bottom_right4 - bottom_left4) * x_lerp; \
+        value = top + (bottom - top) * y_lerp; \
+        value = value * inOutScale + inOutTile; \
+        _viv_asm(CONV, tmpout, value); \
+        VXC_DP2x8(data, tmpout, tmpout, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractHalf8_2x8); \
+        _viv_asm(COPY, out, data, 8); \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, out, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    } \
+}
+CROP_AND_RESIZE_BILINEAR_16Bitsto16Bits(I16toI16, vxc_short8, vxc_short4, short4)
+CROP_AND_RESIZE_BILINEAR_16Bitsto16Bits(I16toF16, vxc_short8, vxc_half4,  half4)
+CROP_AND_RESIZE_BILINEAR_16Bitsto16Bits(F16toF16, vxc_half8,  vxc_half4,  half4)
+CROP_AND_RESIZE_BILINEAR_16Bitsto16Bits(F16toI16, vxc_half8,  vxc_short4, short4)
+
+#define CROP_AND_RESIZE_BILINEAR_F16toQuant8(name,dst_type) \
+__kernel void crop_and_resize_bilinear_F16to##name \
+( \
+    __read_only image2d_array_t   input, \
+    __read_only image2d_t         boxes, \
+    __read_only image2d_t         box_ind, \
+    __write_only image2d_array_t  output, \
+                 uint             ori_depth, \
+                 uint             ori_batchout \
+) \
+{ \
+    CROP_AND_RESIZE_PART0; \
+    for (d = 0; d < ori_depth; d++) \
+    { \
+        vxc_short8 src0, src1; \
+        vxc_half8 src0_temp, src1_temp; \
+        CROP_AND_RESIZE_PART1; \
+ \
+        _viv_asm(COPY, src0_temp, src0, 16); \
+        _viv_asm(COPY, src1_temp, src1, 16); \
+        float4 top, bottom, value; \
+        float4 top_left4,top_right4,bottom_left4,bottom_right4; \
+        dst_type data; \
+        int4 tmpout; \
+ \
+        VXC_DP4x4(top_left4, src0_temp, src0_temp, \
+                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniLeftToFp32_4x4); \
+        VXC_DP4x4(top_right4, src0_temp, src0_temp, \
+                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightToFp32_4x4); \
+        VXC_DP4x4(bottom_left4, src1_temp, src1_temp, \
+                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniLeftToFp32_4x4); \
+        VXC_DP4x4(bottom_right4, src1_temp, src1_temp, \
+                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightToFp32_4x4); \
+ \
+        top = top_left4 + (top_right4 - top_left4) * x_lerp; \
+        bottom = bottom_left4 + (bottom_right4 - bottom_left4) * x_lerp; \
+        value = top + (bottom - top) * y_lerp; \
+        value = value * inOutScale + inOutTile; \
+        _viv_asm(CONV, tmpout, value); \
+        VXC_DP2x8(data, tmpout, tmpout, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtract8Bit_2x8); \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, data, \
+                                  VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    } \
+}
+CROP_AND_RESIZE_BILINEAR_F16toQuant8(U8, vxc_uchar4)
+CROP_AND_RESIZE_BILINEAR_F16toQuant8(I8, vxc_char4)
+
+#define CROP_AND_RESIZE_BILINEAR_Quant8toF16(name,src_type) \
+__kernel void crop_and_resize_bilinear_##name##toF16 \
+( \
+    __read_only image2d_array_t   input, \
+    __read_only image2d_t         boxes, \
+    __read_only image2d_t         box_ind, \
+    __write_only image2d_array_t  output, \
+                 uint             ori_depth, \
+                 uint             ori_batchout \
+) \
+{ \
+    CROP_AND_RESIZE_PART0; \
+    for (d = 0; d < ori_depth; d++) \
+    { \
+        src_type src0, src1; \
+        CROP_AND_RESIZE_PART1; \
+ \
+        float4 top, bottom, value; \
+        float4 top_left4,top_right4,bottom_left4,bottom_right4; \
+        vxc_half4 data; \
+        vxc_short4 out; \
+        half4 tmpout; \
+ \
+        VXC_DP4x4(top_left4, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniLeftToFp32_4x4); \
+        VXC_DP4x4(top_right4, src0, src0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightToFp32_4x4); \
+        VXC_DP4x4(bottom_left4, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniLeftToFp32_4x4); \
+        VXC_DP4x4(bottom_right4, src1, src1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniRightToFp32_4x4); \
+ \
+        top = top_left4 + (top_right4 - top_left4) * x_lerp; \
+        bottom = bottom_left4 + (bottom_right4 - bottom_left4) * x_lerp; \
+        value = top + (bottom - top) * y_lerp; \
+        value = value * inOutScale + inOutTile; \
+        _viv_asm(CONV, tmpout, value); \
+        VXC_DP2x8(data, tmpout, tmpout, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniExtractHalf8_2x8); \
+        _viv_asm(COPY, out, data, 8); \
+        VXC_OP4_NoDest(img_store_3d, output, coord_out.xywz, out, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    } \
+}
+CROP_AND_RESIZE_BILINEAR_Quant8toF16(U8, vxc_uchar8)
+CROP_AND_RESIZE_BILINEAR_Quant8toF16(I8, vxc_char8)
+
+

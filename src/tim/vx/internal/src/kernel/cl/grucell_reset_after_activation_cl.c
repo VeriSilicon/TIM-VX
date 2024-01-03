@@ -46,6 +46,7 @@ typedef enum _grucell_nn_activation_type_e
 {
     SIGMOID = VSI_NN_ACT_SIGMOID,
     HARD_SIGMOID = VSI_NN_ACT_HARD_SIGMOID,
+    RELU = VSI_NN_ACT_RELU,
 }grucell_nn_activation_type_e;
 
 #define _GRUCELL_RESET_AFTER_ACTIVATION_KERNEL_SOURCE      "grucell_reset_after_activation"
@@ -71,6 +72,9 @@ static const _kernel_map_type _grucell_reset_after_activation_kernel_map[] =
     PACK_KERNEL_MAP( U8,  F32, U8,  SIGMOID ),
     PACK_KERNEL_MAP( I32, F32, I32, SIGMOID ),
     PACK_KERNEL_MAP( F32, F32, F32, SIGMOID ),
+    PACK_KERNEL_MAP( U8,  F32, U8,  RELU ),
+    PACK_KERNEL_MAP( I32, F32, I32, RELU ),
+    PACK_KERNEL_MAP( F32, F32, F32, RELU ),
 };
 
 

@@ -1,0 +1,190 @@
+#include "cl_viv_vx_ext.h"
+_viv_uniform float       rlogE;
+_viv_uniform int         axisSize;
+_viv_uniform float       betaValue;
+_viv_uniform float       scaleLogE;
+_viv_uniform float       outputScale;
+_viv_uniform float       output_offset_asymmetric;
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;
+
+_viv_uniform int         height;
+_viv_uniform int         inputWidth;
+_viv_uniform int         inputWidthRemain4;
+_viv_uniform VXC_512Bits uniGetSubData0to3_4x4;
+_viv_uniform VXC_512Bits uniGetSubData4to7_4x4;
+_viv_uniform VXC_512Bits uniPackMaxData_2x8;
+
+#define LOGSOFTMAX_PROCESS_EXCEED_AXIS0(read_fun, vert_max_fun, horz_max_fun) \
+    read_fun(val0, input,  coord, VXC_5BITOFFSET_XY(-16, 0), VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, val, val0, 16); \
+    for (coord.y = 0; coord.y < height; coord.y++) \
+    { \
+        for (coord.x = 16;coord.x < (axisSize + 16);coord.x+=32) \
+        { \
+            read_fun(val0, input,  coord, VXC_5BITOFFSET_XY(-16, 0), \
+                                          VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, img_val0, val0, 16); \
+            read_fun(val1, input,  coord, VXC_5BITOFFSET_XY(-8, 0), \
+                                          VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, img_val1, val1, 16); \
+            read_fun(val2, input,  coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, img_val2, val2, 16); \
+            read_fun(val3, input,  coord, VXC_5BITOFFSET_XY(8, 0), \
+                                          VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, img_val3, val3, 16); \
+            vert_max_fun(val, img_val0, img_val1, val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            vert_max_fun(val, img_val2, img_val3, val, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    } \
+    horz_max_fun(val, val, VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0)); \
+    VXC_DP2x8(val, val, val, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniPackMaxData_2x8); \
+    horz_max_fun(val, val, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0)); \
+ \
+    vxc_float4 prob; \
+    float fProbSum = 0; \
+    const float4 one4 = (float4)(1.0, 1.0, 1.0, 1.0); \
+    for (coord.y = 0; coord.y < height; coord.y++) \
+    { \
+        for (coord.x = 0;coord.x < inputWidth;coord.x+=4) \
+        { \
+            read_fun(val0, input,  coord, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, img_val0, val0, 16); \
+            VXC_DP4x4(prob, img_val0, val,\
+                         VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetSubData0to3_4x4); \
+            prob *= scaleLogE; \
+            prob = exp2(prob); \
+            fProbSum += dot(prob, one4); \
+        } \
+    } \
+    read_fun(val0, input,  coord, 0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, img_val0, val0, 16); \
+    VXC_DP4x4(prob, img_val0, val, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetSubData0to3_4x4); \
+    prob *= scaleLogE; \
+    if(inputWidthRemain4 == 1) \
+    { \
+        prob.x = exp2(prob.x); \
+        prob.yzw = 0; \
+        fProbSum += dot(prob, one4); \
+    } \
+    else if(inputWidthRemain4 == 2) \
+    { \
+        prob.x = exp2(prob.x); \
+        prob.y = exp2(prob.y); \
+        prob.zw = 0; \
+        fProbSum += dot(prob, one4); \
+    } \
+    else if(inputWidthRemain4 == 3) \
+    { \
+        prob.x = exp2(prob.x); \
+        prob.y = exp2(prob.y); \
+        prob.z = exp2(prob.z); \
+        prob.w = 0; \
+        fProbSum += dot(prob, one4); \
+    } \
+    vxc_float4 probSum_log; \
+    probSum_log.x = log2(fProbSum) * rlogE;
+
+#define LOGSOFTMAX_PROCESS_EXCEED_AXIS0_SAVE(dst_type, \
+        save_type, conv_mode, OUT_SCALE, OUT_OFFSET, read_fun, write_fun) \
+    for (coord.y = 0; coord.y < height; coord.y++) \
+    { \
+        for (coord.x = 0; coord.x < axisSize; coord.x += 8) \
+        { \
+            dst_type vec0, vec1; \
+            save_type dst; \
+            read_fun(val0, input,  coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, img_val0, val0, 16); \
+            VXC_DP4x4(prob, img_val0, val, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetSubData0to3_4x4); \
+            prob = prob * betaValue - probSum_log.xxxx; \
+            prob = prob * OUT_SCALE + OUT_OFFSET; \
+            _viv_asm(conv_mode, vec0, prob); \
+            VXC_DP4x4(prob, img_val0, val, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetSubData4to7_4x4); \
+            prob = prob * betaValue - probSum_log.xxxx; \
+            prob = prob * OUT_SCALE + OUT_OFFSET; \
+            _viv_asm(conv_mode, vec1, prob); \
+            VXC_DP2x8(dst, vec0, vec1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvertInt32toUint8_2x8); \
+            write_fun(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        } \
+    }
+
+#define LOGSOFTMAX_EXCEED_AXIS0(src_name, dst_name, src_type, copy_type, dst_type,\
+                        save_type, conv_mode, OUT_SCALE, OUT_OFFSET, vert_max_fun, horz_max_fun) \
+__kernel void log_softmax_exceed_axis0_##src_name##to##dst_name \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    float input_Scale, \
+    int   axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(16, 0, get_global_id(1), 0); \
+    src_type img_val0, img_val1, img_val2, img_val3; \
+    copy_type val0, val1, val2, val3; \
+    src_type val; \
+    LOGSOFTMAX_PROCESS_EXCEED_AXIS0(VXC_ReadImage2DArray, vert_max_fun, horz_max_fun) \
+    LOGSOFTMAX_PROCESS_EXCEED_AXIS0_SAVE(dst_type, save_type, conv_mode,\
+    OUT_SCALE, OUT_OFFSET, VXC_ReadImage2DArray, VXC_WriteImage2DArray); \
+}
+
+LOGSOFTMAX_EXCEED_AXIS0(F16, F16, vxc_half8, vxc_short8, half4,  vxc_short8,\
+CONV, 1, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS0(F16, I16, vxc_half8, vxc_short8, short4, vxc_short8,\
+CONV_SAT_RTE, outputScale, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS0(F16, I8,  vxc_half8, vxc_short8, char4,  vxc_char8,\
+CONV_SAT_RTE, outputScale, 0, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS0(F16, U8,  vxc_half8, vxc_short8, uchar4, vxc_uchar8,\
+                 CONV_SAT_RTE, outputScale, output_offset_asymmetric, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS0(I16, I16, vxc_short8, vxc_short8, short4, vxc_short8,\
+CONV_SAT_RTE, outputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS0(I16, F16, vxc_short8, vxc_short8, half4,  vxc_short8,\
+CONV, 1, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS0(I8, I8,  vxc_char16, vxc_char16, char4,  vxc_char8,\
+CONV_SAT_RTE, outputScale, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS0(I8, F16, vxc_char16, vxc_char16, half4,  vxc_short8,\
+CONV, 1, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS0(U8, U8,  vxc_uchar16, vxc_uchar16, uchar4, vxc_uchar8,\
+CONV_SAT_RTE, outputScale, output_offset_asymmetric, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS0(U8, F16, vxc_uchar16, vxc_uchar16, half4,  vxc_short8,\
+CONV, 1, 0, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+
+
+#define LOGSOFTMAX_PROCESS_EXCEED_AXIS0_TOF32_SAVE(read_fun) \
+    for (coord.y = 0; coord.y < height; coord.y++) \
+    { \
+        for (coord.x = 0; coord.x < axisSize; ) \
+        { \
+            read_fun(val0, input,  coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            _viv_asm(COPY, img_val0, val0, 16); \
+            VXC_DP4x4(prob, img_val0, val, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetSubData0to3_4x4); \
+            prob = prob * betaValue - probSum_log.xxxx; \
+            write_imagef(output, coord, prob); \
+            coord.x += 4; \
+            VXC_DP4x4(prob, img_val0, val, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniGetSubData4to7_4x4); \
+            prob = prob * betaValue - probSum_log.xxxx; \
+            write_imagef(output, coord, prob); \
+            coord.x += 4; \
+        } \
+    }
+
+#define LOGSOFTMAX_EXCEED_AXIS0_TOF32(src_name, src_type, copy_type, vert_max_fun, horz_max_fun) \
+__kernel void log_softmax_exceed_axis0_##src_name##toF32 \
+    ( \
+    __read_only  image2d_array_t input, \
+    __write_only image2d_array_t output, \
+    float input_Scale, \
+    int   axisVal \
+    ) \
+{ \
+    int4 coord = (int4)(16, 0, get_global_id(1), 0); \
+    src_type img_val0, img_val1, img_val2, img_val3; \
+    copy_type val0, val1, val2, val3; \
+    src_type val; \
+    LOGSOFTMAX_PROCESS_EXCEED_AXIS0(VXC_ReadImage2DArray, vert_max_fun, horz_max_fun) \
+    LOGSOFTMAX_PROCESS_EXCEED_AXIS0_TOF32_SAVE(VXC_ReadImage2DArray) \
+}
+
+LOGSOFTMAX_EXCEED_AXIS0_TOF32(F16, vxc_half8,   vxc_short8, VXC_VertMax3_Half, VXC_HorzMax3_Half)
+LOGSOFTMAX_EXCEED_AXIS0_TOF32(I16, vxc_short8,  vxc_short8, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS0_TOF32(I8,  vxc_char16,  vxc_char16, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+LOGSOFTMAX_EXCEED_AXIS0_TOF32(U8,  vxc_uchar16, vxc_uchar16, VXC_VertMax3_Integer, VXC_HorzMax3_Integer)
+

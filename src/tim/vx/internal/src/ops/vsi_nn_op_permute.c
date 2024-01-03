@@ -37,6 +37,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_constraint_check.h"
 
+#if !(VX_TRANSPOSE_OPT_SUPPORT)
 static vsi_bool _is_same_memory_shape
     (
     vsi_nn_node_t   * self,
@@ -116,6 +117,7 @@ static vsi_bool _is_same_quant
 
     return TRUE;
 } /* _is_same_quant */
+#endif
 
 static vsi_status op_compute
     (
@@ -242,6 +244,14 @@ static vsi_status op_optimize
 
     status = VSI_SUCCESS;
 
+#if (VX_TRANSPOSE_OPT_SUPPORT)
+    VSI_UNREFERENCED(inputs);
+    VSI_UNREFERENCED(outputs);
+    VSI_UNREFERENCED(direction);
+    self->nn_param.permute.local.initialized = FALSE;
+
+    return status;
+#else
     if (_is_same_memory_shape(self, inputs, outputs) == FALSE ||
         _is_same_quant(self, inputs, outputs) == FALSE ||
         (inputs[0]->t != NULL && outputs[0]->t != NULL))
@@ -285,6 +295,7 @@ static vsi_status op_optimize
     }
 
     return status;
+#endif
 } /* op_optimize() */
 
 #ifdef __cplusplus

@@ -37,13 +37,17 @@
 #include "vsi_nn_internal_node.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_tensor_util_prv.h"
 #include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (3)
 #define _OUTPUT_NUM         (1)
 
 static vsi_nn_tensor_t * _expand_tensor_dim
-    ( vsi_nn_graph_t * graph, vsi_nn_tensor_t *tensor, vsi_size_t * shape, vsi_size_t rank, vsi_size_t expand_dim )
+    ( vsi_nn_graph_t * graph, vsi_nn_tensor_t *tensor,
+        vsi_size_t * shape, vsi_size_t rank, vsi_size_t expand_dim,
+        vsi_nn_opt_direction_e direction,
+        vsi_bool is_use_reshpe_node)
 {
     vsi_size_t new_shape[VSI_NN_MAX_DIM_NUM] = { 0 };
     vsi_size_t i, cnt;
@@ -66,8 +70,14 @@ static vsi_nn_tensor_t * _expand_tensor_dim
     {
         new_shape[cnt] = 1;
     }
-
-    return vsi_nn_reshape_tensor( graph, tensor, new_shape, rank + 1 );
+    if (is_use_reshpe_node)
+    {
+        return vsi_nn_kernel_insert_reshape_node(graph, tensor, new_shape, (uint32_t)(rank + 1), direction);
+    }
+    else
+    {
+        return vsi_nn_reshape_tensor(graph, tensor, new_shape, rank + 1);
+    }
 } /* _expand_tensor_dim() */
 
 static vsi_status op_compute
@@ -127,13 +137,13 @@ static vsi_bool op_setup
     }
 
     p->local->input = _expand_tensor_dim( self->graph, inputs[0],
-            inputs[0]->attr.size, inputs[0]->attr.dim_num, 0 );
+            inputs[0]->attr.size, inputs[0]->attr.dim_num, 0, VSI_NN_OPTIMIZE_BACKWARD, TRUE);
     if (inputs[1]->attr.dtype.qnt_type !=
             VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC &&
         inputs[1]->attr.dtype.qnt_type != VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8)
     {
         p->local->weight = _expand_tensor_dim( self->graph, inputs[1],
-            inputs[1]->attr.size, inputs[1]->attr.dim_num, 0 );
+            inputs[1]->attr.size, inputs[1]->attr.dim_num, 0, VSI_NN_OPTIMIZE_BACKWARD, FALSE);
     }
     else
     {
@@ -160,7 +170,7 @@ static vsi_bool op_setup
     }
 
     p->local->output = _expand_tensor_dim( self->graph, outputs[0],
-            outputs[0]->attr.size, outputs[0]->attr.dim_num, 0 );
+            outputs[0]->attr.size, outputs[0]->attr.dim_num, 0, VSI_NN_OPTIMIZE_FORWARD, TRUE);
 
 
     curr = vsi_nn_internal_new_node(self, VSI_NN_OP_GROUPED_CONV2D, 0, 0);

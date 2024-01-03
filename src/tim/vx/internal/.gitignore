@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Some header file
+include/vsi_nn_feature_config.h
+
 # User-specific files
 *.suo
 *.user

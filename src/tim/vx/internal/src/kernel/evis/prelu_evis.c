@@ -164,46 +164,24 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
     attr[2] = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[2] );
     CHECK_PTR_FAIL_GOTO( attr[2], "Create tensor attr buffer fail.", final );
 
-    out_shape  = attr[2]->shape;
+    out_shape     = attr[2]->shape;
+    inputZP0      = attr[0]->zero_point;
+    input_scale0  = attr[0]->scale;
+    inputZP1      = attr[1]->zero_point;
+    input_scale1  = attr[1]->scale;
+    outputZP      = (float)attr[2]->zero_point;
+    input_scale0  = input_scale0 / attr[2]->scale;
+
     if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         in0_fl = (int8_t)attr[0]->dfp.fl;
-        if (in0_fl >= 0)
-        {
-            input_scale0 = 1.0f / (vx_float32) ((int64_t)1 << in0_fl);
-        }
-        else if (in0_fl < 0)
-        {
-            input_scale0 = (vx_float32) ((int64_t)1 << -in0_fl);
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        inputZP0    = attr[0]->asymm.zero_point;
-        input_scale0  = attr[0]->asymm.scale;
-    }
-
-    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        inputZP1 = attr[1]->asymm.zero_point;
-        input_scale1  = attr[1]->asymm.scale;
     }
 
     if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         out_fl = (int8_t)attr[2]->dfp.fl;
+    }
 
-        if (out_fl >= 0)
-            input_scale0 *= (vx_float32)((int64_t)1 << out_fl);
-        else if (out_fl < 0)
-            input_scale0 *= 1.0f / (vx_float32) ((int64_t)1 << -out_fl);
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        out_fl = 1;
-        outputZP      = (float)attr[2]->asymm.zero_point;
-        input_scale0   = input_scale0 / attr[2]->asymm.scale;
-    }
     shift0 = in0_fl - out_fl;
 
     is_2d_img = (out_shape->size < 3) || (out_shape->data[2] == 1);

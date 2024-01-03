@@ -438,7 +438,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = {{ 0 }};
     int32_t width = (int32_t)block_size;
     int32_t top_k = vsi_nn_kernel_param_get_int32(params, "top_k");
-    int32_t num_stages = (int32_t)ceil(log10(block_size / 2.0f) / log10(2.0f));
+    int32_t num_stages = (int32_t)vsi_nn_max(ceil(log10(block_size / 2.0f) / log10(2.0f)), 0);
     vsi_bool is_odd_even_sort = FALSE;
     size_t param_num = _TOPK_PARAM_NUM;
     float inputScale  = vsi_nn_get_tensor_scale(inputs[0]);

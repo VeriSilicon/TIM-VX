@@ -121,7 +121,7 @@ __kernel void swish_I32toI32_2D(
     src = read_imagef(input, coord); \
     tmp.x = sigmoid_(src.x * beta, logE); \
     data.x = src.x * tmp.x; \
-    uint4 dst = convert_uint4(data * outputScale + outputZP); \
+    uint4 dst = convert_uint4_rte(data * outputScale + outputZP); \
     write_imageui(output, coord, dst);
 
 __kernel void swish_F32toU8(

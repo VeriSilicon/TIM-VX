@@ -163,63 +163,12 @@ DEF_KERNEL_INITIALIZER(_minimum_initializer)
     CHECK_PTR_FAIL_GOTO( attr[2], "Create tensor attr buffer fail.", final );
 
     out_shape  = attr[2]->shape;
-
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[0]->dfp.fl;
-        if (fl > 0)
-        {
-            input0_scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input0_scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-        || attr[0]->quant == VSI_NN_KERNEL_QUANT_SYMM)
-    {
-        input0_zp     = attr[0]->asymm.zero_point;
-        input0_scale  = attr[0]->asymm.scale;
-    }
-
-    if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[1]->dfp.fl;
-        if (fl > 0)
-        {
-            input1_scale = 1.0f / (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            input1_scale = (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-        || attr[1]->quant == VSI_NN_KERNEL_QUANT_SYMM)
-    {
-        input1_zp     = attr[1]->asymm.zero_point;
-        input1_scale  = attr[1]->asymm.scale;
-    }
-
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        int32_t fl = attr[2]->dfp.fl;
-        if (fl > 0)
-        {
-            output_scale = (float) ((int64_t)1 << fl);
-        }
-        else
-        {
-            output_scale = 1.0f / (float)((int64_t)1 << -fl);
-        }
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-        || attr[2]->quant == VSI_NN_KERNEL_QUANT_SYMM)
-    {
-        output_zp     = attr[2]->asymm.zero_point;
-        output_scale  = 1.0f / attr[2]->asymm.scale;
-    }
+    input0_zp     = attr[0]->zero_point;
+    input0_scale  = attr[0]->scale;
+    input1_zp     = attr[1]->zero_point;
+    input1_scale  = attr[1]->scale;
+    output_zp     = attr[2]->zero_point;
+    output_scale  = 1.0f / attr[2]->scale;
 
 #define _PACK_SELECT_KEY( IN0_TYPE, IN1_TYPE, OUT_TYPE )    \
         (IN0_TYPE | (IN1_TYPE << 8) | ( OUT_TYPE << 16))
@@ -454,30 +403,52 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_tensor_t* tmp_inputs[2] = { NULL };
     vsi_nn_type_e dtype1 = inputs[0]->attr.dtype.vx_type;
     vsi_nn_type_e dtype2 = inputs[1]->attr.dtype.vx_type;
+    vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
+    vsi_size_t shapes[3][VSI_NN_MAX_DIM_NUM] = { { 0 } };
+    vsi_size_t new_rank = 0;
+    vsi_bool ret = TRUE;
 
     VSI_UNREFERENCED(input_num);
     VSI_UNREFERENCED(output_num);
     VSI_UNREFERENCED(params);
 
-    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
-                outputs[0]->attr.dim_num ) )
+    ret = vsi_nn_kernel_optimize_eltwise_shape(
+            inputs[0]->attr.size, inputs[0]->attr.dim_num,
+            inputs[1]->attr.size, inputs[1]->attr.dim_num,
+            outputs[0]->attr.size, outputs[0]->attr.dim_num,
+            shapes[0], shapes[1], shapes[2], &new_rank );
+
+    if (ret == FALSE)
     {
-        return NULL;
+        goto final;
+    }
+
+    reshape_tensors[0] = vsi_nn_reshape_tensor( graph,
+            inputs[0], shapes[0], new_rank );
+    reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
+            inputs[1], shapes[1], new_rank );
+    reshape_tensors[2] = vsi_nn_reshape_tensor( graph,
+            outputs[0], shapes[2], new_rank );
+
+    if ( !vsi_nn_kernel_gpu_check_shape( reshape_tensors[2]->attr.size,
+                reshape_tensors[2]->attr.dim_num ) )
+    {
+        goto final;
     }
 
     // Reorder tensor
     if ( dtype1 != dtype2 && dtype1 == VSI_NN_TYPE_FLOAT16 )
     {
         int32_t order[2] = {1, 0};
-        vsi_nn_reorder_tensor( inputs, order, 2, tmp_inputs );
+        vsi_nn_reorder_tensor( reshape_tensors, order, 2, tmp_inputs );
     }
     else
     {
-        memmove( tmp_inputs, inputs, sizeof(vsi_nn_tensor_t*) * 2 );
+        memmove( tmp_inputs, reshape_tensors, sizeof(vsi_nn_tensor_t*) * 2 );
     }
 
-    image_2d = (outputs[0]->attr.dim_num == 2);
-    status = _query_kernel( tmp_inputs, outputs, image_2d, kernel );
+    image_2d = (reshape_tensors[2]->attr.dim_num == 2);
+    status = _query_kernel( tmp_inputs, &reshape_tensors[2], image_2d, kernel );
     if ( VSI_SUCCESS == status )
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
@@ -485,10 +456,16 @@ static vsi_nn_kernel_node_t _setup
         {
             /* Pass parameters to node. */
             vsi_nn_kernel_node_pack_io( tmp_params, _EVIS_PARAM_NUM,
-                    tmp_inputs, 2, outputs, 1 );
+                    tmp_inputs, 2, &reshape_tensors[2], 1 );
             status = vsi_nn_kernel_node_pass_param( node, tmp_params, _EVIS_PARAM_NUM );
         }
     }
+
+final:
+    vsi_safe_release_tensor(reshape_tensors[0]);
+    vsi_safe_release_tensor(reshape_tensors[1]);
+    vsi_safe_release_tensor(reshape_tensors[2]);
+
     return node;
 } /* _setup() */
 

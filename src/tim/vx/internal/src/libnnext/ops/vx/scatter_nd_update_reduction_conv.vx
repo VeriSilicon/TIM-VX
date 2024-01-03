@@ -1,0 +1,110 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float output_scale;
+_viv_uniform float output_zp;
+
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;
+_viv_uniform VXC_512Bits uniExtractHalf8_2x8;
+
+#define SCATTER_ND_UPDATE_CONV(src0_type, ptr_type, element_size, ptr_type1, conv_func) \
+__kernel void scatter_nd_update_reduction_conv_##src0_type( \
+    __read_only image2d_t  temp_buf_float, \
+    __read_only image2d_t  link_buf, \
+    image2d_t  output, \
+    int length, int res) \
+{ \
+    int gidx = get_global_id(0); \
+    Image img1 = create_image_from_image2d(temp_buf_float, 4); \
+    Image img2 = create_image_from_image2d(output, element_size); \
+    __global float* input_ptr = (__global float*)img1.ptr; \
+    if(length > 0) \
+    { \
+        __global ptr_type* output_ptr = (__global ptr_type*)img2.ptr; \
+        float4 src0 = vload4(0, input_ptr + gidx * 8); \
+        float4 src1 = vload4(1, input_ptr + gidx * 8); \
+        int4 data0 = convert_int4_rte(src0 * output_scale + output_zp); \
+        int4 data1 = convert_int4_rte(src1 * output_scale + output_zp); \
+        ptr_type dst; \
+        VXC_DP2x8(dst, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \
+                    uniConvertInt32toUint8_2x8); \
+        output_ptr[gidx] = dst; \
+    } \
+    __global ptr_type1* output_ptr1 = (__global ptr_type1*)img2.ptr; \
+    for(int i = gidx; i < res; i += get_global_size(0)) \
+    { \
+        float src = input_ptr[length + i]; \
+        int data = convert_int_rte(src * output_scale + output_zp); \
+        output_ptr1[length + i] = conv_func(data); \
+    } \
+}
+SCATTER_ND_UPDATE_CONV(U8,  vxc_uchar8, 1, uchar, convert_uchar)
+SCATTER_ND_UPDATE_CONV(I8,  vxc_char8,  1, char,  convert_char)
+SCATTER_ND_UPDATE_CONV(I16, vxc_short8, 2, short, convert_short)
+
+__kernel void scatter_nd_update_reduction_conv_F16(
+    __read_only image2d_t  temp_buf_float,
+    __read_only image2d_t  link_buf,
+    image2d_t  output,
+    int length, int res)
+{
+    int gidx = get_global_id(0);
+    Image img1 = create_image_from_image2d(temp_buf_float, 4);
+    Image img2 = create_image_from_image2d(output, 2);
+    __global float* input_ptr = (__global float*)img1.ptr;
+    if(length > 0)
+    {
+        __global vxc_short8* output_ptr = (__global vxc_short8*)img2.ptr;
+        float4 src0 = vload4(0, input_ptr + gidx * 8);
+        float4 src1 = vload4(1, input_ptr + gidx * 8);
+        half4 data0, data1;
+        _viv_asm(CONV, data0, src0);
+        _viv_asm(CONV, data1, src1);
+        vxc_half8 tmp;
+        vxc_short8 dst;
+        VXC_DP2x8(tmp, data0, data1, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), uniExtractHalf8_2x8);
+        _viv_asm(COPY, dst, tmp, 16);
+        output_ptr[gidx] = dst;
+    }
+    __global short* output_ptr1 = (__global short*)img2.ptr;
+    for(int i = gidx; i < res; i += get_global_size(0))
+    {
+        float src = input_ptr[length + i];
+        half data;
+        _viv_asm(CONV, data, src);
+        short dst;
+        _viv_asm(COPY, dst, data, 4);
+        output_ptr1[length + i] = dst;
+    }
+}
+
+__kernel void scatter_nd_update_reduction_conv_BF16(
+    __read_only image2d_t  temp_buf_float,
+    __read_only image2d_t  link_buf,
+    image2d_t  output,
+    int length, int res)
+{
+    int gidx = get_global_id(0);
+    Image img1 = create_image_from_image2d(temp_buf_float, 4);
+    Image img2 = create_image_from_image2d(output, 2);
+    __global float* input_ptr = (__global float*)img1.ptr;
+    if(length > 0)
+    {
+        __global vxc_short8* output_ptr = (__global vxc_short8*)img2.ptr;
+        float4 src0 = vload4(0, input_ptr + gidx * 8);
+        float4 src1 = vload4(1, input_ptr + gidx * 8);
+        vxc_short8 dst0, dst1, dst;
+        _viv_asm(COPY, dst0, src0, 16);
+        _viv_asm(COPY, dst1, src1, 16);
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+        output_ptr[gidx] = dst;
+    }
+    __global short* output_ptr1 = (__global short*)img2.ptr;
+    for(int i = gidx; i < res; i += get_global_size(0))
+    {
+        float src = input_ptr[length + i];
+        vxc_short8 data;
+        _viv_asm(COPY, data, src, 4);
+        output_ptr1[length + i] = data.x;
+    }
+}

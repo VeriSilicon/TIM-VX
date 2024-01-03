@@ -90,6 +90,8 @@ static vx_param_description_t _grucell_activation_z_h_kernel_param_def[] =
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     // Add kererl parameters here
 };
 #define _GRUCELL_ACTIVATION_Z_H_PARAM_NUM  _cnt_of_array( _grucell_activation_z_h_kernel_param_def )
@@ -97,6 +99,8 @@ static vx_param_description_t _grucell_activation_z_h_kernel_param_def[] =
 #define SCALAR_INPUT_TAIL       (8)
 #define SCALAR_OUTPUT_SCALE     (9)
 #define SCALAR_OUTPUT_ZP        (10)
+#define SCALAR_OUTPUT1_SCALE    (11)
+#define SCALAR_OUTPUT1_ZP       (12)
 /*
  * Kernel initializer
  */
@@ -244,6 +248,8 @@ static vsi_nn_kernel_node_t _setup
     float input_tail = -(float)vsi_nn_get_tensor_zero_point(inputs[GRUCELL_ACT_Z_H_HSTATE]) * input_scale;
     float output_scale = 1.0f / vsi_nn_get_tensor_scale(outputs[GRUCELL_ACT_Z_H_OUT_OUTPUT]);
     float output_zp = (float)vsi_nn_get_tensor_zero_point(outputs[GRUCELL_ACT_Z_H_OUT_OUTPUT]);
+    float output_scale1 = 1.0f / vsi_nn_get_tensor_scale(outputs[GRUCELL_ACT_Z_H_OUT_HSTATE]);
+    float output_zp1 = (float)vsi_nn_get_tensor_zero_point(outputs[GRUCELL_ACT_Z_H_OUT_HSTATE]);
 
     if( activation != VSI_NN_ACT_TANH )
     {
@@ -268,11 +274,17 @@ static vsi_nn_kernel_node_t _setup
                     graph, F32, &output_scale );
             node_params[SCALAR_OUTPUT_ZP] = vsi_nn_kernel_scalar_create(
                     graph, F32, &output_zp );
+            node_params[SCALAR_OUTPUT1_SCALE] = vsi_nn_kernel_scalar_create(
+                    graph, F32, &output_scale1 );
+            node_params[SCALAR_OUTPUT1_ZP] = vsi_nn_kernel_scalar_create(
+                    graph, F32, &output_zp1 );
             status  = vsi_nn_kernel_node_pass_param( node, node_params, _GRUCELL_ACTIVATION_Z_H_PARAM_NUM );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_SCALE] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_INPUT_TAIL] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_SCALE] );
             vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT_ZP] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT1_SCALE] );
+            vsi_nn_kernel_scalar_release( &node_params[SCALAR_OUTPUT1_ZP] );
         }
     }
     return node;

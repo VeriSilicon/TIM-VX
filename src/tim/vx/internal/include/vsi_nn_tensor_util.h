@@ -817,6 +817,82 @@ vsi_nn_tensor_t * vsi_nn_dropout_tensor
     float             rate
     );
 
+/**
+ * Allows the application to get direct access to a patch of tensor object.
+ * A wrapper api for OpenVX vxMapTensorPatch
+ *
+ * @param[in] graph Graph handle.
+ * @param[in] tensor Tensor handle.
+ * @param[out]  ptr The address of a pointer that the function sets to the
+ * address where the requested data can be accessed. The returned (*ptr) address
+ * is only valid between the call to the function and the corresponding call to
+ * vsi_nn_UnmapTensorPatch.
+ * @param [in] usage This declares the access mode for the tensor patch, using
+ * the vsi_nn_accessor_type_e enumeration.
+ * VSI_NN_READ_ONLY: after the function call, the content of the memory location
+ * pointed by (*ptr) contains the tensor patch data. Writing into this memory location
+ * is forbidden and its behavior is undefined.
+ * VSI_NN_READ_AND_WRITE : after the function call, the content of the memory
+ * location pointed by (*ptr) contains the tensor patch data; writing into this memory
+ * is allowed only for the location of items and will result in a modification of the
+ * affected items in the tensor object once the range is unmapped. Writing into
+ * a gap between items (when (*stride) > item size in bytes) is forbidden and its
+ * behavior is undefined.
+ * VSI_NN_WRITE_ONLY: after the function call, the memory location pointed by (*ptr)
+ * contains undefined data; writing each item of the range is required prior to
+ * unmapping. Items not written by the application before unmap will become
+ * undefined after unmap, even if they were well defined before map. Like for
+ * VSI_NN_READ_AND_WRITE, writing into a gap between items is forbidden and its behavior
+ * is undefined.
+ * @return VSI_SUCCESS on success, or error core otherwise.
+ */
+
+OVXLIB_API vsi_status vsi_nn_MapTensorPatch
+   (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* tensor,
+    void** ptr,
+    vsi_nn_accessor_type_e usage
+   );
+
+/**
+ * Unmap and commit potential changes to a tensor object patch that was previously mapped.
+ * Unmapping a tensor patch invalidates the memory location from which the patch could
+ * be accessed by the application. Accessing this memory location after the unmap function
+ * completes has an undefined behavior.
+ * @param[in] graph Graph handle.
+ * @param [in] tensor The reference to the tensor object to unmap.
+ * return VSI_SUCCESS on success, or error core otherwise.
+ */
+
+OVXLIB_API vsi_status vsi_nn_UnmapTensorPatch
+   (
+   vsi_nn_graph_t* graph,
+   vsi_nn_tensor_t* tensor
+   );
+
+/**
+ * Create a new tensor from internal AXI-SRAM(Kernel driver maped)
+ * It just creates the tensor object and does not actually allocate the memory
+ * in AXI-SRAM until the verify graph stage. In the other words, the tensor
+ * object is created beforehand,but the memory for storing its data is not
+ * allocate until verify graph stage. AXI-SRAM is the internal memory resource
+ * that memory allocation is done strategically to optimize performance and
+ * resource usage in graph verification.
+ * If there is no enough memory in AXI-SRAM, vsi_nn_VerifyGraph will return VSI_FAILURE
+ * User can't access the tensor memory(read/write tensor data) before the graph has verified,
+ * since the tensor memory is not allocated.
+ * @param[in] graph Graph handle
+ * @param[in] attr Tensor attirbutes to the new tensor.
+ *
+ * @return Tensor handle on success, or NULL otherwise.
+ */
+OVXLIB_API vsi_nn_tensor_t * vsi_nn_CreateTensorFromAXISRAM
+    (
+    vsi_nn_graph_t       * graph,
+    vsi_nn_tensor_attr_t * attr
+    );
+
 #ifdef __cplusplus
 }
 #endif

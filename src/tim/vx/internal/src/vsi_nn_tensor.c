@@ -66,7 +66,8 @@ static vsi_nn_tensor_t * _create_tensor
     (
     vsi_nn_graph_t       * graph,
     uint8_t              * data,
-    vsi_nn_tensor_attr_t * attr
+    vsi_nn_tensor_attr_t * attr,
+    int8_t                 is_from_axisram
     );
 
 static vsi_size_t get_tensor_elements_num
@@ -568,6 +569,16 @@ static vsi_bool _init_tensor
     {
         tensor->t = vxCreateTensor2( graph->ctx->c,
             &params, sizeof( vx_tensor_create_params_t ) );
+#ifdef VSI_CREATE_TENSOR_FROM_AXISRAM_SUPPORT
+        if (TRUE == _get_tensor_is_from_axisram((vsi_nn_tensor_prv_t*)tensor))
+        {
+            vx_enum pool_type = VX_VIV_MEM_POOL_TYPE_AXI_SRAM;
+            vxSetTensorAttribute(tensor->t,
+                                 VX_TENSOR_MEMORY_POOL_TYPE,
+                                 &pool_type,
+                                 sizeof(vx_enum));
+        }
+#endif
     }
     else
     {
@@ -596,16 +607,21 @@ static vsi_bool _init_tensor
     if( !tensor->attr.vtl && !tensor->attr.is_const )
     {
         //norm tensor need to fill initial value
-        if( ( !tensor->attr.is_created_from_handle ) || tensor->attr.is_handle_malloc_by_ovxlib )
+#ifdef VSI_CREATE_TENSOR_FROM_AXISRAM_SUPPORT
+        if (TRUE != _get_tensor_is_from_axisram((vsi_nn_tensor_prv_t*)tensor))
+#endif
         {
-            vsi_nn_FillTensorWithValue( graph, tensor, 0.0f );
-            if(tensor->attr.is_created_from_handle)
+            if( ( !tensor->attr.is_created_from_handle ) || tensor->attr.is_handle_malloc_by_ovxlib)
             {
-                vsi_status status = vxFlushHandle( (vx_reference)tensor->t );
-                if (VSI_SUCCESS != status)
+                vsi_nn_FillTensorWithValue( graph, tensor, 0.0f );
+                if(tensor->attr.is_created_from_handle)
                 {
-                    ret = FALSE;
-                    goto final;
+                    vsi_status status = vxFlushHandle( (vx_reference)tensor->t );
+                    if (VSI_SUCCESS != status)
+                    {
+                        ret = FALSE;
+                        goto final;
+                    }
                 }
             }
         }
@@ -654,7 +670,8 @@ static vsi_nn_tensor_t * _create_tensor
     (
     vsi_nn_graph_t       * graph,
     uint8_t              * data,
-    vsi_nn_tensor_attr_t * attr
+    vsi_nn_tensor_attr_t * attr,
+    int8_t                 is_from_axisram
     )
 {
     vsi_nn_tensor_prv_t * tensor;
@@ -673,6 +690,10 @@ static vsi_nn_tensor_t * _create_tensor
         memset( tensor, 0, sizeof( vsi_nn_tensor_prv_t ) );
         memcpy( &tensor->pot.attr, attr, sizeof( vsi_nn_tensor_attr_t ) );
         tensor->pot.is_swapped = FALSE;
+        if (TRUE == is_from_axisram)
+        {
+            tensor->is_from_axisram = is_from_axisram;
+        }
         if( attr->dim_num != VSI_NN_DIM_AUTO )
         {
             _init_tensor( graph, &tensor->pot, data);
@@ -694,7 +715,7 @@ vsi_nn_tensor_t * vsi_nn_CreateTensor
     )
 {
     attr->is_created_from_handle = FALSE;
-    return _create_tensor(graph, NULL, attr);
+    return _create_tensor(graph, NULL, attr, FALSE);
 } /* vsi_nn_CreateTensor() */
 
 vsi_nn_tensor_t * vsi_nn_CreateTensorFromHandle
@@ -727,7 +748,7 @@ vsi_nn_tensor_t * vsi_nn_CreateTensorFromHandle
     }
     else
     {
-        ptensor = _create_tensor(graph, data, attr);
+        ptensor = _create_tensor(graph, data, attr, FALSE);
     }
 
  final:
@@ -3115,6 +3136,39 @@ vsi_status _set_tensor_is_scalar
     return status;
 }
 
+int8_t _get_tensor_is_from_axisram
+    (
+    vsi_nn_tensor_prv_t* tensor
+    )
+{
+    int8_t is_from_axisram = FALSE;
+    if (NULL == tensor) {
+        VSILOGE("To get is_scalar, tensor pointer SHOULD NOT be NULL.");
+        goto final;
+    }
+    is_from_axisram = tensor->is_from_axisram;
+
+final:
+    return is_from_axisram;
+}
+
+vsi_status _set_tensor_is_from_axisram
+    (
+    vsi_nn_tensor_prv_t* tensor,
+    int8_t is_from_axisram
+    )
+{
+    vsi_status status = VSI_SUCCESS;
+    if (NULL == tensor) {
+        status = VSI_FAILURE;
+        goto final;
+    }
+    tensor->is_from_axisram = is_from_axisram;
+
+final:
+    return status;
+}
+
 static vsi_bool _init_dummy_tensor
     (
     vsi_nn_graph_t  * graph,
@@ -3314,3 +3368,106 @@ vsi_nn_tensor_t * vsi_nn_create_dummy_tensor
     attr->is_created_from_handle = FALSE;
     return _create_dummy_tensor(graph, attr);
 } /* vsi_nn_create_dummy_tensor() */
+
+vsi_status vsi_nn_MapTensorPatch
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* tensor,
+    void** ptr,
+    vsi_nn_accessor_type_e usage
+    )
+{
+    vsi_status status = VSI_FAILURE;
+#ifdef VSI_MAP_TENSOR_PATCH_SUPPORT
+    size_t dim, i;
+    vsi_size_t tem_stride[VSI_NN_MAX_DIM_NUM];
+    vx_size start[VSI_NN_MAX_DIM_NUM], end[VSI_NN_MAX_DIM_NUM],
+        stride[VSI_NN_MAX_DIM_NUM];
+    vx_map_id map_id = 0;
+
+    if (NULL == graph || NULL == tensor || NULL == ptr)
+    {
+        VSILOGE("Invalid parameter");
+        return status;
+    }
+    if (TRUE == tensor->attr.vtl)
+    {
+        VSILOGE("Can not access a virtual tensor.");
+        return status;
+    }
+    vsi_nn_GetStrideSize(&tensor->attr, tem_stride);
+
+    memset(start, 0, sizeof(vx_size) * VSI_NN_MAX_DIM_NUM);
+    dim = (size_t)tensor->attr.dim_num;
+    for (i = 0; i < dim; i++)
+    {
+        end[i] = (size_t)tensor->attr.size[i];
+        stride[i] = (size_t)tem_stride[i];
+    }
+
+    status = vxMapTensorPatch(tensor->t,dim,start,end,
+                         &map_id,stride,ptr,usage, VX_MEMORY_TYPE_HOST);
+    ((vsi_nn_tensor_prv_t*)tensor)->map_id = map_id;
+#else
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(tensor);
+    VSI_UNREFERENCED(ptr);
+    VSI_UNREFERENCED(usage);
+    VSILOGE("Function unspported, please upgrade OpenVX driver to 1.3.0!");
+#endif
+    return status;
+} /* vsi_nn_MapTensorPatch() */
+
+vsi_status vsi_nn_UnmapTensorPatch
+    (
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* tensor
+    )
+{
+    vsi_status status = VSI_FAILURE;
+#ifdef VSI_MAP_TENSOR_PATCH_SUPPORT
+    vx_map_id map_id = 0;
+
+    if (NULL == graph || NULL == tensor)
+    {
+        VSILOGE("Invalid parameter");
+        return status;
+    }
+    if (TRUE == tensor->attr.vtl)
+    {
+        VSILOGE("Can not access a virtual tensor.");
+        return status;
+    }
+
+    map_id = ((vsi_nn_tensor_prv_t*)tensor)->map_id;
+    status = vxUnmapTensorPatch(tensor->t, map_id);
+#else
+    VSI_UNREFERENCED(graph);
+    VSI_UNREFERENCED(tensor);
+    VSILOGE("Function unspported, please upgrade OpenVX driver to 1.3.0!");
+#endif
+    return status;
+} /* vsi_nn_UnmapTensorPatch() */
+
+vsi_nn_tensor_t * vsi_nn_CreateTensorFromAXISRAM
+    (
+    vsi_nn_graph_t       * graph,
+    vsi_nn_tensor_attr_t * attr
+    )
+{
+
+    if (NULL == graph || NULL == attr) {
+        VSILOGE("Invalid parameter");
+        return NULL;
+    }
+    if (TRUE == attr->vtl) {
+        VSILOGE("Can not create tensor from AXI-SRAM for a virtual tensor.");
+        return NULL;
+    }
+#ifdef VSI_CREATE_TENSOR_FROM_AXISRAM_SUPPORT
+    attr->is_created_from_handle = FALSE;
+    return _create_tensor(graph, NULL, attr, TRUE);
+#else
+    return NULL;
+#endif
+} /*vsi_nn_CreateTensorFromAXISRAM*/

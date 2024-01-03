@@ -166,8 +166,6 @@ DEF_KERNEL_INITIALIZER(_swish_initializer)
 
     vx_tensor     input            = (vx_tensor)param[0];
     vx_tensor     output           = (vx_tensor)param[1];
-    int8_t        srcFixPointPos   = 0;
-    int8_t        dstFixPointPos   = 0;
     vx_float32    inputTail        = 0;
     vx_float32    inputScale       = 1.0f;
     vx_float32    outputZP         = 0;
@@ -186,42 +184,11 @@ DEF_KERNEL_INITIALIZER(_swish_initializer)
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
 
     out_shape = output_attr->shape;
+    inputScale  = input_attr->scale;
+    inputTail   = 0 - (vx_float32)input_attr->zero_point * inputScale;
+    outputScale  = 1.0f / output_attr->scale;
+    outputZP     = (vx_float32)(output_attr->zero_point);
 
-    if (input_attr->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        srcFixPointPos = (int8_t)input_attr->dfp.fl;
-        if (srcFixPointPos > 0)
-        {
-            inputScale = 1.0f / (vx_float32) ((int64_t)1 << srcFixPointPos);
-        }
-        else
-        {
-            inputScale = (vx_float32)((int64_t)1 << -srcFixPointPos);
-        }
-    }
-    else if (input_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM || input_attr->quant == VSI_NN_KERNEL_QUANT_SYMM)
-    {
-        inputScale  = input_attr->asymm.scale;
-        inputTail   = 0 - input_attr->asymm.zero_point * inputScale;
-    }
-
-    if (output_attr->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        dstFixPointPos = (int8_t)output_attr->dfp.fl;
-        if (dstFixPointPos > 0)
-        {
-            outputScale = (vx_float32) ((int64_t)1 << dstFixPointPos);
-        }
-        else
-        {
-            outputScale = 1.0f / (vx_float32) ((int64_t)1 << -dstFixPointPos);
-        }
-    }
-    else if (output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM || output_attr->quant == VSI_NN_KERNEL_QUANT_SYMM)
-    {
-        outputScale  = 1.0f / output_attr->asymm.scale;
-        outputZP     = (vx_float32)(output_attr->asymm.zero_point);
-    }
 #define _PACK_SELECT_KEY( IN_TYPE, OUT_TYPE )    \
         (IN_TYPE | ( OUT_TYPE << 16))
 
@@ -379,8 +346,6 @@ DEF_KERNEL_INITIALIZER(_hswish_initializer)
 
     vx_tensor     input            = (vx_tensor)param[0];
     vx_tensor     output           = (vx_tensor)param[1];
-    int8_t        srcFixPointPos   = 0;
-    int8_t        dstFixPointPos   = 0;
     vx_float32    inputTail        = 0;
     vx_float32    inputScale       = 1.0f;
     vx_float32    outputZP         = 0;
@@ -398,42 +363,11 @@ DEF_KERNEL_INITIALIZER(_hswish_initializer)
     CHECK_PTR_FAIL_GOTO( output_attr, "vsi_nn_kernel_tensor_attr_create fail.", final );
 
     out_shape = output_attr->shape;
+    inputScale  = input_attr->scale;
+    inputTail   = 0 - (vx_float32)input_attr->zero_point * inputScale;
+    outputScale  = 1.0f / output_attr->scale;
+    outputZP     = (vx_float32)(output_attr->zero_point);
 
-    if (input_attr->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        srcFixPointPos = (int8_t)input_attr->dfp.fl;
-        if (srcFixPointPos > 0)
-        {
-            inputScale = 1.0f / (vx_float32) ((int64_t)1 << srcFixPointPos);
-        }
-        else
-        {
-            inputScale = (vx_float32)((int64_t)1 << -srcFixPointPos);
-        }
-    }
-    else if (input_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM || input_attr->quant == VSI_NN_KERNEL_QUANT_SYMM)
-    {
-        inputScale  = input_attr->asymm.scale;
-        inputTail   = 0 - input_attr->asymm.zero_point * inputScale;
-    }
-
-    if (output_attr->quant == VSI_NN_KERNEL_QUANT_DFP)
-    {
-        dstFixPointPos = (int8_t)output_attr->dfp.fl;
-        if (dstFixPointPos > 0)
-        {
-            outputScale = (vx_float32) ((int64_t)1 << dstFixPointPos);
-        }
-        else
-        {
-            outputScale = 1.0f / (vx_float32) ((int64_t)1 << -dstFixPointPos);
-        }
-    }
-    else if (output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM || output_attr->quant == VSI_NN_KERNEL_QUANT_SYMM)
-    {
-        outputScale  = 1.0f / output_attr->asymm.scale;
-        outputZP     = (vx_float32)(output_attr->asymm.zero_point);
-    }
 #define _PACK_SELECT_KEY( IN_TYPE, OUT_TYPE )    \
         (IN_TYPE | ( OUT_TYPE << 16))
 

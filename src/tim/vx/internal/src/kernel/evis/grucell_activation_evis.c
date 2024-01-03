@@ -238,7 +238,7 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_initializer)
     float    tensorZP[4]                    = {0.0f, 0.0f, 0.0f, 0.0f};
     uint32_t  i                             = 0;
     uint32_t  pack_key                      = 0;
-    vsi_size_array_t * output_shape          = NULL;
+    vsi_size_array_t * output_shape         = NULL;
     vsi_nn_kernel_tensor_attr_t * attr[4]   = { NULL, NULL, NULL, NULL };
 
     VSI_UNREFERENCED(param_size);
@@ -254,12 +254,8 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_initializer)
 
     for (i = 0; i < 4; i++)
     {
-        if( attr[i]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-            || attr[i]->quant == VSI_NN_KERNEL_QUANT_SYMM)
-        {
-            tensorZP[i]     = (float)attr[i]->asymm.zero_point;
-            tensorScale[i]  = attr[i]->asymm.scale;
-        }
+        tensorZP[i]     = (float)attr[i]->zero_point;
+        tensorScale[i]  = attr[i]->scale;
     }
 
     tensorZP[0] = tensorScale[0] * tensorZP[0];
@@ -459,63 +455,31 @@ DEF_KERNEL_INITIALIZER(_grucell_activation_cdnn_initializer)
 
     output_shape  = attr[3]->shape;
 
-    if( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-     || attr[0]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-    {
-        input_scale  = attr[0]->asymm.scale;
-        input_tail   = 0 - input_scale * (float)attr[0]->asymm.zero_point;
-    }
+    input_scale   = attr[0]->scale;
+    input_tail    = 0 - input_scale * (float)attr[0]->zero_point;
 
-    if( attr[1]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-     || attr[1]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-    {
-        input_r_scale  = attr[1]->asymm.scale;
-        input_r_tail   = 0 - input_r_scale * (float)attr[1]->asymm.zero_point;
-    }
+    input_r_scale = attr[1]->scale;
+    input_r_tail  = 0 - input_r_scale * (float)attr[1]->zero_point;
 
-    if( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-     || attr[2]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-    {
-        recur_r_scale  = attr[2]->asymm.scale;
-        recur_r_tail   = 0 - recur_r_scale * (float)attr[2]->asymm.zero_point;
-    }
+    recur_r_scale = attr[2]->scale;
+    recur_r_tail  = 0 - recur_r_scale * (float)attr[2]->zero_point;
 
-    if( attr[3]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-     || attr[3]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-    {
-        output_scale  = 1.0f / attr[3]->asymm.scale;
-        output_zp   = (float)attr[3]->asymm.zero_point;
-    }
+    output_scale  = 1.0f / attr[3]->scale;
+    output_zp     = (float)attr[3]->zero_point;
 
     if ( param_size == _GRUCELL_CDNN_SEP_ACTIVATION_PARAM_NUM )
     {
-        if( attr[4]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-         || attr[4]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-        {
-            input_z_scale  = attr[4]->asymm.scale;
-            input_z_tail   = 0 - input_z_scale * (float)attr[4]->asymm.zero_point;
-        }
+        input_z_scale  = attr[4]->scale;
+        input_z_tail   = 0 - input_z_scale * (float)attr[4]->zero_point;
 
-        if( attr[5]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-         || attr[5]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-        {
-            recur_z_scale  = attr[5]->asymm.scale;
-            recur_z_tail   = 0 - recur_z_scale * (float)attr[5]->asymm.zero_point;
-        }
+        recur_z_scale  = attr[5]->scale;
+        recur_z_tail   = 0 - recur_z_scale * (float)attr[5]->zero_point;
 
-        if( attr[6]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-         || attr[6]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-        {
-            input_c_scale  = attr[6]->asymm.scale;
-            input_c_tail   = 0 - input_c_scale * (float)attr[6]->asymm.zero_point;
-        }
+        input_c_scale  = attr[6]->scale;
+        input_c_tail   = 0 - input_c_scale * (float)attr[6]->zero_point;
 
-        if( attr[5]->quant == VSI_NN_KERNEL_QUANT_ASYMM
-         || attr[5]->quant == VSI_NN_KERNEL_QUANT_SYMM )
-        {
-            recur_c_scale  = attr[7]->asymm.scale;
-            recur_c_tail   = 0 - recur_c_scale * (float)attr[7]->asymm.zero_point;
-        }
+        recur_c_scale  = attr[7]->scale;
+        recur_c_tail   = 0 - recur_c_scale * (float)attr[7]->zero_point;
     }
 
     if (layer_out == 1 || layer_out == 2)

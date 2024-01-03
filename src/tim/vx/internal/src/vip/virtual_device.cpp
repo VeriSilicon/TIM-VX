@@ -227,6 +227,10 @@ uint32_t IDevice::Id() const{
     return device_->Id();
 }
 
+bool IDevice::GraphSubmit(vsi_nn_graph_t* graph, bool (*func)(const void*), data_t data) {
+    return device_->GraphSubmit(graph, func_t(func), data);
+}
+
 bool IDevice::GraphSubmit(vsi_nn_graph_t* graph, func_t func, data_t data) {
     return device_->GraphSubmit(graph, func, data);
 }

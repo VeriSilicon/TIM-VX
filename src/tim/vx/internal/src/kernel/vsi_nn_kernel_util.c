@@ -811,7 +811,7 @@ vsi_nn_tensor_t* vsi_nn_merge_input_zeropoint_to_bias
             attr.dim_num  = 2;
         }
         bias_data = (int32_t *)vsi_nn_ConvertTensorToData(graph, bias);
-        CHECK_PTR_FAIL_GOTO( new_bias_data_ptr, "Create buffer fail.", final );
+        CHECK_PTR_FAIL_GOTO( bias_data, "ConvertTensorToData fail.", final );
     }
 
     new_bias_data_ptr = (int32_t *)malloc(attr.size[0] * sizeof(int32_t));
@@ -869,3 +869,66 @@ vsi_status vsi_nn_set_sp_kernel_name
     return status;
 }
 
+vsi_nn_tensor_t * vsi_nn_kernel_insert_reshape_node
+    (
+        vsi_nn_graph_t    * graph,
+        vsi_nn_tensor_t   * in_tensor,
+        vsi_size_t        * shape,
+        uint32_t            dim_num,
+        vsi_nn_opt_direction_e direction
+    )
+{
+    vsi_nn_tensor_t * tensor = NULL;
+#if VX_REMOVE_RESHAPE_SUPPORT
+    vsi_nn_tensor_attr_t attr;
+    vsi_nn_tensor_t *dims_tensor = NULL;
+    vx_nn_reshape_params_t reshape_param;
+    int32_t dims_data[VSI_NN_MAX_DIM_NUM] = {1};
+    uint32_t i = 0;
+    vsi_nn_tensor_t * input = NULL;
+    vsi_nn_tensor_t * output = NULL;
+
+    memcpy( &attr, &(in_tensor->attr), sizeof(vsi_nn_tensor_attr_t) );
+    memcpy( attr.size, shape, sizeof(vsi_size_t) * dim_num);
+    attr.dim_num = dim_num;
+    tensor = vsi_nn_CreateTensor( graph, &attr );
+    CHECK_PTR_FAIL_GOTO(tensor, "Create tensor failed", final);
+
+    for (i = 0; i < dim_num; i++)
+    {
+        dims_data[i] = (int32_t)shape[i];
+    }
+
+    memset(&attr, 0, sizeof(attr));
+    attr.size[0] = dim_num;
+    attr.dim_num = 1;
+    attr.is_const = TRUE;
+    attr.dtype.vx_type = VSI_NN_TYPE_INT32;
+    attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+    dims_tensor = vsi_nn_CreateTensorFromData(
+        graph, (uint8_t *)dims_data, &attr);
+    CHECK_PTR_FAIL_GOTO(dims_tensor, "Create tensor failed", final);
+    reshape_param.dims = REQUIRED_IO(dims_tensor);
+
+    if (direction == VSI_NN_OPTIMIZE_BACKWARD)
+    {
+        input = in_tensor;
+        output = tensor;
+    }
+    else
+    {
+        input = tensor;
+        output = in_tensor;
+    }
+
+    vxTensorReshapeNode(graph->g, input->t, &reshape_param, sizeof(reshape_param), output->t);
+    vsi_safe_release_tensor(dims_tensor);
+#else
+    VSI_UNREFERENCED(direction);
+    tensor = vsi_nn_reshape_tensor( graph, in_tensor, shape, dim_num );
+    CHECK_PTR_FAIL_GOTO(tensor, "Reshape tensor failed", final);
+#endif
+
+final:
+    return tensor;
+}

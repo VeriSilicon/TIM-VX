@@ -93,70 +93,53 @@ final:
     return status;
 }
 
-int32_t vsi_nn_getEnv(const char* name, char** env_s) {
-    int32_t ret = 0;
-    *env_s = vsi_nn_getenv(name);
-    if (*env_s) {
-        ret = TRUE;
-    }
-    return ret;
-}
-
+#if (defined(__ANDROID__)) && (ANDROID_SDK_VERSION >= 30)
+static const char* ENV_ENABLE_SHADER = "vendor.VIV_VX_ENABLE_SHADER";
+static const char* ENV_ENABLE_OPCHECK = "vendor.VSI_NN_ENABLE_OPCHECK";
+static const char* ENV_ENABLE_CONCAT_OPTIMIZE = "vendor.VSI_NN_ENABLE_CONCAT_OPTIMIZE";
+static const char* ENV_ENABLE_I8TOU8 = "vendor.VSI_NN_ENABLE_I8TOU8";
+static const char* ENV_ENABLE_DATACONVERT_OPTIMIZE = "vendor.VSI_NN_ENABLE_DATACONVERT_OPTIMIZE";
+static const char* ENV_ENABLE_STREAM_PROCESSOR = "vendor.VSI_VX_ENABLE_STREAM_PROCESSOR";
+static const char* ENV_FORCE_RGB888_OUT_NHWC = "vendor.VSI_NN_FORCE_RGB888_OUT_NHWC";
+static const char* ENV_ENABLE_SLICE_OPTIMIZE = "vendor.VSI_NN_ENABLE_SLICE_OPTIMIZE";
+static const char* ENV_ENABLE_BATCH_OPT = "vendor.VSI_VX_ENABLE_BATCH_OPT";
+#else
+static const char* ENV_ENABLE_SHADER = "VIV_VX_ENABLE_SHADER";
+static const char* ENV_ENABLE_OPCHECK = "VSI_NN_ENABLE_OPCHECK";
+static const char* ENV_ENABLE_CONCAT_OPTIMIZE = "VSI_NN_ENABLE_CONCAT_OPTIMIZE";
+static const char* ENV_ENABLE_I8TOU8 = "VSI_NN_ENABLE_I8TOU8";
+static const char* ENV_ENABLE_DATACONVERT_OPTIMIZE = "VSI_NN_ENABLE_DATACONVERT_OPTIMIZE";
+static const char* ENV_ENABLE_STREAM_PROCESSOR = "VSI_VX_ENABLE_STREAM_PROCESSOR";
+static const char* ENV_FORCE_RGB888_OUT_NHWC = "VSI_NN_FORCE_RGB888_OUT_NHWC";
+static const char* ENV_ENABLE_SLICE_OPTIMIZE = "VSI_NN_ENABLE_SLICE_OPTIMIZE";
+static const char* ENV_ENABLE_BATCH_OPT = "VSI_VX_ENABLE_BATCH_OPT";
+#endif
 static vsi_status vsi_nn_initOptions
     (
     vsi_nn_runtime_option_t *options
     )
 {
-    char* env_s = NULL;
+    int32_t default_value = 1;
 
-    env_s = NULL;
-    options->enable_shader = 1;
-    if (vsi_nn_getEnv("VIV_VX_ENABLE_SHADER", &env_s) && env_s)
-    {
-        options->enable_shader = atoi(env_s);
-    }
-
-    env_s = NULL;
-    options->enable_opcheck = 1;
-    if (vsi_nn_getEnv("VSI_NN_ENABLE_OPCHECK", &env_s) && env_s)
-    {
-        options->enable_opcheck = atoi(env_s);
-    }
-
-    env_s = NULL;
-    options->enable_concat_optimize = 1;
-    if (vsi_nn_getEnv("VSI_NN_ENABLE_CONCAT_OPTIMIZE", &env_s) && env_s)
-    {
-        options->enable_concat_optimize = atoi(env_s);
-    }
-
-    env_s = NULL;
-    options->enable_asymi8_to_u8 = 1;
-    if (vsi_nn_getEnv("VSI_NN_ENABLE_I8TOU8", &env_s) && env_s)
-    {
-        options->enable_asymi8_to_u8 = atoi(env_s);
-    }
-
-    env_s = NULL;
-    options->enable_dataconvert_optimize = 1;
-    if (vsi_nn_getEnv("VSI_NN_ENABLE_DATACONVERT_OPTIMIZE", &env_s) && env_s)
-    {
-        options->enable_dataconvert_optimize = atoi(env_s);
-    }
-
-    env_s = NULL;
-    options->enable_stream_processor = 1;
-    if (vsi_nn_getEnv("VSI_VX_ENABLE_STREAM_PROCESSOR", &env_s) && env_s)
-    {
-        options->enable_stream_processor = atoi(env_s);
-    }
-
-    env_s = NULL;
-    options->enable_rgb88_planar_nhwc = 0;
-    if (vsi_nn_getEnv("VSI_NN_FORCE_RGB888_OUT_NHWC", &env_s) && env_s)
-    {
-        options->enable_rgb88_planar_nhwc = atoi(env_s);
-    }
+    options->enable_shader = vsi_nn_getenv_asint(ENV_ENABLE_SHADER, 1);
+    options->enable_opcheck = vsi_nn_getenv_asint(ENV_ENABLE_OPCHECK, 1);
+#if (VX_CONCAT_OPT_SUPPORT)
+    default_value = 0;
+#else
+    default_value = 1;
+#endif
+    options->enable_concat_optimize = vsi_nn_getenv_asint(ENV_ENABLE_CONCAT_OPTIMIZE, default_value);
+    options->enable_asymi8_to_u8 = vsi_nn_getenv_asint(ENV_ENABLE_I8TOU8, 1);
+    options->enable_dataconvert_optimize = vsi_nn_getenv_asint(ENV_ENABLE_DATACONVERT_OPTIMIZE, 1);
+    options->enable_stream_processor = vsi_nn_getenv_asint(ENV_ENABLE_STREAM_PROCESSOR, 1);
+    options->enable_rgb88_planar_nhwc = vsi_nn_getenv_asint(ENV_FORCE_RGB888_OUT_NHWC, 0);
+#if (VX_STRIDED_SLICE_OPT_SUPPORT)
+    default_value = 0;
+#else
+    default_value = 1;
+#endif
+    options->enable_slice_optimize = vsi_nn_getenv_asint(ENV_ENABLE_SLICE_OPTIMIZE, default_value);
+    options->enable_batch_opt = vsi_nn_getenv_asint(ENV_ENABLE_BATCH_OPT, 0);
 
     return VSI_SUCCESS;
 }

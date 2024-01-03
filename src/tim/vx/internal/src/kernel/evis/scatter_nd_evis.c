@@ -208,10 +208,7 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_initializer)
     height     = (int32_t)(attr[2]->shape->data[1]);
     index_num  = (int32_t)(attr[0]->shape->data[1]);
 
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        output_zp = attr[2]->asymm.zero_point;
-    }
+    output_zp = attr[2]->zero_point;
 
     if (coord_dim == 3)
     {
@@ -367,10 +364,7 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_big_initializer)
     height     = (int32_t)(attr[2]->shape->data[1]);
     index_num  = (int32_t)(attr[0]->shape->data[1]);
 
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        output_zp = attr[2]->asymm.zero_point;
-    }
+    output_zp = attr[2]->zero_point;
 
     if (coord_dim == 3)
     {

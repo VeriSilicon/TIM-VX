@@ -105,6 +105,10 @@ static vsi_status op_compute
                  snprintf(kernel_name, sizeof(kernel_name),
                  "resize_bilinear");
                  break;
+            case VSI_NN_INTERPOLATION_CUBIC:
+                 snprintf(kernel_name, sizeof(kernel_name),
+                 "resize_cubic");
+                 break;
             default:
                 break;
         }

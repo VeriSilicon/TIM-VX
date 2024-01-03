@@ -22,6 +22,7 @@
 *
 *****************************************************************************/
 
+#if !(VX_RELATIONAL_OPS_VX_SUPPORT_EXT)
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -293,6 +294,16 @@ static vsi_status _query_kernel
     input1_dtype = vsi_nn_kernel_map_dtype( inputs[1]->attr.dtype.vx_type );
     output_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
+    if (inputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE && input0_dtype == I16)
+    {
+        input0_dtype = I32;
+    }
+
+    if (inputs[1]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE && input1_dtype == I16)
+    {
+        input1_dtype = I32;
+    }
+
     if (outputs[0]->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_NONE && output_dtype == I8)
     {
         output_dtype = BOOL8;
@@ -452,3 +463,4 @@ final:
 REGISTER_BACKEND_CL( relational_ops, _setup )
 
 __END_DECLS
+#endif

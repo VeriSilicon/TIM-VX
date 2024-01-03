@@ -155,41 +155,19 @@ DEF_KERNEL_INITIALIZER(_poolwithargmax_initializer)
     input_shape   = input_attr->shape;
     src_dtype     = input_attr->dtype;
     dst_dtype     = output_attr->dtype;
+    inputScale    = input_attr->scale;
+    input_ZP      = input_attr->zero_point;
+    outputScale   = output_attr->scale;
+    output_ZP     = output_attr->zero_point;
 
     if( input_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         input_fl = input_attr->dfp.fl;
-        if (input_fl > 0)
-        {
-            inputScale = 1.0f / (float) ((int64_t)1 << input_fl);
-        }
-        else
-        {
-            inputScale = (float)((int64_t)1 << -input_fl);
-        }
-    }
-    else if( input_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        inputScale   = input_attr->asymm.scale;
-        input_ZP     = input_attr->asymm.zero_point;
     }
 
     if( output_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
     {
         output_fl = output_attr->dfp.fl;
-        if (output_fl > 0)
-        {
-            outputScale = 1.0f / (float) ((int64_t)1 << output_fl);
-        }
-        else
-        {
-            outputScale = (float)((int64_t)1 << -output_fl);
-        }
-    }
-    else if( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        outputScale  = output_attr->asymm.scale;
-        output_ZP    = output_attr->asymm.zero_point;
     }
 
     if ( ( input_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )

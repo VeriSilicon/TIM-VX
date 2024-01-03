@@ -212,6 +212,7 @@ void vsi_nn_PrintNode
         }
         count += temp;
     }
+    count --;
     temp = snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
         "%s", " ], [out:" );
     if ( temp >= _MAX_PRINT_BUF_SZ - count || temp == -1 )
@@ -224,7 +225,7 @@ void vsi_nn_PrintNode
     {
         /* -3 means reserve memory for ending symbols --" ]" */
         temp = snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count - 3,
-            " %d,", node->input.tensors[i] );
+            " %d,", node->output.tensors[i] );
         if ( temp >= _MAX_PRINT_BUF_SZ - count - 3 || temp == -1 )
         {
             is_out_of_bound = TRUE;
@@ -232,6 +233,7 @@ void vsi_nn_PrintNode
         }
         count += temp;
     }
+    count --;
     count += snprintf( &buf[count], _MAX_PRINT_BUF_SZ - count,
         "%s", " ]" );
 final:
@@ -242,6 +244,26 @@ final:
     }
     VSILOGI( "(%16s)node[%u] %s [%08x]", vsi_nn_OpGetName(node->op), id, buf, node->n );
 } /* vsi_nn_PrintNode() */
+
+#if VX_GRAPH_BATCH_OPT_SUPPORT
+vsi_status vsi_nn_SetNodeBatchSplitNum
+(
+    vsi_nn_node_t* node,
+    int8_t split_num
+)
+{
+    vsi_status status = VSI_SUCCESS;
+    if (node == NULL || split_num < 1)
+    {
+        status = VSI_FAILURE;
+        goto final;
+    }
+    ((vsi_nn_node_prv_t*)node)->split_num = split_num;
+
+    final:
+    return status;
+}
+#endif
 
 vsi_status vsi_nn_update_node_attr
     (

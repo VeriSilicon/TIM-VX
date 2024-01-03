@@ -155,6 +155,22 @@ OVXLIB_API void vsi_nn_PrintNode
     vsi_nn_node_id_t id
     );
 
+#if VX_GRAPH_BATCH_OPT_SUPPORT
+/**
+ * Set how much this node is divided into on batch dim.
+ *
+ * @param[in] node Node.
+ * @param[in] split_num.
+ *
+ * @return VSI_SUCCESS on success, or error core otherwise.
+ */
+OVXLIB_API vsi_status vsi_nn_SetNodeBatchSplitNum
+(
+    vsi_nn_node_t* node,
+    int8_t split_num
+);
+#endif
+
 /**
  * Update node attribute
  * Update openvx node attribute based on ovxlib's node attribute

@@ -47,6 +47,7 @@ typedef enum _grucell_nn_activation_type_e
     SIGMOID = VSI_NN_ACT_SIGMOID,
     HARD_SIGMOID = VSI_NN_ACT_HARD_SIGMOID,
     TANH = VSI_NN_ACT_TANH,
+    RELU = VSI_NN_ACT_RELU,
 }grucell_nn_activation_type_e;
 
 #define _GRUCELL_RESET_AFTER_ACTIVATION_KERNEL_SOURCE      "grucell_reset_after_activation"
@@ -80,6 +81,11 @@ static const _kernel_map_type _grucell_reset_after_activation_kernel_map[] =
     PACK_KERNEL_MAP( I16,  F16,  I16,  SIGMOID, SIGMOID ),
     PACK_KERNEL_MAP( F16,  F16,  F16,  SIGMOID, SIGMOID ),
     PACK_KERNEL_MAP( BF16, BF16, BF16, SIGMOID, SIGMOID ),
+    PACK_KERNEL_MAP( U8,   F16,  U8,   SIGMOID, RELU ),
+    PACK_KERNEL_MAP( I8,   F16,  I8,   SIGMOID, RELU ),
+    PACK_KERNEL_MAP( I16,  F16,  I16,  SIGMOID, RELU ),
+    PACK_KERNEL_MAP( F16,  F16,  F16,  SIGMOID, RELU ),
+    PACK_KERNEL_MAP( BF16, BF16, BF16, SIGMOID, RELU ),
 };
 
 
@@ -148,33 +154,11 @@ DEF_KERNEL_INITIALIZER(_grucell_reset_after_activation_initializer)
     output_attr[1] = vsi_nn_kernel_tensor_attr_create( hstate_out );
     CHECK_PTR_FAIL_GOTO( output_attr[1], "Create tensor attr buffer fail.", final );
 
-    if ( VSI_NN_KERNEL_QUANT_DFP == input_attr[0]->quant )
-    {
-        int8_t srcFixPointPos = (int8_t)input_attr[0]->dfp.fl;
-        if (srcFixPointPos >= 0)
-            hstate_in_scale *= 1.0f / (vx_float32) ((int64_t)1 << srcFixPointPos);
-        else if (srcFixPointPos < 0)
-            hstate_in_scale *= (vx_float32)((int64_t)1 << -srcFixPointPos);
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == input_attr[0]->quant )
-    {
-        hstate_in_scale = input_attr[0]->asymm.scale;
-        hstate_in_tail = -(float)input_attr[0]->asymm.zero_point * hstate_in_scale;
-    }
+    hstate_in_scale = input_attr[0]->scale;
+    hstate_in_tail = -(float)input_attr[0]->zero_point * hstate_in_scale;
 
-    if ( VSI_NN_KERNEL_QUANT_DFP == output_attr[0]->quant )
-    {
-        int8_t srcFixPointPos = (int8_t)input_attr[0]->dfp.fl;
-        if (srcFixPointPos >= 0)
-            output_scale *= (vx_float32)((int64_t)1 << srcFixPointPos);
-        else if (srcFixPointPos < 0)
-            output_scale *= 1.0f / (vx_float32) ((int64_t)1 << -srcFixPointPos);
-    }
-    else if ( VSI_NN_KERNEL_QUANT_ASYMM == output_attr[0]->quant )
-    {
-        output_scale = 1.0f / output_attr[0]->asymm.scale;
-        output_zp = (float)output_attr[0]->asymm.zero_point;
-    }
+    output_scale = 1.0f / output_attr[0]->scale;
+    output_zp = (float)output_attr[0]->zero_point;
 
     pack_key = _PACK_SELECT_KEY( input_attr[0]->dtype, input_attr[1]->dtype, output_attr[0]->dtype);
 

@@ -152,7 +152,6 @@ DEF_KERNEL_INITIALIZER(_reducemax_internal_initializer)
     vsi_nn_kernel_tensor_attr_t *output_attr   = NULL;
     vsi_size_array_t * input_shape              = NULL;
     vsi_size_array_t * output_shape             = NULL;
-    int32_t  input_fl = 0, output_fl = 0;
     int32_t  axisSize = 0;
     float    inputScale                        = 1.0f;
     float    input_offset_asymmetric           = 0.0f;
@@ -257,68 +256,19 @@ DEF_KERNEL_INITIALIZER(_reducemax_internal_initializer)
         }
     }
 
-    if( input_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        input_fl = input_attr->dfp.fl;
-        if (input_fl > 0)
-        {
-            inputScale = 1.0f / (float) ((int64_t)1 << input_fl);
-        }
-        else
-        {
-            inputScale = (float)((int64_t)1 << -input_fl);
-        }
-        status  = vsi_nn_kernel_gpu_add_param( node, "inputScale", &inputScale );
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else if( input_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        inputScale              = input_attr->asymm.scale;
-        input_offset_asymmetric = (float)(input_attr->asymm.zero_point);
-        status  = vsi_nn_kernel_gpu_add_param( node, "inputScale", &inputScale );
-        status |= vsi_nn_kernel_gpu_add_param( node, "input_offset_asymmetric", &input_offset_asymmetric );
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else
-    {
-        inputScale              = 1.0f;
-        input_offset_asymmetric = 0;
+    inputScale              = input_attr->scale;
+    input_offset_asymmetric = (float)(input_attr->zero_point);
+    outputScale              = 1.0f / output_attr->scale;
+    output_offset_asymmetric = (float)(output_attr->zero_point);
 
-        status  = vsi_nn_kernel_gpu_add_param( node, "inputScale", &inputScale );
-        status |= vsi_nn_kernel_gpu_add_param( node, "input_offset_asymmetric", &input_offset_asymmetric );
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
+    status  = vsi_nn_kernel_gpu_add_param( node, "inputScale", &inputScale );
+    status |= vsi_nn_kernel_gpu_add_param( node, "input_offset_asymmetric", &input_offset_asymmetric );
+    CHECK_STATUS_FAIL_GOTO(status, final );
 
-    if( output_attr->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        output_fl = output_attr->dfp.fl;
-        if (output_fl > 0)
-        {
-            outputScale = (float) ((int64_t)1 << output_fl);
-        }
-        else
-        {
-            outputScale = 1.0f / (float)((int64_t)1 << -output_fl);
-        }
-        status  = vsi_nn_kernel_gpu_add_param( node, "outputScale", &outputScale );
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else if( output_attr->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        outputScale              = 1.0f / output_attr->asymm.scale;
-        output_offset_asymmetric = (float)(output_attr->asymm.zero_point);
-        status  = vsi_nn_kernel_gpu_add_param( node, "outputScale", &outputScale );
-        status |= vsi_nn_kernel_gpu_add_param( node, "output_offset_asymmetric", &output_offset_asymmetric );
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
-    else
-    {
-        outputScale              = 1.0f;
-        output_offset_asymmetric = 0;
-        status  = vsi_nn_kernel_gpu_add_param( node, "outputScale", &outputScale );
-        status |= vsi_nn_kernel_gpu_add_param( node, "output_offset_asymmetric", &output_offset_asymmetric );
-        CHECK_STATUS_FAIL_GOTO(status, final );
-    }
+    status  = vsi_nn_kernel_gpu_add_param( node, "outputScale", &outputScale );
+    status |= vsi_nn_kernel_gpu_add_param( node, "output_offset_asymmetric", &output_offset_asymmetric );
+    CHECK_STATUS_FAIL_GOTO(status, final );
+
     status  = vsi_nn_kernel_gpu_add_param( node, "axisSize", &axisSize );
     CHECK_STATUS_FAIL_GOTO(status, final );
     status = vsi_nn_kernel_gpu_config( node, &gpu_param );

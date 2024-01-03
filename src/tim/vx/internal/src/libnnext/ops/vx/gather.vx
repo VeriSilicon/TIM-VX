@@ -9,7 +9,8 @@ __kernel void gather_I8toI8(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -34,7 +35,8 @@ __kernel void gather_U8toU8(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -59,7 +61,8 @@ __kernel void gather_I16toI16(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -85,7 +88,8 @@ __kernel void gather_F16toF16(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int gidx = get_global_id(0);  // block_size
@@ -110,7 +114,8 @@ __kernel void gather_I8toI8_axis0(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
@@ -137,7 +142,8 @@ __kernel void gather_U8toU8_axis0(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
@@ -164,7 +170,8 @@ __kernel void gather_I16toI16_axis0(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
@@ -191,7 +198,8 @@ __kernel void gather_F16toF16_axis0(
     __write_only image2d_t  output,
     int block_size,
     int block_num,
-    int axis_num
+    int axis_num,
+    int is_array
     )
 {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));

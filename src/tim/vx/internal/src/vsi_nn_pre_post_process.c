@@ -89,7 +89,9 @@ static void _create_multi_norm_tensors
             multi_input_tensors[2] = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &uv_input_attr, NULL);
         }
         else if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
-                *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21)
+                 *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21 ||
+                 *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12_RGGB ||
+                 *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21_BGGR)
         {
             uv_input_attr = *input_attr;
             uv_input_attr.size[0] = w;
@@ -445,7 +447,9 @@ static void _get_org_graph_inputs
                     i += 2 ;
                 }
                 else if(nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
-                        nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21 )
+                        nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21 ||
+                        nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV12_RGGB ||
+                        nodes[0]->nn_param.pre_process.type == VSI_NN_SOURCE_FORMAT_IMAGE_NV21_BGGR)
                 {
                     i += 1;
                 }
@@ -558,7 +562,9 @@ vsi_status vsi_nn_add_single_preproc_node
         node_input_num = 3;
     }
     else if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
-             *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21)
+             *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21 ||
+             *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12_RGGB ||
+             *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21_BGGR)
     {
         node_input_num = 2;
     }
@@ -607,7 +613,9 @@ vsi_status vsi_nn_add_single_preproc_node
         *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12 ||
         *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21 ||
         *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUV444 ||
-        *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP)
+        *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP ||
+        *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV12_RGGB ||
+        *source_format == VSI_NN_SOURCE_FORMAT_IMAGE_NV21_BGGR)
     {
         _create_multi_norm_tensors(graph, &input_attr, source_layout, source_format, preproc_inputs);
     }

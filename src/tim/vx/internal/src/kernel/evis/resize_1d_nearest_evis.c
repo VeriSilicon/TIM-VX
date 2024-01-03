@@ -198,52 +198,19 @@ DEF_KERNEL_INITIALIZER(_resize_1d_nearest_initializer)
         half_pixel_value = 0.0f;
     }
 
-    if (VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant )
-    {
-        input_scale    = input_attr->asymm.scale;
-        inputZP        = input_attr->asymm.zero_point;
-    }
-    else if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
+    input_scale    = input_attr->scale;
+    inputZP        = input_attr->zero_point;
+    output_scale   = 1.0f / output_attr->scale;
+    outputZP       = output_attr->zero_point;
+
+    if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
     {
         srcFixPointPos   = input_attr->dfp.fl;
-        if (srcFixPointPos >= 0)
-        {
-            input_scale = 1.0f / (float) ((int64_t)1 << srcFixPointPos);
-        }
-        else if (srcFixPointPos < 0)
-        {
-            input_scale = (float)((int64_t)1 << -srcFixPointPos);
-        }
-        inputZP = 0;
-    }
-    else
-    {
-        input_scale = 1.0f;
-        inputZP     = 0;
     }
 
-    if (VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant )
-    {
-        output_scale   = 1.0f / output_attr->asymm.scale;
-        outputZP       = output_attr->asymm.zero_point;
-    }
-    else if (VSI_NN_KERNEL_QUANT_DFP == output_attr->quant)
+    if (VSI_NN_KERNEL_QUANT_DFP == output_attr->quant)
     {
         dstFixPointPos = output_attr->dfp.fl;
-        if (dstFixPointPos >= 0)
-        {
-            output_scale = (float) ((int64_t)1 << dstFixPointPos);
-        }
-        else if (dstFixPointPos < 0)
-        {
-            output_scale = 1.0f / (float) ((int64_t)1 << -dstFixPointPos);
-        }
-        outputZP = 0;
-    }
-    else
-    {
-        output_scale = 1.0;
-        outputZP     = 0;
     }
 
     if (F16 == input_dtype && F16 == output_dtype)

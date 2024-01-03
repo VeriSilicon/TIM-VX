@@ -471,6 +471,12 @@ char* vsi_nn_getenv
     const char * var_name
     );
 
+int32_t vsi_nn_getenv_asint
+    (
+        const char* env,
+        int32_t default_value
+    );
+
 FILE* vsi_nn_fopen
     (
     const char * file_name,

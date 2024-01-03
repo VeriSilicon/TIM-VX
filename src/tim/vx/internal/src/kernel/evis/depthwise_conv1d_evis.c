@@ -250,12 +250,12 @@ DEF_KERNEL_INITIALIZER(_depthwise_conv1d_initializer)
     gpu_param.global_size[1]   = gpu_align_p2((output_shape->data[1] + gpu_param.global_scale[1] - 1)
                                              / gpu_param.global_scale[1], gpu_param.local_size[1]);
 
-    outputScale = input_attr->asymm.scale;
+    outputScale = input_attr->scale;
 
-    outputScale *= weight_attr->asymm.scale;
-    weightZP     = weight_attr->asymm.zero_point;
-    outputScale /= output_attr->asymm.scale;
-    outputZP = (float)output_attr->asymm.zero_point + 0.5f;
+    outputScale *= weight_attr->scale;
+    weightZP     = weight_attr->zero_point;
+    outputScale /= output_attr->scale;
+    outputZP = (float)output_attr->zero_point + 0.5f;
 
 #define _PACK_SELECT_KEY( kernel_size, dilation, evis_version )    \
         ((uint64_t)kernel_size | ((uint64_t)dilation << 16) | ((uint64_t)evis_version << 32))

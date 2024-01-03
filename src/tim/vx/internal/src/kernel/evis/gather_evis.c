@@ -22,7 +22,7 @@
 *
 *****************************************************************************/
 
-
+#if !(VX_TENSOR_GATHER_API_SUPPORT)
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -202,6 +202,7 @@ static vx_param_description_t _gather_kernel_param_def[] =
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     // Add kererl parameters here
 };
 #define _GATHER_PARAM_NUM  _cnt_of_array( _gather_kernel_param_def )
@@ -285,6 +286,7 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
     int32_t       indices_num = 1;
     uint32_t      input_dims1 = 0;
     int32_t       batch       = 1;
+    int32_t       is_array    = 0;
     vx_uint32     i           = 0;
     vsi_nn_kernel_tensor_attr_t* attr[3] = {NULL, NULL};
     vsi_size_array_t * input1_shape = NULL;
@@ -308,40 +310,13 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
     CHECK_STATUS_FAIL_GOTO(status, OnError );
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[4], &block_num);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
+    status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[5], &is_array);
+    CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            src0Scale = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            src0Scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        src0Scale = attr[0]->asymm.scale;
-        src0ZP = attr[0]->asymm.zero_point;
-    }
-
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[2]->dfp.fl > 0)
-        {
-            dstScale = (float)((int64_t)1 << attr[2]->dfp.fl);
-        }
-        else
-        {
-            dstScale = (1.0f / (float)((int64_t)1 << -attr[2]->dfp.fl));
-        }
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        dstScale = 1.0f / attr[2]->asymm.scale;
-        dstZP = attr[2]->asymm.zero_point;
-    }
+    src0Scale = attr[0]->scale;
+    src0ZP    = attr[0]->zero_point;
+    dstScale  = 1.0f / attr[2]->scale;
+    dstZP     = attr[2]->zero_point;
 
     input1_shape  = attr[1]->shape;
     input_dims1   = (uint32_t)input1_shape->size;
@@ -358,8 +333,16 @@ DEF_KERNEL_INITIALIZER(_gather_initializer)
     }
     shaderParam.global_scale[1]  = 1;
     shaderParam.global_scale[2]  = 1;
-    shaderParam.global_size[0]   = gpu_align_p2((block_size + shaderParam.global_scale[0] - 1)
-        / shaderParam.global_scale[0], 4);
+    if (is_array)
+    {
+         shaderParam.global_size[0]   = (block_size + shaderParam.global_scale[0] - 1)
+             / shaderParam.global_scale[0];
+    }
+    else
+    {
+        shaderParam.global_size[0]   = gpu_align_p2((block_size + shaderParam.global_scale[0] - 1)
+             / shaderParam.global_scale[0], 4);
+    }
     shaderParam.global_size[1]   = indices_num;
     shaderParam.global_size[2]   = block_num;
 
@@ -508,39 +491,10 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
     status = vsi_nn_kernel_scalar_read_int32((vsi_nn_kernel_scalar_t)param[4], &block_num);
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[0]->dfp.fl > 0)
-        {
-            src0Scale = (1.0f / ((float) ((int64_t)1 << attr[0]->dfp.fl)));
-        }
-        else
-        {
-            src0Scale = ((float) ((int64_t)1 << -attr[0]->dfp.fl));
-        }
-    }
-    else if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        src0Scale = attr[0]->asymm.scale;
-        src0ZP = attr[0]->asymm.zero_point;
-    }
-
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
-        if (attr[2]->dfp.fl > 0)
-        {
-            dstScale = (float)((int64_t)1 << attr[2]->dfp.fl);
-        }
-        else
-        {
-            dstScale = (1.0f / (float)((int64_t)1 << -attr[2]->dfp.fl));
-        }
-    }
-    else if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_ASYMM )
-    {
-        dstScale = 1.0f / attr[2]->asymm.scale;
-        dstZP = attr[2]->asymm.zero_point;
-    }
+    src0Scale = attr[0]->scale;
+    src0ZP    = attr[0]->zero_point;
+    dstScale  = 1.0f / attr[2]->scale;
+    dstZP     = attr[2]->zero_point;
 
     input1_shape  = attr[1]->shape;
     input_dims1   = (uint32_t)input1_shape->size;
@@ -661,8 +615,11 @@ DEF_KERNEL_INITIALIZER(_gather_axis0_initializer)
     {
         status |= vsi_nn_kernel_gpu_add_param(node, "batch", &batch);
     }
-    status |= vsi_nn_kernel_gpu_add_param(node, "width", &width);
-    status |= vsi_nn_kernel_gpu_add_param(node, "remainder", &remainder);
+    if (indices_num > GPU_TENSOR_MAX_WIDTH || block_num > GPU_TENSOR_MAX_WIDTH)
+    {
+        status |= vsi_nn_kernel_gpu_add_param(node, "width", &width);
+        status |= vsi_nn_kernel_gpu_add_param(node, "remainder", &remainder);
+    }
     CHECK_STATUS_FAIL_GOTO(status, OnError );
 
 OnError:
@@ -841,6 +798,7 @@ static vsi_nn_kernel_node_t _setup
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &block_size );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &block_num );
             tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &axis_num );
+            tmp_params[index++] = vsi_nn_kernel_scalar_create( graph, I32, &is_array );
             status = vsi_nn_kernel_node_pass_param( node, tmp_params, _GATHER_PARAM_NUM );
             vsi_nn_kernel_scalar_release( &tmp_params[3] );
             vsi_nn_kernel_scalar_release( &tmp_params[4] );
@@ -859,3 +817,4 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( gather, _setup )
+#endif

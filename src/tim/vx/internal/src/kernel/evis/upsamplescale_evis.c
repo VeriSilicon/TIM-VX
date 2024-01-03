@@ -147,8 +147,6 @@ DEF_KERNEL_INITIALIZER(_upsamplescale_initializer)
     float     scaleOut        = 1.0f;
     int32_t   output_ZP       = 0;
     int32_t   input_ZP        = 0;
-    int32_t   srcFixPointPos  = 0;
-    int32_t   dstFixPointPos  = 0;
     uint32_t  pack_key        = 0;
     _internal_upscale_e flag  = UP_ORG;
 
@@ -164,34 +162,10 @@ DEF_KERNEL_INITIALIZER(_upsamplescale_initializer)
     vsi_nn_kernel_scalar_read_float32((vsi_nn_kernel_scalar_t)param[SCALAR_SCALE_VALUE], &(scale));
     input_dtype  = input_attr->dtype;
     output_dtype = output_attr->dtype;
-
-    if (VSI_NN_KERNEL_QUANT_DFP == input_attr->quant)
-    {
-        srcFixPointPos   = input_attr->dfp.fl;
-        if (srcFixPointPos >=0 )
-            scaleIn = 1.0f / (float) ((int64_t)1 << srcFixPointPos);
-        else
-            scaleIn = (float) ((int64_t)1 << -srcFixPointPos);
-    }
-    else if (VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant)
-    {
-        input_ZP         = input_attr->asymm.zero_point;
-        scaleIn          = input_attr->asymm.scale;
-    }
-
-    if (VSI_NN_KERNEL_QUANT_DFP == output_attr->quant)
-    {
-        dstFixPointPos   = output_attr->dfp.fl;
-        if (dstFixPointPos >=0 )
-            scaleOut = 1.0f / (float) ((int64_t)1 << dstFixPointPos);
-        else
-            scaleOut = (float) ((int64_t)1 << -dstFixPointPos);
-    }
-    else if (VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant)
-    {
-        output_ZP        = output_attr->asymm.zero_point;
-        scaleOut         = output_attr->asymm.scale;
-    }
+    input_ZP     = input_attr->zero_point;
+    scaleIn      = input_attr->scale;
+    output_ZP    = output_attr->zero_point;
+    scaleOut     = output_attr->scale;
 
     if (stride == 2 && scale >= 0)
     {

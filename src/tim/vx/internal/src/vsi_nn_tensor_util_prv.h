@@ -75,6 +75,17 @@ vsi_status _set_tensor_is_scalar
     int8_t is_salar
     );
 
+int8_t _get_tensor_is_from_axisram
+    (
+    vsi_nn_tensor_prv_t* tensor
+    );
+
+vsi_status _set_tensor_is_from_axisram
+    (
+    vsi_nn_tensor_prv_t* tensor,
+    int8_t is_from_axisram
+    );
+
 /**
  * Create a new dummy tensor
  * Create a new dummy tensor with given attributes.
@@ -105,6 +116,15 @@ vsi_bool vsi_nn_is_same_data_type(
 vsi_bool vsi_nn_is_same_quant_type(
     vsi_nn_tensor_t * src,
     vsi_nn_tensor_t * dst
+    );
+
+vsi_nn_tensor_t * vsi_nn_kernel_insert_reshape_node
+    (
+        vsi_nn_graph_t    * graph,
+        vsi_nn_tensor_t   * in_tensor,
+        vsi_size_t        * shape,
+        uint32_t            dim_num,
+        vsi_nn_opt_direction_e direction
     );
 
 #ifdef __cplusplus

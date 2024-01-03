@@ -250,6 +250,11 @@ static float inverse_sigmoid_eval(float x, vsi_nn_kernel_lut_params *lut_param)
     return log_eval(x1 / x2);
 }
 
+static float tan_eval(float x)
+{
+    return tanf(x);
+}
+
 static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *lut_param)
 {
     float result = 0;
@@ -324,6 +329,9 @@ static float vsi_nn_kernel_lut_activation(float data, vsi_nn_kernel_lut_params *
         break;
     case VSI_NN_KERNEL_LUT_INVERSE_SIGMOID:
         result = inverse_sigmoid_eval(data, lut_param);
+        break;
+    case VSI_NN_KERNEL_LUT_TAN:
+        result = tan_eval(data);
         break;
     default:
         VSILOGE( "unsupported activation function:%d", lut_param->act_type );

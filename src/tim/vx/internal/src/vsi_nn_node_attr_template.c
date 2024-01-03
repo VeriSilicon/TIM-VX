@@ -207,6 +207,7 @@ static _node_template s_template[] =
     /* LPNORM */                NULL,
     /* RESIZE_3D */                NULL,
     /* REDUCEL2 */              NULL,
+    /* CROP_AND_RESIZE */       NULL,
 };
 //_compiler_assert( _cnt_of_array(s_template) == VSI_NN_OP_NUM, vsi_nn_node_attr_template_c );
 

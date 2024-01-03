@@ -14,6 +14,10 @@ ifeq ($(PLATFORM_VENDOR),1)
 LOCAL_VENDOR_MODULE  := true
 endif
 
+$(info Remove $(LOCAL_PATH)/../include/vsi_nn_feature_config.h ...)
+$(shell rm $(LOCAL_PATH)/../include/vsi_nn_feature_config.h -rf)
+$(info $(shell bash $(LOCAL_PATH)/../gcc_gen_feature_config_header.sh $(LOCAL_PATH)/..))
+
 LOCAL_SRC_FILES :=     \
             vsi_nn_context.c \
             vsi_nn_client_op.c \
@@ -59,12 +63,6 @@ LOCAL_SRC_FILES +=      \
             post/vsi_nn_post_fasterrcnn.c   \
             post/vsi_nn_post_cmupose.c
 
-LOCAL_SRC_FILES +=      \
-            cpu_backend/vsi_nn_cpu_backend.c   \
-            cpu_backend/vsi_nn_cpu_backend_conv2d.c   \
-            cpu_backend/vsi_nn_cpu_backend_deconv2d.c   \
-            cpu_backend/npuref_interface.c
-
 
 LOCAL_SRC_FILES += libnnext/vsi_nn_libnnext_resource.c \
                    libnnext/vsi_nn_vxkernel.c
@@ -78,10 +76,9 @@ LOCAL_SRC_FILES += kernel/vsi_nn_kernel.c \
                    kernel/vsi_nn_kernel_param.c \
                    kernel/vsi_nn_kernel_gpu_shape_optimize.c \
                    kernel/vsi_nn_kernel_lut.c \
-                   kernel/vsi_nn_spinst.c \
-                   kernel/vsi_nn_sp_unit_operation.c \
-                   kernel/vsi_nn_sp_lut.c \
                    kernel/vsi_nn_gpu.c
+
+LOCAL_SRC_FILES += vip/virtual_device.cpp
 
 LIBNNEXT_KERNEL_SOURCES := $(wildcard $(LOCAL_PATH)/libnnext/ops/kernel/*.c)
 LOCAL_SRC_FILES += $(LIBNNEXT_KERNEL_SOURCES:$(LOCAL_PATH)/%=%)
@@ -117,13 +114,14 @@ LOCAL_C_INCLUDES += \
     $(AQROOT)/sdk/inc/ \
     $(AQROOT)/sdk/inc/HAL \
     $(LOCAL_PATH)/../include \
+    $(LOCAL_PATH)/../include/vip \
     $(LOCAL_PATH)/../include/ops \
     $(LOCAL_PATH)/../include/utils \
     $(LOCAL_PATH)/../include/infernce \
     $(LOCAL_PATH)/../include/client \
-    $(LOCAL_PATH)/../include/cpu_backend \
     $(LOCAL_PATH)/../include/libnnext \
-    $(LOCAL_PATH)/../src
+    $(LOCAL_PATH)/../src \
+    $(LOCAL_PATH)/../src/vip
 
 LOCAL_CFLAGS :=  \
     -DLINUX \

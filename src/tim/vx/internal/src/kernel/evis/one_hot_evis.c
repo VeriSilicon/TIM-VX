@@ -160,15 +160,12 @@ DEF_KERNEL_INITIALIZER(_one_hot_initializer)
     in_shape = attr[0]->shape;
     depth = (int32_t)(attr[1]->shape->data[1]);
     input_dtype  = attr[0]->dtype;
+    input_zp = attr[0]->zero_point;
+    scaleIn  = attr[0]->scale;
 
     if (VSI_NN_KERNEL_QUANT_DFP == attr[0]->quant)
     {
         srcFixPointPos = attr[0]->dfp.fl;
-    }
-    else if (VSI_NN_KERNEL_QUANT_ASYMM == attr[0]->quant)
-    {
-        input_zp = attr[0]->asymm.zero_point;
-        scaleIn  = attr[0]->asymm.scale;
     }
 
     if (suffix_size == 1)

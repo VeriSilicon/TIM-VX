@@ -73,6 +73,10 @@ typedef struct _vsi_nn_node_prv
     int8_t processed;
 
     // Add node internal attribute here...
+#if VX_GRAPH_BATCH_OPT_SUPPORT
+    /*split the node to "split_num" on batch dim.*/
+    vsi_size_t split_num;
+#endif
 } vsi_nn_node_prv_t;
 
 /**
@@ -94,6 +98,14 @@ typedef struct _vsi_nn_tensor_prv
      * are processed in op_setup phase, this adjustment cannot
      * be done more than once */
     int8_t processed;
+
+    /** For mapping tensor patch.
+    *   map_id The address of a vx_map_id variable where the function returns a map identifier.
+    */
+    vx_map_id map_id;
+
+    /** create tensor from axisram.*/
+    int8_t is_from_axisram;
 
     // Add tensor internal attribute here...
 } vsi_nn_tensor_prv_t;

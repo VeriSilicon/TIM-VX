@@ -152,23 +152,12 @@ DEF_KERNEL_INITIALIZER(_conv1d_ovxlib_initializer)
     out_shape    = output_attr->shape;
     weight_shape = weights_attr->shape;
 
-    if ( VSI_NN_KERNEL_QUANT_ASYMM == input_attr->quant )
-    {
-        input_ZP          = input_attr->asymm.zero_point;
-        scaleIn           = input_attr->asymm.scale;
-    }
-
-    if ( VSI_NN_KERNEL_QUANT_ASYMM == weights_attr->quant )
-    {
-        weight_ZP         = weights_attr->asymm.zero_point;
-        scaleWights       = weights_attr->asymm.scale;
-    }
-
-    if ( VSI_NN_KERNEL_QUANT_ASYMM == output_attr->quant )
-    {
-        output_ZP         = (float)output_attr->asymm.zero_point;
-        scaleOut          = output_attr->asymm.scale;
-    }
+    input_ZP     = input_attr->zero_point;
+    scaleIn      = input_attr->scale;
+    weight_ZP    = weights_attr->zero_point;
+    scaleWights  = weights_attr->scale;
+    output_ZP    = (float)output_attr->zero_point;
+    scaleOut     = output_attr->scale;
 
     scaleOut     = (scaleIn * scaleWights) / scaleOut;
     input_height = (int32_t)(in_shape->data[1]);
