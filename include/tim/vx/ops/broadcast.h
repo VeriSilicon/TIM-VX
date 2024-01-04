@@ -24,7 +24,7 @@
 #ifndef OVXLIBXX_OPERATIONS_BROADCAST_H_
 #define OVXLIBXX_OPERATIONS_BROADCAST_H_
 #include "tim/vx/builtin_op.h"
-
+#define BROADCAST_OPVERSION 1
 namespace tim {
 namespace vx {
 namespace ops {
@@ -45,12 +45,12 @@ namespace ops {
 
 class Broadcast : public BuiltinOp {
   public:
-    Broadcast(Graph* graph, const std::vector<int32_t>& shape, const std::vector<int32_t>& dimensions = {});
+    Broadcast(Graph* graph, const std::vector<uint32_t>& shape, const std::vector<int32_t>& dimensions = {});
 
     std::shared_ptr<Operation> Clone(std::shared_ptr<Graph>& graph) const override;
 
-   protected:
-    const std::vector<int32_t> shape_;
+  protected:
+    std::vector<uint32_t> shape_;
     std::vector<int32_t> dimensions_;
 };
 

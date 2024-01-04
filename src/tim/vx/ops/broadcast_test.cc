@@ -62,7 +62,7 @@ TEST(Broadcast, ScalarTo2D_2x3) {
   std::vector<float> golden = {
       2.25f, 2.25f, 2.25f, 2.25f, 2.25f, 2.25f,
   };
-  std::vector<int32_t> shape = {3, 2};
+  std::vector<uint32_t> shape = {3, 2};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
                                              in_data.size() * sizeof(float)));
@@ -93,7 +93,7 @@ TEST(Broadcast, 1DTo2D) {
   std::vector<float> golden = {
       1.f, 2.f, 3.f, 1.f, 2.f, 3.f,
   };
-  std::vector<int32_t> shape = {3, 2};
+  std::vector<uint32_t> shape = {3, 2};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
                                              in_data.size() * sizeof(float)));
@@ -125,7 +125,7 @@ TEST(Broadcast, 1DTo2D_WithDims0) {
       1.f, 2.f,
       1.f, 2.f,
   };
-  std::vector<int32_t> shape = {2, 2};
+  std::vector<uint32_t> shape = {2, 2};
   std::vector<int32_t> dimensions = {0};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
@@ -158,7 +158,7 @@ TEST(Broadcast, 1DTo2D_WithDims1) {
       1.f, 1.f,
       2.f, 2.f,
   };
-  std::vector<int32_t> shape = {2, 2};
+  std::vector<uint32_t> shape = {2, 2};
   std::vector<int32_t> dimensions = {1};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
@@ -168,6 +168,44 @@ TEST(Broadcast, 1DTo2D_WithDims1) {
   (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
 
   CheckResult(graph, golden, output_tensor);
+}
+
+TEST(Broadcast, 1DTo2D_WithDimsMinus2) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({3});
+  tim::vx::ShapeType output_shape({3, 2});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<float> in_data = {
+      1.f, 2.f, 3.f 
+  };
+  std::vector<float> golden = {
+      1.f, 2.f, 3.f,
+      1.f, 2.f, 3.f
+  };
+  std::vector<uint32_t> shape = {3, 2};
+  std::vector<int32_t> dimensions = {-2};
+  EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
+                                             in_data.size() * sizeof(float)));
+
+  auto op = graph->CreateOperation<tim::vx::ops::Broadcast>(shape, dimensions);
+  (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+ 
+    EXPECT_TRUE(graph->Compile());
+    EXPECT_TRUE(graph->Run());
+
+    std::vector<float> output(golden.size());
+    EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+    EXPECT_EQ(golden, output);
 }
 
 TEST(Broadcast, 1DTo3D_WithDims0) {
@@ -190,7 +228,7 @@ TEST(Broadcast, 1DTo3D_WithDims0) {
   std::vector<float> golden = {
       1.f, 2.f, 1.f, 2.f, 1.f, 2.f, 1.f, 2.f,
   };
-  std::vector<int32_t> shape = {2, 2, 2};
+  std::vector<uint32_t> shape = {2, 2, 2};
   std::vector<int32_t> dimensions = {0};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
@@ -222,7 +260,7 @@ TEST(Broadcast, 1DTo3D_WithDims1) {
   std::vector<float> golden = {
       1.f, 1.f, 2.f, 2.f, 1.f, 1.f, 2.f, 2.f,
   };
-  std::vector<int32_t> shape = {2, 2, 2};
+  std::vector<uint32_t> shape = {2, 2, 2};
   std::vector<int32_t> dimensions = {1};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
@@ -254,7 +292,7 @@ TEST(Broadcast, 1DTo3D_WithDims2) {
   std::vector<float> golden = {
       1.f, 1.f, 1.f, 1.f, 2.f, 2.f, 2.f, 2.f,
   };
-  std::vector<int32_t> shape = {2, 2, 2};
+  std::vector<uint32_t> shape = {2, 2, 2};
   std::vector<int32_t> dimensions = {2};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
@@ -286,7 +324,7 @@ TEST(Broadcast, 2DTo3D_WithDims02) {
   std::vector<float> golden = {
       1.f, 5.f, 1.f, 5.f, 2.f, 6.f, 2.f, 6.f,
   };
-  std::vector<int32_t> shape = {2, 2, 2};
+  std::vector<uint32_t> shape = {2, 2, 2};
   std::vector<int32_t> dimensions = {0, 2};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
@@ -318,7 +356,7 @@ TEST(Broadcast, 2DTo3D_WithDims12) {
   std::vector<float> golden = {
       1.f, 1.f, 5.f, 5.f, 2.f, 2.f, 6.f, 6.f,
   };
-  std::vector<int32_t> shape = {2, 2, 2};
+  std::vector<uint32_t> shape = {2, 2, 2};
   std::vector<int32_t> dimensions = {1, 2};
 
   EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
