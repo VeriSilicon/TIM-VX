@@ -109,12 +109,14 @@ void RemoveTensorsAndOps(
     std::shared_ptr<vx::Graph>& graph,
     const std::vector<std::shared_ptr<vx::Operation>>& norm_ops) {
   for (uint32_t i = 0; i < norm_ops.size(); i++) {
-    auto it =
+   auto it =
         std::remove_if(graph->OpVector().begin(), graph->OpVector().end(),
                        [norm_ops, i](std::shared_ptr<vx::Operation> oper) {
                          return oper == norm_ops[i];
                        });
-    graph->OpVector().erase(it);  //Remove current op from op_vector_
+    if (it != graph->OpVector().end()) {
+      graph->OpVector().erase(it);
+    }  // Remove current op from op_vector_
     auto input_tensors = norm_ops[i]->impl()->InputsTensor();
     auto output_tensors = norm_ops[i]->impl()->OutputsTensor();
 
