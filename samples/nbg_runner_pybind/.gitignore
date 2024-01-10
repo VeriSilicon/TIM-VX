@@ -1,0 +1,15 @@
+[Bb]uild/
+*_build/
+.vscode/
+.cache/
+__pycache__/
+*.pyc
+temp/
+tmp/
+*.o
+*.a
+*.lib
+*.dll
+*.so
+*.nb
+.env
