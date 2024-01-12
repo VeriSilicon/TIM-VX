@@ -1,0 +1,17 @@
+{
+    "ScatterND_ONNX_V16":{
+        "parameters":
+            [
+                {"name":"reduction",
+                    "dtype": "tim::vx::ops::ScatterND_ONNX_V16::ReductionType",
+                    "Optional": "true",
+                    "default":"tim::vx::ops::ScatterND_ONNX_V16::REDUCTION_NONE",
+                    "range": ["tim::vx::ops::ScatterND_ONNX_V16::REDUCTION_NONE",
+                              "tim::vx::ops::ScatterND_ONNX_V16::REDUCTION_ADD",
+                              "tim::vx::ops::ScatterND_ONNX_V16::REDUCTION_MUL",
+                              "tim::vx::ops::ScatterND_ONNX_V16::REDUCTION_MAX",
+                              "tim::vx::ops::ScatterND_ONNX_V16::REDUCTION_MIN"]
+                }
+            ]
+    }
+}

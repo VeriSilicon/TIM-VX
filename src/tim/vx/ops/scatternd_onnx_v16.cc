@@ -55,7 +55,7 @@ ScatterND_ONNX_V16::ScatterND_ONNX_V16(Graph* graph, ReductionType reduction)
 }
 
 std::shared_ptr<Operation> ScatterND_ONNX_V16::Clone(std::shared_ptr<Graph>& graph) const {
-  return graph->CreateOperation<ScatterND_ONNX_V16>();
+  return graph->CreateOperation<ScatterND_ONNX_V16>(this->reduction_);
 }
 
 }  // namespace ops
