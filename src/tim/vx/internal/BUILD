@@ -75,7 +75,10 @@ filegroup(
 cc_library(
     name = "ovxlibimpl",
     copts = [
-        "-Werror", "-Wmisleading-indentation",
+        "-Werror",
+        "-Wno-strict-aliasing",
+        "-Wno-unused-but-set-variable",
+        "-Wmisleading-indentation",
         "-fvisibility=hidden", '-DOVXLIB_API=__attribute__((visibility(\\"default\\")))',
     ],
     linkopts = ["-ldl", "-lm"],
