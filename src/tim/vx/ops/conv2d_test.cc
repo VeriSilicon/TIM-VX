@@ -1976,3 +1976,151 @@ TEST(Conv2d, kernel_bigger_than_input_SAME) {
   EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
   EXPECT_EQ(golden, output);
 }
+
+TEST(Conv2d, float16_kernel11_stride22) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+  using namespace half_float::literal;
+
+  tim::vx::ShapeType input_shape({1, 1, 8, 1});   //whcn
+  tim::vx::ShapeType weight_shape({1, 1, 8, 2});  //whio
+  tim::vx::ShapeType bias_shape({weight_shape[3]});
+  tim::vx::ShapeType output_shape(
+      {1, 1, weight_shape[3], input_shape[3]});  //whcn
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT16, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec weight_spec(tim::vx::DataType::FLOAT16, weight_shape,
+                                  tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec bias_spec(tim::vx::DataType::FLOAT16, bias_shape,
+                                tim::vx::TensorAttribute::CONSTANT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT16, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  // Input data  nchw
+
+  std::vector<half_float::half> input_data = {
+      // 0.0461,  0.4024, -1.0115,  0.2167, -0.6123,  0.5036,  0.2310,  0.6931
+      0.0461_h,  0.4024_h, -1.0115_h,  0.2167_h, -0.6123_h,  0.5036_h,  0.2310_h,  0.6931_h
+  };
+
+  // weight data   oihw
+  std::vector<half_float::half> weight_data = {
+        -0.1530_h,  0.1108_h, -0.1847_h,  0.1636_h,  0.0716_h, -0.1383_h, -0.1735_h,  0.0915_h,
+      0.3298_h,  0.1697_h, -0.0341_h, -0.0172_h,  0.2009_h, -0.2457_h,  0.1176_h, -0.1171_h
+  };
+
+  // bias data
+  std::vector<half_float::half> bias_data = {0.0_h, 0.0_h, 0.0_h};
+
+  std::vector<half_float::half> golden = {
+      // first channel
+      0.1697_h, -0.1865_h};
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
+  auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  auto padding = tim::vx::PadType::AUTO;
+  std::array<uint32_t, 2> stride({2, 2});
+  std::array<uint32_t, 2> dilation({1, 1});
+  std::array<uint32_t, 2> ksize({1,1});
+  std::array<uint32_t, 4> conv_pad = {0, 0, 0, 0};
+
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(2, padding, ksize, stride, dilation, conv_pad);
+  (*conv2d)
+      .BindInput(input_tensor)
+      .BindInput(weight_tensor)
+      // .BindInput(bias_tensor)
+      .BindOutput(output_tensor);
+
+  EXPECT_TRUE(graph->Compile());
+
+  input_tensor->CopyDataToTensor(input_data.data());
+
+  EXPECT_TRUE(graph->Run());
+
+  uint32_t output_size = 1;
+  for (auto i : output_tensor->GetShape()) {
+    output_size *= i;
+  }
+  std::vector<half_float::half> output(output_size);
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden, output, (half_float::half)0.1));
+}
+
+TEST(Conv2d, float16_kernel11_stride22_2) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+  using namespace half_float::literal;
+
+  tim::vx::ShapeType input_shape({4, 4, 1, 1});   //whcn
+  tim::vx::ShapeType weight_shape({1, 1, 1, 1});  //whio
+  tim::vx::ShapeType bias_shape({weight_shape[3]});
+  tim::vx::ShapeType output_shape(
+      {2, 2, weight_shape[3], input_shape[3]});  //whcn
+
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT16, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec weight_spec(tim::vx::DataType::FLOAT16, weight_shape,
+                                  tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec bias_spec(tim::vx::DataType::FLOAT16, bias_shape,
+                                tim::vx::TensorAttribute::CONSTANT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT16, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  // Input data  nchw
+
+  std::vector<half_float::half> input_data = {
+      0.0461_h,  0.4024_h, -0.0115_h,  0.2167_h,
+      -0.6123_h,  0.5036_h,  0.2310_h,  0.6931_h,
+      1.0461_h,  1.4024_h, -1.0115_h,  1.2167_h,
+      -1.6123_h,  1.5036_h,  1.2310_h,  1.6931_h
+  };
+
+  // weight data   oihw
+  std::vector<half_float::half> weight_data = {-1.0_h};
+
+  // bias data
+  std::vector<half_float::half> bias_data = {0.0_h};
+
+  std::vector<half_float::half> golden = {
+      -0.0461_h, 0.0115_h,
+      -1.0461_h, 1.0115_h,
+  };
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto weight_tensor = graph->CreateTensor(weight_spec, weight_data.data());
+  auto bias_tensor = graph->CreateTensor(bias_spec, bias_data.data());
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  auto padding = tim::vx::PadType::AUTO;
+  std::array<uint32_t, 2> stride({2, 2});
+  std::array<uint32_t, 2> dilation({1, 1});
+  std::array<uint32_t, 2> ksize({1,1});
+  std::array<uint32_t, 4> conv_pad = {0, 0, 0, 0};
+
+  auto conv2d =
+      graph->CreateOperation<tim::vx::ops::Conv2d>(1, padding, ksize, stride, dilation, conv_pad);
+  (*conv2d)
+      .BindInput(input_tensor)
+      .BindInput(weight_tensor)
+      // .BindInput(bias_tensor)
+      .BindOutput(output_tensor);
+
+  EXPECT_TRUE(graph->Compile());
+
+  input_tensor->CopyDataToTensor(input_data.data());
+
+  EXPECT_TRUE(graph->Run());
+
+  uint32_t output_size = 1;
+  for (auto i : output_tensor->GetShape()) {
+    output_size *= i;
+  }
+  std::vector<half_float::half> output(output_size);
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_TRUE(ArraysMatch(golden, output, (half_float::half)0.1));
+}
