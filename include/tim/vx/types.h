@@ -43,7 +43,13 @@ enum class DataType {
   UINT4
 };
 
-enum class QuantType { NONE, ASYMMETRIC, SYMMETRIC_PER_CHANNEL, DYNAMIC_FIXED_POINT };
+enum class QuantType {
+  NONE,
+  ASYMMETRIC,
+  SYMMETRIC_PER_CHANNEL,
+  ASYMMETRIC_PER_CHANNEL,
+  DYNAMIC_FIXED_POINT
+};
 
 enum TensorAttribute {
   CONSTANT = 1 << 0,

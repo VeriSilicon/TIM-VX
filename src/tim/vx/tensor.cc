@@ -53,7 +53,26 @@ void PackTensorDtype(tim::vx::TensorSpec& spec, vsi_nn_dtype_t* dtype) {
       break;
     case tim::vx::QuantType::SYMMETRIC_PER_CHANNEL: {
       dtype->scales = spec.quantization_.Scales().data();
-      dtype->scale_dim = spec.quantization_.ZeroPoints().size();
+      dtype->scale_dim = spec.quantization_.Scales().size();
+#if (VSI_NN_VERSION_MAJOR == 1 && VSI_NN_VERSION_MINOR == 1 && \
+     VSI_NN_VERSION_PATCH <= 18)
+      {
+        std::vector<float> zps(spec.quantization_.ZeroPoints().size());
+        std::transform(spec.quantization_.ZeroPoints().begin(),
+                       spec.quantization_.ZeroPoints().end(), zps.begin(),
+                       [](const int& it) { return static_cast<float>(it); });
+        dtype->zero_points = zps.data();
+      }
+#else
+      dtype->zero_points = spec.quantization_.ZeroPoints().data();
+#endif
+      dtype->zero_points_dim = spec.quantization_.ZeroPoints().size();
+      dtype->channel_dim = spec.quantization_.ChannelDim();
+      break;
+    }
+    case tim::vx::QuantType::ASYMMETRIC_PER_CHANNEL: {
+      dtype->scales = spec.quantization_.Scales().data();
+      dtype->scale_dim = spec.quantization_.Scales().size();
 #if (VSI_NN_VERSION_MAJOR == 1 && VSI_NN_VERSION_MINOR == 1 && \
      VSI_NN_VERSION_PATCH <= 18)
       {

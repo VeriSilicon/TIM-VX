@@ -65,6 +65,8 @@ vsi_nn_qnt_type_e TranslateQuantType(QuantType qtype) {
       return VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     case QuantType::SYMMETRIC_PER_CHANNEL:
       return VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_SYMMETRIC;
+    case QuantType::ASYMMETRIC_PER_CHANNEL:
+      return VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC;
     case QuantType::DYNAMIC_FIXED_POINT:
       return VSI_NN_QNT_TYPE_DFP;
     default:
