@@ -124,6 +124,11 @@
   (Neg)                                                                        \
   (Abs)                                                                        \
   (Sin)                                                                        \
+  (Cos)                                                                        \
+  (Tan)                                                                        \
+  (ACosh)                                                                      \
+  (ATan)                                                                       \
+  (ATanh)                                                                      \
   (Exp)                                                                        \
   (Log)                                                                        \
   (Sqrt)                                                                       \

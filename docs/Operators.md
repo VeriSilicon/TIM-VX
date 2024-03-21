@@ -7,11 +7,14 @@
     - [ArgMin/ArgMax](#argminargmax)
     - [Batch2Space](#batch2space)
     - [BatchNorm](#batchnorm)
+    - [bidirectional sequence rnn](#bidirectional-sequence-rnn)
+    - [Bidirectional sequence rnn for onnx](#bidirectional-sequence-rnn-for-onnx)
     - [Broadcast](#broadcast)
     - [Clip](#clip)
     - [Concat](#concat)
     - [Conv2d](#conv2d)
     - [Conv3d](#conv3d)
+    - [Cumsum](#cumsum)
     - [DeConv2d](#deconv2d)
     - [DeConv1d](#deconv1d)
     - [DepthToSpace](#depthtospace)
@@ -24,6 +27,7 @@
     - [Minimum](#minimum)
     - [Maximum](#maximum)
     - [FloorDiv](#floordiv)
+    - [EmbeddingLookup](#embeddinglookup)
     - [Erf](#erf)
     - [FullyConnected](#fullyconnected)
     - [Gather](#gather)
@@ -31,20 +35,29 @@
     - [GatherNd](#gathernd)
     - [GroupedConv1d](#groupedconv1d)
     - [GroupedConv2d](#groupedconv2d)
+    - [GRUCell](#grucell)
+    - [HashtableLookup](#hashtablelookup)
     - [L2Normalization](#l2normalization)
     - [LocalResponseNormalization](#localresponsenormalization)
     - [And](#and)
     - [Or](#or)
     - [LogSoftmax](#logsoftmax)
     - [Matmul](#matmul)
+    - [Max_pool3d](#max_pool3d)
     - [MaxpooGrad](#maxpoograd)
     - [MaxpoolWithArgmax](#maxpoolwithargmax)
     - [MaxpoolWithArgmax2](#maxpoolwithargmax2)
     - [MaxUnpool2d](#maxunpool2d)
+    - [Mod](#mod)
     - [Moments](#moments)
     - [NBG](#nbg)
     - [OneHot](#onehot)
     - [Pad](#pad)
+    - [PadV2](#padv2)
+    - [Pool1d](#pool1d)
+        - [Classic Pool1d](#classic-pool1d)
+        - [Global Pool1d](#global-pool1d)
+        - [Adaptive Pool1d](#adaptive-pool1d)
     - [Pool2d](#pool2d)
         - [Classic Pool2d](#classic-pool2d)
         - [Global Pool2d](#global-pool2d)
@@ -70,11 +83,17 @@
     - [RoiAlign](#roialign)
     - [RoiPool](#roipool)
     - [ScatterND](#scatternd)
+    - [ScatterND_ONNX_V16](#scatternd_onnx_v16)
     - [Select](#select)
     - [DataConvert](#dataconvert)
     - [Neg](#neg)
     - [Abs](#abs)
     - [Sin](#sin)
+    - [Cos](#cos)
+    - [Tan](#tan)
+    - [ATan](#atan)
+    - [ACosh](#acosh)
+    - [ATanh](#atanh)
     - [Exp](#exp)
     - [Log](#log)
     - [Sqrt](#sqrt)
@@ -84,6 +103,7 @@
     - [Floor](#floor)
     - [Ceil](#ceil)
     - [Cast](#cast)
+    - [Rcp](#rcp)
     - [Slice](#slice)
     - [Softmax](#softmax)
     - [Space2Batch](#space2batch)
@@ -96,7 +116,10 @@
     - [Tile](#tile)
     - [Topk](#topk)
     - [Transpose](#transpose)
+    - [UnidirectionalSequenceGRU](#unidirectionalsequencegru)
     - [Unidirectional sequence lstm](#unidirectional-sequence-lstm)
+    - [Unidirectional sequence rnn](#unidirectional-sequence-rnn)
+    - [Unidirectional sequence rnn for onnx](#unidirectional-sequence-rnn-for-onnx)
     - [Unstack](#unstack)
 
 <a class="mk-toclify" id="operators"></a>
@@ -177,6 +200,14 @@ $$\hat x_i\leftarrow \frac{x_i-\mu_\mathcal{B}}{\sqrt{\sigma_\mathcal{B}^2+\epsi
 
 $$y_i=\gamma\hat x_i+\beta\equiv BN_{\gamma,\beta}(x_i)$$
 
+<a class="mk-toclify" id="bidirectional-sequence-rnn"></a>
+## bidirectional sequence rnn
+how to bind input/output: take bidirectional_sequence_rnn_test.cc
+
+<a class="mk-toclify" id="bidirectional-sequence-rnn-for-onnx"></a>
+## Bidirectional sequence rnn for onnx
+how to bind input/output: take unidirectional_sequence_rnn_ext_test.cc
+
 <a class="mk-toclify" id="broadcast"></a>
 ## Broadcast
 
@@ -187,7 +218,7 @@ Input:
 
 Attribute:
 - shape: the shape which broadcast to.
-- dimensions(optional): Which dimension in the target shape each dimension 
+- dimensions(optional): Which dimension in the target shape each dimension
 of the operand shape corresponds to. For BroadcastInDim.
 
 <a class="mk-toclify" id="clip"></a>
@@ -210,7 +241,8 @@ Depthwise Conv2D / Group Conv2D / Dilation Conv2D.
 
 Input:
 - input [WHCN or CWHN].
-- kernel [ WHIcOc ] (Ic: Input Channels. Oc: Output Channels).
+- kernel [ WHIcOc ] (Ic: Input Channels. Oc: Output Channels) normally,
+[WHIc(Oc)1] for Depthwise Conv.
 - bias [ O ]. Optional.
 
 Attribute:
@@ -246,6 +278,19 @@ but the value is different. multiplier = weights / group.
 - input_layout : WHDCN or WHCDN.
 - kernel_layout : WHDIcOc
 
+<a class="mk-toclify" id="cumsum"></a>
+## Cumsum
+
+Compute the cumulative sum of the tensor along the giveb axis. By default, it 
+will do the sum inclusively meaning the first element is copied as is. Through 
+an exclusive attribute, this behavior can change to exclude the first element. 
+It can also perform summation in the opposite direction of the axis by setting 
+reverse atrribution to 1.
+All the attributes can be combined.
+- axis : Specify the cumsum eperforming along which axis.Default = 0.
+- exclusive : If exclusive = 1, perform exclusive cumsum.
+- reverse : If reverse = 1, the cumsum is performed in the opposite direction.
+
 <a class="mk-toclify" id="deconv2d"></a>
 ## DeConv2d
 
@@ -276,11 +321,12 @@ but is actually the transpose (gradient) of Conv2D rather than an actual deconvo
 
 - weights : the channel number for weight tensor.
 - ksize : the length for weight tensor.
-- padding : AUTO, VALID or SAME.
+- padtype : AUTO, VALID or SAME.**
 - pad : pad value for each spatial axis.
 - stride : stride along each spatial axis.
-- output_padding : specifying the amount of padding along the height and width of
-the output tensor.
+- output_padding : additional padding lines added to the output tensor, default is zero
+
+Caution**: PadType is not really supported yet, will be supported in future.
 
 <a class="mk-toclify" id="depthtospace"></a>
 ## DepthToSpace
@@ -349,6 +395,11 @@ Maximum(x, y) : max(x, y). This operation supports broadcasting.
 
 FloorDiv(x, y): floor( x / y ). This operation supports broadcasting.
 
+<a class="mk-toclify" id="embeddinglookup"></a>
+## EmbeddingLookup
+
+Looks up sub-tensors in the input tensor with specific indices(idx)
+
 <a class="mk-toclify" id="erf"></a>
 ## Erf
 
@@ -360,7 +411,7 @@ Computes the Gauss error function of x element-wise.
 ## FullyConnected
 
 Denotes a fully (densely) connected layer, which connects all elements in the
-input tensor with each element in the output tensor. 
+input tensor with each element in the output tensor.
 
 - axis: Describes the axis of the inputs when coerced to 2D.
 - weights: the output channel number for weight tensor.
@@ -369,6 +420,7 @@ input tensor with each element in the output tensor.
 ## Gather
 
 Gather slices from input, **axis** according to **indices**.
+batch_dims means in which dimension to repeat the value according to indices.
 
 <a class="mk-toclify" id="gatherelements"></a>
 ## GatherElements
@@ -424,6 +476,20 @@ Attribute:
 - group_number: Split conv to n group.
 - layout : WHCN or CWHN.
 
+<a class="mk-toclify" id="grucell"></a>
+## GRUCell
+
+- num_units : dimensionality of the output space.
+- activation : Activation function to use.
+- recurrent_activation : Activation function to use for the recurrent step.
+- reset_after : whether to apply reset gate after or before matrix multiplication.
+False = "before", True = "after".
+
+<a class="mk-toclify" id="hashtablelookup"></a>
+## HashtableLookup
+
+Looks up sub-tensors in the input tensor using a key-value map.
+
 <a class="mk-toclify" id="l2normalization"></a>
 ## L2Normalization
 
@@ -444,6 +510,11 @@ Applies Local Response Normalization along the depth dimension:
 sqr_sum[a, b, c, d] = sum(
 pow(input[a, b, c, d - depth_radius : d + depth_radius + 1], 2))
 output = input / pow((bias + alpha * sqr_sum), beta)
+output = input / pow((bias + alpha * sqr_sum), beta)
+size : width of the 1-D normalization window.
+bias : An offset (usually positive to avoid dividing by 0).
+alpha : A scale factor.
+beta : An exponent.
 ```
 
 <a class="mk-toclify" id="and"></a>
@@ -475,11 +546,29 @@ Multiplies matrix a by matrix b, producing a * b.
 - adjoint_a: If True, a is conjugated and transposed before multiplication.
 - adjoint_b: If True, b is conjugated and transposed before multiplication.
 
+<a class="mk-toclify" id="max_pool3d"></a>
+## Max_pool3d
+
+Applies a 3D max pooling over an input Tensor which can be regarded as a composition of 3D planes.
+
+Input:
+- input [WHDCN]
+- kernel [ WHD ] 
+
+Attribute:
+- round_type : CEILING or FLOOR
+- ksize : the height and width for kernel tensor.
+- stride : stride along each spatial axis.
+- pad : pad value for each spatial axis. (left, right, top, bottom, front, rear).
+- pad_type : AUTO, VALID or SAME.
+
+
 <a class="mk-toclify" id="maxpoograd"></a>
 ## MaxpooGrad
 
 Acquire the gradient of 2-D Max pooling operation's input tensor. \
-Like the tensorflow_XLA op SelectAndScatter, see https://tensorflow.google.cn/xla/operation_semantics?hl=en#selectandscatter.
+Like the tensorflow_XLA op SelectAndScatter, see \
+https://tensorflow.google.cn/xla/operation_semantics?hl=en#selectandscatter.
 
 - padding : AUTO, VALID or SAME.
 - ksize : filter size.
@@ -490,6 +579,10 @@ Like the tensorflow_XLA op SelectAndScatter, see https://tensorflow.google.cn/xl
 
 - 0 : input tensor of 2-D Max pooling.
 - 1 : gradient of 2-D Max pooling output tensor.
+
+* Outputs:
+
+- 0 : updated tensor of 2-D Max pooling input.
 
 <a class="mk-toclify" id="maxpoolwithargmax"></a>
 ## MaxpoolWithArgmax
@@ -518,6 +611,19 @@ Performs an 2-D Max pooling operation upsample
 
 - stride : stride along each spatial axis.
 - ksize : filter size.
+
+<a class="mk-toclify" id="mod"></a>
+## Mod
+
+Mod performs element-wise binary modulus. 
+The sign of the remainder is the same as that of the Divisor as default.
+
+Mod operator can also behave like C fmod() or numpy.fmod when input type is floating 
+point. The sign of the remainder however, will be the same as the Dividend. Attribute
+fmod is set to decide the mod behivior.
+
+- fmod : If the input type is floating point, then fmod must be set to 1.Default = 0
+means integer mod.
 
 <a class="mk-toclify" id="moments"></a>
 ## Moments
@@ -549,10 +655,53 @@ Create a one-hot tensor.
 
 Pads a tensor.
 
-- const_val : the value to pad.
+- const_val : the int32 value to pad.
 - pad_mode : the mode of pad.
 - front_size : Add pad values to the left and top.
 - back_size : Add pad values to the right and bottom.
+
+<a class="mk-toclify" id="padv2"></a>
+## PadV2
+
+Pads a tensor.
+
+- const_val : the float value to pad.
+- pad_mode : the mode of pad.
+- front_size : Add pad values to the left and top.
+- back_size : Add pad values to the right and bottom.
+
+<a class="mk-toclify" id="pool1d"></a>
+## Pool1d
+
+<a class="mk-toclify" id="classic-pool1d"></a>
+### Classic Pool1d
+
+Performs an 1-D pooling operation.
+
+- type : MAX, AVG, L2 or AVG_ANDROID.
+- padding : AUTO, VALID or SAME.
+- pad : Specify the number of pad values for left, right.
+- ksize : filter size.
+- stride : stride along each spatial axis.
+- round_type : CEILING or FLOOR.
+
+<a class="mk-toclify" id="global-pool1d"></a>
+### Global Pool1d
+
+- type : MAX, AVG, L2 or AVG_ANDROID.
+- input_size : input size(only [W])
+- round_type : CEILING or FLOOR.
+
+<a class="mk-toclify" id="adaptive-pool1d"></a>
+### Adaptive Pool1d
+
+Same as torch.nn.AdaptiveXXXPool1d.
+
+- type : MAX, AVG, L2 or AVG_ANDROID.
+- input_size : input size(only [W])
+- output_size : output size(only [W])
+- round_type : CEILING or FLOOR.
+
 
 <a class="mk-toclify" id="pool2d"></a>
 ## Pool2d
@@ -758,7 +907,7 @@ Select and scale the feature map of each region of interest to a unified output
 size by max-pooling.
 
 pool_type : only support max-pooling  (MAX)
-scale : The ratio of image to feature map (Range: 0 < scale <= 1) 
+scale : The ratio of image to feature map (Range: 0 < scale <= 1)
 size : The size of roi pooling (height/width)
 
 
@@ -768,6 +917,13 @@ size : The size of roi pooling (height/width)
 Scatter updates into a new tensor according to indices.
 
 - shape : The shape of the resulting tensor. 
+
+<a class="mk-toclify" id="scatternd_onnx_v16"></a>
+## ScatterND_ONNX_V16
+
+Scatter updates into a new tensor according to indices.
+
+- reduction: Type of reduction to apply: none (default), add, mul, max, min.
 
 <a class="mk-toclify" id="select"></a>
 ## Select
@@ -794,6 +950,31 @@ Abs(x) : x if x >= 0; -x if x < 0.
 ## Sin
 
 Sin(x) : sin(x)
+
+<a class="mk-toclify" id="cos"></a>
+## Cos
+
+Cos(x) : cos(x)
+
+<a class="mk-toclify" id="tan"></a>
+## Tan
+
+Tan(x) : tan(x)
+
+<a class="mk-toclify" id="atan"></a>
+## ATan
+
+ATan(x) : arctan(x)
+
+<a class="mk-toclify" id="acosh"></a>
+## ACosh
+
+ACosh(x) : arccosh(x)
+
+<a class="mk-toclify" id="atanh"></a>
+## ATanh
+
+Tan(x) : arctanh(x)
 
 <a class="mk-toclify" id="exp"></a>
 ## Exp
@@ -840,6 +1021,10 @@ returns the largest integer more than or equal to a given number.
 
 Change the format from input tensor to output tensor. This operation ignores
 the scale and zeroPoint of quanized tensors.
+
+<a class="mk-toclify" id="rcp"></a>
+## Rcp
+Computes the reciprocal of input element-wise.
 
 <a class="mk-toclify" id="slice"></a>
 ## Slice
@@ -948,6 +1133,7 @@ Length must be the same as the number of dimensions in input.
 Finds values and indices of the k largest entries for the last dimension.
 
 - k : Number of top elements to look for along the last dimension.
+-axis : Dimension on which to do th sort. Default is 0.
 
 <a class="mk-toclify" id="transpose"></a>
 ## Transpose
@@ -960,9 +1146,30 @@ If perm is not given, it is set to (n-1...0), where n is the rank of the input
 tensor. Hence by default, this operation performs a regular matrix transpose on
 2-D input Tensors.
 
+<a class="mk-toclify" id="unidirectionalsequencegru"></a>
+## UnidirectionalSequenceGRU
+
+- num_units : dimensionality of the output space.
+- activation : Activation function to use.
+- recurrent_activation : Activation function to use for the recurrent step.
+- reset_after : whether to apply reset gate after or before matrix multiplication.
+False = "before", True = "after".
+- return_sequences : Whether to return the last output in the output sequence,
+or the full sequence. Default: False.
+- time_major : If True, the inputs and outputs will be in shape [feature, batch, timesteps],
+in the False case, it will be [feature, timesteps, batch].
+
 <a class="mk-toclify" id="unidirectional-sequence-lstm"></a>
 ## Unidirectional sequence lstm
 how to bind input/output: take unidirectional_sequence_lstm_test.cc
+
+<a class="mk-toclify" id="unidirectional-sequence-rnn"></a>
+## Unidirectional sequence rnn
+how to bind input/output: take unidirectional_sequence_rnn_test.cc
+
+<a class="mk-toclify" id="unidirectional-sequence-rnn-for-onnx"></a>
+## Unidirectional sequence rnn for onnx
+how to bind input/output: take unidirectional_sequence_rnn_ext_test.cc
 
 <a class="mk-toclify" id="unstack"></a>
 ## Unstack

@@ -60,8 +60,11 @@ using DataConvertLayoutInfer = SimpleOpsLayoutInfer<vx::ops::DataConvert>;
 using NegLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Neg>;
 using AbsLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Abs>;
 using SinLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Sin>;
-// TODO(yzw): enable it when TIM-VX support 'Cos'
-// using CosLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Cos>;
+using CosLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Cos>;
+using TanLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Tan>;
+using ATanLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ATan>;
+using ATanhLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ATanh>;
+using ACoshLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ACosh>;
 using ExpLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Exp>;
 using LogLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Log>;
 using SqrtLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Sqrt>;
