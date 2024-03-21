@@ -54,6 +54,26 @@ namespace ops {
  *
  * Sin(x) : sin(x)
  *
+ * ## Cos
+ *
+ * Cos(x) : cos(x)
+ *
+ * ## Tan
+ *
+ * Tan(x) : tan(x)
+ *
+ * ## ATan
+ *
+ * ATan(x) : arctan(x)
+ * 
+ * ## ACosh
+ *
+ * ACosh(x) : arccosh(x)
+ *
+ * ## ATanh
+ *
+ * Tan(x) : arctanh(x)
+ *
  * ## Exp
  *
  * Exp(x) : e^x
@@ -101,6 +121,9 @@ DECLARE_SIMPLE_OP(Abs)
 DECLARE_SIMPLE_OP(Sin)
 DECLARE_SIMPLE_OP(Cos)
 DECLARE_SIMPLE_OP(Tan)
+DECLARE_SIMPLE_OP(ATan)
+DECLARE_SIMPLE_OP(ATanh)
+DECLARE_SIMPLE_OP(ACosh)
 DECLARE_SIMPLE_OP(Exp)
 DECLARE_SIMPLE_OP(Log)
 DECLARE_SIMPLE_OP(Sqrt)
