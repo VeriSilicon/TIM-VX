@@ -93,7 +93,7 @@ final:
     return status;
 }
 
-#if (defined(__ANDROID__)) && (ANDROID_SDK_VERSION >= 30)
+#if (defined(__ANDROID__)) && ((ANDROID_SDK_VERSION >= 30) || (__ANDROID_API__ >= 30))
 static const char* ENV_ENABLE_SHADER = "vendor.VIV_VX_ENABLE_SHADER";
 static const char* ENV_ENABLE_OPCHECK = "vendor.VSI_NN_ENABLE_OPCHECK";
 static const char* ENV_ENABLE_CONCAT_OPTIMIZE = "vendor.VSI_NN_ENABLE_CONCAT_OPTIMIZE";

@@ -513,6 +513,8 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release( &node_params[4] );
             vsi_nn_kernel_scalar_release( &node_params[5] );
         }
+
+        if ( node )
         {
             // Set default border mode.
             vx_border_t border;

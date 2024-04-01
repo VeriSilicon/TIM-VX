@@ -28,12 +28,6 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
     }
 
     __local int sorted[1];
-    int width_minus_one = width - 1;
-    int num_pixels_per_thread = (width_minus_one + LOCAL_SIZE_X) / LOCAL_SIZE_X;
-    num_pixels_per_thread = num_pixels_per_thread + (num_pixels_per_thread & 1);
-
-    int x_start = lid * num_pixels_per_thread;
-    int x_end = min(lid * num_pixels_per_thread + num_pixels_per_thread, width_minus_one);
 
     sorted[0] = 0;
 
@@ -44,20 +38,21 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
             *sorted = 0;
         }
         int swapped = 0;
-        barrier(CLK_GLOBAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         // odd-even
-        coord.x = x_start;
-        coord.z = x_start + 1;
-        for (; coord.x < x_end; )
+        coord.x = lid * 2;
+        coord.z = lid * 2 + 1;
+        for (; coord.z < width; )
         {
             float4 left = read_imagef(input_t, coord.xy);
             float4 right = read_imagef(input_t, coord.zy);
+            int4 l_index = read_imagei(indices_t, coord.xy);
+            int4 r_index = read_imagei(indices_t, coord.zy);
 
-            if (left.x < right.x)
+            if ( (left.x < right.x) ||
+                (left.x == right.x && l_index.x < r_index.x) )
             {
-                int4 l_index = read_imagei(indices_t, coord.xy);
-                int4 r_index = read_imagei(indices_t, coord.zy);
                 swapped = 1;
 
                 write_imagef(input_t, coord.xy, right);
@@ -67,21 +62,23 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                 write_imagei(indices_t, coord.zy, l_index);
             }
 
-            coord.xz = coord.xz + 2;
+            coord.xz += 2 * LOCAL_SIZE_X;
         }
 
+        barrier(CLK_GLOBAL_MEM_FENCE);
         // even-odd
-        coord.x = x_start + 1;
-        coord.z = x_start + 2;
-        for (; coord.x < x_end; )
+        coord.x = lid * 2 + 1;
+        coord.z = lid * 2 + 2;
+        for (; coord.z < width; )
         {
             float4 left = read_imagef(input_t, coord.xy);
             float4 right = read_imagef(input_t, coord.zy);
+            int4 l_index = read_imagei(indices_t, coord.xy);
+            int4 r_index = read_imagei(indices_t, coord.zy);
 
-            if (left.x < right.x)
+            if ( (left.x < right.x) ||
+                (left.x == right.x && l_index.x < r_index.x) )
             {
-                int4 l_index = read_imagei(indices_t, coord.xy);
-                int4 r_index = read_imagei(indices_t, coord.zy);
                 swapped = 1;
 
                 write_imagef(input_t, coord.xy, right);
@@ -91,11 +88,11 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                 write_imagei(indices_t, coord.zy, l_index);
             }
 
-            coord.xz = coord.xz + 2;
+            coord.xz += 2 * LOCAL_SIZE_X;
         }
 
         atomic_add(sorted, swapped);
-        barrier(CLK_GLOBAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         if (*sorted == 0)
             break;
@@ -141,13 +138,6 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
     }
 
     __local int sorted[1];
-    int width_minus_one = width - 1;
-    int num_pixels_per_thread = (width_minus_one + LOCAL_SIZE_X) / LOCAL_SIZE_X;
-    num_pixels_per_thread = num_pixels_per_thread + (num_pixels_per_thread & 1);
-
-    int x_start = lid * num_pixels_per_thread;
-    int x_end = min(lid * num_pixels_per_thread + num_pixels_per_thread, width_minus_one);
-
     sorted[0] = 0;
 
     while (1)
@@ -157,20 +147,21 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
             *sorted = 0;
         }
         int swapped = 0;
-        barrier(CLK_GLOBAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         // odd-even
-        coord.x = x_start;
-        coord.z = x_start + 1;
-        for (; coord.x < x_end; )
+        coord.x = lid * 2;
+        coord.z = lid * 2 + 1;
+        for (; coord.z < width; )
         {
             uint4 left = read_imageui(input_t, coord.xy);
             uint4 right = read_imageui(input_t, coord.zy);
+            int4 l_index = read_imagei(indices_t, coord.xy);
+            int4 r_index = read_imagei(indices_t, coord.zy);
 
-            if (left.x < right.x)
+            if ( (left.x < right.x) ||
+                (left.x == right.x && l_index.x < r_index.x) )
             {
-                int4 l_index = read_imagei(indices_t, coord.xy);
-                int4 r_index = read_imagei(indices_t, coord.zy);
                 swapped = 1;
 
                 write_imageui(input_t, coord.xy, right);
@@ -180,21 +171,23 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                 write_imagei(indices_t, coord.zy, l_index);
             }
 
-            coord.xz = coord.xz + 2;
+            coord.xz += 2 * LOCAL_SIZE_X;
         }
 
+        barrier(CLK_GLOBAL_MEM_FENCE);
         // even-odd
-        coord.x = x_start + 1;
-        coord.z = x_start + 2;
-        for (; coord.x < x_end; )
+        coord.x = lid * 2 + 1;
+        coord.z = lid * 2 + 2;
+        for (; coord.z < width; )
         {
             uint4 left = read_imageui(input_t, coord.xy);
             uint4 right = read_imageui(input_t, coord.zy);
+            int4 l_index = read_imagei(indices_t, coord.xy);
+            int4 r_index = read_imagei(indices_t, coord.zy);
 
-            if (left.x < right.x)
+            if ( (left.x < right.x) ||
+                (left.x == right.x && l_index.x < r_index.x) )
             {
-                int4 l_index = read_imagei(indices_t, coord.xy);
-                int4 r_index = read_imagei(indices_t, coord.zy);
                 swapped = 1;
 
                 write_imageui(input_t, coord.xy, right);
@@ -204,11 +197,11 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                 write_imagei(indices_t, coord.zy, l_index);
             }
 
-            coord.xz = coord.xz + 2;
+            coord.xz += 2 * LOCAL_SIZE_X;
         }
 
         atomic_add(sorted, swapped);
-        barrier(CLK_GLOBAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         if (*sorted == 0)
             break;
@@ -254,13 +247,6 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
     }
 
     __local int sorted[1];
-    int width_minus_one = width - 1;
-    int num_pixels_per_thread = (width_minus_one + LOCAL_SIZE_X) / LOCAL_SIZE_X;
-    num_pixels_per_thread = num_pixels_per_thread + (num_pixels_per_thread & 1);
-
-    int x_start = lid * num_pixels_per_thread;
-    int x_end = min(lid * num_pixels_per_thread + num_pixels_per_thread, width_minus_one);
-
     sorted[0] = 0;
 
     while (1)
@@ -270,20 +256,21 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
             *sorted = 0;
         }
         int swapped = 0;
-        barrier(CLK_GLOBAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         // odd-even
-        coord.x = x_start;
-        coord.z = x_start + 1;
-        for (; coord.x < x_end; )
+        coord.x = lid * 2;
+        coord.z = lid * 2 + 1;
+        for (; coord.z < width; )
         {
             int4 left = read_imagei(input_t, coord.xy);
             int4 right = read_imagei(input_t, coord.zy);
+            int4 l_index = read_imagei(indices_t, coord.xy);
+            int4 r_index = read_imagei(indices_t, coord.zy);
 
-            if (left.x < right.x)
+            if ( (left.x < right.x) ||
+                (left.x == right.x && l_index.x < r_index.x) )
             {
-                int4 l_index = read_imagei(indices_t, coord.xy);
-                int4 r_index = read_imagei(indices_t, coord.zy);
                 swapped = 1;
 
                 write_imagei(input_t, coord.xy, right);
@@ -293,21 +280,23 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                 write_imagei(indices_t, coord.zy, l_index);
             }
 
-            coord.xz = coord.xz + 2;
+            coord.xz += 2 * LOCAL_SIZE_X;
         }
 
+        barrier(CLK_GLOBAL_MEM_FENCE);
         // even-odd
-        coord.x = x_start + 1;
-        coord.z = x_start + 2;
-        for (; coord.x < x_end; )
+        coord.x = lid * 2 + 1;
+        coord.z = lid * 2 + 2;
+        for (; coord.z < width; )
         {
             int4 left = read_imagei(input_t, coord.xy);
             int4 right = read_imagei(input_t, coord.zy);
+            int4 l_index = read_imagei(indices_t, coord.xy);
+            int4 r_index = read_imagei(indices_t, coord.zy);
 
-            if (left.x < right.x)
+            if ( (left.x < right.x) ||
+                (left.x == right.x && l_index.x < r_index.x) )
             {
-                int4 l_index = read_imagei(indices_t, coord.xy);
-                int4 r_index = read_imagei(indices_t, coord.zy);
                 swapped = 1;
 
                 write_imagei(input_t, coord.xy, right);
@@ -317,11 +306,11 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd
                 write_imagei(indices_t, coord.zy, l_index);
             }
 
-            coord.xz = coord.xz + 2;
+            coord.xz += 2 * LOCAL_SIZE_X;
         }
 
         atomic_add(sorted, swapped);
-        barrier(CLK_GLOBAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         if (*sorted == 0)
             break;

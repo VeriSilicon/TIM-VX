@@ -65,8 +65,14 @@ static vsi_status op_compute
     }
     else
     {
+#define _TENSOR_LEN 64
         vsi_nn_tensor_attr_t attr;
         vsi_nn_tensor_t* temp_tensors = NULL;
+
+        char gather_tensor_name[_TENSOR_LEN];
+        char copy_tensor_name[_TENSOR_LEN];
+        memset(gather_tensor_name, 0, sizeof(gather_tensor_name));
+        memset(copy_tensor_name, 0, sizeof(copy_tensor_name));
 
         VSILOGW("gather is no_range_change operation! \
             Insert DataConvert Operation when the quantization parameters of input and output are inconsistent!");
@@ -78,7 +84,20 @@ static vsi_status op_compute
         temp_tensors = vsi_nn_CreateTensor( self->graph, &attr );
 
         vsi_nn_kernel_selector( self->graph, "gather", inputs, 2, &temp_tensors, 1, param );
+        snprintf(gather_tensor_name, sizeof(gather_tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, 0);
+        if(vxSetReferenceName((vx_reference)temp_tensors->t, gather_tensor_name) == VSI_FAILURE)
+        {
+            VSILOGW("Set uid %u gather node output name fail", self->uid);
+            return VSI_FAILURE;
+        }
+
         n = vxTensorCopyNode( self->graph->g, temp_tensors->t, outputs[0]->t);
+        snprintf(copy_tensor_name, sizeof(copy_tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, 1);
+        if(vxSetReferenceName((vx_reference)outputs[0]->t, copy_tensor_name) == VSI_FAILURE)
+        {
+            VSILOGW("Set uid %u copy node output name fail", self->uid);
+            return VSI_FAILURE;
+        }
 
         vsi_safe_release_tensor(temp_tensors);
     }

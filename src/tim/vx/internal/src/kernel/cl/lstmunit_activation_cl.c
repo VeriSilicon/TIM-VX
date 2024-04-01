@@ -34,6 +34,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
+#include "utils/vsi_nn_dtype_util_prv.h"
 #include "kernel/vsi_nn_kernel.h"
 
 __BEGIN_DECLS
@@ -1489,8 +1490,8 @@ static vsi_nn_kernel_node_t _setup
     float    twoLogE                = 2 * logE;
     uint32_t uint_min               = 0xFBFFFFFF;
     uint32_t uint_max               = 0x7BFFFFFF;
-    float    float_min              = *(vx_float32 *)&uint_min;
-    float    float_max              = *(vx_float32 *)&uint_max;
+    float    float_min              = 0.0f;
+    float    float_max              = 0.0f;
     float    scale_val[9]           = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     float    tail_val[9]            = {0, 0, 0, 0, 0, 0, 0, 0, 0};
     vsi_bool is_u8_type = FALSE;
@@ -1498,6 +1499,12 @@ static vsi_nn_kernel_node_t _setup
     size_t   lstm_activation_param_num = _LSTMUNIT_ACTIVATION_MAX_PARAM_NUM;
     size_t   lstm_activation_in_out_num = 0;
     uint32_t i;
+
+    fp32_bit_cast_t fp32_bit_cast;
+    fp32_bit_cast.data = uint_min;
+    float_min = fp32_bit_cast.val;
+    fp32_bit_cast.data = uint_max;
+    float_max = fp32_bit_cast.val;
 
     _is_ln               = vsi_nn_kernel_param_get_int32( params, "_is_ln" );
     _is_cifg             = vsi_nn_kernel_param_get_int32( params, "_is_cifg" );

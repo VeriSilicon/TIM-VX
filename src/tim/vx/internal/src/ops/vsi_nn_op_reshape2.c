@@ -75,6 +75,11 @@ static vsi_status op_compute
             self->graph,
             (uint8_t *)dims_data,
             &attr);
+        if (NULL == dims_tensor)
+        {
+            VSILOGE( "Create tensor fail." );
+            return VSI_FAILURE;
+        }
 
         reshape_param.dims = REQUIRED_IO(dims_tensor);
 

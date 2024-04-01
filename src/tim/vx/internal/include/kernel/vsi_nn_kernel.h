@@ -26,6 +26,8 @@
 #define _VSI_NN_KERNEL_H
 
 #include <stdint.h>
+#include <stdarg.h>
+
 #include "vsi_nn_log.h"
 #include "vsi_nn_ops.h"
 #include "vsi_nn_graph.h"
@@ -81,6 +83,7 @@ typedef enum
     U4,
     FP8_E4M3,
     FP8_E5M2,
+    INVALID_DTYPE,
 } VSI_PUBLIC_TYPE vsi_nn_kernel_dtype_e;
 
 typedef enum
@@ -532,9 +535,8 @@ static VSI_INLINE_API vsi_nn_kernel_dtype_e vsi_nn_kernel_map_dtype
         return FP8_E5M2;
     default:
         VSILOGE("error data type %d", dtype);
-        break;
+        return INVALID_DTYPE;
     }
-    return I8;
 } /* vsi_nn_kernel_map_dtype() */
 
 static VSI_INLINE_API  vsi_nn_type_e vsi_nn_dtype_map_kernel

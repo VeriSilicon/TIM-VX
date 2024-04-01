@@ -244,7 +244,10 @@ DEF_KERNEL_INITIALIZER(_gather_elements_initializer)
 
 final:
 #define SAFE_FREE_TENSOR_ATTR(_PTR) if( _PTR ) { vsi_nn_kernel_tensor_attr_release( &_PTR ); _PTR = NULL; }
+    SAFE_FREE_TENSOR_ATTR(input_attr0);
+    SAFE_FREE_TENSOR_ATTR(input_attr1);
     SAFE_FREE_TENSOR_ATTR(output_attr);
+
     return status;
 } /* _gather_elements_initializer() */
 

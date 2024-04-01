@@ -21,54 +21,34 @@
 *    DEALINGS IN THE SOFTWARE.
 *
 *****************************************************************************/
-/** @file */
-#ifndef _VSI_NN_VERSION_H_
-#define _VSI_NN_VERSION_H_
+
+#ifndef _VSI_NN_OP_RMSNORM_H
+#define _VSI_NN_OP_RMSNORM_H
 
 #include "vsi_nn_types.h"
 
-#if defined(__cplusplus)
-extern "C"{
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#define VSI_NN_VERSION_MAJOR 1
-#define VSI_NN_VERSION_MINOR 2
-#define VSI_NN_VERSION_PATCH 6
-#define VSI_NN_VERSION \
-    (VSI_NN_VERSION_MAJOR * 10000 + VSI_NN_VERSION_MINOR * 100 + VSI_NN_VERSION_PATCH)
 
-/**
- * Ovxlib version check
- * Ovxlib will check the suitable version at compile time.
- * @note Ovxlib version should be always greater or equal to case version.
- */
-#define _version_assert _compiler_assert
+typedef struct _rmsnorm_local_data_t {
+    int32_t placeholder;
+} rmsnorm_local_data_t;
 
-/**
- * Get ovxlib version
- * Get ovxlib version string.
- */
-OVXLIB_API const char *vsi_nn_GetVersion(void);
+typedef struct _vsi_nn_rmsnorm_param
+{
+    struct _rmsnorm_local_data_t* local;
+    float eps;
+    int32_t axis;
+} vsi_nn_rmsnorm_param;
 
-/**
- * Get ovxlib version major
- * Get ovxlib version major, return integer value.
- */
-OVXLIB_API uint32_t vsi_nn_GetVersionMajor(void);
+_compiler_assert(offsetof(vsi_nn_rmsnorm_param, local) == 0, \
+    vsi_nn_rmsnorm_h );
 
-/**
- * Get ovxlib version minor
- * Get ovxlib version minor, return integer value.
- */
-OVXLIB_API uint32_t vsi_nn_GetVersionMinor(void);
-
-/**
- * Get ovxlib version patch
- * Get ovxlib version patch, return integer value.
- */
-OVXLIB_API uint32_t vsi_nn_GetVersionPatch(void);
-
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
+
 #endif
+

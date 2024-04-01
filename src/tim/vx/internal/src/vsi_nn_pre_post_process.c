@@ -1013,6 +1013,7 @@ vsi_status vsi_nn_AddBinaryGraphInputsWithCropParamForCropOnly
                                                      sizeof(numParams));
                                 if (VSI_SUCCESS != status)
                                 {
+                                    vsi_nn_safe_free(nodes);
                                     goto final;
                                 }
                                 for (p = 0; p < numParams; p++)

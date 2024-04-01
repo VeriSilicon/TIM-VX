@@ -55,8 +55,17 @@ static vsi_status op_compute
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_custom_warp_affine_param * p;
     p = &(self->nn_param.custom_warp_affine);
-
+    float matrix_shape[6] = { 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     param = vsi_nn_kernel_param_create();
+    //Unlike OpenCV, we use the coordinate of dst and matrix to calculate the coordinate of src in custom_warp_affine.
+    //Therefore, matrix M_ovx in custom_warp_affine is different from matrix M_cv in OpenCV.
+    //We get M_ovx by transposing the inverse of M_cv.
+    //inv_M = cv2.invertAffineTransform(M_cv); M_ovx=inv_M.transpose(1,0)
+    if (p->matrix == NULL)
+    {
+        p->matrix = matrix_shape;
+    }
+
     vsi_nn_kernel_param_add_const_buffer( param, "matrix", p->matrix, 6 );
     vsi_nn_kernel_param_add_int32( param, "type", p->type);
     vsi_nn_kernel_param_add_int32( param, "rgb_type", p->rgb_type);

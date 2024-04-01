@@ -29,7 +29,7 @@
 #include "vsi_nn_log.h"
 #include "vsi_nn_types.h"
 
-#if (defined(__ANDROID__)) && (ANDROID_SDK_VERSION >= 30)
+#if (defined(__ANDROID__)) && ((ANDROID_SDK_VERSION >= 30) || (__ANDROID_API__ >= 30))
 static const char* ENV_LOG_LEVEL = "vendor.VSI_NN_LOG_LEVEL";
 #else
 static const char* ENV_LOG_LEVEL = "VSI_NN_LOG_LEVEL";

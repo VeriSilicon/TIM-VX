@@ -3258,6 +3258,7 @@ static vsi_bool _init_dummy_tensor
         #endif
         // This is a hack that driver doesn't support const scales
         scales = (float*)malloc(sizeof(float) * tensor->attr.dtype.scale_dim);
+        CHECK_PTR_FAIL_GOTO( scales, "Create buffer fail.", final );
         memcpy(scales,
                tensor->attr.dtype.scales,
                tensor->attr.dtype.scale_dim * sizeof(float));

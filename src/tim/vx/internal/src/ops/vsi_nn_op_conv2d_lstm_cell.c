@@ -430,10 +430,13 @@ static vsi_bool op_setup
     // create activation output/hstate_output/cstate_output
     vsi_nn_internal_init_tensor_attr(&attr, &outputs[CONV2D_LSTM_CELL_OUT_OUTPUT]->attr.dtype, TRUE);
     act_out = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+    CHECK_PTR_FAIL_GOTO(act_out, "Create internal tensor failed", final);
     vsi_nn_internal_init_tensor_attr(&attr, &outputs[CONV2D_LSTM_CELL_OUT_H_STATE]->attr.dtype, TRUE);
     act_h_out = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+    CHECK_PTR_FAIL_GOTO(act_h_out, "Create internal tensor failed", final);
     vsi_nn_internal_init_tensor_attr(&attr, &outputs[CONV2D_LSTM_CELL_OUT_C_STATE]->attr.dtype, TRUE);
     act_c_out = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+    CHECK_PTR_FAIL_GOTO(act_c_out, "Create internal tensor failed", final);
     curr->outputs[LSTMUNIT_ACT_OUTPUT] = act_out->t;
     curr->outputs[LSTMUNIT_ACT_HSTATE_OUT] = act_h_out->t;
     curr->outputs[LSTMUNIT_ACT_CSTATE_OUT] = act_c_out->t;

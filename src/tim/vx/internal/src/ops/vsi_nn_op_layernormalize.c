@@ -259,9 +259,9 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    vsi_nn_safe_free(self->nn_param.layernorm.local);
 
 #if (!VX_LAYER_NORMALIZATION_VX_SUPPORT_EXT)
+    vsi_nn_safe_free(self->nn_param.layernorm.local);
     vsi_nn_internal_deinit_node_wksp( self );
 #endif
 

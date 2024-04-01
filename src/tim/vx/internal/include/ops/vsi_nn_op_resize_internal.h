@@ -43,6 +43,7 @@ typedef struct _vsi_nn_resize_internal_param
     vsi_bool    half_pixel_centers;
     float       factor;
     vsi_enum    layout;
+    vsi_enum    type;
 } vsi_nn_resize_internal_param;
 
 #ifdef __cplusplus

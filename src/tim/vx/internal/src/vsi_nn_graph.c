@@ -799,6 +799,7 @@ static vsi_status batchInference_graph
     original_inputs_attr = (vsi_nn_tensor_attr_t*)malloc(sizeof(vsi_nn_tensor_attr_t) * graph->max_node_io);
     original_outputs_attr = (vsi_nn_tensor_attr_t*)malloc(sizeof(vsi_nn_tensor_attr_t) * graph->max_node_io);
     approximateConstTensor = (vsi_nn_tensor_id_t*)malloc(sizeof(vsi_nn_tensor_id_t) * graph->tensor_num);
+    CHECK_PTR_FAIL_GOTO(approximateConstTensor, "Malloc fail.", final);
     memset(approximateConstTensor, -1, sizeof(vsi_nn_tensor_id_t) * graph->tensor_num);
 
     if (NULL == inputs || NULL == outputs || NULL == original_inputs_attr || NULL == original_outputs_attr)
@@ -878,6 +879,7 @@ static vsi_status batchInference_graph
             vsi_size_t iterator_list_index = 0;
             vsi_size_t list_index = 0;
             vsi_size_t* iterator_list = (vsi_size_t*)malloc(sizeof(vsi_size_t) * (batchNum + 1));
+            CHECK_PTR_FAIL_GOTO(iterator_list, "Malloc fail.", final);
             memset(iterator_list, 0, sizeof(uint32_t) * (batchNum + 1));
 
             if (((vsi_nn_node_prv_t*)node)->split_num > 0)
@@ -885,6 +887,7 @@ static vsi_status batchInference_graph
                 iterator_list[iterator_list_index++] = ((vsi_nn_node_prv_t*)node)->split_num;
                 if (((vsi_nn_node_prv_t*)node)->split_num == 1)
                 {/*if user set split_num = 1, there is no need to batch split.*/
+                    vsi_nn_safe_free(iterator_list);
                     continue;
                 }
             }
@@ -1015,6 +1018,7 @@ static vsi_status batchInference_graph
                 }
             }
 
+            vsi_nn_safe_free(iterator_list);
             /*restore node input batch number*/
             num_of_node_inputs = node->input.num;
             for (k = 0; k < num_of_node_inputs; k++)
@@ -1053,7 +1057,7 @@ static vsi_status batchInference_graph
         }
     }
 
-    final:
+final:
     for (i = 0; i < graph->node_num; i++)
     {
         node_id = nodes_list[i];
@@ -1067,7 +1071,7 @@ static vsi_status batchInference_graph
             node->input.num, inputs);
         vsi_nn_GetTensors(graph, node->output.tensors,
             node->output.num, outputs);
-        for (j = 0; j < node->output.num; j++)
+        for (j = 0; outputs && j < node->output.num; j++)
         {
             if (outputs[j] == NULL)
             {

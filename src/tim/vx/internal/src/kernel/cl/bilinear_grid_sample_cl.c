@@ -47,18 +47,26 @@ typedef enum
 } _internal_kernel_e;
 
 #define _BILINEAR_GRID_SAMPLE_KERNEL_SOURCE()      "bilinear_grid_sample"
+#define _BILINEAR_GRID_SAMPLE_REFLECT_KERNEL_SOURCE()      "bilinear_grid_sample_reflect"
 
 #define STR(a) #a
 
 // Add kernel hashtable here
-#define BILINEAR_GRID_SAMPLE_HASH_KEY(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE) \
-    ((IN1_DTYPE << 20) | (IN0_DTYPE << 8) | (OUT_DTYPE))
+#define BILINEAR_GRID_SAMPLE_HASH_KEY(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, REFLECT) \
+    ((IN1_DTYPE << 24) | (IN0_DTYPE << 16) | (OUT_DTYPE << 8) | (REFLECT))
 
 #define PACK_KERNEL_MAP(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE)                \
     {                                                                   \
-        BILINEAR_GRID_SAMPLE_HASH_KEY(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE), \
-            CVIVANTE_NAMESPACE("cl.bilinear_grid_sample_" STR(IN0_DTYPE) "_" STR(IN1_DTYPE) "to" STR(OUT_DTYPE)), \
-            _BILINEAR_GRID_SAMPLE_KERNEL_SOURCE()   \
+        BILINEAR_GRID_SAMPLE_HASH_KEY(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 0), \
+        CVIVANTE_NAMESPACE("cl.bilinear_grid_sample_" STR(IN0_DTYPE) "_" STR(IN1_DTYPE) "to" STR(OUT_DTYPE)), \
+        _BILINEAR_GRID_SAMPLE_KERNEL_SOURCE()   \
+    }
+
+#define PACK_REFLECT_KERNEL_MAP(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE)                \
+    {                                                                   \
+        BILINEAR_GRID_SAMPLE_HASH_KEY(IN0_DTYPE, IN1_DTYPE, OUT_DTYPE, 1), \
+        CVIVANTE_NAMESPACE("cl.bilinear_grid_sample_reflect_" STR(IN0_DTYPE) "_" STR(IN1_DTYPE) "to" STR(OUT_DTYPE)), \
+        _BILINEAR_GRID_SAMPLE_REFLECT_KERNEL_SOURCE()   \
     }
 
 typedef struct
@@ -73,6 +81,8 @@ static const _kernel_map_type _bilinear_grid_sample_kernel_map[] =
     // Register kernel here
     PACK_KERNEL_MAP(F32, F32, F32 ),
     PACK_KERNEL_MAP(U8,  U8,  U8),
+    PACK_REFLECT_KERNEL_MAP(F32, F32, F32),
+    PACK_REFLECT_KERNEL_MAP(U8,  U8,  U8),
 };
 
 
@@ -95,23 +105,24 @@ static vx_param_description_t _bilinear_grid_sample_kernel_param_def[] =
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
     {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
+    {VX_INPUT,  VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED},
 };
 
 #define _BILINEAR_GRID_SAMPLE_PARAM_NUM 8
-#define _BILINEAR_GRID_SAMPLE_PARAM_QUANT_NUM \
+#define _BILINEAR_GRID_SAMPLE_PARAM_QUANT_NUM 14
+#define _BILINEAR_GRID_SAMPLE_REFLECT_PARAM_NUM 12
+#define _BILINEAR_GRID_SAMPLE_REFLECT_PARAM_QUANT_NUM \
     _cnt_of_array(_bilinear_grid_sample_kernel_param_def)
+
 
 #define SCALAR_HALF_INPUT0_W (3)
 #define SCALAR_HALF_INPUT0_H (4)
 #define SCALAR_ADD_VALUE_W   (5)
 #define SCALAR_ADD_VALUE_H   (6)
 #define SCALAR_DEPTH         (7)
-#define SCALAR_INPUT0_SCALE  (8)
-#define SCALAR_INPUT0_TAIL   (9)
-#define SCALAR_INPUT1_SCALE  (10)
-#define SCALAR_INPUT1_TAIL   (11)
-#define SCALAR_OUTPUT_SCALE  (12)
-#define SCALAR_OUTPUT_TAIL   (13)
 
 /*
  * Kernel initializer
@@ -170,7 +181,8 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t * kernel,
     vsi_nn_tensor_t * const * const inputs,
     vsi_nn_tensor_t * const * const outputs,
-    vsi_bool* is_use_u8_kernel
+    vsi_bool* is_use_u8_kernel,
+    int32_t is_reflect_mode
     )
 {
     vsi_status status = VSI_FAILURE;
@@ -199,14 +211,29 @@ static vsi_status _query_kernel
         out_dtype = F32;
     }
     if ((U8 == in0_dtype) || (U8 == out_dtype)) {
-        param_def_size = _BILINEAR_GRID_SAMPLE_PARAM_QUANT_NUM;
+        if (is_reflect_mode)
+        {
+            param_def_size = _BILINEAR_GRID_SAMPLE_REFLECT_PARAM_QUANT_NUM;
+        }
+        else{
+            param_def_size = _BILINEAR_GRID_SAMPLE_PARAM_QUANT_NUM;
+        }
+
         *is_use_u8_kernel = TRUE;
     } else {
-        param_def_size = _BILINEAR_GRID_SAMPLE_PARAM_NUM;
+        if (is_reflect_mode)
+        {
+            param_def_size = _BILINEAR_GRID_SAMPLE_REFLECT_PARAM_NUM;
+        }
+        else
+        {
+            param_def_size = _BILINEAR_GRID_SAMPLE_PARAM_NUM;
+        }
+
         *is_use_u8_kernel = FALSE;
     }
 
-    key = BILINEAR_GRID_SAMPLE_HASH_KEY(in0_dtype, in1_dtype, out_dtype);
+    key = BILINEAR_GRID_SAMPLE_HASH_KEY(in0_dtype, in1_dtype, out_dtype, is_reflect_mode);
 
     for ( i = 0; i < (uint32_t)kernel_map_size; i ++ )
     {
@@ -245,7 +272,7 @@ static vsi_nn_kernel_node_t _setup
 {
     vsi_nn_kernel_node_t node = NULL;
     vsi_status status = VSI_FAILURE;
-    vsi_nn_kernel_node_param_t node_params[_BILINEAR_GRID_SAMPLE_PARAM_QUANT_NUM];
+    vsi_nn_kernel_node_param_t node_params[_BILINEAR_GRID_SAMPLE_REFLECT_PARAM_QUANT_NUM];
     vsi_size_t final_shape[VSI_NN_MAX_DIM_NUM] = {1, 1, 1, 1};
     uint32_t final_in1_rank = 0;
     vsi_nn_tensor_t* rs_tensors = NULL;
@@ -263,11 +290,14 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool is_use_u8_kernel = FALSE;
     int32_t align_corners =
         vsi_nn_kernel_param_get_int32(params, "align_corners");
+    int32_t pad_mode = vsi_nn_kernel_param_get_int32(params, "padding_mode");
     uint32_t pad_val = 0;
     int32_t  depth = 0;
     vsi_nn_kernel_dtype_e in0_dtype;
 
     float half_input0_w, half_input0_h, add_float_value_w, add_float_value_h;
+    int32_t is_reflect_mode = 0;
+    float min_val_w, span_w, min_val_h, span_h;
 
     // Check if gpu can support the size
     if (!vsi_nn_kernel_gpu_check_shape(inputs[0]->attr.size,
@@ -278,6 +308,11 @@ static vsi_nn_kernel_node_t _setup
     if (!vsi_nn_kernel_gpu_check_shape(inputs[1]->attr.size,
                                        inputs[1]->attr.dim_num)) {
         return NULL;
+    }
+
+    if (pad_mode == VSI_NN_PAD_MODE_REFLECT)
+    {
+        is_reflect_mode = 1;
     }
 
     final_tensors[0] = inputs[0];
@@ -313,12 +348,35 @@ static vsi_nn_kernel_node_t _setup
         add_float_value_h = half_input0_h - 0.5f;
     }
 
+    if (is_reflect_mode)
+    {
+        float low_w, low_h, high_w, high_h;
+        if (align_corners)
+        {
+            low_w = 0;
+            low_h = 0;
+            high_w = 2 * (float)(in0_width - 1);
+            high_h = 2 * (float)(in0_height - 1);
+        }
+        else
+        {
+            low_w = -1;
+            low_h = -1;
+            high_w = 2 * (float)in0_width - 1;
+            high_h = 2 * (float)in0_height - 1;
+        }
+        min_val_w = low_w / 2;
+        span_w = (high_w - low_w) / 2;
+        min_val_h = low_h / 2;
+        span_h = (high_h - low_h) / 2;
+    }
+
     depth = (int32_t)inputs[0]->attr.size[2];
     in0_dtype = vsi_nn_kernel_map_dtype(inputs[0]->attr.dtype.vx_type);
     if (U8 == in0_dtype) {
         pad_val = inputs[0]->attr.dtype.zero_point;
     }
-    status = _query_kernel(kernel, inputs, outputs, &is_use_u8_kernel);
+    status = _query_kernel(kernel, inputs, outputs, &is_use_u8_kernel, is_reflect_mode);
     if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );
@@ -326,7 +384,7 @@ static vsi_nn_kernel_node_t _setup
         {
             size_t node_params_num = _BILINEAR_GRID_SAMPLE_PARAM_NUM;
             /* Set inputs and outputs */
-            vsi_nn_kernel_node_pack_io( node_params, _BILINEAR_GRID_SAMPLE_PARAM_QUANT_NUM,
+            vsi_nn_kernel_node_pack_io( node_params, _BILINEAR_GRID_SAMPLE_REFLECT_PARAM_QUANT_NUM,
                     final_tensors, input_num, &final_tensors[2], output_num );
             node_params[SCALAR_HALF_INPUT0_W] = vsi_nn_kernel_scalar_create( graph, F32, &half_input0_w );
             node_params[SCALAR_HALF_INPUT0_H] = vsi_nn_kernel_scalar_create( graph, F32, &half_input0_h );
@@ -335,13 +393,19 @@ static vsi_nn_kernel_node_t _setup
             node_params[SCALAR_DEPTH]         = vsi_nn_kernel_scalar_create( graph, I32, &depth );
             if (is_use_u8_kernel)
             {
-                node_params[SCALAR_INPUT0_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &input0_scale );
-                node_params[SCALAR_INPUT0_TAIL]  = vsi_nn_kernel_scalar_create( graph, F32, &input0_tail );
-                node_params[SCALAR_INPUT1_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &input1_scale );
-                node_params[SCALAR_INPUT1_TAIL]  = vsi_nn_kernel_scalar_create( graph, F32, &input1_tail );
-                node_params[SCALAR_OUTPUT_SCALE] = vsi_nn_kernel_scalar_create( graph, F32, &output_scale );
-                node_params[SCALAR_OUTPUT_TAIL]  = vsi_nn_kernel_scalar_create( graph, F32, &output_zp );
-                node_params_num = _BILINEAR_GRID_SAMPLE_PARAM_QUANT_NUM;
+                node_params[node_params_num++] = vsi_nn_kernel_scalar_create( graph, F32, &input0_scale );
+                node_params[node_params_num++]  = vsi_nn_kernel_scalar_create( graph, F32, &input0_tail );
+                node_params[node_params_num++] = vsi_nn_kernel_scalar_create( graph, F32, &input1_scale );
+                node_params[node_params_num++]  = vsi_nn_kernel_scalar_create( graph, F32, &input1_tail );
+                node_params[node_params_num++] = vsi_nn_kernel_scalar_create( graph, F32, &output_scale );
+                node_params[node_params_num++]  = vsi_nn_kernel_scalar_create( graph, F32, &output_zp );
+            }
+            if (is_reflect_mode)
+            {
+                node_params[node_params_num++] = vsi_nn_kernel_scalar_create(graph, F32, &min_val_w);
+                node_params[node_params_num++] = vsi_nn_kernel_scalar_create(graph, F32, &span_w);
+                node_params[node_params_num++] = vsi_nn_kernel_scalar_create(graph, F32, &min_val_h);
+                node_params[node_params_num++] = vsi_nn_kernel_scalar_create(graph, F32, &span_h);
             }
             /* Pass parameters to node. */
             status  = vsi_nn_kernel_node_pass_param( node, node_params, node_params_num );
@@ -351,19 +415,34 @@ static vsi_nn_kernel_node_t _setup
             vsi_nn_kernel_scalar_release(&node_params[SCALAR_ADD_VALUE_W]);
             vsi_nn_kernel_scalar_release(&node_params[SCALAR_ADD_VALUE_H]);
             vsi_nn_kernel_scalar_release(&node_params[SCALAR_DEPTH]);
+            node_params_num = _BILINEAR_GRID_SAMPLE_PARAM_NUM;
             if (is_use_u8_kernel) {
-                vsi_nn_kernel_scalar_release(&node_params[SCALAR_INPUT0_SCALE]);
-                vsi_nn_kernel_scalar_release(&node_params[SCALAR_INPUT0_TAIL]);
-                vsi_nn_kernel_scalar_release(&node_params[SCALAR_INPUT1_SCALE]);
-                vsi_nn_kernel_scalar_release(&node_params[SCALAR_INPUT1_TAIL]);
-                vsi_nn_kernel_scalar_release(&node_params[SCALAR_OUTPUT_SCALE]);
-                vsi_nn_kernel_scalar_release(&node_params[SCALAR_OUTPUT_TAIL]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+            }
+            if (is_reflect_mode)
+            {
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
+                vsi_nn_kernel_scalar_release(&node_params[node_params_num++]);
             }
             {
                 // Set default border mode.
                 vx_border_t border;
-                border.mode = VX_BORDER_CONSTANT;
-                border.constant_value.U32 = pad_val;
+                if (pad_mode == VSI_NN_PAD_MODE_CONSTANT)
+                {
+                    border.mode = VX_BORDER_CONSTANT;
+                    border.constant_value.U32 = pad_val;
+                }
+                else
+                {
+                    border.mode = VX_BORDER_REPLICATE;
+                }
                 status = vxSetNodeAttribute(
                     (vx_node)node, VX_NODE_BORDER, &border, sizeof(border));
                 CHECK_STATUS(status);
