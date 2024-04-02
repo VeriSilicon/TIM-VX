@@ -89,7 +89,7 @@ static vsi_status op_grouped_compute
     if (NULL == LOCAL()->weight_tensor_group)
     {
         VSILOGE("Malloc fail, (GROUPED_DECONV2D) at [%s : %d]\n", __FILE__, __LINE__);
-        return VSI_FAILURE;
+        goto final;
     }
     memset(LOCAL()->weight_tensor_group, 0, group * sizeof(vsi_nn_tensor_t *));
     res = vsi_nn_CreateTensorGroup(self->graph, inputs[1], 2,
@@ -325,8 +325,8 @@ static vsi_status op_compute
 #endif
     // param.a_x = self->nn_param.deconv.dilation;
     // param.a_y = self->nn_param.deconv.dilation;
-    param.ext.khr.a_x = 1;
-    param.ext.khr.a_y = 1;
+    param.ext.khr.a_x = (size_t)self->nn_param.deconv.output_padding[0];
+    param.ext.khr.a_y = (size_t)self->nn_param.deconv.output_padding[1];
     param.ext.khr.padding_x = (size_t)self->nn_param.deconv.pad[0];
     param.ext.khr.padding_y = (size_t)self->nn_param.deconv.pad[2];
     param.ext.khr.overflow_policy = self->vx_param.overflow_policy;
@@ -336,6 +336,7 @@ static vsi_status op_compute
     param.ext.channel_group = self->nn_param.deconv.group;
     param.stride_x = self->nn_param.deconv.stride[0];
     param.stride_y = self->nn_param.deconv.stride[1];
+    param.down_scale_size_rounding = self->vx_param.down_scale_size_rounding;
     //param.border_mode;
     //param.border_const;
 

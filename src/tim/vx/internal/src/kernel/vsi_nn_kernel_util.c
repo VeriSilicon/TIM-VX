@@ -171,7 +171,9 @@ vsi_status vsi_nn_kernel_copy_tensor_patch
 
     vsi_nn_kernel_tensor_attr_get_stride( attr, stride );
     memset(start, 0, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM);
-    for (i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
+    memset(end, 0, sizeof(vsi_size_t) * VSI_NN_MAX_DIM_NUM);
+
+    for (i = 0; i < (uint32_t)attr->shape->size; i++)
     {
         end[i] = attr->shape->data[i];
         if ( attr->dtype != I4 && attr->dtype != U4 )
@@ -490,7 +492,7 @@ vsi_status vsi_nn_kernel_scalar_get_dtype
         ( vsi_nn_kernel_scalar_t scalar, DTYPE * ptr  ) \
     { \
         vsi_status status; \
-        vsi_nn_kernel_dtype_e dtype; \
+        vsi_nn_kernel_dtype_e dtype = INVALID_DTYPE; \
         if( !ptr ) \
         { \
             VSILOGE("Pointer to store scalar is null"); \

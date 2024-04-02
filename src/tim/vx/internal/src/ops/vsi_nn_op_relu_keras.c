@@ -37,6 +37,7 @@
 #include "vsi_nn_error.h"
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_util.h"
+#include "utils/vsi_nn_dtype_util_prv.h"
 
 
 static vsi_status op_compute
@@ -88,7 +89,6 @@ static vsi_bool op_setup
     float alpha = 0;
     float max_value = 0;
     float threshold = 0;
-    uint32_t max_raw = 0;
     vsi_bool ret = FALSE;
 
     if ( NULL == self )
@@ -101,11 +101,9 @@ static vsi_bool op_setup
     max_value = p->max_value;
     threshold = p->threshold;
 
-    max_raw = *(uint32_t*)&max_value;
-
     vsi_nn_internal_init_node_wksp(self);
 
-    if (alpha == 0 && max_raw == VSI_NN_FLOAT32_INF && threshold == 0)
+    if (alpha == 0.0f && fp32_is_inf(max_value) && threshold == 0.0f)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU, 0, 0);
         CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
@@ -119,14 +117,14 @@ static vsi_bool op_setup
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
     }
-    else if (alpha == 0 && max_value == 6.0f && threshold == 0)
+    else if (alpha == 0.0f && max_value == 6.0f && threshold == 0.0f)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU6, 0, 0);
         CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
         curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
     }
-    else if (alpha == 0.1 && max_value == VSI_NN_FLOAT32_INF && threshold == 0)
+    else if (alpha == 0.1f && max_value == VSI_NN_FLOAT32_INF && threshold == 0.0f)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_LEAKY_RELU, 0, 0);
         CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);

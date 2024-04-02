@@ -33,6 +33,14 @@
 extern "C" {
 #endif
 
+/*
+ * A helper union for fp32 bit casting.
+ */
+typedef union {
+    float val;
+    uint32_t data;
+} fp32_bit_cast_t;
+
 static VSI_INLINE_API vsi_bool type_is_integer
     (
     const vsi_nn_type_e type
@@ -203,9 +211,11 @@ static VSI_INLINE_API vsi_bool fp32_is_inf
         float val
     )
 {
-    uint32_t u_value = *(uint32_t*)&val;
+    fp32_bit_cast_t fp32_bit_cast;
+    fp32_bit_cast.val = val;
+    uint32_t fp32_data = fp32_bit_cast.data;
 
-    if ((u_value & (uint32_t)VSI_NN_INT32_MAX) == (uint32_t)VSI_NN_FLOAT32_INF)
+    if ((fp32_data & (uint32_t)VSI_NN_INT32_MAX) == (uint32_t)VSI_NN_FLOAT32_INF)
     {
         return TRUE;
     }
@@ -232,7 +242,9 @@ static VSI_INLINE_API int32_t fp32_to_affine
 
     if (fp32_is_inf(in) != 0)
     {
-        uint32_t sign = (*(uint32_t*)&in) >> 31;
+        fp32_bit_cast_t fp32_bit_cast;
+        fp32_bit_cast.val = in;
+        uint32_t sign = fp32_bit_cast.data >> 31;
         data = sign == 1 ? (int32_t)min_range : (int32_t)max_range;
     }
 
@@ -277,7 +289,9 @@ static VSI_INLINE_API int32_t fp32_to_dfp
 
     if (fp32_is_inf(in) != 0)
     {
-        uint32_t sign = (*(uint32_t*)&in) >> 31;
+        fp32_bit_cast_t fp32_bit_cast;
+        fp32_bit_cast.val = in;
+        uint32_t sign = fp32_bit_cast.data >> 31;
         data = sign == 1 ? (int32_t)min_range : (int32_t) max_range;
     }
 
@@ -373,8 +387,9 @@ static VSI_INLINE_API float bfp16_to_fp32
     int16_t in
     )
 {
-    int32_t t1, t2, t3;
+    uint32_t t1, t2, t3;
     float out;
+    fp32_bit_cast_t fp32_bit_cast;
 
     t1 = in & 0x00FF;                       // Mantissa
     t2 = in & 0xFF00;                       // Sign bit + Exponent
@@ -384,9 +399,10 @@ static VSI_INLINE_API float bfp16_to_fp32
     t2 <<= 16;                              // Shift (sign + Exponent) bit into position
     t1 |= t2;                               // Re-insert (sign + Exponent) bit
 
-    *((uint32_t*)&out) = t1;
+    fp32_bit_cast.data = t1;
+    out = fp32_bit_cast.val;
 
-    return t3 == 0 ? 0 : out;
+    return t3 == 0 ? 0.0f : out;
 } /* bfp16_to_fp32() */
 
 static VSI_INLINE_API uint16_t fp32_to_fp16
@@ -394,10 +410,12 @@ static VSI_INLINE_API uint16_t fp32_to_fp16
     float in
     )
 {
-    uint32_t fp32 = *((uint32_t *) &in);
-    uint32_t t1 = (fp32 & 0x80000000u) >> 16;  /* sign bit. */
-    uint32_t t2 = (fp32 & 0x7F800000u) >> 13;  /* Exponent bits */
-    uint32_t t3 = (fp32 & 0x007FE000u) >> 13;  /* Mantissa bits, no rounding */
+    fp32_bit_cast_t fp32_bit_cast;
+    fp32_bit_cast.val = in;
+    uint32_t fp32_data = fp32_bit_cast.data;
+    uint32_t t1 = (fp32_data & 0x80000000u) >> 16;  /* sign bit. */
+    uint32_t t2 = (fp32_data & 0x7F800000u) >> 13;  /* Exponent bits */
+    uint32_t t3 = (fp32_data & 0x007FE000u) >> 13;  /* Mantissa bits, no rounding */
     uint32_t fp16 = 0u;
     if( t2 >= 0x023c00u )
     {
@@ -420,8 +438,10 @@ static VSI_INLINE_API uint16_t fp32_to_bfp16
     float in
     )
 {
-    uint32_t fp32 = *((unsigned int *) &in);
-    uint32_t t1 = fp32 >> 16;
+    fp32_bit_cast_t fp32_bit_cast;
+    fp32_bit_cast.val = in;
+    uint32_t fp32_data = fp32_bit_cast.data;
+    uint32_t t1 = fp32_data >> 16;
 
     return (uint16_t) t1;
 } /* fp32_to_bfp16() */
@@ -435,10 +455,12 @@ static VSI_INLINE_API uint16_t fp32_to_bfp16_rtne
     Convert a float point to bfloat16, with round-nearest-to-even as rounding method.
     */
 
-    uint32_t fp32 = *((unsigned int *) &in);
+    fp32_bit_cast_t fp32_bit_cast;
+    fp32_bit_cast.val = in;
+    uint32_t fp32_data = fp32_bit_cast.data;
     uint16_t out;
 
-    uint32_t lsb = (fp32 >> 16) & 1;    /* Least significant bit of resulting bfloat. */
+    uint32_t lsb = (fp32_data >> 16) & 1;    /* Least significant bit of resulting bfloat. */
     uint32_t rounding_bias = 0x7fff + lsb;
 
     if ( VSI_NN_FLOAT32_NAN == in )
@@ -447,8 +469,8 @@ static VSI_INLINE_API uint16_t fp32_to_bfp16_rtne
     }
     else
     {
-        fp32 += rounding_bias;
-        out = (uint16_t) (fp32 >> 16);
+        fp32_data += rounding_bias;
+        out = (uint16_t) (fp32_data >> 16);
     }
 
     return out;
@@ -466,7 +488,9 @@ static VSI_INLINE_API uint16_t fp32_to_bfp16_rtne
 
 static VSI_INLINE_API uint8_t fp32_to_fp8_e4m3(float in, const float scale) {
     float fp8_f32 = in / scale;
-    int32_t in_val = *((int32_t*)&fp8_f32);
+    fp32_bit_cast_t fp32_bit_cast;
+    fp32_bit_cast.val = fp8_f32;
+    uint32_t in_val = fp32_bit_cast.data;
 
     uint32_t in_sign = (in_val >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1; /* bit 31 is sign */
     uint32_t in_exp = (in_val >> FLOAT_MANTISSA_SIZE) & 0xFF; /* bit[30: 24] is exp */
@@ -512,7 +536,9 @@ static VSI_INLINE_API uint8_t fp32_to_fp8_e4m3(float in, const float scale) {
 
 static VSI_INLINE_API uint8_t fp32_to_fp8_e5m2(float in, const float scale) {
     float fp8_f32 = in / scale;
-    int32_t in_val = *((int32_t*)&fp8_f32);
+    fp32_bit_cast_t fp32_bit_cast;
+    fp32_bit_cast.val = fp8_f32;
+    uint32_t in_val = fp32_bit_cast.data;
     uint32_t in_sign = (in_val >> (FLOAT_EXPONENT_SIZE + FLOAT_MANTISSA_SIZE)) & 0x1; /* bit 31 is sign */
     uint32_t in_exp = (in_val >> FLOAT_MANTISSA_SIZE) & 0xFF; /* bit[30: 24] is exp */
     uint32_t in_man = (in_val & 0x7FFFFF);   /* low 23 bits is man */
@@ -561,6 +587,7 @@ static VSI_INLINE_API float fp8_e4m3_to_fp32(uint8_t in, const float scale) {
     uint32_t exponentOut = 0;
     uint32_t mantissaOut = 0;
     uint32_t out_u = 0;
+    fp32_bit_cast_t fp32_bit_cast;
 
     {
         uint32_t signIn;
@@ -610,7 +637,8 @@ static VSI_INLINE_API float fp8_e4m3_to_fp32(uint8_t in, const float scale) {
     }
 final:
     out_u = signOut << 31 | exponentOut << 23 | mantissaOut;
-    val_fp32 = *((float*)&out_u);
+    fp32_bit_cast.data = out_u;
+    val_fp32 = fp32_bit_cast.val;
 
     return val_fp32 * scale;
 } /* fp8_e4m3_to_fp32() */
@@ -621,6 +649,7 @@ static VSI_INLINE_API float fp8_e5m2_to_fp32(int8_t in, const float scale) {
     uint32_t exponentOut = 0;
     uint32_t mantissaOut = 0;
     uint32_t out_u = 0;
+    fp32_bit_cast_t fp32_bit_cast;
 
     {
         uint32_t signIn;
@@ -670,7 +699,8 @@ static VSI_INLINE_API float fp8_e5m2_to_fp32(int8_t in, const float scale) {
     }
 final:
     out_u = signOut << 31 | exponentOut << 23 | mantissaOut;
-    val_fp32 = *((float*)&out_u);
+    fp32_bit_cast.data = out_u;
+    val_fp32 = fp32_bit_cast.val;
     return val_fp32 * scale;
 } /* fp8_e5m2_to_fp32() */
 

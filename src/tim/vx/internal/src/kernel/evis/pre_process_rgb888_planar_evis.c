@@ -754,7 +754,7 @@ static vsi_nn_kernel_node_t _setup
     if ( !vsi_nn_kernel_gpu_check_shape( reshape_tensor->attr.size,
                 outputs[0]->attr.dim_num ) )
     {
-        return NULL;
+        goto final;
     }
 
     if ( width == (int32_t)inputs[0]->attr.size[0] && height == (int32_t)inputs[0]->attr.size[1] &&

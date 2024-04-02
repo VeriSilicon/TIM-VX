@@ -124,9 +124,6 @@ static vsi_status op_compute
             outputs[0]->attr.size, outputs[0]->attr.dim_num, axis,
             shapes[1], &rank_out, &new_axis1);
 
-    param = vsi_nn_kernel_param_create();
-    vsi_nn_kernel_param_add_int32( param, "top_k", top_k );
-
     if (ret)
     {
         uint32_t perm_in[VSI_NN_MAX_DIM_NUM] = {0};
@@ -195,10 +192,14 @@ static vsi_status op_compute
             outputs_tensor[1] = reshape_tensors[2];
         }
 
+        param = vsi_nn_kernel_param_create();
+        vsi_nn_kernel_param_add_int32( param, "top_k", top_k );
+
         self->n = (vx_node)vsi_nn_kernel_selector( self->graph, "topk",
                 &input_tensor, _INPUT_NUM,
                 outputs_tensor, _OUTPUT_NUM, param );
 
+        vsi_nn_kernel_param_release( &param );
         if (axis != 0)
         {
             _create_permute_node(self, outputs_tensor[0], reshape_tensors[1], perm_out, rank_in, TRUE);

@@ -36,6 +36,7 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_dtype_util.h"
+#include "utils/vsi_nn_dtype_util_prv.h"
 
 __BEGIN_DECLS
 
@@ -242,6 +243,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_size_t suffix_dim_size = 0;
     int32_t depth = vsi_nn_kernel_param_get_int32( params, "depth" );
     vsi_nn_kernel_dtype_e out_dtype;
+    fp32_bit_cast_t fp32_bit_cast;
     uint32_t data[2] = {0};
     float on_value = vsi_nn_kernel_param_get_float32( params, "on_value" );
     float off_value = vsi_nn_kernel_param_get_float32( params, "off_value" );
@@ -258,8 +260,11 @@ static vsi_nn_kernel_node_t _setup
     }
     else
     {
-        data[0] = *(uint32_t*)&on_value;
-        data[1] = *(uint32_t*)&off_value;
+        fp32_bit_cast.val = on_value;
+        data[0] = fp32_bit_cast.data;
+
+        fp32_bit_cast.val = off_value;
+        data[1] = fp32_bit_cast.data;
     }
 
     axis = axis == -1 ? (int32_t)inputs[0]->attr.dim_num : (int32_t)inputs[0]->attr.dim_num - axis;

@@ -52,6 +52,7 @@ static vsi_status op_compute
     vsi_status status = VSI_FAILURE;
     int32_t  align_corners       = self->nn_param.resize_internal.align_corners;
     int32_t  half_pixel_centers  = self->nn_param.resize_internal.half_pixel_centers;
+    int32_t  type                = self->nn_param.resize_internal.type;
     vsi_enum layout = self->nn_param.resize_internal.layout;
     vsi_nn_kernel_param_t * param = NULL;
 
@@ -59,6 +60,7 @@ static vsi_status op_compute
 
     vsi_nn_kernel_param_add_int32( param, "align_corners",  align_corners );
     vsi_nn_kernel_param_add_int32( param, "half_pixel_centers",  half_pixel_centers );
+    vsi_nn_kernel_param_add_int32( param, "type",  type );
 
     if (layout == VSI_NN_RESIZE_LAYOUT_NCHW)
     {
@@ -186,6 +188,7 @@ static vsi_status op_init
     vsi_status status = VSI_SUCCESS;
 
     self->nn_param.resize_internal.layout = VSI_NN_RESIZE_LAYOUT_NCHW;
+    self->nn_param.resize_internal.type = VSI_NN_INTERPOLATION_BILINEAR;
 
     return status;
 } /* op_init() */

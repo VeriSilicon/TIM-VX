@@ -46,6 +46,11 @@
 #include "utils/vsi_nn_math.h"
 #include "utils/vsi_nn_util.h"
 #include "utils/vsi_nn_dtype_util.h"
+#include "utils/vsi_nn_dtype_util_prv.h"
+
+#if (defined(__ANDROID__)) && (__ANDROID_API__ > 21)
+#include <sys/system_properties.h>
+#endif
 
 typedef struct _vx_status_desc_t
 {
@@ -387,10 +392,11 @@ float vsi_nn_DataAsFloat32
     )
 {
     float val;
-    uint32_t *p = (uint32_t*)(&val);
+    fp32_bit_cast_t fp32_bit_cast;
     int16_t fp16;
 
-    *p = 0xFFFFFFFF;
+    fp32_bit_cast.data = 0xFFFFFFFF;
+    val = fp32_bit_cast.val;
     switch( type )
     {
     case VSI_NN_TYPE_BOOL8:
@@ -1462,11 +1468,15 @@ void vsi_nn_get_tensor_clamp_min_max
     }
     else
     {
-        uint32_t f32_min = 0xff800000;
-        uint32_t f32_max = 0x7f800000;
+        fp32_bit_cast_t fp32_bit_cast;
+        float pos_infinity;
+        float neg_infinity;
+        fp32_bit_cast.data = VSI_NN_FLOAT32_INF;
+        pos_infinity = fp32_bit_cast.val;
+        neg_infinity = -pos_infinity;
 
-        *clampMin = *(float*)&f32_min;
-        *clampMax = *(float*)&f32_max;
+        *clampMin = neg_infinity;
+        *clampMax = pos_infinity;
     }
 }
 

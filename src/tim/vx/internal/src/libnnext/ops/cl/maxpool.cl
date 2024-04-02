@@ -1,4 +1,4 @@
-#define VSI_FLOAT32_MIN     (1.175494351e-38F)
+#define VSI_FLOAT32_MIN     (-3.40E+38)
 
 #define MAXPOOL_QINT(in_name, out_name, src_type, dst_type, max_val, read_func, write_func, conv_func) \
 __kernel void maxpool_##in_name##to##out_name( \
@@ -45,7 +45,7 @@ __kernel void maxpool_##in_name##to##out_name( \
         { \
             src0 = read_func(input, coord_in); \
             coord_in.x += dilation_x; \
-            maxVal = max(src0, maxVal); \
+            maxVal.x = src0.x > maxVal.x ? src0.x : maxVal.x; \
         } \
     } \
  \
@@ -101,7 +101,7 @@ __kernel void maxpool_F32toF32(
         {
             src0 = read_imagef(input, coord_in);
             coord_in.x += dilation_x;
-            maxVal = max(src0, maxVal);
+            maxVal.x = src0.x > maxVal.x ? src0.x : maxVal.x;
         }
     }
 
@@ -152,7 +152,7 @@ __kernel void maxpool_U32toF32(
         {
             src0 = read_imageui(input, coord_in);
             coord_in.x += dilation_x;
-            maxVal = max(src0, maxVal);
+            maxVal.x = src0.x > maxVal.x ? src0.x : maxVal.x;
         }
     }
 
@@ -206,7 +206,7 @@ __kernel void maxpool_F32toU32(
         {
             src0 = read_imagef(input, coord_in);
             coord_in.x += dilation_x;
-            maxVal = max(src0, maxVal);
+            maxVal.x = src0.x > maxVal.x ? src0.x : maxVal.x;
         }
     }
 

@@ -121,6 +121,7 @@ static vsi_status op_compute
     vsi_nn_tensor_t ** outputs
     )
 {
+#define _TENSOR_LEN 64
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_kernel_node_t    n = NULL;
@@ -129,14 +130,35 @@ static vsi_status op_compute
     vsi_size_t new_rank = 0;
     vsi_nn_tensor_t * tmp_tensors[4] = {NULL};
 
+    char reshape0_tensor_name[_TENSOR_LEN];
+    char reshape1_tensor_name[_TENSOR_LEN];
+    char instance_norm_tensor_name[_TENSOR_LEN];
+
+    memset(reshape0_tensor_name, 0, sizeof(reshape0_tensor_name));
+    memset(reshape1_tensor_name, 0, sizeof(reshape1_tensor_name));
+    memset(instance_norm_tensor_name, 0, sizeof(instance_norm_tensor_name));
+
     vsi_nn_optimize_instance_norm_shape(inputs[0]->attr.size, inputs[0]->attr.dim_num, shape, &new_rank);
 
     tmp_tensors[0] = vsi_nn_kernel_insert_reshape_node( self->graph,
         inputs[0], shape, (uint32_t)new_rank, VSI_NN_OPTIMIZE_BACKWARD );
+    snprintf(reshape0_tensor_name, sizeof(reshape0_tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, 0);
+    if(vxSetReferenceName((vx_reference)tmp_tensors[0]->t, reshape0_tensor_name) == VSI_FAILURE)
+    {
+        VSILOGW("Set uid %u reshape 0 node output name fail", self->uid);
+        return VSI_FAILURE;
+    }
     tmp_tensors[1] = inputs[1];
     tmp_tensors[2] = inputs[2];
     tmp_tensors[3] = vsi_nn_kernel_insert_reshape_node( self->graph,
             outputs[0], shape, (uint32_t)new_rank, VSI_NN_OPTIMIZE_FORWARD );
+
+    snprintf(reshape1_tensor_name, sizeof(reshape1_tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, 1);
+    if(vxSetReferenceName((vx_reference)outputs[0]->t, reshape1_tensor_name) == VSI_FAILURE)
+    {
+        VSILOGW("Set uid %u reshap 1 node output name fail", self->uid);
+        return VSI_FAILURE;
+    }
 
     status = _try_set_high_presision_tensor(tmp_tensors);
     if (status != VSI_SUCCESS)
@@ -154,6 +176,12 @@ static vsi_status op_compute
     {
         self->n = (vx_node)n;
         status = VSI_SUCCESS;
+    }
+    snprintf(instance_norm_tensor_name, sizeof(instance_norm_tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, 2);
+    if(vxSetReferenceName((vx_reference)tmp_tensors[3]->t, instance_norm_tensor_name) == VSI_FAILURE)
+    {
+        VSILOGW("Set uid %u instance_norm node output name fail", self->uid);
+        return VSI_FAILURE;
     }
 
     if (param != NULL)

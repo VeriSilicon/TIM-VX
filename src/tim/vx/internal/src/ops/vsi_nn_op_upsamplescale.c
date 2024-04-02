@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <float.h>
 
 #include "vsi_nn_types.h"
 #include "vsi_nn_log.h"
@@ -47,8 +48,6 @@ typedef struct _upsamplescale_local_data_t {
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (1)
 
-#define _EPSILON 1e-8
-
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -69,7 +68,7 @@ static vsi_status op_compute
     stride = self->nn_param.upsamplescale.stride;
     scale  = self->nn_param.upsamplescale.scale;
 
-    if (stride == 1 || vsi_nn_abs(scale - 1.0f) == _EPSILON)
+    if (stride == 1 || vsi_nn_abs(scale - 1.0f) < FLT_EPSILON)
     {
         return vsi_nn_internal_compute_node( self );
     }
@@ -148,7 +147,7 @@ static vsi_status op_optimize
     VSI_UNREFERENCED(inputs);
     VSI_UNREFERENCED(outputs);
 
-    if (stride == 1 && vsi_nn_abs(scale - 1.0f) == _EPSILON)
+    if (stride == 1 && vsi_nn_abs(scale - 1.0f) < FLT_EPSILON)
     {
         return vsi_nn_internal_optimize_node( self, direction );
     }
@@ -174,7 +173,7 @@ static vsi_bool op_setup
 
     vsi_nn_internal_init_node_wksp(self);
 
-    if (stride == 1 && vsi_nn_abs(scale - 1.0f) == _EPSILON)
+    if (stride == 1 && vsi_nn_abs(scale - 1.0f) < FLT_EPSILON)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 0, 0);
         CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
@@ -194,7 +193,7 @@ static vsi_bool op_setup
 
         ret = vsi_nn_internal_setup_node(self, curr);
     }
-    else if (vsi_nn_abs(scale - 1.0f) == _EPSILON)
+    else if (vsi_nn_abs(scale - 1.0f) < FLT_EPSILON)
     {
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RESIZE, 0, 0);
         CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);

@@ -136,7 +136,7 @@ static vsi_bool op_setup
     attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
 
     reducesum_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );
-    CHECK_PTR_FAIL_GOTO(square_tensor, "Create internal tensor failed", final);
+    CHECK_PTR_FAIL_GOTO(reducesum_tensor, "Create internal tensor failed", final);
     reducesum_node = vsi_nn_internal_new_node( self, VSI_NN_OP_REDUCE, 0, 0);
     CHECK_PTR_FAIL_GOTO(reducesum_node, "Create internal node failed", final);
 

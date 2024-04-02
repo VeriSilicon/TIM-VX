@@ -66,7 +66,7 @@ static vsi_status op_compute
     input_tensor[1] = tmp_tensor;
 
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
-        "signal_frame",
+        "extra_ending",
         input_tensor, 2,
         outputs, 1, NULL );
 

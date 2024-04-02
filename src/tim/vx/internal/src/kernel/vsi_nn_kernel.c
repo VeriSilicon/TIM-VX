@@ -1218,6 +1218,11 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
         status = backend->select( graph, inputs, input_num, outputs, output_num,
                 params, &selector );
         VSI_ASSERT( status == VSI_SUCCESS );
+
+        if ( status != VSI_SUCCESS ) {
+            VSILOGW("Failed to select kernel \"%s\"", kernel_name);
+            return NULL;
+        }
     }
     else
     {

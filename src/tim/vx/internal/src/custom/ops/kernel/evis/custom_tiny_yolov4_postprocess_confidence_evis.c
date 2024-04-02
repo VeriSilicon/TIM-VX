@@ -267,7 +267,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_TINY_YOLOV4_POSTPROCESS_CONFIDENCE_PARAM_NUM];
     vsi_nn_kernel_node_t node = NULL;
-    vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = { 0 };
+    vsi_size_t shape[2][VSI_NN_MAX_DIM_NUM] = { { 0 } };
     vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
 
     VSI_UNREFERENCED(params);

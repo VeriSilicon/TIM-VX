@@ -716,6 +716,12 @@ vsi_status vsi_nn_internal_optimize_node
         for ( i = n - 1; i >= 0; i-- )
         {
             curr = (vsi_nn_internal_node_t *)vsi_nn_LinkListGetIndexNode((vsi_nn_link_list_t *)WKSP(node), i);
+            if ( NULL == curr )
+            {
+                VSILOGE("get point fail");
+                status = VSI_FAILURE;
+                break;
+            }
             VSILOGD("Optimize backward for node uid[%u] sub_uid[%u] op[%s]",
                 node->uid, curr->node->uid, vsi_nn_OpGetName(curr->node->op));
 

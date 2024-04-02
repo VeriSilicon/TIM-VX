@@ -70,7 +70,11 @@ static vsi_status op_compute
             self->graph,
             (uint8_t *)self->nn_param.reshape.size,
             &attr);
-
+        if (NULL == dims_tensor)
+        {
+            VSILOGE( "Create tensor fail." );
+            return VSI_FAILURE;
+        }
         reshape_param.dims = REQUIRED_IO(dims_tensor);
 
         self->n = vxTensorReshapeNode(self->graph->g,

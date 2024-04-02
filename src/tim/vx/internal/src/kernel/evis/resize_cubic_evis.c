@@ -290,13 +290,14 @@ static vsi_nn_tensor_t* _create_scale_tensor
     vsi_nn_tensor_t*  scale           = NULL;
     vsi_size_t   i                    = 0;
     float       *scale_data_ptr       = NULL;
-    int         *index_data_ptr       = NULL;
+    int32_t     *index_data_ptr       = NULL;
     float        scale_value          = 0;
     vsi_ssize_t  data                 = 0;
-    int          idx                  = 0;
+    int32_t      idx                  = 0;
     float        delta_v              = 0;
     float        cubic_coeff_a        = -0.5f;
     vsi_size_t   item_count           = 4 * output_size;
+
     scale_data_ptr = (float *)malloc(item_count * sizeof(float));
     if (scale_data_ptr == NULL)
     {
@@ -316,7 +317,7 @@ static vsi_nn_tensor_t* _create_scale_tensor
         scale_value = ((float)i + half_pixel_value) * scale_factor - half_pixel_value;
         data = (vsi_ssize_t)scale_value;
         delta_v = scale_value - (float)data;
-        idx   = (int)data - 1;
+        idx   = (int32_t)data - 1;
 
         index_data_ptr[i] = idx;
         scale_data_ptr[i * 4 + 0] = cubic_coeff_a * (((delta_v - 4) * (delta_v + 1) + 8) * (delta_v + 1) - 4);
@@ -331,11 +332,6 @@ static vsi_nn_tensor_t* _create_scale_tensor
     attr.vtl = FALSE;
 
     scale = vsi_nn_CreateTensorFromData(graph, (uint8_t *)scale_data_ptr, &attr);
-    if (scale_data_ptr)
-    {
-        free (scale_data_ptr);
-        scale_data_ptr = NULL;
-    }
 
     attr.size[0] = output_size;
     attr.dim_num = 1;
@@ -343,13 +339,11 @@ static vsi_nn_tensor_t* _create_scale_tensor
     attr.vtl = FALSE;
 
     *index = vsi_nn_CreateTensorFromData(graph, (uint8_t *)index_data_ptr, &attr);
-    if (index_data_ptr)
-    {
-        free (index_data_ptr);
-        index_data_ptr = NULL;
-    }
 
 OnError:
+    vsi_nn_safe_free(scale_data_ptr);
+    vsi_nn_safe_free(index_data_ptr);
+
     return scale;
 }
 

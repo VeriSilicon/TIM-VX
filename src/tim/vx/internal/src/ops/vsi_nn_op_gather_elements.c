@@ -38,6 +38,7 @@
 #include "kernel/vsi_nn_kernel.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "utils/vsi_nn_constraint_check.h"
+#include "vsi_nn_error.h"
 
 typedef struct _gather_elements_local_data_t {
     int32_t placeholder;
@@ -101,6 +102,7 @@ static vsi_status op_compute
         attr.is_const = FALSE;
         attr.vtl = TRUE;
         temp_tensors = vsi_nn_CreateTensor( self->graph, &attr );
+        CHECK_PTR_FAIL_GOTO( temp_tensors, "Create tensor fail.", final );
     }
     else
     {
@@ -148,6 +150,7 @@ static vsi_status op_compute
         vsi_safe_release_tensor(temp_tensors);
     }
 
+final:
     vsi_nn_kernel_param_release( &param );
 
     if ( self->n )

@@ -539,6 +539,7 @@ static vsi_nn_kernel_node_t _setup
     uint32_t pad_val = 0;
     int32_t align_corners =
         vsi_nn_kernel_param_get_int32(params, "align_corners");
+    int32_t pad_mode = vsi_nn_kernel_param_get_int32(params, "padding_mode");
 
     // Check if gpu can support the size
     if (!vsi_nn_kernel_gpu_check_shape(inputs[0]->attr.size,
@@ -548,6 +549,11 @@ static vsi_nn_kernel_node_t _setup
 
     if (!vsi_nn_kernel_gpu_check_shape(inputs[1]->attr.size,
                                        inputs[1]->attr.dim_num)) {
+        return NULL;
+    }
+
+    if (pad_mode == VSI_NN_PAD_MODE_REFLECT)
+    {
         return NULL;
     }
 
@@ -596,8 +602,15 @@ static vsi_nn_kernel_node_t _setup
             {
                 // Set default border mode.
                 vx_border_t border;
-                border.mode = VX_BORDER_CONSTANT;
-                border.constant_value.U32 = pad_val;
+                if (pad_mode == VSI_NN_PAD_MODE_CONSTANT)
+                {
+                    border.mode = VX_BORDER_CONSTANT;
+                    border.constant_value.U32 = pad_val;
+                }
+                else
+                {
+                    border.mode = VX_BORDER_REPLICATE;
+                }
                 status = vxSetNodeAttribute(
                     (vx_node)node, VX_NODE_BORDER, &border, sizeof(border));
                 CHECK_STATUS(status);

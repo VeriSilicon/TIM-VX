@@ -161,14 +161,6 @@ static vsi_bool _check_is_sp_supported_type
 {
     int32_t * axes = self->nn_param.reduce.local2->axes;
     int32_t axes_num = self->nn_param.reduce.local2->axes_num;
-    vsi_size_t shapes[4][VSI_NN_MAX_DIM_NUM] = { {0} };
-    int32_t axis_in[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t new_axis[VSI_NN_MAX_DIM_NUM] = {0};
-    int32_t i = 0;
-    uint32_t axis_size = 0;
-    uint32_t rank_in = 0;
-    uint32_t rank_out = 0;
-    vsi_bool ret = FALSE;
 
     if ( !self->graph->ctx->config.support_stream_processor ||
          (type != VSI_NN_REDUCE_SUM && type != VSI_NN_REDUCE_MEAN && type != VSI_NN_REDUCE_MAX) )
@@ -191,22 +183,15 @@ static vsi_bool _check_is_sp_supported_type
         return FALSE;
     }
 
-    for (i = 0; i < axes_num; i++)
+    if ( (axes_num == 1 && (axes[0] == 0 || axes[0] == 2)) ||
+         (axes_num == 2 && ((axes[0] < 2 && axes[1] < 2) || (axes[0] == 1 && axes[1] == 2))) )
     {
-        shapes[0][i] = input->attr.size[axes[i]];
-        shapes[1][i] = 1;
-        axis_in[i] = i;
+        return TRUE;
     }
 
-    ret = vsi_nn_kernel_optimize_reduce_shape(
-            shapes[0], axes_num,
-            axis_in, axes_num,
-            shapes[1], axes_num,
-            shapes[2], &rank_in, shapes[3], &rank_out,
-            new_axis, &axis_size);
-
-    return ret && axis_size < 3;
+    return FALSE;
 }
+
 static vsi_status op_compute
     (
     vsi_nn_node_t * self,
@@ -839,82 +824,28 @@ static vsi_bool op_set_sp_reduce_internal
     vsi_enum  type_name
     )
 {
-    vsi_nn_tensor_attr_t attr;
-    vsi_nn_internal_tensor_t* tensor1 = NULL;
-    vsi_nn_tensor_t* new_output = NULL;
-    uint32_t* permute_in_perm = NULL;
-    int32_t * new_axis = NULL;
-    vsi_size_t shapes[VSI_NN_MAX_DIM_NUM] = {1};
-    int32_t use_virtual_tensor = TRUE;
     vsi_nn_internal_node_t* tmp_inode = NULL;
     int32_t * axes = self->nn_param.reduce.local2->axes;
     int32_t axes_num = self->nn_param.reduce.local2->axes_num;
-    int32_t i = 0, j = 0, index = 0;
     vsi_size_t reduce_size = 1;
     vsi_bool ret = FALSE;
+    int32_t i = 0;
 
     vsi_nn_internal_init_node_wksp( self );
 
-    memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
-    memcpy(&attr.dtype, &inputs[0]->attr.dtype, sizeof(vsi_nn_dtype_t));
-    attr.dim_num = VSI_NN_DIM_AUTO;
-    attr.vtl = use_virtual_tensor;
-    attr.is_const = FALSE;
-    tensor1 = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
-    CHECK_PTR_FAIL_GOTO(tensor1, "Create internal tensor failed", final);
-
-    tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_PERMUTE, 0, 0 );
+    tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_REDUCE_MEAN_INTERNAL, 0, 0 );
     CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
-    permute_in_perm = (uint32_t *)vsi_nn_internal_new_node_param(tmp_inode,
-        inputs[0]->attr.dim_num * sizeof(uint32_t));
-    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(permute_in_perm, tmp_inode, "Create buffer failed", final);
+    tmp_inode->inputs[0] = inputs[0];
+    tmp_inode->outputs[0] = outputs[0];
+    tmp_inode->node->nn_param.reduce_mean_internal.axis = axes;
+    tmp_inode->node->nn_param.reduce_mean_internal.axis_num = axes_num;
+    tmp_inode->node->nn_param.reduce_mean_internal.type = type_name;
 
-    for ( i = 0;  i < axes_num; i++)
+    for (i = 0; i < axes_num; i++)
     {
-        shapes[index] = outputs[0]->attr.size[axes[i]];
-        permute_in_perm[index ++] = axes[i];
         reduce_size *= inputs[0]->attr.size[axes[i]];
     }
 
-    for ( j = 0;  j < (int32_t)inputs[0]->attr.dim_num;  j++)
-    {
-        for (i = 0; i < axes_num; i++)
-        {
-            if (j == axes[i])
-            {
-                break;
-            }
-        }
-        if (i == axes_num)
-        {
-            shapes[index] = outputs[0]->attr.size[j];
-            permute_in_perm[index ++] = j;
-        }
-    }
-    tmp_inode->node->nn_param.permute.perm = permute_in_perm;
-    tmp_inode->node->nn_param.permute.dim_num = inputs[0]->attr.dim_num;
-    tmp_inode->inputs[0] = inputs[0];
-    tmp_inode->outputs[0] = tensor1->t;
-    vsi_nn_internal_setup_node(self, tmp_inode);
-
-    new_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shapes, outputs[0]->attr.dim_num);
-    CHECK_PTR_FAIL_GOTO(new_output, "Create tensor failed", final);
-    self->nn_param.reduce.local2->reshaped_output = new_output;
-
-    tmp_inode = vsi_nn_internal_new_node(self, VSI_NN_OP_REDUCE_MEAN_INTERNAL, 0, 0 );
-    CHECK_PTR_FAIL_GOTO(tmp_inode, "Create internal node failed", final);
-    new_axis = (int32_t *)vsi_nn_internal_new_node_param(tmp_inode,
-        axes_num * sizeof(int32_t));
-    CHECK_PTR_FAIL_GOTO_RLS_INTERNAL_NODE(new_axis, tmp_inode, "Create buffer failed", final);
-    for (i = 0; i < axes_num; i++)
-    {
-        new_axis[i] = i;
-    }
-    tmp_inode->inputs[0] = tensor1->t;
-    tmp_inode->outputs[0] = new_output;
-    tmp_inode->node->nn_param.reduce_mean_internal.axis = new_axis;
-    tmp_inode->node->nn_param.reduce_mean_internal.axis_num = axes_num;
-    tmp_inode->node->nn_param.reduce_mean_internal.type = type_name;
     if (type_name == VSI_NN_REDUCE_SUM)
     {
         tmp_inode->node->nn_param.reduce_mean_internal.scale = 1.0f;
@@ -1147,6 +1078,7 @@ static vsi_bool op_set_reduce_internal
             re_sizes[axes[2]] = 1;
             new_output = vsi_nn_reshape_tensor(self->graph, outputs[0], re_sizes, dim_num);
         }
+        self->nn_param.reduce.local2->reshaped_output = new_output;
 
         curr = vsi_nn_internal_new_node( self, type_name, 0, 0 );
         CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
@@ -1161,7 +1093,6 @@ static vsi_bool op_set_reduce_internal
             curr->inputs[0]  = tmp_output_tensor[1]->t;
         }
         curr->outputs[0] = new_output;
-        self->nn_param.reduce.local2->reshaped_output = new_output;
         vsi_nn_internal_setup_node(self, curr);
     }
     else

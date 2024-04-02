@@ -53,11 +53,13 @@ static vsi_status op_compute
 
     vsi_nn_kernel_param_t* param = NULL;
     int32_t align_corners = self->nn_param.gridsample.align_corners;
+    int32_t pad_mode = (int32_t)self->nn_param.gridsample.padding_mode;
     vsi_nn_kernel_node_t n;
     char kernel_name[128];
 
     param = vsi_nn_kernel_param_create();
     vsi_nn_kernel_param_add_int32(param, "align_corners", align_corners);
+    vsi_nn_kernel_param_add_int32(param, "padding_mode", pad_mode);
 
     switch (self->nn_param.gridsample.mode) {
         case VSI_NN_INTERPOLATION_BILINEAR:
@@ -103,10 +105,17 @@ static vsi_bool op_check
         return FALSE;
     }
 
-    if (!((VSI_NN_PAD_MODE_CONSTANT ==
+    if ((VSI_NN_PAD_MODE_CONSTANT ==
            self->nn_param.gridsample.padding_mode) &&
-          (0 == self->nn_param.gridsample.const_val))) {
+          (0 != self->nn_param.gridsample.const_val)) {
         VSILOGE("Only support padding const 0 now!");
+        return FALSE;
+    }
+
+
+    if (VSI_NN_PAD_MODE_SYMMETRIC ==
+        self->nn_param.gridsample.padding_mode) {
+        VSILOGE("Can't support VSI_NN_PAD_MODE_SYMMETRIC now!");
         return FALSE;
     }
 
@@ -124,6 +133,11 @@ static vsi_bool op_setup
         return FALSE;
     }
 
+    if (2 != inputs[1]->attr.size[0])
+    {
+        return FALSE;
+    }
+
     if (VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num) {
         outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
         outputs[0]->attr.size[0] = inputs[1]->attr.size[1];
@@ -132,6 +146,16 @@ static vsi_bool op_setup
         if (4 == inputs[0]->attr.dim_num) {
             outputs[0]->attr.size[3] = inputs[0]->attr.size[3];
         }
+    }
+    else
+    {
+        if ((outputs[0]->attr.dim_num != inputs[0]->attr.dim_num)
+            || (outputs[0]->attr.size[0] != inputs[1]->attr.size[1])
+            || (outputs[0]->attr.size[1] != inputs[1]->attr.size[2]))
+        {
+            return FALSE;
+        }
+
     }
 
     return TRUE;

@@ -34,6 +34,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
+#include "utils/vsi_nn_dtype_util_prv.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "libnnext/vx_lib_nnext.h"
 
@@ -1002,8 +1003,8 @@ DEF_KERNEL_INITIALIZER(_lstmunit_activation_initializer)
     float                        twoLogE                = 2 * logE;
     uint32_t                     uint_min               = 0xFBFFFFFF;
     uint32_t                     uint_max               = 0x7BFFFFFF;
-    float                        float_min              = *(float *)&uint_min;
-    float                        float_max              = *(float *)&uint_max;
+    float                        float_min              = 0.0f;
+    float                        float_max              = 0.0f;
     float                        clip_Min_F[4]          = {0};
     float                        clip_Max_F[4]          = {0};
     uint32_t                     i                      = 0;
@@ -1016,6 +1017,12 @@ DEF_KERNEL_INITIALIZER(_lstmunit_activation_initializer)
     int32_t                      _is_hybrid             = 0;
     vsi_nn_kernel_tensor_attr_t* input_attr[9]          = {NULL};
     vsi_nn_kernel_tensor_attr_t* attr[2]                = {NULL};
+
+    fp32_bit_cast_t fp32_bit_cast;
+    fp32_bit_cast.data = uint_min;
+    float_min = fp32_bit_cast.val;
+    fp32_bit_cast.data = uint_max;
+    float_max = fp32_bit_cast.val;
 
     status = vsi_nn_kernel_scalar_read_int32( (vsi_nn_kernel_scalar_t)param[param_size - 5], &_is_ln );
     CHECK_STATUS_FAIL_GOTO(status, final );

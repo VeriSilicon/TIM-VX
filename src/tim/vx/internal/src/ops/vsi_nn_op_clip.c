@@ -39,6 +39,7 @@
 #include "vsi_nn_internal_node.h"
 #include "utils/vsi_nn_constraint_check.h"
 #include "utils/vsi_nn_dtype_util.h"
+#include "utils/vsi_nn_dtype_util_prv.h"
 #include "vsi_nn_error.h"
 
 #define _INPUT_NUM          (1)
@@ -199,14 +200,11 @@ static vsi_bool op_setup
     vsi_nn_internal_node_t* curr = NULL;
     float min = self->nn_param.clip.min;
     float max = self->nn_param.clip.max;
-    uint32_t infinity = VSI_NN_FLOAT32_INF;
-    float neg_infinity = -*(float*)&infinity;
-    int32_t max_float = *(int32_t*)&max;
 
     if ( (min == -1.0f && max == 1.0f)
       || (min == 0.0f && max == 6.0f)
-      || (min == 0.0f && max_float == VSI_NN_FLOAT32_INF)
-      || (min == neg_infinity && max_float == VSI_NN_FLOAT32_INF))
+      || (min == 0.0f && fp32_is_inf(max))
+      || (fp32_is_inf(-min) && fp32_is_inf(max)))
     {
         vsi_nn_internal_init_node_wksp(self);
         if (min == -1.0f && max == 1.0f)
@@ -217,7 +215,7 @@ static vsi_bool op_setup
         {
             curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU6, 0, 0);
         }
-        else if (min == 0.0f && max_float == VSI_NN_FLOAT32_INF)
+        else if (min == 0.0f && fp32_is_inf(max))
         {
             curr = vsi_nn_internal_new_node(self, VSI_NN_OP_RELU, 0, 0);
         }

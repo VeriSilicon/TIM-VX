@@ -735,6 +735,15 @@ static vsi_bool op_setup
 
             outputs[0]->attr.dim_num++;
         }
+
+        /*output dim_num is 0, the tensor should be scalar!*/
+        if (outputs[0]->attr.dim_num == 0)
+        {
+            outputs[0]->attr.dim_num = 1;
+            outputs[0]->attr.size[0] = 1;
+
+            vsi_nn_SetTensorIsScalar(outputs[0], TRUE);
+        }
     }
 
     _get_stride_slice_start_stop_stride(self, inputs, outputs);
