@@ -51,7 +51,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \
             float right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
+            if ((left_elem < right_elem) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -139,7 +139,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             uint left_elem = local_data[left_id]; \
             uint right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
+            if ((left_elem < right_elem) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -227,7 +227,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             int left_elem = local_data[left_id]; \
             int right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
+            if ((left_elem < right_elem) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -315,7 +315,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \
             float right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
+            if ((left_elem < right_elem) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -403,7 +403,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \
             float right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
+            if ((left_elem < right_elem) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
