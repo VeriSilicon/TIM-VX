@@ -80509,7 +80509,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \\\n\
             float right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
+            if ((left_elem < right_elem) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80597,7 +80597,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             uint left_elem = local_data[left_id]; \\\n\
             uint right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
+            if ((left_elem < right_elem) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80685,7 +80685,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             int left_elem = local_data[left_id]; \\\n\
             int right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
+            if ((left_elem < right_elem) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80773,7 +80773,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \\\n\
             float right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
+            if ((left_elem < right_elem) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80861,7 +80861,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \\\n\
             float right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
+            if ((left_elem < right_elem) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80895,376 +80895,6 @@ TOPK_F32toI32(1 << 3, 3)\n\
 TOPK_F32toI32(1 << 4, 4)\n\
 TOPK_F32toI32(1 << 5, 5)\n\
 TOPK_F32toI32(1 << 6, 6)"; /* end of topk_cl*/
-
-static const char topk2_cl[] = "\n\
-#define BITONIC_STEP(dtype) \\\n\
-void bitonic_step_##dtype(uint num_stages, int lx, \\\n\
-        __local dtype *local_data, __local int *local_indices) \\\n\
-{ \\\n\
-    for (uint stage = 0; stage < num_stages + 1; ++stage) \\\n\
-    { \\\n\
-        uint signo = (lx >> stage) & 1; \\\n\
- \\\n\
-        for (uint passOfStage = 0; passOfStage < stage + 1; ++passOfStage) \\\n\
-        { \\\n\
-            uint postShift = (stage - passOfStage); \\\n\
-            uint pairDistance = 1 << postShift; \\\n\
- \\\n\
-            uint left_id = ( (lx >> postShift) << (postShift + 1)) + (lx & (pairDistance - 1)); \\\n\
-            uint right_id = left_id + pairDistance; \\\n\
- \\\n\
-            int left_idx = local_indices[left_id]; \\\n\
-            int right_idx = local_indices[right_id]; \\\n\
- \\\n\
-            dtype left_elem = local_data[left_id]; \\\n\
-            dtype right_elem = local_data[right_id]; \\\n\
- \\\n\
-            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
-            { \\\n\
-                local_data[left_id] = right_elem; \\\n\
-                local_data[right_id] = left_elem; \\\n\
- \\\n\
-                local_indices[left_id] = right_idx; \\\n\
-                local_indices[right_id] = left_idx; \\\n\
-            } \\\n\
- \\\n\
-            barrier(CLK_LOCAL_MEM_FENCE); \\\n\
-        } \\\n\
-    } \\\n\
-}\n\
-BITONIC_STEP(int)\n\
-BITONIC_STEP(uint)\n\
-\n\
-#define BITONIC_STEP_ASCEND(dtype) \\\n\
-void bitonic_step_ascend_##dtype(uint num_stages, int lx, \\\n\
-        __local dtype *p_share_k, __local int *p_share_v) \\\n\
-{ \\\n\
-    for (uint stage = 0; stage < num_stages + 1; ++stage) \\\n\
-    { \\\n\
-        uint signo = (lx >> stage) & 1; \\\n\
- \\\n\
-        for (uint passOfStage = 0; passOfStage < stage + 1; ++passOfStage) \\\n\
-        { \\\n\
-            uint postShift = (stage - passOfStage); \\\n\
-            uint pairDistance = 1 << postShift; \\\n\
- \\\n\
-            uint left_id = ( (lx >> postShift) << (postShift + 1)) + (lx & (pairDistance - 1)); \\\n\
-            uint right_id = left_id + pairDistance; \\\n\
- \\\n\
-            int left_idx = p_share_v[left_id]; \\\n\
-            int right_idx = p_share_v[right_id]; \\\n\
- \\\n\
-            dtype left_elem = p_share_k[left_id]; \\\n\
-            dtype right_elem = p_share_k[right_id]; \\\n\
- \\\n\
-            if ((left_elem > right_elem || (left_elem == right_elem && left_idx > right_idx)) ^ signo) \\\n\
-            { \\\n\
-                p_share_k[left_id] = right_elem; \\\n\
-                p_share_k[right_id] = left_elem; \\\n\
- \\\n\
-                p_share_v[left_id] = right_idx; \\\n\
-                p_share_v[right_id] = left_idx; \\\n\
-            } \\\n\
- \\\n\
-            barrier(CLK_LOCAL_MEM_FENCE); \\\n\
-        } \\\n\
-    } \\\n\
-}\n\
-BITONIC_STEP_ASCEND(int)\n\
-BITONIC_STEP_ASCEND(uint)\n\
-\n\
-#define BITONIC_MERGE(dtype) \\\n\
-void bitonic_merge_##dtype(uint num_stages, int lx, \\\n\
-        __local dtype *local_data, __local int *local_indices) \\\n\
-{ \\\n\
-    uint stage = num_stages; \\\n\
-    uint signo = (lx >> stage) & 1; \\\n\
- \\\n\
-    for (uint passOfStage = 0; passOfStage < stage + 1; ++passOfStage) \\\n\
-    { \\\n\
-        uint postShift = (stage - passOfStage); \\\n\
-        uint pairDistance = 1 << postShift; \\\n\
- \\\n\
-        uint left_id = ( (lx >> postShift) << (postShift + 1)) + (lx & (pairDistance - 1)); \\\n\
-        uint right_id = left_id + pairDistance; \\\n\
- \\\n\
-        int left_idx = local_indices[left_id]; \\\n\
-        int right_idx = local_indices[right_id]; \\\n\
- \\\n\
-        dtype left_elem = local_data[left_id]; \\\n\
-        dtype right_elem = local_data[right_id]; \\\n\
- \\\n\
-        if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
-        { \\\n\
-            local_data[left_id] = right_elem; \\\n\
-            local_data[right_id] = left_elem; \\\n\
- \\\n\
-            local_indices[left_id] = right_idx; \\\n\
-            local_indices[right_id] = left_idx; \\\n\
-        } \\\n\
- \\\n\
-        barrier(CLK_LOCAL_MEM_FENCE); \\\n\
-    } \\\n\
-}\n\
-BITONIC_MERGE(int)\n\
-BITONIC_MERGE(uint)\n\
-\n\
-#define BLOCK_SIZE              (512)\n\
-\n\
-__kernel __attribute__((reqd_work_group_size(BLOCK_SIZE, 1, 1))) void topk_stage_I32toI32_I32\n\
-(\n\
-  __read_only  image2d_t input,\n\
-  __write_only image2d_t output,\n\
-  __write_only image2d_t indices,\n\
-               float     input_scale,\n\
-               float     input_tail,\n\
-               float     output_scale,\n\
-               float     output_tail,\n\
-               int       _num_stages,\n\
-               int       width\n\
-  )\n\
- {\n\
-    uint lx = get_local_id(0);\n\
-    const int init_k = -2147483647;\n\
-    const int init_v = -2147483647;\n\
-    const int num_stages = 9;\n\
-    const int threads_per_block = BLOCK_SIZE;\n\
-    const int index_minus_1 = threads_per_block * 2 - 1;\n\
-    uint offset = 0;\n\
-    uint lx1 = lx + threads_per_block;\n\
-\n\
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
-\n\
-    __local int local_data[1536];\n\
-    __local int local_indices[1536];\n\
-\n\
-    int left = read_imagei(input, coord.xy).x;\n\
-    coord.z += threads_per_block;\n\
-    int right = read_imagei(input, coord.zy).x;\n\
-\n\
-    local_data[lx] = left;\n\
-    local_indices[lx] = coord.x;\n\
-    local_data[lx1] = right;\n\
-    local_indices[lx1] = coord.z;\n\
-\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-    bitonic_step_int(num_stages, lx, local_data, local_indices);\n\
-\n\
-    int min_data = local_data[511];\n\
-\n\
-    int *p_share_k = local_data + threads_per_block;\n\
-    int *p_share_v = local_indices + threads_per_block;\n\
-\n\
-    int limit = (width >> 10) << 10;\n\
-    p_share_k[lx] = init_k;\n\
-    p_share_v[lx] = init_v;\n\
-\n\
-    p_share_k[lx1] = init_k;\n\
-    p_share_v[lx1] = init_v;\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-    for (coord.x = lx + threads_per_block * 2; coord.x < limit; coord.x = coord.x + threads_per_block * 2)\n\
-    {\n\
-        int2 data;\n\
-        coord.z = coord.x + threads_per_block;\n\
-        data.x = read_imagei(input, coord.xy).x;\n\
-        data.y = read_imagei(input, coord.zy).x;\n\
-\n\
-        p_share_k[lx] = data.x;\n\
-        p_share_v[lx] = coord.x;\n\
-\n\
-        p_share_k[lx1] = data.y;\n\
-        p_share_v[lx1] = coord.z;\n\
-        barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-        bitonic_step_ascend_int(num_stages, lx, p_share_k, p_share_v);\n\
-\n\
-        if (p_share_k[index_minus_1] < min_data)\n\
-        {\n\
-            continue;\n\
-        }\n\
-\n\
-        p_share_k[lx] = p_share_k[lx1];\n\
-        p_share_v[lx] = p_share_v[lx1];\n\
-        barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-        bitonic_merge_int(num_stages, lx, local_data, local_indices);\n\
-\n\
-        min_data = local_data[511];\n\
-        p_share_k[lx] = init_k;\n\
-        p_share_v[lx] = init_v;\n\
-        p_share_k[lx1] = init_k;\n\
-        p_share_v[lx1] = init_v;\n\
-    }\n\
-\n\
-    if (width > limit)\n\
-    {\n\
-        if (coord.x < width)\n\
-        {\n\
-            int2 data;\n\
-            data.x = read_imagei(input, coord.xy).x;\n\
-            coord.z = coord.x + threads_per_block;\n\
-            data.y = read_imagei(input, coord.zy).x;\n\
-\n\
-            p_share_k[lx] = data.x;\n\
-            p_share_v[lx] = coord.x;\n\
-\n\
-            p_share_k[lx1] = coord.z < width ? data.y : init_k;\n\
-            p_share_v[lx1] = coord.z < width ? coord.z : init_v;\n\
-        }\n\
-        barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-        bitonic_step_ascend_int(num_stages, lx, p_share_k, p_share_v);\n\
-\n\
-        if (p_share_k[index_minus_1] >= min_data)\n\
-        {\n\
-            p_share_k[lx] = p_share_k[lx1];\n\
-            p_share_v[lx] = p_share_v[lx1];\n\
-            barrier(CLK_LOCAL_MEM_FENCE);\n\
-            bitonic_merge_int(num_stages, lx, local_data, local_indices);\n\
-        }\n\
-    }\n\
-\n\
-    int4 dst;\n\
-    dst.x = local_data[lx];\n\
-\n\
-    coord.x = lx;\n\
-    write_imagei(output, coord.xy, dst.xxxx);\n\
-\n\
-    int4 index;\n\
-    index.x = local_indices[lx];\n\
-\n\
-    write_imagei(indices, coord.xy, index.xxxx);\n\
-}\n\
-\n\
-__kernel __attribute__((reqd_work_group_size(BLOCK_SIZE, 1, 1))) void topk_stage_U32toU32_I32\n\
-(\n\
-  __read_only  image2d_t input,\n\
-  __write_only image2d_t output,\n\
-  __write_only image2d_t indices,\n\
-               float     input_scale,\n\
-               float     input_tail,\n\
-               float     output_scale,\n\
-               float     output_tail,\n\
-               int       _num_stages,\n\
-               int       width\n\
-  )\n\
- {\n\
-    uint lx = get_local_id(0);\n\
-    const uint init_k = 0;\n\
-    const int init_v = -2147483647;\n\
-    const int num_stages = 9;\n\
-    const int threads_per_block = BLOCK_SIZE;\n\
-    const int index_minus_1 = threads_per_block * 2 - 1;\n\
-    uint offset = 0;\n\
-    uint lx1 = lx + threads_per_block;\n\
-\n\
-    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
-\n\
-    __local uint local_data[1536];\n\
-    __local int local_indices[1536];\n\
-\n\
-    uint left = read_imageui(input, coord.xy).x;\n\
-    coord.z += threads_per_block;\n\
-    uint right = read_imageui(input, coord.zy).x;\n\
-\n\
-    local_data[lx] = left;\n\
-    local_indices[lx] = coord.x;\n\
-    local_data[lx1] = right;\n\
-    local_indices[lx1] = coord.z;\n\
-\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-    bitonic_step_uint(num_stages, lx, local_data, local_indices);\n\
-\n\
-    uint min_data = local_data[511];\n\
-\n\
-    uint *p_share_k = local_data + threads_per_block;\n\
-    int *p_share_v = local_indices + threads_per_block;\n\
-\n\
-    int limit = (width >> 10) << 10;\n\
-    p_share_k[lx] = init_k;\n\
-    p_share_v[lx] = init_v;\n\
-\n\
-    p_share_k[lx1] = init_k;\n\
-    p_share_v[lx1] = init_v;\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-    for (coord.x = lx + threads_per_block * 2; coord.x < limit; coord.x = coord.x + threads_per_block * 2)\n\
-    {\n\
-        uint2 data;\n\
-        coord.z = coord.x + threads_per_block;\n\
-        data.x = read_imageui(input, coord.xy).x;\n\
-        data.y = read_imageui(input, coord.zy).x;\n\
-\n\
-        p_share_k[lx] = data.x;\n\
-        p_share_v[lx] = coord.x;\n\
-\n\
-        p_share_k[lx1] = data.y;\n\
-        p_share_v[lx1] = coord.z;\n\
-        barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-        bitonic_step_ascend_uint(num_stages, lx, p_share_k, p_share_v);\n\
-\n\
-        if (p_share_k[index_minus_1] < min_data)\n\
-        {\n\
-            continue;\n\
-        }\n\
-\n\
-        p_share_k[lx] = p_share_k[lx1];\n\
-        p_share_v[lx] = p_share_v[lx1];\n\
-        barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-        bitonic_merge_uint(num_stages, lx, local_data, local_indices);\n\
-\n\
-        min_data = local_data[511];\n\
-        p_share_k[lx] = init_k;\n\
-        p_share_v[lx] = init_v;\n\
-        p_share_k[lx1] = init_k;\n\
-        p_share_v[lx1] = init_v;\n\
-    }\n\
-\n\
-    if (width > limit)\n\
-    {\n\
-        if (coord.x < width)\n\
-        {\n\
-            uint2 data;\n\
-            data.x = read_imageui(input, coord.xy).x;\n\
-            coord.z = coord.x + threads_per_block;\n\
-            data.y = read_imageui(input, coord.zy).x;\n\
-\n\
-            p_share_k[lx] = data.x;\n\
-            p_share_v[lx] = coord.x;\n\
-\n\
-            p_share_k[lx1] = coord.z < width ? data.y : init_k;\n\
-            p_share_v[lx1] = coord.z < width ? coord.z : init_v;\n\
-        }\n\
-        barrier(CLK_LOCAL_MEM_FENCE);\n\
-\n\
-        bitonic_step_ascend_uint(num_stages, lx, p_share_k, p_share_v);\n\
-\n\
-        if (p_share_k[index_minus_1] >= min_data)\n\
-        {\n\
-            p_share_k[lx] = p_share_k[lx1];\n\
-            p_share_v[lx] = p_share_v[lx1];\n\
-            barrier(CLK_LOCAL_MEM_FENCE);\n\
-            bitonic_merge_uint(num_stages, lx, local_data, local_indices);\n\
-        }\n\
-    }\n\
-\n\
-    uint4 dst;\n\
-    dst.x = local_data[lx];\n\
-\n\
-    coord.x = lx;\n\
-    write_imageui(output, coord.xy, dst.xxxx);\n\
-\n\
-    int4 index;\n\
-    index.x = local_indices[lx];\n\
-\n\
-    write_imagei(indices, coord.xy, index.xxxx);\n\
-}\n\
-"; /* end of topk2_cl*/
 
 static const char topk_odd_even_sort_cl[] = "#define LOCAL_SIZE_X    (32)\n\
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd_even_sort_F32toF32_I32\n\
@@ -82484,7 +82114,6 @@ static const source_map_t cl_resource[] =
     {"swish_cl", swish_cl},
     {"tile_cl", tile_cl},
     {"topk_cl", topk_cl},
-    {"topk2_cl", topk2_cl},
     {"topk_odd_even_sort_cl", topk_odd_even_sort_cl},
     {"topk_odd_even_sort2_cl", topk_odd_even_sort2_cl},
     {"upsample_cl", upsample_cl},

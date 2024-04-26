@@ -34,23 +34,19 @@
 #include "vsi_nn_tensor_util.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
+#include "libnnext/vx_lib_nnext.h"
 
 __BEGIN_DECLS
 
 #define _TOPK_KERNEL_SOURCE      "topk"
 #define STR(a) #a
 // Add kernel hashtable here
-#define TOPK_HASH_KEY( IN_DTYPE, OUT_DTYPE, STAGES, SECTION ) \
-        ( ( IN_DTYPE ) | ( OUT_DTYPE << 8 ) | (STAGES << 16) | (SECTION << 26))
+#define TOPK_HASH_KEY( IN_DTYPE, OUT_DTYPE, STAGES ) \
+        ( ( IN_DTYPE ) | ( OUT_DTYPE << 8 ) | (STAGES << 16) )
 #define PACK_KERNEL_MAP( IN_DTYPE, OUT_DTYPE, STAGES ) \
-        { TOPK_HASH_KEY( IN_DTYPE, OUT_DTYPE, STAGES, 0 ), \
+        { TOPK_HASH_KEY( IN_DTYPE, OUT_DTYPE, STAGES ), \
           CVIVANTE_NAMESPACE("cl.topk_stage"STR(STAGES)"_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)"_I32"), \
           _TOPK_KERNEL_SOURCE }
-
-#define PACK_MERGE_KERNEL_MAP( IN_DTYPE, OUT_DTYPE ) \
-        { TOPK_HASH_KEY( IN_DTYPE, OUT_DTYPE, 0, 1 ), \
-          CVIVANTE_NAMESPACE("cl.topk_stage_"STR(IN_DTYPE)"to"STR(OUT_DTYPE)"_I32"), \
-          "topk2" }
 
 #define TOPK_ODD_EVEN_SORT_HASH_KEY( IN_DTYPE, OUT_DTYPE ) \
         ( ( IN_DTYPE ) | ( OUT_DTYPE << 8 ) )
@@ -115,9 +111,6 @@ static const _kernel_map_type _topk_kernel_map[] =
     PACK_KERNEL_MAP( F32, I32, 4 ),
     PACK_KERNEL_MAP( F32, I32, 5 ),
     PACK_KERNEL_MAP( F32, I32, 6 ),
-
-    PACK_MERGE_KERNEL_MAP(U32, U32),
-    PACK_MERGE_KERNEL_MAP(I32, I32),
 };
 
 static const _kernel_map_type _topk_odd_even_sort_kernel_map[] =
@@ -261,8 +254,7 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t * kernel,
     vsi_nn_tensor_t * const * const inputs,
     vsi_nn_tensor_t * const * const outputs,
-    int32_t num_stages,
-    vsi_bool is_bitnoic_segment
+    int32_t num_stages
     )
 {
     vsi_status status = VSI_FAILURE;
@@ -280,23 +272,21 @@ static vsi_status _query_kernel
     in_dtype  = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     out_dtype = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
-    num_stages = is_bitnoic_segment ? 0 : num_stages;
-
     switch (_PACK_SELECT_KEY(in_dtype, out_dtype))
     {
     case _PACK_SELECT_KEY(F32, F32):
     case _PACK_SELECT_KEY(F16, F16):
-        key = TOPK_HASH_KEY( F32, F32, num_stages, is_bitnoic_segment );
+        key = TOPK_HASH_KEY( F32, F32, num_stages );
         break;
     case _PACK_SELECT_KEY(U32, U32):
     case _PACK_SELECT_KEY(U16, U16):
     case _PACK_SELECT_KEY(U8,  U8):
-        key = TOPK_HASH_KEY( U32, U32, num_stages, is_bitnoic_segment );
+        key = TOPK_HASH_KEY( U32, U32, num_stages );
         break;
     case _PACK_SELECT_KEY(I32, I32):
     case _PACK_SELECT_KEY(I16, I16):
     case _PACK_SELECT_KEY(I8,  I8):
-        key = TOPK_HASH_KEY( I32, I32, num_stages, is_bitnoic_segment );
+        key = TOPK_HASH_KEY( I32, I32, num_stages );
         break;
     case _PACK_SELECT_KEY(F32, U32):
     case _PACK_SELECT_KEY(F16, U32):
@@ -304,7 +294,7 @@ static vsi_status _query_kernel
     case _PACK_SELECT_KEY(F16, U16):
     case _PACK_SELECT_KEY(F32, U8):
     case _PACK_SELECT_KEY(F16, U8):
-        key = TOPK_HASH_KEY( F32, U32, num_stages, is_bitnoic_segment );
+        key = TOPK_HASH_KEY( F32, U32, num_stages );
         break;
     case _PACK_SELECT_KEY(F32, I32):
     case _PACK_SELECT_KEY(F16, I32):
@@ -312,7 +302,7 @@ static vsi_status _query_kernel
     case _PACK_SELECT_KEY(F16, I16):
     case _PACK_SELECT_KEY(F32, I8):
     case _PACK_SELECT_KEY(F16, I8):
-        key = TOPK_HASH_KEY( F32, I32, num_stages, is_bitnoic_segment );
+        key = TOPK_HASH_KEY( F32, I32, num_stages );
         break;
     default:
         break;
@@ -450,12 +440,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t top_k = vsi_nn_kernel_param_get_int32(params, "top_k");
     int32_t num_stages = (int32_t)vsi_nn_max(ceil(log10(block_size / 2.0f) / log10(2.0f)), 0);
     vsi_bool is_odd_even_sort = FALSE;
-    vsi_bool is_bitnoic_segment = FALSE;
     size_t param_num = _TOPK_PARAM_NUM;
-    int32_t max_stages = 7 + (int32_t)log2(graph->ctx->config.subGroupSize >> 2);
-    vsi_nn_kernel_dtype_e type0 = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
-    vsi_nn_kernel_dtype_e type1 = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
-
     float inputScale  = vsi_nn_get_tensor_scale(inputs[0]);
     float inputTail   = (float)vsi_nn_get_tensor_zero_point(inputs[0]);
     float outputScale = vsi_nn_get_tensor_scale(outputs[0]);
@@ -486,14 +471,9 @@ static vsi_nn_kernel_node_t _setup
     rs_tensors[0] = vsi_nn_reshape_tensor( graph,
         inputs[0], shape[0], 2 );
 
-    is_bitnoic_segment = (num_stages >= 9) && (top_k <= 512 && max_stages > 9) &&
-        type0 == type1 && (type0 == U8 || type0 == I8 || type0 == I16 || type0 == U16 || type0 == I32 || type0 == U32);
-    num_stages = is_bitnoic_segment ? 9 : num_stages;
-    max_stages = is_bitnoic_segment ? max_stages : 7;
-
-    if (num_stages < max_stages || is_bitnoic_segment)
+    if (num_stages < 7)
     {
-        status = _query_kernel( kernel, inputs, outputs, num_stages, is_bitnoic_segment );
+        status = _query_kernel( kernel, inputs, outputs, num_stages );
 
         rs_tensors[1] = vsi_nn_reshape_tensor( graph,
             outputs[0], shape[1], 2 );
