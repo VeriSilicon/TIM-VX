@@ -25,6 +25,8 @@
 #define TIM_VX_OPS_SCATTERND_ONNX_V16_H_
 #include "tim/vx/builtin_op.h"
 
+#ifdef VSI_FEAT_OP_SCATTER_ND_UPDATE
+
 namespace tim {
 namespace vx {
 namespace ops {
@@ -57,4 +59,5 @@ class ScatterND_ONNX_V16 : public BuiltinOp {
 }  // namespace vx
 }  // namespace tim
 
+#endif
 #endif /* TIM_VX_OPS_SCATTERND_ONNX_V16_H_ */

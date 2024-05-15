@@ -24,6 +24,7 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/ops/scatternd_onnx_v16.h"
+#ifdef VSI_FEAT_OP_SCATTER_ND_UPDATE
 
 #include "gtest/gtest.h"
 
@@ -71,3 +72,4 @@ TEST(ScatterND_ONNX_V16, shape_8) {
     EXPECT_EQ(golden, output);
 }
 
+#endif

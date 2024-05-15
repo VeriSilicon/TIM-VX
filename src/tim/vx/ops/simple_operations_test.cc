@@ -263,6 +263,7 @@ TEST(Rcp, shape_5_1_fp32) {
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
 
+#ifdef VSI_FEAT_OP_COS
 TEST(Cos, shape_5_1_fp32) {
    auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
@@ -290,7 +291,9 @@ TEST(Cos, shape_5_1_fp32) {
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
 }
+#endif
 
+#ifdef VSI_FEAT_OP_TAN
 TEST(Tan, shape_5_1_fp32) {
    auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
@@ -318,3 +321,4 @@ TEST(Tan, shape_5_1_fp32) {
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
     EXPECT_TRUE(ArraysMatch(golden, output, 1e-4f));
 }
+#endif
