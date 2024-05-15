@@ -168,14 +168,11 @@ TEST(Gather, scalar_index_input1D) {
                                    tim::vx::TensorAttribute::INPUT);
   tim::vx::TensorSpec gatherout_spec(tim::vx::DataType::FLOAT32, out_shape,
                                   tim::vx::TensorAttribute::OUTPUT);
-  tim::vx::TensorSpec output_spec(tim::vx::DataType::FLOAT32, out_shape,
-                                   tim::vx::TensorAttribute::OUTPUT);
 
   auto input_tensor = graph->CreateTensor(input_spec);
   auto index_tensor = graph->CreateTensor(index_spec);
   index_tensor->SetScalar(1);
   auto gatherout_tensor = graph->CreateTensor(gatherout_spec);
-  auto output_tensor = graph->CreateTensor(output_spec);
 
   std::vector<float> in_data = {
     1,2,3,4,5};
