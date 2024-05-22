@@ -60,17 +60,33 @@ using DataConvertLayoutInfer = SimpleOpsLayoutInfer<vx::ops::DataConvert>;
 using NegLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Neg>;
 using AbsLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Abs>;
 using SinLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Sin>;
-using CosLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Cos>;
-using TanLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Tan>;
-using ATanLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ATan>;
-using ATanhLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ATanh>;
-using ACoshLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ACosh>;
+
 using ExpLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Exp>;
 using LogLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Log>;
 using SqrtLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Sqrt>;
 using RsqrtLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Rsqrt>;
 using SquareLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Square>;
 using LogicalNotLayoutInfer = SimpleOpsLayoutInfer<vx::ops::LogicalNot>;
+
+#ifdef VSI_FEAT_OP_COS
+using CosLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Cos>;
+#endif
+
+#ifdef VSI_FEAT_OP_TAN
+using TanLayoutInfer = SimpleOpsLayoutInfer<vx::ops::Tan>;
+#endif
+
+#ifdef VSI_FEAT_OP_ATAN
+using ATanLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ATan>;
+#endif
+
+#ifdef VSI_FEAT_OP_ATANH
+using ATanhLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ATanh>;
+#endif
+
+#ifdef VSI_FEAT_OP_ACOSH
+using ACoshLayoutInfer = SimpleOpsLayoutInfer<vx::ops::ACosh>;
+#endif
 
 }  // namespace transform
 }  // namespace tim

@@ -22,6 +22,7 @@
 *
 *****************************************************************************/
 #include "tim/vx/ops/scatternd_onnx_v16.h"
+#ifdef VSI_FEAT_OP_SCATTER_ND_UPDATE
 
 #include "builtin_op_impl.h"
 #include "vsi_nn_pub.h"
@@ -61,3 +62,4 @@ std::shared_ptr<Operation> ScatterND_ONNX_V16::Clone(std::shared_ptr<Graph>& gra
 }  // namespace ops
 }  // namespace vx
 }  // namespace tim
+#endif
