@@ -69,7 +69,7 @@ enum class OverflowPolicy { WRAP, SATURATE };
 
 enum class RoundingPolicy { TO_ZERO, RTNE };
 
-enum class ResizeType { NEAREST_NEIGHBOR, BILINEAR, AREA };
+enum class ResizeType { NEAREST_NEIGHBOR, BILINEAR, AREA, CUBIC};
 
 enum class DataLayout {
   ANY,
