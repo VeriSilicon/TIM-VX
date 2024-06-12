@@ -73,6 +73,80 @@ TEST(Broadcast, ScalarTo2D_2x3) {
   CheckResult(graph, golden, output_tensor);
 }
 
+TEST(Broadcast, ScalarTo2D_INT32) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({1});
+  tim::vx::ShapeType output_shape({6, 1});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::INT32, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::INT32, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<int32_t> in_data = {
+      5,
+  };
+  std::vector<int32_t> golden = {
+      5, 5, 5, 5, 5, 5,
+  };
+  std::vector<uint32_t> shape = {6, 1};
+  std::vector<int32_t> dimensions = {1};
+
+  EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
+                                             in_data.size() * sizeof(int32_t)));
+
+  auto op = graph->CreateOperation<tim::vx::ops::Broadcast>(shape, dimensions);
+  (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<int32_t> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
+
+TEST(Broadcast, ScalarTo2D_INT8) {
+  auto ctx = tim::vx::Context::Create();
+  auto graph = ctx->CreateGraph();
+
+  tim::vx::ShapeType input_shape({1});
+  tim::vx::ShapeType output_shape({6, 1});
+  tim::vx::TensorSpec input_spec(tim::vx::DataType::INT8, input_shape,
+                                 tim::vx::TensorAttribute::INPUT);
+  tim::vx::TensorSpec output_spec(tim::vx::DataType::INT8, output_shape,
+                                  tim::vx::TensorAttribute::OUTPUT);
+
+  auto input_tensor = graph->CreateTensor(input_spec);
+  auto output_tensor = graph->CreateTensor(output_spec);
+
+  std::vector<int8_t> in_data = {
+      5,
+  };
+  std::vector<int8_t> golden = {
+      5, 5, 5, 5, 5, 5,
+  };
+  std::vector<uint32_t> shape = {6, 1};
+  std::vector<int32_t> dimensions = {1};
+
+  EXPECT_TRUE(input_tensor->CopyDataToTensor(in_data.data(),
+                                             in_data.size() * sizeof(int8_t)));
+
+  auto op = graph->CreateOperation<tim::vx::ops::Broadcast>(shape, dimensions);
+  (*op).BindInputs({input_tensor}).BindOutputs({output_tensor});
+
+  EXPECT_TRUE(graph->Compile());
+  EXPECT_TRUE(graph->Run());
+
+  std::vector<int8_t> output(golden.size());
+  EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
+  EXPECT_EQ(golden, output);
+}
+
 TEST(Broadcast, 1DTo2D) {
   auto ctx = tim::vx::Context::Create();
   auto graph = ctx->CreateGraph();
