@@ -6431,6 +6431,2210 @@ CUMSUM_QINT_AXIS0_2D(I8,  I8,  vxc_char16,  vxc_char16)\n\
 CUMSUM_QINT_AXIS0_2D(I16, I16, vxc_short8,  vxc_short8)\n\
 "; /* end of cumsum_2d_vx*/
 
+static const char cumsum_array_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniAccSumVertF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32A_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32B_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32C_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32D_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16B_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16C_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniSumHorzU8toI16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzU8toI16B_8x4;\n\
+_viv_uniform VXC_512Bits uniSubZpI16toI16_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzI16toI32A_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzI16toI32B_4x4;\n\
+\n\
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;\n\
+\n\
+_viv_uniform int width;\n\
+_viv_uniform int height;\n\
+_viv_uniform int channel;\n\
+_viv_uniform int input_zp;\n\
+_viv_uniform float in_out_scale;\n\
+_viv_uniform float in_out_zp_scale;\n\
+_viv_uniform float output_zp;\n\
+_viv_uniform int remainder;\n\
+_viv_uniform int w_size;\n\
+\n\
+\n\
+__kernel void cumsum_array_F16toF16_axis2(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    vxc_half8 data, sum;\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    for(coord.z = 0; coord.z < channel; coord.z++)\n\
+    {\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+        __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+\n\
+        _viv_asm(COPY, data, src, 16);\n\
+\n\
+        VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_8BITS_ARRAY_AXIS2(in_name, out_name, src_type, dst_type) \\\n\
+__kernel void cumsum_array_##in_name##to##out_name##_axis2( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    src_type src; \\\n\
+    dst_type dst; \\\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0), sum2 = (int4)(0), sum3 = (int4)(0); \\\n\
+ \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 1); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 1); \\\n\
+    if (coord.x == ((w_size >> 4) * 16) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (16 - remainder); \\\n\
+    } \\\n\
+    for(coord.z = 0; coord.z < channel; coord.z++) \\\n\
+    { \\\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \\\n\
+        VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \\\n\
+        VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \\\n\
+        VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \\\n\
+        float tmpAlpha = convert_float(coord.z + 1) * in_out_zp_scale + output_zp; \\\n\
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+        int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+        int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+        int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+        int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\\\n\
+        VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero,1), uniConvertInt32toUint8_2x8);\\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+CUMSUM_8BITS_ARRAY_AXIS2(U8, U8, vxc_uchar16, vxc_uchar16)\n\
+CUMSUM_8BITS_ARRAY_AXIS2(I8, I8, vxc_char16, vxc_char16)\n\
+\n\
+__kernel void cumsum_array_I16toI16_axis2(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0);\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    for(coord.z = 0; coord.z < channel; coord.z++)\n\
+    {\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+        __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);\n\
+        VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);\n\
+        float tmpAlpha = convert_float(coord.z + 1) * in_out_zp_scale + output_zp;\n\
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+        int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+        int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero,1), uniConvertInt32toUint8_2x8);\n\
+\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_array_F16toF16_axis1(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    vxc_half8 data, sum;\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+        __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        _viv_asm(COPY, data, src, 16);\n\
+\n\
+        VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_8BITS_ARRAY_AXIS1(in_name, out_name, src_type, dst_type) \\\n\
+__kernel void cumsum_array_##in_name##to##out_name##_axis1( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    src_type src; \\\n\
+    dst_type dst; \\\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0), sum2 = (int4)(0), sum3 = (int4)(0); \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2); \\\n\
+    if (coord.x == ((w_size >> 4) * 16) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (16 - remainder); \\\n\
+    } \\\n\
+ \\\n\
+    for(coord.y = 0; coord.y < height; coord.y++) \\\n\
+    { \\\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \\\n\
+        VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \\\n\
+        VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \\\n\
+        VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \\\n\
+        float tmpAlpha = convert_float(coord.y + 1) * in_out_zp_scale + output_zp; \\\n\
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+        int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+        int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+        int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+        int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\\\n\
+        VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15,0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+CUMSUM_8BITS_ARRAY_AXIS1(U8, U8, vxc_uchar16, vxc_uchar16)\n\
+CUMSUM_8BITS_ARRAY_AXIS1(I8, I8, vxc_char16,  vxc_char16)\n\
+\n\
+__kernel void cumsum_array_I16toI16_axis1(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0);\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+        __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);\n\
+        VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);\n\
+        float tmpAlpha = convert_float(coord.y + 1) * in_out_zp_scale + output_zp;\n\
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+        int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+        int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\n\
+\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_array_F16toF16_axis0(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    vxc_half8 data, tmpsum, sum;\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+\n\
+    for(; coord.x < width; coord.x += 8)\n\
+    {\n\
+        if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+        {\n\
+            coord.x = coord.x - (8 - remainder);\n\
+        }\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+        __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        _viv_asm(COPY, data, src, 16);\n\
+\n\
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16A_4x4);\n\
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16B_4x4);\n\
+        VXC_DP2x8(tmpsum, tmpsum, tmpsum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16C_2x8);\n\
+        VXC_DP2x8(sum, tmpsum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumHorzF16toF16_2x8);\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        out_ptr[0] = dst;\n\
+\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_ARRAY_QINT_AXIS0(in_name, out_name, src_type, dst_type) \\\n\
+__kernel void cumsum_array_##in_name##to##out_name##_axis0( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    src_type src; \\\n\
+    dst_type dst; \\\n\
+    vxc_short8 rowSum; \\\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0); \\\n\
+    short zp = (short)input_zp; \\\n\
+ \\\n\
+    for(; coord.x < width; coord.x += 8) \\\n\
+    { \\\n\
+        if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+        { \\\n\
+            coord.x = coord.x - (8 - remainder); \\\n\
+        } \\\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        VXC_DP4x4(rowSum, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzU8toI16A_4x4); \\\n\
+        VXC_DP8x4(rowSum, src, src, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzU8toI16B_8x4); \\\n\
+        VXC_DP2x8(rowSum, rowSum, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSubZpI16toI16_2x8); \\\n\
+        VXC_DP4x4(sum0, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumHorzI16toI32A_4x4); \\\n\
+        VXC_DP4x4(sum1, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumHorzI16toI32B_4x4); \\\n\
+ \\\n\
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + output_zp; \\\n\
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + output_zp; \\\n\
+        int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+        int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+\n\
+CUMSUM_ARRAY_QINT_AXIS0(U8,  U8,  vxc_uchar16, vxc_uchar16)\n\
+CUMSUM_ARRAY_QINT_AXIS0(I8,  I8,  vxc_char16,  vxc_char16)\n\
+CUMSUM_ARRAY_QINT_AXIS0(I16, I16, vxc_short8,  vxc_short8)\n\
+"; /* end of cumsum_array_vx*/
+
+static const char cumsum_array_2d_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniAccSumVertF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32A_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32B_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32C_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32D_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16B_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16C_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniSumHorzU8toI16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzU8toI16B_8x4;\n\
+_viv_uniform VXC_512Bits uniSubZpI16toI16_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzI16toI32A_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzI16toI32B_4x4;\n\
+\n\
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;\n\
+\n\
+_viv_uniform int width;\n\
+_viv_uniform int height;\n\
+_viv_uniform int input_zp;\n\
+_viv_uniform float in_out_scale;\n\
+_viv_uniform float in_out_zp_scale;\n\
+_viv_uniform float output_zp;\n\
+_viv_uniform int remainder;\n\
+_viv_uniform int w_size;\n\
+\n\
+\n\
+__kernel void cumsum_array_F16toF16_axis1_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    vxc_half8 data, sum;\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);\n\
+\n\
+    Image img1 = create_image_from_image2d(input, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    for(; coord.y < height; coord.y++)\n\
+    {\n\
+        uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+        __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_ReadImage(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        _viv_asm(COPY, data, src, 16);\n\
+\n\
+        VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumVertF16toF16_2x8);\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_8BITS_ARRAY_AXIS1_2D(in_name, out_name, src_type, dst_type) \\\n\
+__kernel void cumsum_array_##in_name##to##out_name##_axis1_2D( \\\n\
+    __read_only image2d_t   input, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \\\n\
+ \\\n\
+    src_type src; \\\n\
+    dst_type dst; \\\n\
+    int4 sum0 = (int4)(0); \\\n\
+    int4 sum1 = (int4)(0); \\\n\
+    int4 sum2 = (int4)(0); \\\n\
+    int4 sum3 = (int4)(0); \\\n\
+ \\\n\
+    Image img1 = create_image_from_image2d(input, 1); \\\n\
+    Image img2 = create_image_from_image2d(output, 1); \\\n\
+    if (coord.x == ((w_size >> 4) * 16) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (16 - remainder); \\\n\
+    } \\\n\
+    for(coord.y = 0; coord.y < height; coord.y++) \\\n\
+    { \\\n\
+        uchar* input_ptr = get_image_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_image_ptr_from_coord(img2, coord); \\\n\
+        __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumVertU8toI32A_4x4); \\\n\
+        VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumVertU8toI32B_4x4); \\\n\
+        VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumVertU8toI32C_4x4); \\\n\
+        VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumVertU8toI32D_4x4); \\\n\
+ \\\n\
+        float tmpAlpha = convert_float(coord.y + 1) * in_out_zp_scale + output_zp; \\\n\
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+        float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+        int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+        int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+        int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+        int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+ \\\n\
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                 uniConvertInt32toUint8_2x8); \\\n\
+        VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero, 1), \\\n\
+                 uniConvertInt32toUint8_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+CUMSUM_8BITS_ARRAY_AXIS1_2D(U8, U8, vxc_uchar16, vxc_uchar16)\n\
+CUMSUM_8BITS_ARRAY_AXIS1_2D(I8, I8, vxc_char16, vxc_char16)\n\
+\n\
+__kernel void cumsum_array_I16toI16_axis1_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
+\n\
+    vxc_short8 src, dst;\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0);\n\
+\n\
+    Image img1 = create_image_from_image2d(input, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+        __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumVertU8toI32A_4x4);\n\
+        VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumVertU8toI32B_4x4);\n\
+        float tmpAlpha = convert_float(coord.y + 1) * in_out_zp_scale + output_zp;\n\
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+        int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+        int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\n\
+                 uniConvertInt32toUint8_2x8);\n\
+\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_array_F16toF16_axis0_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
+\n\
+    vxc_short8 src, dst;\n\
+    vxc_half8 data, tmpsum, sum;\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);\n\
+    Image img1 = create_image_from_image2d(input, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    for(; coord.x < width; coord.x += 8)\n\
+    {\n\
+        if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+        {\n\
+            coord.x = coord.x - (8 - remainder);\n\
+        }\n\
+        uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+        __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        _viv_asm(COPY, data, src, 16);\n\
+\n\
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSumHorzF16toF16A_4x4);\n\
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSumHorzF16toF16B_4x4);\n\
+        VXC_DP2x8(tmpsum, tmpsum, tmpsum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSumHorzF16toF16C_2x8);\n\
+        VXC_DP2x8(sum, tmpsum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumHorzF16toF16_2x8);\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_ARRAY_QINT_AXIS0_2D(in_name, out_name, src_type, dst_type, stride_data) \\\n\
+__kernel void cumsum_array_##in_name##to##out_name##_axis0_2D( \\\n\
+    __read_only image2d_t   input, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \\\n\
+ \\\n\
+    src_type src; \\\n\
+    dst_type dst; \\\n\
+    vxc_short8 rowSum; \\\n\
+    int4 sum0, sum1; \\\n\
+    sum0 ^= sum0; \\\n\
+    sum1 ^= sum1; \\\n\
+    short zp = (short)input_zp; \\\n\
+    Image img1 = create_image_from_image2d(input, stride_data); \\\n\
+    Image img2 = create_image_from_image2d(output, stride_data); \\\n\
+ \\\n\
+    for(; coord.x < width; coord.x += 8) \\\n\
+    { \\\n\
+        if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+        { \\\n\
+            coord.x = coord.x - (8 - remainder); \\\n\
+        } \\\n\
+        uchar* input_ptr = get_image_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_image_ptr_from_coord(img2, coord); \\\n\
+        __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        VXC_DP4x4(rowSum, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSumHorzU8toI16A_4x4); \\\n\
+        VXC_DP8x4(rowSum, src, src, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSumHorzU8toI16B_8x4); \\\n\
+        VXC_DP2x8(rowSum, rowSum, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSubZpI16toI16_2x8); \\\n\
+        VXC_DP4x4(sum0, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumHorzI16toI32A_4x4); \\\n\
+        VXC_DP4x4(sum1, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumHorzI16toI32B_4x4); \\\n\
+ \\\n\
+        float4 tmpSum0 = convert_float4(sum0) * in_out_scale + output_zp; \\\n\
+        float4 tmpSum1 = convert_float4(sum1) * in_out_scale + output_zp; \\\n\
+        int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+        int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+ \\\n\
+        VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                 uniConvertInt32toUint8_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+\n\
+CUMSUM_ARRAY_QINT_AXIS0_2D(U8,  U8,  vxc_uchar16, vxc_uchar16, 1)\n\
+CUMSUM_ARRAY_QINT_AXIS0_2D(I8,  I8,  vxc_char16,  vxc_char16, 1)\n\
+CUMSUM_ARRAY_QINT_AXIS0_2D(I16, I16, vxc_short8,  vxc_short8, 2)"; /* end of cumsum_array_2d_vx*/
+
+static const char cumsum_array_bf16_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;\n\
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;\n\
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;\n\
+\n\
+_viv_uniform int width;\n\
+_viv_uniform int height;\n\
+_viv_uniform int channel;\n\
+_viv_uniform int remainder;\n\
+_viv_uniform int w_size;\n\
+\n\
+\n\
+__kernel void cumsum_array_BF16toBF16_axis2(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_ushort8 src, val0, val1;\n\
+    vxc_ushort8 dst0, dst1, dst;\n\
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);\n\
+    float4 sum0 = (float4)(0), sum1 = (float4)(0);\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+\n\
+    for(coord.z = 0; coord.z < channel; coord.z++)\n\
+    {\n\
+        float4 data0, data1;\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        __global vxc_ushort8* in_ptr = (__global vxc_ushort8*)input_ptr;\n\
+        __global vxc_ushort8* out_ptr = (__global vxc_ushort8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_DP2x8(val0, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);\n\
+        VXC_DP2x8(val1, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);\n\
+        _viv_asm(COPY, data0, val0, 16);\n\
+        _viv_asm(COPY, data1, val1, 16);\n\
+\n\
+        sum0 += data0;\n\
+        sum1 += data1;\n\
+        _viv_asm(COPY, dst0, sum0, 16);\n\
+        _viv_asm(COPY, dst1, sum1, 16);\n\
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_BF16toBF16_axis1(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_ushort8 src, val0, val1;\n\
+    vxc_ushort8 dst0, dst1, dst;\n\
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);\n\
+    float4 sum0 = (float4)(0), sum1 = (float4)(0);\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+\n\
+    for(coord.y = 0; coord.y < height; coord.y++)\n\
+    {\n\
+        float4 data0, data1;\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        __global vxc_ushort8* in_ptr = (__global vxc_ushort8*)input_ptr;\n\
+        __global vxc_ushort8* out_ptr = (__global vxc_ushort8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_DP2x8(val0, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);\n\
+        VXC_DP2x8(val1, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);\n\
+        _viv_asm(COPY, data0, val0, 16);\n\
+        _viv_asm(COPY, data1, val1, 16);\n\
+        sum0 += data0;\n\
+        sum1 += data1;\n\
+        _viv_asm(COPY, dst0, sum0, 16);\n\
+        _viv_asm(COPY, dst1, sum1, 16);\n\
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_BF16toBF16_axis0(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+\n\
+    vxc_ushort8 src, val0, val1;\n\
+    vxc_ushort8 dst0, dst1, dst;\n\
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);\n\
+    float preSum = 0;\n\
+    float4 one = (float4)(1.0, 1.0, 1.0, 1.0);\n\
+    float4 q = (float4)(1.0, 1.0, 1.0, 0);\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+\n\
+    for(; coord.x < width; coord.x += 8)\n\
+    {\n\
+        float4 data0, data1;\n\
+        if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+        {\n\
+            coord.x = coord.x - (8 - remainder);\n\
+        }\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        __global vxc_ushort8* in_ptr = (__global vxc_ushort8*)input_ptr;\n\
+        __global vxc_ushort8* out_ptr = (__global vxc_ushort8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_DP2x8(val0, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);\n\
+        VXC_DP2x8(val1, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);\n\
+        _viv_asm(COPY, data0, val0, 16);\n\
+        _viv_asm(COPY, data1, val1, 16);\n\
+\n\
+        float4 tmpSum0 = (float4)(data0.x, data0.x + data0.y, dot(data0, q), dot(data0, one));\n\
+        float4 tmpSum1 = (float4)(data1.x, data1.x + data1.y, dot(data1, q), dot(data1, one));\n\
+        tmpSum1 += tmpSum0.w;\n\
+\n\
+        tmpSum0 += preSum;\n\
+        tmpSum1 += preSum;\n\
+\n\
+        preSum = tmpSum1.w;\n\
+\n\
+        _viv_asm(COPY, dst0, tmpSum0, 16);\n\
+        _viv_asm(COPY, dst1, tmpSum1, 16);\n\
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_BF16toBF16_axis1_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), 0);\n\
+\n\
+    vxc_ushort8 src, val0, val1;\n\
+    vxc_ushort8 dst0, dst1, dst;\n\
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);\n\
+    float4 sum0 = (float4)(0), sum1 = (float4)(0);\n\
+\n\
+    Image img1 = create_image_from_image2d(input, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+\n\
+    for(; coord.y < height; coord.y++)\n\
+    {\n\
+        float4 data0, data1;\n\
+        uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+        __global vxc_ushort8* in_ptr = (__global vxc_ushort8*)input_ptr;\n\
+        __global vxc_ushort8* out_ptr = (__global vxc_ushort8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_DP2x8(val0, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                    uniConvBF16toF32_Part0_2x8);\n\
+        VXC_DP2x8(val1, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                    uniConvBF16toF32_Part1_2x8);\n\
+        _viv_asm(COPY, data0, val0, 16);\n\
+        _viv_asm(COPY, data1, val1, 16);\n\
+\n\
+        sum0 += data0;\n\
+        sum1 += data1;\n\
+\n\
+        _viv_asm(COPY, dst0, sum0, 16);\n\
+        _viv_asm(COPY, dst1, sum1, 16);\n\
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                uniExtractOddData_2x8);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_BF16toBF16_axis0_2D(\n\
+    __read_only image2d_t   input,\n\
+    __write_only image2d_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1));\n\
+\n\
+    vxc_ushort8 src, val0, val1;\n\
+    vxc_ushort8 dst0, dst1, dst;\n\
+    vxc_ushort8 zero = (vxc_ushort8)(0, 0, 0, 0, 0, 0, 0, 0);\n\
+    float preSum = 0;\n\
+    float4 one = (float4)(1.0, 1.0, 1.0, 1.0);\n\
+    float4 q = (float4)(1.0, 1.0, 1.0, 0);\n\
+\n\
+    Image img1 = create_image_from_image2d(input, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    for(; coord.x < width; coord.x += 8)\n\
+    {\n\
+        if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+        {\n\
+            coord.x = coord.x - (8 - remainder);\n\
+        }\n\
+        float4 data0, data1;\n\
+        uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+        uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+        __global vxc_ushort8* in_ptr = (__global vxc_ushort8*)input_ptr;\n\
+        __global vxc_ushort8* out_ptr = (__global vxc_ushort8*)output_ptr;\n\
+        src = in_ptr[0];\n\
+        VXC_DP2x8(val0, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                    uniConvBF16toF32_Part0_2x8);\n\
+        VXC_DP2x8(val1, src, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                    uniConvBF16toF32_Part1_2x8);\n\
+        _viv_asm(COPY, data0, val0, 16);\n\
+        _viv_asm(COPY, data1, val1, 16);\n\
+\n\
+        float4 tmpSum0 = (float4)(data0.x, data0.x + data0.y, dot(data0, q), dot(data0, one));\n\
+        float4 tmpSum1 = (float4)(data1.x, data1.x + data1.y, dot(data1, q), dot(data1, one));\n\
+        tmpSum1 += tmpSum0.w;\n\
+\n\
+        tmpSum0 += preSum;\n\
+        tmpSum1 += preSum;\n\
+\n\
+        preSum = tmpSum1.w;\n\
+\n\
+        _viv_asm(COPY, dst0, tmpSum0, 16);\n\
+        _viv_asm(COPY, dst1, tmpSum1, 16);\n\
+        VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                uniExtractOddData_2x8);\n\
+        out_ptr[0] = dst;\n\
+    }\n\
+}\n\
+"; /* end of cumsum_array_bf16_vx*/
+
+static const char cumsum_array_ex_rev_axis0_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16B_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16C_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniSumHorzU8toI16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzU8toI16B_8x4;\n\
+_viv_uniform VXC_512Bits uniSubZpI16toI16_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzI16toI32A_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzI16toI32B_4x4;\n\
+\n\
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSumHorzRevF16toF16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzRevF16toF16B_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzRevF16toF16C_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzRevF16toF16_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSumHorzRevU8toI16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzRevU8toI16B_8x4;\n\
+_viv_uniform VXC_512Bits uniSubZpRevI16toI16_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzRevI16toI32A_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzRevI16toI32B_4x4;\n\
+\n\
+\n\
+_viv_uniform int width;\n\
+_viv_uniform int input_zp;\n\
+_viv_uniform float in_out_scale;\n\
+_viv_uniform float output_zp;\n\
+\n\
+_viv_uniform int remainder;\n\
+_viv_uniform int w_size;\n\
+\n\
+\n\
+__kernel void cumsum_ex_rev_array_F16toF16_axis0(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0);\n\
+    int4 coord_out = coord;\n\
+\n\
+    vxc_short8 src, dst;\n\
+    vxc_half8 data, tmpsum, sum;\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+    __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+    if(exclusive == 0 && rev)\n\
+    {\n\
+        for(coord.x = width - 8; coord.x >= 0; coord.x -= 8)\n\
+        {\n\
+            if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+            {\n\
+                coord.x = coord.x - (8 - remainder);\n\
+            }\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            src = in_ptr[0];\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzRevF16toF16A_4x4);\n\
+            VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzRevF16toF16B_4x4);\n\
+            VXC_DP2x8(tmpsum, tmpsum, tmpsum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                        uniSumHorzRevF16toF16C_2x8);\n\
+            VXC_DP2x8(sum, tmpsum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumHorzRevF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive && rev == 0)\n\
+    {\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        out_ptr[0] = dst;\n\
+        for(; coord.x < width - 8;)\n\
+        {\n\
+            if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+            {\n\
+                coord.x = coord.x - (8 - remainder);\n\
+            }\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            coord_out.x = coord.x + 1;\n\
+            coord.x += 8;\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16A_4x4);\n\
+            VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16B_4x4);\n\
+            VXC_DP2x8(tmpsum, tmpsum, tmpsum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16C_2x8);\n\
+            VXC_DP2x8(sum, tmpsum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumHorzF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive && rev)\n\
+    {\n\
+        coord.x = width - 8;\n\
+        coord_out.x = width - 1;\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+        out_ptr = (__global vxc_short8*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(; coord.x > 0;)\n\
+        {\n\
+            if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+            {\n\
+                coord.x = coord.x - (8 - remainder);\n\
+            }\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            src = in_ptr[0];\n\
+            coord_out.x = coord.x - 1;\n\
+            coord.x -= 8;\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzRevF16toF16A_4x4);\n\
+            VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzRevF16toF16B_4x4);\n\
+            VXC_DP2x8(tmpsum, tmpsum, tmpsum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\n\
+                        uniSumHorzRevF16toF16C_2x8);\n\
+            VXC_DP2x8(sum, tmpsum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumHorzRevF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_QINT_EX_REV_ARRAY_AXIS0(in_name, out_name, src_type, dst_type, stride_data) \\\n\
+__kernel void cumsum_ex_rev_array_##in_name##to##out_name##_axis0( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(0, get_global_id(1), get_global_id(2), 0); \\\n\
+    int4 coord_out = coord; \\\n\
+ \\\n\
+    src_type src; \\\n\
+    dst_type dst; \\\n\
+    vxc_short8 rowSum; \\\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0); \\\n\
+    short zp = (short)input_zp; \\\n\
+ \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, stride_data); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, stride_data); \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+    __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+    __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+    if(exclusive == 0 && rev) \\\n\
+    { \\\n\
+        for(coord.x = width - 8; coord.x >= 0; coord.x -= 8) \\\n\
+        { \\\n\
+            if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+            { \\\n\
+                coord.x = coord.x - (8 - remainder); \\\n\
+            } \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            VXC_ReadImage2DArray(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \\\n\
+            VXC_DP4x4(rowSum, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzRevU8toI16A_4x4); \\\n\
+            VXC_DP8x4(rowSum, src, src, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzRevU8toI16B_8x4); \\\n\
+            VXC_DP2x8(rowSum, rowSum, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSubZpRevI16toI16_2x8); \\\n\
+            VXC_DP4x4(sum0, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \\\n\
+                        uniAccSumHorzRevI16toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \\\n\
+                        uniAccSumHorzRevI16toI32B_4x4); \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + output_zp; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + output_zp; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            VXC_DP2x8(dst, tmpDst1, tmpDst0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev == 0) \\\n\
+    { \\\n\
+        for(coord.x = -1; coord.x < width - 8;) \\\n\
+        { \\\n\
+            if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+            { \\\n\
+                coord.x = coord.x - (8 - remainder); \\\n\
+            } \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            coord_out.x = coord.x + 1; \\\n\
+            coord.x += 8; \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            VXC_DP4x4(rowSum, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzU8toI16A_4x4); \\\n\
+            VXC_DP8x4(rowSum, src, src, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzU8toI16B_8x4); \\\n\
+            VXC_DP2x8(rowSum, rowSum, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSubZpI16toI16_2x8); \\\n\
+            VXC_DP4x4(sum0, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \\\n\
+                        uniAccSumHorzI16toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \\\n\
+                        uniAccSumHorzI16toI32B_4x4); \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + output_zp; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + output_zp; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev) \\\n\
+    { \\\n\
+        for(coord.x = width - 7; coord.x > 0;) \\\n\
+        { \\\n\
+            if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+            { \\\n\
+                coord.x = coord.x - (8 - remainder); \\\n\
+            } \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            coord_out.x = coord.x - 1; \\\n\
+            coord.x -= 8; \\\n\
+            VXC_DP4x4(rowSum, src, src, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzRevU8toI16A_4x4); \\\n\
+            VXC_DP8x4(rowSum, src, src, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzRevU8toI16B_8x4); \\\n\
+            VXC_DP2x8(rowSum, rowSum, zp, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSubZpRevI16toI16_2x8); \\\n\
+            VXC_DP4x4(sum0, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \\\n\
+                        uniAccSumHorzRevI16toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, rowSum, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), \\\n\
+                        uniAccSumHorzRevI16toI32B_4x4); \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + output_zp; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + output_zp; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            VXC_DP2x8(dst, tmpDst1, tmpDst0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+CUMSUM_QINT_EX_REV_ARRAY_AXIS0(U8,  U8,  vxc_uchar16, vxc_uchar16, 1)\n\
+CUMSUM_QINT_EX_REV_ARRAY_AXIS0(I8,  I8,  vxc_char16,  vxc_char16, 1)\n\
+CUMSUM_QINT_EX_REV_ARRAY_AXIS0(I16, I16, vxc_short8,  vxc_short8, 2)\n\
+"; /* end of cumsum_array_ex_rev_axis0_vx*/
+
+static const char cumsum_array_ex_rev_axis1_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniAccSumVertF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32A_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32B_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32C_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32D_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;\n\
+\n\
+_viv_uniform int height;\n\
+_viv_uniform float in_out_scale;\n\
+_viv_uniform float in_out_zp_scale;\n\
+_viv_uniform float output_zp;\n\
+\n\
+_viv_uniform int remainder;\n\
+_viv_uniform int w_size;\n\
+\n\
+\n\
+__kernel void cumsum_ex_rev_array_F16toF16_axis1(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev)\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), 0, get_global_id(2), 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    vxc_half8 data, sum;\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+    __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+    if(exclusive == 0 && rev)\n\
+    {\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            src = in_ptr[0];\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive && rev == 0)\n\
+    {\n\
+        dst ^= dst;\n\
+        out_ptr[0] = dst;\n\
+        for(; coord.y < height - 1;)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            coord.y++;\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive && rev)\n\
+    {\n\
+        dst ^= dst;\n\
+        coord.y = height - 1;\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        out_ptr = (__global vxc_short8*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+\n\
+        for(; coord.y > 0;)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            coord.y--;\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_8BITS_EX_REV_ARRAY_AXIS1(in_name, out_name, src_type, dst_type) \\\n\
+__kernel void cumsum_ex_rev_array_##in_name##to##out_name##_axis1( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), 0, get_global_id(2), 0); \\\n\
+ \\\n\
+    src_type src; \\\n\
+    dst_type dst; \\\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0), sum2 = (int4)(0), sum3 = (int4)(0); \\\n\
+ \\\n\
+    if (coord.x == ((w_size >> 4) * 16) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (16 - remainder); \\\n\
+    } \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 1); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 1); \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+    __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+    __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+    if(exclusive == 0 && rev) \\\n\
+    { \\\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \\\n\
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \\\n\
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \\\n\
+            float tmpAlpha = convert_float(height - coord.y) * in_out_zp_scale + output_zp; \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15,0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev == 0) \\\n\
+    { \\\n\
+        int tmpAlpha0 = convert_int_rte(output_zp); \\\n\
+        int4 tmpVal; \\\n\
+        tmpVal.x = tmpAlpha0; \\\n\
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\\\n\
+        out_ptr[0] = dst.xxxxxxxxxxxxxxxx; \\\n\
+        for(; coord.y < height - 1;) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            coord.y++; \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \\\n\
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \\\n\
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \\\n\
+            float tmpAlpha = convert_float(coord.y) * in_out_zp_scale + output_zp; \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8);\\\n\
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15,0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8);\\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev) \\\n\
+    { \\\n\
+        coord.y = height - 1; \\\n\
+        int tmpAlpha0 = convert_int_rte(output_zp); \\\n\
+        int4 tmpVal; \\\n\
+        tmpVal.x = tmpAlpha0; \\\n\
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        out_ptr = (__global vxc_short8*)output_ptr; \\\n\
+        out_ptr[0] = dst.xxxxxxxxxxxxxxxx; \\\n\
+        for(; coord.y > 0;) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \\\n\
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \\\n\
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \\\n\
+            float tmpAlpha = convert_float(height - coord.y) * in_out_zp_scale + output_zp; \\\n\
+            coord.y--; \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8);\\\n\
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15,0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8);\\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+CUMSUM_8BITS_EX_REV_ARRAY_AXIS1(U8, U8, vxc_uchar16, vxc_uchar16)\n\
+CUMSUM_8BITS_EX_REV_ARRAY_AXIS1(I8, I8, vxc_char16,  vxc_char16)\n\
+\n\
+__kernel void cumsum_ex_rev_array_I16toI16_axis1(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev)\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), 0, get_global_id(2), 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+    __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+    if(exclusive == 0 && rev)\n\
+    {\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            src = in_ptr[0];\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);\n\
+            float tmpAlpha = convert_float(height - coord.y) * in_out_zp_scale + output_zp;\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\n\
+                        uniConvertInt32toUint8_2x8);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive && rev == 0)\n\
+    {\n\
+        int tmpAlpha0 = convert_int_rte(output_zp);\n\
+        int4 tmpVal;\n\
+        tmpVal.x = tmpAlpha0;\n\
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\n\
+        out_ptr[0] = dst.xxxxxxxx;\n\
+        for(; coord.y < height - 1;)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            coord.y++;\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);\n\
+            float tmpAlpha = convert_float(coord.y) * in_out_zp_scale + output_zp;\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\n\
+                        uniConvertInt32toUint8_2x8);\n\
+\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive && rev)\n\
+    {\n\
+        coord.y = height - 1;\n\
+        int tmpAlpha0 = convert_int_rte(output_zp);\n\
+        int4 tmpVal;\n\
+        tmpVal.x = tmpAlpha0;\n\
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        out_ptr = (__global vxc_short8*)output_ptr;\n\
+        out_ptr[0] = dst.xxxxxxxx;\n\
+        for(; coord.y > 0;)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);\n\
+            float tmpAlpha = convert_float(height - coord.y) * in_out_zp_scale + output_zp;\n\
+            coord.y--;\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1),\n\
+                        uniConvertInt32toUint8_2x8);\n\
+\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+"; /* end of cumsum_array_ex_rev_axis1_vx*/
+
+static const char cumsum_array_ex_rev_axis2_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniAccSumVertF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32A_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32B_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32C_4x4;\n\
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32D_4x4;\n\
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;\n\
+\n\
+_viv_uniform int channel;\n\
+_viv_uniform float in_out_scale;\n\
+_viv_uniform float in_out_zp_scale;\n\
+_viv_uniform float output_zp;\n\
+\n\
+_viv_uniform int remainder;\n\
+_viv_uniform int w_size;\n\
+\n\
+\n\
+__kernel void cumsum_ex_rev_array_F16toF16_axis2(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev)\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    vxc_half8 data, sum;\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+    __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+    if(rev && exclusive == 0)\n\
+    {\n\
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            src = in_ptr[0];\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(rev == 0 && exclusive)\n\
+    {\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        out_ptr[0] = dst;\n\
+        for(; coord.z < channel - 1;)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            coord.z++;\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(rev && exclusive)\n\
+    {\n\
+        _viv_asm(COPY, dst, sum, 16);\n\
+        coord.z = channel - 1;\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        out_ptr = (__global vxc_short8*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(; coord.z > 0;)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            coord.z--;\n\
+            _viv_asm(COPY, data, src, 16);\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);\n\
+            _viv_asm(COPY, dst, sum, 16);\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_8BITS_EX_REV_ARRAY_AXIS2(in_name, out_name, src_type, dst_type) \\\n\
+__kernel void cumsum_ex_rev_array_##in_name##to##out_name##_axis2( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \\\n\
+ \\\n\
+    src_type src; \\\n\
+    dst_type dst; \\\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0), sum2 = (int4)(0), sum3 = (int4)(0); \\\n\
+ \\\n\
+    if (coord.x == ((w_size >> 4) * 16) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (16 - remainder); \\\n\
+    } \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 1); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 1); \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+    __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+    __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+    if(rev && exclusive == 0) \\\n\
+    { \\\n\
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \\\n\
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \\\n\
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \\\n\
+            float tmpAlpha = convert_float(channel - coord.z) * in_out_zp_scale + output_zp; \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8);\\\n\
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero,1), \\\n\
+                        uniConvertInt32toUint8_2x8);\\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev == 0) \\\n\
+    { \\\n\
+        int tmpAlpha0 = convert_int_rte(output_zp); \\\n\
+        int4 tmpVal; \\\n\
+        tmpVal.x = tmpAlpha0; \\\n\
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8); \\\n\
+        out_ptr[0] = dst.xxxxxxxxxxxxxxxx; \\\n\
+        for(; coord.z < channel - 1;) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            coord.z++; \\\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \\\n\
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \\\n\
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \\\n\
+            float tmpAlpha = convert_float(coord.z) * in_out_zp_scale + output_zp; \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero,1), \\\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(rev && exclusive) \\\n\
+    { \\\n\
+        coord.z = channel - 1; \\\n\
+        int tmpAlpha0 = convert_int_rte(output_zp); \\\n\
+        int4 tmpVal; \\\n\
+        tmpVal.x = tmpAlpha0; \\\n\
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        out_ptr = (__global vxc_short8*)output_ptr; \\\n\
+        out_ptr[0] = dst.xxxxxxxxxxxxxxxx; \\\n\
+        for(; coord.z > 0;) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \\\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \\\n\
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \\\n\
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \\\n\
+            float tmpAlpha = convert_float(channel - coord.z) * in_out_zp_scale + output_zp; \\\n\
+            coord.z--; \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \\\n\
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \\\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \\\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \\\n\
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \\\n\
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \\\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \\\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero,1),\n\
+                        uniConvertInt32toUint8_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+CUMSUM_8BITS_EX_REV_ARRAY_AXIS2(U8, U8, vxc_uchar16, vxc_uchar16)\n\
+CUMSUM_8BITS_EX_REV_ARRAY_AXIS2(I8, I8, vxc_char16, vxc_char16)\n\
+\n\
+__kernel void cumsum_ex_rev_array_I16toI16_axis2(\n\
+    __read_only image2d_array_t   input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis, int exclusive, int rev)\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);\n\
+\n\
+    vxc_short8 src, dst;\n\
+    int4 sum0 = (int4)(0), sum1 = (int4)(0);\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)\n\
+    {\n\
+        coord.x = coord.x - (8 - remainder);\n\
+    }\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;\n\
+    __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;\n\
+    if(exclusive == 0 && rev)\n\
+    {\n\
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            out_ptr = (__global vxc_short8*)output_ptr;\n\
+            src = in_ptr[0];\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);\n\
+            float tmpAlpha = convert_float(channel - coord.z) * in_out_zp_scale + output_zp;\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero,1),\n\
+                        uniConvertInt32toUint8_2x8);\n\
+\n\
+            VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
+        }\n\
+    }\n\
+    else if(exclusive && rev == 0)\n\
+    {\n\
+        int tmpAlpha0 = convert_int_rte(output_zp);\n\
+        int4 tmpVal;\n\
+        tmpVal.x = tmpAlpha0;\n\
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\n\
+        out_ptr[0] = dst.xxxxxxxx;\n\
+        for(; coord.z < channel - 1;)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            coord.z++;\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);\n\
+            float tmpAlpha = convert_float(coord.z) * in_out_zp_scale + output_zp;\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero,1),\n\
+                        uniConvertInt32toUint8_2x8);\n\
+\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive && rev)\n\
+    {\n\
+        coord.z = channel - 1;\n\
+        int tmpAlpha0 = convert_int_rte(output_zp);\n\
+        int4 tmpVal;\n\
+        tmpVal.x = tmpAlpha0;\n\
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+        out_ptr = (__global vxc_short8*)output_ptr;\n\
+        out_ptr[0] = dst.xxxxxxxx;\n\
+        for(; coord.z > 0;)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global vxc_short8*)input_ptr;\n\
+            src = in_ptr[0];\n\
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);\n\
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);\n\
+            float tmpAlpha = convert_float(channel - coord.z) * in_out_zp_scale + output_zp;\n\
+            coord.z--;\n\
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;\n\
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;\n\
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);\n\
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);\n\
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero,1),\n\
+                        uniConvertInt32toUint8_2x8);\n\
+\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+"; /* end of cumsum_array_ex_rev_axis2_vx*/
+
+static const char cumsum_array_f16_u8_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniAccSumVertF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16B_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16C_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzF16toF16_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;\n\
+\n\
+_viv_uniform int width;\n\
+_viv_uniform int height;\n\
+_viv_uniform int channel;\n\
+\n\
+_viv_uniform int2 multAndoutZP0;//[0:15] multiplier, [31:63] output zp\n\
+_viv_uniform VXC_512Bits uniU8MulAndPostShift_0_Lo_2x8;\n\
+\n\
+_viv_uniform int remainder;\n\
+_viv_uniform int w_size;\n\
+\n\
+\n\
+#define CUMSUM_ARRAY_F16TOQINT_AXIS2(out_name, src_type, dst_type, stride_out) \\\n\
+__kernel void cumsum_array_F16to##out_name##_axis2( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    vxc_short8 src; \\\n\
+    dst_type dst; \\\n\
+    vxc_half8 data, sum; \\\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, stride_out); \\\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (8 - remainder); \\\n\
+    } \\\n\
+    for(coord.z = 0; coord.z < channel; coord.z++) \\\n\
+    { \\\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        _viv_asm(COPY, data, src, 16); \\\n\
+ \\\n\
+        VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS2(I8,  vxc_half8, vxc_char16, 1)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS2(I16, vxc_half8, vxc_short8, 2)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS2(U8,  vxc_half8, vxc_uchar16, 1)\n\
+\n\
+\n\
+#define CUMSUM_ARRAY_F16TOQINT_AXIS1(out_name, src_type, dst_type, stride_out) \\\n\
+__kernel void cumsum_array_F16to##out_name##_axis1( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    vxc_short8 src; \\\n\
+    dst_type dst; \\\n\
+    vxc_half8 data, sum; \\\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, stride_out); \\\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (8 - remainder); \\\n\
+    } \\\n\
+    for(coord.y = 0; coord.y < height; coord.y++) \\\n\
+    { \\\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        _viv_asm(COPY, data, src, 16); \\\n\
+ \\\n\
+        VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS1(I8,  vxc_half8, vxc_char16, 1)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS1(I16, vxc_half8, vxc_short8, 2)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS1(U8,  vxc_half8, vxc_uchar16, 1)\n\
+\n\
+#define CUMSUM_ARRAY_F16TOQINT_AXIS0(out_name, src_type, dst_type, stride_out) \\\n\
+__kernel void cumsum_array_F16to##out_name##_axis0( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+ \\\n\
+    vxc_short8 src; \\\n\
+    dst_type dst; \\\n\
+    vxc_half8 data, tmpsum, sum; \\\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, stride_out); \\\n\
+    for(; coord.x < width; coord.x += 8) \\\n\
+    { \\\n\
+        if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+        { \\\n\
+            coord.x = coord.x - (8 - remainder); \\\n\
+        } \\\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        _viv_asm(COPY, data, src, 16); \\\n\
+ \\\n\
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16A_4x4); \\\n\
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16B_4x4); \\\n\
+        VXC_DP2x8(tmpsum, tmpsum, tmpsum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSumHorzF16toF16C_2x8); \\\n\
+        VXC_DP2x8(sum, tmpsum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumHorzF16toF16_2x8); \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS0(I8,  vxc_half8, vxc_char16, 1)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS0(I16, vxc_half8, vxc_short8, 2)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS0(U8,  vxc_half8, vxc_uchar16, 1)\n\
+\n\
+#define CUMSUM_ARRAY_F16TOQINT_EX_REV_AXIS2(out_name, src_type, dst_type, stride_out) \\\n\
+__kernel void cumsum_array_ex_rev_F16to##out_name##_axis2( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \\\n\
+ \\\n\
+    vxc_short8 src; \\\n\
+    dst_type dst; \\\n\
+    vxc_half8 data, sum; \\\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (8 - remainder); \\\n\
+    } \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, stride_out); \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+    __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+    if(exclusive == 0 && rev) \\\n\
+    { \\\n\
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            _viv_asm(COPY, data, src, 16); \\\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \\\n\
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev == 0) \\\n\
+    { \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(; coord.z < channel - 1;) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            coord.z++; \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            _viv_asm(COPY, data, src, 16); \\\n\
+     \\\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \\\n\
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev) \\\n\
+    { \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        coord.z = channel - 1; \\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        out_ptr = (__global dst_type*)output_ptr; \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(; coord.z > 0;) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            coord.z--; \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            _viv_asm(COPY, data, src, 16); \\\n\
+     \\\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \\\n\
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_F16TOQINT_EX_REV_AXIS2(I8,  vxc_half8, vxc_char16, 1)\n\
+CUMSUM_ARRAY_F16TOQINT_EX_REV_AXIS2(I16, vxc_half8, vxc_short8, 2)\n\
+CUMSUM_ARRAY_F16TOQINT_EX_REV_AXIS2(U8,  vxc_half8, vxc_uchar16, 1)\n\
+\n\
+#define CUMSUM_ARRAY_F16TOQINT_EX_REV_AXIS1(out_name, src_type, dst_type, stride_out) \\\n\
+__kernel void cumsum_array_ex_rev_F16to##out_name##_axis1( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), 0, get_global_id(2), 0); \\\n\
+ \\\n\
+    vxc_short8 src; \\\n\
+    dst_type dst; \\\n\
+    vxc_half8 data, sum; \\\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (8 - remainder); \\\n\
+    } \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, stride_out); \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+    __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+    if(exclusive == 0 && rev) \\\n\
+    { \\\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            _viv_asm(COPY, data, src, 16); \\\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \\\n\
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev == 0) \\\n\
+    { \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(; coord.y < height - 1;) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            coord.y++; \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            _viv_asm(COPY, data, src, 16); \\\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \\\n\
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive && rev) \\\n\
+    { \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        coord.y = height - 1; \\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        out_ptr = (__global dst_type*)output_ptr; \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(; coord.y > 0;) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+            src = in_ptr[0]; \\\n\
+            coord.y--; \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global dst_type*)output_ptr; \\\n\
+            _viv_asm(COPY, data, src, 16); \\\n\
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8); \\\n\
+            VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                    uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_F16TOQINT_EX_REV_AXIS1(I8,  vxc_half8, vxc_char16, 1)\n\
+CUMSUM_ARRAY_F16TOQINT_EX_REV_AXIS1(I16, vxc_half8, vxc_short8, 2)\n\
+CUMSUM_ARRAY_F16TOQINT_EX_REV_AXIS1(U8,  vxc_half8, vxc_uchar16, 1)"; /* end of cumsum_array_f16_u8_vx*/
+
+static const char cumsum_array_f16_u8_2d_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform VXC_512Bits uniAccSumVertF16toF16_2x8;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16A_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16B_4x4;\n\
+_viv_uniform VXC_512Bits uniSumHorzF16toF16C_2x8;\n\
+_viv_uniform VXC_512Bits uniAccSumHorzF16toF16_2x8;\n\
+\n\
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;\n\
+\n\
+_viv_uniform int width;\n\
+_viv_uniform int height;\n\
+_viv_uniform int channel;\n\
+\n\
+_viv_uniform int2 multAndoutZP0;//[0:15] multiplier, [31:63] output zp\n\
+_viv_uniform VXC_512Bits uniU8MulAndPostShift_0_Lo_2x8;\n\
+\n\
+_viv_uniform int remainder;\n\
+_viv_uniform int w_size;\n\
+\n\
+\n\
+#define CUMSUM_ARRAY_F16TOQINT_AXIS1_2D(out_name, src_type, dst_type, stride_out) \\\n\
+__kernel void cumsum_array_F16to##out_name##_axis1_2D( \\\n\
+    __read_only image2d_t   input, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord = (int2)(get_global_id(0), 0); \\\n\
+ \\\n\
+    vxc_short8 src; \\\n\
+    dst_type dst; \\\n\
+    vxc_half8 data, sum; \\\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, stride_out); \\\n\
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+    { \\\n\
+        coord.x = coord.x - (8 - remainder); \\\n\
+    } \\\n\
+    for(; coord.y < height; coord.y++) \\\n\
+    { \\\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        _viv_asm(COPY, data, src, 16); \\\n\
+ \\\n\
+        VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumVertF16toF16_2x8); \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS1_2D(I8,  vxc_half8, vxc_char16, 1)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS1_2D(I16, vxc_half8, vxc_short8, 2)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS1_2D(U8,  vxc_half8, vxc_uchar16, 1)\n\
+\n\
+#define CUMSUM_ARRAY_F16TOQINT_AXIS0_2D(out_name, src_type, dst_type, stride_out) \\\n\
+__kernel void cumsum_array_F16to##out_name##_axis0_2D( \\\n\
+    __read_only image2d_t   input, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int axis, int exclusive, int rev \\\n\
+    ) \\\n\
+{ \\\n\
+    int2 coord = (int2)(get_global_id(0), get_global_id(1)); \\\n\
+ \\\n\
+    vxc_short8 src; \\\n\
+    dst_type dst; \\\n\
+    vxc_half8 data, tmpsum, sum; \\\n\
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8); \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 2); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, stride_out); \\\n\
+    for(; coord.x < width; coord.x += 8) \\\n\
+    { \\\n\
+        if (coord.x == ((w_size >> 3) * 8) && remainder != 0) \\\n\
+        { \\\n\
+            coord.x = coord.x - (8 - remainder); \\\n\
+        } \\\n\
+        uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+        uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+        __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr; \\\n\
+        __global dst_type* out_ptr = (__global dst_type*)output_ptr; \\\n\
+        src = in_ptr[0]; \\\n\
+        _viv_asm(COPY, data, src, 16); \\\n\
+ \\\n\
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSumHorzF16toF16A_4x4); \\\n\
+        VXC_DP4x4(tmpsum, data, data, VXC_MODIFIER(4, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSumHorzF16toF16B_4x4); \\\n\
+        VXC_DP2x8(tmpsum, tmpsum, tmpsum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniSumHorzF16toF16C_2x8); \\\n\
+        VXC_DP2x8(sum, tmpsum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0),\\\n\
+                uniAccSumHorzF16toF16_2x8); \\\n\
+        VXC_DP2x8(dst, sum, ms0, VXC_MODIFIER(0, 7, 0, VXC_RM_ToNearestEven, 1), \\\n\
+                uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+        out_ptr[0] = dst; \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS0_2D(I8,  vxc_half8, vxc_char16, 1)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS0_2D(I16, vxc_half8, vxc_short8, 2)\n\
+CUMSUM_ARRAY_F16TOQINT_AXIS0_2D(U8,  vxc_half8, vxc_uchar16, 1)\n\
+"; /* end of cumsum_array_f16_u8_2d_vx*/
+
 static const char cumsum_bf16_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
 _viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;\n\
@@ -13578,6 +15782,119 @@ __kernel void gather_nd_F16toF16_1D(\n\
     VXC_ReadImage(src, input0, coord.zw, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
     VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
+\n\
+__kernel void gather_nd_array_I8toI8_1D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    coord.w = indice.x;\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 1);\n\
+    Image img2 = create_image_from_image2d(output, 1);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord.zw);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global char* data_ptr = (__global char*)input_ptr;\n\
+    __global char* dst_ptr = (__global char*)output_ptr;\n\
+    char src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_U8toU8_1D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    coord.w = indice.x;\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 1);\n\
+    Image img2 = create_image_from_image2d(output, 1);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord.zw);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global uchar* data_ptr = (__global uchar*)input_ptr;\n\
+    __global uchar* dst_ptr = (__global uchar*)output_ptr;\n\
+    uchar src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_I16toI16_1D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    coord.w = indice.x;\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord.zw);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+\n\
+}\n\
+\n\
+__kernel void gather_nd_array_F16toF16_1D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    coord.w = indice.x;\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord.zw);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
 "; /* end of gather_nd_vx*/
 
 static const char gather_nd_2d_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
@@ -13674,6 +15991,119 @@ __kernel void gather_nd_F16toF16_2D(\n\
     VXC_ReadImage(src, input0, indice.xy, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
     VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
+\n\
+__kernel void gather_nd_array_I8toI8_2D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 1);\n\
+    Image img2 = create_image_from_image2d(output, 1);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, indice.xy);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global char* data_ptr = (__global char*)input_ptr;\n\
+    __global char* dst_ptr = (__global char*)output_ptr;\n\
+    char src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_U8toU8_2D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 1);\n\
+    Image img2 = create_image_from_image2d(output, 1);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, indice.xy);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global uchar* data_ptr = (__global uchar*)input_ptr;\n\
+    __global uchar* dst_ptr = (__global uchar*)output_ptr;\n\
+    uchar src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+\n\
+}\n\
+\n\
+__kernel void gather_nd_array_I16toI16_2D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, indice.xy);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_F16toF16_2D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, indice.xy);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
 "; /* end of gather_nd_2d_vx*/
 
 static const char gather_nd_2d_mix_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
@@ -13758,7 +16188,88 @@ __kernel void gather_nd_F16to##src1_type_name##_2D( \\\n\
 GATHER_ND_F16_TO_QINT_2D(U8, vxc_uchar16)\n\
 GATHER_ND_F16_TO_QINT_2D(I8, vxc_char16)\n\
 GATHER_ND_F16_TO_QINT_2D(I16, vxc_short8)\n\
-"; /* end of gather_nd_2d_mix_vx*/
+\n\
+#define GATHER_ND_ARRAY_QINT_TO_F16_2D(src0_type_name, read_type, ptr_type, stride) \\\n\
+__kernel void gather_nd_array_##src0_type_name##toF16_2D( \\\n\
+    __read_only image2d_t   input0, \\\n\
+    __read_only image2d_t   input1, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int block_size, \\\n\
+    int coord_dim \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+ \\\n\
+    int4 coord = (int4)(0, gidy, gidx, 0); \\\n\
+    Image img = create_image_from_image2d(input1, 4); \\\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \\\n\
+    int4 indice = ((int4 *)indice_ptr)[0]; \\\n\
+ \\\n\
+    indice.x = indice.x * block_size + gidx; \\\n\
+ \\\n\
+    Image img1 = create_image_from_image2d(input0, stride); \\\n\
+    Image img2 = create_image_from_image2d(output, 2); \\\n\
+ \\\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, indice.xy); \\\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy); \\\n\
+ \\\n\
+    __global ptr_type data_ptr = (__global ptr_type)input_ptr; \\\n\
+    __global vxc_short8* dst_ptr = (__global vxc_short8* )output_ptr; \\\n\
+    read_type src = data_ptr[0]; \\\n\
+ \\\n\
+    vxc_half8  src0; \\\n\
+    vxc_short8 dst0; \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    VXC_DP2x8(src0,src,ms0,VXC_MODIFIER(0,7,0,VXC_RM_TowardZero,1),uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+    _viv_asm(COPY, dst0, src0, 16); \\\n\
+    dst_ptr[0] = dst0; \\\n\
+}\n\
+GATHER_ND_ARRAY_QINT_TO_F16_2D(U8, vxc_uchar16, vxc_uchar16*, 1)\n\
+GATHER_ND_ARRAY_QINT_TO_F16_2D(I8, vxc_char16, vxc_char16*, 1)\n\
+GATHER_ND_ARRAY_QINT_TO_F16_2D(I16, vxc_short8, vxc_short8*, 2)\n\
+\n\
+#define GATHER_ND_ARRAY_F16_TO_QINT_2D(src1_type_name, write_type, ptr_type, stride) \\\n\
+__kernel void gather_nd_array_F16to##src1_type_name##_2D( \\\n\
+    __read_only image2d_t   input0, \\\n\
+    __read_only image2d_t   input1, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int block_size, \\\n\
+    int coord_dim \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+ \\\n\
+    int4 coord = (int4)(0, gidy, gidx, 0); \\\n\
+    Image img = create_image_from_image2d(input1, 4); \\\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \\\n\
+    int4 indice = ((int4 *)indice_ptr)[0]; \\\n\
+ \\\n\
+    indice.x = indice.x * block_size + gidx; \\\n\
+ \\\n\
+    Image img1 = create_image_from_image2d(input0, 2); \\\n\
+    Image img2 = create_image_from_image2d(output, stride); \\\n\
+ \\\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, indice.xy); \\\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy); \\\n\
+ \\\n\
+    __global vxc_short8* data_ptr = (__global vxc_short8*)input_ptr; \\\n\
+    __global ptr_type dst_ptr = (__global ptr_type )output_ptr; \\\n\
+    vxc_short8 src = data_ptr[0]; \\\n\
+ \\\n\
+    vxc_ushort8 mp1; \\\n\
+    _viv_asm(COPY, mp1, multAndoutZP1, 16); \\\n\
+    vxc_half8 data; \\\n\
+    write_type dst; \\\n\
+    _viv_asm(COPY, data, src, 16); \\\n\
+    VXC_DP2x8(dst,data,mp1,VXC_MODIFIER(0,7,0,VXC_RM_ToNearestEven,1),uniConvertFp16toU8_2x8); \\\n\
+    dst_ptr[0] = dst; \\\n\
+}\n\
+GATHER_ND_ARRAY_F16_TO_QINT_2D(U8, vxc_uchar16, vxc_uchar16*, 1)\n\
+GATHER_ND_ARRAY_F16_TO_QINT_2D(I8, vxc_char16, vxc_char16*, 1)\n\
+GATHER_ND_ARRAY_F16_TO_QINT_2D(I16, vxc_short8, vxc_short8*, 2)"; /* end of gather_nd_2d_mix_vx*/
 
 static const char gather_nd_3d_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -13860,6 +16371,123 @@ __kernel void gather_nd_F16toF16_3D(\n\
     VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
+__kernel void gather_nd_array_I8toI8_3D(\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+    indice.w = 0;\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 1);\n\
+    Image img2 = create_image_from_image2d(output, 1);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global char* data_ptr = (__global char*)input_ptr;\n\
+    __global char* dst_ptr = (__global char*)output_ptr;\n\
+    char src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_U8toU8_3D(\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+    indice.w = 0;\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 1);\n\
+    Image img2 = create_image_from_image2d(output, 1);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global uchar* data_ptr = (__global uchar*)input_ptr;\n\
+    __global uchar* dst_ptr = (__global uchar*)output_ptr;\n\
+    uchar src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+\n\
+}\n\
+\n\
+__kernel void gather_nd_array_I16toI16_3D(\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+    indice.w = 0;\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_F16toF16_3D(\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_t   input1,\n\
+    __write_only image2d_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // indices_num\n\
+\n\
+    int4 coord = (int4)(0, gidy, gidx, 0);\n\
+    Image img = create_image_from_image2d(input1, 4);\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+    indice.w = 0;\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 2);\n\
+    Image img2 = create_image_from_image2d(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
 "; /* end of gather_nd_3d_vx*/
 
 static const char gather_nd_3d_mix_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
@@ -13943,6 +16571,89 @@ __kernel void gather_nd_F16to##src1_type_name##_3D( \\\n\
 GATHER_ND_F16_TO_QINT_3D(U8, vxc_uchar16)\n\
 GATHER_ND_F16_TO_QINT_3D(I8, vxc_char16)\n\
 GATHER_ND_F16_TO_QINT_3D(I16, vxc_short8)\n\
+\n\
+#define GATHER_ND_ARRAY_QINT_TO_F16_3D(src0_type_name, read_type, ptr_type, stride) \\\n\
+__kernel void gather_nd_array_##src0_type_name##toF16_3D( \\\n\
+    __read_only image2d_array_t   input0, \\\n\
+    __read_only image2d_t   input1, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int block_size, \\\n\
+    int coord_dim \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+ \\\n\
+    int4 coord = (int4)(0, gidy, gidx, 0); \\\n\
+    Image img = create_image_from_image2d(input1, 4); \\\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \\\n\
+    int4 indice = ((int4 *)indice_ptr)[0]; \\\n\
+ \\\n\
+    indice.x = indice.x * block_size + gidx; \\\n\
+    indice.w = 0; \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, stride); \\\n\
+    Image img2 = create_image_from_image2d(output, 2); \\\n\
+ \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice); \\\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy); \\\n\
+ \\\n\
+    __global ptr_type data_ptr = (__global ptr_type)input_ptr; \\\n\
+    __global vxc_short8* dst_ptr = (__global vxc_short8* )output_ptr; \\\n\
+    read_type src = data_ptr[0]; \\\n\
+ \\\n\
+    vxc_half8  src0; \\\n\
+    vxc_short8 dst0; \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    VXC_DP2x8(src0,src,ms0,VXC_MODIFIER(0,7,0,VXC_RM_TowardZero,1),uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+    _viv_asm(COPY, dst0, src0, 16); \\\n\
+    dst_ptr[0] = dst0; \\\n\
+}\n\
+GATHER_ND_ARRAY_QINT_TO_F16_3D(U8, vxc_uchar16, vxc_uchar16*, 1)\n\
+GATHER_ND_ARRAY_QINT_TO_F16_3D(I8, vxc_char16, vxc_char16*, 1)\n\
+GATHER_ND_ARRAY_QINT_TO_F16_3D(I16, vxc_short8, vxc_short8*, 2)\n\
+\n\
+#define GATHER_ND_ARRAY_F16_TO_QINT_3D(src1_type_name, write_type, ptr_type, stride) \\\n\
+__kernel void gather_nd_array_F16to##src1_type_name##_3D( \\\n\
+    __read_only image2d_array_t   input0, \\\n\
+    __read_only image2d_t   input1, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int block_size, \\\n\
+    int coord_dim \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+ \\\n\
+    int4 coord = (int4)(0, gidy, gidx, 0); \\\n\
+    Image img = create_image_from_image2d(input1, 4); \\\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \\\n\
+    int4 indice = ((int4 *)indice_ptr)[0]; \\\n\
+ \\\n\
+    indice.x = indice.x * block_size + gidx; \\\n\
+    indice.w = 0; \\\n\
+ \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 2); \\\n\
+    Image img2 = create_image_from_image2d(output, stride); \\\n\
+ \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice); \\\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy); \\\n\
+ \\\n\
+    __global vxc_short8* data_ptr = (__global vxc_short8*)input_ptr; \\\n\
+    __global ptr_type dst_ptr = (__global ptr_type )output_ptr; \\\n\
+    vxc_short8 src = data_ptr[0]; \\\n\
+ \\\n\
+    vxc_ushort8 mp1; \\\n\
+    _viv_asm(COPY, mp1, multAndoutZP1, 16); \\\n\
+    vxc_half8 data; \\\n\
+    write_type dst; \\\n\
+    _viv_asm(COPY, data, src, 16); \\\n\
+    VXC_DP2x8(dst,data,mp1,VXC_MODIFIER(0,7,0,VXC_RM_ToNearestEven,1), uniConvertFp16toU8_2x8); \\\n\
+    dst_ptr[0] = dst; \\\n\
+}\n\
+GATHER_ND_ARRAY_F16_TO_QINT_3D(U8, vxc_uchar16, vxc_uchar16*, 1)\n\
+GATHER_ND_ARRAY_F16_TO_QINT_3D(I8, vxc_char16, vxc_char16*, 1)\n\
+GATHER_ND_ARRAY_F16_TO_QINT_3D(I16, vxc_short8, vxc_short8*, 2)\n\
 \n\
 "; /* end of gather_nd_3d_mix_vx*/
 
@@ -14043,7 +16754,121 @@ __kernel void gather_nd_batch_F16toF16_1D(\n\
     VXC_ReadImage(src, input0, coord0, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
     VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
-"; /* end of gather_nd_batch_vx*/
+\n\
+__kernel void gather_nd_array_batch_I8toI8_1D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __write_only image2d_array_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // index num\n\
+    int gidz = get_global_id(2);  // batch num\n\
+\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    Tensor img = create_tensor_from_image2d_array(input1, 4);\n\
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord.wyzw);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+    int2 coord0 = (int2)(indice.x * block_size + gidx, gidz);\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 1);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 1);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord0);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global char* data_ptr = (__global char*)input_ptr;\n\
+    __global char* dst_ptr = (__global char*)output_ptr;\n\
+    char src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_batch_U8toU8_1D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __write_only image2d_array_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // index num\n\
+    int gidz = get_global_id(2);  // batch num\n\
+\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    Tensor img = create_tensor_from_image2d_array(input1, 4);\n\
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord.wyzw);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    int2 coord0 = (int2)(indice.x * block_size + gidx, gidz);\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 1);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 1);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord0);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global uchar* data_ptr = (__global uchar*)input_ptr;\n\
+    __global uchar* dst_ptr = (__global uchar*)output_ptr;\n\
+    uchar src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_batch_I16toI16_1D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __write_only image2d_array_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // index num\n\
+    int gidz = get_global_id(2);  // batch num\n\
+\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    Tensor img = create_tensor_from_image2d_array(input1, 4);\n\
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord.wyzw);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    int2 coord0 = (int2)(indice.x * block_size + gidx, gidz);\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord0);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_batch_F16toF16_1D(\n\
+    __read_only image2d_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __write_only image2d_array_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // index num\n\
+    int gidz = get_global_id(2);  // batch num\n\
+\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    Tensor img = create_tensor_from_image2d_array(input1, 4);\n\
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord.wyzw);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    int2 coord0 = (int2)(indice.x * block_size + gidx, gidz);\n\
+\n\
+    Image img1 = create_image_from_image2d(input0, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord0);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}"; /* end of gather_nd_batch_vx*/
 
 static const char gather_nd_batch_2d_vx[] = "#include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -14073,7 +16898,7 @@ __kernel void gather_nd_batch_I8toI8_2D(\n\
     VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
-__kernel void gather_nd_U8toU8_2D(\n\
+__kernel void gather_nd_batch_U8toU8_2D(\n\
     __read_only image2d_array_t   input0,\n\
     __read_only image2d_array_t   input1,\n\
     __write_only image2d_array_t  output,\n\
@@ -14098,7 +16923,7 @@ __kernel void gather_nd_U8toU8_2D(\n\
     VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
-__kernel void gather_nd_I16toI16_2D(\n\
+__kernel void gather_nd_batch_I16toI16_2D(\n\
     __read_only image2d_array_t   input0,\n\
     __read_only image2d_array_t   input1,\n\
     __write_only image2d_array_t  output,\n\
@@ -14123,7 +16948,7 @@ __kernel void gather_nd_I16toI16_2D(\n\
     VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 \n\
-__kernel void gather_nd_F16toF16_2D(\n\
+__kernel void gather_nd_batch_F16toF16_2D(\n\
     __read_only image2d_array_t   input0,\n\
     __read_only image2d_array_t   input1,\n\
     __write_only image2d_array_t  output,\n\
@@ -14146,6 +16971,126 @@ __kernel void gather_nd_F16toF16_2D(\n\
     vxc_short8 src;\n\
     VXC_ReadImage2DArray(src, input0, indice, 0, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
     VXC_WriteImage2DArray(output, coord, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));\n\
+}\n\
+\n\
+__kernel void gather_nd_array_batch_I8toI8_2D(\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __write_only image2d_array_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // index num\n\
+    int gidz = get_global_id(2);  // batch num\n\
+\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    Tensor img = create_tensor_from_image2d_array(input1, 4);\n\
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord.wyzw);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+    indice.zw = coord.zw;\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 1);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 1);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global char* data_ptr = (__global char*)input_ptr;\n\
+    __global char* dst_ptr = (__global char*)output_ptr;\n\
+    char src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_batch_U8toU8_2D(\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __write_only image2d_array_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // index num\n\
+    int gidz = get_global_id(2);  // batch num\n\
+\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    Tensor img = create_tensor_from_image2d_array(input1, 4);\n\
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord.wyzw);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+    indice.zw = coord.zw;\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 1);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 1);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global uchar* data_ptr = (__global uchar*)input_ptr;\n\
+    __global uchar* dst_ptr = (__global uchar*)output_ptr;\n\
+    uchar src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_batch_I16toI16_2D(\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __write_only image2d_array_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // index num\n\
+    int gidz = get_global_id(2);  // batch num\n\
+\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    Tensor img = create_tensor_from_image2d_array(input1, 4);\n\
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord.wyzw);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+    indice.zw = coord.zw;\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
+}\n\
+\n\
+__kernel void gather_nd_array_batch_F16toF16_2D(\n\
+    __read_only image2d_array_t   input0,\n\
+    __read_only image2d_array_t   input1,\n\
+    __write_only image2d_array_t  output,\n\
+    int block_size,\n\
+    int coord_dim\n\
+    )\n\
+{\n\
+    int gidx = get_global_id(0);  // block_size\n\
+    int gidy = get_global_id(1);  // index num\n\
+    int gidz = get_global_id(2);  // batch num\n\
+\n\
+    int4 coord = (int4)(gidx, gidy, gidz, 0);\n\
+    Tensor img = create_tensor_from_image2d_array(input1, 4);\n\
+    uchar* indice_ptr = get_tensor_ptr_from_coord(img, coord.wyzw);\n\
+    int4 indice = ((int4 *)indice_ptr)[0];\n\
+\n\
+    indice.x = indice.x * block_size + gidx;\n\
+    indice.zw = coord.zw;\n\
+\n\
+    Tensor img1 = create_tensor_from_image2d_array(input0, 2);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global short* data_ptr = (__global short*)input_ptr;\n\
+    __global short* dst_ptr = (__global short*)output_ptr;\n\
+    short src = data_ptr[0];\n\
+    dst_ptr[0] = src;\n\
 }\n\
 "; /* end of gather_nd_batch_2d_vx*/
 
@@ -14231,6 +17176,88 @@ __kernel void gather_nd_F16to##src1_type_name##_1D( \\\n\
 GATHER_ND_F16_TO_QINT_1D(U8, vxc_uchar16)\n\
 GATHER_ND_F16_TO_QINT_1D(I8, vxc_char16)\n\
 GATHER_ND_F16_TO_QINT_1D(I16, vxc_short8)\n\
+\n\
+#define GATHER_ND_ARRAY_QINT_TO_F16_1D(src0_type_name, read_type, ptr_type, stride) \\\n\
+__kernel void gather_nd_array_##src0_type_name##toF16_1D( \\\n\
+    __read_only image2d_t   input0, \\\n\
+    __read_only image2d_t   input1, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int block_size, \\\n\
+    int coord_dim \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+ \\\n\
+    int4 coord = (int4)(0, gidy, gidx, 0); \\\n\
+    Image img = create_image_from_image2d(input1, 4); \\\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \\\n\
+    int4 indice = ((int4 *)indice_ptr)[0]; \\\n\
+ \\\n\
+    coord.w = indice.x; \\\n\
+ \\\n\
+    Image img1 = create_image_from_image2d(input0, stride); \\\n\
+    Image img2 = create_image_from_image2d(output, 2); \\\n\
+ \\\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord.zw); \\\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy); \\\n\
+ \\\n\
+    __global ptr_type data_ptr = (__global ptr_type)input_ptr; \\\n\
+    __global vxc_short8* dst_ptr = (__global vxc_short8* )output_ptr; \\\n\
+    read_type src = data_ptr[0]; \\\n\
+ \\\n\
+    vxc_half8  src0; \\\n\
+    vxc_short8 dst0; \\\n\
+    vxc_ushort8 ms0; \\\n\
+    _viv_asm(COPY, ms0, multAndoutZP0, 16); \\\n\
+    VXC_DP2x8(src0,src,ms0,VXC_MODIFIER(0,7,0,VXC_RM_TowardZero,1),uniU8MulAndPostShift_0_Lo_2x8); \\\n\
+    _viv_asm(COPY, dst0, src0, 16); \\\n\
+    dst_ptr[0] = dst0; \\\n\
+}\n\
+GATHER_ND_ARRAY_QINT_TO_F16_1D(U8, vxc_uchar16, vxc_uchar16*, 1)\n\
+GATHER_ND_ARRAY_QINT_TO_F16_1D(I8, vxc_char16, vxc_char16*, 1)\n\
+GATHER_ND_ARRAY_QINT_TO_F16_1D(I16, vxc_short8, vxc_short8*, 2)\n\
+\n\
+#define GATHER_ND_ARRAY_F16_TO_QINT_1D(src1_type_name, write_type, ptr_type, stride) \\\n\
+__kernel void gather_nd_array_F16to##src1_type_name##_1D( \\\n\
+    __read_only image2d_t   input0, \\\n\
+    __read_only image2d_t   input1, \\\n\
+    __write_only image2d_t  output, \\\n\
+    int block_size, \\\n\
+    int coord_dim \\\n\
+    ) \\\n\
+{ \\\n\
+    int gidx = get_global_id(0); \\\n\
+    int gidy = get_global_id(1); \\\n\
+ \\\n\
+    int4 coord = (int4)(0, gidy, gidx, 0); \\\n\
+    Image img = create_image_from_image2d(input1, 4); \\\n\
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy); \\\n\
+    int4 indice = ((int4 *)indice_ptr)[0]; \\\n\
+ \\\n\
+    coord.w = indice.x; \\\n\
+ \\\n\
+    Image img1 = create_image_from_image2d(input0, 2); \\\n\
+    Image img2 = create_image_from_image2d(output, stride); \\\n\
+ \\\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord.zw); \\\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy); \\\n\
+ \\\n\
+    __global vxc_short8* data_ptr = (__global vxc_short8*)input_ptr; \\\n\
+    __global ptr_type dst_ptr = (__global ptr_type )output_ptr; \\\n\
+    vxc_short8 src = data_ptr[0]; \\\n\
+    vxc_ushort8 mp1; \\\n\
+    _viv_asm(COPY, mp1, multAndoutZP1, 16); \\\n\
+    vxc_half8 data; \\\n\
+    write_type dst; \\\n\
+    _viv_asm(COPY, data, src, 16); \\\n\
+    VXC_DP2x8(dst,data,mp1,VXC_MODIFIER(0,7,0,VXC_RM_ToNearestEven, 1),uniConvertFp16toU8_2x8); \\\n\
+    dst_ptr[0] = dst; \\\n\
+}\n\
+GATHER_ND_ARRAY_F16_TO_QINT_1D(U8, vxc_uchar16, vxc_uchar16*, 1)\n\
+GATHER_ND_ARRAY_F16_TO_QINT_1D(I8, vxc_char16, vxc_char16*, 1)\n\
+GATHER_ND_ARRAY_F16_TO_QINT_1D(I16, vxc_short8, vxc_short8*, 2)\n\
+\n\
 \n\
 "; /* end of gather_nd_mix_vx*/
 
@@ -39749,7 +42776,7 @@ __kernel void pre_process_gray_half_U8toU8\n\
 \n\
     coord_in.xy = coord_in.xy >> 1;\n\
 \n\
-    VXC_WriteImage(output, coord_in.xy, src0.s02468ace, VXC_MODIFIER(0, 11, 0, VXC_RM_TowardZero, 0));\n\
+    VXC_WriteImage(output, coord_in.xy, src0.s02468ace, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));\n\
 }\n\
 "; /* end of pre_process_gray_2_vx*/
 
@@ -60368,6 +63395,169 @@ __kernel void clip_U8toF32_2D(\n\
 }\n\
 "; /* end of clip_U8_cl*/
 
+static const char col2im_cl[] = "#pragma OPENCL EXTENSION cl_viv_vx_extension : enable\n\
+#include \"cl_viv_vx_ext.h\"\n\
+\n\
+_viv_uniform int width_pad;\n\
+_viv_uniform int height_pad;\n\
+_viv_uniform int depth_pad;\n\
+_viv_uniform int move_time_x;\n\
+_viv_uniform int move_time_y;\n\
+_viv_uniform int kernel_x_new;\n\
+_viv_uniform int kernel_y_new;\n\
+_viv_uniform int kernel_z_new;\n\
+_viv_uniform int depth;\n\
+\n\
+#define COL2IM(name, read_type, dst_type ,convert_type, write_type) \\\n\
+__kernel void col2im_##name \\\n\
+( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+                 int              stride_w, \\\n\
+                 int              stride_h, \\\n\
+                 int              stride_d, \\\n\
+                 int              dilation_w, \\\n\
+                 int              dilation_h, \\\n\
+                 int              dilation_d, \\\n\
+                 int              pad_w_front, \\\n\
+                 int              pad_w_end, \\\n\
+                 int              pad_h_front, \\\n\
+                 int              pad_h_end, \\\n\
+                 int              pad_d_front, \\\n\
+                 int              pad_d_end, \\\n\
+                 int              kernel_x, \\\n\
+                 int              kernel_y, \\\n\
+                 int              kernel_z, \\\n\
+                 float            inOutScale, \\\n\
+                 float            inOutTile \\\n\
+) \\\n\
+{ \\\n\
+    int x = get_global_id(0); \\\n\
+    int y = get_global_id(1); \\\n\
+    int z = get_global_id(2); \\\n\
+    int4 coord_out = (int4)(x,y,z,0); \\\n\
+    int b = z / depth; \\\n\
+    z = z % depth; \\\n\
+    int4 coord_in = (int4)(0,0,b,0); \\\n\
+ \\\n\
+    float sum = 0.0f; \\\n\
+    x = x + pad_w_front; \\\n\
+    y = y + pad_h_front; \\\n\
+    z = z + pad_d_front; \\\n\
+    int offset_x = x % stride_w; \\\n\
+    int offset_y = y % stride_h; \\\n\
+    int offset_z = z % stride_d; \\\n\
+    int i,j,k; \\\n\
+    for (k = offset_z; k < kernel_z_new; k += stride_d) \\\n\
+    { \\\n\
+        if ((z - k) < 0 || (z + (kernel_z_new - k)) > depth_pad || k % dilation_d != 0) \\\n\
+        { \\\n\
+            continue; \\\n\
+        } \\\n\
+        for (j = offset_y; j < kernel_y_new; j = j + stride_h) \\\n\
+        { \\\n\
+            if ((y - j) < 0 || (y + (kernel_y_new - j)) > height_pad || j % dilation_h != 0) \\\n\
+            { \\\n\
+                continue; \\\n\
+            } \\\n\
+            for (i = offset_x; i < kernel_x_new; i = i + stride_w) \\\n\
+            { \\\n\
+                if ((x - i) < 0 || (x + (kernel_x_new - i)) > width_pad || i % dilation_w != 0) \\\n\
+                { \\\n\
+                    continue; \\\n\
+                } \\\n\
+                coord_in.x = (x - i + stride_w - 1) / stride_w + \\\n\
+                             (y - j + stride_h - 1) / stride_h * move_time_x + \\\n\
+                             (z - k + stride_d - 1) / stride_d * move_time_y * move_time_x; \\\n\
+                coord_in.y = i / dilation_w + j * kernel_x / dilation_h + k * kernel_x * kernel_y / dilation_d; \\\n\
+                sum = sum + convert_float(read_type(input, coord_in).x); \\\n\
+            } \\\n\
+        } \\\n\
+    } \\\n\
+    sum = sum * inOutScale + inOutTile; \\\n\
+    dst_type dst = 0; \\\n\
+    dst.x = convert_type(sum); \\\n\
+    write_type(output, coord_out, dst); \\\n\
+}\n\
+COL2IM(U32toU32, read_imageui, uint4,  convert_uint,  write_imageui)\n\
+COL2IM(U32toI32, read_imageui, int4,   convert_int,   write_imagei)\n\
+COL2IM(U32toF32, read_imageui, float4, convert_float, write_imagef)\n\
+COL2IM(I32toU32, read_imagei,  uint4,  convert_uint,  write_imageui)\n\
+COL2IM(I32toI32, read_imagei,  int4,   convert_int,   write_imagei)\n\
+COL2IM(I32toF32, read_imagei,  float4, convert_float, write_imagef)\n\
+COL2IM(F32toU32, read_imagef,  uint4,  convert_uint,  write_imageui)\n\
+COL2IM(F32toI32, read_imagef,  int4,   convert_int,   write_imagei)\n\
+COL2IM(F32toF32, read_imagef,  float4, convert_float, write_imagef)\n\
+\n\
+#define COL2IM_2D(name, read_type, dst_type ,convert_type, write_type) \\\n\
+__kernel void col2im_##name##_2D \\\n\
+( \\\n\
+    __read_only image2d_array_t   input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+                 int              stride_w, \\\n\
+                 int              stride_h, \\\n\
+                 int              stride_d, \\\n\
+                 int              dilation_w, \\\n\
+                 int              dilation_h, \\\n\
+                 int              dilation_d, \\\n\
+                 int              pad_w_front, \\\n\
+                 int              pad_w_end, \\\n\
+                 int              pad_h_front, \\\n\
+                 int              pad_h_end, \\\n\
+                 int              pad_d_front, \\\n\
+                 int              pad_d_end, \\\n\
+                 int              kernel_x, \\\n\
+                 int              kernel_y, \\\n\
+                 int              kernel_z, \\\n\
+                 float            inOutScale, \\\n\
+                 float            inOutTile \\\n\
+) \\\n\
+{ \\\n\
+    int x = get_global_id(0); \\\n\
+    int y = get_global_id(1); \\\n\
+    int z = get_global_id(2); \\\n\
+    int4 coord_out = (int4)(x,y,z,0); \\\n\
+    int4 coord_in = (int4)(0,0,z,0); \\\n\
+ \\\n\
+    float sum = 0.0f; \\\n\
+    x = x + pad_w_front; \\\n\
+    y = y + pad_h_front; \\\n\
+    int offset_x = x % stride_w; \\\n\
+    int offset_y = y % stride_h; \\\n\
+    int i,j; \\\n\
+    for (j = offset_y; j < kernel_y_new; j = j + stride_h) \\\n\
+    { \\\n\
+        if ((y - j) < 0 || (y + (kernel_y_new - j)) > height_pad || j % dilation_h != 0) \\\n\
+        { \\\n\
+            continue; \\\n\
+        } \\\n\
+        for (i = offset_x; i < kernel_x_new; i = i + stride_w) \\\n\
+        { \\\n\
+            if ((x - i) < 0 || (x + (kernel_x_new - i)) > width_pad || i % dilation_w != 0) \\\n\
+            { \\\n\
+                continue; \\\n\
+            } \\\n\
+            coord_in.x = (x - i + stride_w - 1) / stride_w + \\\n\
+                         (y - j + stride_h - 1) / stride_h * move_time_x; \\\n\
+            coord_in.y = i / dilation_w + j * kernel_x / dilation_h; \\\n\
+            sum = sum + convert_float(read_type(input, coord_in).x); \\\n\
+        } \\\n\
+    } \\\n\
+    sum = sum * inOutScale + inOutTile; \\\n\
+    dst_type dst = 0; \\\n\
+    dst.x = convert_type(sum); \\\n\
+    write_type(output, coord_out, dst); \\\n\
+}\n\
+COL2IM_2D(U32toU32, read_imageui, uint4,  convert_uint,  write_imageui)\n\
+COL2IM_2D(U32toI32, read_imageui, int4,   convert_int,   write_imagei)\n\
+COL2IM_2D(U32toF32, read_imageui, float4, convert_float, write_imagef)\n\
+COL2IM_2D(I32toU32, read_imagei,  uint4,  convert_uint,  write_imageui)\n\
+COL2IM_2D(I32toI32, read_imagei,  int4,   convert_int,   write_imagei)\n\
+COL2IM_2D(I32toF32, read_imagei,  float4, convert_float, write_imagef)\n\
+COL2IM_2D(F32toU32, read_imagef,  uint4,  convert_uint,  write_imageui)\n\
+COL2IM_2D(F32toI32, read_imagef,  int4,   convert_int,   write_imagei)\n\
+COL2IM_2D(F32toF32, read_imagef,  float4, convert_float, write_imagef)"; /* end of col2im_cl*/
+
 static const char crop_and_resize_bilinear_cl[] = "#pragma OPENCL EXTENSION cl_viv_vx_extension : enable\n\
 #include \"cl_viv_vx_ext.h\"\n\
 \n\
@@ -61556,6 +64746,1315 @@ __kernel void cumsum_F32toU8_axis0_2D(\n\
     }\n\
 }\n\
 "; /* end of cumsum_2d_cl*/
+
+static const char cumsum_array_2d_axis0_cl[] = "\n\
+__kernel void cumsum_array_F32toF32_axis0_2D(\n\
+    __read_only image2d_t  input,\n\
+    __write_only image2d_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int chn,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
+\n\
+    float sum = (float)(0);\n\
+    Image img1 = create_image_from_image2d(input, 4);\n\
+    Image img2 = create_image_from_image2d(output, 4);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+    __global float* in_ptr = (__global float*)input_ptr;\n\
+    __global float* out_ptr = (__global float*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord.x = width - 1;\n\
+        coord.z = coord.x;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+\n\
+        for(; coord.x > 0; coord.x--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord.z--;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        coord.z = 0;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+        for(coord.x = 0; coord.x < width - 1; coord.x++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord.z++;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.x = width - 1; coord.x >= 0; coord.x--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.x = 0; coord.x < width; coord.x++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_array_U8toU8_axis0_2D(\n\
+    __read_only image2d_t  input,\n\
+    __write_only image2d_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int chn,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
+\n\
+    uint sum = (uint)(0);\n\
+    uint dst = (uint)(0);\n\
+\n\
+    int tmp_zp = convert_int_rte(output_zp);\n\
+    dst.x = convert_uint_sat(tmp_zp);\n\
+\n\
+    float cnt = 0.0f;\n\
+\n\
+    Image img1 = create_image_from_image2d(input, 4);\n\
+    Image img2 = create_image_from_image2d(output, 4);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+    __global uint* in_ptr = (__global uint*)input_ptr;\n\
+    __global uint* out_ptr = (__global uint*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord.x = width - 1;\n\
+        coord.z = coord.x;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(; coord.x > 0; coord.x--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global uint*)input_ptr;\n\
+            uint data = in_ptr[0];\n\
+            coord.z--;\n\
+            cnt += 1.0;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        coord.z = 0;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(coord.x = 0; coord.x < width - 1; coord.x++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global uint*)input_ptr;\n\
+            uint data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            coord.z++;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.x = width - 1; coord.x >= 0; coord.x--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global uint*)input_ptr;\n\
+            uint data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.x = 0; coord.x < width; coord.x++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global uint*)input_ptr;\n\
+            uint data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_array_F32toU8_axis0_2D(\n\
+    __read_only image2d_t  input,\n\
+    __write_only image2d_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int chn,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
+\n\
+    float4 sum = (float4)(0);\n\
+    uint4 dst = (uint4)(0);\n\
+    int tmp_zp = convert_int_rte(output_zp);\n\
+    dst.x = convert_uint_sat(tmp_zp);\n\
+\n\
+    float cnt = 0.0f;\n\
+    Image img1 = create_image_from_image2d(input, 4);\n\
+    Image img2 = create_image_from_image2d(output, 4);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+    __global float* in_ptr = (__global float*)input_ptr;\n\
+    __global uint* out_ptr = (__global uint*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord.x = width - 1;\n\
+        coord.z = coord.x;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global uint*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(; coord.x > 0; coord.x--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord.z--;\n\
+            cnt += 1.0;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        coord.z = 0;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global uint*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(coord.x = 0; coord.x < width - 1; coord.x++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            coord.z++;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.x = width - 1; coord.x >= 0; coord.x--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.x = 0; coord.x < width; coord.x++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum.x * in_out_scale + tmpAlpha;\n\
+\n\
+            dst.x = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+"; /* end of cumsum_array_2d_axis0_cl*/
+
+static const char cumsum_array_2d_axis1_cl[] = "\n\
+__kernel void cumsum_array_F32toF32_axis1_2D(\n\
+    __read_only image2d_t  input,\n\
+    __write_only image2d_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int chn,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
+\n\
+    float sum = (float)(0);\n\
+    Image img1 = create_image_from_image2d(input, 4);\n\
+    Image img2 = create_image_from_image2d(output, 4);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+    __global float* in_ptr = (__global float*)input_ptr;\n\
+    __global float* out_ptr = (__global float*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord.w = height - 1;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+        for(coord.y = height - 1; coord.y > 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord.w--;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        write_imagef(output, coord.zw, sum);\n\
+        for(coord.y = 0; coord.y < height - 1; coord.y++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord.w++;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.y = 0; coord.y < height; coord.y++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_array_U8toU8_axis1_2D(\n\
+    __read_only image2d_t  input,\n\
+    __write_only image2d_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int chn,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
+\n\
+    uint sum = (uint)(0);\n\
+    uint dst = (uint)(0);\n\
+\n\
+    int tmp_zp = convert_int_rte(output_zp);\n\
+    dst = convert_uint_sat(tmp_zp);\n\
+\n\
+    float cnt = 0;\n\
+    Image img1 = create_image_from_image2d(input, 4);\n\
+    Image img2 = create_image_from_image2d(output, 4);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+    __global uint* in_ptr = (__global uint*)input_ptr;\n\
+    __global uint* out_ptr = (__global uint*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord.w = height - 1;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(coord.y = height - 1; coord.y > 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global uint*)input_ptr;\n\
+            uint data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            coord.w--;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(coord.y = 0; coord.y < height - 1; coord.y++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global uint*)input_ptr;\n\
+            uint data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            coord.w++;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global uint*)input_ptr;\n\
+            uint data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.y = 0; coord.y < height; coord.y++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global uint*)input_ptr;\n\
+            uint data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+__kernel void cumsum_array_F32toU8_axis1_2D(\n\
+    __read_only image2d_t  input,\n\
+    __write_only image2d_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int chn,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
+\n\
+    float sum = (float)(0);\n\
+    uint dst = (uint)(0);\n\
+    int tmp_zp = convert_int_rte(output_zp);\n\
+    dst = convert_uint_sat(tmp_zp);\n\
+\n\
+    float cnt = 0;\n\
+    Image img1 = create_image_from_image2d(input, 4);\n\
+    Image img2 = create_image_from_image2d(output, 4);\n\
+    uchar* input_ptr = get_image_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord);\n\
+    __global float* in_ptr = (__global float*)input_ptr;\n\
+    __global uint* out_ptr = (__global uint*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord.w = height - 1;\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global uint*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(coord.y = height - 1; coord.y > 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            coord.w--;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+        out_ptr = (__global uint*)output_ptr;\n\
+        out_ptr[0] = dst;\n\
+        for(coord.y = 0; coord.y < height - 1; coord.y++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            coord.w++;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.zw);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.y = 0; coord.y < height; coord.y++)\n\
+        {\n\
+            input_ptr = get_image_ptr_from_coord(img1, coord.xy);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            cnt += 1.0f;\n\
+            sum += data;\n\
+\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp;\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha;\n\
+\n\
+            dst = (uint)convert_int_rte(tmpSum);\n\
+            output_ptr = get_image_ptr_from_coord(img2, coord.xy);\n\
+            out_ptr = (__global uint*)output_ptr;\n\
+            out_ptr[0] = dst;\n\
+        }\n\
+    }\n\
+}\n\
+"; /* end of cumsum_array_2d_axis1_cl*/
+
+static const char cumsum_array_axis0_cl[] = "\n\
+__kernel void cumsum_array_F32toF32_axis0(\n\
+    __read_only image2d_array_t  input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int channel,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+    int4 coord_out = coord;\n\
+\n\
+    float sum = (float)(0);\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 4);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 4);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global float* in_ptr = (__global float*)input_ptr;\n\
+    __global float* out_ptr = (__global float*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord_out.x = width - 1;\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+        for(coord.x = width - 1; coord.x > 0; coord.x--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord_out.x--;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        coord_out.x = 0;\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+        for(coord.x = 0; coord.x < width - 1; coord.x++)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord_out.x++;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.x = width - 1; coord.x >= 0; coord.x--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.x = 0; coord.x < width; coord.x++)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_ARRAY_toU8_AXIS0_SH(name, src_type) \\\n\
+__kernel void cumsum_array_##name##toU8_axis0( \\\n\
+    __read_only image2d_array_t  input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, \\\n\
+    int exclusive, \\\n\
+    int rev, \\\n\
+    int width, \\\n\
+    int height, \\\n\
+    int channel, \\\n\
+    int input_zp, \\\n\
+    float in_out_scale, \\\n\
+    float in_out_zp_scale, \\\n\
+    float output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+    int4 coord_out = coord; \\\n\
+ \\\n\
+    src_type sum = (src_type)(0); \\\n\
+    uint dst = (uint)(0); \\\n\
+    int tmp_zp = convert_int_rte(output_zp); \\\n\
+    dst = convert_uint_sat(tmp_zp); \\\n\
+ \\\n\
+    float cnt = 0; \\\n\
+ \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 4); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 4); \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+    __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+    __global uint* out_ptr = (__global uint*)output_ptr; \\\n\
+    if(exclusive && rev) \\\n\
+    { \\\n\
+        coord_out.x = width - 1; \\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+        out_ptr = (__global uint*)output_ptr; \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(coord.x = width - 1; coord.x > 0; coord.x--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            coord_out.x--; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive) \\\n\
+    { \\\n\
+        coord_out.x = 0; \\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+        out_ptr = (__global uint*)output_ptr; \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(coord.x = 0; coord.x < width - 1; coord.x++) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            coord_out.x++; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(rev) \\\n\
+    { \\\n\
+        for(coord.x = width - 1; coord.x >= 0; coord.x--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else \\\n\
+    { \\\n\
+        for(coord.x = 0; coord.x < width; coord.x++) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_toU8_AXIS0_SH(U8,uint)\n\
+CUMSUM_ARRAY_toU8_AXIS0_SH(F32,float)\n\
+"; /* end of cumsum_array_axis0_cl*/
+
+static const char cumsum_array_axis1_cl[] = "\n\
+__kernel void cumsum_array_F32toF32_axis1(\n\
+    __read_only image2d_array_t  input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int channel,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+    int4 coord_out = coord;\n\
+\n\
+    float sum = (float)(0);\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 4);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 4);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global float* in_ptr = (__global float*)input_ptr;\n\
+    __global float* out_ptr = (__global float*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord_out.y = height - 1;\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+        for(coord.y = height - 1; coord.y > 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord_out.y--;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        coord_out.y = 0;\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+        for(coord.y = 0; coord.y < height - 1; coord.y++)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord_out.y++;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.y = 0; coord.y < height; coord.y++)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_ARRAY_toU8_AXIS1_SH(name, src_type) \\\n\
+__kernel void cumsum_array_##name##toU8_axis1( \\\n\
+    __read_only image2d_array_t  input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, \\\n\
+    int exclusive, \\\n\
+    int rev, \\\n\
+    int width, \\\n\
+    int height, \\\n\
+    int channel, \\\n\
+    int input_zp, \\\n\
+    float in_out_scale, \\\n\
+    float in_out_zp_scale, \\\n\
+    float output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+    int4 coord_out = coord; \\\n\
+ \\\n\
+    src_type sum = (src_type)(0); \\\n\
+    uint dst = (uint4)(0); \\\n\
+    int tmp_zp = convert_int_rte(output_zp); \\\n\
+    dst = convert_uint_sat(tmp_zp); \\\n\
+ \\\n\
+    float cnt = 0; \\\n\
+ \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 4); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 4); \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+    __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+    __global uint* out_ptr = (__global uint*)output_ptr; \\\n\
+    if(exclusive && rev) \\\n\
+    { \\\n\
+        coord_out.y = height - 1; \\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+        out_ptr = (__global uint*)output_ptr; \\\n\
+        out_ptr[0] = dst; \\\n\
+ \\\n\
+        for(coord.y = height - 1; coord.y > 0; coord.y--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            cnt += 1.0f; \\\n\
+            coord_out.y--; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive) \\\n\
+    { \\\n\
+        coord_out.y = 0; \\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+        out_ptr = (__global uint*)output_ptr; \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(coord.y = 0; coord.y < height - 1; coord.y++) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            cnt += 1.0f; \\\n\
+            coord_out.y++; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(rev) \\\n\
+    { \\\n\
+        for(coord.y = height - 1; coord.y >= 0; coord.y--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else \\\n\
+    { \\\n\
+        for(coord.y = 0; coord.y < height; coord.y++) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_toU8_AXIS1_SH(U8,uint)\n\
+CUMSUM_ARRAY_toU8_AXIS1_SH(F32,float)\n\
+"; /* end of cumsum_array_axis1_cl*/
+
+static const char cumsum_array_axis2_cl[] = "__kernel void cumsum_array_F32toF32_axis2(\n\
+    __read_only image2d_array_t  input,\n\
+    __write_only image2d_array_t  output,\n\
+    int axis,\n\
+    int exclusive,\n\
+    int rev,\n\
+    int width,\n\
+    int height,\n\
+    int channel,\n\
+    int input_zp,\n\
+    float in_out_scale,\n\
+    float in_out_zp_scale,\n\
+    float output_zp\n\
+    )\n\
+{\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);\n\
+    int4 coord_out = coord;\n\
+\n\
+    float sum = 0;\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 4);\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 4);\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+    __global float* in_ptr = (__global float*)input_ptr;\n\
+    __global float* out_ptr = (__global float*)output_ptr;\n\
+    if(exclusive && rev)\n\
+    {\n\
+        coord_out.z = channel - 1;\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+\n\
+        for(coord.z = channel - 1; coord.z > 0; coord.z--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord_out.z--;\n\
+            sum += data;\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(exclusive)\n\
+    {\n\
+        coord_out.z = 0;\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+        out_ptr = (__global float*)output_ptr;\n\
+        out_ptr[0] = sum;\n\
+        for(coord.z = 0; coord.z < channel - 1; coord.z++)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            coord_out.z++;\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else if(rev)\n\
+    {\n\
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+    else\n\
+    {\n\
+        for(coord.z = 0; coord.z < channel; coord.z++)\n\
+        {\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);\n\
+            in_ptr = (__global float*)input_ptr;\n\
+            float data = in_ptr[0];\n\
+            sum += data;\n\
+\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);\n\
+            out_ptr = (__global float*)output_ptr;\n\
+            out_ptr[0] = sum;\n\
+        }\n\
+    }\n\
+}\n\
+\n\
+#define CUMSUM_ARRAY_toU8_AXIS2_SH(name, src_type) \\\n\
+__kernel void cumsum_array_##name##toU8_axis2( \\\n\
+    __read_only image2d_array_t  input, \\\n\
+    __write_only image2d_array_t  output, \\\n\
+    int axis, \\\n\
+    int exclusive, \\\n\
+    int rev, \\\n\
+    int width, \\\n\
+    int height, \\\n\
+    int channel, \\\n\
+    int input_zp, \\\n\
+    float in_out_scale, \\\n\
+    float in_out_zp_scale, \\\n\
+    float output_zp \\\n\
+    ) \\\n\
+{ \\\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0); \\\n\
+    int4 coord_out = coord; \\\n\
+ \\\n\
+    src_type sum = (src_type)(0); \\\n\
+    uint dst = (uint)(0); \\\n\
+    int tmp_zp = convert_int_rte(output_zp); \\\n\
+    dst = convert_uint_sat(tmp_zp); \\\n\
+ \\\n\
+    float cnt = 0.0f; \\\n\
+    Tensor img1 = create_tensor_from_image2d_array(input, 4); \\\n\
+    Tensor img2 = create_tensor_from_image2d_array(output, 4); \\\n\
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+    __global src_type* in_ptr = (__global src_type*)input_ptr; \\\n\
+    __global uint* out_ptr = (__global uint*)output_ptr; \\\n\
+ \\\n\
+    if(exclusive && rev) \\\n\
+    { \\\n\
+        coord_out.z = channel - 1; \\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+        out_ptr = (__global uint*)output_ptr; \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(coord.z = channel - 1; coord.z > 0; coord.z--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            coord_out.z--; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(exclusive) \\\n\
+    { \\\n\
+        coord_out.z = 0; \\\n\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+        out_ptr = (__global uint*)output_ptr; \\\n\
+        out_ptr[0] = dst; \\\n\
+        for(coord.z = 0; coord.z < channel - 1; coord.z++) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            coord_out.z++; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord_out); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else if(rev) \\\n\
+    { \\\n\
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+    else \\\n\
+    { \\\n\
+        for(coord.z = 0; coord.z < channel; coord.z++) \\\n\
+        { \\\n\
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \\\n\
+            in_ptr = (__global src_type*)input_ptr; \\\n\
+            src_type data = in_ptr[0]; \\\n\
+            cnt += 1.0f; \\\n\
+            sum += data; \\\n\
+ \\\n\
+            float tmpAlpha = cnt * in_out_zp_scale + output_zp; \\\n\
+            float tmpSum = sum * in_out_scale + tmpAlpha; \\\n\
+ \\\n\
+            dst = (uint)convert_int_rte(tmpSum); \\\n\
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \\\n\
+            out_ptr = (__global uint*)output_ptr; \\\n\
+            out_ptr[0] = dst; \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+CUMSUM_ARRAY_toU8_AXIS2_SH(U8,uint)\n\
+CUMSUM_ARRAY_toU8_AXIS2_SH(F32,float)\n\
+\n\
+"; /* end of cumsum_array_axis2_cl*/
 
 static const char depth2space_crd_cl[] = "\n\
 __kernel void depth2space_crd_F32toF32(\n\
@@ -80476,8 +84975,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \\\n\
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \\\n\
  \\\n\
-    __local float local_data[128]; \\\n\
-    __local uint local_indices[128]; \\\n\
+    __local float local_data[LOCAL_SIZE0 * 2]; \\\n\
+    __local uint local_indices[LOCAL_SIZE0 * 2]; \\\n\
  \\\n\
     float left = read_imagef(input, coord.xy).x; \\\n\
     coord.z += work_group_size; \\\n\
@@ -80509,7 +85008,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \\\n\
             float right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem) ^ signo) \\\n\
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80536,13 +85035,14 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.xy, index.xxxx); \\\n\
     write_imagei(indices, coord.zy, index.yyyy); \\\n\
  }\n\
-TOPK_F32(1 << 0, 0)\n\
-TOPK_F32(1 << 1, 1)\n\
-TOPK_F32(1 << 2, 2)\n\
-TOPK_F32(1 << 3, 3)\n\
-TOPK_F32(1 << 4, 4)\n\
-TOPK_F32(1 << 5, 5)\n\
-TOPK_F32(1 << 6, 6)\n\
+TOPK_F32((1 << 0), 0)\n\
+TOPK_F32((1 << 1), 1)\n\
+TOPK_F32((1 << 2), 2)\n\
+TOPK_F32((1 << 3), 3)\n\
+TOPK_F32((1 << 4), 4)\n\
+TOPK_F32((1 << 5), 5)\n\
+TOPK_F32((1 << 6), 6)\n\
+TOPK_F32((1 << 9), 9)\n\
 \n\
 #define TOPK_U32(LOCAL_SIZE0, STAGES) \\\n\
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stage##STAGES##_U32toU32_I32 \\\n\
@@ -80564,8 +85064,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \\\n\
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \\\n\
  \\\n\
-    __local uint local_data[128]; \\\n\
-    __local uint local_indices[128]; \\\n\
+    __local uint local_data[LOCAL_SIZE0 * 2]; \\\n\
+    __local uint local_indices[LOCAL_SIZE0 * 2]; \\\n\
  \\\n\
     uint left = read_imageui(input, coord.xy).x; \\\n\
     coord.z += work_group_size; \\\n\
@@ -80597,7 +85097,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             uint left_elem = local_data[left_id]; \\\n\
             uint right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem) ^ signo) \\\n\
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80624,13 +85124,14 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.xy, index.xxxx); \\\n\
     write_imagei(indices, coord.zy, index.yyyy); \\\n\
  }\n\
-TOPK_U32(1 << 0, 0)\n\
-TOPK_U32(1 << 1, 1)\n\
-TOPK_U32(1 << 2, 2)\n\
-TOPK_U32(1 << 3, 3)\n\
-TOPK_U32(1 << 4, 4)\n\
-TOPK_U32(1 << 5, 5)\n\
-TOPK_U32(1 << 6, 6)\n\
+TOPK_U32((1 << 0), 0)\n\
+TOPK_U32((1 << 1), 1)\n\
+TOPK_U32((1 << 2), 2)\n\
+TOPK_U32((1 << 3), 3)\n\
+TOPK_U32((1 << 4), 4)\n\
+TOPK_U32((1 << 5), 5)\n\
+TOPK_U32((1 << 6), 6)\n\
+TOPK_U32((1 << 9), 9)\n\
 \n\
 #define TOPK_I32(LOCAL_SIZE0, STAGES) \\\n\
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stage##STAGES##_I32toI32_I32 \\\n\
@@ -80652,8 +85153,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \\\n\
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \\\n\
  \\\n\
-    __local int local_data[128]; \\\n\
-    __local int local_indices[128]; \\\n\
+    __local int local_data[LOCAL_SIZE0 * 2]; \\\n\
+    __local int local_indices[LOCAL_SIZE0 * 2]; \\\n\
  \\\n\
     int left = read_imagei(input, coord.xy).x; \\\n\
     coord.z += work_group_size; \\\n\
@@ -80685,7 +85186,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             int left_elem = local_data[left_id]; \\\n\
             int right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem) ^ signo) \\\n\
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80712,13 +85213,14 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.xy, index.xxxx); \\\n\
     write_imagei(indices, coord.zy, index.yyyy); \\\n\
  }\n\
-TOPK_I32(1 << 0, 0)\n\
-TOPK_I32(1 << 1, 1)\n\
-TOPK_I32(1 << 2, 2)\n\
-TOPK_I32(1 << 3, 3)\n\
-TOPK_I32(1 << 4, 4)\n\
-TOPK_I32(1 << 5, 5)\n\
-TOPK_I32(1 << 6, 6)\n\
+TOPK_I32((1 << 0), 0)\n\
+TOPK_I32((1 << 1), 1)\n\
+TOPK_I32((1 << 2), 2)\n\
+TOPK_I32((1 << 3), 3)\n\
+TOPK_I32((1 << 4), 4)\n\
+TOPK_I32((1 << 5), 5)\n\
+TOPK_I32((1 << 6), 6)\n\
+TOPK_I32((1 << 9), 9)\n\
 \n\
 #define TOPK_F32toU32(LOCAL_SIZE0, STAGES) \\\n\
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stage##STAGES##_F32toU32_I32 \\\n\
@@ -80740,8 +85242,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \\\n\
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \\\n\
  \\\n\
-    __local float local_data[128]; \\\n\
-    __local uint local_indices[128]; \\\n\
+    __local float local_data[LOCAL_SIZE0 * 2]; \\\n\
+    __local uint local_indices[LOCAL_SIZE0 * 2]; \\\n\
  \\\n\
     float left = read_imagef(input, coord.xy).x; \\\n\
     coord.z += work_group_size; \\\n\
@@ -80773,7 +85275,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \\\n\
             float right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem) ^ signo) \\\n\
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80800,13 +85302,14 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.zy, index.yyyy); \\\n\
  }\n\
 \n\
-TOPK_F32toU32(1 << 0, 0)\n\
-TOPK_F32toU32(1 << 1, 1)\n\
-TOPK_F32toU32(1 << 2, 2)\n\
-TOPK_F32toU32(1 << 3, 3)\n\
-TOPK_F32toU32(1 << 4, 4)\n\
-TOPK_F32toU32(1 << 5, 5)\n\
-TOPK_F32toU32(1 << 6, 6)\n\
+TOPK_F32toU32((1 << 0), 0)\n\
+TOPK_F32toU32((1 << 1), 1)\n\
+TOPK_F32toU32((1 << 2), 2)\n\
+TOPK_F32toU32((1 << 3), 3)\n\
+TOPK_F32toU32((1 << 4), 4)\n\
+TOPK_F32toU32((1 << 5), 5)\n\
+TOPK_F32toU32((1 << 6), 6)\n\
+TOPK_F32toU32((1 << 9), 9)\n\
 \n\
 #define TOPK_F32toI32(LOCAL_SIZE0, STAGES) \\\n\
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stage##STAGES##_F32toI32_I32 \\\n\
@@ -80828,8 +85331,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \\\n\
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \\\n\
  \\\n\
-    __local float local_data[128]; \\\n\
-    __local uint local_indices[128]; \\\n\
+    __local float local_data[LOCAL_SIZE0 * 2]; \\\n\
+    __local uint local_indices[LOCAL_SIZE0 * 2]; \\\n\
  \\\n\
     float left = read_imagef(input, coord.xy).x; \\\n\
     coord.z += work_group_size; \\\n\
@@ -80861,7 +85364,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \\\n\
             float right_elem = local_data[right_id]; \\\n\
  \\\n\
-            if ((left_elem < right_elem) ^ signo) \\\n\
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
             { \\\n\
                 local_data[left_id] = right_elem; \\\n\
                 local_data[right_id] = left_elem; \\\n\
@@ -80888,13 +85391,384 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.zy, index.yyyy); \\\n\
  }\n\
 \n\
-TOPK_F32toI32(1 << 0, 0)\n\
-TOPK_F32toI32(1 << 1, 1)\n\
-TOPK_F32toI32(1 << 2, 2)\n\
-TOPK_F32toI32(1 << 3, 3)\n\
-TOPK_F32toI32(1 << 4, 4)\n\
-TOPK_F32toI32(1 << 5, 5)\n\
-TOPK_F32toI32(1 << 6, 6)"; /* end of topk_cl*/
+TOPK_F32toI32((1 << 0), 0)\n\
+TOPK_F32toI32((1 << 1), 1)\n\
+TOPK_F32toI32((1 << 2), 2)\n\
+TOPK_F32toI32((1 << 3), 3)\n\
+TOPK_F32toI32((1 << 4), 4)\n\
+TOPK_F32toI32((1 << 5), 5)\n\
+TOPK_F32toI32((1 << 6), 6)\n\
+TOPK_F32toI32((1 << 9), 9)"; /* end of topk_cl*/
+
+static const char topk2_cl[] = "\n\
+#define BITONIC_STEP(dtype) \\\n\
+void bitonic_step_##dtype(uint num_stages, int lx, \\\n\
+        __local dtype *local_data, __local int *local_indices) \\\n\
+{ \\\n\
+    for (uint stage = 0; stage < num_stages + 1; ++stage) \\\n\
+    { \\\n\
+        uint signo = (lx >> stage) & 1; \\\n\
+ \\\n\
+        for (uint passOfStage = 0; passOfStage < stage + 1; ++passOfStage) \\\n\
+        { \\\n\
+            uint postShift = (stage - passOfStage); \\\n\
+            uint pairDistance = 1 << postShift; \\\n\
+ \\\n\
+            uint left_id = ( (lx >> postShift) << (postShift + 1)) + (lx & (pairDistance - 1)); \\\n\
+            uint right_id = left_id + pairDistance; \\\n\
+ \\\n\
+            int left_idx = local_indices[left_id]; \\\n\
+            int right_idx = local_indices[right_id]; \\\n\
+ \\\n\
+            dtype left_elem = local_data[left_id]; \\\n\
+            dtype right_elem = local_data[right_id]; \\\n\
+ \\\n\
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
+            { \\\n\
+                local_data[left_id] = right_elem; \\\n\
+                local_data[right_id] = left_elem; \\\n\
+ \\\n\
+                local_indices[left_id] = right_idx; \\\n\
+                local_indices[right_id] = left_idx; \\\n\
+            } \\\n\
+ \\\n\
+            barrier(CLK_LOCAL_MEM_FENCE); \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+BITONIC_STEP(int)\n\
+BITONIC_STEP(uint)\n\
+\n\
+#define BITONIC_STEP_ASCEND(dtype) \\\n\
+void bitonic_step_ascend_##dtype(uint num_stages, int lx, \\\n\
+        __local dtype *p_share_k, __local int *p_share_v) \\\n\
+{ \\\n\
+    for (uint stage = 0; stage < num_stages + 1; ++stage) \\\n\
+    { \\\n\
+        uint signo = (lx >> stage) & 1; \\\n\
+ \\\n\
+        for (uint passOfStage = 0; passOfStage < stage + 1; ++passOfStage) \\\n\
+        { \\\n\
+            uint postShift = (stage - passOfStage); \\\n\
+            uint pairDistance = 1 << postShift; \\\n\
+ \\\n\
+            uint left_id = ( (lx >> postShift) << (postShift + 1)) + (lx & (pairDistance - 1)); \\\n\
+            uint right_id = left_id + pairDistance; \\\n\
+ \\\n\
+            int left_idx = p_share_v[left_id]; \\\n\
+            int right_idx = p_share_v[right_id]; \\\n\
+ \\\n\
+            dtype left_elem = p_share_k[left_id]; \\\n\
+            dtype right_elem = p_share_k[right_id]; \\\n\
+ \\\n\
+            if ((left_elem > right_elem || (left_elem == right_elem && left_idx > right_idx)) ^ signo) \\\n\
+            { \\\n\
+                p_share_k[left_id] = right_elem; \\\n\
+                p_share_k[right_id] = left_elem; \\\n\
+ \\\n\
+                p_share_v[left_id] = right_idx; \\\n\
+                p_share_v[right_id] = left_idx; \\\n\
+            } \\\n\
+ \\\n\
+            barrier(CLK_LOCAL_MEM_FENCE); \\\n\
+        } \\\n\
+    } \\\n\
+}\n\
+BITONIC_STEP_ASCEND(int)\n\
+BITONIC_STEP_ASCEND(uint)\n\
+\n\
+#define BITONIC_MERGE(dtype) \\\n\
+void bitonic_merge_##dtype(uint num_stages, int lx, \\\n\
+        __local dtype *local_data, __local int *local_indices) \\\n\
+{ \\\n\
+    uint stage = num_stages; \\\n\
+    uint signo = (lx >> stage) & 1; \\\n\
+ \\\n\
+    for (uint passOfStage = 0; passOfStage < stage + 1; ++passOfStage) \\\n\
+    { \\\n\
+        uint postShift = (stage - passOfStage); \\\n\
+        uint pairDistance = 1 << postShift; \\\n\
+ \\\n\
+        uint left_id = ( (lx >> postShift) << (postShift + 1)) + (lx & (pairDistance - 1)); \\\n\
+        uint right_id = left_id + pairDistance; \\\n\
+ \\\n\
+        int left_idx = local_indices[left_id]; \\\n\
+        int right_idx = local_indices[right_id]; \\\n\
+ \\\n\
+        dtype left_elem = local_data[left_id]; \\\n\
+        dtype right_elem = local_data[right_id]; \\\n\
+ \\\n\
+        if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \\\n\
+        { \\\n\
+            local_data[left_id] = right_elem; \\\n\
+            local_data[right_id] = left_elem; \\\n\
+ \\\n\
+            local_indices[left_id] = right_idx; \\\n\
+            local_indices[right_id] = left_idx; \\\n\
+        } \\\n\
+ \\\n\
+        barrier(CLK_LOCAL_MEM_FENCE); \\\n\
+    } \\\n\
+}\n\
+BITONIC_MERGE(int)\n\
+BITONIC_MERGE(uint)\n\
+\n\
+#define BLOCK_SIZE              (512)\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(BLOCK_SIZE, 1, 1))) void topk_stage_I32toI32_I32\n\
+(\n\
+  __read_only  image2d_t input,\n\
+  __write_only image2d_t output,\n\
+  __write_only image2d_t indices,\n\
+               float     input_scale,\n\
+               float     input_tail,\n\
+               float     output_scale,\n\
+               float     output_tail,\n\
+               int       _num_stages,\n\
+               int       width\n\
+  )\n\
+ {\n\
+    uint lx = get_local_id(0);\n\
+    const int init_k = -2147483647;\n\
+    const int init_v = -2147483647;\n\
+    const int num_stages = 9;\n\
+    const int threads_per_block = BLOCK_SIZE;\n\
+    const int index_minus_1 = threads_per_block * 2 - 1;\n\
+    uint offset = 0;\n\
+    uint lx1 = lx + threads_per_block;\n\
+\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
+\n\
+    __local int local_data[1536];\n\
+    __local int local_indices[1536];\n\
+\n\
+    int left = read_imagei(input, coord.xy).x;\n\
+    coord.z += threads_per_block;\n\
+    int right = read_imagei(input, coord.zy).x;\n\
+\n\
+    local_data[lx] = left;\n\
+    local_indices[lx] = coord.x;\n\
+    local_data[lx1] = right;\n\
+    local_indices[lx1] = coord.z;\n\
+\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    bitonic_step_int(num_stages, lx, local_data, local_indices);\n\
+\n\
+    int min_data = local_data[511];\n\
+\n\
+    int *p_share_k = local_data + threads_per_block;\n\
+    int *p_share_v = local_indices + threads_per_block;\n\
+\n\
+    int limit = (width >> 10) << 10;\n\
+    p_share_k[lx] = init_k;\n\
+    p_share_v[lx] = init_v;\n\
+\n\
+    p_share_k[lx1] = init_k;\n\
+    p_share_v[lx1] = init_v;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    for (coord.x = lx + threads_per_block * 2; coord.x < limit; coord.x = coord.x + threads_per_block * 2)\n\
+    {\n\
+        int2 data;\n\
+        coord.z = coord.x + threads_per_block;\n\
+        data.x = read_imagei(input, coord.xy).x;\n\
+        data.y = read_imagei(input, coord.zy).x;\n\
+\n\
+        p_share_k[lx] = data.x;\n\
+        p_share_v[lx] = coord.x;\n\
+\n\
+        p_share_k[lx1] = data.y;\n\
+        p_share_v[lx1] = coord.z;\n\
+        barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+        bitonic_step_ascend_int(num_stages, lx, p_share_k, p_share_v);\n\
+\n\
+        if (p_share_k[index_minus_1] < min_data)\n\
+        {\n\
+            continue;\n\
+        }\n\
+\n\
+        p_share_k[lx] = p_share_k[lx1];\n\
+        p_share_v[lx] = p_share_v[lx1];\n\
+        barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+        bitonic_merge_int(num_stages, lx, local_data, local_indices);\n\
+\n\
+        min_data = local_data[511];\n\
+        p_share_k[lx] = init_k;\n\
+        p_share_v[lx] = init_v;\n\
+        p_share_k[lx1] = init_k;\n\
+        p_share_v[lx1] = init_v;\n\
+    }\n\
+\n\
+    if (width > limit)\n\
+    {\n\
+        if (coord.x < width)\n\
+        {\n\
+            int2 data;\n\
+            data.x = read_imagei(input, coord.xy).x;\n\
+            coord.z = coord.x + threads_per_block;\n\
+            data.y = read_imagei(input, coord.zy).x;\n\
+\n\
+            p_share_k[lx] = data.x;\n\
+            p_share_v[lx] = coord.x;\n\
+\n\
+            p_share_k[lx1] = coord.z < width ? data.y : init_k;\n\
+            p_share_v[lx1] = coord.z < width ? coord.z : init_v;\n\
+        }\n\
+        barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+        bitonic_step_ascend_int(num_stages, lx, p_share_k, p_share_v);\n\
+\n\
+        if (p_share_k[index_minus_1] >= min_data)\n\
+        {\n\
+            p_share_k[lx] = p_share_k[lx1];\n\
+            p_share_v[lx] = p_share_v[lx1];\n\
+            barrier(CLK_LOCAL_MEM_FENCE);\n\
+            bitonic_merge_int(num_stages, lx, local_data, local_indices);\n\
+        }\n\
+    }\n\
+\n\
+    int4 dst;\n\
+    dst.x = local_data[lx];\n\
+\n\
+    coord.x = lx;\n\
+    write_imagei(output, coord.xy, dst.xxxx);\n\
+\n\
+    int4 index;\n\
+    index.x = local_indices[lx];\n\
+\n\
+    write_imagei(indices, coord.xy, index.xxxx);\n\
+}\n\
+\n\
+__kernel __attribute__((reqd_work_group_size(BLOCK_SIZE, 1, 1))) void topk_stage_U32toU32_I32\n\
+(\n\
+  __read_only  image2d_t input,\n\
+  __write_only image2d_t output,\n\
+  __write_only image2d_t indices,\n\
+               float     input_scale,\n\
+               float     input_tail,\n\
+               float     output_scale,\n\
+               float     output_tail,\n\
+               int       _num_stages,\n\
+               int       width\n\
+  )\n\
+ {\n\
+    uint lx = get_local_id(0);\n\
+    const uint init_k = 0;\n\
+    const int init_v = -2147483647;\n\
+    const int num_stages = 9;\n\
+    const int threads_per_block = BLOCK_SIZE;\n\
+    const int index_minus_1 = threads_per_block * 2 - 1;\n\
+    uint offset = 0;\n\
+    uint lx1 = lx + threads_per_block;\n\
+\n\
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));\n\
+\n\
+    __local uint local_data[1536];\n\
+    __local int local_indices[1536];\n\
+\n\
+    uint left = read_imageui(input, coord.xy).x;\n\
+    coord.z += threads_per_block;\n\
+    uint right = read_imageui(input, coord.zy).x;\n\
+\n\
+    local_data[lx] = left;\n\
+    local_indices[lx] = coord.x;\n\
+    local_data[lx1] = right;\n\
+    local_indices[lx1] = coord.z;\n\
+\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    bitonic_step_uint(num_stages, lx, local_data, local_indices);\n\
+\n\
+    uint min_data = local_data[511];\n\
+\n\
+    uint *p_share_k = local_data + threads_per_block;\n\
+    int *p_share_v = local_indices + threads_per_block;\n\
+\n\
+    int limit = (width >> 10) << 10;\n\
+    p_share_k[lx] = init_k;\n\
+    p_share_v[lx] = init_v;\n\
+\n\
+    p_share_k[lx1] = init_k;\n\
+    p_share_v[lx1] = init_v;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    for (coord.x = lx + threads_per_block * 2; coord.x < limit; coord.x = coord.x + threads_per_block * 2)\n\
+    {\n\
+        uint2 data;\n\
+        coord.z = coord.x + threads_per_block;\n\
+        data.x = read_imageui(input, coord.xy).x;\n\
+        data.y = read_imageui(input, coord.zy).x;\n\
+\n\
+        p_share_k[lx] = data.x;\n\
+        p_share_v[lx] = coord.x;\n\
+\n\
+        p_share_k[lx1] = data.y;\n\
+        p_share_v[lx1] = coord.z;\n\
+        barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+        bitonic_step_ascend_uint(num_stages, lx, p_share_k, p_share_v);\n\
+\n\
+        if (p_share_k[index_minus_1] < min_data)\n\
+        {\n\
+            continue;\n\
+        }\n\
+\n\
+        p_share_k[lx] = p_share_k[lx1];\n\
+        p_share_v[lx] = p_share_v[lx1];\n\
+        barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+        bitonic_merge_uint(num_stages, lx, local_data, local_indices);\n\
+\n\
+        min_data = local_data[511];\n\
+        p_share_k[lx] = init_k;\n\
+        p_share_v[lx] = init_v;\n\
+        p_share_k[lx1] = init_k;\n\
+        p_share_v[lx1] = init_v;\n\
+    }\n\
+\n\
+    if (width > limit)\n\
+    {\n\
+        if (coord.x < width)\n\
+        {\n\
+            uint2 data;\n\
+            data.x = read_imageui(input, coord.xy).x;\n\
+            coord.z = coord.x + threads_per_block;\n\
+            data.y = read_imageui(input, coord.zy).x;\n\
+\n\
+            p_share_k[lx] = data.x;\n\
+            p_share_v[lx] = coord.x;\n\
+\n\
+            p_share_k[lx1] = coord.z < width ? data.y : init_k;\n\
+            p_share_v[lx1] = coord.z < width ? coord.z : init_v;\n\
+        }\n\
+        barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+        bitonic_step_ascend_uint(num_stages, lx, p_share_k, p_share_v);\n\
+\n\
+        if (p_share_k[index_minus_1] >= min_data)\n\
+        {\n\
+            p_share_k[lx] = p_share_k[lx1];\n\
+            p_share_v[lx] = p_share_v[lx1];\n\
+            barrier(CLK_LOCAL_MEM_FENCE);\n\
+            bitonic_merge_uint(num_stages, lx, local_data, local_indices);\n\
+        }\n\
+    }\n\
+\n\
+    uint4 dst;\n\
+    dst.x = local_data[lx];\n\
+\n\
+    coord.x = lx;\n\
+    write_imageui(output, coord.xy, dst.xxxx);\n\
+\n\
+    int4 index;\n\
+    index.x = local_indices[lx];\n\
+\n\
+    write_imagei(indices, coord.xy, index.xxxx);\n\
+}\n\
+"; /* end of topk2_cl*/
 
 static const char topk_odd_even_sort_cl[] = "#define LOCAL_SIZE_X    (32)\n\
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE_X, 1, 1))) void topk_odd_even_sort_F32toF32_I32\n\
@@ -81702,6 +86576,14 @@ static const source_map_t evis_resource[] =
     {"crop_and_resize_nearest_neighbor_vx", crop_and_resize_nearest_neighbor_vx},
     {"cumsum_vx", cumsum_vx},
     {"cumsum_2d_vx", cumsum_2d_vx},
+    {"cumsum_array_vx", cumsum_array_vx},
+    {"cumsum_array_2d_vx", cumsum_array_2d_vx},
+    {"cumsum_array_bf16_vx", cumsum_array_bf16_vx},
+    {"cumsum_array_ex_rev_axis0_vx", cumsum_array_ex_rev_axis0_vx},
+    {"cumsum_array_ex_rev_axis1_vx", cumsum_array_ex_rev_axis1_vx},
+    {"cumsum_array_ex_rev_axis2_vx", cumsum_array_ex_rev_axis2_vx},
+    {"cumsum_array_f16_u8_vx", cumsum_array_f16_u8_vx},
+    {"cumsum_array_f16_u8_2d_vx", cumsum_array_f16_u8_2d_vx},
     {"cumsum_bf16_vx", cumsum_bf16_vx},
     {"cumsum_ex_rev_axis0_vx", cumsum_ex_rev_axis0_vx},
     {"cumsum_ex_rev_axis1_vx", cumsum_ex_rev_axis1_vx},
@@ -81986,10 +86868,16 @@ static const source_map_t cl_resource[] =
     {"clip_F32_cl", clip_F32_cl},
     {"clip_I32_cl", clip_I32_cl},
     {"clip_U8_cl", clip_U8_cl},
+    {"col2im_cl", col2im_cl},
     {"crop_and_resize_bilinear_cl", crop_and_resize_bilinear_cl},
     {"crop_and_resize_nearest_neighbor_cl", crop_and_resize_nearest_neighbor_cl},
     {"cumsum_cl", cumsum_cl},
     {"cumsum_2d_cl", cumsum_2d_cl},
+    {"cumsum_array_2d_axis0_cl", cumsum_array_2d_axis0_cl},
+    {"cumsum_array_2d_axis1_cl", cumsum_array_2d_axis1_cl},
+    {"cumsum_array_axis0_cl", cumsum_array_axis0_cl},
+    {"cumsum_array_axis1_cl", cumsum_array_axis1_cl},
+    {"cumsum_array_axis2_cl", cumsum_array_axis2_cl},
     {"depth2space_crd_cl", depth2space_crd_cl},
     {"eltwise_ops_helper_cl", eltwise_ops_helper_cl},
     {"eltwise_unary_0_cl", eltwise_unary_0_cl},
@@ -82114,6 +87002,7 @@ static const source_map_t cl_resource[] =
     {"swish_cl", swish_cl},
     {"tile_cl", tile_cl},
     {"topk_cl", topk_cl},
+    {"topk2_cl", topk2_cl},
     {"topk_odd_even_sort_cl", topk_odd_even_sort_cl},
     {"topk_odd_even_sort2_cl", topk_odd_even_sort2_cl},
     {"upsample_cl", upsample_cl},

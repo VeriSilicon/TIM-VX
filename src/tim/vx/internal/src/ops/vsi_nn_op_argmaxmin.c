@@ -62,11 +62,20 @@ static vsi_status _argmaxmin_op_compute
     }
     status = VSI_FAILURE;
 
-    param =vsi_nn_kernel_param_create();
+    param = vsi_nn_kernel_param_create();
     if (strcmp(kernel_name, "argmax") == 0)
     {
         vsi_nn_argmax_param * p = &(self->nn_param.argmax);
         axis = p->axis;
+#if (VX_ARGMAX_VX_SUPPORT)
+        vsi_nn_kernel_param_add_int32(param, "axis", axis);
+        self->n = (vx_node)vsi_nn_kernel_selector(self->graph,
+            kernel_name,
+            inputs, 1,
+            outputs, 1, param);
+        goto final;
+#endif
+
     }
     else
     {
@@ -101,6 +110,10 @@ static vsi_status _argmaxmin_op_compute
         vsi_nn_ReleaseTensor( &reshape_tensors[0] );
         vsi_nn_ReleaseTensor( &reshape_tensors[1] );
     }
+
+#if (VX_ARGMAX_VX_SUPPORT)
+final:
+#endif
     if( self->n )
     {
         status = VSI_SUCCESS;

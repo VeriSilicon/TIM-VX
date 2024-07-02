@@ -183,10 +183,16 @@ vsi_bool vsi_nn_op_eltwise_setup
         shape[i] = sz0;
     }
 
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
+    if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
         outputs[0]->attr.dim_num = out_rank;
         memcpy( outputs[0]->attr.size, shape, out_rank * sizeof(vsi_size_t) );
+        if (out_rank == 1 &&
+            vsi_nn_GetTensorIsScalar(inputs[0]) &&
+            vsi_nn_GetTensorIsScalar(inputs[1]))
+        {
+            vsi_nn_SetTensorIsScalar(outputs[0], TRUE);
+        }
     }
     else
     {

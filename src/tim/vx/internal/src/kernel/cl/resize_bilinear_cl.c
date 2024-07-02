@@ -36,7 +36,7 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "libnnext/vx_lib_nnext.h"
-
+#if (!VX_RESIZE_BILINEAR_SH_SUPPORT)
 __BEGIN_DECLS
 
 #define _RESIZE_BILINEAR_KERNEL_SOURCE()      "resize_bilinear"
@@ -319,3 +319,4 @@ static vsi_nn_kernel_node_t _setup
 __END_DECLS
 
 REGISTER_BACKEND_CL( resize_bilinear, _setup )
+#endif

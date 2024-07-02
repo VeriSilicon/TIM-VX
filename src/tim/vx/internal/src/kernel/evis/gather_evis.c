@@ -22,7 +22,7 @@
 *
 *****************************************************************************/
 
-#if !(VX_TENSOR_GATHER_API_SUPPORT)
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +35,7 @@
 #include "vsi_nn_error.h"
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
-
+#if !(VX_TENSOR_GATHER_API_SUPPORT)
 __BEGIN_DECLS
 
 /*

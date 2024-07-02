@@ -22,7 +22,7 @@
 *
 *****************************************************************************/
 
-#if !(VX_LAYER_NORMALIZATION_VX_SUPPORT_EXT)
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,7 +36,7 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
-
+#if !(VX_LAYER_NORMALIZATION_VX_SUPPORT_EXT)
 __BEGIN_DECLS
 
 #define SOURCE_AXIS0_0     "layer_normalization_0"

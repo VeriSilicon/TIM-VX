@@ -23,6 +23,7 @@
 *****************************************************************************/
 #include <string.h>
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_graph.h"
@@ -95,7 +96,7 @@ static vsi_status op_optimize
 
     status = VSI_SUCCESS;
 
-    if( !self->graph->ctx->options.enable_dataconvert_optimize )
+    if( !((vsi_nn_graph_prv_t*)(self->graph))->options->enable_dataconvert_optimize )
     {
         return status;
     }
@@ -266,14 +267,14 @@ static vsi_bool op_check
         IO_TYPE(D_BF16,       D_BF16)
         IO_TYPE(D_BF16,       D_F16)
         IO_TYPE(D_BF16,       D_F32)
-        IO_TYPE(D_I32,        D_I32)
-        IO_TYPE(D_I32,        D_F32)
-        IO_TYPE(D_I32,        D_F16)
-        IO_TYPE(D_I32,        D_I16|Q_DFP)
-        IO_TYPE(D_I32,        D_I8|Q_DFP)
-        IO_TYPE(D_I32,        D_U32)
-        IO_TYPE(D_I32,        D_U16)
-        IO_TYPE(D_I32,        D_U8|Q_ASYM)
+        IO_TYPE(D_I32|Q_ASYM, D_I32|Q_ASYM)
+        IO_TYPE(D_I32|Q_ASYM, D_F32)
+        IO_TYPE(D_I32|Q_ASYM, D_F16)
+        IO_TYPE(D_I32|Q_ASYM, D_I16|Q_DFP)
+        IO_TYPE(D_I32|Q_ASYM, D_I8|Q_DFP)
+        IO_TYPE(D_I32|Q_ASYM, D_U32|Q_ASYM)
+        IO_TYPE(D_I32|Q_ASYM, D_U16|Q_ASYM)
+        IO_TYPE(D_I32|Q_ASYM, D_U8|Q_ASYM)
         IO_TYPE(D_U32,        D_U32)
         IO_TYPE(D_U32,        D_I16|Q_DFP)
         IO_TYPE(D_U32,        D_I8|Q_DFP)
@@ -281,7 +282,7 @@ static vsi_bool op_check
         IO_TYPE(D_U32,        D_U8|Q_ASYM)
         IO_TYPE(D_U32,        D_U8)
         IO_TYPE(D_BF16,       D_I32)
-        IO_TYPE(D_I32,        D_BF16)
+        IO_TYPE(D_I32|Q_ASYM, D_BF16)
         IO_TYPE(D_U4|Q_ASYM,  D_U8|Q_ASYM)
         IO_TYPE(D_U4|Q_SYM,   D_U8|Q_ASYM)
         IO_TYPE(D_U8|Q_ASYM,  D_U4|Q_ASYM)

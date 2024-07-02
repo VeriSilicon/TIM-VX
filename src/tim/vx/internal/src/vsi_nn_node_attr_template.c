@@ -208,6 +208,10 @@ static _node_template s_template[] =
     /* RESIZE_3D */                NULL,
     /* REDUCEL2 */              NULL,
     /* CROP_AND_RESIZE */       NULL,
+    /* BITCAST */       NULL,
+    /* GROUPED_CONV3D */        NULL,
+    /* CO2IM */        NULL,
+    /* L1_LAYER_NORM */         NULL,
 };
 //_compiler_assert( _cnt_of_array(s_template) == VSI_NN_OP_NUM, vsi_nn_node_attr_template_c );
 

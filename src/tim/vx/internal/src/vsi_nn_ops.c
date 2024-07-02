@@ -26,6 +26,7 @@
 #include "vsi_nn_client_op.h"
 #include "vsi_nn_node.h"
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_log.h"
 
@@ -281,7 +282,7 @@ vsi_bool vsi_nn_OpCheck
     if ( NULL != proc )
     {
         ret = TRUE;
-        if ( proc->check && node->graph->ctx->options.enable_opcheck)
+        if ( proc->check && ((vsi_nn_graph_prv_t*)(node->graph))->options->enable_opcheck)
         {
             ret = proc->check( node, inputs, outputs );
         }
