@@ -36,6 +36,8 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 
+#if (!VX_NEAREST_GRID_SAMPLE_VX_SUPPORT)
+
 __BEGIN_DECLS
 
 /*
@@ -625,3 +627,4 @@ __END_DECLS
 
 REGISTER_BACKEND_EVIS( nearest_grid_sample, _setup )
 
+#endif

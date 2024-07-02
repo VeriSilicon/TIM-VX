@@ -145,6 +145,17 @@ static void print_tensor
         ext_attr[count] = 0;
         break;
 #endif
+#ifdef VSI_PER_GROUP_QUANTIZATION_SUPPORT
+    case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC:
+        count = snprintf(&ext_attr[0],
+                         _EXT_ATTR_BUF_SZ,
+                         "SYM GPTQ axis=%d, count=%d, group_size=%d",
+                         tensor->attr.dtype.group_channel_dim,
+                         tensor->attr.dtype.group_count,
+                         tensor->attr.dtype.group_size);
+        ext_attr[count] = 0;
+        break;
+#endif
     default:
         vsi_nn_strncpy(ext_attr, "NONE", _EXT_ATTR_BUF_SZ);
         break;
@@ -430,6 +441,25 @@ static vsi_bool _init_tensor
         VSILOGE(
             "can't support qnt_type "
             "VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_ASYMMETRIC.");
+#endif
+    case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC:
+#ifdef VSI_PER_GROUP_QUANTIZATION_SUPPORT
+        params.quant_format = (vsi_enum)VX_QUANT_AFFINE_SCALE_PER_GROUP;
+        // This is a hack that driver doesn't support const scales
+        scales = (float*)malloc(sizeof(float) * tensor->attr.dtype.group_count);
+        CHECK_PTR_FAIL_GOTO( scales, "Create buffer fail.", final );
+        memcpy(scales, tensor->attr.dtype.group_scales, tensor->attr.dtype.group_count * sizeof(float));
+        params.quant_data.affinePerGroup.channel_dim = tensor->attr.dtype.group_channel_dim;
+        params.quant_data.affinePerGroup.group_size = tensor->attr.dtype.group_size;
+        params.quant_data.affinePerGroup.scale_group_count = tensor->attr.dtype.group_count;
+        params.quant_data.affinePerGroup.scales = scales;
+        params.quant_data.affinePerGroup.zero_points = NULL;
+        params.quant_data.affinePerGroup.zero_point_group_count = 0;
+        break;
+#else
+        VSILOGE(
+            "can't support qnt_type "
+            "VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC.");
 #endif
     default:
         break;

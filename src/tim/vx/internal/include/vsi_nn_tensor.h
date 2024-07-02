@@ -86,6 +86,8 @@ typedef enum
     VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8 = 0x6,
     /** perchannel float8 */
     VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8 = 0x7,
+    /** GPQT */
+    VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC = 0x8,
     /** undefined type */
     VSI_NN_QNT_TYPE_NA = 0xff,
 } vsi_nn_qnt_type_e;
@@ -125,6 +127,16 @@ typedef struct vsi_nn_dtype
                 int32_t         channel_dim;
                 const int32_t * zero_points;
                 int32_t         zero_points_dim;
+            };
+#endif
+#ifdef VSI_PER_GROUP_QUANTIZATION_SUPPORT
+            /** Meanful in GPTQ_SYMMETRIC */
+            struct {
+                const float* group_scales;
+                int32_t group_channel_dim;
+                int32_t group_size;
+                const int32_t* group_zero_points;
+                int32_t group_count;
             };
 #endif
         };

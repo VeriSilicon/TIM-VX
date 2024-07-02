@@ -26,6 +26,7 @@
 #define _VSI_NN_CONTEXT_H
 
 #include "vsi_nn_platform.h"
+#include "vsi_nn_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,12 +76,19 @@ typedef struct _vsi_nn_runtime_option_t
     int32_t enable_shader;
     int32_t enable_opcheck;
     int32_t enable_concat_optimize;
-    int32_t enable_asymi8_to_u8;
+    /*  0: disable convert int8 to uint8
+     *  1: enable convert asymm int8 to asymm uint8
+     *  2: enable convert both asymm and sym int8 to asymm uint8
+     */
+    int32_t enable_i8_to_u8;
     int32_t enable_dataconvert_optimize;
     int32_t enable_stream_processor;
     int32_t enable_rgb88_planar_nhwc;
     int32_t enable_slice_optimize;
     int32_t enable_batch_opt;
+    int32_t enable_save_file_type;
+    int32_t enable_use_image_process;
+    int32_t enable_use_from_handle;
 } vsi_nn_runtime_option_t;
 
 /**
@@ -101,6 +109,10 @@ typedef struct _vsi_nn_context_t
 OVXLIB_API vsi_nn_context_t vsi_nn_CreateContext
     ( void );
 
+OVXLIB_API vsi_status vsi_nn_initOptions
+    (
+    vsi_nn_runtime_option_t *options
+    );
 /**
  * Release context
  * Release ovxlib NN runtime resource and reset context handle to NULL.

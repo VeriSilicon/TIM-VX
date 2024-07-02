@@ -18,8 +18,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
  \
-    __local float local_data[128]; \
-    __local uint local_indices[128]; \
+    __local float local_data[LOCAL_SIZE0 * 2]; \
+    __local uint local_indices[LOCAL_SIZE0 * 2]; \
  \
     float left = read_imagef(input, coord.xy).x; \
     coord.z += work_group_size; \
@@ -51,7 +51,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \
             float right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem) ^ signo) \
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -78,13 +78,14 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.xy, index.xxxx); \
     write_imagei(indices, coord.zy, index.yyyy); \
  }
-TOPK_F32(1 << 0, 0)
-TOPK_F32(1 << 1, 1)
-TOPK_F32(1 << 2, 2)
-TOPK_F32(1 << 3, 3)
-TOPK_F32(1 << 4, 4)
-TOPK_F32(1 << 5, 5)
-TOPK_F32(1 << 6, 6)
+TOPK_F32((1 << 0), 0)
+TOPK_F32((1 << 1), 1)
+TOPK_F32((1 << 2), 2)
+TOPK_F32((1 << 3), 3)
+TOPK_F32((1 << 4), 4)
+TOPK_F32((1 << 5), 5)
+TOPK_F32((1 << 6), 6)
+TOPK_F32((1 << 9), 9)
 
 #define TOPK_U32(LOCAL_SIZE0, STAGES) \
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stage##STAGES##_U32toU32_I32 \
@@ -106,8 +107,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
  \
-    __local uint local_data[128]; \
-    __local uint local_indices[128]; \
+    __local uint local_data[LOCAL_SIZE0 * 2]; \
+    __local uint local_indices[LOCAL_SIZE0 * 2]; \
  \
     uint left = read_imageui(input, coord.xy).x; \
     coord.z += work_group_size; \
@@ -139,7 +140,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             uint left_elem = local_data[left_id]; \
             uint right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem) ^ signo) \
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -166,13 +167,14 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.xy, index.xxxx); \
     write_imagei(indices, coord.zy, index.yyyy); \
  }
-TOPK_U32(1 << 0, 0)
-TOPK_U32(1 << 1, 1)
-TOPK_U32(1 << 2, 2)
-TOPK_U32(1 << 3, 3)
-TOPK_U32(1 << 4, 4)
-TOPK_U32(1 << 5, 5)
-TOPK_U32(1 << 6, 6)
+TOPK_U32((1 << 0), 0)
+TOPK_U32((1 << 1), 1)
+TOPK_U32((1 << 2), 2)
+TOPK_U32((1 << 3), 3)
+TOPK_U32((1 << 4), 4)
+TOPK_U32((1 << 5), 5)
+TOPK_U32((1 << 6), 6)
+TOPK_U32((1 << 9), 9)
 
 #define TOPK_I32(LOCAL_SIZE0, STAGES) \
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stage##STAGES##_I32toI32_I32 \
@@ -194,8 +196,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
  \
-    __local int local_data[128]; \
-    __local int local_indices[128]; \
+    __local int local_data[LOCAL_SIZE0 * 2]; \
+    __local int local_indices[LOCAL_SIZE0 * 2]; \
  \
     int left = read_imagei(input, coord.xy).x; \
     coord.z += work_group_size; \
@@ -227,7 +229,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             int left_elem = local_data[left_id]; \
             int right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem) ^ signo) \
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -254,13 +256,14 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.xy, index.xxxx); \
     write_imagei(indices, coord.zy, index.yyyy); \
  }
-TOPK_I32(1 << 0, 0)
-TOPK_I32(1 << 1, 1)
-TOPK_I32(1 << 2, 2)
-TOPK_I32(1 << 3, 3)
-TOPK_I32(1 << 4, 4)
-TOPK_I32(1 << 5, 5)
-TOPK_I32(1 << 6, 6)
+TOPK_I32((1 << 0), 0)
+TOPK_I32((1 << 1), 1)
+TOPK_I32((1 << 2), 2)
+TOPK_I32((1 << 3), 3)
+TOPK_I32((1 << 4), 4)
+TOPK_I32((1 << 5), 5)
+TOPK_I32((1 << 6), 6)
+TOPK_I32((1 << 9), 9)
 
 #define TOPK_F32toU32(LOCAL_SIZE0, STAGES) \
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stage##STAGES##_F32toU32_I32 \
@@ -282,8 +285,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
  \
-    __local float local_data[128]; \
-    __local uint local_indices[128]; \
+    __local float local_data[LOCAL_SIZE0 * 2]; \
+    __local uint local_indices[LOCAL_SIZE0 * 2]; \
  \
     float left = read_imagef(input, coord.xy).x; \
     coord.z += work_group_size; \
@@ -315,7 +318,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \
             float right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem) ^ signo) \
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -342,13 +345,14 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.zy, index.yyyy); \
  }
 
-TOPK_F32toU32(1 << 0, 0)
-TOPK_F32toU32(1 << 1, 1)
-TOPK_F32toU32(1 << 2, 2)
-TOPK_F32toU32(1 << 3, 3)
-TOPK_F32toU32(1 << 4, 4)
-TOPK_F32toU32(1 << 5, 5)
-TOPK_F32toU32(1 << 6, 6)
+TOPK_F32toU32((1 << 0), 0)
+TOPK_F32toU32((1 << 1), 1)
+TOPK_F32toU32((1 << 2), 2)
+TOPK_F32toU32((1 << 3), 3)
+TOPK_F32toU32((1 << 4), 4)
+TOPK_F32toU32((1 << 5), 5)
+TOPK_F32toU32((1 << 6), 6)
+TOPK_F32toU32((1 << 9), 9)
 
 #define TOPK_F32toI32(LOCAL_SIZE0, STAGES) \
 __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stage##STAGES##_F32toI32_I32 \
@@ -370,8 +374,8 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
  \
     int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
  \
-    __local float local_data[128]; \
-    __local uint local_indices[128]; \
+    __local float local_data[LOCAL_SIZE0 * 2]; \
+    __local uint local_indices[LOCAL_SIZE0 * 2]; \
  \
     float left = read_imagef(input, coord.xy).x; \
     coord.z += work_group_size; \
@@ -403,7 +407,7 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
             float left_elem = local_data[left_id]; \
             float right_elem = local_data[right_id]; \
  \
-            if ((left_elem < right_elem) ^ signo) \
+            if ((left_elem < right_elem || (left_elem == right_elem && left_idx < right_idx)) ^ signo) \
             { \
                 local_data[left_id] = right_elem; \
                 local_data[right_id] = left_elem; \
@@ -430,10 +434,11 @@ __kernel __attribute__((reqd_work_group_size(LOCAL_SIZE0, 1, 1))) void topk_stag
     write_imagei(indices, coord.zy, index.yyyy); \
  }
 
-TOPK_F32toI32(1 << 0, 0)
-TOPK_F32toI32(1 << 1, 1)
-TOPK_F32toI32(1 << 2, 2)
-TOPK_F32toI32(1 << 3, 3)
-TOPK_F32toI32(1 << 4, 4)
-TOPK_F32toI32(1 << 5, 5)
-TOPK_F32toI32(1 << 6, 6)
+TOPK_F32toI32((1 << 0), 0)
+TOPK_F32toI32((1 << 1), 1)
+TOPK_F32toI32((1 << 2), 2)
+TOPK_F32toI32((1 << 3), 3)
+TOPK_F32toI32((1 << 4), 4)
+TOPK_F32toI32((1 << 5), 5)
+TOPK_F32toI32((1 << 6), 6)
+TOPK_F32toI32((1 << 9), 9)

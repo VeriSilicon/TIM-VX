@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
@@ -776,7 +777,7 @@ static vsi_status op_optimize
 
     /* Only forward run stride_slice's optimize */
     if ( direction == VSI_NN_OPTIMIZE_BACKWARD ||
-         !self->graph->ctx->options.enable_slice_optimize )
+         !((vsi_nn_graph_prv_t*)(self->graph))->options->enable_slice_optimize )
     {
         return status;
     }
