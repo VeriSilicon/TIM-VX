@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_log.h"
 #include "vsi_nn_graph.h"
@@ -161,7 +162,7 @@ static vsi_bool op_setup
             if (p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR ||
                 p->type == VSI_NN_SOURCE_FORMAT_IMAGE_RGB888_PLANAR_SEP)
             {
-                enable_rgb88_planar_nhwc = self->graph->ctx->options.enable_rgb88_planar_nhwc;
+                enable_rgb88_planar_nhwc = ((vsi_nn_graph_prv_t*)(self->graph))->options->enable_rgb88_planar_nhwc;
             }
         }
 

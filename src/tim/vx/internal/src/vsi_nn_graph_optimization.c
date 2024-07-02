@@ -26,6 +26,7 @@
 #include "vsi_nn_graph_optimization.h"
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_graph.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_log.h"
 #include "vsi_nn_error.h"
 
@@ -37,13 +38,49 @@ static vsi_bool _is_asymm_int8_norm_tensor
 {
     vsi_bool ret = FALSE;
 
-    ret = ( tensor != NULL
-   && tensor->attr.vtl == FALSE && tensor->attr.is_const == FALSE
-   && tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8
-   && tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC);
+    ret = ( tensor != NULL &&
+            tensor->attr.vtl == FALSE &&
+            tensor->attr.is_const == FALSE &&
+            tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
+            tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC
+          );
 
     return ret;
 }/* _is_asymm_int8_norm_tensor() */
+
+static vsi_bool _is_symm_int8_norm_tensor
+(
+    vsi_nn_tensor_t* tensor
+)
+{
+    vsi_bool ret = FALSE;
+
+    ret = (tensor != NULL &&
+           tensor->attr.vtl == FALSE &&
+           tensor->attr.is_const == FALSE &&
+           tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
+           tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC
+        );
+
+    return ret;
+}/* _is_symm_int8_norm_tensor() */
+
+static vsi_bool _is_int8_norm_tensor
+(
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* tensor
+)
+{
+    vsi_bool ret = FALSE;
+    vsi_bool support_symi8 =
+       ((vsi_nn_graph_prv_t*)graph)->options->enable_i8_to_u8 == 2;
+
+
+    ret = _is_asymm_int8_norm_tensor(tensor);
+    ret = ret || (support_symi8 && _is_symm_int8_norm_tensor(tensor));
+
+    return ret;
+}/* _is_int8_norm_tensor() */
 
 static vsi_bool _is_asymm_int8_const_tensor
     (
@@ -52,13 +89,46 @@ static vsi_bool _is_asymm_int8_const_tensor
 {
     vsi_bool ret = FALSE;
 
-    ret = ( tensor != NULL
-   && tensor->attr.is_const == TRUE
-   && tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8
-   && tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC);
+    ret = ( tensor != NULL &&
+            tensor->attr.is_const == TRUE &&
+            tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
+            tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC
+          );
 
     return ret;
 }/* _is_asymm_int8_const_tensor() */
+
+static vsi_bool _is_symm_int8_const_tensor
+(
+    vsi_nn_tensor_t* tensor
+)
+{
+    vsi_bool ret = FALSE;
+
+    ret = (tensor != NULL &&
+        tensor->attr.is_const == TRUE &&
+        tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
+        tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC
+        );
+
+    return ret;
+}/* _is_symm_int8_const_tensor() */
+
+static vsi_bool _is_int8_const_tensor
+(
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* tensor
+)
+{
+    vsi_bool ret = FALSE;
+    vsi_bool support_symi8 =
+       ((vsi_nn_graph_prv_t*)graph)->options->enable_i8_to_u8 == 2;
+
+    ret = _is_asymm_int8_const_tensor(tensor);
+    ret = ret || (support_symi8 && _is_symm_int8_const_tensor(tensor));
+
+    return ret;
+}/* _is_int8_const_tensor() */
 
 static vsi_bool _is_asymm_int8_virtual_tensor
     (
@@ -67,13 +137,46 @@ static vsi_bool _is_asymm_int8_virtual_tensor
 {
     vsi_bool ret = FALSE;
 
-    ret = ( tensor != NULL
-   && tensor->attr.vtl == TRUE
-   && tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8
-   && tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC);
+    ret = ( tensor != NULL &&
+            tensor->attr.vtl == TRUE &&
+            tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
+            tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC
+          );
 
     return ret;
 }/* _is_asymm_int8_virtual_tensor() */
+
+static vsi_bool _is_symm_int8_virtual_tensor
+(
+    vsi_nn_tensor_t* tensor
+)
+{
+    vsi_bool ret = FALSE;
+
+    ret = (tensor != NULL &&
+        tensor->attr.vtl == TRUE &&
+        tensor->attr.dtype.vx_type == VSI_NN_TYPE_INT8 &&
+        tensor->attr.dtype.qnt_type == VSI_NN_QNT_TYPE_AFFINE_SYMMETRIC
+        );
+
+    return ret;
+}/* _is_symm_int8_virtual_tensor() */
+
+static vsi_bool _is_int8_virtual_tensor
+(
+    vsi_nn_graph_t* graph,
+    vsi_nn_tensor_t* tensor
+)
+{
+    vsi_bool ret = FALSE;
+    vsi_bool support_symi8 =
+       ((vsi_nn_graph_prv_t*)graph)->options->enable_i8_to_u8 == 2;
+
+    ret = _is_asymm_int8_virtual_tensor(tensor);
+    ret = ret || (support_symi8 && _is_symm_int8_virtual_tensor(tensor));
+
+    return ret;
+}/* _is_int8_virtual_tensor() */
 
 static vsi_status _add_forward_node
     (
@@ -199,7 +302,7 @@ static void _get_graph_input_asymm_int8_norm_tensor
             vsi_nn_tensor_id_t id = node->input.tensors[j];
             vsi_nn_tensor_t * tensor = vsi_nn_GetTensor(graph, id);
 
-            if (_is_asymm_int8_norm_tensor(tensor))
+            if (_is_int8_norm_tensor(graph, tensor))
             {
                 if(tensor_ids != NULL)
                 {
@@ -251,7 +354,7 @@ static void _get_graph_output_asymm_int8_norm_tensor
             vsi_nn_tensor_id_t id = node->output.tensors[j];
             vsi_nn_tensor_t * tensor = vsi_nn_GetTensor(graph, id);
 
-            if (_is_asymm_int8_norm_tensor(tensor))
+            if (_is_int8_norm_tensor(graph, tensor))
             {
                 if(tensor_ids != NULL)
                 {
@@ -360,6 +463,7 @@ static vsi_status _add_graph_dataconvert_for_int8
                 {
                    memcpy(&attr, &tensor->attr, sizeof(vsi_nn_tensor_attr_t));
                    attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
+                   attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
                    attr.dtype.zero_point += 128;
                    attr.vtl = TRUE;
                    output = vsi_nn_AddTensor( graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL );
@@ -383,6 +487,7 @@ static vsi_status _add_graph_dataconvert_for_int8
             {
                 memcpy(&attr, &tensor->attr, sizeof(vsi_nn_tensor_attr_t));
                 attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
+                attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
                 attr.dtype.zero_point += 128;
                 attr.vtl = TRUE;
                 input = vsi_nn_AddTensor( graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL );
@@ -788,6 +893,7 @@ static void _convert_const_I8toU8
     }
 
     attr->dtype.vx_type = VSI_NN_TYPE_UINT8;
+    attr->dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr->dtype.zero_point += 128;
 
     if ( tensor->t ) vxReleaseTensor(&tensor->t);
@@ -818,7 +924,7 @@ static vsi_status _convert_graph_const_tensor
            vsi_nn_tensor_id_t id = node->input.tensors[j];
            vsi_nn_tensor_t * tensor = vsi_nn_GetTensor(graph, id);
 
-           if (_is_asymm_int8_const_tensor(tensor))
+           if (_is_int8_const_tensor(graph, tensor))
            {
                _convert_const_I8toU8(graph, id);
            }
@@ -835,11 +941,9 @@ static vsi_status _convert_virtual_tensor_attr
     vsi_nn_tensor_t * tensor
     )
 {
-    if (_is_asymm_int8_virtual_tensor(tensor))
-    {
-        tensor->attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
-        tensor->attr.dtype.zero_point += 128;
-    }
+    tensor->attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
+    tensor->attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
+    tensor->attr.dtype.zero_point += 128;
 
     return VSI_SUCCESS;
 }/* _convert_virtual_tensor_attr() */
@@ -849,7 +953,7 @@ static vsi_status _convert_graph_virtual_tensor
     vsi_nn_graph_t* graph
     )
 {
-    vsi_status status = VSI_FAILURE;
+    vsi_status status = VSI_SUCCESS;
     uint32_t node_num = graph->node_num;
     vsi_nn_node_t* node = NULL;
     uint32_t i = 0;
@@ -865,7 +969,10 @@ static vsi_status _convert_graph_virtual_tensor
             vsi_nn_tensor_id_t id = node->input.tensors[j];
             vsi_nn_tensor_t * tensor = vsi_nn_GetTensor(graph, id);
 
-            status = _convert_virtual_tensor_attr(tensor);
+            if (_is_int8_virtual_tensor(graph, tensor))
+            {
+                status = _convert_virtual_tensor_attr(tensor);
+            }
         }
 
         for(j = 0; j < node->output.num; j++)
@@ -873,7 +980,10 @@ static vsi_status _convert_graph_virtual_tensor
             vsi_nn_tensor_id_t id = node->output.tensors[j];
             vsi_nn_tensor_t * tensor = vsi_nn_GetTensor(graph, id);
 
-            status = _convert_virtual_tensor_attr(tensor);
+            if (_is_int8_virtual_tensor(graph, tensor))
+            {
+                status = _convert_virtual_tensor_attr(tensor);
+            }
         }
     }
 
@@ -925,7 +1035,7 @@ vsi_status vsi_nn_OptimizeGraph
 
     status = VSI_SUCCESS;
 
-    if (!nbg_flag && graph->ctx->options.enable_asymi8_to_u8)
+    if (!nbg_flag &&((vsi_nn_graph_prv_t*)graph)->options->enable_i8_to_u8)
     {
         status = _graph_optimization_convert_int8_to_uint8(graph, dirty);
         CHECK_STATUS_FAIL_GOTO(status, final);

@@ -911,6 +911,7 @@ static vsi_nn_kernel_node_t _setup
     shape[2] = 1;
     reshape_tensor = vsi_nn_reshape_tensor( graph,
             outputs[0], shape, outputs[0]->attr.dim_num );
+    CHECK_PTR_FAIL_GOTO(reshape_tensor, "Create tensor fail.", final);
 
     if ( !vsi_nn_kernel_gpu_check_shape( reshape_tensor->attr.size,
                 outputs[0]->attr.dim_num ) )
@@ -978,6 +979,7 @@ static vsi_nn_kernel_node_t _setup
 
 final:
     vsi_nn_safe_free(node_params);
+    vsi_safe_release_tensor(reshape_tensor);
 
     return node;
 } /* _setup() */

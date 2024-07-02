@@ -35,6 +35,8 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 
+#if (!VX_ARGMAX_VX_SUPPORT)
+
 __BEGIN_DECLS
 
 #define HASH_ARGMAX_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, _image_2d) \
@@ -510,3 +512,4 @@ __END_DECLS
 
 REGISTER_BACKEND_EVIS( argmax, _setup )
 
+#endif

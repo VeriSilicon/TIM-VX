@@ -772,6 +772,7 @@ vsi_bool vsi_nn_CreateTensorGroup
     end[1] = in_tensor->attr.size[1];
     end[2] = in_tensor->attr.size[2];
     end[3] = in_tensor->attr.size[3];
+    end[4] = in_tensor->attr.size[4];
     end[axis] = 0;
     for( i = 0; i <  group_number; i ++ )
     {
@@ -1259,6 +1260,32 @@ vsi_bool vsi_nn_is_same_quant_type(
             }
             break;
         }
+#ifdef VSI_PER_GROUP_QUANTIZATION_SUPPORT
+        case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC: {
+            const float diff = (float)1e-5;
+            int32_t i = 0;
+            int32_t scale_cnt0 = src_dtype->group_count;
+            int32_t scale_cnt1 = dst_dtype->group_count;
+            int32_t group_size0 = src_dtype->group_size;
+            int32_t group_size1 = dst_dtype->group_size;
+            if (scale_cnt0 == scale_cnt1 && group_size0 == group_size1)
+            {
+                const float* src_scale_ptr = src_dtype->group_scales;
+                const float* dst_scale_ptr = dst_dtype->group_scales;
+                for (i = 0; i < scale_cnt0; i++)
+                {
+                    if (vsi_nn_float_compare(
+                            src_scale_ptr[i], dst_scale_ptr[i], diff) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                }
+            } else {
+                return FALSE;
+            }
+            break;
+        }
+#endif
         default:
             break;
     }

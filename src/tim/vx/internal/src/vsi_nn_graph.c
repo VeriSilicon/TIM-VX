@@ -1354,20 +1354,26 @@ vsi_nn_graph_t * vsi_nn_CreateGraph
             graph->node_num = 0;
             graph->ctx = ctx;
             graph->rnn_wksp = NULL;
+            ((vsi_nn_graph_prv_t*) graph)->options =
+                (vsi_nn_runtime_option_t *)malloc( sizeof( vsi_nn_runtime_option_t ));
+            CHECK_PTR_FAIL_GOTO(((vsi_nn_graph_prv_t*) graph)->options, "Create graph options fail.", error);
             graph->node_table = (vsi_nn_map_t *)malloc( sizeof( vsi_nn_map_t ) );
             graph->tensor_table = (vsi_nn_map_t *)malloc( sizeof( vsi_nn_map_t ) );
             graph->isAllowFastMode = TRUE;
             vsi_nn_MapInit( graph->node_table );
             vsi_nn_MapInit( graph->tensor_table );
+            vsi_nn_initOptions( ((vsi_nn_graph_prv_t*) graph)->options );
         }
         else
         {
             VSILOGE( "Create vx graph fail." );
-            free( graph );
+            free(graph);
             graph = NULL;
         }
     }
 
+    return graph;
+error:
     return graph;
 } /* vsi_nn_CreateGraph() */
 
@@ -1428,6 +1434,10 @@ void vsi_nn_ReleaseGraph
                     vsi_nn_LinkListPopStart( (vsi_nn_link_list_t **)&item );
                 free( tmp );
             }
+        }
+        if (NULL != ((vsi_nn_graph_prv_t*)ptr)->options)
+        {
+            free(((vsi_nn_graph_prv_t*)ptr)->options);
         }
         free( ptr );
         *graph = NULL;
@@ -1500,7 +1510,7 @@ vsi_status vsi_nn_SetupGraph
     }
 
 #if VX_GRAPH_BATCH_OPT_SUPPORT
-    if (graph->ctx->options.enable_batch_opt)
+    if (((vsi_nn_graph_prv_t*)graph)->options->enable_batch_opt)
     {
         /*processing batch splitting*/
         status = batchInference_graph(graph, nodes_list);
@@ -2064,7 +2074,7 @@ vsi_nn_node_t * vsi_nn_AddExternalNode
     const char          * kernel_name
     )
 {
-    vsi_nn_node_t * node;
+    vsi_nn_node_prv_t* node;
     vsi_nn_node_id_t id;
     vsi_nn_op_proc_t * node_proc;
 
@@ -2076,16 +2086,17 @@ vsi_nn_node_t * vsi_nn_AddExternalNode
     {
         return NULL;
     }
-    node = (vsi_nn_node_t *)malloc( sizeof( vsi_nn_node_t ) );
+    node = (vsi_nn_node_prv_t*)malloc(sizeof(vsi_nn_node_prv_t));
 
     if( NULL != node )
     {
-        memset( node, 0, sizeof( vsi_nn_node_t ) );
-        node->graph = graph;
-        node->op = op;
-        node->vx_param.overflow_policy = VX_CONVERT_POLICY_SATURATE;
-        node->vx_param.rounding_policy = VX_ROUND_POLICY_TO_ZERO;
-        node->vx_param.down_scale_size_rounding = VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR;
+        memset(node, 0, sizeof(vsi_nn_node_prv_t));
+        node->pon.graph = graph;
+        node->pon.op = op;
+        node->pon.vx_param.overflow_policy = VX_CONVERT_POLICY_SATURATE;
+        node->pon.vx_param.rounding_policy = VX_ROUND_POLICY_TO_ZERO;
+        node->pon.vx_param.down_scale_size_rounding =
+            VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR;
 
         /* init op */
         if(node_proc->init != NULL){
@@ -2093,31 +2104,31 @@ vsi_nn_node_t * vsi_nn_AddExternalNode
         }
 
         /* init output struct */
-        node->output.num = node_proc->output_num;
-        node->output.tensors = (vsi_nn_tensor_id_t *) malloc(
+        node->pon.output.num = node_proc->output_num;
+        node->pon.output.tensors = (vsi_nn_tensor_id_t*)malloc(
             node_proc->output_num * sizeof( vsi_nn_tensor_id_t ) );
-        if ( NULL == node->output.tensors )
+        if (NULL == node->pon.output.tensors)
         {
             VSILOGE("Create output tensor id %s. fail", vsi_nn_OpGetName(op));
             vsi_nn_safe_free(node);
             return NULL;
         }
-        vsi_nn_InitTensorsId( node->output.tensors, node_proc->output_num );
+        vsi_nn_InitTensorsId(node->pon.output.tensors, node_proc->output_num);
 
         /* init input struct */
-        node->input.num = node_proc->input_num;
-        node->input.tensors = (vsi_nn_tensor_id_t *) malloc(
+        node->pon.input.num = node_proc->input_num;
+        node->pon.input.tensors = (vsi_nn_tensor_id_t*)malloc(
             node_proc->input_num * sizeof( vsi_nn_tensor_id_t ) );
-        if ( NULL == node->input.tensors )
+        if (NULL == node->pon.input.tensors)
         {
             VSILOGE("Create input tensor id %s. fail", vsi_nn_OpGetName(op));
-            vsi_nn_safe_free(node->output.tensors);
+            vsi_nn_safe_free(node->pon.output.tensors);
             vsi_nn_safe_free(node);
             return NULL;
         }
-        vsi_nn_InitTensorsId( node->input.tensors, node_proc->input_num );
-        node->attr.const_tensor_preload_type = VSI_NN_NODE_PRELOAD_NONE;
-        node->attr.enable_op_constraint_check = TRUE;
+        vsi_nn_InitTensorsId(node->pon.input.tensors, node_proc->input_num);
+        node->pon.attr.const_tensor_preload_type = VSI_NN_NODE_PRELOAD_NONE;
+        node->pon.attr.enable_op_constraint_check = TRUE;
     }
     id = graph->cur_nid;
     if(NULL != node){
@@ -2126,7 +2137,7 @@ vsi_nn_node_t * vsi_nn_AddExternalNode
         graph->cur_nid ++;
     }
     vsi_nn_OpRegisterExternalOvxInit(op, kernel_name, node_proc);
-    return node;
+    return (vsi_nn_node_t*)node;
 } /* vsi_nn_AddExternalNode() */
 
 void vsi_nn_RemoveNode
@@ -3354,24 +3365,245 @@ final:
     return status;
 } /* vsi_nn_ExecuteGraphLoop() */
 
+typedef enum {
+    VSI_NN_ENABLE_I8TOU8 = 0,
+    VSI_NN_ENABLE_OPCHECK,
+    VSI_SAVE_FILE_TYPE,
+    VSI_USE_IMAGE_PROCESS,
+    VSI_NN_LOG_LEVEL,
+    VSI_NN_ENABLE_CONCAT_OPTIMIZE,
+    VSI_NN_ENABLE_DATACONVERT_OPTIMIZE,
+    VSI_VX_ENABLE_STREAM_PROCESSOR,
+    VSI_NN_FORCE_RGB888_OUT_NHWC,
+    VSI_NN_ENABLE_SLICE_OPTIMIZE,
+    VSI_VX_ENABLE_BATCH_OPT,
+    VIV_VX_ENABLE_SHADER,
+    VSI_USE_FROM_HANDLE,
+    VIV_VX_ENABLE_GRAPH_TRANSFORM
+} VSI_PUBLIC_TYPE vsi_nn_runtime_variable;
 
-vsi_status vsi_nn_SetGraphTransformOption
+typedef struct {
+    const char* key;
+    int32_t value;
+} VSI_PUBLIC_TYPE keyValuePair;
+
+char* vsi_nn_GetRunTimeVariable
+    (
+    const vsi_nn_graph_t* graph,
+    const char* key
+    )
+{
+    int32_t isVaid = 1;
+    int32_t value = -1;
+#define varSize 256
+    char* value_str = (char*)malloc(sizeof(char) * varSize);
+    CHECK_PTR_FAIL_GOTO(value_str, "Create value_str fail.", final);
+    memset(value_str, 0, varSize);
+    char tmp_value[varSize] = {0};
+    VSI_UNREFERENCED(tmp_value);
+    vsi_nn_runtime_option_t* options = ((vsi_nn_graph_prv_t*)graph)->options;
+    switch (vsi_nn_GetVariable(key))
+    {
+        case VIV_VX_ENABLE_SHADER:
+            value =options->enable_shader;
+            break;
+        case VSI_NN_ENABLE_OPCHECK:
+            value = options->enable_opcheck;
+            break;
+        case VSI_NN_ENABLE_I8TOU8:
+            value = options->enable_i8_to_u8;
+            break;
+        case VSI_VX_ENABLE_STREAM_PROCESSOR:
+            value = options->enable_stream_processor;
+            break;
+        case VSI_VX_ENABLE_BATCH_OPT:
+            value = options->enable_batch_opt;
+            break;
+        case VSI_NN_FORCE_RGB888_OUT_NHWC:
+            value = options->enable_rgb88_planar_nhwc;
+            break;
+        case VSI_SAVE_FILE_TYPE:
+            value = options->enable_save_file_type;
+            break;
+        case VSI_NN_ENABLE_CONCAT_OPTIMIZE:
+            value = options->enable_concat_optimize;
+            break;
+        case VSI_NN_ENABLE_SLICE_OPTIMIZE:
+            value = options->enable_slice_optimize;
+            break;
+        case VSI_USE_IMAGE_PROCESS:
+            if (options->enable_use_image_process != -1)
+            {
+                value = options->enable_use_image_process;
+            }
+            else
+            {
+                isVaid = 0;
+            }
+            break;
+        case VSI_USE_FROM_HANDLE:
+            if (options->enable_use_from_handle != -1)
+            {
+                value = options->enable_use_from_handle;
+            }
+            else
+            {
+                isVaid = 0;
+            }
+            break;
+        default:
+            isVaid = 0;
+            VSILOGE("Not support this key: %s.", key);
+    }
+    if (isVaid == 1)
+    {
+        snprintf(tmp_value, varSize, "%d", value);
+        memcpy(value_str, tmp_value, varSize);
+    } else
+    {
+        goto final;
+    }
+#undef varSize
+    return value_str;
+final:
+#undef varSize
+    vsi_nn_safe_free(value_str);
+    return value_str;
+}
+
+vsi_status vsi_nn_SetRunTimeVariable
     (
     vsi_nn_graph_t* graph,
-    const char* ctrl_str,
-    size_t size
+    const char* key,
+    const char* value
+     )
+{
+    vsi_status status = VSI_SUCCESS;
+    size_t size = 1;  // placeholder, not used in vxSetGraphAttribute.
+    if (graph == NULL)
+    {
+        status = VSI_FAILURE;
+        return status;
+    }
+    vsi_nn_runtime_option_t* options = ((vsi_nn_graph_prv_t*)graph)->options;
+    VSI_UNREFERENCED(size);
+    if (vsi_nn_getenv(key) == NULL)
+    {
+        switch (vsi_nn_GetVariable(key) )
+        {
+            case VIV_VX_ENABLE_SHADER:
+                options->enable_shader = atoi(value);
+                break;
+            case VSI_NN_ENABLE_OPCHECK:
+                options->enable_opcheck = atoi(value);
+                break;
+            case VSI_NN_ENABLE_I8TOU8:
+                options->enable_i8_to_u8 = atoi(value);
+                break;
+            case VSI_VX_ENABLE_STREAM_PROCESSOR:
+                options->enable_stream_processor = atoi(value);
+                break;
+            case VSI_VX_ENABLE_BATCH_OPT:
+                options->enable_batch_opt = atoi(value);
+                break;
+            case VSI_NN_FORCE_RGB888_OUT_NHWC:
+                options->enable_rgb88_planar_nhwc = atoi(value);
+                break;
+            case VSI_NN_ENABLE_CONCAT_OPTIMIZE:
+                options->enable_concat_optimize = atoi(value);
+                break;
+            case VSI_NN_ENABLE_DATACONVERT_OPTIMIZE:
+                options->enable_dataconvert_optimize = atoi(value);
+                break;
+            case VSI_NN_ENABLE_SLICE_OPTIMIZE:
+                options->enable_slice_optimize = atoi(value);
+                break;
+            case VSI_SAVE_FILE_TYPE:
+                options->enable_save_file_type = atoi(value);
+                break;
+            case VSI_USE_IMAGE_PROCESS:
+                options->enable_use_image_process = atoi(value);
+                break;
+            case VSI_USE_FROM_HANDLE:
+                options->enable_use_from_handle = atoi(value);
+                break;
+            case VIV_VX_ENABLE_GRAPH_TRANSFORM:
+#ifdef VX_GRAPH_TRANSFORM_OPTION_SUPPORT
+                if (graph && graph->g) {
+                    status = vxSetGraphAttribute(
+                        graph->g, VX_GRAPH_VSI_TRANSFORM_OPTIONS, value, size);
+                }
+#else
+                status = VSI_FAILURE;
+                VSILOGE("VX_GRAPH_TRANSFORM_OPTION_SUPPORT is not defined, please check driver version.");
+#endif
+                break;
+            default:
+#ifdef VX_GRAPH_ENV_SUPPORT
+                status = vxSetGraphEnv(graph->g, key, value);
+#else
+                status = VSI_FAILURE;
+                VSILOGE("VX_GRAPH_ENV_SUPPORT is not defined, please check driver version.");
+#endif
+                break;
+        }
+    }
+    return status;
+}
+
+int32_t vsi_nn_GetVariable(const char* variableKey) {
+    keyValuePair dict[] = {
+        {"VSI_NN_ENABLE_I8TOU8", VSI_NN_ENABLE_I8TOU8},
+        {"VSI_NN_ENABLE_OPCHECK", VSI_NN_ENABLE_OPCHECK},
+        {"VSI_SAVE_FILE_TYPE", VSI_SAVE_FILE_TYPE},
+        {"VSI_USE_IMAGE_PROCESS", VSI_USE_IMAGE_PROCESS},
+        {"VSI_NN_ENABLE_CONCAT_OPTIMIZE", VSI_NN_ENABLE_CONCAT_OPTIMIZE},
+        {"VSI_NN_ENABLE_DATACONVERT_OPTIMIZE", VSI_NN_ENABLE_DATACONVERT_OPTIMIZE},
+        {"VSI_VX_ENABLE_STREAM_PROCESSOR", VSI_VX_ENABLE_STREAM_PROCESSOR},
+        {"VSI_NN_FORCE_RGB888_OUT_NHWC", VSI_NN_FORCE_RGB888_OUT_NHWC},
+        {"VSI_NN_ENABLE_SLICE_OPTIMIZE", VSI_NN_ENABLE_SLICE_OPTIMIZE},
+        {"VSI_VX_ENABLE_BATCH_OPT", VSI_VX_ENABLE_BATCH_OPT},
+        {"VIV_VX_ENABLE_SHADER", VIV_VX_ENABLE_SHADER},
+        {"VSI_USE_FROM_HANDLE", VSI_USE_FROM_HANDLE},
+        {"VIV_VX_ENABLE_GRAPH_TRANSFORM", VIV_VX_ENABLE_GRAPH_TRANSFORM},
+        {NULL, -1}
+    };
+    for (int32_t i = 0; dict[i].key != NULL; i++) {
+        if (strcmp(dict[i].key, variableKey) == 0) {
+            return dict[i].value;
+        }
+    }
+    return -1;
+}
+
+OVXLIB_API char* vsi_nn_GenerateGraphJson
+    (
+    vsi_nn_graph_t* graph
+    )
+{
+    char* json = NULL;
+    VSI_UNREFERENCED(graph);
+#ifdef VX_GENERATE_GRAPH_JSON_API_SUPPORT
+    if (graph && graph->g)
+    {
+        json = vxGenerateGraphJson(graph->g);
+    }
+#endif
+    return json;
+}
+
+OVXLIB_API vsi_status vsi_nn_ReleaseGraphJson
+    (
+    char* json
     )
 {
     vsi_status status = VSI_FAILURE;
-    VSI_UNREFERENCED(graph);
-    VSI_UNREFERENCED(ctrl_str);
-    VSI_UNREFERENCED(size);
-#ifdef VX_GRAPH_TRANSFORM_OPTION_SUPPORT
-
-    if(graph && graph->g)
-    {
-        status = vxSetGraphAttribute(graph->g, VX_GRAPH_VSI_TRANSFORM_OPTIONS, ctrl_str, size);
+    VSI_UNREFERENCED(json);
+#ifdef VX_GENERATE_GRAPH_JSON_API_SUPPORT
+    if (json) {
+        status = vxReleaseGraphJson(json);
     }
 #endif
+
     return status;
 }

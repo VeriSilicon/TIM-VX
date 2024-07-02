@@ -212,6 +212,10 @@
 #include "ops/vsi_nn_op_crop_and_resize.h"
 #include "ops/vsi_nn_op_rmsnorm.h"
 #include "ops/vsi_nn_op_shape.h"
+#include "ops/vsi_nn_op_bitcast.h"
+#include "ops/vsi_nn_op_grouped_conv3d.h"
+#include "ops/vsi_nn_op_col2im.h"
+#include "ops/vsi_nn_op_l1_layer_norm.h"
 /* custom node head define define */
 #include "custom/vsi_nn_custom_node_type.h"
 #include "ops/vsi_nn_op_inverse_sigmoid.h"
@@ -412,6 +416,10 @@ typedef union _vsi_nn_nn_param
     vsi_nn_crop_and_resize_param    crop_and_resize;
     vsi_nn_rmsnorm_param            rmsnorm;
     vsi_nn_shape_param              shape;
+    vsi_nn_bitcast_param            bitcast;
+    vsi_nn_grouped_conv3d_param     grouped_conv3d;
+    vsi_nn_col2im_param             col2im;
+    vsi_nn_l1_layer_norm_param      l1_layer_norm;
     void*                         client_param;
 
     /* custom node data struct define */

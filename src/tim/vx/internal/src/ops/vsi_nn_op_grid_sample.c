@@ -54,10 +54,12 @@ static vsi_status op_compute
     vsi_nn_kernel_param_t* param = NULL;
     int32_t align_corners = self->nn_param.gridsample.align_corners;
     int32_t pad_mode = (int32_t)self->nn_param.gridsample.padding_mode;
+    int32_t mode = (int32_t)self->nn_param.gridsample.mode;
     vsi_nn_kernel_node_t n;
     char kernel_name[128];
 
     param = vsi_nn_kernel_param_create();
+    vsi_nn_kernel_param_add_int32(param, "mode", mode);
     vsi_nn_kernel_param_add_int32(param, "align_corners", align_corners);
     vsi_nn_kernel_param_add_int32(param, "padding_mode", pad_mode);
 

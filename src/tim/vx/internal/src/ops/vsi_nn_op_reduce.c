@@ -183,7 +183,8 @@ static vsi_bool _check_is_sp_supported_type
         return FALSE;
     }
 
-    if ( (axes_num == 1 && (axes[0] == 0 || axes[0] == 2)) ||
+    if ( (axes_num == 1 && (axes[0] == 0 || axes[0] == 2 ||
+         (axes[0] == 1 && (input->attr.size[0] == 1 || input->attr.size[2] == 1)))) ||
          (axes_num == 2 && ((axes[0] < 2 && axes[1] < 2) || (axes[0] == 1 && axes[1] == 2))) )
     {
         return TRUE;
@@ -1167,6 +1168,7 @@ static vsi_bool op_setup
             {
                 outputs[0]->attr.dim_num = 1;
                 outputs[0]->attr.size[0] = 1;
+                vsi_nn_SetTensorIsScalar(outputs[0], TRUE);
             }
             else
             {

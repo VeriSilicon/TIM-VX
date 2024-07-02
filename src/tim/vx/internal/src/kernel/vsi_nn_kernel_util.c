@@ -916,11 +916,21 @@ vsi_nn_tensor_t * vsi_nn_kernel_insert_reshape_node
     {
         input = in_tensor;
         output = tensor;
+        /* Create a openvx tensor if it is not exist */
+        if (NULL == input->t)
+        {
+            vsi_nn_TensorReinit(graph, input);
+        }
     }
     else
     {
         input = tensor;
         output = in_tensor;
+        /* Create a openvx tensor if it is not exist */
+        if (NULL == output->t)
+        {
+            vsi_nn_TensorReinit(graph, output);
+        }
     }
 
     vxTensorReshapeNode(graph->g, input->t, &reshape_param, sizeof(reshape_param), output->t);

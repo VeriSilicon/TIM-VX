@@ -46,20 +46,35 @@ __BEGIN_DECLS
 
 #define KERNEL_SOURCE_1    "cumsum"
 #define KERNEL_SOURCE_2    "cumsum_2d"
+#define KERNEL_SOURCE_3    "cumsum_array_axis0"
+#define KERNEL_SOURCE_4    "cumsum_array_axis1"
+#define KERNEL_SOURCE_5    "cumsum_array_axis2"
+#define KERNEL_SOURCE_6    "cumsum_array_2d_axis0"
+#define KERNEL_SOURCE_7    "cumsum_array_2d_axis1"
 
 // Add kernel hashtable here
-#define HASH_CUMSUM_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, _image_2d) \
-    ((AXIS << 20) | (IN_DTYPE << 12) | (OUT_DTYPE << 4) | (_image_2d))
+#define HASH_CUMSUM_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, _image_2d, is_array) \
+    ((AXIS << 20) | (IN_DTYPE << 12) | (OUT_DTYPE << 8) | (_image_2d << 4) | (is_array))
 
 #define HASH_CUMSUM_KERNELS( AXIS, IN_DTYPE, OUT_DTYPE) \
-        { HASH_CUMSUM_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, 0), \
+        { HASH_CUMSUM_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, 0, 0), \
         CVIVANTE_NAMESPACE("cl.cumsum_"#IN_DTYPE"to"#OUT_DTYPE"_axis"#AXIS), \
         KERNEL_SOURCE_1 },
 
 #define HASH_CUMSUM_KERNELS_2D( AXIS, IN_DTYPE, OUT_DTYPE) \
-        { HASH_CUMSUM_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, 1), \
+        { HASH_CUMSUM_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, 1, 0), \
         CVIVANTE_NAMESPACE("cl.cumsum_"#IN_DTYPE"to"#OUT_DTYPE"_axis"#AXIS"_2D"), \
         KERNEL_SOURCE_2 },
+
+#define HASH_CUMSUM_ARRAY_KERNELS( AXIS, IN_DTYPE, OUT_DTYPE, SOURCE) \
+        { HASH_CUMSUM_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, 0, 1), \
+        CVIVANTE_NAMESPACE("cl.cumsum_array_"#IN_DTYPE"to"#OUT_DTYPE"_axis"#AXIS), \
+        SOURCE },
+
+#define HASH_CUMSUM_ARRAY_KERNELS_2D( AXIS, IN_DTYPE, OUT_DTYPE, SOURCE) \
+        { HASH_CUMSUM_HASH_KEY(AXIS, IN_DTYPE, OUT_DTYPE, 1, 1), \
+        CVIVANTE_NAMESPACE("cl.cumsum_array_"#IN_DTYPE"to"#OUT_DTYPE"_axis"#AXIS"_2D"), \
+        SOURCE },
 
 static const struct {
         uint32_t key;
@@ -82,6 +97,22 @@ static const struct {
     HASH_CUMSUM_KERNELS_2D(1, U8,  U8)
     HASH_CUMSUM_KERNELS_2D(1, F32, F32)
     HASH_CUMSUM_KERNELS_2D(1, F32, U8)
+
+    HASH_CUMSUM_ARRAY_KERNELS(0, U8,  U8, KERNEL_SOURCE_3)
+    HASH_CUMSUM_ARRAY_KERNELS(0, F32, F32, KERNEL_SOURCE_3)
+    HASH_CUMSUM_ARRAY_KERNELS(0, F32, U8, KERNEL_SOURCE_3)
+    HASH_CUMSUM_ARRAY_KERNELS(1, U8,  U8, KERNEL_SOURCE_4)
+    HASH_CUMSUM_ARRAY_KERNELS(1, F32, F32, KERNEL_SOURCE_4)
+    HASH_CUMSUM_ARRAY_KERNELS(1, F32, U8, KERNEL_SOURCE_4)
+    HASH_CUMSUM_ARRAY_KERNELS(2, U8,  U8, KERNEL_SOURCE_5)
+    HASH_CUMSUM_ARRAY_KERNELS(2, F32, F32, KERNEL_SOURCE_5)
+    HASH_CUMSUM_ARRAY_KERNELS(2, F32, U8, KERNEL_SOURCE_5)
+    HASH_CUMSUM_ARRAY_KERNELS_2D(0, U8,  U8, KERNEL_SOURCE_6)
+    HASH_CUMSUM_ARRAY_KERNELS_2D(0, F32, F32, KERNEL_SOURCE_6)
+    HASH_CUMSUM_ARRAY_KERNELS_2D(0, F32, U8, KERNEL_SOURCE_6)
+    HASH_CUMSUM_ARRAY_KERNELS_2D(1, U8,  U8, KERNEL_SOURCE_7)
+    HASH_CUMSUM_ARRAY_KERNELS_2D(1, F32, F32, KERNEL_SOURCE_7)
+    HASH_CUMSUM_ARRAY_KERNELS_2D(1, F32, U8, KERNEL_SOURCE_7)
 };
 
 /*
@@ -197,7 +228,8 @@ static vsi_status _query_kernel
     vsi_nn_tensor_t * const * const inputs,
     vsi_nn_tensor_t * const * const outputs,
     int32_t axis,
-    int32_t is_2d
+    int32_t is_2d,
+    int32_t is_array
     /* Add extra params */
     )
 {
@@ -230,7 +262,7 @@ static vsi_status _query_kernel
         output_dtype = F32;
     }
 
-    key = HASH_CUMSUM_HASH_KEY( axis, input0_dtype, output_dtype, is_2d);
+    key = HASH_CUMSUM_HASH_KEY( axis, input0_dtype, output_dtype, is_2d, is_array);
 
     for ( i = 0; i < _cnt_of_array(cumsum_map); i ++ )
     {
@@ -270,6 +302,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_t             * kernel
     )
 {
+#define VSI_NN_MAX_BLOCK_SIZE  GPU_TENSOR_MAX_WIDTH
     vsi_status status = VSI_FAILURE;
     vsi_nn_kernel_node_param_t node_params[_CUMSUM_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
@@ -291,6 +324,7 @@ static vsi_nn_kernel_node_t _setup
     int32_t height     = 0;
     int32_t channel    = 1;
     uint32_t i = 0;
+    int32_t is_array   = 0;
 
     VSI_UNREFERENCED(input_num);
     VSI_UNREFERENCED(output_num);
@@ -326,13 +360,16 @@ static vsi_nn_kernel_node_t _setup
     reshape_tensors[1] = vsi_nn_reshape_tensor( graph,
         outputs[0], shapes[0], (vsi_size_t)rs_dim );
 
-    if ( !vsi_nn_kernel_gpu_check_shape( outputs[0]->attr.size,
-                outputs[0]->attr.dim_num ) )
+    for (i = 0; i < rs_dim; i++)
     {
-        return NULL;
+        if (shapes[0][i] > VSI_NN_MAX_BLOCK_SIZE)
+        {
+            is_array = 1;
+        }
     }
+#undef VSI_NN_MAX_BLOCK_SIZE
 
-    status = _query_kernel( kernel, inputs, outputs, axis_new, is_2d );
+    status = _query_kernel( kernel, inputs, outputs, axis_new, is_2d, is_array);
     if ( VSI_SUCCESS == status)
     {
         node = vsi_nn_kernel_create_node( graph, kernel );

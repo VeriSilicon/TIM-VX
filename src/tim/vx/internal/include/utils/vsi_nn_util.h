@@ -349,7 +349,7 @@ vsi_bool vsi_nn_IsEVISFeatureAvaiable
     vsi_nn_context_t context
     );
 
-int32_t vsi_nn_compareVersion
+OVXLIB_API int32_t vsi_nn_compareVersion
     (
     vsi_nn_graph_t * graph,
     uint32_t version_major,
