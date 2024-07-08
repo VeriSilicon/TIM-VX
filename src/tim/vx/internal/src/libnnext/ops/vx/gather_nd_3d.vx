@@ -98,3 +98,120 @@ __kernel void gather_nd_F16toF16_3D(
     VXC_WriteImage(output, coord.zy, src, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
 }
 
+__kernel void gather_nd_array_I8toI8_3D(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+
+    int4 coord = (int4)(0, gidy, gidx, 0);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
+    indice.x = indice.x * block_size + gidx;
+    indice.w = 0;
+
+    Tensor img1 = create_tensor_from_image2d_array(input0, 1);
+    Image img2 = create_image_from_image2d(output, 1);
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);
+    __global char* data_ptr = (__global char*)input_ptr;
+    __global char* dst_ptr = (__global char*)output_ptr;
+    char src = data_ptr[0];
+    dst_ptr[0] = src;
+}
+
+__kernel void gather_nd_array_U8toU8_3D(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+
+    int4 coord = (int4)(0, gidy, gidx, 0);
+
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
+    indice.x = indice.x * block_size + gidx;
+    indice.w = 0;
+
+    Tensor img1 = create_tensor_from_image2d_array(input0, 1);
+    Image img2 = create_image_from_image2d(output, 1);
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);
+    __global uchar* data_ptr = (__global uchar*)input_ptr;
+    __global uchar* dst_ptr = (__global uchar*)output_ptr;
+    uchar src = data_ptr[0];
+    dst_ptr[0] = src;
+
+}
+
+__kernel void gather_nd_array_I16toI16_3D(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+
+    int4 coord = (int4)(0, gidy, gidx, 0);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
+    indice.x = indice.x * block_size + gidx;
+    indice.w = 0;
+
+    Tensor img1 = create_tensor_from_image2d_array(input0, 2);
+    Image img2 = create_image_from_image2d(output, 2);
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);
+    __global short* data_ptr = (__global short*)input_ptr;
+    __global short* dst_ptr = (__global short*)output_ptr;
+    short src = data_ptr[0];
+    dst_ptr[0] = src;
+}
+
+__kernel void gather_nd_array_F16toF16_3D(
+    __read_only image2d_array_t   input0,
+    __read_only image2d_t   input1,
+    __write_only image2d_t  output,
+    int block_size,
+    int coord_dim
+    )
+{
+    int gidx = get_global_id(0);  // block_size
+    int gidy = get_global_id(1);  // indices_num
+
+    int4 coord = (int4)(0, gidy, gidx, 0);
+    Image img = create_image_from_image2d(input1, 4);
+    uchar* indice_ptr = get_image_ptr_from_coord(img, coord.xy);
+    int4 indice = ((int4 *)indice_ptr)[0];
+
+    indice.x = indice.x * block_size + gidx;
+    indice.w = 0;
+
+    Tensor img1 = create_tensor_from_image2d_array(input0, 2);
+    Image img2 = create_image_from_image2d(output, 2);
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, indice);
+    uchar* output_ptr = get_image_ptr_from_coord(img2, coord.zy);
+    __global short* data_ptr = (__global short*)input_ptr;
+    __global short* dst_ptr = (__global short*)output_ptr;
+    short src = data_ptr[0];
+    dst_ptr[0] = src;
+}

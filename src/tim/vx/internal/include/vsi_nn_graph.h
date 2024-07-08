@@ -814,11 +814,77 @@ OVXLIB_API vsi_status vsi_nn_ExecuteGraphLoop
     vsi_nn_tensor_t *max_iteration_tensor
     );
 
-OVXLIB_API vsi_status vsi_nn_SetGraphTransformOption
+/**
+ * Set runtime variable
+ * Set runtime variable for ovxlib and driver.
+ *
+ * @param[in] graph Graph handle
+ * @param[in] key Ovxlib and driver Envoriment variable name
+ * Ovxlib supported keys:
+ * VSI_NN_ENABLE_I8TOU8
+ * VSI_NN_ENABLE_OPCHECK
+ * VSI_SAVE_FILE_TYPE
+ * VSI_USE_IMAGE_PROCESS
+ * VSI_NN_ENABLE_CONCAT_OPTIMIZE
+ * VSI_NN_ENABLE_DATACONVERT_OPTIMIZE
+ * VSI_VX_ENABLE_STREAM_PROCESSOR
+ * VSI_NN_FORCE_RGB888_OUT_NHWC
+ * VSI_NN_ENABLE_SLICE_OPTIMIZE
+ * VSI_VX_ENABLE_BATCH_OPT
+ * VSI_USE_FROM_HANDLE
+ * Driver keys:
+ * VIV_VX_ENABLE_GRAPH_TRANSFORM
+ * VIV_VX_ENABLE_SHADER
+ * In addition to the ovxlib keys listed above, all others will be treated as the driver envoriment variable.
+ * @return VSI_SUCCESS on success, or appropriate error code otherwise
+ */
+OVXLIB_API vsi_status vsi_nn_SetRunTimeVariable
     (
     vsi_nn_graph_t* graph,
-    const char* ctrl_str,
-    size_t size
+    const char* key,
+    const char* value
+    );
+
+/**
+ * Get runtime variable
+ * Get runtime variable of ovxlib.
+ *
+ * @param[in] graph Graph handle
+ * @param[in] key Envoriment variable name
+ * Supported keys:
+ * VSI_NN_ENABLE_I8TOU8
+ * VSI_NN_ENABLE_OPCHECK
+ * VSI_SAVE_FILE_TYPE
+ * VSI_USE_IMAGE_PROCESS
+ * VSI_NN_ENABLE_CONCAT_OPTIMIZE
+ * VSI_NN_ENABLE_DATACONVERT_OPTIMIZE
+ * VSI_VX_ENABLE_STREAM_PROCESSOR
+ * VSI_NN_FORCE_RGB888_OUT_NHWC
+ * VSI_NN_ENABLE_SLICE_OPTIMIZE
+ * VSI_VX_ENABLE_BATCH_OPT
+ * VSI_USE_FROM_HANDLE
+ * VIV_VX_ENABLE_GRAPH_TRANSFORM
+ * VIV_VX_ENABLE_SHADER
+ * Only supported the keys listed above.
+ * @return Variable's value on success, or NULL otherwise, attention: if success,
+ *                 the caller need release the memory after use the return value.
+ */
+OVXLIB_API char* vsi_nn_GetRunTimeVariable
+    (
+    const vsi_nn_graph_t* graph,
+    const char* key
+    );
+
+int32_t vsi_nn_GetVariable(const char* variableKey);
+
+OVXLIB_API char* vsi_nn_GenerateGraphJson
+    (
+    vsi_nn_graph_t* graph
+    );
+
+OVXLIB_API vsi_status vsi_nn_ReleaseGraphJson
+    (
+    char* json
     );
 
 /**

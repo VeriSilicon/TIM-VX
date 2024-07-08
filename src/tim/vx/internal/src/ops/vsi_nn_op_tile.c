@@ -78,9 +78,10 @@ static vsi_status _tile_op_compute
     vsi_size_t new_rank                      = 0;
     vsi_bool   ret                          = FALSE;
     uint32_t i                              = 0;
-    vsi_size_t* multiples                   = (vsi_size_t*)self->nn_param.tile.multiples;
+    int32_t* multiples_                     = (int32_t*)self->nn_param.tile.multiples;
     vsi_nn_tensor_t* temp_tensors[3]        = { NULL };
     vsi_nn_tensor_t* reshape_tensors[3]     = { NULL };
+    vsi_size_t multiples[VSI_NN_MAX_DIM_NUM] = {1};
     int32_t   multiples_value[VSI_NN_MAX_DIM_NUM] = {0};
     vsi_nn_tensor_attr_t attr;
 
@@ -101,6 +102,11 @@ static vsi_status _tile_op_compute
         temp_tensors[2] = outputs[0];
     }
 
+    for (i = 0; i < inputs[0]->attr.dim_num; i ++)
+    {
+        multiples[i] = (vsi_size_t)multiples_[i];
+    }
+
     ret = vsi_nn_kernel_optimize_tile_shape(
             inputs[0]->attr.size, inputs[0]->attr.dim_num,
             multiples, inputs[0]->attr.dim_num,
@@ -111,6 +117,7 @@ static vsi_status _tile_op_compute
     {
         if (_is_supported_axis(shapes[1], new_rank) == FALSE)
         {
+            uint32_t _multiples = (uint32_t)(new_rank > 4 && shapes[1][4] > 1 ? 3 : 2);
             reshape_tensors[0] = vsi_nn_reshape_tensor( self->graph, inputs[0],\
                 shapes[0], (vsi_size_t)new_rank );
             reshape_tensors[2] = vsi_nn_reshape_tensor( self->graph, temp_tensors[2],\
@@ -125,8 +132,11 @@ static vsi_status _tile_op_compute
             memcpy( &attr, &reshape_tensors[0]->attr, sizeof(attr));
             attr.is_const = FALSE;
             attr.vtl = TRUE;
-            attr.size[0] = reshape_tensors[2]->attr.size[0];
-            attr.size[1] = reshape_tensors[2]->attr.size[1];
+
+            for (i = 0; i < _multiples; i++)
+            {
+                attr.size[i] = reshape_tensors[2]->attr.size[i];
+            }
             temp_tensors[0] = vsi_nn_CreateTensor( self->graph, &attr );
 
             memset( &attr, 0 , sizeof(vsi_nn_tensor_attr_t) );
@@ -136,9 +146,11 @@ static vsi_status _tile_op_compute
             attr.size[0] = new_rank;
             attr.dim_num = 1;
 
-            multiples_value[0] = (int32_t)shapes[1][0];
-            multiples_value[1] = (int32_t)shapes[1][1];
-            for (i = 0; i < new_rank; i++)
+            for (i = 0; i < _multiples; i++)
+            {
+                multiples_value[i] = (int32_t)shapes[1][i];
+            }
+            for (i = _multiples; i < new_rank; i++)
             {
                 multiples_value[i] = 1;
             }
@@ -150,9 +162,11 @@ static vsi_status _tile_op_compute
                 goto final;
             }
 
-            multiples_value[0] = 1;
-            multiples_value[1] = 1;
-            for (i = 0; i < new_rank; i++)
+            for (i = 0; i < _multiples; i++)
+            {
+                multiples_value[i] = 1;
+            }
+            for (i = _multiples; i < new_rank; i++)
             {
                 multiples_value[i] = (int32_t)shapes[1][i];
             }
@@ -257,6 +271,7 @@ static vsi_bool op_check
         IO_TYPE(D_F32,          D_F32)
         IO_TYPE(D_F32,          D_U8|Q_ASYM)
         IO_TYPE(D_F16,          D_U8|Q_ASYM)
+        IO_TYPE(D_BOOL8,        D_BOOL8)
     END_IO_TYPE_DECL(TILE)
     if (!VALIDATE_OP_IO_TYPES(TILE, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,

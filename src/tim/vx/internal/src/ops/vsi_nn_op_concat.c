@@ -28,6 +28,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_log.h"
 #include "vsi_nn_graph.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_node.h"
 #include "vsi_nn_ops.h"
 #include "vsi_nn_tensor.h"
@@ -278,7 +279,7 @@ static vsi_status op_compute
     if(_is_tensorview_support(self, outputs)
         && _is_same_quant(self, inputs, outputs)
         && (_has_norm_input(self, inputs) == FALSE)
-        && self->graph->ctx->options.enable_concat_optimize)
+        && ((vsi_nn_graph_prv_t*)(self->graph))->options->enable_concat_optimize)
     {
         iter = self->nn_param.concat.lcl_data;
         while( NULL != iter )
@@ -443,7 +444,7 @@ static vsi_status op_optimize
     if (_is_tensorview_support(self, outputs) == FALSE ||
         _is_same_quant(self, inputs, outputs) == FALSE ||
         _has_norm_input(self, inputs) == TRUE ||
-        self->graph->ctx->options.enable_concat_optimize == 0)
+        ((vsi_nn_graph_prv_t*)(self->graph))->options->enable_concat_optimize == 0)
     {
         return status;
     }

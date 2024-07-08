@@ -35,6 +35,8 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 
+#if (!VX_ARGMAX_VX_SUPPORT)
+
 __BEGIN_DECLS
 
 
@@ -289,3 +291,5 @@ OnError:
 __END_DECLS
 
 REGISTER_BACKEND_CL( argmax, _setup )
+
+#endif

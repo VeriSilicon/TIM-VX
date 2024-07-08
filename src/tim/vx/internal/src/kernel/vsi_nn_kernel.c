@@ -29,6 +29,7 @@
 #include "vsi_nn_context.h"
 #include "vsi_nn_prv.h"
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_log.h"
 #include "vsi_nn_error.h"
@@ -1673,7 +1674,7 @@ vsi_status vsi_nn_KernelGpuConfig
 
 static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
 {
-    int32_t enableShader = graph->ctx->options.enable_shader;
+    int32_t enableShader = ((vsi_nn_graph_prv_t*)graph)->options->enable_shader;
 
 #if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
     if ( graph->ctx->config.subGroupSize == 0 )

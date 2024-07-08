@@ -22,10 +22,10 @@
 *
 *****************************************************************************/
 #include <stdlib.h>
-#include "vsi_nn_types.h"
 #include "vsi_nn_test.h"
 #include "vsi_nn_context.h"
 #include "vsi_nn_platform.h"
+#include "vsi_nn_types.h"
 
 static vsi_status query_hardware_caps
     (
@@ -103,6 +103,9 @@ static const char* ENV_ENABLE_STREAM_PROCESSOR = "vendor.VSI_VX_ENABLE_STREAM_PR
 static const char* ENV_FORCE_RGB888_OUT_NHWC = "vendor.VSI_NN_FORCE_RGB888_OUT_NHWC";
 static const char* ENV_ENABLE_SLICE_OPTIMIZE = "vendor.VSI_NN_ENABLE_SLICE_OPTIMIZE";
 static const char* ENV_ENABLE_BATCH_OPT = "vendor.VSI_VX_ENABLE_BATCH_OPT";
+static const char* ENV_SAVE_FILE_TYPE = "vendor.VSI_SAVE_FILE_TYPE";
+static const char* VSI_USE_IMAGE_PROCESS = "vendor.VSI_USE_IMAGE_PROCESS";
+static const char* VSI_USE_FROM_HANDLE = "vendor.VSI_USE_FROM_HANDLE";
 #else
 static const char* ENV_ENABLE_SHADER = "VIV_VX_ENABLE_SHADER";
 static const char* ENV_ENABLE_OPCHECK = "VSI_NN_ENABLE_OPCHECK";
@@ -113,8 +116,11 @@ static const char* ENV_ENABLE_STREAM_PROCESSOR = "VSI_VX_ENABLE_STREAM_PROCESSOR
 static const char* ENV_FORCE_RGB888_OUT_NHWC = "VSI_NN_FORCE_RGB888_OUT_NHWC";
 static const char* ENV_ENABLE_SLICE_OPTIMIZE = "VSI_NN_ENABLE_SLICE_OPTIMIZE";
 static const char* ENV_ENABLE_BATCH_OPT = "VSI_VX_ENABLE_BATCH_OPT";
+static const char* ENV_SAVE_FILE_TYPE = "VSI_SAVE_FILE_TYPE";
+static const char* VSI_USE_IMAGE_PROCESS = "VSI_USE_IMAGE_PROCESS";
+static const char* VSI_USE_FROM_HANDLE = "VSI_USE_FROM_HANDLE";
 #endif
-static vsi_status vsi_nn_initOptions
+vsi_status vsi_nn_initOptions
     (
     vsi_nn_runtime_option_t *options
     )
@@ -129,7 +135,7 @@ static vsi_status vsi_nn_initOptions
     default_value = 1;
 #endif
     options->enable_concat_optimize = vsi_nn_getenv_asint(ENV_ENABLE_CONCAT_OPTIMIZE, default_value);
-    options->enable_asymi8_to_u8 = vsi_nn_getenv_asint(ENV_ENABLE_I8TOU8, 1);
+    options->enable_i8_to_u8 = vsi_nn_getenv_asint(ENV_ENABLE_I8TOU8, 1);
     options->enable_dataconvert_optimize = vsi_nn_getenv_asint(ENV_ENABLE_DATACONVERT_OPTIMIZE, 1);
     options->enable_stream_processor = vsi_nn_getenv_asint(ENV_ENABLE_STREAM_PROCESSOR, 1);
     options->enable_rgb88_planar_nhwc = vsi_nn_getenv_asint(ENV_FORCE_RGB888_OUT_NHWC, 0);
@@ -140,6 +146,9 @@ static vsi_status vsi_nn_initOptions
 #endif
     options->enable_slice_optimize = vsi_nn_getenv_asint(ENV_ENABLE_SLICE_OPTIMIZE, default_value);
     options->enable_batch_opt = vsi_nn_getenv_asint(ENV_ENABLE_BATCH_OPT, 0);
+    options->enable_save_file_type = vsi_nn_getenv_asint(ENV_SAVE_FILE_TYPE, 0);
+    options->enable_use_image_process = vsi_nn_getenv_asint(VSI_USE_IMAGE_PROCESS, -1);
+    options->enable_use_from_handle = vsi_nn_getenv_asint(VSI_USE_FROM_HANDLE, -1);
 
     return VSI_SUCCESS;
 }

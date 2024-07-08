@@ -36,7 +36,7 @@
 #include "utils/vsi_nn_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "utils/vsi_nn_dtype_util_prv.h"
-
+#if (!VX_RESIZE_BILINEAR_SH_SUPPORT)
 __BEGIN_DECLS
 
 /*
@@ -1515,3 +1515,4 @@ final:
 __END_DECLS
 
 REGISTER_BACKEND_EVIS( resize_bilinear, _setup )
+#endif

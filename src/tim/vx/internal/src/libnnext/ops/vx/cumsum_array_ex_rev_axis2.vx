@@ -1,0 +1,322 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform VXC_512Bits uniAccSumVertF16toF16_2x8;
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32A_4x4;
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32B_4x4;
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32C_4x4;
+_viv_uniform VXC_512Bits uniAccSumVertU8toI32D_4x4;
+_viv_uniform VXC_512Bits uniConvertInt32toUint8_2x8;
+
+_viv_uniform VXC_512Bits uniSetZeroF16_2x8;
+
+_viv_uniform int channel;
+_viv_uniform float in_out_scale;
+_viv_uniform float in_out_zp_scale;
+_viv_uniform float output_zp;
+
+_viv_uniform int remainder;
+_viv_uniform int w_size;
+
+
+__kernel void cumsum_ex_rev_array_F16toF16_axis2(
+    __read_only image2d_array_t   input,
+    __write_only image2d_array_t  output,
+    int axis, int exclusive, int rev)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);
+
+    vxc_short8 src, dst;
+    vxc_half8 data, sum;
+    VXC_DP2x8(sum, sum, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniSetZeroF16_2x8);
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)
+    {
+        coord.x = coord.x - (8 - remainder);
+    }
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;
+    __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;
+    if(rev && exclusive == 0)
+    {
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--)
+        {
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);
+            in_ptr = (__global vxc_short8*)input_ptr;
+            out_ptr = (__global vxc_short8*)output_ptr;
+            src = in_ptr[0];
+            _viv_asm(COPY, data, src, 16);
+
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);
+            _viv_asm(COPY, dst, sum, 16);
+            out_ptr[0] = dst;
+        }
+    }
+    else if(rev == 0 && exclusive)
+    {
+        _viv_asm(COPY, dst, sum, 16);
+        out_ptr[0] = dst;
+        for(; coord.z < channel - 1;)
+        {
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);
+            in_ptr = (__global vxc_short8*)input_ptr;
+            src = in_ptr[0];
+            coord.z++;
+            _viv_asm(COPY, data, src, 16);
+
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);
+            _viv_asm(COPY, dst, sum, 16);
+            out_ptr[0] = dst;
+        }
+    }
+    else if(rev && exclusive)
+    {
+        _viv_asm(COPY, dst, sum, 16);
+        coord.z = channel - 1;
+        output_ptr = get_tensor_ptr_from_coord(img2, coord);
+        out_ptr = (__global vxc_short8*)output_ptr;
+        out_ptr[0] = dst;
+        for(; coord.z > 0;)
+        {
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);
+            in_ptr = (__global vxc_short8*)input_ptr;
+            src = in_ptr[0];
+            coord.z--;
+            _viv_asm(COPY, data, src, 16);
+
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);
+            out_ptr = (__global vxc_short8*)output_ptr;
+
+            VXC_DP2x8(sum, data, sum, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniAccSumVertF16toF16_2x8);
+            _viv_asm(COPY, dst, sum, 16);
+            out_ptr[0] = dst;
+        }
+    }
+}
+
+#define CUMSUM_8BITS_EX_REV_ARRAY_AXIS2(in_name, out_name, src_type, dst_type) \
+__kernel void cumsum_ex_rev_array_##in_name##to##out_name##_axis2( \
+    __read_only image2d_array_t   input, \
+    __write_only image2d_array_t  output, \
+    int axis, int exclusive, int rev) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0); \
+ \
+    src_type src; \
+    dst_type dst; \
+    int4 sum0 = (int4)(0), sum1 = (int4)(0), sum2 = (int4)(0), sum3 = (int4)(0); \
+ \
+    if (coord.x == ((w_size >> 4) * 16) && remainder != 0) \
+    { \
+        coord.x = coord.x - (16 - remainder); \
+    } \
+    Tensor img1 = create_tensor_from_image2d_array(input, 1); \
+    Tensor img2 = create_tensor_from_image2d_array(output, 1); \
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord); \
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord); \
+    __global src_type* in_ptr = (__global src_type*)input_ptr; \
+    __global dst_type* out_ptr = (__global dst_type*)output_ptr; \
+    if(rev && exclusive == 0) \
+    { \
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--) \
+        { \
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \
+            in_ptr = (__global src_type*)input_ptr; \
+            out_ptr = (__global dst_type*)output_ptr; \
+            src = in_ptr[0]; \
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \
+            float tmpAlpha = convert_float(channel - coord.z) * in_out_zp_scale + output_zp; \
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \
+                        uniConvertInt32toUint8_2x8);\
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero,1), \
+                        uniConvertInt32toUint8_2x8);\
+            out_ptr[0] = dst; \
+        } \
+    } \
+    else if(exclusive && rev == 0) \
+    { \
+        int tmpAlpha0 = convert_int_rte(output_zp); \
+        int4 tmpVal; \
+        tmpVal.x = tmpAlpha0; \
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8); \
+        out_ptr[0] = dst.xxxxxxxxxxxxxxxx; \
+        for(; coord.z < channel - 1;) \
+        { \
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \
+            in_ptr = (__global src_type*)input_ptr; \
+            src = in_ptr[0]; \
+            coord.z++; \
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \
+            float tmpAlpha = convert_float(coord.z) * in_out_zp_scale + output_zp; \
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \
+                        uniConvertInt32toUint8_2x8); \
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero,1), \
+                        uniConvertInt32toUint8_2x8); \
+            out_ptr[0] = dst; \
+        } \
+    } \
+    else if(rev && exclusive) \
+    { \
+        coord.z = channel - 1; \
+        int tmpAlpha0 = convert_int_rte(output_zp); \
+        int4 tmpVal; \
+        tmpVal.x = tmpAlpha0; \
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);\
+        output_ptr = get_tensor_ptr_from_coord(img2, coord); \
+        out_ptr = (__global vxc_short8*)output_ptr; \
+        out_ptr[0] = dst.xxxxxxxxxxxxxxxx; \
+        for(; coord.z > 0;) \
+        { \
+            input_ptr = get_tensor_ptr_from_coord(img1, coord); \
+            in_ptr = (__global src_type*)input_ptr; \
+            src = in_ptr[0]; \
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4); \
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4); \
+            VXC_DP4x4(sum2, src, sum2, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32C_4x4); \
+            VXC_DP4x4(sum3, src, sum3, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32D_4x4); \
+            float tmpAlpha = convert_float(channel - coord.z) * in_out_zp_scale + output_zp; \
+            coord.z--; \
+            output_ptr = get_tensor_ptr_from_coord(img2, coord); \
+            out_ptr = (__global dst_type*)output_ptr; \
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha; \
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha; \
+            float4 tmpSum2 = convert_float4(sum2) * in_out_scale + tmpAlpha; \
+            float4 tmpSum3 = convert_float4(sum3) * in_out_scale + tmpAlpha; \
+            int4 tmpDst0 = convert_int4_rte(tmpSum0); \
+            int4 tmpDst1 = convert_int4_rte(tmpSum1); \
+            int4 tmpDst2 = convert_int4_rte(tmpSum2); \
+            int4 tmpDst3 = convert_int4_rte(tmpSum3); \
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), \
+                        uniConvertInt32toUint8_2x8); \
+            VXC_DP2x8(dst, tmpDst2, tmpDst3, VXC_MODIFIER(8, 15, 0, VXC_RM_TowardZero,1),
+                        uniConvertInt32toUint8_2x8); \
+            out_ptr[0] = dst; \
+        } \
+    } \
+}
+CUMSUM_8BITS_EX_REV_ARRAY_AXIS2(U8, U8, vxc_uchar16, vxc_uchar16)
+CUMSUM_8BITS_EX_REV_ARRAY_AXIS2(I8, I8, vxc_char16, vxc_char16)
+
+__kernel void cumsum_ex_rev_array_I16toI16_axis2(
+    __read_only image2d_array_t   input,
+    __write_only image2d_array_t  output,
+    int axis, int exclusive, int rev)
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), 0, 0);
+
+    vxc_short8 src, dst;
+    int4 sum0 = (int4)(0), sum1 = (int4)(0);
+    if (coord.x == ((w_size >> 3) * 8) && remainder != 0)
+    {
+        coord.x = coord.x - (8 - remainder);
+    }
+    Tensor img1 = create_tensor_from_image2d_array(input, 2);
+    Tensor img2 = create_tensor_from_image2d_array(output, 2);
+    uchar* input_ptr = get_tensor_ptr_from_coord(img1, coord);
+    uchar* output_ptr = get_tensor_ptr_from_coord(img2, coord);
+    __global vxc_short8* in_ptr = (__global vxc_short8*)input_ptr;
+    __global vxc_short8* out_ptr = (__global vxc_short8*)output_ptr;
+    if(exclusive == 0 && rev)
+    {
+        for(coord.z = channel - 1; coord.z >= 0; coord.z--)
+        {
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);
+            output_ptr = get_tensor_ptr_from_coord(img2, coord);
+            in_ptr = (__global vxc_short8*)input_ptr;
+            out_ptr = (__global vxc_short8*)output_ptr;
+            src = in_ptr[0];
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);
+            float tmpAlpha = convert_float(channel - coord.z) * in_out_zp_scale + output_zp;
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero,1),
+                        uniConvertInt32toUint8_2x8);
+
+            VXC_WriteImage2DArray(output, coord, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+        }
+    }
+    else if(exclusive && rev == 0)
+    {
+        int tmpAlpha0 = convert_int_rte(output_zp);
+        int4 tmpVal;
+        tmpVal.x = tmpAlpha0;
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);
+        out_ptr[0] = dst.xxxxxxxx;
+        for(; coord.z < channel - 1;)
+        {
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);
+            in_ptr = (__global vxc_short8*)input_ptr;
+            src = in_ptr[0];
+            coord.z++;
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);
+            float tmpAlpha = convert_float(coord.z) * in_out_zp_scale + output_zp;
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero,1),
+                        uniConvertInt32toUint8_2x8);
+
+            out_ptr[0] = dst;
+        }
+    }
+    else if(exclusive && rev)
+    {
+        coord.z = channel - 1;
+        int tmpAlpha0 = convert_int_rte(output_zp);
+        int4 tmpVal;
+        tmpVal.x = tmpAlpha0;
+        VXC_DP2x8(dst, tmpVal, tmpVal, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniConvertInt32toUint8_2x8);
+        output_ptr = get_tensor_ptr_from_coord(img2, coord);
+        out_ptr = (__global vxc_short8*)output_ptr;
+        out_ptr[0] = dst.xxxxxxxx;
+        for(; coord.z > 0;)
+        {
+            input_ptr = get_tensor_ptr_from_coord(img1, coord);
+            in_ptr = (__global vxc_short8*)input_ptr;
+            src = in_ptr[0];
+            VXC_DP4x4(sum0, src, sum0, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32A_4x4);
+            VXC_DP4x4(sum1, src, sum1, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAccSumVertU8toI32B_4x4);
+            float tmpAlpha = convert_float(channel - coord.z) * in_out_zp_scale + output_zp;
+            coord.z--;
+            float4 tmpSum0 = convert_float4(sum0) * in_out_scale + tmpAlpha;
+            float4 tmpSum1 = convert_float4(sum1) * in_out_scale + tmpAlpha;
+            int4 tmpDst0 = convert_int4_rte(tmpSum0);
+            int4 tmpDst1 = convert_int4_rte(tmpSum1);
+            VXC_DP2x8(dst, tmpDst0, tmpDst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero,1),
+                        uniConvertInt32toUint8_2x8);
+
+            out_ptr[0] = dst;
+        }
+    }
+}
+

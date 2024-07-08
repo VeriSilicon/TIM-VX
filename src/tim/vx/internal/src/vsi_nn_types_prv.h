@@ -58,6 +58,7 @@ typedef struct _vsi_nn_graph_prv
 
     // Add graph internal attribute here...
     vsi_nn_swap_handle_cache_t swap_handle_cache;
+    vsi_nn_runtime_option_t* options;
 } vsi_nn_graph_prv_t;
 
 /** Internal Node structure, internal use only. */
