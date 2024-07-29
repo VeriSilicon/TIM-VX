@@ -33,7 +33,7 @@ TEST(LayerNorm, axis_0_shape_3_6_1_float) {
     float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({3, 6, 1});
-    tim::vx::ShapeType param_shape({6});
+    tim::vx::ShapeType param_shape({3});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
                             io_shape, tim::vx::TensorAttribute::INPUT);
     tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
@@ -54,11 +54,9 @@ TEST(LayerNorm, axis_0_shape_3_6_1_float) {
         -6, 0, 6,
         -7, 0, 7 };
     std::vector<float> gamma = {
-        1.0f, 1.0f, 1.0f,
         1.0f, 1.0f, 1.0f
     };
     std::vector<float> beta = {
-        .0f, .0f, .0f,
         .0f, .0f, .0f
     };
     std::vector<float> golden = {
@@ -91,7 +89,7 @@ TEST(LayerNorm, axis_0_shape_2_3_6_1_float) {
     float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({2, 3, 6, 1});
-    tim::vx::ShapeType param_shape({6});
+    tim::vx::ShapeType param_shape({2});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
                             io_shape, tim::vx::TensorAttribute::INPUT);
     tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,
@@ -113,12 +111,10 @@ TEST(LayerNorm, axis_0_shape_2_3_6_1_float) {
         -7, 7, -7, 7, -7, 7
         };
     std::vector<float> gamma = {
-        1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f
+        1.0f, 1.0f
     };
     std::vector<float> beta = {
-        .0f, .0f, .0f,
-        .0f, .0f, .0f
+        .0f, .0f
     };
     std::vector<float> golden = {
         -1.f, 1.f, -1.f, 1.f, -1.f, 1.f,
@@ -150,7 +146,7 @@ TEST(LayerNorm, axis_2_shape_4_2_3_1_float) {
     float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({4, 2, 3, 1});
-    tim::vx::ShapeType param_shape({1,1,3,1});
+    tim::vx::ShapeType param_shape({1, 1, 3, 1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
                             io_shape, tim::vx::TensorAttribute::INPUT);
     tim::vx::TensorSpec param_spec(tim::vx::DataType::FLOAT32,

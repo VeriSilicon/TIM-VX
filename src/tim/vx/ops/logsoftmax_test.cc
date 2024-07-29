@@ -30,6 +30,7 @@
 TEST(LogSoftmax, shape_6_1_float_axis_0) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({6, 1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -57,12 +58,13 @@ TEST(LogSoftmax, shape_6_1_float_axis_0) {
 
     std::vector<float> output(golden.size() * sizeof(float));
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 TEST(LogSoftmax, shape_3_6_1_float_axis_1) {
     auto ctx = tim::vx::Context::Create();
     auto graph = ctx->CreateGraph();
+    float tolerance = ctx->hasSP() ? 0.01 : 1e-5f;
 
     tim::vx::ShapeType io_shape({3, 6, 1});
     tim::vx::TensorSpec input_spec(tim::vx::DataType::FLOAT32,
@@ -100,7 +102,7 @@ TEST(LogSoftmax, shape_3_6_1_float_axis_1) {
 
     std::vector<float> output(golden.size() * sizeof(float));
     EXPECT_TRUE(output_tensor->CopyDataFromTensor(output.data()));
-    EXPECT_TRUE(ArraysMatch(golden, output, 1e-5f));
+    EXPECT_TRUE(ArraysMatch(golden, output, tolerance));
 }
 
 TEST(LogSoftmax, shape_3_6_1_uint8_axis_1) {
