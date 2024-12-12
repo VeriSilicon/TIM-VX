@@ -35,7 +35,7 @@ Main Features
 - [TVM](https://github.com/VeriSilicon/tvm) (Fork)
 - [Paddle-Lite](https://github.com/PaddlePaddle/Paddle-Lite) (Official)
 - [OpenCV](https://github.com/opencv/opencv/wiki/TIM-VX-Backend-For-Running-OpenCV-On-NPU) (Offical)
-- MLIR Dialect (In development)
+- [ONNXRuntime](https://github.com/microsoft/onnxruntime/tree/main/onnxruntime/core/providers/vsinpu) (Official)
 
 Feel free to raise a github issue if you wish to add TIM-VX for other frameworks.
 
