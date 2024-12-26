@@ -418,6 +418,34 @@ OVXLIB_API vsi_status vsi_nn_SetTensorIsScalar
     int8_t is_scalar
 );
 
+/**
+ * Get Tensor is_scalar
+ * Get the is_sparsity of the tensor
+ *
+ * @param[in] tensor Tensor.
+ *
+ * @return is_sparsity flag of the tensor.
+ */
+OVXLIB_API int32_t vsi_nn_GetTensorIsSparsity
+(
+    vsi_nn_tensor_t* tensor
+);
+
+/**
+ * Set Weight Tensor whether is sparsity
+ * Set the is_sparsity for the tensor
+ *
+ * @param[in] tensor Tensor.
+ * @param[in] new is_sparsity value of the tensor.
+ *
+ * @return VSI_SUCCESS on success, or error core otherwise.
+**/
+
+OVXLIB_API vsi_status vsi_nn_SetTensorIsSparsity(
+    vsi_nn_tensor_t* tensor,
+    int32_t is_sparsity
+);
+
 OVXLIB_API vsi_status vsi_nn_CopyRawDataToTensor
     (
     vsi_nn_graph_t*         graph,

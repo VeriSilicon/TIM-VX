@@ -33,6 +33,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "utils/vsi_nn_util.h"
 #include "vsi_nn_rnn_helper.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_error.h"
 
 vsi_bool vsi_nn_rnn_find_best_kernel_size
@@ -804,7 +805,7 @@ vsi_status vsi_nn_rnn_data_check_aligned
         vsi_size_t tensor_size = vsi_nn_GetTensorSize( input[i]->attr.size,
             input[i]->attr.dim_num, input[i]->attr.dtype.vx_type );
 
-        if( ofst & 0x3f && !self->graph->ctx->config.support_stream_processor)
+        if( ofst & 0x3f && !((vsi_nn_graph_prv_t*)(self->graph))->options->config.support_stream_processor)
         {
             vsi_nn_internal_init_tensor_attr(&attr, &input[i]->attr.dtype, use_virtual_tensor);
             output_tensor = vsi_nn_internal_new_tensor( self, &attr, 0.0f );

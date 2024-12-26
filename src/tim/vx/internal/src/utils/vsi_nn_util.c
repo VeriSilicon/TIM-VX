@@ -40,6 +40,7 @@
 #include "vsi_nn_prv.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_tensor_util.h"
 #include "vsi_nn_log.h"
@@ -1261,7 +1262,9 @@ vsi_bool vsi_nn_is_same_quant_type(
             break;
         }
 #ifdef VSI_PER_GROUP_QUANTIZATION_SUPPORT
-        case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC: {
+        case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC:
+        case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_ASYMMETRIC:
+        {
             const float diff = (float)1e-5;
             int32_t i = 0;
             int32_t scale_cnt0 = src_dtype->group_count;
@@ -1627,12 +1630,12 @@ vsi_bool vsi_nn_is_stream_process_supported_types
 {
     size_t i = 0;
 
-    if ( graph->ctx->config.support_stream_processor == 0 )
+    if ( ((vsi_nn_graph_prv_t*)graph)->options->config.support_stream_processor == 0 )
     {
         return FALSE;
     }
 
-    if ( graph->ctx->config.sp_exec_count == 0 )
+    if ( ((vsi_nn_graph_prv_t*)graph)->options->config.sp_exec_count == 0 )
     {
         return FALSE;
     }
@@ -1768,4 +1771,12 @@ typedef enum
     }
 
     return support;
+}
+
+uint32_t vsi_nn_get_tensor_dims
+    (
+        vsi_nn_tensor_t* tensor
+    )
+{
+    return vsi_nn_GetTensorIsScalar(tensor) ? 0 : tensor->attr.dim_num;
 }

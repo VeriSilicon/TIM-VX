@@ -384,25 +384,17 @@ static VSI_INLINE_API float fp16_to_fp32
 
 static VSI_INLINE_API float bfp16_to_fp32
     (
-    int16_t in
+    uint16_t in
     )
 {
-    uint32_t t1, t2, t3;
     float out;
     fp32_bit_cast_t fp32_bit_cast;
 
-    t1 = in & 0x00FF;                       // Mantissa
-    t2 = in & 0xFF00;                       // Sign bit + Exponent
-    t3 = in & 0x7F00;                       // Exponent
+    fp32_bit_cast.data = (uint32_t)(in << 16);
 
-    t1 <<= 16;
-    t2 <<= 16;                              // Shift (sign + Exponent) bit into position
-    t1 |= t2;                               // Re-insert (sign + Exponent) bit
-
-    fp32_bit_cast.data = t1;
     out = fp32_bit_cast.val;
 
-    return t3 == 0 ? 0.0f : out;
+    return out;
 } /* bfp16_to_fp32() */
 
 static VSI_INLINE_API uint16_t fp32_to_fp16
@@ -720,7 +712,7 @@ static VSI_INLINE_API vsi_status dtype_to_float32
         *dst = fp16_to_fp32( *(int16_t *)src );
         break;
     case VSI_NN_TYPE_BFLOAT16:
-        *dst = bfp16_to_fp32( *(int16_t *)src );
+        *dst = bfp16_to_fp32( *(uint16_t *)src );
         break;
     case VSI_NN_TYPE_FLOAT8_E4M3:
         *dst = fp8_e4m3_to_fp32(*(int8_t*)src, src_dtype->scale);

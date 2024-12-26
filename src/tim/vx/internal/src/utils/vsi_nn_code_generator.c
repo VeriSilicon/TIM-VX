@@ -475,6 +475,7 @@ static _op_param_gen_t s_op_gen[] =
     /* GROUPED_CONV3D */        NULL,
     /* COL2IM */                NULL,
     /* L1_LAYER_NORM */         NULL,
+    /* ROPE */                  NULL,
 };
 _compiler_assert( _cnt_of_array(s_op_gen) == VSI_NN_OP_NUM, vsi_nn_code_generator_c );
 

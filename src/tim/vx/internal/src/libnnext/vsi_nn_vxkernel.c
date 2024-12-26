@@ -29,6 +29,7 @@
 #include "VX/vx_ext_program.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_prv.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_log.h"
 #include "libnnext/vsi_nn_vxkernel.h"
 #include "kernel/vsi_nn_kernel.h"
@@ -198,10 +199,11 @@ static vsi_status vsi_nn_RegisterVXKernel
     vx_size * program_len = NULL;
     const char **program_src = NULL;
     vx_context ctx = NULL;
-    vsi_nn_context_t context = NULL;
     vx_kernel_description_t * kernel = kernel_info->kernel[kernel_info->kernel_index];
     uint8_t i = 0;
     vsi_bool load_from_file = FALSE;
+    vsi_nn_runtime_option_t* options;
+    options = ((vsi_nn_graph_prv_t*)graph)->options;
 
 #define MAX_BUILDPROGRAM_LEN 128
     char cmd[MAX_BUILDPROGRAM_LEN] = {0};
@@ -210,8 +212,7 @@ static vsi_status vsi_nn_RegisterVXKernel
     memset(cmd, 0, sizeof(char) * MAX_BUILDPROGRAM_LEN);
     status = VSI_FAILURE;
     ctx = vxGetContext( (vx_reference)graph->g );
-    context = graph->ctx;
-    evis = context->config.evis.ver;
+    evis = options->config.evis.ver;
 
     program_src = (const char**)malloc(kernel_info->resource_num * sizeof(char *));
     CHECK_PTR_FAIL_GOTO( program_src, "Create buffer fail.", final );
@@ -244,12 +245,12 @@ static vsi_status vsi_nn_RegisterVXKernel
     {
         // set default evis version is 2
         snprintf(cmd, MAX_BUILDPROGRAM_LEN,
-            "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
+            "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", options->config.use_40bits_va);
     }
     else
     {
         snprintf(cmd, MAX_BUILDPROGRAM_LEN,
-            "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
+            "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, options->config.use_40bits_va);
     }
     status = vxBuildProgram(program, cmd);
 
@@ -302,7 +303,7 @@ static vsi_status vsi_nn_RegisterBinKernel
     vx_size program_len = 0;
     const uint8_t *program_ptr = NULL;
     vx_context ctx;
-    vsi_nn_context_t context;
+    vsi_nn_runtime_option_t* options;
     vx_kernel_description_t * kernel = kernel_info->kernel[kernel_info->kernel_index];
 
 #define MAX_BUILDPROGRAM_LEN 128
@@ -313,8 +314,8 @@ static vsi_status vsi_nn_RegisterBinKernel
     status = VSI_FAILURE;
 
     ctx = vxGetContext( (vx_reference)graph->g );
-    context = graph->ctx;
-    evis = context->config.evis.ver;
+    options = ((vsi_nn_graph_prv_t*)graph)->options;
+    evis = options->config.evis.ver;
 
     program_ptr = vsi_nn_VxBinResourceGetResource(
             kernel_info->resource_name[kernel_info->resource_num - 1], &program_len);
@@ -337,12 +338,12 @@ static vsi_status vsi_nn_RegisterBinKernel
     {
         // set default evis version is 2
         snprintf(cmd, MAX_BUILDPROGRAM_LEN,
-            "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", context->config.use_40bits_va);
+            "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d", options->config.use_40bits_va);
     }
     else
     {
         snprintf(cmd, MAX_BUILDPROGRAM_LEN,
-            "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, context->config.use_40bits_va);
+            "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d", evis, options->config.use_40bits_va);
     }
 #else
     snprintf(cmd, MAX_BUILDPROGRAM_LEN, "-cl-viv-vx-extension");

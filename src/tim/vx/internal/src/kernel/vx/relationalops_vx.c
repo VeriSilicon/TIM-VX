@@ -30,7 +30,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "kernel/vsi_nn_kernel.h"
 
-#if (VX_RELATIONAL_OPS_VX_SUPPORT_EXT)
+#if (VX_RELATIONAL_OPS_VX_SUPPORT)
 
 #define REGISTER_RELATIONAL_OPS_OPENVX_KERNEL( kernel_name )   \
     static vsi_nn_kernel_node_t _##kernel_name##setup \
@@ -68,12 +68,25 @@ REGISTER_RELATIONAL_OPS_OPENVX_KERNEL( relational_ops )
     VSI_UNREFERENCED(kernel);
     VSI_UNREFERENCED(output_num);
 
-    node = vxRelationalLayer(graph->g,
-                              operation,
-                              inputs_tensor,
-                              (uint32_t)input_num,
-                              outputs[0]->t
-                              );
+#if !defined(VX_RELATIONAL_OPS_VX_SUPPORT_EXT) || !(VX_RELATIONAL_OPS_VX_SUPPORT_EXT)
+    if (vsi_nn_is_broadcast_operaton(inputs, input_num, outputs[0]))
+    {
+        return NULL;
+    }
+#endif
+
+#if !defined(VX_RELATIONAL_OPS_VX_SUPPORT_EXT) || !(VX_RELATIONAL_OPS_VX_SUPPORT_EXT)
+    if (graph->ctx->config.support_stream_processor)
+#endif
+    {
+        node = vxRelationalLayer(
+            graph->g,
+            operation,
+            inputs_tensor,
+            (uint32_t)input_num,
+            outputs[0]->t
+        );
+    }
 
     return (vsi_nn_kernel_node_t)node;
 } /* relational_ops() */

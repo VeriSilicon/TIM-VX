@@ -80,7 +80,7 @@ typedef struct _vsi_nn_pre_process_rgb_param
     float g_scale;
     float b_scale;
     /* pre process rgb layer local data structure */
-    vsi_nn_pre_process_rgb_lcl_data local;
+    vsi_nn_pre_process_rgb_lcl_data *local;
 } vsi_nn_pre_process_rgb_param;
 
 #ifdef __cplusplus

@@ -162,7 +162,7 @@ static vsi_bool _check_is_sp_supported_type
     int32_t * axes = self->nn_param.reduce.local2->axes;
     int32_t axes_num = self->nn_param.reduce.local2->axes_num;
 
-    if ( !self->graph->ctx->config.support_stream_processor ||
+    if ( !((vsi_nn_graph_prv_t*)(self->graph))->options->config.support_stream_processor ||
          (type != VSI_NN_REDUCE_SUM && type != VSI_NN_REDUCE_MEAN && type != VSI_NN_REDUCE_MAX) )
     {
         return FALSE;
@@ -788,7 +788,7 @@ static vsi_bool op_set_reduce_axis(
         }
         *out_rank_x = inputs[0]->attr.dim_num;
     }
-    else if (!self->graph->ctx->config.support_stream_processor ||
+    else if (!((vsi_nn_graph_prv_t*)(self->graph))->options->config.support_stream_processor ||
              resolved_dim_count > 2)
     {
         optimzation_input_size(

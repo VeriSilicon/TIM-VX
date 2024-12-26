@@ -75,6 +75,11 @@ vsi_status _set_tensor_is_scalar
     int8_t is_salar
     );
 
+vsi_status _set_tensor_is_sparsity(
+    vsi_nn_tensor_prv_t* tensor,
+    int32_t is_sparsity
+);
+
 int8_t _get_tensor_is_from_axisram
     (
     vsi_nn_tensor_prv_t* tensor
@@ -125,6 +130,11 @@ vsi_nn_tensor_t * vsi_nn_kernel_insert_reshape_node
         vsi_size_t        * shape,
         uint32_t            dim_num,
         vsi_nn_opt_direction_e direction
+    );
+
+uint32_t vsi_nn_get_tensor_dims
+    (
+        vsi_nn_tensor_t* tensor
     );
 
 #ifdef __cplusplus

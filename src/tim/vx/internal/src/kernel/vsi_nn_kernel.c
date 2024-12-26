@@ -548,16 +548,16 @@ static vsi_status _gpu_register
     vsi_status status;
     vx_kernel_description_t* info;
     vx_kernel obj;
-    vsi_nn_context_t context;
     vx_program program = NULL;
     const vsi_nn_gpu_source_fmt_e active_fmt = kernel->gpu.active_source_fmt;
+    vsi_nn_runtime_option_t* options;
+    options = ((vsi_nn_graph_prv_t*)graph)->options;
 
 #define MAX_BUILDPROGRAM_LEN 1024
     char cmd[MAX_BUILDPROGRAM_LEN] = { 0 };
     size_t cost_bytes = 0;
 
     memset( cmd, 0, sizeof(char) * MAX_BUILDPROGRAM_LEN );
-    context = graph->ctx;
 
     status = VSI_FAILURE;
     info = &(kernel->info);
@@ -579,21 +579,21 @@ static vsi_status _gpu_register
         return status;
     }
 
-    if( context->config.evis.ver == VSI_NN_HW_EVIS_NONE )
+    if (options->config.evis.ver == VSI_NN_HW_EVIS_NONE)
     {
         // set default evis version is 2
         if( VSI_NN_KERNEL_TYPE_EVIS == kernel->type )
         {
             cost_bytes = snprintf( cmd, MAX_BUILDPROGRAM_LEN,
                     "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d",
-                    context->config.use_40bits_va );
+                    options->config.use_40bits_va );
         }
     }
     else
     {
         cost_bytes = snprintf( cmd, MAX_BUILDPROGRAM_LEN,
                 "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d",
-                context->config.evis.ver, context->config.use_40bits_va );
+                options->config.evis.ver, options->config.use_40bits_va );
     }
     // Pack build option
     if( kernel->gpu.sources[active_fmt].build_option.data )
@@ -655,16 +655,16 @@ static vsi_status _gpu_register_ext
     vsi_status status;
     vx_kernel_description_t* info;
     vx_kernel obj;
-    vsi_nn_context_t context;
     vx_program program = NULL;
     const vsi_nn_gpu_source_fmt_e active_fmt = kernel->gpu.active_source_fmt;
+    vsi_nn_runtime_option_t* options;
+    options = ((vsi_nn_graph_prv_t*)graph)->options;
 
 #define MAX_BUILDPROGRAM_LEN 1024
     char cmd[MAX_BUILDPROGRAM_LEN] = { 0 };
     size_t cost_bytes = 0;
 
     memset( cmd, 0, sizeof(char) * MAX_BUILDPROGRAM_LEN );
-    context = graph->ctx;
 
     status = VSI_FAILURE;
     info = &(kernel->info);
@@ -686,21 +686,21 @@ static vsi_status _gpu_register_ext
         return status;
     }
 
-    if( context->config.evis.ver == VSI_NN_HW_EVIS_NONE )
+    if (options->config.evis.ver == VSI_NN_HW_EVIS_NONE)
     {
         // set default evis version is 2
         if( VSI_NN_KERNEL_TYPE_EVIS == kernel->type )
         {
             cost_bytes = snprintf( cmd, MAX_BUILDPROGRAM_LEN,
                     "-cl-viv-vx-extension -D VX_VERSION=2 -D USE_40BITS_VA=%d",
-                    context->config.use_40bits_va );
+                    options->config.use_40bits_va );
         }
     }
     else
     {
         cost_bytes = snprintf( cmd, MAX_BUILDPROGRAM_LEN,
                 "-cl-viv-vx-extension -D VX_VERSION=%d -D USE_40BITS_VA=%d",
-                context->config.evis.ver, context->config.use_40bits_va );
+                options->config.evis.ver, options->config.use_40bits_va );
     }
     // Pack build option
     if( kernel->gpu.sources[active_fmt].build_option.data )
@@ -1258,7 +1258,7 @@ vsi_nn_kernel_node_t vsi_nn_kernel_selector
             }
             /* Skip evis if not support */
             if( type == VSI_NN_KERNEL_TYPE_EVIS
-                    && graph->ctx->config.evis.ver == VSI_NN_HW_EVIS_NONE )
+                    && ((vsi_nn_graph_prv_t*)graph)->options->config.evis.ver == VSI_NN_HW_EVIS_NONE )
             {
                 continue;
             }
@@ -1677,7 +1677,7 @@ static vsi_bool _check_shader_support(vsi_nn_graph_t* graph)
     int32_t enableShader = ((vsi_nn_graph_prv_t*)graph)->options->enable_shader;
 
 #if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
-    if ( graph->ctx->config.subGroupSize == 0 )
+    if ( ((vsi_nn_graph_prv_t*)graph)->options->config.subGroupSize == 0 )
     {
         return FALSE;
     }

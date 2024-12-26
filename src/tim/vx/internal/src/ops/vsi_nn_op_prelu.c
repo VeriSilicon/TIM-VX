@@ -79,7 +79,10 @@ static vsi_status _prelu_op_compute
     vsi_status status = VSI_FAILURE;
     vsi_nn_prelu_param *prelu = &self->nn_param.prelu;
     vsi_ssize_t shapes[VSI_NN_MAX_DIM_NUM] = { 1 };
-    vsi_nn_tensor_t* reshape_tensors[2] = { NULL };
+    vsi_nn_tensor_t* reshape_tensors[3] = { NULL };
+    vsi_nn_tensor_t* input0 = NULL;
+    vsi_nn_tensor_t* input1 = NULL;
+    vsi_nn_tensor_t* output = NULL;
     vsi_bool   one_rank = FALSE;
     vsi_bool   is_per_channel_alpha = 0;
     vsi_size_t alpha_shape = 1;
@@ -88,6 +91,7 @@ static vsi_status _prelu_op_compute
     uint32_t dims = outputs[0]->attr.dim_num;
 
     reshape_tensors[0] = inputs[0];
+    reshape_tensors[2] = outputs[0];
     one_rank = _is_one_rank_tensor(inputs[1], &alpha_shape);
 
     for (i = 0; i < VSI_NN_MAX_DIM_NUM; i++)
@@ -114,18 +118,23 @@ static vsi_status _prelu_op_compute
                dims = inputs[1]->attr.dim_num;
             }
 
-            reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
+            input1 = vsi_nn_reshape_tensor( self->graph,
                 inputs[1], (vsi_size_t*)shapes, dims );
+            CHECK_PTR_FAIL_GOTO(input1, "Create tensor fail.", final);
+            reshape_tensors[1] = input1;
         }
         else
         {
             memcpy(shapes, inputs[1]->attr.size, inputs[1]->attr.dim_num * sizeof(vsi_size_t));
-            reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
+            input1 = vsi_nn_reshape_tensor( self->graph,
                 inputs[1], (vsi_size_t*)shapes, inputs[1]->attr.dim_num );
+            CHECK_PTR_FAIL_GOTO(input1, "Create tensor fail.", final);
+            reshape_tensors[1] = input1;
         }
     }
     else
     {
+        uint32_t rank = inputs[0]->attr.dim_num;
         dims = inputs[1]->attr.dim_num;
 
         memcpy(shapes, inputs[1]->attr.size, inputs[1]->attr.dim_num * sizeof(vsi_size_t));
@@ -141,9 +150,32 @@ static vsi_status _prelu_op_compute
             shapes[1] = 1;
             dims = 2;
         }
+        else if (one_rank && inputs[1]->attr.is_const == TRUE &&
+            alpha_shape == inputs[0]->attr.size[0] &&
+            alpha_shape == inputs[1]->attr.size[0] &&
+            rank < 3)
+        {
+            is_per_channel_alpha = TRUE;
+            shapes[0] = 1;
+            shapes[1] = 1;
+            shapes[2] = alpha_shape;
+            shapes[3] = rank > 1 ? inputs[0]->attr.size[1] : 1;
+            dims = 4;
+            input0 = vsi_nn_reshape_tensor(self->graph, inputs[0], (vsi_size_t*)shapes, dims);
+            CHECK_PTR_FAIL_GOTO(input0, "Create tensor fail.", final);
+            reshape_tensors[0] = input0;
+            output = vsi_nn_reshape_tensor(self->graph, outputs[0], (vsi_size_t*)shapes, dims);
+            CHECK_PTR_FAIL_GOTO(output, "Create tensor fail.", final);
+            reshape_tensors[2] = output;
+            shapes[0] = alpha_shape;
+            shapes[1] = 1;
+            dims = 2;
+        }
 
-        reshape_tensors[1] = vsi_nn_reshape_tensor( self->graph,
+        input1 = vsi_nn_reshape_tensor( self->graph,
             inputs[1], (vsi_size_t*)shapes, dims );
+        CHECK_PTR_FAIL_GOTO(input1, "Create tensor fail.", final);
+        reshape_tensors[1] = input1;
     }
 
     // Add params
@@ -153,14 +185,18 @@ static vsi_status _prelu_op_compute
     self->n = (vx_node)vsi_nn_kernel_selector( self->graph,
         kernel_name,
         &reshape_tensors[0], 2,
-        outputs, 1, param );
+        &reshape_tensors[2], 1, param );
 
     vsi_nn_kernel_param_release( &param );
-    vsi_nn_ReleaseTensor( &reshape_tensors[1] );
-    if( self->n )
+    if ( self->n )
     {
         status = VSI_SUCCESS;
     }
+
+final:
+    vsi_safe_release_tensor(input0);
+    vsi_safe_release_tensor(input1);
+    vsi_safe_release_tensor(output);
 
     return status;
 } /* _prelu_op_compute() */
@@ -211,28 +247,36 @@ static vsi_bool op_check
     )
 {
     BEGIN_IO_TYPE_DECL(PRELU, 2, 1)
-        IO_TYPE(D_F16,  D_F16, D_U8|Q_ASYM)
-        IO_TYPE(D_F16,  D_F16, D_I16|Q_DFP)
-        IO_TYPE(D_F16,  D_F16, D_I8|Q_DFP)
-        IO_TYPE(D_F16,  D_F16, D_F16)
-        IO_TYPE(D_U8|Q_ASYM, D_F16, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_F16, D_F16)
-        IO_TYPE(D_I8|Q_DFP,  D_F16, D_I8|Q_DFP)
-        IO_TYPE(D_I8|Q_DFP,  D_F16, D_F16)
-        IO_TYPE(D_I16|Q_DFP, D_F16, D_I16|Q_DFP)
-        IO_TYPE(D_I16|Q_DFP, D_F16, D_F16)
-        IO_TYPE(D_BF16, D_F16, D_BF16)
-        IO_TYPE(D_BF16, D_BF16, D_BF16)
-        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_U8|Q_ASYM)
-        IO_TYPE(D_U8|Q_ASYM, D_U8|Q_ASYM, D_F16)
-        IO_TYPE(D_F32, D_F32, D_F32)
-        IO_TYPE(D_I32, D_I32, D_I32)
+        IO_TYPE(D_F16,          D_F16,          D_U8|Q_ASYM)
+        IO_TYPE(D_F16,          D_F16,          D_I16|Q_DFP)
+        IO_TYPE(D_F16,          D_F16,          D_I8|Q_DFP)
+        IO_TYPE(D_F16,          D_F16,          D_F16)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16,          D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_F16,          D_F16)
+        IO_TYPE(D_I8|Q_DFP,     D_F16,          D_I8|Q_DFP)
+        IO_TYPE(D_I8|Q_DFP,     D_F16,          D_F16)
+        IO_TYPE(D_I8|Q_SYM,     D_F16,          D_I8|Q_SYM)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16,          D_I8|Q_ASYM)
+        IO_TYPE(D_I8|Q_SYM,     D_F16,          D_F16)
+        IO_TYPE(D_I8|Q_ASYM,    D_F16,          D_F16)
+        IO_TYPE(D_I16|Q_DFP,    D_F16,          D_I16|Q_DFP)
+        IO_TYPE(D_I16|Q_DFP,    D_F16,          D_F16)
+        IO_TYPE(D_I16|Q_SYM,    D_F16,          D_I16|Q_SYM)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16,          D_I16|Q_ASYM)
+        IO_TYPE(D_I16|Q_SYM,    D_F16,          D_F16)
+        IO_TYPE(D_I16|Q_ASYM,   D_F16,          D_F16)
+        IO_TYPE(D_BF16,         D_F16,          D_BF16)
+        IO_TYPE(D_BF16,         D_BF16,         D_BF16)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM,    D_U8|Q_ASYM)
+        IO_TYPE(D_U8|Q_ASYM,    D_U8|Q_ASYM,    D_F16)
+        IO_TYPE(D_F32,          D_F32,          D_F32)
+        IO_TYPE(D_I32,          D_I32,          D_I32)
 
         /* HW 9.0 */
-        IO_TYPE(D_F32, D_BF16, D_BF16)
-        IO_TYPE(D_BF16, D_BF16, D_F32)
+        IO_TYPE(D_F32,          D_BF16,         D_BF16)
+        IO_TYPE(D_BF16,         D_BF16,         D_F32)
     END_IO_TYPE_DECL(PRELU)
-    if(!VALIDATE_OP_IO_TYPES(PRELU, self, inputs, self->input.num, outputs, self->output.num)) {
+    if (!VALIDATE_OP_IO_TYPES(PRELU, self, inputs, self->input.num, outputs, self->output.num)) {
         char* desc = generate_op_io_types_desc(inputs,
                 self->input.num, outputs, self->output.num);
         VSILOGE("Inputs/Outputs data type not support: %s", desc);

@@ -35,6 +35,8 @@
 #include "utils/vsi_nn_constraint_check.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "kernel/vsi_nn_kernel_eltwise.h"
+#include "vsi_nn_tensor_util_prv.h"
+#include "vsi_nn_error.h"
 
 static vsi_status _try_set_high_presision_tensor
     (
@@ -120,9 +122,22 @@ static vsi_status _static_batchnorm
     vsi_nn_tensor_t ** outputs
     )
 {
+#define _TENSOR_LEN 64
     vsi_status         status;
     vsi_nn_kernel_param_t * param = NULL;
     vsi_nn_tensor_t* reshape_tensors[6] = { NULL };
+    vsi_size_t shape[VSI_NN_MAX_DIM_NUM];
+    uint32_t new_rank = 4;
+    vsi_nn_tensor_t* input0 = NULL;
+    vsi_nn_tensor_t* output = NULL;
+    char reshape0_tensor_name[_TENSOR_LEN];
+    char reshape1_tensor_name[_TENSOR_LEN];
+    char batch_norm_tensor_name[_TENSOR_LEN];
+
+    memset(reshape0_tensor_name, 0, sizeof(reshape0_tensor_name));
+    memset(reshape1_tensor_name, 0, sizeof(reshape1_tensor_name));
+    memset(batch_norm_tensor_name, 0, sizeof(batch_norm_tensor_name));
+
     status = VSI_FAILURE;
 
     status = _try_set_high_presision_tensor(inputs);
@@ -131,10 +146,43 @@ static vsi_status _static_batchnorm
         VSILOGE("Set tensor attr of high presision fail");
         return status;
     }
-    if(_require_reshape(self, inputs))
+    if (_require_reshape(self, inputs))
     {
-        reshape_tensors[0] = self->nn_param.batch_norm.local->reshaped_input;
-        reshape_tensors[5] = self->nn_param.batch_norm.local->reshaped_output;
+        if (3 == inputs[0]->attr.dim_num)
+        {
+            shape[0] = inputs[0]->attr.size[0];
+            shape[1] = 1;
+            shape[2] = inputs[0]->attr.size[1];
+            shape[3] = inputs[0]->attr.size[2];
+        }
+        else if (5 == inputs[0]->attr.dim_num)
+        {
+            shape[0] = inputs[0]->attr.size[0] * inputs[0]->attr.size[1];
+            shape[1] = inputs[0]->attr.size[2];
+            shape[2] = inputs[0]->attr.size[3];
+            shape[3] = inputs[0]->attr.size[4];
+        }
+
+        input0 = vsi_nn_kernel_insert_reshape_node(self->graph,
+            inputs[0], shape, (uint32_t)new_rank, VSI_NN_OPTIMIZE_BACKWARD);
+        CHECK_PTR_FAIL_GOTO(input0, "Create tensor fail.", final);
+        reshape_tensors[0] = input0;
+        snprintf(reshape0_tensor_name, sizeof(reshape0_tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, 0);
+        if (vxSetReferenceName((vx_reference)reshape_tensors[0]->t, reshape0_tensor_name) == VSI_FAILURE)
+        {
+            VSILOGW("Set uid %u reshape 0 node output name fail", self->uid);
+            goto final;
+        }
+        output = vsi_nn_kernel_insert_reshape_node(self->graph,
+            outputs[0], shape, (uint32_t)new_rank, VSI_NN_OPTIMIZE_FORWARD);
+        CHECK_PTR_FAIL_GOTO(output, "Create tensor fail.", final);
+        reshape_tensors[5] = output;
+        snprintf(reshape1_tensor_name, sizeof(reshape1_tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, 1);
+        if (vxSetReferenceName((vx_reference)outputs[0]->t, reshape1_tensor_name) == VSI_FAILURE)
+        {
+            VSILOGW("Set uid %u reshap 1 node output name fail", self->uid);
+            goto final;
+        }
     }
     else
     {
@@ -155,12 +203,26 @@ static vsi_status _static_batchnorm
         reshape_tensors, 5,
         &reshape_tensors[5], 1, param );
 
-    if( self->n )
+    if ( self->n )
     {
         status = VSI_SUCCESS;
     }
 
-    vsi_nn_kernel_param_release( &param );
+    vsi_nn_kernel_param_release(&param);
+
+    if (output)
+    {
+        snprintf(batch_norm_tensor_name, sizeof(batch_norm_tensor_name), "uid_%u_sub_uid_%u_out_0", self->uid, 2);
+        if (vxSetReferenceName((vx_reference)output->t, batch_norm_tensor_name) == VSI_FAILURE)
+        {
+            VSILOGW("Set uid %u instance_norm node output name fail", self->uid);
+            goto final;
+        }
+    }
+
+final:
+    vsi_safe_release_tensor(input0);
+    vsi_safe_release_tensor(output);
 
     return status;
 }
@@ -313,68 +375,6 @@ static vsi_status op_compute
     return status;
 } /* op_compute() */
 
-static vsi_status op_optimize
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs,
-    vsi_nn_opt_direction_e direction
-    )
-{
-    uint32_t dim = 0;
-    vsi_nn_batcnnorm_lcl_data *local = NULL;
-    vsi_size_t shape[VSI_NN_MAX_DIM_NUM];
-    char tensor_name[128];
-
-    dim = inputs[0]->attr.dim_num;
-    if(_require_reshape(self, inputs) == FALSE)
-    {
-        return VSI_SUCCESS;
-    }
-
-    VSILOGD("Optimize 3D %s, uid %u", vsi_nn_OpGetName(self->op), self->uid);
-    /*
-        reshape 3d input (xcn) --> 4d input (whcn)
-        reshape 3d output(xcn) --> 4d output(whcn)
-    */
-    dim = 4;
-    if (3 == inputs[0]->attr.dim_num)
-    {
-        shape[0] = inputs[0]->attr.size[0];
-        shape[1] = 1;
-        shape[2] = inputs[0]->attr.size[1];
-        shape[3] = inputs[0]->attr.size[2];
-    }
-    else if (5 == inputs[0]->attr.dim_num)
-    {
-        shape[0] = inputs[0]->attr.size[0] * inputs[0]->attr.size[1];
-        shape[1] = inputs[0]->attr.size[2];
-        shape[2] = inputs[0]->attr.size[3];
-        shape[3] = inputs[0]->attr.size[4];
-    }
-    local = self->nn_param.batch_norm.local;
-    if (VSI_NN_OPTIMIZE_BACKWARD == direction)
-    {
-        local->reshaped_input = vsi_nn_reshape_tensor(self->graph, inputs[0], shape, dim);
-    }
-    else
-    {
-        local->reshaped_output = vsi_nn_reshape_tensor(self->graph, outputs[0], shape, dim);
-        if(local->reshaped_output && local->reshaped_output->t)
-        {
-            memset(tensor_name, 0, sizeof(tensor_name));
-            snprintf(tensor_name, sizeof(tensor_name), "uid_%u_reshape_out_0", self->uid);
-            if(vxSetReferenceName((vx_reference)local->reshaped_output->t, tensor_name) == VSI_FAILURE)
-            {
-                VSILOGW("Set uid %u batchnorm reshaped output name fail", self->uid);
-                return VSI_FAILURE;
-            }
-        }
-    }
-
-    return VSI_SUCCESS;
-} /* op_optimize() */
-
 static vsi_bool _dynamic_check
     (
     vsi_nn_node_t * self,
@@ -494,58 +494,6 @@ static vsi_bool op_check
     }
 } /* op_check() */
 
-static vsi_bool op_setup
-    (
-    vsi_nn_node_t * self,
-    vsi_nn_tensor_t ** inputs,
-    vsi_nn_tensor_t ** outputs
-    )
-{
-    vsi_nn_batcnnorm_lcl_data *local = NULL;
-    if( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
-    {
-        outputs[0]->attr.dim_num = inputs[0]->attr.dim_num;
-        memcpy( outputs[0]->attr.size, inputs[0]->attr.size,
-            VSI_NN_MAX_DIM_NUM * sizeof(vsi_size_t) );
-    }
-
-    if(_require_reshape(self, inputs))
-    {
-        local = (vsi_nn_batcnnorm_lcl_data *)malloc(sizeof(vsi_nn_batcnnorm_lcl_data));
-        if(NULL == local)
-        {
-            return VSI_FAILURE;
-        }
-        memset(local, 0, sizeof(vsi_nn_batcnnorm_lcl_data));
-        self->nn_param.batch_norm.local = local;
-    }
-    return TRUE;
-} /* op_setup() */
-
-static vsi_status op_deinit
-    (
-    vsi_nn_node_t * self
-    )
-{
-    vsi_nn_batch_norm_param *p = &(self->nn_param.batch_norm);
-    if(p->local)
-    {
-        if (p->local->reshaped_input)
-        {
-            vsi_nn_ReleaseTensor(&(p->local->reshaped_input));
-            p->local->reshaped_input = NULL;
-        }
-        if (p->local->reshaped_output)
-        {
-            vsi_nn_ReleaseTensor(&(p->local->reshaped_output));
-            p->local->reshaped_output = NULL;
-        }
-        vsi_nn_safe_free(p->local);
-    }
-    vsi_nn_op_common_deinit(self);
-    return VSI_SUCCESS;
-}
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -555,10 +503,10 @@ DEF_OP_REG
     /* op_name    */ BATCH_NORM,
     /* init       */ NULL,
     /* compute    */ op_compute,
-    /* deinit     */ op_deinit,
+    /* deinit     */ vsi_nn_op_common_deinit,
     /* check      */ op_check,
-    /* setup      */ op_setup,
-    /* optimize   */ op_optimize,
+    /* setup      */ vsi_nn_op_common_setup,
+    /* optimize   */ NULL,
     /* input_num  */ 5,
     /* output_num */ 1
     );

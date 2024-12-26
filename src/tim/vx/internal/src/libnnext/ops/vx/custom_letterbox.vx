@@ -1,0 +1,307 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform int top;
+_viv_uniform int left;
+_viv_uniform float out_scale_r;
+_viv_uniform float out_scale_g;
+_viv_uniform float out_scale_b;
+_viv_uniform float out_zp_r;
+_viv_uniform float out_zp_g;
+_viv_uniform float out_zp_b;
+_viv_uniform float pad_v_r;
+_viv_uniform float pad_v_g;
+_viv_uniform float pad_v_b;
+_viv_uniform float scale_w;
+_viv_uniform float scale_h;
+_viv_uniform int resize_max_w;
+_viv_uniform int resize_max_h;
+_viv_uniform int out_height;
+_viv_uniform int r_order;
+_viv_uniform int b_order;
+_viv_uniform VXC_512Bits uniU8RightSubLeft_4x4;
+_viv_uniform VXC_512Bits uniLeftToFloat32_4x4;
+_viv_uniform VXC_512Bits uniExtactHalf8_2x8;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+
+__kernel void custom_letterbox_U8toU8
+    (
+     __read_only  image2d_t input,
+     __write_only image2d_t output,
+            int       top_,
+            int       bottom_,
+            int       left_,
+            int       right_,
+            float     mean_r_,
+            float     mean_g_,
+            float     mean_b_,
+            float     scale_r_,
+            float     scale_g_,
+            float     scale_b_,
+            int       pad_r_,
+            int       pad_g_,
+            int       pad_b_,
+            int       reverse_channel
+    )
+{
+    int2 coord_out  =  (int2)(get_global_id(0), get_global_id(1));
+    int2 coord = coord_out;
+    uint4 dst = (uint4)(0,0,0,0);
+    vxc_uchar8 result;
+
+    if (coord_out.x < left || coord_out.x >= resize_max_w ||
+        coord_out.y < top  || coord_out.y >= resize_max_h)
+    {
+        dst.x = convert_uint(pad_v_r);
+        coord.y = coord_out.y + r_order;
+        VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+        VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+        dst.x = convert_uint(pad_v_g);
+        coord.y = coord_out.y + out_height;
+        VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+        VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+        dst.x = convert_uint(pad_v_b);
+        coord.y = coord_out.y + b_order;
+        VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+        VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+        return;
+    }
+
+    float in_x = convert_float(coord_out.x - left) * scale_w;
+    float in_y = convert_float(coord_out.y - top) * scale_h;
+    float left_x_f    = floor(in_x);
+    float top_y_f     = floor(in_y);
+    float x_lerp      = in_x - left_x_f;
+    float y_lerp      = in_y - top_y_f;
+    int   left_x_idx  = convert_int(left_x_f);
+    int   top_y_idx   = convert_int(top_y_f);
+
+    int2 coord_in = (int2)(3 * left_x_idx, top_y_idx);
+    vxc_uchar8 top_data, bottom_data;
+
+    VXC_ReadImage(top_data, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), \
+                                VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(bottom_data, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), \
+                                VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0));
+
+    float4 left4 = (float4)(0,0,0,0);
+    float4 right4 = (float4)(0,0,0,0);
+    float4 top4 = (float4)(0,0,0,0);
+    float4 bottom4 = (float4)(0,0,0,0);
+    VXC_DP4x4(right4, top_data, top_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
+    VXC_DP4x4(left4, top_data, top_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniLeftToFloat32_4x4);
+    top4 = right4 * x_lerp + left4;
+    VXC_DP4x4(right4, bottom_data, bottom_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
+    VXC_DP4x4(left4, bottom_data, bottom_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniLeftToFloat32_4x4);
+    bottom4 = right4 * x_lerp + left4;
+    float4 out = (bottom4 - top4) * y_lerp + top4;
+
+    dst.x = convert_uint(out.x * out_scale_r + out_zp_r );
+    coord.y = coord_out.y + r_order;
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+    VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    dst.x = convert_uint(out.y * out_scale_g + out_zp_g);
+    coord.y = coord_out.y + out_height;
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+    VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    dst.x = convert_uint(out.z * out_scale_b + out_zp_b);
+    coord.y = coord_out.y + b_order;
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+    VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void custom_letterbox_U8toI8
+    (
+     __read_only  image2d_t input,
+     __write_only image2d_t output,
+            int       top_,
+            int       bottom_,
+            int       left_,
+            int       right_,
+            float     mean_r_,
+            float     mean_g_,
+            float     mean_b_,
+            float     scale_r_,
+            float     scale_g_,
+            float     scale_b_,
+            int       pad_r_,
+            int       pad_g_,
+            int       pad_b_,
+            int       reverse_channel
+    )
+{
+    int2 coord_out  =  (int2)(get_global_id(0), get_global_id(1));
+    int2 coord = coord_out;
+    int4 dst = (int4)(0,0,0,0);
+    vxc_char8 result;
+
+    if (coord_out.x < left || coord_out.x >= resize_max_w ||
+        coord_out.y < top  || coord_out.y >= resize_max_h)
+    {
+        dst.x = convert_int(pad_v_r);
+        coord.y = coord_out.y + r_order;
+        VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+        VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+        dst.x = convert_int(pad_v_g);
+        coord.y = coord_out.y + out_height;
+        VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+        VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+        dst.x = convert_int(pad_v_b);
+        coord.y = coord_out.y + b_order;
+        VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+        VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+        return;
+    }
+
+    float in_x = convert_float(coord_out.x - left) * scale_w;
+    float in_y = convert_float(coord_out.y - top) * scale_h;
+    float left_x_f    = floor(in_x);
+    float top_y_f     = floor(in_y);
+    float x_lerp      = in_x - left_x_f;
+    float y_lerp      = in_y - top_y_f;
+    int   left_x_idx  = convert_int(left_x_f);
+    int   top_y_idx   = convert_int(top_y_f);
+
+    int2 coord_in = (int2)(3 * left_x_idx, top_y_idx);
+    vxc_char8 top_data, bottom_data;
+
+    VXC_ReadImage(top_data, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), \
+                               VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(bottom_data, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), \
+                               VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0));
+
+    float4 left4 = (float4)(0,0,0,0);
+    float4 right4 = (float4)(0,0,0,0);
+    float4 top4 = (float4)(0,0,0,0);
+    float4 bottom4 = (float4)(0,0,0,0);
+    VXC_DP4x4(right4, top_data, top_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
+    VXC_DP4x4(left4, top_data, top_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniLeftToFloat32_4x4);
+    top4 = right4 * x_lerp + left4;
+    VXC_DP4x4(right4, bottom_data, bottom_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
+    VXC_DP4x4(left4, bottom_data, bottom_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniLeftToFloat32_4x4);
+    bottom4 = right4 * x_lerp + left4;
+    float4 out = (bottom4 - top4) * y_lerp + top4;
+
+    dst.x = convert_int(out.x * out_scale_r + out_zp_r);
+    coord.y = coord_out.y + r_order;
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+    VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    dst.x = convert_int(out.y * out_scale_g + out_zp_g);
+    coord.y = coord_out.y + out_height;
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+    VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    dst.x = convert_int(out.z * out_scale_b + out_zp_b);
+    coord.y = coord_out.y + b_order;
+    VXC_DP2x8(result, dst, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8);
+    VXC_WriteImage(output, coord, result, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}
+
+__kernel void custom_letterbox_U8toF16
+    (
+     __read_only  image2d_t input,
+     __write_only image2d_t output,
+            int       top_,
+            int       bottom_,
+            int       left_,
+            int       right_,
+            float     mean_r_,
+            float     mean_g_,
+            float     mean_b_,
+            float     scale_r_,
+            float     scale_g_,
+            float     scale_b_,
+            int       pad_r_,
+            int       pad_g_,
+            int       pad_b_,
+            int       reverse_channel
+    )
+{
+    int2 coord_out  =  (int2)(get_global_id(0), get_global_id(1));
+    int2 coord = coord_out;
+    half4 tmp;
+    vxc_half8 dst_temp;
+    vxc_ushort8 dst;
+
+    if (coord_out.x < left || coord_out.x >= resize_max_w ||
+        coord_out.y < top  || coord_out.y >= resize_max_h)
+    {
+
+        float4 pad = (float4)(pad_v_r, pad_v_g, pad_v_b, 0);
+        _viv_asm(CONV, tmp, pad);
+        VXC_DP2x8(dst_temp, tmp, tmp, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);
+        _viv_asm(COPY, dst, dst_temp, 16);
+        coord.y = coord_out.y + r_order;
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+        tmp.x = tmp.y;
+        VXC_DP2x8(dst_temp, tmp, tmp, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);
+        _viv_asm(COPY, dst, dst_temp, 16);
+        coord.y = coord_out.y + out_height;
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+        tmp.x = tmp.z;
+        VXC_DP2x8(dst_temp, tmp, tmp, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);
+        _viv_asm(COPY, dst, dst_temp, 16);
+        coord.y = coord_out.y + b_order;
+        VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+        return;
+    }
+
+    float in_x = convert_float(coord_out.x - left) * scale_w;
+    float in_y = convert_float(coord_out.y - top) * scale_h;
+    float left_x_f    = floor(in_x);
+    float top_y_f     = floor(in_y);
+    float x_lerp      = in_x - left_x_f;
+    float y_lerp      = in_y - top_y_f;
+    int   left_x_idx  = convert_int(left_x_f);
+    int   top_y_idx   = convert_int(top_y_f);
+
+    int2 coord_in = (int2)(3 * left_x_idx, top_y_idx);
+    vxc_uchar8 top_data, bottom_data;
+
+    VXC_ReadImage(top_data, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 0), \
+                            VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(bottom_data, input, coord_in.xy, VXC_5BITOFFSET_XY(0, 1), \
+                            VXC_MODIFIER(0, 5, 0, VXC_RM_TowardZero, 0));
+
+    float4 left4 = (float4)(0,0,0,0);
+    float4 right4 = (float4)(0,0,0,0);
+    float4 top4 = (float4)(0,0,0,0);
+    float4 bottom4 = (float4)(0,0,0,0);
+    VXC_DP4x4(right4, top_data, top_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
+    VXC_DP4x4(left4, top_data, top_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniLeftToFloat32_4x4);
+    top4 = right4 * x_lerp + left4;
+    VXC_DP4x4(right4, bottom_data, bottom_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniU8RightSubLeft_4x4);
+    VXC_DP4x4(left4, bottom_data, bottom_data, VXC_MODIFIER(0, 2, 0, VXC_RM_TowardZero, 0), uniLeftToFloat32_4x4);
+    bottom4 = right4 * x_lerp + left4;
+    float4 out = (bottom4 - top4) * y_lerp + top4;
+
+    float4 out_temp = (float4)(0,0,0,0);
+    out_temp.x = out.x * out_scale_r + out_zp_r;
+    _viv_asm(CONV, tmp, out_temp);
+    VXC_DP2x8(dst_temp, tmp, tmp, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);
+    _viv_asm(COPY, dst, dst_temp, 16);
+    coord.y = coord_out.y + r_order;
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    out_temp.x = out.y * out_scale_g + out_zp_g;
+    _viv_asm(CONV, tmp, out_temp);
+    VXC_DP2x8(dst_temp, tmp, tmp, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);
+    _viv_asm(COPY, dst, dst_temp, 16);
+    coord.y = coord_out.y + out_height;
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+
+    out_temp.x = out.z * out_scale_b + out_zp_b;
+    _viv_asm(CONV, tmp, out_temp);
+    VXC_DP2x8(dst_temp, tmp, tmp, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0), uniExtactHalf8_2x8);
+    _viv_asm(COPY, dst, dst_temp, 16);
+    coord.y = coord_out.y + out_height;
+    VXC_WriteImage(output, coord, dst, VXC_MODIFIER(0, 0, 0, VXC_RM_TowardZero, 0));
+}

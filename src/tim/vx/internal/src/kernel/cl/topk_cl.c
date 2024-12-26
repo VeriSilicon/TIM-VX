@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_log.h"
@@ -457,7 +458,7 @@ static vsi_nn_kernel_node_t _setup
     vsi_bool is_odd_even_sort = FALSE;
     vsi_bool is_bitnoic_segment = FALSE;
     size_t param_num = _TOPK_PARAM_NUM;
-    int32_t max_stages = 7 + (int32_t)log2(graph->ctx->config.subGroupSize >> 2);
+    int32_t max_stages = 7 + (int32_t)log2(((vsi_nn_graph_prv_t*)graph)->options->config.subGroupSize >> 2);
     vsi_nn_kernel_dtype_e type0 = vsi_nn_kernel_map_dtype( inputs[0]->attr.dtype.vx_type );
     vsi_nn_kernel_dtype_e type1 = vsi_nn_kernel_map_dtype( outputs[0]->attr.dtype.vx_type );
 
@@ -479,6 +480,11 @@ static vsi_nn_kernel_node_t _setup
       !(inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT16 &&
         (outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_UINT8 ||
         outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT16)))
+    {
+        return NULL;
+    }
+
+    if (block_size >= GPU_TENSOR_MAX_WIDTH)
     {
         return NULL;
     }

@@ -30,7 +30,7 @@
 #include "vsi_nn_tensor_util.h"
 #include "kernel/vsi_nn_kernel.h"
 
-#if (VX_LAYER_NORMALIZATION_VX_SUPPORT_EXT)
+#if (VX_LAYER_NORMALIZATION_VX_SUPPORT)
 #define REGISTER_LAYER_NORM_OPENVX_KERNEL( kernel_name )   \
     static vsi_nn_kernel_node_t _##kernel_name##setup \
         ( \
@@ -71,14 +71,20 @@ REGISTER_LAYER_NORM_OPENVX_KERNEL( layer_norm )
     inputs_tensor[2] = inputs[2]->t;
     output_tensor = outputs[0]->t;
 
-    node = vxLayerNormalizationLayer(
-        graph->g,
-        eps,
-        axis,
-        inputs_tensor,
-        (uint32_t)input_num,
-        output_tensor
+#if !defined(VX_LAYER_NORMALIZATION_VX_SUPPORT_EXT) || !(VX_LAYER_NORMALIZATION_VX_SUPPORT_EXT)
+    if (graph->ctx->config.support_ffd ||
+        graph->ctx->config.support_stream_processor)
+#endif
+    {
+        node = vxLayerNormalizationLayer(
+            graph->g,
+            eps,
+            axis,
+            inputs_tensor,
+            (uint32_t)input_num,
+            output_tensor
         );
+    }
 
     return (vsi_nn_kernel_node_t)node;
 } /* layer_norm() */

@@ -895,10 +895,13 @@ static void _convert_const_I8toU8
     attr->dtype.vx_type = VSI_NN_TYPE_UINT8;
     attr->dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr->dtype.zero_point += 128;
-
-    if ( tensor->t ) vxReleaseTensor(&tensor->t);
+    if (tensor->t) vxReleaseTensor(&tensor->t);
     tensor->t = vsi_nn_CreateRawTensorFromData(graph, data, attr);
-
+#if defined(VSI_TENSOR_SPARSITY_SUPPORT)
+    int32_t is_sparsity = 0;
+    is_sparsity = vsi_nn_GetTensorIsSparsity(tensor);
+    vsi_nn_SetTensorIsSparsity(tensor, is_sparsity);
+#endif
 final:
     vsi_nn_safe_free( data );
 }/* _convert_const_I8toU8() */

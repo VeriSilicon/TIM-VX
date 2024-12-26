@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_log.h"
 #include "vsi_nn_graph.h"
@@ -197,6 +198,7 @@ static vsi_bool op_setup_default
     vsi_nn_internal_tensor_t * hstate_fc_outputs[GRUCELL_GATE_CNT] = { NULL };
     vsi_nn_internal_tensor_t * h_times_r = NULL;
     vsi_nn_tensor_attr_t attr;
+    vsi_nn_activation_e recurrent_activation = p->recurrent_activation;
 
     vsi_nn_internal_init_node_wksp( self );
 
@@ -230,7 +232,8 @@ static vsi_bool op_setup_default
     memset(&attr, 0, sizeof(vsi_nn_tensor_attr_t));
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
     if (inputs[GRUCELL_IN_H_STATE]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32 ||
-        self->graph->ctx->config.support_stream_processor)
+       (((vsi_nn_graph_prv_t*)(self->graph))->options->config.support_stream_processor &&
+           recurrent_activation == VSI_NN_ACT_SIGMOID))
     {
         attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
     }
