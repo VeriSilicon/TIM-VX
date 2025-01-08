@@ -1362,7 +1362,7 @@ vsi_nn_graph_t * vsi_nn_CreateGraph
             graph->isAllowFastMode = TRUE;
             vsi_nn_MapInit( graph->node_table );
             vsi_nn_MapInit( graph->tensor_table );
-            vsi_nn_initOptions( ((vsi_nn_graph_prv_t*) graph)->options );
+            vsi_nn_initOptions_runtime( ((vsi_nn_graph_prv_t*) graph)->options, ctx );
         }
         else
         {
@@ -3398,6 +3398,7 @@ char* vsi_nn_GetRunTimeVariable
 #define varSize 256
     char* value_str = (char*)malloc(sizeof(char) * varSize);
     CHECK_PTR_FAIL_GOTO(value_str, "Create value_str fail.", final);
+    CHECK_PTR_FAIL_GOTO(graph, "Graph is NULL!", final);
     memset(value_str, 0, varSize);
     char tmp_value[varSize] = {0};
     VSI_UNREFERENCED(tmp_value);
@@ -3502,6 +3503,8 @@ vsi_status vsi_nn_SetRunTimeVariable
                 break;
             case VSI_VX_ENABLE_STREAM_PROCESSOR:
                 options->enable_stream_processor = atoi(value);
+                options->config.support_stream_processor = atoi(value);
+                status = query_hardware_caps_runtime(graph->ctx, options);
                 break;
             case VSI_VX_ENABLE_BATCH_OPT:
                 options->enable_batch_opt = atoi(value);

@@ -155,6 +155,15 @@ static void print_tensor
                          tensor->attr.dtype.group_size);
         ext_attr[count] = 0;
         break;
+    case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_ASYMMETRIC:
+        count = snprintf(&ext_attr[0],
+                         _EXT_ATTR_BUF_SZ,
+                         "ASYM GPTQ axis=%d, count=%d, group_size=%d",
+                         tensor->attr.dtype.group_channel_dim,
+                         tensor->attr.dtype.group_count,
+                         tensor->attr.dtype.group_size);
+        ext_attr[count] = 0;
+        break;
 #endif
     default:
         vsi_nn_strncpy(ext_attr, "NONE", _EXT_ATTR_BUF_SZ);
@@ -449,6 +458,11 @@ static vsi_bool _init_tensor
         scales = (float*)malloc(sizeof(float) * tensor->attr.dtype.group_count);
         CHECK_PTR_FAIL_GOTO( scales, "Create buffer fail.", final );
         memcpy(scales, tensor->attr.dtype.group_scales, tensor->attr.dtype.group_count * sizeof(float));
+        zeroPoints = (int32_t*)malloc(sizeof(int32_t) * tensor->attr.dtype.zero_points_dim);
+        CHECK_PTR_FAIL_GOTO( zeroPoints, "Create buffer fail.", final );
+        memcpy(zeroPoints,
+               tensor->attr.dtype.zero_points,
+               tensor->attr.dtype.zero_points_dim * sizeof(int32_t));
         params.quant_data.affinePerGroup.channel_dim = tensor->attr.dtype.group_channel_dim;
         params.quant_data.affinePerGroup.group_size = tensor->attr.dtype.group_size;
         params.quant_data.affinePerGroup.scale_group_count = tensor->attr.dtype.group_count;
@@ -460,6 +474,32 @@ static vsi_bool _init_tensor
         VSILOGE(
             "can't support qnt_type "
             "VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC.");
+        break;
+#endif
+    case VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_ASYMMETRIC:
+#ifdef VSI_PER_GROUP_QUANTIZATION_SUPPORT
+        params.quant_format = (vsi_enum)VX_QUANT_AFFINE_SCALE_PER_GROUP;
+        // This is a hack that driver doesn't support const scales
+        scales = (float*)malloc(sizeof(float) * tensor->attr.dtype.group_count);
+        CHECK_PTR_FAIL_GOTO( scales, "Create buffer fail.", final );
+        memcpy(scales, tensor->attr.dtype.group_scales, tensor->attr.dtype.group_count * sizeof(float));
+        zeroPoints = (int32_t*)malloc(sizeof(int32_t) * tensor->attr.dtype.zero_points_dim);
+        CHECK_PTR_FAIL_GOTO( zeroPoints, "Create buffer fail.", final );
+        memcpy(zeroPoints,
+               tensor->attr.dtype.group_zero_points,
+               tensor->attr.dtype.group_count * sizeof(int32_t));
+        params.quant_data.affinePerGroup.channel_dim = tensor->attr.dtype.group_channel_dim;
+        params.quant_data.affinePerGroup.group_size = tensor->attr.dtype.group_size;
+        params.quant_data.affinePerGroup.scale_group_count = tensor->attr.dtype.group_count;
+        params.quant_data.affinePerGroup.scales = scales;
+        params.quant_data.affinePerGroup.zero_points = zeroPoints;
+        params.quant_data.affinePerGroup.zero_point_group_count = tensor->attr.dtype.group_count;
+        break;
+#else
+        VSILOGE(
+            "can't support qnt_type "
+            "VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_ASYMMETRIC.");
+        break;
 #endif
     default:
         break;
@@ -1787,6 +1827,57 @@ int8_t vsi_nn_GetTensorIsScalar
 {
     return _get_tensor_is_scalar((vsi_nn_tensor_prv_t*)tensor);
 }
+
+int32_t _get_tensor_is_sparsity
+(
+    vsi_nn_tensor_prv_t* tensor
+)
+{
+    int32_t is_sparsity = FALSE;
+    if (NULL == tensor)
+    {
+        VSILOGE("To get is_sparsity, tensor pointer SHOULD NOT be NULL.");
+        goto final;
+    }
+#if defined(VSI_TENSOR_SPARSITY_SUPPORT)
+    is_sparsity = tensor->sparsity_type;
+#endif
+final:
+    return is_sparsity;
+}
+
+int32_t vsi_nn_GetTensorIsSparsity
+(
+    vsi_nn_tensor_t* tensor
+)
+{
+    return _get_tensor_is_sparsity((vsi_nn_tensor_prv_t*)tensor);
+}
+
+vsi_status vsi_nn_SetTensorIsSparsity
+(
+    vsi_nn_tensor_t* tensor,
+    int32_t is_sparsity
+)
+{
+    VSI_UNREFERENCED(is_sparsity);
+    vsi_status status = VSI_SUCCESS;
+    if (NULL == tensor) {
+        status = VSI_FAILURE;
+        goto final;
+    }
+#if defined(VSI_TENSOR_SPARSITY_SUPPORT)
+    vxSetTensorAttribute(tensor->t,
+                        VX_TENSOR_SPARSITY_TYPE,
+                        &is_sparsity,
+                        sizeof(vx_enum));
+    status = VSI_SUCCESS;
+    ((vsi_nn_tensor_prv_t*)tensor)->sparsity_type = is_sparsity;
+#endif
+final:
+    return status;
+}
+
 
 vsi_status vsi_nn_CopyRawDataToTensor
     (

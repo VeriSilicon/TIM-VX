@@ -186,18 +186,26 @@ static const _kernel_map_type scatter_nd_update_special_ref_map[] =
 {
     TENSOR_SCATTER_ND_UPDATE_SPECIAL_REF_KERNELS(U8,  I32, U8,  U8, KERNEL_SOURCE_4)
     TENSOR_SCATTER_ND_UPDATE_SPECIAL_REF_KERNELS(I8,  I32, I8,  I8, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_SPECIAL_REF_KERNELS(I16,  I32, I16,  I16, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_SPECIAL_REF_KERNELS(U16,  I32, U16,  U16, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_SPECIAL_REF_KERNELS(F16,  I32, F16,  F16, KERNEL_SOURCE_4)
 };
 
 static const _kernel_map_type scatter_nd_update_special_update_map[] =
 {
     TENSOR_SCATTER_ND_UPDATE_SPECIAL_UPDATE_KERNELS(U8,  I32, U8,  U8, KERNEL_SOURCE_4)
     TENSOR_SCATTER_ND_UPDATE_SPECIAL_UPDATE_KERNELS(I8,  I32, I8,  I8, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_SPECIAL_UPDATE_KERNELS(U16,  I32, U16,  U16, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_SPECIAL_UPDATE_KERNELS(I16,  I32, I16,  I16, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_SPECIAL_UPDATE_KERNELS(F16,  I32, F16,  F16, KERNEL_SOURCE_4)
 };
 
 static const _kernel_map_type scatter_nd_update_special_copy_map[] =
 {
     TENSOR_SCATTER_ND_UPDATE_SPECIAL_COPY_KERNELS(U8,  I32, U8,  U8, KERNEL_SOURCE_4)
     TENSOR_SCATTER_ND_UPDATE_SPECIAL_COPY_KERNELS(I8,  I32, I8,  I8, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_SPECIAL_COPY_KERNELS(U16,  I32, U16,  U16, KERNEL_SOURCE_4)
+    TENSOR_SCATTER_ND_UPDATE_SPECIAL_COPY_KERNELS(I16,  I32, I16,  I16, KERNEL_SOURCE_4)
 };
 
 /*
@@ -563,6 +571,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_special_ref_initializer)
     {
     case _PACK_SELECT_KEY( I8,  I8 ):
     case _PACK_SELECT_KEY( U8,  U8 ):
+    case _PACK_SELECT_KEY( I16,  I16 ):
+    case _PACK_SELECT_KEY( U16,  U16 ):
         {
             uint16_t M0               = 0;
             int32_t  postShift0       = 0;
@@ -604,6 +614,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_special_ref_initializer)
                 "uniU8MulAndPostShift0_Hi_2x8",  &uniU8MulAndPostShift_Hi_2x8 );
             CHECK_STATUS_FAIL_GOTO(status, OnError );
         }
+        break;
+    case _PACK_SELECT_KEY( F16,  F16 ):
         break;
     default:
         break;
@@ -759,6 +771,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_special_update_initializer)
     {
     case _PACK_SELECT_KEY( I8,  I8 ):
     case _PACK_SELECT_KEY( U8,  U8 ):
+    case _PACK_SELECT_KEY( I16,  I16 ):
+    case _PACK_SELECT_KEY( U16,  U16 ):
         {
             uint16_t M1               = 0;
             int32_t  postShift1       = 0;
@@ -800,6 +814,8 @@ DEF_KERNEL_INITIALIZER(_scatter_nd_update_special_update_initializer)
                 "uniU8MulAndPostShift1_Hi_2x8",  &uniU8MulAndPostShift_Hi_2x8 );
             CHECK_STATUS_FAIL_GOTO(status, OnError );
         }
+        break;
+    case _PACK_SELECT_KEY( F16,  F16 ):
         break;
     default:
         break;
@@ -1595,6 +1611,19 @@ static vsi_status _query_kernel_special
     else
     {
         status |= VSI_FAILURE;
+    }
+
+    if (input0_dtype == F16)
+    {
+        input0_dtype = U16;
+    }
+    if (input2_dtype == F16)
+    {
+        input2_dtype = U16;
+    }
+    if (output_dtype == F16)
+    {
+        output_dtype = U16;
     }
 
     key = HASH_SCATTER_ND_UPDATE_KEY( input0_dtype, input2_dtype, output_dtype, 6, 1, 0);

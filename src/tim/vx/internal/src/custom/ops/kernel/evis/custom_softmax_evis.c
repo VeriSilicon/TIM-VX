@@ -35,6 +35,7 @@
 #include "utils/vsi_nn_dtype_util.h"
 #include "kernel/vsi_nn_kernel.h"
 #include "libnnext/vsi_nn_vxkernel.h"
+#include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 
 #define _CPU_ARG_NUM            (1)
 #define _CPU_INPUT_NUM          (1)
@@ -42,6 +43,7 @@
 #define _CPU_IO_NUM             (_CPU_INPUT_NUM + _CPU_OUTPUT_NUM)
 #define _CPU_PARAM_NUM          (_CPU_ARG_NUM + _CPU_IO_NUM)
 #define _KERNEL_NAME            ("com.vivantecorp.extension.Softmax2VXC")
+#define _KERNEL_NAME_U8         ("com.vivantecorp.extension.Softmax2VXC_u8")
 
 #define SCALAR_INPUT_AXIS          (2)
 
@@ -64,7 +66,11 @@ DEF_KERNEL_INITIALIZER(_softmax_initializer)
 {
     vsi_status status = VSI_FAILURE;
     int sf_size = 0;
-    vsi_nn_kernel_tensor_attr_t* attr = NULL;
+    vsi_nn_kernel_tensor_attr_t* attr[2] = {NULL, NULL};
+    float srcZP = 0.0f;
+    float srcScale = 1.0f;
+    float dstZP = 0.0f;
+    float dstScale = 1.0f;
     // Alignment with a power of two value.
     gpu_param_t gpu_param = {
         2,          // workdim
@@ -75,14 +81,19 @@ DEF_KERNEL_INITIALIZER(_softmax_initializer)
 
     VSI_UNREFERENCED(param_size);
 
-    attr = vsi_nn_kernel_tensor_attr_create( (vsi_nn_kernel_tensor_t)param[0] );
-    if (!attr)
+    attr[0] = vsi_nn_kernel_tensor_attr_create((vsi_nn_kernel_tensor_t)param[0]);
+    attr[1] = vsi_nn_kernel_tensor_attr_create((vsi_nn_kernel_tensor_t)param[1]);
+    if ((!attr[0]) || (!attr[1]))
     {
         VSILOGE("Query failure! at line");
         return status;
     }
 
-    sf_size  =  (int)attr->shape->data[0];
+    sf_size  =  (int)attr[0]->shape->data[0];
+    srcScale = attr[0]->scale;
+    srcZP = (float)attr[0]->zero_point;
+    dstScale = 1.0f / attr[1]->scale;
+    dstZP = (float)attr[1]->zero_point;
 
     gpu_param.global_offset[0] = 0;
     gpu_param.global_offset[1] = 0;
@@ -91,7 +102,7 @@ DEF_KERNEL_INITIALIZER(_softmax_initializer)
     gpu_param.local_size[0]    = 1;
     gpu_param.local_size[1]    = 1;
     gpu_param.global_size[0]   =
-        gpu_align_p2((1 + gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0],
+        gpu_align_p2((attr[0]->shape->data[1] + gpu_param.global_scale[0] - 1) / gpu_param.global_scale[0],
                 gpu_param.local_size[0]);
     gpu_param.global_size[1]   =
         gpu_align_p2((1 + gpu_param.global_scale[1] - 1) / gpu_param.global_scale[1],
@@ -107,28 +118,67 @@ DEF_KERNEL_INITIALIZER(_softmax_initializer)
             0x00000001, 0x00000000, 0x00000001, 0x00000000,
             0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
         }, GPU_DP_TYPE_16};
+        gpu_dp_inst_t uniExtract8Bin_2x8 = {{
+            0x11111111, // TCfg
+            0x11110000, // ASelt
+            0x06040200, 0x06040200, // ABin
+            0x22222222, // BSelt
+            0x00000000, 0x00000000, // BBin
+            0x00002400, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16};
 
         status = vsi_nn_kernel_gpu_add_param( node,
                 "Uni4x4_Fp16ToFp32", &Uni4x4_Fp16ToFp32 );
-        vsi_nn_kernel_gpu_add_param(node,
+        status |= vsi_nn_kernel_gpu_add_param( node,
+                "uniExtract8Bin_2x8", &uniExtract8Bin_2x8 );
+        status |= vsi_nn_kernel_gpu_add_param(node,
                 "sf_size", &sf_size);
+        status |= vsi_nn_kernel_gpu_add_param(node, "srcScale", &srcScale);
+        status |= vsi_nn_kernel_gpu_add_param(node, "srcZP", &srcZP);
+        status |= vsi_nn_kernel_gpu_add_param(node, "dstScale", &dstScale);
+        status |= vsi_nn_kernel_gpu_add_param(node, "dstZP", &dstZP);
     }
 
-    status = vsi_nn_kernel_gpu_config( node, &gpu_param );
+    status |= vsi_nn_kernel_gpu_config( node, &gpu_param );
 
     if(status != VSI_SUCCESS)
     {
         VSILOGE("Initializer  failure!");
     }
-    if (attr) vsi_nn_kernel_tensor_attr_release( &attr );
+    if (attr[0])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[0] );
+        attr[0] = NULL;
+    }
+    if (attr[1])
+    {
+        vsi_nn_kernel_tensor_attr_release( &attr[1] );
+        attr[1] = NULL;
+    }
 
     return status;
 }
 
-static const vx_kernel_description_t _kernel_info =
+static const vx_kernel_description_t _kernel_info1 =
 {
     KERNEL_ID_PLACEHOLDER,
     _KERNEL_NAME,
+    NULL,
+    kernel_param_def,
+    _cnt_of_array( kernel_param_def ),
+    vsi_nn_KernelValidator,
+    NULL,
+    NULL,
+    _softmax_initializer,
+    vsi_nn_KernelDeinitializer
+};
+
+static const vx_kernel_description_t _kernel_info2 =
+{
+    KERNEL_ID_PLACEHOLDER,
+    _KERNEL_NAME_U8,
     NULL,
     kernel_param_def,
     _cnt_of_array( kernel_param_def ),
@@ -146,9 +196,20 @@ static vsi_status _query_kernel
     vsi_nn_kernel_t* kernel
     )
 {
-    VSI_UNREFERENCED(inputs);
-    VSI_UNREFERENCED(outputs);
-    memmove( &kernel->info, &_kernel_info, sizeof(vx_kernel_description_t) );
+    vsi_nn_kernel_dtype_e in_dtype;
+    vsi_nn_kernel_dtype_e out_dtype;
+
+    in_dtype = vsi_nn_kernel_map_dtype(inputs[0]->attr.dtype.vx_type);
+    out_dtype = vsi_nn_kernel_map_dtype(outputs[0]->attr.dtype.vx_type);
+
+    if (in_dtype == U8 && out_dtype == U8)
+    {
+        memmove( &kernel->info, &_kernel_info2, sizeof(vx_kernel_description_t) );
+    }
+    else
+    {
+        memmove( &kernel->info, &_kernel_info1, sizeof(vx_kernel_description_t) );
+    }
 
     vsi_nn_kernel_add_source( kernel, VSI_NN_GPU_SOURCE_FMT_CODE, 2,
             "vsi_nn_kernel_header",
@@ -173,11 +234,41 @@ static vsi_nn_kernel_node_t _setup
     vsi_nn_kernel_node_param_t backend_params[_CPU_PARAM_NUM] = {NULL};
     vsi_nn_kernel_node_t node = NULL;
     int32_t axis = 0;
+    vsi_nn_tensor_t* reshape_tensors[2] = {NULL};
+    vsi_size_t shapes[2][VSI_NN_MAX_DIM_NUM] = {{0}};
+    uint32_t rank_in = 0;
+    int32_t new_axis = 0;
+    uint32_t i = 0;
+    vsi_bool ret = vx_false_e;
 
     VSI_UNREFERENCED(input_num);
     VSI_UNREFERENCED(output_num);
 
     axis = vsi_nn_kernel_param_get_int32(params, "axis");
+
+    ret = vsi_nn_kernel_optimize_softmax_shape(inputs[0]->attr.size,
+                                           inputs[0]->attr.dim_num,
+                                           axis,
+                                           shapes[0],
+                                           &rank_in,
+                                           &new_axis);
+
+    if (ret)
+    {
+        reshape_tensors[0] = vsi_nn_reshape_tensor(graph, inputs[0], shapes[0], rank_in);
+        reshape_tensors[1] = vsi_nn_reshape_tensor(graph, outputs[0], shapes[0], rank_in);
+    }
+    else
+    {
+        return NULL;
+    }
+
+    if (!vsi_nn_kernel_gpu_check_shape(reshape_tensors[0]->attr.size,
+                                       reshape_tensors[0]->attr.dim_num) ||
+        new_axis > 2)
+    {
+        return NULL;
+    }
 
     status = _query_kernel( inputs, outputs, kernel );
     if( VSI_SUCCESS == status)
@@ -187,9 +278,9 @@ static vsi_nn_kernel_node_t _setup
         {
             /* Set inputs and outputs */
             vsi_nn_kernel_node_pack_io( backend_params, _CPU_PARAM_NUM,
-                    inputs, _CPU_INPUT_NUM, outputs, _CPU_OUTPUT_NUM );
+                    reshape_tensors, _CPU_INPUT_NUM, &reshape_tensors[1], _CPU_OUTPUT_NUM );
             backend_params[SCALAR_INPUT_AXIS] = vsi_nn_kernel_scalar_create(
-                    graph, I32, &axis );
+                    graph, I32, &new_axis );
 
             /* Pass parameters to node. */
             status = vsi_nn_kernel_node_pass_param( node, backend_params, _CPU_PARAM_NUM );
@@ -199,6 +290,11 @@ static vsi_nn_kernel_node_t _setup
         {
             status = VSI_FAILURE;
         }
+    }
+
+    for (i = 0; i < 2; i++)
+    {
+        vsi_safe_release_tensor(reshape_tensors[i]);
     }
     return node;
 } /* _setup() */

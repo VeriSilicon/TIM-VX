@@ -124,22 +124,23 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
         {0, 0, 0}
         };
     int8_t      in0_fl          = 0;
-    int32_t     inputZP0        = 0;
-    float       input_scale0    = 1.0f;
-    int32_t     inputZP1        = 0;
-    float       input_scale1    = 1.0f;
+    int32_t     input0_zp       = 0;
+    float       input0_scale    = 1.0f;
+    int32_t     input1_zp       = 0;
+    float       input1_scale    = 1.0f;
+    float       output_zp       = 0;
     int8_t      out_fl          = 0;
-    float       outputZP        = 0;
 
-    int32_t  shift0             = 0;
-    vsi_bool is_ge_fl           = FALSE;
+    int32_t     shift0          = 0;
+    vsi_bool    is_ge_fl        = FALSE;
+
     vsi_bool is_2d_img          = FALSE;
     uint32_t evis_version       = 0;
 
     vsi_nn_kernel_tensor_attr_t * attr[3] = { NULL };
     vsi_size_array_t * out_shape = NULL;
     uint32_t pack_key;
-    vx_context                  ctx       = vxGetContext((vx_reference)node);
+    vx_context ctx = vxGetContext((vx_reference)node);
     vx_hardware_caps_params_t   hw_param;
 
     VSI_UNREFERENCED(param_size);
@@ -165,34 +166,30 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
     CHECK_PTR_FAIL_GOTO( attr[2], "Create tensor attr buffer fail.", final );
 
     out_shape     = attr[2]->shape;
-    inputZP0      = attr[0]->zero_point;
-    input_scale0  = attr[0]->scale;
-    inputZP1      = attr[1]->zero_point;
-    input_scale1  = attr[1]->scale;
-    outputZP      = (float)attr[2]->zero_point;
-    input_scale0  = input_scale0 / attr[2]->scale;
+    input0_zp     = attr[0]->zero_point;
+    input0_scale  = attr[0]->scale;
+    input1_zp     = attr[1]->zero_point;
+    input1_scale  = attr[1]->scale;
+    output_zp     = (float)attr[2]->zero_point;
+    input0_scale  = input0_scale / attr[2]->scale;
 
-    if ( attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP )
+    if (attr[0]->quant == VSI_NN_KERNEL_QUANT_DFP &&
+        attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP)
     {
         in0_fl = (int8_t)attr[0]->dfp.fl;
-    }
-
-    if ( attr[2]->quant == VSI_NN_KERNEL_QUANT_DFP )
-    {
         out_fl = (int8_t)attr[2]->dfp.fl;
+        shift0 = in0_fl - out_fl;
+        is_ge_fl = shift0 >= 0;
     }
-
-    shift0 = in0_fl - out_fl;
 
     is_2d_img = (out_shape->size < 3) || (out_shape->data[2] == 1);
-    is_ge_fl  = shift0 >= 0;
 
 #define _PACK_SELECT_KEY( IN0_TYPE, OUT_TYPE, GE_FL, IMG_2D, EVIS2 )    \
         (IN0_TYPE  | ( OUT_TYPE << 16) | (GE_FL << 24) | (IMG_2D << 25) | (EVIS2 << 26))
 
-    pack_key = _PACK_SELECT_KEY( attr[0]->dtype, attr[2]->dtype, is_ge_fl, is_2d_img, evis_version );
+    pack_key = _PACK_SELECT_KEY(attr[0]->dtype, attr[2]->dtype, is_ge_fl, is_2d_img, evis_version);
 
-    if ( attr[0]->dtype == I8 && attr[2]->dtype == I8 && is_ge_fl)
+    if (attr[0]->dtype == I8 && attr[2]->dtype == I8 && is_ge_fl)
     {
         gpu_param.global_scale[0] = 16;
         gpu_param.global_scale[1] = 1;
@@ -204,7 +201,6 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
         gpu_param.global_scale[1] = 1;
         gpu_param.global_scale[2] = 1;
     }
-
     gpu_param.global_size[0] = gpu_align_p2(
             (out_shape->data[0] + gpu_param.global_scale[0] - 1)
             / gpu_param.global_scale[0], 4);
@@ -215,97 +211,97 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
 
     switch( pack_key )
     {
-        case _PACK_SELECT_KEY( I8,  I8,  1, 1, 2 ):
-        case _PACK_SELECT_KEY( I16, I16, 1, 1, 2 ):
+    case _PACK_SELECT_KEY(I8,  I8,  1, 1, 2):
+    case _PACK_SELECT_KEY(I16, I16, 1, 1, 2):
+    {
+        gpu_dp_inst_t uniPreluDFPLo_2x8b = { {
+            0x77777777, // TCfg
+            0x44444444, // ASelt
+            0x33221100, 0x77665544, // ABin
+            0x00000000, // BSelt
+            0x30201000, 0x70605040, // BBin
+            0x00004000, // AccumType, ConstantType, and PostShift
+            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniPreluDFPHi_2x8b = { {
+            0x77777777, // TCfg
+            0x44444444, // ASelt
+            0xbbaa9988, 0xffeeddcc, // ABin
+            0x00000000, // BSelt
+            0x30201000, 0x70605040, // BBin
+            0x00004000, // AccumType, ConstantType, and PostShift
+            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+            0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+
+        if (attr[0]->dtype == I16)
         {
-            gpu_dp_inst_t uniPreluDFPLo_2x8b = {{
-                0x77777777, // TCfg
-                0x44444444, // ASelt
-                0x33221100, 0x77665544, // ABin
-                0x00000000, // BSelt
-                0x30201000, 0x70605040, // BBin
-                0x00004000, // AccumType, ConstantType, and PostShift
-                0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16 };
-            gpu_dp_inst_t uniPreluDFPHi_2x8b = {{
-                0x77777777, // TCfg
-                0x44444444, // ASelt
-                0xbbaa9988, 0xffeeddcc, // ABin
-                0x00000000, // BSelt
-                0x30201000, 0x70605040, // BBin
-                0x00004000, // AccumType, ConstantType, and PostShift
-                0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                0x00000000, 0x00000000, 0x00000000, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16 };
-
-            if ( attr[0]->dtype == I16 )
-            {
-                uniPreluDFPLo_2x8b.data[7] = 0x00003000;
-                uniPreluDFPHi_2x8b.data[7] = 0x00003000;
-            }
-
-            gpu_dp_inst_update_postshfit( &uniPreluDFPLo_2x8b, shift0 );
-            gpu_dp_inst_update_postshfit( &uniPreluDFPHi_2x8b, shift0 );
-
-            status = vsi_nn_kernel_gpu_add_param( node,
-                    "uniPreluDFPLo_2x8b", &uniPreluDFPLo_2x8b );
-            status |= vsi_nn_kernel_gpu_add_param( node,
-                    "uniPreluDFPHi_2x8b", &uniPreluDFPHi_2x8b );
-            CHECK_STATUS_FAIL_GOTO(status, final );
+            uniPreluDFPLo_2x8b.data[7] = 0x00003000;
+            uniPreluDFPHi_2x8b.data[7] = 0x00003000;
         }
-        break;
-        case _PACK_SELECT_KEY( I8,  I8,  1, 1, 1 ):
-        case _PACK_SELECT_KEY( I16, I16, 1, 1, 1 ):
-        {
-            gpu_dp_inst_t uniPreluInt8_2x8 = {{
-                0x55555555, // TCfg
-                0x00000000, // ASelt
-                0xb3a29180, 0xf7e6d5c4, // ABin
-                0x66666666, // BSelt
-                0x30201000, 0x70605040, // BBin
-                0x00000600, // AccumType, ConstantType, and PostShift
-                0x00000001, 0x00000001, 0x00000001, 0x00000001,
-                0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
-            }, GPU_DP_TYPE_16 };
-            gpu_dp_inst_t uniPreluInt16_part0_4x4 = {{
-                0x05050505, // TCfg
-                0x00000000, // ASelt
-                0x00510040, 0x00730062, // ABin
-                0x06060606, // BSelt
-                0x00100000, 0x00300020, // BBin
-                0x00000400, // AccumType, ConstantType, and PostShift
-                0x00000001, 0x00000000, 0x00000001, 0x00000000,
-                0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16 };
-            gpu_dp_inst_t uniPreluInt16_part1_4x4 = {{
-                0x05050505, // TCfg
-                0x00000000, // ASelt
-                0x00510040, 0x00730062, // ABin
-                0x06060606, // BSelt
-                0x00500040, 0x00700060, // BBin
-                0x00000400, // AccumType, ConstantType, and PostShift
-                0x00000001, 0x00000000, 0x00000001, 0x00000000,
-                0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
-            }, GPU_DP_TYPE_16 };
 
-            gpu_dp_inst_update_postshfit( &uniPreluInt8_2x8, shift0 );
-            gpu_dp_inst_update_postshfit( &uniPreluInt16_part0_4x4, shift0 );
-            gpu_dp_inst_update_postshfit( &uniPreluInt16_part1_4x4, shift0 );
+        gpu_dp_inst_update_postshfit(&uniPreluDFPLo_2x8b, shift0);
+        gpu_dp_inst_update_postshfit(&uniPreluDFPHi_2x8b, shift0);
 
-            status = vsi_nn_kernel_gpu_add_param( node,
-                    "uniPreluInt8_2x8", &uniPreluInt8_2x8 );
-            status |= vsi_nn_kernel_gpu_add_param( node,
-                    "uniPreluInt16_part0_4x4", &uniPreluInt16_part0_4x4 );
-            status |= vsi_nn_kernel_gpu_add_param( node,
-                    "uniPreluInt16_part1_4x4", &uniPreluInt16_part1_4x4 );
-            CHECK_STATUS_FAIL_GOTO(status, final );
-        }
-        break;
-        case _PACK_SELECT_KEY( BF16, BF16, 1, 1, 1 ):
-        case _PACK_SELECT_KEY( BF16, BF16, 1, 1, 2 ):
-        case _PACK_SELECT_KEY( BF16, BF16, 1, 0, 1 ):
-        case _PACK_SELECT_KEY( BF16, BF16, 1, 0, 2 ):
+        status = vsi_nn_kernel_gpu_add_param(node,
+            "uniPreluDFPLo_2x8b", &uniPreluDFPLo_2x8b);
+        status |= vsi_nn_kernel_gpu_add_param(node,
+            "uniPreluDFPHi_2x8b", &uniPreluDFPHi_2x8b);
+        CHECK_STATUS_FAIL_GOTO(status, final);
+    }
+    break;
+    case _PACK_SELECT_KEY(I8,  I8,  1, 1, 1):
+    case _PACK_SELECT_KEY(I16, I16, 1, 1, 1):
+    {
+        gpu_dp_inst_t uniPreluInt8_2x8 = { {
+            0x55555555, // TCfg
+            0x00000000, // ASelt
+            0xb3a29180, 0xf7e6d5c4, // ABin
+            0x66666666, // BSelt
+            0x30201000, 0x70605040, // BBin
+            0x00000600, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000001, 0x00000001, 0x00000001,
+            0x00000001, 0x00000001, 0x00000001, 0x00000001 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniPreluInt16_part0_4x4 = { {
+            0x05050505, // TCfg
+            0x00000000, // ASelt
+            0x00510040, 0x00730062, // ABin
+            0x06060606, // BSelt
+            0x00100000, 0x00300020, // BBin
+            0x00000400, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+        gpu_dp_inst_t uniPreluInt16_part1_4x4 = { {
+            0x05050505, // TCfg
+            0x00000000, // ASelt
+            0x00510040, 0x00730062, // ABin
+            0x06060606, // BSelt
+            0x00500040, 0x00700060, // BBin
+            0x00000400, // AccumType, ConstantType, and PostShift
+            0x00000001, 0x00000000, 0x00000001, 0x00000000,
+            0x00000001, 0x00000000, 0x00000001, 0x00000000 // Constant
+        }, GPU_DP_TYPE_16 };
+
+        gpu_dp_inst_update_postshfit(&uniPreluInt8_2x8, shift0);
+        gpu_dp_inst_update_postshfit(&uniPreluInt16_part0_4x4, shift0);
+        gpu_dp_inst_update_postshfit(&uniPreluInt16_part1_4x4, shift0);
+
+        status = vsi_nn_kernel_gpu_add_param(node,
+            "uniPreluInt8_2x8", &uniPreluInt8_2x8);
+        status |= vsi_nn_kernel_gpu_add_param(node,
+            "uniPreluInt16_part0_4x4", &uniPreluInt16_part0_4x4);
+        status |= vsi_nn_kernel_gpu_add_param(node,
+            "uniPreluInt16_part1_4x4", &uniPreluInt16_part1_4x4);
+        CHECK_STATUS_FAIL_GOTO(status, final);
+    }
+    break;
+    case _PACK_SELECT_KEY(BF16, BF16, 0, 1, 1):
+    case _PACK_SELECT_KEY(BF16, BF16, 0, 1, 2):
+    case _PACK_SELECT_KEY(BF16, BF16, 0, 0, 1):
+    case _PACK_SELECT_KEY(BF16, BF16, 0, 0, 2):
         {
             gpu_dp_inst_t uniConvBF16toF32_Part0_2x8 = {{
                 0x11111111, // TCfg
@@ -446,15 +442,15 @@ DEF_KERNEL_INITIALIZER(_prelu_initializer)
             status |= vsi_nn_kernel_gpu_add_param( node,
                 "uniConvF16toF32_part1_4x4", &uniConvF16toF32_part1_4x4 );
             status |= vsi_nn_kernel_gpu_add_param( node,
-                "inputZP0", &inputZP0 );
+                "input0_zp", &input0_zp);
             status |= vsi_nn_kernel_gpu_add_param( node,
-                "input_scale0", &input_scale0 );
+                "input0_scale", &input0_scale );
             status |= vsi_nn_kernel_gpu_add_param( node,
-                "inputZP1", &inputZP1 );
+                "input1_zp", &input1_zp);
             status |= vsi_nn_kernel_gpu_add_param( node,
-                "input_scale1", &input_scale1 );
+                "input1_scale", &input1_scale );
             status |= vsi_nn_kernel_gpu_add_param( node,
-                "outputZP", &outputZP );
+                "output_zp", &output_zp );
             if (attr[2]->dtype == F16)
             {
                 status |= vsi_nn_kernel_gpu_add_param( node,

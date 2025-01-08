@@ -75,6 +75,7 @@ static const _kernel_map_type _one_hot_kernel_map[] =
     PACK_ONE_HOT_KERNEL_MAP( F32, F32 ),
     PACK_ONE_HOT_KERNEL_MAP( I32, I32 ),
     PACK_ONE_HOT_KERNEL_MAP( I32, F32 ),
+    PACK_ONE_HOT_KERNEL_MAP( I32, BF16 ),
     PACK_ONE_HOT_KERNEL_MAP( I32, U8 ),
     PACK_ONE_HOT_KERNEL_MAP( U8,  U8 ),
 };

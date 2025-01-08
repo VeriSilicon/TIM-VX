@@ -118,6 +118,7 @@ static vsi_bool op_setup
             if (outputs[0]->attr.dim_num == 0)
             {
                 outputs[0]->attr.size[0] = 1;
+                outputs[0]->attr.dim_num = 1;
                 vsi_nn_SetTensorIsScalar(outputs[0], TRUE);
             }
             else

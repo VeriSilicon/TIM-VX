@@ -39,6 +39,9 @@ static vsi_status query_hardware_caps
 #endif
 #if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
     vx_hardware_caps_params_ext_t paramExt;
+#if VX_FIXED_FUNCTION_DEVICE_SUPPORT
+    vx_hardware_caps_params_ext3_t paramExt3;
+#endif
 
     memset(&paramExt, 0, sizeof(vx_hardware_caps_params_ext_t));
     status = vxQueryHardwareCaps(context->c, (vx_hardware_caps_params_t*)(&paramExt),
@@ -73,6 +76,13 @@ static vsi_status query_hardware_caps
     }
 #endif
 
+#if VX_FIXED_FUNCTION_DEVICE_SUPPORT
+    memset(&paramExt3, 0, sizeof(vx_hardware_caps_params_ext3_t));
+    status = vxQueryHardwareCaps(context->c, (vx_hardware_caps_params_t*)(&paramExt3),
+        sizeof(vx_hardware_caps_params_ext3_t));
+    context->config.support_ffd = paramExt3.supportFixedFunctionDevice;
+#endif
+
 #endif
 
     if(param.evis1 == TRUE && param.evis2 == FALSE)
@@ -86,6 +96,85 @@ static vsi_status query_hardware_caps
     else
     {
         context->config.evis.ver = VSI_NN_HW_EVIS_NONE;
+        VSILOGW("Unsupported evis version");
+    }
+
+final:
+    return status;
+}
+
+vsi_status query_hardware_caps_runtime
+    (
+    vsi_nn_context_t context,
+    vsi_nn_runtime_option_t* options
+    )
+{
+    vsi_status status = VSI_FAILURE;
+    vx_hardware_caps_params_t param;
+    VSI_UNREFERENCED(options);
+    memset(&(options->config), 0, sizeof(vsi_nn_hw_config_t));
+#if VX_STREAM_PROCESSOR_SUPPORT
+    vx_hardware_caps_params_ext2_t paramExt2;
+#endif
+#if VX_FIXED_FUNCTION_DEVICE_SUPPORT
+    vx_hardware_caps_params_ext3_t paramExt3;
+#endif
+#if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
+    vx_hardware_caps_params_ext_t paramExt;
+
+    memset(&paramExt, 0, sizeof(vx_hardware_caps_params_ext_t));
+    status = vxQueryHardwareCaps(context->c, (vx_hardware_caps_params_t*)(&paramExt),
+                sizeof(vx_hardware_caps_params_ext_t));
+    param.evis1 = paramExt.base.evis1;
+    param.evis2 = paramExt.base.evis2;
+#else
+    memset(&param, 0, sizeof(vx_hardware_caps_params_t));
+    status = vxQueryHardwareCaps(context->c, &param, sizeof(vx_hardware_caps_params_t));
+#endif
+    TEST_CHECK_STATUS(status, final);
+
+#if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
+    options->config.subGroupSize = paramExt.subGroupSize;
+#ifdef VSI_40BIT_VA_SUPPORT
+    options->config.use_40bits_va = paramExt.supportVA40;
+#endif
+#if VX_STREAM_PROCESSOR_SUPPORT
+    memset(&paramExt2, 0, sizeof(vx_hardware_caps_params_ext2_t));
+    status = vxQueryHardwareCaps(context->c, (vx_hardware_caps_params_t*)(&paramExt2),
+                sizeof(vx_hardware_caps_params_ext2_t));
+    if (options->enable_stream_processor)
+    {
+        options->config.support_stream_processor = paramExt.supportStreamProcessor;
+        options->config.sp_exec_count = paramExt2.streamProcessorExecCount;
+        options->config.sp_vector_depth = paramExt2.streamProcessorVectorSize;
+        if (options->config.sp_exec_count > 0)
+        {
+            options->config.sp_per_core_vector_depth =
+                options->config.sp_vector_depth / options->config.sp_exec_count;
+        }
+    }
+#endif
+
+#if VX_FIXED_FUNCTION_DEVICE_SUPPORT
+    memset(&paramExt3, 0, sizeof(vx_hardware_caps_params_ext3_t));
+    status = vxQueryHardwareCaps(context->c, (vx_hardware_caps_params_t*)(&paramExt3),
+        sizeof(vx_hardware_caps_params_ext3_t));
+    options->config.support_ffd = paramExt3.supportFixedFunctionDevice;
+#endif
+
+#endif
+
+    if(param.evis1 == TRUE && param.evis2 == FALSE)
+    {
+        options->config.evis.ver = VSI_NN_HW_EVIS_1;
+    }
+    else if(param.evis1 == FALSE && param.evis2 == TRUE)
+    {
+        options->config.evis.ver = VSI_NN_HW_EVIS_2;
+    }
+    else
+    {
+        options->config.evis.ver = VSI_NN_HW_EVIS_NONE;
         VSILOGW("Unsupported evis version");
     }
 
@@ -152,6 +241,44 @@ vsi_status vsi_nn_initOptions
 
     return VSI_SUCCESS;
 }
+
+vsi_status vsi_nn_initOptions_runtime
+    (
+    vsi_nn_runtime_option_t *options,
+    vsi_nn_context_t ctx
+    )
+{
+    int32_t default_value = 1;
+
+    options->enable_shader = vsi_nn_getenv_asint(ENV_ENABLE_SHADER, 1);
+    options->enable_opcheck = vsi_nn_getenv_asint(ENV_ENABLE_OPCHECK, 1);
+#if (VX_CONCAT_OPT_SUPPORT)
+    default_value = 0;
+#else
+    default_value = 1;
+#endif
+    options->enable_concat_optimize = vsi_nn_getenv_asint(ENV_ENABLE_CONCAT_OPTIMIZE, default_value);
+    options->enable_i8_to_u8 = vsi_nn_getenv_asint(ENV_ENABLE_I8TOU8, 1);
+    options->enable_dataconvert_optimize = vsi_nn_getenv_asint(ENV_ENABLE_DATACONVERT_OPTIMIZE, 1);
+    options->enable_stream_processor = vsi_nn_getenv_asint(ENV_ENABLE_STREAM_PROCESSOR, 1);
+    options->enable_rgb88_planar_nhwc = vsi_nn_getenv_asint(ENV_FORCE_RGB888_OUT_NHWC, 0);
+#if (VX_STRIDED_SLICE_OPT_SUPPORT)
+    default_value = 0;
+#else
+    default_value = 1;
+#endif
+    options->enable_slice_optimize = vsi_nn_getenv_asint(ENV_ENABLE_SLICE_OPTIMIZE, default_value);
+    options->enable_batch_opt = vsi_nn_getenv_asint(ENV_ENABLE_BATCH_OPT, 0);
+    options->enable_save_file_type = vsi_nn_getenv_asint(ENV_SAVE_FILE_TYPE, 0);
+    options->enable_use_image_process = vsi_nn_getenv_asint(VSI_USE_IMAGE_PROCESS, -1);
+    options->enable_use_from_handle = vsi_nn_getenv_asint(VSI_USE_FROM_HANDLE, -1);
+
+    /*init hw params*/
+    options->config = ctx->config;
+
+    return VSI_SUCCESS;
+}
+
 
 vsi_nn_context_t vsi_nn_CreateContext
     ( void )

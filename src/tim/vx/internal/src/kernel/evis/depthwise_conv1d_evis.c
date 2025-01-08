@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_log.h"
@@ -771,7 +772,8 @@ static vsi_nn_kernel_node_t _setup
     temp_tensor[1] = weights;
     temp_tensor[2] = biases;
 
-    ks = get_kernel_size(weights->attr.size[0], dilation, stride, graph->ctx->config.evis.ver);
+    ks = get_kernel_size(weights->attr.size[0], dilation, stride,
+        ((vsi_nn_graph_prv_t*)graph)->options->config.evis.ver);
 
     status = _query_kernel( kernel, temp_tensor, outputs, dilation, ks);
 

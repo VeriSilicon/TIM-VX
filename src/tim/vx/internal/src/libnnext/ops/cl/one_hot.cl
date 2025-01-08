@@ -132,3 +132,30 @@ __kernel void one_hot_U8toU8
         coord.z ++;
     } while (coord.z < depth);
 }
+
+__kernel void one_hot_I32toBF16
+    (
+        __read_only  image2d_t       input,
+        __write_only image2d_array_t output,
+                     int             depth,
+                     uint            on_value,
+                     uint            off_value,
+                     float           inputScale,
+                     float           inputTail
+    )
+{
+    int4 coord =  (int4)(get_global_id(0), get_global_id(1), 0, 0);
+
+    int4 src = read_imagei(input, coord.xy);
+
+    int  val = convert_int(convert_float(src.x) * inputScale - inputTail);
+    do
+    {
+        uint4 dst;
+        dst.x = val == coord.z ? on_value : off_value;
+
+        write_imageui(output, coord.xzyw, dst.xxxx);
+
+        coord.z ++;
+    } while (coord.z < depth);
+}

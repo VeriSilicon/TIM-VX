@@ -61,14 +61,13 @@ typedef struct _vsi_nn_hw_config_t
 {
     char target_name[VSI_NN_MAX_TARGET_NAME];
     vsi_nn_hw_evis_t evis;
-#if VX_HARDWARE_CAPS_PARAMS_EXT_SUPPORT
     uint32_t subGroupSize;
-#endif
     uint32_t use_40bits_va;
     uint32_t support_stream_processor;
     uint32_t sp_exec_count;
     uint32_t sp_vector_depth;
     uint32_t sp_per_core_vector_depth;
+    uint32_t support_ffd;
 } vsi_nn_hw_config_t;
 
 typedef struct _vsi_nn_runtime_option_t
@@ -89,6 +88,7 @@ typedef struct _vsi_nn_runtime_option_t
     int32_t enable_save_file_type;
     int32_t enable_use_image_process;
     int32_t enable_use_from_handle;
+    vsi_nn_hw_config_t config;
 } vsi_nn_runtime_option_t;
 
 /**
@@ -102,6 +102,15 @@ typedef struct _vsi_nn_context_t
 } VSI_PUBLIC_TYPE *vsi_nn_context_t;
 
 /**
+ * Query and set options->config hw params.
+ */
+OVXLIB_API vsi_status query_hardware_caps_runtime
+    (
+    vsi_nn_context_t ctx,
+    vsi_nn_runtime_option_t *options
+    );
+
+/**
  * Create context
  * Create ovxlib NN runtime context.
  * @return Context handle on success, or NULL otherwise.
@@ -112,6 +121,11 @@ OVXLIB_API vsi_nn_context_t vsi_nn_CreateContext
 OVXLIB_API vsi_status vsi_nn_initOptions
     (
     vsi_nn_runtime_option_t *options
+    );
+OVXLIB_API vsi_status vsi_nn_initOptions_runtime
+    (
+    vsi_nn_runtime_option_t *options,
+    vsi_nn_context_t ctx
     );
 /**
  * Release context

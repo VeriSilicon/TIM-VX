@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_platform.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_node.h"
@@ -351,7 +352,7 @@ static vsi_bool op_setup
     }
     else if ( ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 &&
                 outputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_BFLOAT16 ) ||
-              self->graph->ctx->config.support_stream_processor )
+              ((vsi_nn_graph_prv_t*)(self->graph))->options->config.support_stream_processor )
     {
         vsi_nn_internal_tensor_t* output_tensor = NULL;
         vsi_nn_internal_tensor_t* reshape_tensor = NULL;

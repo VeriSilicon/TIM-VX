@@ -86,8 +86,10 @@ typedef enum
     VSI_NN_QNT_TYPE_SYMMETRIC_FLOAT8 = 0x6,
     /** perchannel float8 */
     VSI_NN_QNT_TYPE_PERCHANNEL_SYMMETRIC_FLOAT8 = 0x7,
-    /** GPQT */
+    /** pergroup symmetric */
     VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_SYMMETRIC = 0x8,
+    /** pergroup asymmetric */
+    VSI_NN_QNT_TYPE_AFFINE_PERCHANNEL_GROUP_ASYMMETRIC = 0x9,
     /** undefined type */
     VSI_NN_QNT_TYPE_NA = 0xff,
 } vsi_nn_qnt_type_e;

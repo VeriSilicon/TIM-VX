@@ -253,6 +253,7 @@ static vsi_bool op_check
         IO_TYPE(D_BOOL8,      D_I32)
         IO_TYPE(D_BOOL8,      D_U16)
         IO_TYPE(D_BOOL8,      D_U32)
+        IO_TYPE(D_BOOL8,      D_BF16)
         IO_TYPE(D_U8|Q_ASYM,  D_BOOL8)
         IO_TYPE(D_I8|Q_ASYM,  D_BOOL8)
         IO_TYPE(D_I8|Q_DFP,   D_BOOL8)

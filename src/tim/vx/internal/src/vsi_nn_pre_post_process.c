@@ -247,7 +247,8 @@ static void _set_preproc_node_input_attr
     vsi_nn_tensor_attr_t* attr,
     vsi_nn_preprocess_image_size_t* input_size,
     vsi_nn_preprocess_source_format_e* source_format,
-    vsi_nn_preprocess_source_layout_e* source_layout
+    vsi_nn_preprocess_source_layout_e* source_layout,
+    vsi_nn_preprocess_dtype_convert_t* data_convert
     )
 {
     *input_attr = *attr;
@@ -266,26 +267,33 @@ static void _set_preproc_node_input_attr
     }
     if(*source_format == VSI_NN_SOURCE_FORMAT_TENSOR)
     {
-        input_attr->dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-        input_attr->dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+        if(data_convert != NULL)
+        {
+            input_attr->dtype = data_convert->dtype;
+        }
+        else
+        {
+            input_attr->dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+            input_attr->dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+        }
     }
     else
     {
         input_attr->dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
         input_attr->dtype.vx_type = VSI_NN_TYPE_UINT8;
     }
-    if(*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_RGB)
+    if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_RGB)
     {
-        if(*source_layout == VSI_NN_SOURCE_LAYOUT_NHWC)
+        if (*source_layout == VSI_NN_SOURCE_LAYOUT_NCHW)
         {
-            input_attr->size[0] = input_attr->size[1]*input_attr->size[0];
-            input_attr->size[1] = input_attr->size[2];
-            input_attr->size[2] = 1;
-        }
-        else
-        {
-            input_attr->size[0] = input_attr->size[2]*input_attr->size[0];
-            input_attr->size[2] = 1;
+            vsi_size_t channel = input_attr->size[2];
+            if (channel != 3)
+            {
+                VSILOGE("RGB chanel must be 3, please have a check!");
+            }
+            input_attr->size[2] = input_attr->size[1];
+            input_attr->size[1] = input_attr->size[0];
+            input_attr->size[0] = channel;
         }
     }
 
@@ -333,15 +341,10 @@ static void _set_preproc_node_input_attr
 static void _set_preproc_node_output_attr
     (
     vsi_nn_tensor_attr_t* output_attr,
-    vsi_nn_tensor_attr_t* attr,
-    vsi_nn_preprocess_dtype_convert_t* data_convert
+    vsi_nn_tensor_attr_t* attr
     )
 {
     *output_attr = *attr;
-    if(data_convert != NULL)
-    {
-        output_attr->dtype = data_convert->dtype;
-    }
     output_attr->dtype.fmt = VSI_NN_DIM_FMT_NCHW;
     output_attr->dim_num = VSI_NN_DIM_AUTO;
     output_attr->is_const = FALSE;
@@ -603,10 +606,11 @@ vsi_status vsi_nn_add_single_preproc_node
     _set_preproc_node_out_attr(node, image_resize, &org_norm_tensor->attr, source_layout);
 
     /* Set input tensor attr */
-    _set_preproc_node_input_attr(&input_attr, &org_norm_tensor->attr, input_size, source_format, source_layout);
+    _set_preproc_node_input_attr(&input_attr, &org_norm_tensor->attr, input_size,
+                                 source_format, source_layout, data_convert);
 
     /* Set output tensor attr */
-    _set_preproc_node_output_attr(&output_attr, &org_norm_tensor->attr, data_convert);
+    _set_preproc_node_output_attr(&output_attr, &org_norm_tensor->attr);
 
     /* Create new norm and virtual tensors */
     if (*source_format == VSI_NN_SOURCE_FORMAT_IMAGE_YUV420 ||

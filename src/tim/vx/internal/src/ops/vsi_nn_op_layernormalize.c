@@ -106,7 +106,7 @@ static vsi_bool op_setup
 
     vsi_nn_internal_init_node_wksp( self );
 
-    if ( axis != 0 && !self->graph->ctx->config.support_stream_processor)
+    if ( axis != 0 && !((vsi_nn_graph_prv_t*)(self->graph))->options->config.support_stream_processor)
     {
         vsi_nn_internal_tensor_t* mean_tensor = NULL;
         vsi_nn_internal_tensor_t* vari_tensor = NULL;

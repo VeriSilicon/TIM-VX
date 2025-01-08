@@ -16,7 +16,7 @@ _viv_uniform float sum_x2_tail1;
 _viv_uniform float output_scale;
 _viv_uniform float output_zp;
 
-#define GROUP_NORM_SUMS_16BITS_IMPL(name, src_type) \
+#define GROUP_NORM_SUMS_16BITS_IMPL(name, load_type, src_type) \
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_sums_##name( \
     __read_only  image2d_array_t input, \
     __write_only image2d_array_t output, \
@@ -26,7 +26,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_sums_##
     int lidx = get_local_id(0); \
     int gidz = get_global_id(1); \
     int4 coord = (int4)(gidx, 0, gidz, 0); \
-    vxc_short8 src0; \
+    load_type src; \
     src_type in_h; \
     float4 sumsqr; \
     float4 tmpSumSqr = (float4)(0); \
@@ -43,9 +43,9 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_sums_##
     { \
         for(coord.y = 0; coord.y < height;) \
         { \
-            VXC_OP4(img_load_3d, src0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+            VXC_OP4(img_load_3d, src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
             coord.y++; \
-            _viv_asm(COPY, in_h, src0, 16); \
+            _viv_asm(COPY, in_h, src, 16); \
             VXC_DP8x2(sumsqr, in_h, in_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0), uniSum_X_X2_8x2); \
             tmpSumSqr += sumsqr; \
         } \
@@ -76,10 +76,11 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_sums_##
         write_imagef(output, coord_out, data); \
     } \
 }
-GROUP_NORM_SUMS_16BITS_IMPL(F16, vxc_half8)
-GROUP_NORM_SUMS_16BITS_IMPL(I16, vxc_short8)
+GROUP_NORM_SUMS_16BITS_IMPL(F16, vxc_short8,  vxc_half8)
+GROUP_NORM_SUMS_16BITS_IMPL(I16, vxc_short8,  vxc_short8)
+GROUP_NORM_SUMS_16BITS_IMPL(U16, vxc_ushort8, vxc_ushort8)
 
-#define GROUP_NORM_SUMS_16BITS_IMPL_2D(name, src_type) \
+#define GROUP_NORM_SUMS_16BITS_IMPL_2D(name, load_type, src_type) \
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_sums_##name##_2D( \
     __read_only  image2d_array_t input, \
     __write_only image2d_array_t output, \
@@ -89,7 +90,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_sums_##
     int lidx = get_local_id(0); \
  \
     int2 coord = (int2)(gidx, get_global_id(1)); \
-    vxc_short8 src0; \
+    load_type src; \
     src_type in_h; \
     float4 sumsqr = (float4)(0); \
  \
@@ -98,8 +99,8 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_sums_##
  \
     if(gidx < width) \
     { \
-        VXC_ReadImage(src0, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
-        _viv_asm(COPY, in_h, src0, 16); \
+        VXC_ReadImage(src, input, coord, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+        _viv_asm(COPY, in_h, src, 16); \
         VXC_DP8x2(sumsqr, in_h, in_h, VXC_MODIFIER(0, 1, 0, VXC_RM_TowardZero, 0), uniSum_X_X2_8x2); \
         sumsqr.y = sumsqr.y * input_scale2 + sum_x2_tail0 + sum_x2_tail1 * sumsqr.x; \
         sumsqr.x = sumsqr.x * input_scale + sum_x_tail; \
@@ -128,8 +129,9 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_sums_##
         write_imagef(output, coord_out, data); \
     } \
 }
-GROUP_NORM_SUMS_16BITS_IMPL_2D(F16, vxc_half8)
-GROUP_NORM_SUMS_16BITS_IMPL_2D(I16, vxc_short8)
+GROUP_NORM_SUMS_16BITS_IMPL_2D(F16, vxc_short8, vxc_half8)
+GROUP_NORM_SUMS_16BITS_IMPL_2D(I16, vxc_short8, vxc_short8)
+GROUP_NORM_SUMS_16BITS_IMPL_2D(U16, vxc_ushort8, vxc_ushort8)
 
 #define GROUP_NORM_16BITS_IMPL(name, src_type, dst_type, copy_type, conv_type) \
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_##name( \
@@ -178,7 +180,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_##name(
     _viv_asm(CONV_RTE, tmpVal0, norm); \
     norm = alpha * tmpData1 + bias_val; \
     _viv_asm(CONV_RTE, tmpVal1, norm); \
-    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
     _viv_asm(COPY, outval, dst, 16); \
     VXC_WriteImage2DArray(output, coord, outval, VXC_MODIFIER(0, 7, 0,VXC_RM_TowardZero, 0)); \
 }
@@ -230,10 +232,10 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_##name#
     VXC_DP4x4(tmpData1, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_1_4x4); \
     float4 norm; \
     norm = alpha * tmpData0 + bias_val; \
-    _viv_asm(CONV, tmpVal0, norm); \
+    _viv_asm(CONV_RTE, tmpVal0, norm); \
     norm = alpha * tmpData1 + bias_val; \
-    _viv_asm(CONV, tmpVal1, norm); \
-    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+    _viv_asm(CONV_RTE, tmpVal1, norm); \
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
     _viv_asm(COPY, outval, dst, 16); \
     VXC_WriteImage(output, coord.xy, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
 }
@@ -283,7 +285,7 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_##name(
  \
     float4 norm; \
     norm = alpha * tmpData0 + bias_val; \
-    _viv_asm(CONV, tmpVal0, norm); \
+    _viv_asm(CONV_RTE, tmpVal0, norm); \
     norm = alpha * tmpData1 + bias_val; \
     _viv_asm(CONV_RTE, tmpVal1, norm); \
     VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
@@ -296,6 +298,7 @@ GROUP_NORM_16BITS_F32_IMPL(F16_F32toI8,  vxc_half8,  vxc_char8,  vxc_char8,  int
 GROUP_NORM_16BITS_F32_IMPL(F16_F32toU8,  vxc_half8,  vxc_uchar8, vxc_uchar8, int4)
 GROUP_NORM_16BITS_F32_IMPL(I16_F32toI16, vxc_short8, vxc_short8, vxc_short8, int4)
 GROUP_NORM_16BITS_F32_IMPL(I16_F32toF16, vxc_short8, vxc_half8,  vxc_short8, half4)
+GROUP_NORM_16BITS_F32_IMPL(U16_F32toU16, vxc_ushort8, vxc_ushort8, vxc_ushort8, int4)
 
 #define GROUP_NORM_16BITS_F32_IMPL_2D(name, src_type, dst_type, copy_type, conv_type) \
 __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_##name##_2D( \
@@ -333,10 +336,10 @@ __kernel __attribute__((reqd_work_group_size(16, 1, 1))) void group_norm_##name#
     VXC_DP4x4(tmpData1, in_h, in_h, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniDataToFP32_1_4x4); \
     float4 norm; \
     norm = alpha * tmpData0 + bias_val; \
-    _viv_asm(CONV, tmpVal0, norm); \
+    _viv_asm(CONV_RTE, tmpVal0, norm); \
     norm = alpha * tmpData1 + bias_val; \
-    _viv_asm(CONV, tmpVal1, norm); \
-    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtract8Data_2x8); \
+    _viv_asm(CONV_RTE, tmpVal1, norm); \
+    VXC_DP2x8(dst, tmpVal0, tmpVal1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
     _viv_asm(COPY, outval, dst, 16); \
     VXC_WriteImage(output, coord.xy, outval, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
 }
@@ -346,4 +349,5 @@ GROUP_NORM_16BITS_F32_IMPL_2D(F16_F32toI8,  vxc_half8,  vxc_char8,  vxc_char8,  
 GROUP_NORM_16BITS_F32_IMPL_2D(F16_F32toU8,  vxc_half8,  vxc_uchar8, vxc_uchar8, int4)
 GROUP_NORM_16BITS_F32_IMPL_2D(I16_F32toI16, vxc_short8, vxc_short8, vxc_short8, int4)
 GROUP_NORM_16BITS_F32_IMPL_2D(I16_F32toF16, vxc_short8, vxc_half8,  vxc_short8, half4)
+GROUP_NORM_16BITS_F32_IMPL_2D(U16_F32toU16, vxc_ushort8, vxc_ushort8, vxc_ushort8, int4)
 

@@ -306,6 +306,8 @@ static vsi_bool _op_check
         IO_TYPE(D_I16|Q_DFP,  D_F32,  D_F32,  D_I16|Q_DFP)
         IO_TYPE(D_I16|Q_ASYM, D_F32,  D_F32,  D_I16|Q_ASYM)
         IO_TYPE(D_I16|Q_SYM,  D_F32,  D_F32,  D_I16|Q_SYM)
+        IO_TYPE(D_U16|Q_ASYM, D_F32,  D_F32,  D_U16|Q_ASYM)
+        IO_TYPE(D_U16|Q_SYM,  D_F32,  D_F32,  D_U16|Q_SYM)
     END_IO_TYPE_DECL(GROUP_NORM)
     if (!VALIDATE_OP_IO_TYPES(GROUP_NORM, self, inputs, self->input.num, outputs, self->output.num))
     {

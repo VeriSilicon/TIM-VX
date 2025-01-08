@@ -61,7 +61,7 @@ static vsi_status op_compute
         vx_nn_reshape_params_t reshape_param;
 
         memset(&attr, 0, sizeof(attr));
-        attr.size[0] = self->nn_param.reshape.dim_num;
+        attr.size[0] = vsi_nn_max(self->nn_param.reshape.dim_num, 1);
         attr.dim_num = 1;
         attr.is_const = TRUE;
         attr.dtype.vx_type = VSI_NN_TYPE_INT32;
@@ -124,17 +124,28 @@ static vsi_bool op_setup
     vsi_bool ret = TRUE;
     if ( VSI_NN_DIM_AUTO == outputs[0]->attr.dim_num )
     {
-        vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = {0};
-        uint32_t i = 0;
-        for (i = 0; i < self->nn_param.reshape.dim_num; i++)
+        if (self->nn_param.reshape.dim_num == 0 ||
+            self->nn_param.reshape.size == NULL
+            )
         {
-            shape[i] = (uint32_t)-1 == self->nn_param.reshape.size[i] ? \
-                (vsi_size_t)-1 : (vsi_size_t)self->nn_param.reshape.size[i];
+            outputs[0]->attr.size[0] = 1;
+            outputs[0]->attr.dim_num = 1;
+            vsi_nn_SetTensorIsScalar(outputs[0], TRUE);
         }
-        ret = vsi_nn_CalcReshapeTensor(inputs[0],
-            outputs[0],
-            shape,
-            self->nn_param.reshape.dim_num);
+        else
+        {
+            vsi_size_t shape[VSI_NN_MAX_DIM_NUM] = { 0 };
+            uint32_t i = 0;
+            for (i = 0; i < self->nn_param.reshape.dim_num; i++)
+            {
+                shape[i] = (uint32_t)-1 == self->nn_param.reshape.size[i] ? \
+                    (vsi_size_t)-1 : (vsi_size_t)self->nn_param.reshape.size[i];
+            }
+            ret = vsi_nn_CalcReshapeTensor(inputs[0],
+                outputs[0],
+                shape,
+                self->nn_param.reshape.dim_num);
+        }
     }
 
     return ret;

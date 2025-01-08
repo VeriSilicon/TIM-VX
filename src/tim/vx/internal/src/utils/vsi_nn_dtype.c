@@ -98,7 +98,7 @@ static VSI_INLINE_API void _convert_bfloat16_to_float
     uint32_t i;
     for( i = 0; i < size; i ++ )
     {
-        out_buffer[i] = bfp16_to_fp32( (int16_t)buffer[i] );
+        out_buffer[i] = bfp16_to_fp32( (uint16_t)buffer[i] );
     }
 } /* _convert_bfloat16_to_float */
 

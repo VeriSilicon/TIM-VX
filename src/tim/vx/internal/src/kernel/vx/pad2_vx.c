@@ -89,9 +89,10 @@ REGISTER_PAD2_OPENVX_KERNEL( pad2 )
     if ( vsi_nn_DtypeCompare(&inputs[0]->attr.dtype, &outputs[0]->attr.dtype) == FALSE)
     {
         vsi_nn_tensor_attr_t attr;
+
         memcpy( &attr, &outputs[0]->attr, sizeof( attr ) );
         memcpy( &attr.size, &inputs[0]->attr.size, sizeof( attr.size ) );
-        attr.vtl = FALSE;
+        attr.vtl = TRUE;
         attr.is_const = FALSE;
 
         convert_tensor = vsi_nn_CreateTensor(graph, &attr);

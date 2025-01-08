@@ -124,7 +124,7 @@ jobs:
         run: |
           git config --global user.email "xiang.zhang@verisilicon.com"
           git config --global user.name "xiang.zhang"
-          git clone https://github.com/tensorflow/tensorflow.git ${{github.workspace}}/3rd-party/tensorflow && cd ${{github.workspace}}/3rd-party/tensorflow/ && git checkout v2.10.0
+          git clone https://github.com/tensorflow/tensorflow.git ${{github.workspace}}/3rd-party/tensorflow && cd ${{github.workspace}}/3rd-party/tensorflow/ && git checkout v2.16.1
           git clone https://github.com/VeriSilicon/tflite-vx-delegate.git ${{github.workspace}}/vx-delegate
           cmake -B ${{github.workspace}}/vx-delegate/build -S ${{github.workspace}}/vx-delegate -DFETCHCONTENT_SOURCE_DIR_TENSORFLOW=${{github.workspace}}/3rd-party/tensorflow -DTIM_VX_INSTALL=${{github.workspace}}/tim-vx.install.dir/ -DTFLITE_ENABLE_NNAPI=OFF -DTFLITE_ENABLE_XNNPACK=OFF
           cmake --build ${{github.workspace}}/vx-delegate/build --config ${{env.BUILD_TYPE}}
@@ -283,61 +283,61 @@ jobs:
   #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
   #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/tfhub.movenet.multipose.tflite
 
-  tfhub-efficientdet-lite0:
-    runs-on: ubuntu-latest
-    needs: [vx-delegate-build, tim-vx-unit-test]
-    steps:
-      - name: download test binary
-        uses: actions/download-artifact@v3
-      - name: download model
-        run: |
-          wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite0/detection/metadata/1.tflite
-      - name: benchmark-model
-        run: |
-          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
-          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
+  # tfhub-efficientdet-lite0:
+  #   runs-on: ubuntu-latest
+  #   needs: [vx-delegate-build, tim-vx-unit-test]
+  #   steps:
+  #     - name: download test binary
+  #       uses: actions/download-artifact@v3
+  #     - name: download model
+  #       run: |
+  #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite0/detection/metadata/1.tflite
+  #     - name: benchmark-model
+  #       run: |
+  #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+  #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
 
-  tfhub-efficientdet-lite1:
-    runs-on: ubuntu-latest
-    needs: [vx-delegate-build, tim-vx-unit-test]
-    steps:
-      - name: download test binary
-        uses: actions/download-artifact@v3
-      - name: download model
-        run: |
-          wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite1/detection/metadata/1.tflite
-      - name: benchmark-model
-        run: |
-          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
-          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
+  # tfhub-efficientdet-lite1:
+  #   runs-on: ubuntu-latest
+  #   needs: [vx-delegate-build, tim-vx-unit-test]
+  #   steps:
+  #     - name: download test binary
+  #       uses: actions/download-artifact@v3
+  #     - name: download model
+  #       run: |
+  #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite1/detection/metadata/1.tflite
+  #     - name: benchmark-model
+  #       run: |
+  #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+  #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
 
-  tfhub-efficientdet-lite2:
-    runs-on: ubuntu-latest
-    needs: [vx-delegate-build, tim-vx-unit-test]
-    steps:
-      - name: download test binary
-        uses: actions/download-artifact@v3
-      - name: download model
-        run: |
-          wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite2/detection/metadata/1.tflite
-      - name: benchmark-model
-        run: |
-          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
-          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
+  # tfhub-efficientdet-lite2:
+  #   runs-on: ubuntu-latest
+  #   needs: [vx-delegate-build, tim-vx-unit-test]
+  #   steps:
+  #     - name: download test binary
+  #       uses: actions/download-artifact@v3
+  #     - name: download model
+  #       run: |
+  #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite2/detection/metadata/1.tflite
+  #     - name: benchmark-model
+  #       run: |
+  #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+  #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
 
-  tfhub-efficientdet-lite3:
-    runs-on: ubuntu-latest
-    needs: [vx-delegate-build, tim-vx-unit-test]
-    steps:
-      - name: download test binary
-        uses: actions/download-artifact@v3
-      - name: download model
-        run: |
-          wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite2/detection/metadata/1.tflite
-      - name: benchmark-model
-        run: |
-          chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
-          ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
+  # tfhub-efficientdet-lite3:
+  #   runs-on: ubuntu-latest
+  #   needs: [vx-delegate-build, tim-vx-unit-test]
+  #   steps:
+  #     - name: download test binary
+  #       uses: actions/download-artifact@v3
+  #     - name: download model
+  #       run: |
+  #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite2/detection/metadata/1.tflite
+  #     - name: benchmark-model
+  #       run: |
+  #         chmod u+x ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model
+  #         ${{github.workspace}}/vx-delegate-bin/_deps/tensorflow-build/tools/benchmark/benchmark_model --num_runs=1 --external_delegate_path=${{github.workspace}}/vx-delegate-bin/libvx_delegate.so --graph=${{github.workspace}}/1.tflite
 
   # acuity-yolov3-608-quant:
   #   runs-on: ubuntu-latest

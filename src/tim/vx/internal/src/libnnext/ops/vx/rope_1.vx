@@ -1,0 +1,245 @@
+#include "cl_viv_vx_ext.h"
+
+_viv_uniform float scale0;
+_viv_uniform float scale1;
+_viv_uniform float output_zp;
+_viv_uniform int half_head_size;
+_viv_uniform VXC_512Bits uniATimesB_0_4x4;
+_viv_uniform VXC_512Bits uniATimesB_1_4x4;
+_viv_uniform VXC_512Bits uniExtract8Data_2x8;
+
+#define ROPE_BNH1_SYMM(name, src_type, src1_type, copy_type, dst_type) \
+__kernel void rope_##name##_bnh1 \
+    ( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_array_t cos_cache, \
+    __read_only  image2d_array_t sin_cache, \
+    __write_only image2d_array_t output, \
+                 int   axis \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
+ \
+    src_type data0, data1; \
+    src1_type cos, sin; \
+    copy_type v0, v1; \
+    VXC_ReadImage(data0, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(v0, cos_cache, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, cos, v0, 16); \
+    VXC_ReadImage(v1, sin_cache, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, sin, v1, 16); \
+    coord.x += half_head_size; \
+    VXC_ReadImage(data1, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    float4 data2, data3, data4, data5; \
+    VXC_DP4x4(data2, data0, cos, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_0_4x4); \
+    VXC_DP4x4(data3, data0, cos, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_1_4x4); \
+    VXC_DP4x4(data4, data1, sin, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_0_4x4); \
+    VXC_DP4x4(data5, data1, sin, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_1_4x4); \
+    data2 = data2 * scale0 - data4 * scale1 + output_zp; \
+    data3 = data3 * scale0 - data5 * scale1 + output_zp; \
+ \
+    int4 dst0 = convert_int4_rte(data2); \
+    int4 dst1 = convert_int4_rte(data3); \
+ \
+    dst_type dst; \
+    VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    VXC_WriteImage(output, coord.zw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    VXC_DP4x4(data2, data0, sin, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_0_4x4); \
+    VXC_DP4x4(data3, data0, sin, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_1_4x4); \
+    VXC_DP4x4(data4, data1, cos, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_0_4x4); \
+    VXC_DP4x4(data5, data1, cos, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_1_4x4); \
+    data2 = data2 * scale1 + data4 * scale0 + output_zp; \
+    data3 = data3 * scale1 + data5 * scale0 + output_zp; \
+ \
+    dst0 = convert_int4_rte(data2); \
+    dst1 = convert_int4_rte(data3); \
+ \
+    VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    VXC_WriteImage(output, coord.xw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+ROPE_BNH1_SYMM(I16_I16toI16, vxc_short8, vxc_short8, vxc_short8, vxc_short8)
+ROPE_BNH1_SYMM(I16_I16toI8,  vxc_short8, vxc_short8, vxc_short8, vxc_char8)
+ROPE_BNH1_SYMM(I16_I16toU8,  vxc_short8, vxc_short8, vxc_short8, vxc_uchar8)
+ROPE_BNH1_SYMM(I16_F16toI16, vxc_short8, vxc_half8,  vxc_short8, vxc_short8)
+ROPE_BNH1_SYMM(I16_F16toI8,  vxc_short8, vxc_half8,  vxc_short8, vxc_char8)
+ROPE_BNH1_SYMM(I16_F16toU8,  vxc_short8, vxc_half8,  vxc_short8, vxc_uchar8)
+
+__kernel void rope_F16_F16toF16_bnh1
+    (
+    __read_only  image2d_array_t input,
+    __read_only  image2d_array_t cos_cache,
+    __read_only  image2d_array_t sin_cache,
+    __write_only image2d_array_t output,
+                 int   axis
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));
+
+    vxc_short8 v0, v1, v2, v3, dst;
+    vxc_half8 data0, data1, cos, sin, dst2;
+    VXC_ReadImage(v0, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, data0, v0, 16);
+    VXC_ReadImage(v1, cos_cache, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, cos, v1, 16);
+    VXC_ReadImage(v2, sin_cache, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, sin, v2, 16);
+    coord.x += half_head_size;
+    VXC_ReadImage(v3, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    _viv_asm(COPY, data1, v3, 16);
+
+    float4 data2, data3, data4, data5;
+    VXC_DP4x4(data2, data0, cos, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_0_4x4);
+    VXC_DP4x4(data3, data0, cos, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_1_4x4);
+    VXC_DP4x4(data4, data1, sin, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_0_4x4);
+    VXC_DP4x4(data5, data1, sin, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_1_4x4);
+    data2 = data2 - data4;
+    data3 = data3 - data5;
+
+    half4 dst0;
+    half4 dst1;
+    _viv_asm(CONV_RTE, dst0, data2);
+    _viv_asm(CONV_RTE, dst1, data3);
+
+    VXC_DP2x8(dst2, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8);
+    _viv_asm(COPY, dst, dst2, 16);
+    VXC_WriteImage(output, coord.zw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+    VXC_DP4x4(data2, data0, sin, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_0_4x4);
+    VXC_DP4x4(data3, data0, sin, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_1_4x4);
+    VXC_DP4x4(data4, data1, cos, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_0_4x4);
+    VXC_DP4x4(data5, data1, cos, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniATimesB_1_4x4);
+    data2 = data2 + data4;
+    data3 = data3 + data5;
+
+    _viv_asm(CONV_RTE, dst0, data2);
+    _viv_asm(CONV_RTE, dst1, data3);
+
+    VXC_DP2x8(dst2, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8);
+    _viv_asm(COPY, dst, dst2, 16);
+    VXC_WriteImage(output, coord.xw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}
+
+_viv_uniform int in0_zp;
+_viv_uniform int cos_zp;
+_viv_uniform int sin_zp;
+_viv_uniform VXC_512Bits uniAMinusZp_0_4x4;
+_viv_uniform VXC_512Bits uniAMinusZp_1_4x4;
+#define ROPE_ASYM_BNH1(name, src1_type, copy_type, dtype) \
+__kernel void rope_##name##_bnh1 \
+    ( \
+    __read_only  image2d_array_t input, \
+    __read_only  image2d_array_t cos_cache, \
+    __read_only  image2d_array_t sin_cache, \
+    __write_only image2d_array_t output, \
+                 int   axis \
+    ) \
+{ \
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1)); \
+ \
+    dtype data0, data1, dst; \
+    src1_type cos, sin; \
+    copy_type v0, v1; \
+    VXC_ReadImage(data0, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    VXC_ReadImage(v0, cos_cache, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, cos, v0, 16); \
+    VXC_ReadImage(v1, sin_cache, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+    _viv_asm(COPY, sin, v1, 16); \
+    coord.x += half_head_size; \
+    VXC_ReadImage(data1, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    float4 l00, l01, cos0, cos1; \
+    float4 l10, l11, sin0, sin1; \
+    VXC_DP4x4(l00, data0, in0_zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAMinusZp_0_4x4); \
+    VXC_DP4x4(l01, data0, in0_zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAMinusZp_1_4x4); \
+    VXC_DP4x4(cos0, cos, cos_zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAMinusZp_0_4x4); \
+    VXC_DP4x4(cos1, cos, cos_zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAMinusZp_1_4x4); \
+    VXC_DP4x4(sin0, sin, sin_zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAMinusZp_0_4x4); \
+    VXC_DP4x4(sin1, sin, sin_zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAMinusZp_1_4x4); \
+    VXC_DP4x4(l10, data1, in0_zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAMinusZp_0_4x4); \
+    VXC_DP4x4(l11, data1, in0_zp, VXC_MODIFIER(0, 3, 0, VXC_RM_TowardZero, 0), uniAMinusZp_1_4x4); \
+    float4 data2 = l00 * cos0 * scale0 - l10 * sin0 * scale1 + output_zp; \
+    float4 data3 = l01 * cos1 * scale0 - l11 * sin1 * scale1 + output_zp; \
+ \
+    int4 dst0 = convert_int4_rte(data2); \
+    int4 dst1 = convert_int4_rte(data3); \
+ \
+    VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    VXC_WriteImage(output, coord.zw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+ \
+    data2 = l00 * sin0 * scale1 + l10 * cos0 * scale0 + output_zp; \
+    data3 = l01 * sin1 * scale1 + l11 * cos1 * scale0 + output_zp; \
+ \
+    dst0 = convert_int4_rte(data2); \
+    dst1 = convert_int4_rte(data3); \
+ \
+    VXC_DP2x8(dst, dst0, dst1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 1), uniExtract8Data_2x8); \
+    VXC_WriteImage(output, coord.xw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0)); \
+}
+ROPE_ASYM_BNH1(I8_I8toI8,    vxc_char8,   vxc_char8,   vxc_char8)
+ROPE_ASYM_BNH1(U8_U8toU8,    vxc_uchar8,  vxc_uchar8,  vxc_uchar8)
+ROPE_ASYM_BNH1(U16_U16toU16, vxc_ushort8, vxc_ushort8, vxc_ushort8)
+ROPE_ASYM_BNH1(I8_F16toI8,   vxc_half8,   vxc_short8,  vxc_char8)
+ROPE_ASYM_BNH1(U8_F16toU8,   vxc_half8,   vxc_short8,  vxc_uchar8)
+ROPE_ASYM_BNH1(U16_F16toU16, vxc_half8,   vxc_short8,  vxc_ushort8)
+
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part0_2x8;
+_viv_uniform VXC_512Bits uniConvBF16toF32_Part1_2x8;
+_viv_uniform VXC_512Bits uniExtractOddData_2x8;
+__kernel void rope_BF16_BF16toBF16_bnh1
+    (
+    __read_only  image2d_array_t input,
+    __read_only  image2d_array_t cos_cache,
+    __read_only  image2d_array_t sin_cache,
+    __write_only image2d_array_t output,
+                 int   axis
+    )
+{
+    int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(0), get_global_id(1));
+
+    vxc_ushort8 v0, v1, v2, v3, dst;
+    VXC_ReadImage(v0, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(v1, cos_cache, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    VXC_ReadImage(v2, sin_cache, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+    coord.x += half_head_size;
+    VXC_ReadImage(v3, input, coord.xy, 0, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+    float4 src0, src1, src2, src3, cos0, cos1, sin0, sin1;
+    vxc_short8 zero = (vxc_short8)(0, 0, 0, 0, 0, 0, 0, 0);
+    vxc_short8 data;
+    VXC_DP2x8(data, v0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);
+    _viv_asm(COPY, src0, data, 16);
+    VXC_DP2x8(data, v0, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, src1, data, 16);
+    VXC_DP2x8(data, v1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);
+    _viv_asm(COPY, cos0, data, 16);
+    VXC_DP2x8(data, v1, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, cos1, data, 16);
+    VXC_DP2x8(data, v2, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);
+    _viv_asm(COPY, sin0, data, 16);
+    VXC_DP2x8(data, v2, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, sin1, data, 16);
+    VXC_DP2x8(data, v3, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part0_2x8);
+    _viv_asm(COPY, src2, data, 16);
+    VXC_DP2x8(data, v3, zero, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniConvBF16toF32_Part1_2x8);
+    _viv_asm(COPY, src3, data, 16);
+
+    float4 data0 = src0 * cos0 - src2 * sin0;
+    float4 data1 = src1 * cos1 - src3 * sin1;
+
+    _viv_asm(COPY, v0, data0, 16);
+    _viv_asm(COPY, v1, data1, 16);
+
+    VXC_DP2x8(dst, v0, v1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+    VXC_WriteImage(output, coord.zw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+
+    data0 = src0 * sin0 + src2 * cos0;
+    data1 = src1 * sin1 + src3 * cos1;
+
+    _viv_asm(COPY, v0, data0, 16);
+    _viv_asm(COPY, v1, data1, 16);
+
+    VXC_DP2x8(dst, v0, v1, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0), uniExtractOddData_2x8);
+    VXC_WriteImage(output, coord.xw, dst, VXC_MODIFIER(0, 7, 0, VXC_RM_TowardZero, 0));
+}

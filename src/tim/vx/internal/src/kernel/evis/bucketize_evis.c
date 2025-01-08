@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "vsi_nn_types.h"
+#include "vsi_nn_types_prv.h"
 #include "vsi_nn_tensor.h"
 #include "vsi_nn_graph.h"
 #include "vsi_nn_log.h"
@@ -192,7 +193,7 @@ static vsi_bool _bucketize_support_types
         return FALSE;
     }
 
-    if (in_dtype == F16 && graph->ctx->config.evis.ver != VSI_NN_HW_EVIS_2)
+    if (in_dtype == F16 && ((vsi_nn_graph_prv_t*)graph)->options->config.evis.ver != VSI_NN_HW_EVIS_2)
     {
         return FALSE;
     }

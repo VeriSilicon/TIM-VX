@@ -39,6 +39,10 @@
 #include "kernel/vsi_nn_kernel_gpu_shape_optimize.h"
 #include "vsi_nn_error.h"
 
+typedef struct _topk_local_data_t {
+    vsi_bool use_internal_node;
+} topk_local_data_t;
+
 #define _INPUT_NUM          (1)
 #define _OUTPUT_NUM         (2)
 
@@ -111,19 +115,43 @@ static vsi_status op_compute
     vsi_nn_tensor_t * out1_tensor = NULL;
     vsi_bool ret = FALSE;
 
-    if (inputs[0]->attr.size[axis] == 1)
+    if (self->nn_param.topk.local->use_internal_node)
     {
         return vsi_nn_internal_compute_node( self );
     }
 
-    ret = vsi_nn_kernel_optimize_softmax_shape(
-            inputs[0]->attr.size, inputs[0]->attr.dim_num, axis,
-            shapes[0], &rank_in, &new_axis0);
+    if (inputs[0]->attr.size[0] >= GPU_TENSOR_MAX_WIDTH)
+    {
+        int32_t i = 1;
 
-    ret = vsi_nn_kernel_optimize_softmax_shape(
-            outputs[0]->attr.size, outputs[0]->attr.dim_num, axis,
-            shapes[1], &rank_out, &new_axis1);
+        shapes[0][0] = inputs[0]->attr.size[0];
+        shapes[1][0] = outputs[0]->attr.size[0];
+        shapes[0][1] = 1;
+        shapes[1][1] = 1;
+        for (i = 1; i < (int32_t)(inputs[0]->attr.dim_num); i++)
+        {
+            shapes[0][1] = shapes[0][1] * inputs[0]->attr.size[i];
+        }
+        for (i = 1; i < (int32_t)(outputs[0]->attr.dim_num); i++)
+        {
+            shapes[1][1] = shapes[1][1] * outputs[0]->attr.size[i];
+        }
+        new_axis0 = axis;
+        new_axis1 = axis;
+        rank_in = 2;
+        rank_out = 2;
+        ret = TRUE;
+    }
+    else
+    {
+        ret = vsi_nn_kernel_optimize_softmax_shape(
+                inputs[0]->attr.size, inputs[0]->attr.dim_num, axis,
+                shapes[0], &rank_in, &new_axis0);
 
+        ret = vsi_nn_kernel_optimize_softmax_shape(
+                outputs[0]->attr.size, outputs[0]->attr.dim_num, axis,
+                shapes[1], &rank_out, &new_axis1);
+    }
     if (ret)
     {
         uint32_t perm_in[VSI_NN_MAX_DIM_NUM] = {0};
@@ -303,10 +331,12 @@ static vsi_bool op_setup
         vsi_nn_internal_tensor_t* const0_input = NULL;
         vsi_nn_tensor_attr_t attr;
 
+        p->local->use_internal_node = TRUE;
+
         vsi_nn_internal_init_node_wksp(self);
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 1, 1);
         CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
-        curr->inputs[0]  = inputs[0];
+        curr->inputs[0] = inputs[0];
         curr->outputs[0] = outputs[0];
         vsi_nn_internal_setup_node(self, curr);
 
@@ -318,8 +348,40 @@ static vsi_bool op_setup
         CHECK_PTR_FAIL_GOTO(const0_input, "Create tensor failed", final);
         curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 1, 1);
         CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
-        curr->inputs[0]  = const0_input->t;
+        curr->inputs[0] = const0_input->t;
         curr->outputs[0] = outputs[1];
+        vsi_nn_internal_setup_node(self, curr);
+    }
+    else if (vsi_nn_is_same_type(inputs[0], outputs[0]) == FALSE)
+    {
+        vsi_nn_internal_node_t* curr = NULL;
+        vsi_nn_internal_tensor_t* temp_tensor = NULL;
+        vsi_nn_tensor_attr_t attr;
+
+        p->local->use_internal_node = TRUE;
+
+        vsi_nn_internal_init_node_wksp(self);
+
+        memcpy(&attr, &inputs[0]->attr, sizeof(vsi_nn_tensor_attr_t));
+        attr.dim_num = VSI_NN_DIM_AUTO;
+        attr.vtl = TRUE;
+        attr.is_const = FALSE;
+        temp_tensor = vsi_nn_internal_new_tensor(self, &attr, 0.0f);
+        CHECK_PTR_FAIL_GOTO(temp_tensor, "Create tensor failed", final);
+
+        curr = vsi_nn_internal_new_node(self, VSI_NN_OP_TOPK, 1, 2);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
+        curr->node->nn_param.topk.axis = p->axis;
+        curr->node->nn_param.topk.k = p->k;
+        curr->inputs[0] = inputs[0];
+        curr->outputs[0] = temp_tensor->t;
+        curr->outputs[1] = outputs[1];
+        vsi_nn_internal_setup_node(self, curr);
+
+        curr = vsi_nn_internal_new_node(self, VSI_NN_OP_DATACONVERT, 1, 1);
+        CHECK_PTR_FAIL_GOTO(curr, "Create internal node failed", final);
+        curr->inputs[0] = temp_tensor->t;
+        curr->outputs[0] = outputs[0];
         vsi_nn_internal_setup_node(self, curr);
     }
 
@@ -341,7 +403,7 @@ static vsi_status op_optimize
     VSI_UNREFERENCED(outputs);
 
     p = &(self->nn_param.topk);
-    if (inputs[0]->attr.size[p->axis] == 1)
+    if (p->local->use_internal_node)
     {
         return vsi_nn_internal_optimize_node( self, direction );
     }
@@ -357,6 +419,14 @@ static vsi_status op_init
     vsi_status status = VSI_SUCCESS;
     self->nn_param.topk.axis = 0;
 
+    self->nn_param.topk.local = \
+        (topk_local_data_t*)malloc(sizeof(topk_local_data_t));
+    if (NULL == self->nn_param.topk.local)
+    {
+        return  VX_ERROR_NO_MEMORY;
+    }
+    memset(self->nn_param.topk.local, 0, sizeof(topk_local_data_t));
+
     return status;
 } /* op_init() */
 
@@ -365,7 +435,12 @@ static vsi_status op_deinit
     vsi_nn_node_t * self
     )
 {
-    vsi_nn_internal_deinit_node_wksp(self);
+    if (self->nn_param.topk.local->use_internal_node)
+    {
+        vsi_nn_internal_deinit_node_wksp(self);
+    }
+
+    vsi_nn_safe_free(self->nn_param.topk.local);
     vsi_nn_op_common_deinit(self);
 
     return VSI_SUCCESS;

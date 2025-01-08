@@ -121,7 +121,9 @@ static const _kernel_map_type _groupnorm_sums_kernel_map[] =
     TENSOR_GROUPNORM_SUMS_KERNELS( U8, F32, KERNEL_SOURCE_0 )
     TENSOR_GROUPNORM_SUMS_KERNELS_2D( U8, F32, KERNEL_SOURCE_0 )
     TENSOR_GROUPNORM_SUMS_KERNELS( I16, F32, KERNEL_SOURCE_2 )
+    TENSOR_GROUPNORM_SUMS_KERNELS( U16, F32, KERNEL_SOURCE_2 )
     TENSOR_GROUPNORM_SUMS_KERNELS_2D( I16, F32, KERNEL_SOURCE_2 )
+    TENSOR_GROUPNORM_SUMS_KERNELS_2D( U16, F32, KERNEL_SOURCE_2 )
     TENSOR_GROUPNORM_SUMS_KERNELS( F16, F32, KERNEL_SOURCE_2 )
     TENSOR_GROUPNORM_SUMS_KERNELS_2D( F16, F32, KERNEL_SOURCE_2 )
 };
@@ -174,6 +176,9 @@ static const _kernel_map_type _groupnorm_kernel_map[] =
     TENSOR_GROUPNORM_SCALE_KERNELS_2D( F16, F32, U8, KERNEL_SOURCE_2 )
     TENSOR_GROUPNORM_SCALE_KERNELS( F16, F32, F16, KERNEL_SOURCE_2 )
     TENSOR_GROUPNORM_SCALE_KERNELS_2D( F16, F32, F16, KERNEL_SOURCE_2 )
+
+    TENSOR_GROUPNORM_SCALE_KERNELS( U16, F32, U16, KERNEL_SOURCE_2 )
+    TENSOR_GROUPNORM_SCALE_KERNELS_2D( U16, F32, U16, KERNEL_SOURCE_2 )
 };
 
 /*
@@ -245,6 +250,7 @@ DEF_KERNEL_INITIALIZER(_groupnorm_sums_initializer)
     float sum_x2_tail0 = 1;
     float sum_x2_tail1 = 1;
     float work_item_pixels = 1;
+    vsi_bool is_input_8bits = FALSE;
 
     VSI_UNREFERENCED(param_size);
 
@@ -263,12 +269,13 @@ DEF_KERNEL_INITIALIZER(_groupnorm_sums_initializer)
     width = (int32_t)(input_shape->data[0]);
     height = (int32_t)(input_shape->data[1]);
     chn = (int32_t)(attr[1]->shape->data[1]);
+    is_input_8bits = attr[0]->dtype == I8 || attr[0]->dtype == U8;
     if (is2D)
     {
         height = 1;
     }
 
-    work_item_pixels = (float)height * 16;
+    work_item_pixels = is_input_8bits ? 16 * (float)height : 8 * (float)height;
 
     sum_x_tail = -work_item_pixels * input_zp * input_scale;
     sum_x2_tail0 = work_item_pixels * input_zp * input_zp * input_scale2;
@@ -281,11 +288,11 @@ DEF_KERNEL_INITIALIZER(_groupnorm_sums_initializer)
     shaderParam.local_size[1]  = 1;
     shaderParam.local_size[2]  = 1;
 
-    if (attr[0]->dtype == I8 || attr[0]->dtype == U8)
+    if (is_input_8bits)
     {
         shaderParam.global_size[0]   = (width + 255) / 256 * 16;
     }
-    else if (attr[0]->dtype == I16 || attr[0]->dtype == F16)
+    else if (attr[0]->dtype == I16 || attr[0]->dtype == F16 || attr[0]->dtype == U16)
     {
         shaderParam.global_size[0]   = (width + 127) / 128 * 16;
     }
@@ -324,7 +331,7 @@ DEF_KERNEL_INITIALIZER(_groupnorm_sums_initializer)
         status |= vsi_nn_kernel_gpu_add_param(node, "sum_x2_tail1", &sum_x2_tail1);
         CHECK_STATUS_FAIL_GOTO(status, OnError );
     }
-    else if (attr[0]->dtype == I16 || attr[0]->dtype == F16)
+    else if (attr[0]->dtype == I16 || attr[0]->dtype == F16 || attr[0]->dtype == U16)
     {
         gpu_dp_inst_t uniSum_X_X2_8x2 = {{
             0x55555555, // TCfg
@@ -483,7 +490,7 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
     }
 
     shaderParam.global_scale[0]  = 16;
-    if (attr[0]->dtype == I16 || attr[0]->dtype == F16)
+    if (attr[0]->dtype == I16 || attr[0]->dtype == F16 || attr[0]->dtype == U16)
     {
         shaderParam.global_scale[0]  = 8;
     }
@@ -610,6 +617,7 @@ DEF_KERNEL_INITIALIZER(_groupnorm_initializer)
                     CHECK_STATUS_FAIL_GOTO(status, OnError );
                 }
                 break;
+            case _PACK_SELECT_KEY( U16, U16 ):
             case _PACK_SELECT_KEY( I16, I16 ):
             case _PACK_SELECT_KEY( I16, F16 ):
             case _PACK_SELECT_KEY( F16, F16 ):
@@ -838,8 +846,7 @@ static vsi_nn_kernel_node_t _setup
     attr.is_const = FALSE;
     attr.vtl = TRUE;
     attr.size[0] = ((new_shape[0] + 255) / 256) * 4;
-    if ( inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_INT16
-        || inputs[0]->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT16)
+    if (in0_dtype == I16 || in0_dtype == F16 || in0_dtype == U16)
     {
         attr.size[0] = ((new_shape[0] + 127) / 128) * 4;
     }
