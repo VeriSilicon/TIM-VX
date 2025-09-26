@@ -9,7 +9,11 @@ list(APPEND OVXDRV_INCLUDE_DIRS
 if("${CONFIG}" STREQUAL "BUILDROOT")
     set(VIV_SDK_DRIVER_PREFIX "usr/lib")
 else()
-    set(VIV_SDK_DRIVER_PREFIX "drivers")
+    if(EXISTS ${EXTERNAL_VIV_SDK}/drivers)
+       set(VIV_SDK_DRIVER_PREFIX "drivers")
+    else()
+       set(VIV_SDK_DRIVER_PREFIX "lib")
+    endif()
 endif()
 
 message("using driver libs from ${EXTERNAL_VIV_SDK}/${VIV_SDK_DRIVER_PREFIX}")

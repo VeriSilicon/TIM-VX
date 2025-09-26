@@ -37,51 +37,41 @@ class NativeDevice : public IDevice {
   virtual bool Trigger(bool async = false, async_callback cb = NULL) = 0;
   virtual bool DeviceExit() = 0;
   virtual void WaitDeviceIdle() = 0;
+  virtual std::shared_ptr<IExecutor> CreateExecutor(const int32_t core_index = 0,
+                                                    const int32_t core_count = -1,
+                                                    const std::shared_ptr<Context>& context = nullptr) = 0;
   static std::vector<std::shared_ptr<IDevice>> Enumerate();
 };
 
 class NativeExecutable : public IExecutable {
  public:
-  NativeExecutable(const std::shared_ptr<IExecutor>& executor,
-                   const std::vector<char>& nb_buf, size_t inputs,
-                   size_t outputs);
-  ~NativeExecutable(){};
-  void SetInput(const std::shared_ptr<ITensorHandle>& th) override;
-  void SetOutput(const std::shared_ptr<ITensorHandle>& th) override;
-  void GetOutput(
-      const std::vector<std::shared_ptr<ITensorHandle>>& th) override;
-  bool Submit(const std::shared_ptr<IExecutable>& ref,
-              bool after = true) override;
-  bool Trigger(bool async = false) override;
-  std::shared_ptr<ITensorHandle> AllocateTensor(
-      const TensorSpec& tensor_spec) override;
-  bool Verify() override;
-
- protected:
-  std::shared_ptr<tim::vx::ops::NBG> nb_node_;
-  std::vector<char> nb_buf_;
+  virtual ~NativeExecutable() {};
+  virtual void SetInput(const std::shared_ptr<ITensorHandle>& th) = 0;
+  virtual void SetOutput(const std::shared_ptr<ITensorHandle>& th) = 0;
+  virtual void SetInputs(const std::vector<std::shared_ptr<ITensorHandle>>& ths) = 0;
+  virtual void SetOutputs(const std::vector<std::shared_ptr<ITensorHandle>>& ths) = 0;
+  virtual bool Submit(const std::shared_ptr<IExecutable>& ref,
+                      bool after = true) = 0;
+  virtual bool Trigger(bool async = false) = 0;
+  virtual std::shared_ptr<ITensorHandle> AllocateTensor(const TensorSpec& tensor_spec,
+                                                        void* data = nullptr, uint32_t size = 0) = 0;
+  virtual bool Verify() = 0;
 };
 
-class NativeExecutor : public IExecutor,
-                       public std::enable_shared_from_this<NativeExecutor> {
+class NativeExecutor : public IExecutor {
  public:
-  NativeExecutor(const std::shared_ptr<IDevice>& device);
-  NativeExecutor(const std::shared_ptr<IDevice>& device,
-                 const std::shared_ptr<Context>& context);
-  ~NativeExecutor(){};
-  bool Submit(const std::shared_ptr<IExecutable>& executable,
-              const std::shared_ptr<IExecutable>& ref,
-              bool after = true) override;
-  bool Trigger(bool async = false) override;
-  std::shared_ptr<IExecutable> Compile(
-      const std::shared_ptr<Graph>& graph) override;
+  virtual ~NativeExecutor(){};
+  virtual bool Submit(const std::shared_ptr<IExecutable>& executable,
+                      const std::shared_ptr<IExecutable>& ref,
+                      bool after = true) = 0;
+  virtual bool Trigger(bool async = false) = 0;
+  virtual std::shared_ptr<IExecutable> Compile(const std::shared_ptr<Graph>& graph) = 0;
 };
 
 class NativeTensorHandle : public ITensorHandle {
  public:
-  NativeTensorHandle(const std::shared_ptr<Tensor>& tensor);
-  bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) override;
-  bool CopyDataFromTensor(void* data) override;
+  virtual bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) = 0;
+  virtual bool CopyDataFromTensor(void* data) = 0;
 };
 
 }  // namespace platform

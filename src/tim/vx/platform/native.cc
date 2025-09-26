@@ -22,9 +22,14 @@
 *
 *****************************************************************************/
 #include "tim/vx/platform/native.h"
-#include "native_device_private.h"
+#include "native_private.h"
+#include "context_private.h"
 #include "tim/vx/ops/nbg.h"
+#ifdef ENABLE_PLATFORM_LITE
+#include "tim/vx/platform/lite/lite_native.h"
+#endif
 
+#include <cassert>
 namespace tim {
 namespace vx {
 namespace platform {
@@ -35,215 +40,195 @@ std::shared_ptr<IExecutable> Compile(
   return executor->Compile(graph);
 }
 
-std::shared_ptr<IExecutable> CreateExecutableSet(
-    const std::vector<std::shared_ptr<IExecutable>>& executables) {
-  ExecutableSet* executable_set = new ExecutableSet(executables);
-  std::shared_ptr<IExecutable> executable(executable_set);
-  return executable;
+NativeDeviceImpl::NativeDeviceImpl(device_id_t id, uint32_t core_count) {
+  device_id_ = id;
+  core_count_ = core_count;
 }
-
-IDevice::device_id_t IDevice::Id() const { return device_id_; }
+std::vector<std::shared_ptr<IDevice>> IDevice::Enumerate() {
+#ifdef ENABLE_PLATFORM_LITE
+  auto devices = tim::vx::platform::LiteNativeDevice::Enumerate();
+#else
+  auto devices = tim::vx::platform::NativeDevice::Enumerate();
+#endif
+  return devices;
+}
 
 void IDevice::RemoteReset() {}
 
-NativeDeviceImpl::NativeDeviceImpl(device_id_t id) {
-  vip_device_ = std::make_unique<vip::IDevice>(id);
-  device_id_ = id;
-}
-
 bool NativeDeviceImpl::Submit(const std::shared_ptr<Graph>& graph) {
-  GraphImpl* graphimp =
-      dynamic_cast<GraphImpl*>(graph.get());  // hack to downcast
-  vsi_graph_v_.push_back(graphimp->graph());
+  (void)graph;
   return true;
 }
 
 bool NativeDeviceImpl::Trigger(bool async, async_callback cb) {
-  // extract graph from tasks
   (void)async;
-  bool status = false;
-  while (!vsi_graph_v_.empty()) {
-    auto task = vsi_graph_v_.front();
-    vsi_graph_v_.erase(vsi_graph_v_.begin());
-    status = vip_device_->GraphSubmit(task, cb, NULL);
-  }
-  return status;
+  (void)cb;
+  return true;
 }
 
-void NativeDeviceImpl::WaitDeviceIdle() { vip_device_->WaitThreadIdle(); }
+void NativeDeviceImpl::WaitDeviceIdle() {}
 
-bool NativeDeviceImpl::DeviceExit() { return vip_device_->ThreadExit(); }
+bool NativeDeviceImpl::DeviceExit() { return true; }
 
-std::vector<std::shared_ptr<IDevice>> NativeDevice::Enumerate() {
-  std::vector<std::shared_ptr<IDevice>> device_v;
-  device_id_t deviceCount = 0;
-  vsi_nn_context_t context;
-  context = vsi_nn_CreateContext();
-  vxQueryContext(context->c, VX_CONTEXT_DEVICE_COUNT_VIV, &deviceCount,
-                 sizeof(deviceCount));
-  std::cout << "Device count = " << deviceCount << std::endl;
-  for (device_id_t i = 0; i < deviceCount; i++) {
-    IDevice* local_device = new NativeDeviceImpl(i);
-    std::shared_ptr<IDevice> local_device_sp(local_device);
-    device_v.push_back(local_device_sp);
-  }
-  vsi_nn_ReleaseContext(&context);
-  return device_v;
-}
-
-std::shared_ptr<Graph> IExecutable::NBGraph() const { return nb_graph_; }
-
-std::shared_ptr<IExecutor> IExecutable::Executor() const {
-  auto executor = executor_.lock();
-  if (!executor) {
-    std::cout << "Executor unable to lock weak_ptr";
-  }
+std::shared_ptr<IExecutor> NativeDeviceImpl::CreateExecutor(const int32_t core_index,
+                                                    const int32_t core_count,
+                                                    const std::shared_ptr<Context>& context) {
+  std::shared_ptr<IDevice> this_sp = shared_from_this();
+  auto  executor = std::make_shared<NativeExecutorImpl>(this_sp, core_count,core_index,context);
   return executor;
 }
 
-NativeExecutable::NativeExecutable(const std::shared_ptr<IExecutor>& executor,
+std::vector<std::shared_ptr<IDevice>> NativeDevice::Enumerate() {
+  std::vector<std::shared_ptr<IDevice>> device_v;
+#ifdef VSI_DEVICE_SUPPORT
+  vsi_nn_context_t context = vsi_nn_CreateContext();
+  vsi_nn_device_t  vsi_devices[VSI_MAX_DEVICES] = {0};
+  vsi_status status  = VSI_FAILURE;
+  vsi_size_t deviceCount = 0;
+
+  status  = vsi_nn_GetDevices(context,vsi_devices,&deviceCount);
+  if(status != VSI_SUCCESS){
+        VSILOGE("Get device count fail");
+        return device_v;
+  }
+
+  for (vsi_size_t i = 0; i < deviceCount; i++) {
+    vsi_size_t available_core_count = 0;
+    vsi_nn_GetDeviceCoreCount(vsi_devices[i],&available_core_count);
+    auto  local_device = std::make_shared<NativeDeviceImpl>(i,available_core_count);
+    device_v.push_back(local_device);
+  }
+#else
+#error "VSI device API is not supportted, please upgrade Vivant SDK version >= 6.4.22 && ovxlib >= 1.2.26 !");
+#endif
+  return device_v;
+}
+
+NativeExecutableImpl::NativeExecutableImpl(const std::shared_ptr<IExecutor>& executor,
                                    const std::vector<char>& nb_buf,
                                    size_t inputs, size_t outputs) {
-  CompileOption opt;
-  opt.setDeviceId(executor->Device()->Id());
 
   executor_ = executor;
   context_ = executor->Contex();
-  nb_graph_ = context_->CreateGraph(opt);
+  nb_graph_ = context_->CreateGraph();
 
   nb_buf_ = nb_buf;
   nb_node_ = nb_graph_->CreateOperation<tim::vx::ops::NBG>(nb_buf_.data(),
                                                            inputs, outputs);
 }
 
-void NativeExecutable::SetInput(const std::shared_ptr<ITensorHandle>& th) {
+void NativeExecutableImpl::SetInput(const std::shared_ptr<ITensorHandle>& th) {
   nb_node_->BindInput(th->GetTensor());
+   input_handles_.push_back(th);
 }
 
-void NativeExecutable::SetOutput(const std::shared_ptr<ITensorHandle>& th) {
+void NativeExecutableImpl::SetInputs(const std::vector<std::shared_ptr<ITensorHandle>>& ths) {
+    for (auto& t : ths) {
+    SetInput(t);
+  }
+}
+
+void NativeExecutableImpl::SetOutput(const std::shared_ptr<ITensorHandle>& th) {
   nb_node_->BindOutput(th->GetTensor());
+  output_handles_.push_back(th);
 }
 
-void NativeExecutable::GetOutput(
-    const std::vector<std::shared_ptr<ITensorHandle>>& th) {
-  (void)th;
+void NativeExecutableImpl::SetOutputs(const std::vector<std::shared_ptr<ITensorHandle>>& ths) {
+  for (auto& t : ths) {
+    SetOutput(t);
+  }
+
 }
 
-bool NativeExecutable::Submit(const std::shared_ptr<IExecutable>& ref,
+bool NativeExecutableImpl::Submit(const std::shared_ptr<IExecutable>& ref,
                               bool after) {
   bool status = false;
   std::shared_ptr<IExecutable> executable = shared_from_this();
-  status = Executor()->Submit(executable, ref, after);
+  std::shared_ptr<NativeExecutorImpl> executor = std::dynamic_pointer_cast<NativeExecutorImpl>(executor_.lock());
+  status = executor->Submit(executable, ref, after);
   return status;
 }
 
-bool NativeExecutable::Trigger(bool async) {
+bool NativeExecutableImpl::Trigger(bool async) {
   (void)async;
-  bool status = false;
-  auto device = Executor()->Device();
-  device->Submit(nb_graph_);
-  status = device->Trigger();
-  device->WaitDeviceIdle();
+  bool status = nb_graph_->Run();
   return status;
 }
 
-std::shared_ptr<ITensorHandle> NativeExecutable::AllocateTensor(
-    const TensorSpec& tensor_spec) {
-  auto tensor = nb_graph_->CreateTensor(tensor_spec);
-  ITensorHandle* tensor_handle = new NativeTensorHandle(tensor);
-  std::shared_ptr<ITensorHandle> tensor_handle_sp(tensor_handle);
-  return tensor_handle_sp;
+std::shared_ptr<ITensorHandle> NativeExecutableImpl::AllocateTensor(const TensorSpec& tensor_spec,
+                                                                    void* data, uint32_t size) {
+  (void)size;
+  auto tensor = nb_graph_->CreateTensor(tensor_spec,data);
+  return std::make_shared<NativeTensorHandleImpl>(tensor);
 }
 
-bool NativeExecutable::Verify() { return nb_graph_->Compile(); }
-
-ExecutableSet::ExecutableSet(
-    const std::vector<std::shared_ptr<IExecutable>>& executables) {
-  executables_ = executables;
-  executor_ = executables[0]->Executor();
-}
-
-void ExecutableSet::SetInput(const std::shared_ptr<ITensorHandle>& th) {
-  (void)th;
-}
-
-void ExecutableSet::SetOutput(const std::shared_ptr<ITensorHandle>& th) {
-  (void)th;
-}
-
-void ExecutableSet::GetOutput(
-    const std::vector<std::shared_ptr<ITensorHandle>>& th) {
-  (void)th;
-}
-
-bool ExecutableSet::Submit(const std::shared_ptr<IExecutable>& ref,
-                           bool after) {
-  bool status = false;
-  std::shared_ptr<IExecutable> executable = shared_from_this();
-  status = Executor()->Submit(executable, ref, after);
-  return status;
-}
-
-bool ExecutableSet::Trigger(bool async) {
-  (void)async;
-  bool status = false;
-  auto device = Executor()->Device();
-  for (auto executable : executables_) {
-    device->Submit(executable->NBGraph());
+bool NativeExecutableImpl::Verify() {
+  std::shared_ptr<NativeExecutorImpl> executor = std::dynamic_pointer_cast<NativeExecutorImpl>(executor_.lock());
+  bool success = executor->BindDevices(NBGraph());
+  if (success == false) {
+    VSILOGE("Executable bind device failed");
+    return false;
   }
-  status = device->Trigger();
-  device->WaitDeviceIdle();
-  return status;
-}
-
-std::shared_ptr<ITensorHandle> ExecutableSet::AllocateTensor(
-    const TensorSpec& tensor_spec) {
-  std::shared_ptr<ITensorHandle> tensor_handle_sp;
-  (void)tensor_spec;
-  return tensor_handle_sp;
-}
-
-std::vector<std::shared_ptr<IExecutable>> ExecutableSet::Executables() const {
-  return executables_;
-}
-
-bool ExecutableSet::Verify() {
-  bool status = false;
-  for (auto executable : executables_) {
-    status = executable->Verify();
+  success = nb_graph_->Compile();
+  return success;
   }
-  return status;
-}
 
-std::shared_ptr<Context> IExecutor::Contex() const { return context_; }
-
-NativeExecutor::NativeExecutor(const std::shared_ptr<IDevice>& device) {
-  device_ = device;
-  context_ = Context::Create();
-}
-
-NativeExecutor::NativeExecutor(const std::shared_ptr<IDevice>& device,
+NativeExecutorImpl::NativeExecutorImpl(const std::shared_ptr<IDevice>& device,
+                               const int32_t core_count,
+                               const int32_t core_index,
                                const std::shared_ptr<Context>& context) {
   device_ = device;
-  context_ = context;
+  if(!context) {
+    context_ = Context::Create();
+  } else {
+    context_ = context;
+  }
+  auto fixed_core_count = core_count;
+  int32_t fixed_core_index = core_index;
+  int32_t total_core_count  =(int32_t)device_->CoreCount();
+  if (fixed_core_index < 0) {
+    fixed_core_index = 0;
+  }
+  if (fixed_core_index > total_core_count - 1) {
+     VSILOGE("Core index is larger than total core count");
+     assert(false);
+  }
+  if (fixed_core_count <= 0 ) {
+    fixed_core_count = total_core_count - fixed_core_index;
+  }
+
+  if (fixed_core_index + fixed_core_count > total_core_count) {
+    fixed_core_count = total_core_count - fixed_core_index;
+    VSILOGW(
+        "Core_index + core_count is larger than total core count. Fix core count to %d", fixed_core_count);
+  }
+  core_index_ = (uint32_t)fixed_core_index;
+  core_count_ = (uint32_t)fixed_core_count;
+#ifdef VSI_DEVICE_SUPPORT
+  vsi_nn_device_t  vsi_devices[VSI_MAX_DEVICES] = {0};
+  vsi_size_t num_devices = 0;
+  auto ctx = dynamic_cast<ContextImpl*>(context_.get());
+  vsi_nn_GetDevices(ctx->context(),vsi_devices,&num_devices);
+  vsi_nn_CreateSubDevice(vsi_devices[device_->Id()],core_index_,core_count_,&sub_devices_);
+#endif
 }
 
-bool NativeExecutor::Submit(const std::shared_ptr<IExecutable>& executable,
+bool NativeExecutorImpl::Submit(const std::shared_ptr<IExecutable>& executable,
                             const std::shared_ptr<IExecutable>& ref,
                             bool after) {
   bool success = false;
   success = executable->Verify();
-  if (success == false) {
-    std::cout << "Executable NBG compile failed";
+  if(success == false) {
+    VSILOGE("Executable NBG compile failed");
     return false;
   }
-  if (executable == ref) {
+  if(executable == ref) {
     tasks_.push_back(executable);
     return true;
   }
-  for (size_t i = 0; i < tasks_.size(); i++) {
-    if (tasks_[i].lock() == ref) {
-      if (after == true) {
+  for(size_t i = 0; i < tasks_.size(); i++) {
+    if(tasks_[i].lock() == ref) {
+      if(after == true) {
         tasks_.insert(tasks_.begin() + i + 1, executable);
         success = true;
         break;
@@ -257,56 +242,76 @@ bool NativeExecutor::Submit(const std::shared_ptr<IExecutable>& executable,
   return success;
 }
 
-bool NativeExecutor::Trigger(bool async) {
+bool NativeExecutorImpl::Trigger(bool async) {
   (void)async;
-  while (!tasks_.empty()) {
+  bool ret = false;
+  while(!tasks_.empty()) {
     auto task = tasks_.front();
     tasks_.erase(tasks_.begin());
-    auto task_ = task.lock();
-    if (!task_) {
-      std::cout << "Task unable to lock weak_ptr";
+    auto task_tmp = task.lock();
+    if(!task_tmp) {
+      VSILOGE("Task unable to lock weak_ptr");
+       return false;
     }
-    task_->Trigger();
+    ret = task_tmp->Trigger();
   }
   device_->WaitDeviceIdle();
-  return true;
+  return ret;
 }
 
-std::shared_ptr<IExecutable> NativeExecutor::Compile(
+std::shared_ptr<IExecutable> NativeExecutorImpl::Compile(
     const std::shared_ptr<Graph>& graph) {
-
-  CompileOption option;
-  option.setDeviceId(device_->Id());
-  graph->SetCompileOption(option);
-
+  bool ret = BindDevices(graph);
+  if(!ret) {
+    return nullptr;
+  }
   size_t bin_size = -1;
-  graph->CompileToBinary(nullptr, &bin_size);
+  ret = graph->CompileToBinary(nullptr, &bin_size);
+  if(!ret) {
+    return nullptr;
+  }
   std::vector<char> nb_buf;
   nb_buf.resize(bin_size);
   size_t inputs = graph->InputsTensor().size();
   size_t outputs = graph->OutputsTensor().size();
-  graph->CompileToBinary(nb_buf.data(), &bin_size);
-  std::shared_ptr<IExecutor> this_sp = shared_from_this();
-  IExecutable* executable =
-      new NativeExecutable(this_sp, nb_buf, inputs, outputs);
-  std::shared_ptr<IExecutable> executable_sp(executable);
-  return executable_sp;
+  ret = graph->CompileToBinary(nb_buf.data(), &bin_size);
+  if(!ret) {
+    return nullptr;
+  }
+  std::shared_ptr<NativeExecutorImpl> this_sp = shared_from_this();
+  auto  executable = std::make_shared<NativeExecutableImpl>(this_sp, nb_buf,inputs,outputs);
+  return executable;
 }
 
-std::shared_ptr<IDevice> IExecutor::Device() const { return device_; }
 
-std::shared_ptr<Tensor> ITensorHandle::GetTensor() const { return tensor_; }
+bool NativeExecutorImpl::BindDevices(const std::shared_ptr<Graph>& graph){
+  vsi_status status  = VSI_SUCCESS;
+#ifdef VSI_DEVICE_SUPPORT
+  GraphImpl* graphimp = dynamic_cast<GraphImpl*>(graph.get());
+  status = vsi_nn_BindDevices(graphimp->graph(), 1, &sub_devices_);
+#else
+  (void)graph;
+#endif
+  if(status == VSI_SUCCESS) {
+    return true;
+  }
+  else{
+    return false;
+  }
+}
 
-NativeTensorHandle::NativeTensorHandle(const std::shared_ptr<Tensor>& tensor) {
+
+NativeTensorHandleImpl::NativeTensorHandleImpl(const std::shared_ptr<Tensor>& tensor) {
   tensor_ = tensor;
+  spec_ = tensor->GetSpec();
 }
 
-bool NativeTensorHandle::CopyDataToTensor(const void* data,
+bool NativeTensorHandleImpl::CopyDataToTensor(const void* data,
                                           uint32_t size_in_bytes) {
   return tensor_->CopyDataToTensor(data, size_in_bytes);
 }
 
-bool NativeTensorHandle::CopyDataFromTensor(void* data) {
+bool NativeTensorHandleImpl::CopyDataFromTensor(void* data) {
   return tensor_->CopyDataFromTensor(data);
 }
 

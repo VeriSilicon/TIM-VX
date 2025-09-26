@@ -1296,7 +1296,7 @@ void resnet50::construct_graph
     auto input_0 = graph->CreateTensor(input_0_spec);
 
     tim::vx::ShapeType output_229_shape({1000,1});
-    tim::vx::TensorSpec output_229_spec(tim::vx::DataType::FLOAT16, output_229_shape,
+    tim::vx::TensorSpec output_229_spec(tim::vx::DataType::FLOAT32, output_229_shape,
     tim::vx::TensorAttribute::OUTPUT);
     auto output_229 = graph->CreateTensor(output_229_spec);
 

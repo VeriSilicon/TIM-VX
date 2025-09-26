@@ -29,7 +29,7 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/operation.h"
 #include "tim/vx/tensor.h"
-#include "tim/vx/platform/native.h"
+#include "tim/vx/platform/platform.h"
 
 static void printTopN() {
 }
@@ -46,9 +46,9 @@ int demo(int argc, char** argv) {
   tim::vx::TensorSpec g0_input0, g0_output0, g1_output0, g2_output0, g3_output0, g4_output0, g5_output0;
 
   // query device and get executor of devcie
-  auto devices = tim::vx::platform::NativeDevice::Enumerate();
+  auto devices = tim::vx::platform::IDevice::Enumerate();
   auto device = devices[0];
-  std::shared_ptr<tim::vx::platform::IExecutor> executor = std::make_shared<tim::vx::platform::NativeExecutor> (device);
+  auto executor = device->CreateExecutor(0,-1, context);
 
   // executable0
   auto executable0 = executor->Compile(g0);  // compile to nbg
@@ -88,33 +88,6 @@ int demo(int argc, char** argv) {
   executable5->Submit(executable4);  // executable5 run after executable4
   // trigger
   executor->Trigger();  // run all submitted executables
-
-  /* 2. another way to run */
-  // executable_set0
-  std::vector<std::shared_ptr<tim::vx::platform::IExecutable>> executables0;
-  executables0.push_back(executable0);
-  auto executable_set0 = CreateExecutableSet(executables0);
-  // executable_set1
-  std::vector<std::shared_ptr<tim::vx::platform::IExecutable>> executables1;
-  executables1.push_back(executable1);
-  executables1.push_back(executable3);
-  auto executable_set1 = CreateExecutableSet(executables1);
-  // executable_set2
-  std::vector<std::shared_ptr<tim::vx::platform::IExecutable>> executables2;
-  executables2.push_back(executable2);
-  executables2.push_back(executable4);
-  auto executable_set2 = CreateExecutableSet(executables2);
-  // executable_set3
-  std::vector<std::shared_ptr<tim::vx::platform::IExecutable>> executables3;
-  executables3.push_back(executable5);
-  auto executable_set3 = CreateExecutableSet(executables3);
-  // submit executaleSets
-  executable_set0->Submit(executable_set0);
-  executable_set1->Submit(executable_set0);
-  executable_set2->Submit(executable_set1);
-  executable_set3->Submit(executable_set2);
-  // trigger
-  executor->Trigger();  // run all submitted executableSets
 
   printTopN();
 

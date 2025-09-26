@@ -26,8 +26,8 @@
 #include "tim/vx/graph.h"
 #include "tim/vx/ops.h"
 #include "tim/vx/types.h"
-#include "tim/vx/platform/native.h"
-#include "tim/vx/platform/lite/lite_native.h"
+#include "tim/vx/platform/platform.h"
+
 
 int main() {
   //construct tim-vx graph
@@ -49,9 +49,15 @@ int main() {
   std::vector<int> data_vec_i0({1, 2, 3, 4});
   std::vector<int> data_vec_i1({4, 3, 2, 1});
 
-  auto devices = tim::vx::platform::NativeDevice::Enumerate();
+  auto devices = tim::vx::platform::IDevice::Enumerate();
+
+  std::cout << "NPU device count: " << devices.size() <<std::endl;
   auto device = devices[0];
-  auto executor = std::make_shared<tim::vx::platform::LiteNativeExecutor>(device);
+  //run 1 core in device 0
+  std::cout << "NPU device[0] has " << device->CoreCount() << "cores" <<std::endl;
+  auto use_core_count = -1;
+  auto executor = device->CreateExecutor(use_core_count);
+
   auto executable = executor->Compile(graph);
   auto input0_handle = executable->AllocateTensor(input_spec);
   auto input1_handle = executable->AllocateTensor(input_spec);
@@ -73,6 +79,10 @@ int main() {
   //each output value should be "5" in this demo
   for (int i = 0; i < 4; ++i) {
     std::cout << "output value: " << data[i] << std::endl;
+    if(data[i] != 5) {
+      std::cout << "test failed" << std::endl;
+      break;
+    }
   }
   free(data);
   return 0;

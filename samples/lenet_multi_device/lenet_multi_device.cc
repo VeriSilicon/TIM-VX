@@ -33,7 +33,6 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/platform/platform.h"
-#include "tim/vx/platform/native.h"
 
 std::vector<uint8_t> input_data = {
     0,   0,   0,   0,   0,   0,   0,   0,   6,   0,   2,   0,   0,   8,   0,
@@ -108,17 +107,17 @@ static void printTopN(const T* prob, int outputCount, int topNum) {
   }
 }
 
+
 int main(int argc, char** argv) {
   (void) argc, (void) argv;
   auto context0 = tim::vx::Context::Create();
   auto graph0 = lenet(context0);
   auto graph1 = lenet(context0);
 
-  auto devices = tim::vx::platform::NativeDevice::Enumerate();
+  auto devices = tim::vx::platform::IDevice::Enumerate();
   auto device = devices[0];
-  std::shared_ptr<tim::vx::platform::IExecutor> executor = std::make_shared<tim::vx::platform::NativeExecutor> (device);
-
-  auto executable0 = tim::vx::platform::Compile(graph0, executor);  // compile to nbg
+  auto executor = device->CreateExecutor(0,-1,context0);
+  auto executable0 = tim::vx::platform::Compile(graph0, executor);
   auto input_handle0 = executable0->AllocateTensor(graph0->InputsTensor()[0]->GetSpec());
   auto output_handle0 = executable0->AllocateTensor(graph0->OutputsTensor()[0]->GetSpec());
   executable0->SetInput(input_handle0);
@@ -127,7 +126,18 @@ int main(int argc, char** argv) {
   assert(executable0->Submit(executable0));
   executable0->Trigger();
 
-  auto executable1 = tim::vx::platform::Compile(graph1, executor);  // compile to nbg
+  std::vector<float> output_data;
+  output_data.resize(1 * 10);
+  if (!output_handle0->CopyDataFromTensor(output_data.data())) {
+    std::cout << "Copy output data fail." << std::endl;
+    return -1;
+  }
+  std::cout << "executable0 out." << std::endl;
+  printTopN(output_data.data(), output_data.size(), 5);
+  output_data.assign(output_data.size(),0);
+  output_handle0->CopyDataToTensor(output_data.data(), output_data.size());
+
+  auto executable1 = tim::vx::platform::Compile(graph1, executor);
   auto input_handle1 = executable1->AllocateTensor(graph1->InputsTensor()[0]->GetSpec());
   auto output_handle1 = executable1->AllocateTensor(graph1->OutputsTensor()[0]->GetSpec());
   executable1->SetInput(input_handle1);
@@ -136,34 +146,28 @@ int main(int argc, char** argv) {
   assert(executable1->Submit(executable0));
   executable1->Trigger();
 
+  std::vector<float> output_data1;
+  output_data1.resize(1 * 10);
+  if (!output_handle1->CopyDataFromTensor(output_data1.data())) {
+    std::cout << "Copy output data fail." << std::endl;
+    return -1;
+  }
+  std::cout << "executable1 out." << std::endl;
+  printTopN(output_data1.data(), output_data1.size(), 5);
+  output_data1.assign(output_data1.size(),0);
+  output_handle1->CopyDataToTensor(output_data1.data(), output_data1.size());
+
   executor->Submit(executable0, executable0);
   executor->Submit(executable1, executable0);
 
-  std::vector<std::shared_ptr<tim::vx::platform::IExecutable>> executables0;
-  executables0.push_back(executable0);
-  executables0.push_back(executable1);
-  auto executable_set0 = tim::vx::platform::CreateExecutableSet(executables0);
-  executor->Submit(executable_set0, executable_set0);
   executor->Trigger();
-
-  std::vector<uint8_t> input_data0;
-  input_data0.resize(28 * 28);
-  if (!input_handle0->CopyDataFromTensor(input_data0.data())) {
-    std::cout << "Copy intput data fail." << std::endl;
-    return -1;
-  }
-  printTopN(input_data0.data(), input_data0.size(), 5);
-
-  std::vector<float> output_data;
-  output_data.resize(1 * 10);
+  std::cout << "executor out." << std::endl;
   if (!output_handle0->CopyDataFromTensor(output_data.data())) {
     std::cout << "Copy output data fail." << std::endl;
     return -1;
   }
   printTopN(output_data.data(), output_data.size(), 5);
 
-  std::vector<float> output_data1;
-  output_data1.resize(1 * 10);
   if (!output_handle1->CopyDataFromTensor(output_data1.data())) {
     std::cout << "Copy output data fail." << std::endl;
     return -1;
