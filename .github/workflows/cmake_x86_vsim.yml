@@ -35,7 +35,7 @@ jobs:
       run: |
         cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
     - name: upload tim-vx-install
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: tim-vx-install
         path: |
@@ -75,7 +75,7 @@ jobs:
       VIVANTE_SDK_DIR: ${{github.workspace}}/prebuilt-sdk/x86_64_linux/
     steps:
     - name: download tim-vx build output
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: tim-vx-install
 
@@ -102,7 +102,7 @@ jobs:
       VIV_VX_DISABLE_TP_NN_EVIS: 1
     steps:
     - name: download tim-vx build output
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: tim-vx-install
 
@@ -117,7 +117,7 @@ jobs:
     needs: tim-vx-build
     steps:
       - name: download tim-vx build output
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tim-vx-install
       - name: apply-patch-build
@@ -131,7 +131,7 @@ jobs:
           cd ${{github.workspace}}/vx-delegate/build
           make vx_delegate benchmark_model
       - name: upload vx-delegate
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vx-delegate-bin
           path: |
@@ -144,7 +144,7 @@ jobs:
     needs: [vx-delegate-build, tim-vx-unit-test]
     steps:
       - name: download binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: download mobilenet_v2_quant.tflite
         run: |
@@ -159,7 +159,7 @@ jobs:
     needs: [vx-delegate-build, tim-vx-unit-test]
     steps:
       - name: download binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: download mobilenet_v2_b8_quant.tflite
         run: |
           curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mobilenet_v2_b8_quant.tflite
@@ -173,7 +173,7 @@ jobs:
     needs: [vx-delegate-build, tim-vx-unit-test]
     steps:
       - name: download test binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: download resnet_quant.tflite
         run: |
           curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/resnet_quant.tflite
@@ -187,7 +187,7 @@ jobs:
     needs: [vx-delegate-build, tim-vx-unit-test]
     steps:
       - name: download test binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: download model
         run: |
           curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/inception_v3_quant.tflite
@@ -201,7 +201,7 @@ jobs:
     needs: [vx-delegate-build, tim-vx-unit-test]
     steps:
       - name: download test binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: download model
         run: |
           curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mobilenet_v3_b4_quant.tflite
@@ -215,7 +215,7 @@ jobs:
     needs: [vx-delegate-build, tim-vx-unit-test]
     steps:
       - name: download test binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: download model
         run: |
           curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mobilenet_v3_quant.tflite
@@ -229,7 +229,7 @@ jobs:
     needs: [vx-delegate-build, tim-vx-unit-test]
     steps:
       - name: download test binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: download model
         run: |
           curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/mv3_depth_quant.tflite
@@ -243,7 +243,7 @@ jobs:
     needs: [vx-delegate-build, tim-vx-unit-test]
     steps:
       - name: download test binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: download model
         run: |
           curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/yolo_v4_tiny_quant.tflite
@@ -258,7 +258,7 @@ jobs:
   #   needs: [vx-delegate-build, tim-vx-unit-test]
   #   steps:
   #     - name: download test binary
-  #       uses: actions/download-artifact@v3
+  #       uses: actions/download-artifact@v4
   #     - name: download model
   #       run: |
   #         curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/deeplab_v3_plus_quant.tflite
@@ -273,7 +273,7 @@ jobs:
   #   needs: vx-delegate-build
   #   steps:
   #     - name: download test binary
-  #       uses: actions/download-artifact@v3
+  #       uses: actions/download-artifact@v4
   #     - name: download model
   #       run: |
   #         wget https://storage.googleapis.com/tfhub-lite-models/google/lite-model/movenet/multipose/lightning/tflite/float16/1.tflite
@@ -288,7 +288,7 @@ jobs:
   #   needs: [vx-delegate-build, tim-vx-unit-test]
   #   steps:
   #     - name: download test binary
-  #       uses: actions/download-artifact@v3
+  #       uses: actions/download-artifact@v4
   #     - name: download model
   #       run: |
   #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite0/detection/metadata/1.tflite
@@ -302,7 +302,7 @@ jobs:
   #   needs: [vx-delegate-build, tim-vx-unit-test]
   #   steps:
   #     - name: download test binary
-  #       uses: actions/download-artifact@v3
+  #       uses: actions/download-artifact@v4
   #     - name: download model
   #       run: |
   #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite1/detection/metadata/1.tflite
@@ -316,7 +316,7 @@ jobs:
   #   needs: [vx-delegate-build, tim-vx-unit-test]
   #   steps:
   #     - name: download test binary
-  #       uses: actions/download-artifact@v3
+  #       uses: actions/download-artifact@v4
   #     - name: download model
   #       run: |
   #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite2/detection/metadata/1.tflite
@@ -330,7 +330,7 @@ jobs:
   #   needs: [vx-delegate-build, tim-vx-unit-test]
   #   steps:
   #     - name: download test binary
-  #       uses: actions/download-artifact@v3
+  #       uses: actions/download-artifact@v4
   #     - name: download model
   #       run: |
   #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite2/detection/metadata/1.tflite
@@ -344,7 +344,7 @@ jobs:
   #   needs: [vx-delegate-build, tim-vx-unit-test]
   #   steps:
   #     - name: download test binary
-  #       uses: actions/download-artifact@v3
+  #       uses: actions/download-artifact@v4
   #     - name: download model
   #       run: |
   #         curl -LJO https://github.com/sunshinemyson/TIM-VX/releases/download/v1.1.30.2/yolov3_608relu_quant.acuity.tflite
@@ -359,7 +359,7 @@ jobs:
   #   needs: vx-delegate-build
   #   steps:
   #     - name: download test binary
-  #       uses: actions/download-artifact@v3
+  #       uses: actions/download-artifact@v4
   #     - name: download model
   #       run: |
   #         wget https://storage.googleapis.com/tfhub-lite-models/tensorflow/lite-model/efficientdet/lite4/detection/metadata/1.tflite
