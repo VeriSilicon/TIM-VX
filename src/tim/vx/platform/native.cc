@@ -80,8 +80,9 @@ std::shared_ptr<IExecutor> NativeDeviceImpl::CreateExecutor(const int32_t core_i
 
 std::vector<std::shared_ptr<IDevice>> NativeDevice::Enumerate() {
   std::vector<std::shared_ptr<IDevice>> device_v;
-#ifdef VSI_DEVICE_SUPPORT
   vsi_nn_context_t context = vsi_nn_CreateContext();
+  vsi_size_t deviceCount = 0;
+#ifdef VSI_DEVICE_SUPPORT
   vsi_nn_device_t  vsi_devices[VSI_MAX_DEVICES] = {0};
   vsi_status status  = VSI_FAILURE;
   vsi_size_t deviceCount = 0;
@@ -99,8 +100,15 @@ std::vector<std::shared_ptr<IDevice>> NativeDevice::Enumerate() {
     device_v.push_back(local_device);
   }
 #else
-#error "VSI device API is not supportted, please upgrade Vivant SDK version >= 6.4.22 && ovxlib >= 1.2.26 !");
+  vxQueryContext(context->c, VX_CONTEXT_DEVICE_COUNT_VIV, &deviceCount,
+                 sizeof(deviceCount));
+  for (device_id_t i = 0; i < deviceCount; i++) {
+    auto  local_device = std::make_shared<NativeDeviceImpl>(i,0);
+    device_v.push_back(local_device);
+  }
+  VSILOGE("VSI device API is not supportted, please upgrade Vivant SDK version >= 6.4.22 && ovxlib >= 1.2.26 !");
 #endif
+  vsi_nn_ReleaseContext(&context);
   return device_v;
 }
 
@@ -290,7 +298,9 @@ bool NativeExecutorImpl::BindDevices(const std::shared_ptr<Graph>& graph){
   GraphImpl* graphimp = dynamic_cast<GraphImpl*>(graph.get());
   status = vsi_nn_BindDevices(graphimp->graph(), 1, &sub_devices_);
 #else
-  (void)graph;
+  CompileOption option;
+  option.setDeviceId(device_->Id());
+  graph->SetCompileOption(option);
 #endif
   if(status == VSI_SUCCESS) {
     return true;
