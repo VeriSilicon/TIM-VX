@@ -1,5 +1,5 @@
 ## brief
-The multi_device demo uses some acuity exported tim-vx networks, and running on multi-core devices of NPU using platform api.
+The platform sample usage which use platform api.
 
 ## note
 Please note that if you have enabled lite platform, a dedicated VIVANTE_SDK(NO_KERNEL) is required as the compiler for NBG.
@@ -13,14 +13,13 @@ viplite >=2.0.0
 ## build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DTIM_VX_USE_EXTERNAL_OVXLIB=ON -DEXTERNAL_VIV_SDK=${VIVANTE_NOKERNEL_SDK_DIR} -DOVXLIB_INC=${OVXLIB_DIR}/include \
-         -DOVXLIB_LIB=/path/to/libovxlib.so -DTIM_VX_BUILD_EXAMPLES=ON -DTIM_VX_ENABLE_PLATFORM=ON -DTIM_VX_ENABLE_PLATFORM_LITE=ON -DVIP_LITE_SDK=${VIP_LITE_SDK}
+         -DOVXLIB_LIB=${VIVANTE_NOKERNEL_SDK_DIR}/drivers/libovxlib.so -DTIM_VX_BUILD_EXAMPLES=ON -DTIM_VX_ENABLE_PLATFORM=ON \
+         -DTIM_VX_ENABLE_PLATFORM_LITE=ON -DVIP_LITE_SDK=${VIP_LITE_SDK}
 
 ## environment
 # Export VIV_GPU_FILE to specify the NPU hardware configuration file for the NBG compiler
-# VIV_GPU_FILE Specify the NPU hardware configuration file for the NBG compiler
-export VIV_GPU_FILE="/path/to/VIP9400NANOQ_PLUS_PID0X10000055.config"
-export TIM_VX_ROOT="${workspaceFolder}/tim-vx"
+export VIV_GPU_FILE="/path/to/VIP9000NANOQ_PLUS_PID0X100000XX.config"
 
 ## run
 cd build
-./samples/multi_device/multi_device
+./samples/platform_sample/platform_sample

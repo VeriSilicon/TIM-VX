@@ -61,8 +61,10 @@ if(TIM_VX_ENABLE_PLATFORM)
         endif()
         list(APPEND LITE_EXTERNAL_LIBS
             ${VIP_LITE_SDK}/drivers/libNBGlinker.so
-            ${VIP_LITE_SDK}/drivers/libVIPlite.so)
-        list(APPEND LITE_INC_DIRS ${VIP_LITE_SDK}/include)
+            ${VIP_LITE_SDK}/drivers/libVIPhal.so)
+        list(APPEND LITE_INC_DIRS
+            ${VIP_LITE_SDK}/include
+            ${VIP_LITE_SDK}/include/nbg_linker)
     endif()
 
     if(TIM_VX_ENABLE_GRPC)

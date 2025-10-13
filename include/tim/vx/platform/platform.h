@@ -46,15 +46,12 @@ namespace platform {
 
 class IDevice;
 class IExecutable;
-class ExecutableSet;
 class IExecutor;
 class ITensorHandle;
 
 std::shared_ptr<IExecutable> Compile(
     const std::shared_ptr<Graph>& graph,
     const std::shared_ptr<IExecutor>& executor);
-std::shared_ptr<IExecutable> CreateExecutableSet(
-    const std::vector<std::shared_ptr<IExecutable>>& executables);
 
 class IDevice {
  public:
@@ -68,17 +65,25 @@ class IDevice {
   virtual ~IDevice(){};
   virtual bool Submit(const std::shared_ptr<Graph>& graph) = 0;
   virtual bool Trigger(bool async = false, async_callback cb = NULL) = 0;
-  device_id_t Id() const;
+  device_id_t Id() const { return device_id_;};
   virtual void WaitDeviceIdle() = 0;
   virtual bool DeviceExit() = 0;
   virtual void RemoteReset();
+  uint32_t CoreCount() const {return core_count_;};
+  virtual std::shared_ptr<IExecutor> CreateExecutor(const int32_t core_index = 0,
+                                                    const int32_t core_count = -1,
+                                                    const std::shared_ptr<Context>& context = nullptr) = 0;
+  static std::vector<std::shared_ptr<IDevice>> Enumerate();
 
  protected:
   device_id_t device_id_;
+  uint32_t core_count_;
+
 };
 
 class IExecutor {
  public:
+  //using task = std::shared_ptr<IExecutable>;
   using task = std::weak_ptr<IExecutable>;
   virtual ~IExecutor(){};
   virtual bool Submit(const std::shared_ptr<IExecutable>& executable,
@@ -87,13 +92,17 @@ class IExecutor {
   virtual bool Trigger(bool async = false) = 0;  // todo: async=true
   virtual std::shared_ptr<IExecutable> Compile(
       const std::shared_ptr<Graph>& graph) = 0;
-  virtual std::shared_ptr<IDevice> Device() const;
-  virtual std::shared_ptr<Context> Contex() const;
-
+  virtual std::shared_ptr<IDevice> Device() const {return device_;};
+  virtual std::shared_ptr<Context> Contex() const {return context_;};
+  virtual uint32_t CoreIndex() const {return core_index_; };
+  virtual uint32_t CoreCount() const {return core_count_; };
  protected:
   std::vector<task> tasks_;
   std::shared_ptr<IDevice> device_;
   std::shared_ptr<Context> context_;
+  uint32_t core_index_;
+  uint32_t core_count_;
+
 };
 
 class IExecutable : public std::enable_shared_from_this<IExecutable> {
@@ -101,40 +110,24 @@ class IExecutable : public std::enable_shared_from_this<IExecutable> {
   virtual ~IExecutable(){};
   virtual void SetInput(const std::shared_ptr<ITensorHandle>& th) = 0;
   virtual void SetOutput(const std::shared_ptr<ITensorHandle>& th) = 0;
-  virtual void GetOutput(
-      const std::vector<std::shared_ptr<ITensorHandle>>& th) = 0;  // for remote
+  virtual void SetInputs(const std::vector<std::shared_ptr<ITensorHandle>>& ths) = 0;
+  virtual void SetOutputs(const std::vector<std::shared_ptr<ITensorHandle>>& ths) = 0;
+  virtual std::vector<std::shared_ptr<ITensorHandle>> GetOutputs() { return input_handles_;};
+  virtual std::vector<std::shared_ptr<ITensorHandle>> Getinputs() { return input_handles_;};
   virtual bool Submit(const std::shared_ptr<IExecutable>& ref,
                       bool after = true) = 0;
   virtual bool Trigger(bool async = false) = 0;  // todo: async=true
   virtual bool Verify() = 0;
-  virtual std::shared_ptr<Graph> NBGraph() const;
-  virtual std::shared_ptr<ITensorHandle> AllocateTensor(
-      const TensorSpec& tensor_spec) = 0;
-  virtual std::shared_ptr<IExecutor> Executor() const;
+  std::shared_ptr<Graph> NBGraph() const {return nb_graph_;};
+  virtual std::shared_ptr<ITensorHandle> AllocateTensor(const TensorSpec& tensor_spec ,
+                                                        void* data = nullptr, uint32_t size = 0) = 0;
 
  protected:
   std::weak_ptr<IExecutor> executor_;
   std::shared_ptr<Context> context_;
   std::shared_ptr<Graph> nb_graph_;
-};
-
-class ExecutableSet : public IExecutable {
- public:
-  ExecutableSet(const std::vector<std::shared_ptr<IExecutable>>& executables);
-  void SetInput(const std::shared_ptr<ITensorHandle>& th) override;
-  void SetOutput(const std::shared_ptr<ITensorHandle>& th) override;
-  void GetOutput(
-      const std::vector<std::shared_ptr<ITensorHandle>>& th) override;
-  bool Submit(const std::shared_ptr<IExecutable>& ref,
-              bool after = true) override;
-  bool Trigger(bool async = false) override;
-  bool Verify() override;
-  std::shared_ptr<ITensorHandle> AllocateTensor(
-      const TensorSpec& tensor_spec) override;
-  std::vector<std::shared_ptr<IExecutable>> Executables() const;
-
- protected:
-  std::vector<std::shared_ptr<IExecutable>> executables_;
+  std::vector<std::shared_ptr<ITensorHandle>> input_handles_;
+  std::vector<std::shared_ptr<ITensorHandle>> output_handles_;
 };
 
 class ITensorHandle {
@@ -142,10 +135,12 @@ class ITensorHandle {
   virtual ~ITensorHandle(){};
   virtual bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) = 0;
   virtual bool CopyDataFromTensor(void* data) = 0;
-  virtual std::shared_ptr<Tensor> GetTensor() const;
+  virtual std::shared_ptr<Tensor> GetTensor() const { return tensor_;};
+  virtual TensorSpec& GetSpec() { return spec_;};
 
  protected:
   std::shared_ptr<Tensor> tensor_;
+  TensorSpec spec_;
 };
 
 }  // namespace platform

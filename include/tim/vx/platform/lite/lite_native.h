@@ -25,69 +25,55 @@
 #define TIM_VX_LITE_NATIVE_H_
 
 #include "tim/vx/platform/platform.h"
-#include "vip_lite.h"
-#include "nbg_linker.h"
 
 namespace tim {
 namespace vx {
 namespace platform {
 
-class LiteNativeExecutor
-    : public IExecutor,
-      public std::enable_shared_from_this<LiteNativeExecutor> {
+class LiteNativeDevice : public IDevice {
  public:
-  LiteNativeExecutor(const std::shared_ptr<IDevice>& device);
-  virtual ~LiteNativeExecutor();
-  bool Submit(const std::shared_ptr<IExecutable>& executable,
-              const std::shared_ptr<IExecutable>& ref,
-              bool after = true) override;
-  bool Trigger(bool async = false) override;
-  std::shared_ptr<IExecutable> Compile(
-      const std::shared_ptr<Graph>& graph) override;
-
- private:
-  vip_task_descriptor_t* task_descriptor_;
-  vip_database database_;
+  virtual ~LiteNativeDevice() {};
+  virtual bool Submit(const std::shared_ptr<Graph>& graph) = 0;
+  virtual bool Trigger(bool async = false, async_callback cb = NULL) = 0;
+  virtual bool DeviceExit() = 0;
+  virtual void WaitDeviceIdle() = 0;
+  virtual std::shared_ptr<IExecutor> CreateExecutor(const int32_t core_index = 0,
+                                                    const int32_t core_count = -1,
+                                                    const std::shared_ptr<Context>& context = nullptr) = 0;
+  static std::vector<std::shared_ptr<IDevice>> Enumerate();
+  static bool vip_initialized;
+};
+class LiteNativeExecutor
+    : public IExecutor {
+ public:
+  virtual ~LiteNativeExecutor() {};
+  virtual bool Submit(const std::shared_ptr<IExecutable>& executable,
+                      const std::shared_ptr<IExecutable>& ref,
+                      bool after = true) = 0;
+  virtual bool Trigger(bool async = false) = 0;
+  virtual std::shared_ptr<IExecutable> Compile(
+      const std::shared_ptr<Graph>& graph) = 0;
 };
 
 class LiteNativeExecutable : public IExecutable {
  public:
-  LiteNativeExecutable(const std::shared_ptr<IExecutor>& executor,
-                       const std::vector<char>& nb_buf);
-  virtual ~LiteNativeExecutable();
-  void SetInput(const std::shared_ptr<ITensorHandle>& th) override;
-  void SetOutput(const std::shared_ptr<ITensorHandle>& th) override;
-  void GetOutput(
-      const std::vector<std::shared_ptr<ITensorHandle>>& th) override;
-  bool Submit(const std::shared_ptr<IExecutable>& ref, bool after) override;
-  bool Trigger(bool async) override;
-  bool Verify() override;
-  std::shared_ptr<ITensorHandle> AllocateTensor(
-      const TensorSpec& tensor_spec) override;
-
-  vip_network network_;
-
- private:
-  void SetBuffer(vip_memory_t* dst, gcvip_videomemory_t* src);
-
-  int32_t input_count_;
-  int32_t output_count_;
-
-  gcvip_videomemory_t* coeff_;
-  gcvip_videomemory_t* command_;
-  gcvip_videomemory_t* memory_pool_;
-  gcvip_videomemory_t* others_;
-  gcvip_videomemory_t* pre_command_;
+  virtual ~LiteNativeExecutable() {};
+  virtual void SetInput(const std::shared_ptr<ITensorHandle>& th) = 0;
+  virtual void SetOutput(const std::shared_ptr<ITensorHandle>& th) = 0;
+  virtual void SetInputs(const std::vector<std::shared_ptr<ITensorHandle>>& ths) = 0;
+  virtual void SetOutputs(const std::vector<std::shared_ptr<ITensorHandle>>& ths) = 0;
+  virtual bool Submit(const std::shared_ptr<IExecutable>& ref, bool after) = 0;
+  virtual bool Trigger(bool async) = 0;
+  virtual bool Verify() = 0;
+  virtual std::shared_ptr<ITensorHandle> AllocateTensor(const TensorSpec& tensor_spec,
+                                                        void* data = nullptr, uint32_t size = 0) = 0;
 };
 
 class LiteNativeTensorHandle : public ITensorHandle {
  public:
-  LiteNativeTensorHandle(const std::shared_ptr<Tensor>& tensr);
-  virtual ~LiteNativeTensorHandle();
-  bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) override;
-  bool CopyDataFromTensor(void* data) override;
-
-  gcvip_videomemory_t* tensor_buffer_;
+  virtual ~LiteNativeTensorHandle() {};
+  bool CopyDataToTensor(const void* data, uint32_t size_in_bytes) = 0;
+  bool CopyDataFromTensor(void* data) = 0;
 };
 }  // namespace platform
 }  // namespace vx

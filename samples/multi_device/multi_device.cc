@@ -35,7 +35,6 @@
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
 #include "tim/vx/platform/platform.h"
-#include "tim/vx/platform/native.h"
 #include "vx_lenet.h"
 #include "vx_mobilenet.h"
 #include "vx_resnet50.h"
@@ -59,7 +58,7 @@ static void printTopN(const T* prob, int outputCount, int topNum) {
 }
 
 template <typename T>
-void print_topN(std::size_t size, std::shared_ptr<tim::vx::platform::ITensorHandle> handle) {
+void print_topN(std::size_t size, std::shared_ptr<tim::vx::platform::ITensorHandle> & handle) {
   std::vector<T> output_data;
   output_data.resize(size);
   if (!handle->CopyDataFromTensor(output_data.data())) {
@@ -94,7 +93,8 @@ void executor_trigger(std::shared_ptr<tim::vx::platform::IExecutor> executor) {
 }
 
 auto context = tim::vx::Context::Create();
-std::pair<std::shared_ptr<tim::vx::platform::IExecutable>, std::shared_ptr<tim::vx::platform::ITensorHandle>> generate_executable(
+std::pair<std::shared_ptr<tim::vx::platform::IExecutable>, std::shared_ptr<tim::vx::platform::ITensorHandle>>
+  generate_executable(
     std::shared_ptr<tim::vx::platform::IExecutor> executor,
     std::function<void(std::shared_ptr<tim::vx::Graph>, const char*)> construct_func,
     std::string weight_file,
@@ -114,15 +114,17 @@ std::pair<std::shared_ptr<tim::vx::platform::IExecutable>, std::shared_ptr<tim::
 
 int main(int argc, char** argv) {
   (void) argc, (void) argv;
-  auto devices = tim::vx::platform::NativeDevice::Enumerate();
+  auto devices = tim::vx::platform::IDevice::Enumerate();
   auto device0 = devices[0];
-  std::shared_ptr<tim::vx::platform::IExecutor> executor0 = std::make_shared<tim::vx::platform::NativeExecutor> (device0);
-  auto device1 = devices[1];
-  std::shared_ptr<tim::vx::platform::IExecutor> executor1 = std::make_shared<tim::vx::platform::NativeExecutor> (device1);
-  auto device2 = devices[2];
-  std::shared_ptr<tim::vx::platform::IExecutor> executor2 = std::make_shared<tim::vx::platform::NativeExecutor> (device2);
-  auto device3 = devices[3];
-  std::shared_ptr<tim::vx::platform::IExecutor> executor3 = std::make_shared<tim::vx::platform::NativeExecutor> (device3);
+  auto total_core_count = device0->CoreCount();
+  uint32_t core_index = 0;
+  auto use_core_count = 1;
+  std::vector<std::shared_ptr<tim::vx::platform::IExecutor>> executors;
+
+  for(core_index = 0; core_index < total_core_count; core_index += use_core_count) {
+    auto executor = device0->CreateExecutor(core_index,use_core_count, context);
+    executors.push_back(executor);
+  }
 
   auto root = std::getenv("TIM_VX_ROOT");
   assert(root != NULL);
@@ -142,46 +144,57 @@ int main(int argc, char** argv) {
   auto resnet50_weight_file = ROOT + "/samples/multi_device/resnet50/resnet50.export.data";
   std::function<void(std::shared_ptr<tim::vx::Graph>, const char*)> resnet50_construct_func = acuitylite::resnet50::construct_graph;
 
-  std::shared_ptr<tim::vx::platform::IExecutable> lenet_0, lenet_2, lenet_3, mobilenet_1, mobilenet_2, mobilenet_3, resnet50_0, resnet50_1;
-  std::shared_ptr<tim::vx::platform::ITensorHandle> lenet_0_outhandle, lenet_2_outhandle, lenet_3_outhandle, mobilenet_1_outhandle, mobilenet_2_outhandle, mobilenet_3_outhandle,
-    resnet50_0_outhandle, resnet50_1_outhandle;
+  auto excutor_cnt  = executors.size();
 
-  std::tie(lenet_0, lenet_0_outhandle) = generate_executable(executor0, lenet_construct_func, lenet_weight_file, lenet_input_files, lenet_input_bytes);
-  std::tie(resnet50_0, resnet50_0_outhandle) = generate_executable(executor0, resnet50_construct_func, resnet50_weight_file, resnet50_input_files, resnet50_input_bytes);
-  executor0->Submit(lenet_0, lenet_0);
-  executor0->Submit(resnet50_0, lenet_0);
+  //each excutor run 2 models.
+  auto lenet = [&](std::shared_ptr<tim::vx::platform::IExecutor> executor) {
+    return generate_executable(executor, lenet_construct_func, lenet_weight_file,
+                               lenet_input_files, lenet_input_bytes);
+  };
+  auto resnet = [&](std::shared_ptr<tim::vx::platform::IExecutor> executor) {
+     return generate_executable(executor, resnet50_construct_func, resnet50_weight_file,
+                                resnet50_input_files, resnet50_input_bytes);
+  };
+  auto mobilenet = [&](std::shared_ptr<tim::vx::platform::IExecutor> executor) {
+     return generate_executable(executor, mobilenet_construct_func, mobilenet_weight_file,
+                                mobilenet_input_files, mobilenet_input_bytes);
+  };
+  std::vector<std::pair<std::shared_ptr<tim::vx::platform::IExecutable>,
+              std::shared_ptr<tim::vx::platform::ITensorHandle>>> nets;
+  for (size_t i = 0; i < excutor_cnt; i++) {
+    if(i % 3 == 0) {
+      //lenet + resnet
+      nets.push_back(lenet(executors[i]));
+      executors[i]->Submit(nets.back().first, nets.back().first);
+      nets.push_back(resnet(executors[i]));
+      executors[i]->Submit(nets.back().first, nets.back().first);
+    }
+    if(i % 3 == 1) {
+      //resnet + mobilenet
+      nets.push_back(resnet(executors[i]));
+      executors[i]->Submit(nets.back().first, nets.back().first);
+      nets.push_back(mobilenet(executors[i]));
+      executors[i]->Submit(nets.back().first, nets.back().first);
+    }
+    if(i % 3 == 2) {
+      //lenet + mobilenet
+      nets.push_back(mobilenet(executors[i]));
+      executors[i]->Submit(nets.back().first, nets.back().first);
+      nets.push_back(lenet(executors[i]));
+      executors[i]->Submit(nets.back().first, nets.back().first);
+    }
+  }
+  std::vector<std::thread> threads;
+  for(auto executor:executors) {
+        threads.push_back(std::thread(executor_trigger, executor));
+  }
+  for(std::thread &t : threads) {
+     t.join();
+  }
 
-  std::tie(mobilenet_1, mobilenet_1_outhandle) = generate_executable(executor1, mobilenet_construct_func, mobilenet_weight_file, mobilenet_input_files, mobilenet_input_bytes);
-  std::tie(resnet50_1, resnet50_1_outhandle) = generate_executable(executor1, resnet50_construct_func, resnet50_weight_file, resnet50_input_files, resnet50_input_bytes);
-  auto executable_set1 = tim::vx::platform::CreateExecutableSet({mobilenet_1, resnet50_1});
-  executor1->Submit(executable_set1, executable_set1);
-
-  std::tie(lenet_2, lenet_2_outhandle) = generate_executable(executor2, lenet_construct_func, lenet_weight_file, lenet_input_files, lenet_input_bytes);
-  std::tie(mobilenet_2, mobilenet_2_outhandle) = generate_executable(executor2, mobilenet_construct_func, mobilenet_weight_file, mobilenet_input_files, mobilenet_input_bytes);
-  auto executable_set2 = tim::vx::platform::CreateExecutableSet({lenet_2, mobilenet_2});
-  executor2->Submit(executable_set2, executable_set2);
-
-  std::tie(lenet_3, lenet_3_outhandle) = generate_executable(executor3, lenet_construct_func, lenet_weight_file, lenet_input_files, lenet_input_bytes);
-  std::tie(mobilenet_3, mobilenet_3_outhandle) = generate_executable(executor3, mobilenet_construct_func, mobilenet_weight_file, mobilenet_input_files, mobilenet_input_bytes);
-  auto executable_set3 = tim::vx::platform::CreateExecutableSet({lenet_3, mobilenet_3});
-  executor3->Submit(executable_set3, executable_set3);
-
-  std::thread t0(executor_trigger, executor0);
-  std::thread t1(executor_trigger, executor1);
-  std::thread t2(executor_trigger, executor2);
-  std::thread t3(executor_trigger, executor3);
-  t0.join();
-  t1.join();
-  t2.join();
-  t3.join();
-
-  print_topN<float>(1 * 10, lenet_0_outhandle);
-  print_topN<float>(1 * 10, lenet_2_outhandle);
-  print_topN<float>(1 * 10, lenet_3_outhandle);
-  print_topN<float>(1 * 1001, mobilenet_1_outhandle);
-  print_topN<float>(1 * 1001, mobilenet_2_outhandle);
-  print_topN<float>(1 * 1001, mobilenet_3_outhandle);
-  print_topN<uint16_t>(1 * 1000, resnet50_0_outhandle);
-  print_topN<uint16_t>(1 * 1000, resnet50_1_outhandle);
+for (auto net : nets) {
+  auto size = net.second->GetSpec().GetElementNum();
+  print_topN<float>(size, net.second);
+}
   return 0;
 }
