@@ -85,7 +85,6 @@ std::vector<std::shared_ptr<IDevice>> NativeDevice::Enumerate() {
 #ifdef VSI_DEVICE_SUPPORT
   vsi_nn_device_t  vsi_devices[VSI_MAX_DEVICES] = {0};
   vsi_status status  = VSI_FAILURE;
-  vsi_size_t deviceCount = 0;
 
   status  = vsi_nn_GetDevices(context,vsi_devices,&deviceCount);
   if(status != VSI_SUCCESS){
