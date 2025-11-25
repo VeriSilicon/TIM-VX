@@ -181,6 +181,7 @@ LiteNativeExecutorImpl::LiteNativeExecutorImpl(const std::shared_ptr<IDevice>& d
   vsi_size_t num_devices = 0;
   vsi_size_t available_core_count = 0;
   auto ctx = dynamic_cast<ContextImpl*>(context_.get());
+  sub_device_ = NULL;
   vsi_nn_GetDevices(ctx->context(), vsi_devices, &num_devices);
 
   //Always use device 0 to compile NBG.

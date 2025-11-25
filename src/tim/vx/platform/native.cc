@@ -85,7 +85,6 @@ std::vector<std::shared_ptr<IDevice>> NativeDevice::Enumerate() {
 #ifdef VSI_DEVICE_SUPPORT
   vsi_nn_device_t  vsi_devices[VSI_MAX_DEVICES] = {0};
   vsi_status status  = VSI_FAILURE;
-  vsi_size_t deviceCount = 0;
 
   status  = vsi_nn_GetDevices(context,vsi_devices,&deviceCount);
   if(status != VSI_SUCCESS){
@@ -215,9 +214,10 @@ NativeExecutorImpl::NativeExecutorImpl(const std::shared_ptr<IDevice>& device,
 #ifdef VSI_DEVICE_SUPPORT
   vsi_nn_device_t  vsi_devices[VSI_MAX_DEVICES] = {0};
   vsi_size_t num_devices = 0;
+  sub_device_ = NULL;
   auto ctx = dynamic_cast<ContextImpl*>(context_.get());
   vsi_nn_GetDevices(ctx->context(),vsi_devices,&num_devices);
-  vsi_nn_CreateSubDevice(vsi_devices[device_->Id()],core_index_,core_count_,&sub_devices_);
+  vsi_nn_CreateSubDevice(vsi_devices[device_->Id()],core_index_,core_count_,&sub_device_);
 #endif
 }
 
@@ -296,7 +296,7 @@ bool NativeExecutorImpl::BindDevices(const std::shared_ptr<Graph>& graph){
   vsi_status status  = VSI_SUCCESS;
 #ifdef VSI_DEVICE_SUPPORT
   GraphImpl* graphimp = dynamic_cast<GraphImpl*>(graph.get());
-  status = vsi_nn_BindDevices(graphimp->graph(), 1, &sub_devices_);
+  status = vsi_nn_BindDevices(graphimp->graph(), 1, &sub_device_);
 #else
   CompileOption option;
   option.setDeviceId(device_->Id());
