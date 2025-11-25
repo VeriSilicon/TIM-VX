@@ -142,7 +142,6 @@ LiteNativeExecutorImpl::LiteNativeExecutorImpl(const std::shared_ptr<IDevice>& d
  {
   device_ = device;
   context_ = context;
-  sub_device_ = NULL;
   if(context_ == nullptr) {
     context_ = tim::vx::Context::Create();
   }
@@ -182,6 +181,7 @@ LiteNativeExecutorImpl::LiteNativeExecutorImpl(const std::shared_ptr<IDevice>& d
   vsi_size_t num_devices = 0;
   vsi_size_t available_core_count = 0;
   auto ctx = dynamic_cast<ContextImpl*>(context_.get());
+  sub_device_ = NULL;
   vsi_nn_GetDevices(ctx->context(), vsi_devices, &num_devices);
 
   //Always use device 0 to compile NBG.
