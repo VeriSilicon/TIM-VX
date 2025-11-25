@@ -142,6 +142,7 @@ LiteNativeExecutorImpl::LiteNativeExecutorImpl(const std::shared_ptr<IDevice>& d
  {
   device_ = device;
   context_ = context;
+  sub_device_ = NULL;
   if(context_ == nullptr) {
     context_ = tim::vx::Context::Create();
   }

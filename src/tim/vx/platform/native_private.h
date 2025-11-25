@@ -88,7 +88,7 @@ class NativeExecutorImpl : public NativeExecutor,
 
 private:
 #ifdef VSI_DEVICE_SUPPORT
-  vsi_nn_device_t  sub_devices_;
+  vsi_nn_device_t  sub_device_;
 #endif
 };
 
