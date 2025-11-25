@@ -185,7 +185,6 @@ NativeExecutorImpl::NativeExecutorImpl(const std::shared_ptr<IDevice>& device,
                                const int32_t core_index,
                                const std::shared_ptr<Context>& context) {
   device_ = device;
-  sub_device_ = NULL;
   if(!context) {
     context_ = Context::Create();
   } else {
@@ -215,6 +214,7 @@ NativeExecutorImpl::NativeExecutorImpl(const std::shared_ptr<IDevice>& device,
 #ifdef VSI_DEVICE_SUPPORT
   vsi_nn_device_t  vsi_devices[VSI_MAX_DEVICES] = {0};
   vsi_size_t num_devices = 0;
+  sub_device_ = NULL;
   auto ctx = dynamic_cast<ContextImpl*>(context_.get());
   vsi_nn_GetDevices(ctx->context(),vsi_devices,&num_devices);
   vsi_nn_CreateSubDevice(vsi_devices[device_->Id()],core_index_,core_count_,&sub_device_);
