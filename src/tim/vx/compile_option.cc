@@ -56,4 +56,5 @@ bool CompileOption::isRelaxMode() const { return this->impl_->RelaxMode(); }
 bool CompileOption::setRelaxMode(bool enable) {
   return this->impl_->RelaxMode() = enable;
 }
+}  // namespace vx
 }  // namespace tim
