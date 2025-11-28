@@ -342,12 +342,6 @@ bool GraphImpl::Setup() {
   }
   vsi_nn_SetGraphFastMode(graph_, is_fast_mode);
 
-#if defined(ENABLE_PLATFORM)
-  auto id = options_.getDeviceId();
-  vxSetGraphAttribute(graph_->g, VX_GRAPH_DEVICE_INDEX_VIV, (void*)(&id),
-                      sizeof(id));
-#endif
-
   std::call_once(setio_once_, [&status, this]() {
     status = (vsi_nn_SetGraphInputs(this->graph_, this->inputs_.data(),
                                     this->inputs_.size()) &&

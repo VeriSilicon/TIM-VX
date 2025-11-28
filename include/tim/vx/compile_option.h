@@ -27,10 +27,6 @@
 #include <map>
 #include <memory>
 
-#if defined(ENABLE_PLATFORM)
-#include "platform/platform.h"
-#endif
-
 namespace tim {
 namespace vx {
 struct CompileOptionImpl;
@@ -41,11 +37,6 @@ class CompileOption {
 
   bool isRelaxMode() const;
   bool setRelaxMode(bool enable = false);
-
-#if defined(ENABLE_PLATFORM)
-  void setDeviceId(::tim::vx::platform::IDevice::device_id_t device);
-  ::tim::vx::platform::IDevice::device_id_t getDeviceId();
-#endif
 
   static CompileOption DefaultOptions;
 
