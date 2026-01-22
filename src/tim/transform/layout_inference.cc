@@ -385,7 +385,6 @@ LayoutInference(
     auto output = infer_graph->CreateTensor(t_src->GetSpec());
     layout_infer_ctx->UpdateTensorMap(t_src, output);
     layout_infer_ctx->UpdateGraphOutputMap(t_src, output);
-    tensor_queue.push(t_src);
     layout_infer_ctx->SetPermuteVector(
         t_src, tensor_pv_map.find(t_src) != tensor_pv_map.end()
                    ? tensor_pv_map[t_src]
