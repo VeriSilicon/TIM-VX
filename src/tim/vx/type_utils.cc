@@ -164,6 +164,8 @@ vsi_enum TranslateResizeType(ResizeType type) {
       return VSI_NN_INTERPOLATION_BILINEAR;
     case ResizeType::AREA:
       return VSI_NN_INTERPOLATION_AREA;
+    case ResizeType::CUBIC:
+      return VSI_NN_INTERPOLATION_CUBIC;
   }
   return VSI_NN_INTERPOLATION_NEAREST_NEIGHBOR;
 }
