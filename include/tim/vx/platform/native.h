@@ -65,7 +65,10 @@ class NativeExecutor : public IExecutor {
                       const std::shared_ptr<IExecutable>& ref,
                       bool after = true) = 0;
   virtual bool Trigger(bool async = false) = 0;
+  virtual std::shared_ptr<IExecutable> CreateExecutable(const std::vector<char>& network_binary,
+                       size_t inputs_num, size_t outputs_num) = 0;
   virtual std::shared_ptr<IExecutable> Compile(const std::shared_ptr<Graph>& graph) = 0;
+  virtual std::vector<char> CompileToBinary(const std::shared_ptr<Graph>& graph) = 0;
 };
 
 class NativeTensorHandle : public ITensorHandle {

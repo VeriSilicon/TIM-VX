@@ -90,8 +90,15 @@ class IExecutor {
                       const std::shared_ptr<IExecutable>& ref,
                       bool after = true) = 0;
   virtual bool Trigger(bool async = false) = 0;  // todo: async=true
+  //Create form NBG buffer
+  virtual std::shared_ptr<IExecutable> CreateExecutable(
+      const std::vector<char>& network_binary,
+      size_t inputs_num, size_t outputs_num) = 0;
   virtual std::shared_ptr<IExecutable> Compile(
       const std::shared_ptr<Graph>& graph) = 0;
+  virtual std::vector<char> CompileToBinary(
+      const std::shared_ptr<Graph>& graph) = 0;
+
   virtual std::shared_ptr<IDevice> Device() const {return device_;};
   virtual std::shared_ptr<Context> Contex() const {return context_;};
   virtual uint32_t CoreIndex() const {return core_index_; };

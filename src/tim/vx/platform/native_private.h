@@ -83,7 +83,10 @@ class NativeExecutorImpl : public NativeExecutor,
               const std::shared_ptr<IExecutable>& ref,
               bool after = true) override;
   bool Trigger(bool async = false) override;
+  std::shared_ptr<IExecutable> CreateExecutable(const std::vector<char>& network_binary,
+                       size_t inputs_num, size_t outputs_num) override;
   std::shared_ptr<IExecutable> Compile(const std::shared_ptr<Graph>& graph) override;
+  std::vector<char> CompileToBinary(const std::shared_ptr<Graph>& graph) override;
   bool BindDevices(const std::shared_ptr<Graph>& graph);
 
 private:

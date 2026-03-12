@@ -254,25 +254,48 @@ bool LiteNativeExecutorImpl::Trigger(bool async) {
   return true;
 }
 
+std::shared_ptr<IExecutable> LiteNativeExecutorImpl::CreateExecutable(
+  const std::vector<char>& network_binary, size_t inputs_num, size_t outputs_num) {
+  (void)inputs_num;
+  (void)outputs_num;
+  std::shared_ptr<IExecutor> this_sp = shared_from_this();
+  auto executable = std::make_shared<LiteNativeExecutableImpl>(this_sp, network_binary);
+  return executable;
+}
+
 std::shared_ptr<IExecutable> LiteNativeExecutorImpl::Compile(
     const std::shared_ptr<Graph>& graph) {
+  std::vector<char> nb_buf = CompileToBinary(graph);
+  if(nb_buf.size()==0) return nullptr;
+
+  size_t inputs = graph->InputsTensor().size();
+  size_t outputs = graph->OutputsTensor().size();
+
+  return CreateExecutable(nb_buf, inputs, outputs);
+}
+
+std::vector<char> LiteNativeExecutorImpl::CompileToBinary(
+  const std::shared_ptr<Graph>& graph) {
   size_t bin_size = -1;
   std::vector<char> nb_buf;
 #ifdef VSI_DEVICE_SUPPORT
-  GraphImpl* graphimp = dynamic_cast<GraphImpl*>(graph.get());
+  GraphImpl *graphimp = dynamic_cast<GraphImpl *>(graph.get());
   vsi_nn_BindDevices(graphimp->graph(), 1, &sub_device_);
 #endif
   auto ret = graph->CompileToBinary(nullptr, &bin_size);
-  nb_buf.resize(bin_size);
-  ret |= graph->CompileToBinary(nb_buf.data(), &bin_size);
-  if(!ret) {
+  if (!ret) {
     VSILOGE("Compile fail");
-    return nullptr;
+    return nb_buf;
   }
-
-  std::shared_ptr<IExecutor> this_sp = shared_from_this();
-  auto executable = std::make_shared<LiteNativeExecutableImpl>(this_sp, nb_buf);
-  return executable;
+  nb_buf.resize(bin_size);
+  ret = graph->CompileToBinary(nb_buf.data(), &bin_size);
+  if (!ret)
+  {
+    VSILOGE("Compile fail");
+    //clear and free
+    std::vector<char>().swap(nb_buf);
+  }
+  return nb_buf;
 }
 
 LiteNativeExecutableImpl::LiteNativeExecutableImpl(
@@ -415,6 +438,7 @@ LiteNativeTensorHandleImpl::LiteNativeTensorHandleImpl(const TensorSpec& tensor_
     VSILOGE("Buffer size is less than the memory size required by the tensor");
     assert(false);
   }
+  memset(&tensor_param,0,sizeof(tensor_param));
 #if 0
   uint32_t addr_aligned_size = 256;
   if (!data) {
@@ -446,6 +470,7 @@ LiteNativeTensorHandleImpl::LiteNativeTensorHandleImpl(const TensorSpec& tensor_
   tensor_param.device_index = device_id ;
   tensor_param.src.alloc_mem.size = tensor_size;
   tensor_param.src.alloc_mem.align = block_aligned_size;
+
   status = vip_create_buffer(&tensor_param,sizeof(tensor_param),&tensor_buffer_);
   memory_type_ = ALLOC_MEM_VIDEOMEM;
 #endif
